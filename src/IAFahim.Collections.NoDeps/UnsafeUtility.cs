@@ -39,12 +39,26 @@ namespace Unity.Collections.LowLevel.Unsafe
                 p[i] = value;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe void* AddressOf<T>(ref T output) where T : unmanaged
+        {
+            return System.Runtime.CompilerServices.Unsafe.AsPointer(ref output);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ref U As<T, U>(ref T source)
+            where T : unmanaged
+            where U : unmanaged
+        {
+            return ref System.Runtime.CompilerServices.Unsafe.As<T, U>(ref source);
+        }
+
         private struct AlignOfHelper<T> where T : unmanaged
         {
-#pragma warning disable CS0169
             private byte Dummy;
-#pragma warning restore CS0169
+#pragma warning disable CS0649
             public T Data;
+#pragma warning restore CS0649
         }
     }
 }
