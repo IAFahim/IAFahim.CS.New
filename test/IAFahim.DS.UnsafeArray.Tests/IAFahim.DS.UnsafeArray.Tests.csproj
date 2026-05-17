@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.DS.UnsafeArray/IAFahim.DS.UnsafeArray.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Collections.NoDeps/IAFahim.Collections.NoDeps.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Sort.Insertion/IAFahim.Sort.Insertion.csproj" />
+  </ItemGroup>
+</Project>

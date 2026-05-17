@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../IAFahim.Collections.NoDeps/IAFahim.Collections.NoDeps.csproj" PrivateAssets="All" />
+    <PackageReference Include="UnityMathematics.NoDeps" Version="1.3.2" PrivateAssets="All" />
+  </ItemGroup>
+</Project>
