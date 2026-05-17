@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.Sort.Merge/src/IAFahim.Sort.Merge/IAFahim.Sort.Merge.csproj" />
+  </ItemGroup>
+</Project>

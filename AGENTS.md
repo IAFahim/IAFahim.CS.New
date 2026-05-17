@@ -24,52 +24,18 @@ In **Unity**: Unity links its own `com.unity.collections` and `com.unity.mathema
 
 ```
 IAFahim.Collections.NoDeps      ← zero deps. Stubs only.
-IAFahim.DS.*                    ← Collections.NoDeps, UnityMathematics.NoDeps
-IAFahim.Sort.*                  ← zero deps (pure T* + len)
-IAFahim.Search.*                ← zero deps (pure T* + len)
-IAFahim.Graph.*                 ← Collections.NoDeps (needs allocation for scratch)
 IAFahim.Math.*                  ← UnityMathematics.NoDeps
-IAFahim.String.*                ← zero deps (pure byte* + len)
-IAFahim.IO.*                    ← zero deps or String
-```
-
-Algorithms never depend on data structures. Connection happens at call site:
-```csharp
-// .NET
-UnsafeArray<int> arr = new UnsafeArray<int>(1024, Allocator.Persistent);
-Insertion.Run(arr.Ptr, arr.Length);
-arr.Dispose();
-
-// Unity
-NativeArray<int> arr = new NativeArray<int>(1024, Allocator.Persistent);
-Insertion.Run((int*)arr.GetUnsafePtr(), arr.Length);
-arr.Dispose();
+IAFahim.DS.*                    ← 
+IAFahim.Sort.*                  ← 
+IAFahim.Search.*                ← 
+IAFahim.Graph.*                 ← 
+IAFahim.String.*                ← 
+IAFahim.IO.*                    ← 
 ```
 
 ### Package Granularity
 
 One algorithm = one NuGet package. 200+ packages. Each independently consumable.
-
-```
-src/
-├── IAFahim.Collections.NoDeps/
-├── IAFahim.DS.UnsafeArray/
-├── IAFahim.DS.UnsafeList/
-├── IAFahim.DS.UnsafeHashMap/
-├── IAFahim.Sort.Insertion/
-├── IAFahim.Sort.Quick/
-├── IAFahim.Sort.Merge/
-├── IAFahim.Sort.Radix/
-├── IAFahim.Search.Binary/
-├── IAFahim.Search.Linear/
-├── IAFahim.Graph.BFS/
-├── IAFahim.Graph.Dijkstra/
-└── ...
-```
-
-Each package csproj is minimal — `Directory.Build.props` handles shared config. Most algorithm csprojs are empty `<Project Sdk="Microsoft.NET.Sdk"></Project>`.
-
----
 
 ## Type Constraints
 
@@ -164,28 +130,6 @@ namespace IAFahim.DS
     }
 }
 ```
-
-### Algorithm Template
-
-```csharp
-namespace IAFahim.Sort
-{
-    using System;
-    using System.Runtime.CompilerServices;
-
-    public static unsafe class QuickSort
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Run<T>(T* ptr, int len)
-            where T : unmanaged, IComparable<T>
-        {
-            // algorithm on raw pointers, zero allocation
-        }
-    }
-}
-```
-
----
 
 ## Phase 1: Create
 

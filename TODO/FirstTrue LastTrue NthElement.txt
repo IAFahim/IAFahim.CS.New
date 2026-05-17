@@ -1,0 +1,16 @@
+- [x] FirstTrue
+- [x] LastTrue
+- [x] NthElement
+- [x] Partition
+- [x] MergeSorted
+- [x] MergeIntervals
+- [x] IntersectIntervals
+- [x] NormalizeIntervals
+- [x] PrefixSums
+- [x] PrefixXor
+- [x] PrefixMin
+- [x] PrefixMax
+- [x] SuffixSums
+- [x] SuffixMin
+- [x] SuffixMax
+- [x] DifferenceArray

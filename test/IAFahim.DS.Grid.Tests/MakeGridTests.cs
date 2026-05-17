@@ -1,0 +1,47 @@
+namespace IAFahim.DS.Grid.Tests
+{
+    using System.Runtime.InteropServices;
+    using Xunit;
+
+    public sealed unsafe class MakeGridTests
+    {
+        [Fact]
+        public void EmptyWidth_NoOp()
+        {
+            int* ptr = stackalloc int[0];
+            Grid.MakeGrid.Run(ptr, 0, 0, 0);
+        }
+
+        [Fact]
+        public void SingleCell_FillsCorrectly()
+        {
+            int* ptr = stackalloc int[1];
+            Grid.MakeGrid.Run(ptr, 1, 1, 1);
+            Assert.Equal(0, ptr[0]);
+        }
+
+        [Fact]
+        public void TwoByTwo_FillsCorrectly()
+        {
+            int* ptr = stackalloc int[4];
+            Grid.MakeGrid.Run(ptr, 4, 2, 2);
+            Assert.Equal(0, ptr[0]);
+            Assert.Equal(1, ptr[1]);
+            Assert.Equal(2, ptr[2]);
+            Assert.Equal(3, ptr[3]);
+        }
+
+        [Fact]
+        public void Rectangular_FillsCorrectly()
+        {
+            int* ptr = stackalloc int[6];
+            Grid.MakeGrid.Run(ptr, 6, 3, 2);
+            Assert.Equal(0, ptr[0]);
+            Assert.Equal(1, ptr[1]);
+            Assert.Equal(2, ptr[2]);
+            Assert.Equal(3, ptr[3]);
+            Assert.Equal(4, ptr[4]);
+            Assert.Equal(5, ptr[5]);
+        }
+    }
+}
