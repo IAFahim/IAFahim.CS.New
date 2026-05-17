@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "taskId": "01_assess",
+  "role": "planner",
+  "agent": "planner",
+  "runtime": "live-session",
+  "permissionMode": "read_only",
+  "tools": [
+    "find",
+    "grep",
+    "ls",
+    "read"
+  ],
+  "extensions": [],
+  "skills": {
+    "names": [
+      "delegation-patterns",
+      "requirements-to-task-packet"
+    ],
+    "paths": [
+      "/home/i/.nvm/versions/node/v24.15.0/lib/node_modules/pi-crew/skills/delegation-patterns",
+      "/home/i/.nvm/versions/node/v24.15.0/lib/node_modules/pi-crew/skills/requirements-to-task-packet"
+    ],
+    "disabled": false
+  },
+  "model": {
+    "fallbacks": []
+  },
+  "inheritance": {
+    "projectContext": true,
+    "skills": false,
+    "systemPromptMode": "replace"
+  }
+}

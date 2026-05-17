@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "runId": "team_20260517124229_56a396c058aff3ce",
+  "team": "implementation",
+  "workflow": "implementation",
+  "goal": "Implement all 7 NoDeps tasks: AllocatorHandle, UnsafeUtility methods, NativeArrayOptions, NativeArray, NativeList, UnsafeList, patch Unity refs. Then build and test until green.",
+  "status": "failed",
+  "workspaceMode": "worktree",
+  "createdAt": "2026-05-17T12:42:29.874Z",
+  "updatedAt": "2026-05-17T12:42:29.907Z",
+  "cwd": "/home/i/GitHub/IAFahim.CS.New",
+  "stateRoot": "/home/i/GitHub/IAFahim.CS.New/.pi/teams/state/runs/team_20260517124229_56a396c058aff3ce",
+  "artifactsRoot": "/home/i/GitHub/IAFahim.CS.New/.pi/teams/artifacts/team_20260517124229_56a396c058aff3ce",
+  "tasksPath": "/home/i/GitHub/IAFahim.CS.New/.pi/teams/state/runs/team_20260517124229_56a396c058aff3ce/tasks.json",
+  "eventsPath": "/home/i/GitHub/IAFahim.CS.New/.pi/teams/state/runs/team_20260517124229_56a396c058aff3ce/events.jsonl",
+  "artifacts": [
+    {
+      "kind": "prompt",
+      "path": "/home/i/GitHub/IAFahim.CS.New/.pi/teams/artifacts/team_20260517124229_56a396c058aff3ce/goal.md",
+      "createdAt": "2026-05-17T12:42:29.875Z",
+      "producer": "team-tool",
+      "sizeBytes": 178,
+      "contentHash": "2af0f7cb86ab774747c4bca1c5848d768bd19af68f564a19da3b6baa19040867",
+      "retention": "run"
+    },
+    {
+      "kind": "progress",
+      "path": "/home/i/GitHub/IAFahim.CS.New/.pi/teams/artifacts/team_20260517124229_56a396c058aff3ce/progress.md",
+      "createdAt": "2026-05-17T12:42:29.893Z",
+      "producer": "team-runner",
+      "sizeBytes": 481,
+      "contentHash": "0ff96648ebf721ffd4bb0ca2811905f8bac6ba52cf1cea316cf5ce150ed4318a",
+      "retention": "run"
+    }
+  ],
+  "ownerSessionId": "019e35f4-5cb0-771f-8d2d-f4e7e86398ac",
+  "summary": "Unhandled error in team runner: Worktree mode requires a clean leader repository. Commit/stash changes or use workspaceMode: 'single'.",
+  "runtimeResolution": {
+    "kind": "live-session",
+    "requestedMode": "auto",
+    "safety": "trusted",
+    "available": true,
+    "resolvedAt": "2026-05-17T12:42:29.876Z"
+  },
+  "runConfig": {}
+}

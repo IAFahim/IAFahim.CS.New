@@ -1,0 +1,15 @@
+{
+  "id": "team_20260517124229_56a396c058aff3ce:01_assess",
+  "runId": "team_20260517124229_56a396c058aff3ce",
+  "taskId": "01_assess",
+  "agent": "planner",
+  "role": "planner",
+  "runtime": "live-session",
+  "status": "failed",
+  "startedAt": "2026-05-17T12:42:29.906Z",
+  "completedAt": "2026-05-17T12:42:29.905Z",
+  "statusPath": "/home/i/GitHub/IAFahim.CS.New/.pi/teams/state/runs/team_20260517124229_56a396c058aff3ce/agents/01_assess/status.json",
+  "eventsPath": "/home/i/GitHub/IAFahim.CS.New/.pi/teams/state/runs/team_20260517124229_56a396c058aff3ce/agents/01_assess/events.jsonl",
+  "outputPath": "/home/i/GitHub/IAFahim.CS.New/.pi/teams/state/runs/team_20260517124229_56a396c058aff3ce/agents/01_assess/output.log",
+  "error": "Worktree mode requires a clean leader repository. Commit/stash changes or use workspaceMode: 'single'."
+}

@@ -1,0 +1,1 @@
+Implement all 7 NoDeps tasks from todo.md for IAFahim.Collections.NoDeps: (1) AllocatorHandle struct in AllocatorManager, (2) AddressOf and As methods in UnsafeUtility, (3) NativeArrayOptions enum, (4) NativeArray<T>, (5) NativeList<T>, (6) UnsafeList<T>, (7) Patch out Unity Engine/Entities refs in BovineLabs.Recast files. Build and test until green.

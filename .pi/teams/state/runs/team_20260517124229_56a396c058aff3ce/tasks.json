@@ -1,0 +1,21 @@
+[
+  {
+    "id": "01_assess",
+    "runId": "team_20260517124229_56a396c058aff3ce",
+    "stepId": "assess",
+    "role": "planner",
+    "agent": "planner",
+    "title": "assess",
+    "status": "failed",
+    "dependsOn": [],
+    "cwd": "/home/i/GitHub/IAFahim.CS.New",
+    "graph": {
+      "taskId": "01_assess",
+      "children": [],
+      "dependencies": [],
+      "queue": "ready"
+    },
+    "finishedAt": "2026-05-17T12:42:29.905Z",
+    "error": "Worktree mode requires a clean leader repository. Commit/stash changes or use workspaceMode: 'single'."
+  }
+]

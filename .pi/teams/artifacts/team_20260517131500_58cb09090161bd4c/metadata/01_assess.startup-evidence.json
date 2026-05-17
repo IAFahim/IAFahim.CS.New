@@ -1,0 +1,11 @@
+{
+  "lastLifecycleState": "finished",
+  "command": "live-session",
+  "promptSentAt": "2026-05-17T13:15:00.076Z",
+  "promptAccepted": true,
+  "trustPromptDetected": false,
+  "transportHealthy": true,
+  "childProcessAlive": false,
+  "elapsedMs": 72122,
+  "classification": "unknown"
+}
