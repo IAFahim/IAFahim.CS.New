@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\IAFahim.DS.Grid\IAFahim.DS.Grid.csproj" />
+  </ItemGroup>
+</Project>

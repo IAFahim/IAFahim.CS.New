@@ -40,7 +40,7 @@ namespace IAFahim.Collections.NoDeps.Bench
             Buffer.MemoryCopy(_source, work, N * sizeof(int), N * sizeof(int));
             for (int i = 0; i < N; i++)
                 work[i] = work[i] + 1;
-            Marshal.FreeHGlobal((IntPtr)work);
+            Marshal.FreeHGlobal((nint)work);
         }
 
         [Benchmark]
@@ -57,7 +57,7 @@ namespace IAFahim.Collections.NoDeps.Bench
         [GlobalCleanup]
         public void Cleanup()
         {
-            Marshal.FreeHGlobal((IntPtr)_source);
+            Marshal.FreeHGlobal((nint)_source);
         }
     }
 
@@ -112,7 +112,7 @@ namespace IAFahim.Collections.NoDeps.Bench
         [GlobalCleanup]
         public void Cleanup()
         {
-            Marshal.FreeHGlobal((IntPtr)_source);
+            Marshal.FreeHGlobal((nint)_source);
         }
     }
 
@@ -164,7 +164,7 @@ namespace IAFahim.Collections.NoDeps.Bench
         [GlobalCleanup]
         public void Cleanup()
         {
-            Marshal.FreeHGlobal((IntPtr)_source);
+            Marshal.FreeHGlobal((nint)_source);
         }
     }
 }

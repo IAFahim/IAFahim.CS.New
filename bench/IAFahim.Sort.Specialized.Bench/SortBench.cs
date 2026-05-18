@@ -1,4 +1,4 @@
-namespace IAFahim.Sort.Bench
+namespace IAFahim.Sort.Specialized.Bench
 {
     using System;
     using System.Runtime.InteropServices;
@@ -9,12 +9,12 @@ namespace IAFahim.Sort.Bench
     {
         public static void Main(string[] args)
         {
-            BenchmarkRunner.Run<InsertionBench>(args: args);
+            BenchmarkRunner.Run<SortBench>(args: args);
         }
     }
 
     [MemoryDiagnoser]
-    public unsafe class InsertionBench
+    public unsafe class SortBench
     {
         [Params(64, 256, 1024)]
         public int N;
@@ -27,7 +27,6 @@ namespace IAFahim.Sort.Bench
         {
             _source = (int*)Marshal.AllocHGlobal(N * sizeof(int));
             _work = (int*)Marshal.AllocHGlobal(N * sizeof(int));
-
             Random rng = new Random(42);
             for (int i = 0; i < N; i++)
                 _source[i] = rng.Next();
@@ -42,14 +41,19 @@ namespace IAFahim.Sort.Bench
         [Benchmark(Baseline = true)]
         public void SpanSort()
         {
-            Span<int> span = new Span<int>(_work, N);
-            span.Sort();
+            new Span<int>(_work, N).Sort();
         }
 
         [Benchmark]
-        public void InsertionSort()
+        public void SortInts()
         {
-            Insertion.Insertion.Run(_work, N);
+            SortInts.Run(_work, N);
+        }
+
+        [Benchmark]
+        public void SortInt64s()
+        {
+            SortInt64s.Run(_work, N);
         }
 
         [GlobalCleanup]

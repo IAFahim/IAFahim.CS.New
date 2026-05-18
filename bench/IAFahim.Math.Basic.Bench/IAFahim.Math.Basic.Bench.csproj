@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\IAFahim.Math.Basic\IAFahim.Math.Basic.csproj" />
+  </ItemGroup>
+</Project>

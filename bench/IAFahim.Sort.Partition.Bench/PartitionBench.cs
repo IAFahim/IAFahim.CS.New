@@ -1,4 +1,4 @@
-namespace IAFahim.Sort.Bench
+namespace IAFahim.Sort.Partition.Bench
 {
     using System;
     using System.Runtime.InteropServices;
@@ -9,14 +9,14 @@ namespace IAFahim.Sort.Bench
     {
         public static void Main(string[] args)
         {
-            BenchmarkRunner.Run<InsertionBench>(args: args);
+            BenchmarkRunner.Run<PartitionBench>(args: args);
         }
     }
 
     [MemoryDiagnoser]
-    public unsafe class InsertionBench
+    public unsafe class PartitionBench
     {
-        [Params(64, 256, 1024)]
+        [Params(256, 1024)]
         public int N;
 
         private int* _source;
@@ -27,7 +27,6 @@ namespace IAFahim.Sort.Bench
         {
             _source = (int*)Marshal.AllocHGlobal(N * sizeof(int));
             _work = (int*)Marshal.AllocHGlobal(N * sizeof(int));
-
             Random rng = new Random(42);
             for (int i = 0; i < N; i++)
                 _source[i] = rng.Next();
@@ -39,17 +38,17 @@ namespace IAFahim.Sort.Bench
             Buffer.MemoryCopy(_source, _work, N * sizeof(int), N * sizeof(int));
         }
 
-        [Benchmark(Baseline = true)]
-        public void SpanSort()
+        [Benchmark]
+        public void Partition()
         {
-            Span<int> span = new Span<int>(_work, N);
-            span.Sort();
+            Partition.Run(_work, N, N / 2);
         }
 
         [Benchmark]
-        public void InsertionSort()
+        public void NthElement()
         {
-            Insertion.Insertion.Run(_work, N);
+            int val;
+            Partition.TryGetNthElement(_work, N, N / 2, out val);
         }
 
         [GlobalCleanup]
