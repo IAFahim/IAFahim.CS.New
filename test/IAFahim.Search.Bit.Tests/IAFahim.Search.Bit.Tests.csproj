@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <ProjectReference Include="../../src/IAFahim.Search.Bit/src/IAFahim.Search.Bit/IAFahim.Search.Bit.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Search.Bit/IAFahim.Search.Bit.csproj" />
   </ItemGroup>
 </Project>

@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <ProjectReference Include="../../src/IAFahim.Search.Interval/src/IAFahim.Search.Interval/IAFahim.Search.Interval.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Search.Interval/IAFahim.Search.Interval.csproj" />
   </ItemGroup>
 </Project>

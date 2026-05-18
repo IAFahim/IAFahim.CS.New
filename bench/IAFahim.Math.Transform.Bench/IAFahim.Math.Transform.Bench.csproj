@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <ProjectReference Include="../../src/IAFahimMathTransform.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Math.Transform/IAFahim.Math.Transform.csproj" />
   </ItemGroup>
 </Project>
