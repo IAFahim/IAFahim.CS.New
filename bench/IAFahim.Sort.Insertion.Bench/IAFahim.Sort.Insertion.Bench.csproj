@@ -3,6 +3,6 @@
     <OutputType>Exe</OutputType>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../src/IAFahim.Sort.Insertion/IAFahim.Sort.Insertion.csproj" />
+    <ProjectReference Include="..\..\src\IAFahim.Sort.Insertion\IAFahim.Sort.Insertion.csproj" />
   </ItemGroup>
 </Project>
