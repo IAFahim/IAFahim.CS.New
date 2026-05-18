@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.DS.SegmentTree/IAFahim.DS.SegmentTree.csproj" />
+  </ItemGroup>
+</Project>

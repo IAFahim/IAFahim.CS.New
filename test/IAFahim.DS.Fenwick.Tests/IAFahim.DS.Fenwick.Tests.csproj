@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.DS.Fenwick/IAFahim.DS.Fenwick.csproj" />
+  </ItemGroup>
+</Project>

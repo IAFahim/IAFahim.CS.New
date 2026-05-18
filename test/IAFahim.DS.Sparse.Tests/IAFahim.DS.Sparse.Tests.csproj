@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.DS.Sparse/IAFahim.DS.Sparse.csproj" />
+  </ItemGroup>
+</Project>

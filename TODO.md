@@ -1,63 +1,74 @@
-# Progress
+# TODO.md
 
 ## Completed
 
-### IAFahim.Math.NT
+### Math/Number Theory (IAFahim.Math.NT)
 - [x] MillerRabin, PollardRho, Factorize
-- [x] Divisors, DivisorCount, DivisorSum, Phi, PhiSieve, Mobius, MobiusSieve, Radical
-- [x] PrimitiveRoot, DiscreteLog, Bsgs, TonelliShanks, JacobiSymbol, LegendreSymbol
-- [x] FloorSum, EuclidSum, SternBrocot, FareyRank, ContinuedFraction, Convergents
-- [x] RandomInt, RandomInt64, RandomShuffle, SplitMix64, HashInt, XorShift, RngSeed
-- [x] BitCount, BitLength, HighestBit, LowestBit, NextBit, PrevBit, BitReverse, BitCompress, BitDecompress
+- [x] Divisors, DivisorCount, DivisorSum
+- [x] Phi, PhiSieve, Mobius, MobiusSieve, Radical
+- [x] PrimitiveRoot, DiscreteLog, Bsgs
+- [x] TonelliShanks, JacobiSymbol, LegendreSymbol
+- [x] FloorSum, EuclidSum
+- [x] SternBrocot, FareyRank, ContinuedFraction, Convergents
+- [x] RandomInt, RandomInt64, RandomShuffle, SplitMix64
+- [x] HashInt, XorShift, RngSeed
+- [x] BitCount, BitLength, HighestBit, LowestBit, NextBit, PrevBit
+- [x] BitReverse, BitCompress, BitDecompress
 
-### IAFahim.Math.Combinatorics
-- [x] LinearCongruence, Factorial
+### Math/Combinatorics (IAFahim.Math.Combinatorics)
+- [x] LinearCongruence, Factorial, InvFactorial
 - [x] Binom, BinomLucas, BinomLarge
-- [x] PermuteCount, MultisetPermutations, Catalan, StirlingFirst, StirlingSecond, BellNumbers
+- [x] PermuteCount, MultisetPermutations, Catalan
+- [x] StirlingFirst, StirlingSecond, BellNumbers
 - [x] PartitionNumbers, Derangements, StarsBars
 - [x] SievePrimes, LinearSieve, SegmentedSieve, IsPrime
 
-### IAFahim.Math.Transform
-- [x] SubsetZeta, SubsetMobius, SupersetZeta, SupersetMobius, SubsetConvolution
+### Math/Transform (IAFahim.Math.Transform)
+- [x] SubsetZeta, SubsetMobius, SupersetZeta, SupersetMobius
+- [x] SubsetConvolution
 - [x] WalshHadamardXor, WalshHadamardOr, WalshHadamardAnd, FwhtConvolution
 - [x] XorBasisInsert, XorBasisMax, XorBasisMin, XorBasisRank, XorBasisKth
 
-### IAFahim.DS.Fenwick
+### DS/Fenwick (IAFahim.DS.Fenwick)
 - [x] FenwickAdd, FenwickSum, FenwickRangeSum, FenwickLowerBound
-- [x] Fenwick2DAdd, Fenwick2DSum, FenwickRangeAdd, FenwickPointQuery
+- [x] Fenwick2DAdd, Fenwick2DSum
+- [x] FenwickRangeAdd, FenwickPointQuery
 
-### IAFahim.DS.Dsu
+### DS/DSU (IAFahim.DS.Dsu)
 - [x] DsuInit, DsuFind, DsuUnion, DsuSame, DsuSize
 - [x] DsuRollbackSnapshot, DsuRollback, DsuUndo
-- [x] DsuBipartiteAdd, DsuParityFind, DsuParityUnion, SmallToLargeMerge
+- [x] DsuBipartiteAdd, DsuParityFind, DsuParityUnion
+- [x] SmallToLargeMerge
 
-### IAFahim.DS.Heap
+### DS/Heap (IAFahim.DS.Heap)
 - [x] HeapPush, HeapPop, HeapFix, HeapRemove
-- [x] DequePush, DequePop, MonotonicQueueMin, MonotonicQueuePush, MonotonicStackProcess
+- [x] DequePush, DequePop
+- [x] MonotonicQueueMin, MonotonicQueuePush, MonotonicStackProcess
 
-### IAFahim.DS.Trie
+### DS/Trie (IAFahim.DS.Trie)
 - [x] TrieInsert, TrieDelete, TrieFind, TriePrefixCount
 - [x] BinaryTrieInsert, BinaryTrieErase, BinaryTrieMaxXor, BinaryTrieMinXor
 - [x] PersistentTrieInsert, PersistentTrieQuery
 
-### IAFahim.DS.SegmentTree
+### DS/SegmentTree (IAFahim.DS.SegmentTree)
 - [x] SegmentTreeBuild, SegmentTreeSet, SegmentTreeAdd, SegmentTreeQuery
 - [x] SegmentTreeMaxRight, SegmentTreeMinLeft
-- [x] LazySegmentBuild, LazySegmentApply, LazySegmentPush, LazySegmentPull, LazySegmentQuery, LazySegmentUpdate
+- [x] LazySegmentBuild, LazySegmentApply, LazySegmentPush, LazySegmentPull
+- [x] LazySegmentQuery, LazySegmentUpdate
 - [x] DualSegmentApply, DualSegmentGet
 - [x] PersistentSegmentBuild, PersistentSegmentUpdate, PersistentSegmentQuery
 - [x] DynamicSegmentUpdate, DynamicSegmentQuery
 
-### IAFahim.DS.Sparse
+### DS/Sparse (IAFahim.DS.Sparse)
 - [x] SparseTableBuild, SparseTableQuery
 - [x] DisjointSparseBuild, DisjointSparseQuery
 - [x] SqrtDecomposeBuild, SqrtUpdate, SqrtQuery
 - [x] WaveletTreeBuild, WaveletRank, WaveletSelect, WaveletKth, WaveletRangeFreq
 
-### IAFahim.DS.Mo
+### DS/Mo (IAFahim.DS.Mo)
 - [x] MoAdd, MoRemove, MoAnswer, MoSort, MoRollback
 
-### IAFahim.String
+### String (IAFahim.String)
 - [x] ManacherOdd, ManacherEven, DuvalLyndon, MinCyclicShift
 - [x] RunLengthEncode, RunLengthDecode, StringPeriod, MinPeriod, Borders, CountOccurrences
 - [x] KmpPrefix, KmpSearch, ZAlgorithm
@@ -67,22 +78,27 @@
 - [x] SuffixAutomatonExtend, SuffixAutomatonBuild
 - [x] AhoBuild, AhoNext, AhoMatch, AhoCount
 - [x] PalindromicTreeAdd, PalindromicTreeBuild
-- [x] RegexNfaBuild, RegexMatch, ParseExpression, ParseInteger, Tokenize
+- [x] RegexNfaBuild, RegexMatch
+- [x] ParseExpression, ParseInteger, Tokenize
 
-### IAFahim.Graph
+### Graph (IAFahim.Graph)
 - [x] AddEdge, AddDirectedEdge, AddWeightedEdge, BuildAdjacency, TransposeGraph
 - [x] Bfs, ZeroOneBfs, MultiSourceBfs, Dfs, IterativeDfs
 - [x] Toposort, KahnToposort, DetectCycleDirected, DetectCycleUndirected
 - [x] ConnectedComponents, Kosaraju, TarjanScc, CondenseGraph
-- [x] ArticulationPoints, Bridges, IsBipartite, ColorBipartite
-- [x] ShortestPathUnweighted, Dijkstra, DijkstraSparse, DijkstraDense, DijkstraRestorePath
+- [x] ArticulationPoints, Bridges
+- [x] IsBipartite, ColorBipartite
+- [x] ShortestPathUnweighted
+- [x] Dijkstra, DijkstraSparse, DijkstraDense, DijkstraRestorePath
 - [x] BellmanFord, Spfa, FloydWarshall, Johnson, ZeroOneShortestPath
 - [x] MinimumSpanningTreeKruskal, MinimumSpanningTreePrim, SecondBestMst
 - [x] TwoSatAddClause, TwoSatSolve, Hierholzer
-- [x] EulerPathDirected, EulerPathUndirected, EulerTourTree, GraphInit
+- [x] EulerPathDirected, EulerPathUndirected, EulerTourTree
+- [x] GraphInit
 
-### IAFahim.Graph.Tree
-- [x] LcaBuild, LcaQuery, LcaDistance, BinaryLiftBuild, BinaryLiftKthAncestor
+### Graph/Tree (IAFahim.Graph.Tree)
+- [x] LcaBuild, LcaQuery, LcaDistance
+- [x] BinaryLiftBuild, BinaryLiftKthAncestor
 - [x] CentroidFind, CentroidDecompose
 - [x] TreeDfs, TreeParent, TreeDepth, TreeSize, TreeDiameter, TreeCenter, TreeCentroids
 - [x] HldBuild, HldPathQuery, HldPathUpdate, HldSubtreeQuery, HldSubtreeUpdate
@@ -90,12 +106,12 @@
 - [x] EulerLcaBuild, RmqLcaQuery, TreeReroot
 - [x] TreeHash, RootedTreeHash, TreeIsomorphism, CartesianTreeBuild
 
-### IAFahim.Graph.Flow
+### Graph/Flow (IAFahim.Graph.Flow)
 - [x] EdmondsKarp, DinicBfs, DinicDfs, DinicMaxFlow
 - [x] MinCut, FlowDecompose
 - [x] MinCostFlowAddEdge, MinCostMaxFlow
 
-### IAFahim.Graph (additional)
+### Graph (additional)
 - [x] ChuLiuEdmonds, Boruvka, KruskalReconstructionTree
 - [x] YenKShortestPaths, AStar
 - [x] BiconnectedComponents, EdgeBiconnectedComponents, TwoEdgeConnectedComponents
