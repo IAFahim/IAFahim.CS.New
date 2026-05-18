@@ -21,8 +21,9 @@ namespace Unity.Collections.LowLevel.Unsafe
             this = default;
             _capacity = initialCapacity;
             _allocator = allocator;
-            _buffer = Marshal.AllocHGlobal(initialCapacity * _elementSize);
-            UnsafeUtility.MemClear((void*)_buffer, initialCapacity * _elementSize);
+            long byteCount = (long)initialCapacity * _elementSize;
+            _buffer = Marshal.AllocHGlobal((nint)byteCount);
+            UnsafeUtility.MemClear((void*)_buffer, byteCount);
         }
 
         public int Length
@@ -54,14 +55,14 @@ namespace Unity.Collections.LowLevel.Unsafe
 
                 var newBuffer = value == 0
                     ? IntPtr.Zero
-                    : Marshal.AllocHGlobal(value * _elementSize);
+                    : Marshal.AllocHGlobal((nint)((long)value * _elementSize));
 
                 if (_buffer != IntPtr.Zero)
                 {
                     if (value > 0)
                     {
                         var copySize = _length < value ? _length : value;
-                        UnsafeUtility.MemCpy((void*)newBuffer, (void*)_buffer, copySize * _elementSize);
+                        UnsafeUtility.MemCpy((void*)newBuffer, (void*)_buffer, (long)copySize * _elementSize);
                     }
 
                     Marshal.FreeHGlobal(_buffer);
@@ -156,7 +157,7 @@ namespace Unity.Collections.LowLevel.Unsafe
             }
 
             var dst = (byte*)_buffer + _length * _elementSize;
-            UnsafeUtility.MemCpy(dst, ptr, count * _elementSize);
+            UnsafeUtility.MemCpy(dst, ptr, (long)count * _elementSize);
             _length += count;
         }
 
@@ -210,7 +211,7 @@ namespace Unity.Collections.LowLevel.Unsafe
             if (options == Unity.Collections.NativeArrayOptions.ClearMemory && length > oldLength)
             {
                 var startByte = (byte*)_buffer + oldLength * _elementSize;
-                var clearByteCount = (length - oldLength) * _elementSize;
+                var clearByteCount = (long)(length - oldLength) * _elementSize;
                 UnsafeUtility.MemClear(startByte, clearByteCount);
             }
         }

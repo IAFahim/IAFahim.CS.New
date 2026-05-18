@@ -4,6 +4,8 @@ namespace IAFahim.Search.Range.Bench
     using System.Runtime.InteropServices;
     using BenchmarkDotNet.Attributes;
     using BenchmarkDotNet.Running;
+    using RangeSum = IAFahim.Search.Range.RangeSum;
+    using RangeAdd = IAFahim.Search.Range.RangeAdd;
 
     public static class Program
     {
@@ -41,7 +43,7 @@ namespace IAFahim.Search.Range.Bench
         }
 
         [Benchmark]
-        public void RangeSum()
+        public void RangeSum_Bench()
         {
             RangeSum.BuildPrefix(_prefix, _data, N);
             for (int i = 0; i < N; i += 16)
@@ -49,7 +51,7 @@ namespace IAFahim.Search.Range.Bench
         }
 
         [Benchmark]
-        public void RangeAdd()
+        public void RangeAdd_Bench()
         {
             for (int j = 0; j < 10; j++)
                 RangeAdd.Run(_diff, N, N / 4, N * 3 / 4, 1);

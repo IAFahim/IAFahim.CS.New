@@ -21,8 +21,9 @@ namespace Unity.Collections
             this = default;
             _capacity = initialCapacity;
             _allocator = allocator;
-            _buffer = Marshal.AllocHGlobal(initialCapacity * _elementSize);
-            UnsafeUtility.MemClear((void*)_buffer, initialCapacity * _elementSize);
+            long byteCount = (long)initialCapacity * _elementSize;
+            _buffer = Marshal.AllocHGlobal((nint)byteCount);
+            UnsafeUtility.MemClear((void*)_buffer, byteCount);
         }
 
         public int Length
@@ -54,14 +55,14 @@ namespace Unity.Collections
 
                 var newBuffer = value == 0
                     ? IntPtr.Zero
-                    : Marshal.AllocHGlobal(value * _elementSize);
+                    : Marshal.AllocHGlobal((nint)((long)value * _elementSize));
 
                 if (_buffer != IntPtr.Zero)
                 {
                     if (value > 0)
                     {
                         var copySize = _length < value ? _length : value;
-                        UnsafeUtility.MemCpy((void*)newBuffer, (void*)_buffer, copySize * _elementSize);
+                        UnsafeUtility.MemCpy((void*)newBuffer, (void*)_buffer, (long)copySize * _elementSize);
                     }
 
                     Marshal.FreeHGlobal(_buffer);
@@ -191,7 +192,7 @@ namespace Unity.Collections
             if (options == NativeArrayOptions.ClearMemory && length > oldLength)
             {
                 var startByte = _buffer + oldLength * _elementSize;
-                var clearByteCount = (length - oldLength) * _elementSize;
+                var clearByteCount = (long)(length - oldLength) * _elementSize;
                 UnsafeUtility.MemClear((byte*)startByte, clearByteCount);
             }
         }

@@ -20,9 +20,9 @@ namespace Unity.Collections
             _allocator = allocator;
             if (length > 0)
             {
-                _buffer = Marshal.AllocHGlobal(length * UnsafeUtility.SizeOf<T>());
+                _buffer = Marshal.AllocHGlobal((nint)((long)length * UnsafeUtility.SizeOf<T>()));
                 if (options == NativeArrayOptions.ClearMemory)
-                    UnsafeUtility.MemClear((void*)_buffer, length * UnsafeUtility.SizeOf<T>());
+                    UnsafeUtility.MemClear((void*)_buffer, (long)length * UnsafeUtility.SizeOf<T>());
             }
         }
 

@@ -1,0 +1,15 @@
+- [ ] SubsetZeta
+- [ ] SubsetMobius
+- [ ] SupersetZeta
+- [ ] SupersetMobius
+- [ ] SubsetConvolution
+- [ ] WalshHadamardXor
+- [ ] WalshHadamardOr
+- [ ] WalshHadamardAnd
+- [ ] FwhtConvolution
+- [ ] XorBasisInsert
+- [ ] XorBasisMax
+- [ ] XorBasisMin
+- [ ] XorBasisRank
+- [ ] XorBasisKth
+

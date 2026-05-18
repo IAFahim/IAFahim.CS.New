@@ -4,6 +4,7 @@ namespace IAFahim.Search.Window.Bench
     using System.Runtime.InteropServices;
     using BenchmarkDotNet.Attributes;
     using BenchmarkDotNet.Running;
+    using IAFahim.Search.Window;
 
     public static class Program
     {
@@ -36,13 +37,13 @@ namespace IAFahim.Search.Window.Bench
         }
 
         [Benchmark]
-        public void SlidingWindowMin()
+        public void SlidingWindowMin_Bench()
         {
             SlidingWindowMin.Run(_src, _dst, N, WindowSize);
         }
 
         [Benchmark]
-        public void SlidingWindowMax()
+        public void SlidingWindowMax_Bench()
         {
             SlidingWindowMax.Run(_src, _dst, N, WindowSize);
         }

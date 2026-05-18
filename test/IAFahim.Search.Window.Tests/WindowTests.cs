@@ -11,14 +11,20 @@ namespace IAFahim.Search.Window.Tests
         {
             int* src = stackalloc int[] { 3, 1, 4, 1, 5, 9, 2, 6 };
             int* dst = (int*)Marshal.AllocHGlobal(6 * sizeof(int));
-            SlidingWindowMin.Run(src, dst, 8, 3);
-            Assert.Equal(1, dst[0]);
-            Assert.Equal(1, dst[1]);
-            Assert.Equal(1, dst[2]);
-            Assert.Equal(1, dst[3]);
-            Assert.Equal(2, dst[4]);
-            Assert.Equal(2, dst[5]);
-            Marshal.FreeHGlobal((IntPtr)dst);
+            try
+            {
+                SlidingWindowMin.Run(src, dst, 8, 3);
+                Assert.Equal(1, dst[0]);
+                Assert.Equal(1, dst[1]);
+                Assert.Equal(1, dst[2]);
+                Assert.Equal(1, dst[3]);
+                Assert.Equal(2, dst[4]);
+                Assert.Equal(2, dst[5]);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal((nint)dst);
+            }
         }
 
         [Fact]
@@ -40,14 +46,20 @@ namespace IAFahim.Search.Window.Tests
         {
             int* src = stackalloc int[] { 3, 1, 4, 1, 5, 9, 2, 6 };
             int* dst = (int*)Marshal.AllocHGlobal(6 * sizeof(int));
-            SlidingWindowMax.Run(src, dst, 8, 3);
-            Assert.Equal(4, dst[0]);
-            Assert.Equal(4, dst[1]);
-            Assert.Equal(5, dst[2]);
-            Assert.Equal(9, dst[3]);
-            Assert.Equal(9, dst[4]);
-            Assert.Equal(9, dst[5]);
-            Marshal.FreeHGlobal((IntPtr)dst);
+            try
+            {
+                SlidingWindowMax.Run(src, dst, 8, 3);
+                Assert.Equal(4, dst[0]);
+                Assert.Equal(4, dst[1]);
+                Assert.Equal(5, dst[2]);
+                Assert.Equal(9, dst[3]);
+                Assert.Equal(9, dst[4]);
+                Assert.Equal(9, dst[5]);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal((nint)dst);
+            }
         }
 
         [Fact]

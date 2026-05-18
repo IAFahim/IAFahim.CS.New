@@ -321,7 +321,7 @@ namespace IAFahim.Collections.NoDeps.Tests
             Assert.Equal(10, list[1]);
             Assert.Equal(20, list[2]);
             Assert.Equal(30, list[3]);
-            Marshal.FreeHGlobal((IntPtr)src);
+            Marshal.FreeHGlobal((nint)src);
             list.Dispose();
         }
 
@@ -390,7 +390,7 @@ namespace IAFahim.Collections.NoDeps.Tests
         {
             int value = 42;
             var ptr = UnsafeUtility.AddressOf(ref value);
-            Assert.Equal((IntPtr)Unsafe.AsPointer(ref value), (IntPtr)ptr);
+            Assert.Equal((nint)Unsafe.AsPointer(ref value), (nint)ptr);
         }
 
         [Fact]
@@ -410,7 +410,7 @@ namespace IAFahim.Collections.NoDeps.Tests
             UnsafeUtility.MemClear(ptr, 4 * sizeof(int));
             for (int i = 0; i < 4; i++)
                 Assert.Equal(0, ptr[i]);
-            Marshal.FreeHGlobal((IntPtr)ptr);
+            Marshal.FreeHGlobal((nint)ptr);
         }
 
         [Fact]
@@ -420,7 +420,7 @@ namespace IAFahim.Collections.NoDeps.Tests
             UnsafeUtility.MemSet(ptr, 0xAB, 16);
             for (int i = 0; i < 16; i++)
                 Assert.Equal(0xAB, ptr[i]);
-            Marshal.FreeHGlobal((IntPtr)ptr);
+            Marshal.FreeHGlobal((nint)ptr);
         }
 
         [Fact]
@@ -433,8 +433,8 @@ namespace IAFahim.Collections.NoDeps.Tests
             UnsafeUtility.MemCpy(dst, src, 4 * sizeof(int));
             for (int i = 0; i < 4; i++)
                 Assert.Equal(src[i], dst[i]);
-            Marshal.FreeHGlobal((IntPtr)src);
-            Marshal.FreeHGlobal((IntPtr)dst);
+            Marshal.FreeHGlobal((nint)src);
+            Marshal.FreeHGlobal((nint)dst);
         }
     }
 }

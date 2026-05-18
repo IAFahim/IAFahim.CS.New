@@ -1,41 +1,47 @@
-# AGENTS.md — IAFahim.CS Unmanaged Algorithm Library
+# AGENTS.md — IAFahim.CS
 
 Workflow: **Create → Test → Benchmark**. Every algorithm passes all three.
 
 ---
 
-## Architecture
+## What This Is
 
-### The Unity Linking Trick
+Unmanaged algorithm and data structure library. Runs on .NET. Runs on Unity. Zero code changes between them.
 
-Code uses `Unity.Collections` and `Unity.Mathematics` namespaces directly.
+**.NET path**: `IAFahim.Collections.NoDeps` provides stubs (Allocator, AllocatorManager, UnsafeUtility, NativeContainer, NativeDisableUnsafePtrRestriction). `UnityMathematics.NoDeps` provides math types (float3, int3, math.*). Code compiles against these.
 
-In **.NET**: `IAFahim.Collections.NoDeps` provides stubs (Allocator, AllocatorManager, UnsafeUtility). `UnityMathematics.NoDeps` provides math types (float3, int3, math.*).
+**Unity path**: Unity links its own `com.unity.collections` and `com.unity.mathematics`. NoDeps assemblies excluded via `PrivateAssets="All"`. Stubs vanish. Real implementations bind. Same source, different linker target.
 
-In **Unity**: Unity links its own `com.unity.collections` and `com.unity.mathematics`. NoDeps assemblies excluded via `PrivateAssets="All"`. Zero code changes between environments.
+---
 
-### Two Package Kinds
+## Two Package Kinds
 
-**Data structures** — use `Unity.Collections` (Allocator, AllocatorManager, UnsafeUtility). Follow the BovineLabs pattern: `StructLayout(Sequential)`, `IDisposable`, `Allocator` property, pointer fields, `MemClear` on init.
+**Algorithm** — pure `T* ptr, int len`. Zero dependencies. No allocator, no container, no Unity namespace. Callable from anything that exposes a pointer.
 
-**Algorithms** — pure `T* ptr, int len`. Zero dependencies on Unity or data structures. Callable from any container that exposes a pointer.
+**Data Structure** — depends on `IAFahim.Collections.NoDeps`. Uses Allocator, AllocatorManager, UnsafeUtility. Owns memory. Implements IDisposable.
 
-### Dependency Rules
+One algorithm or data structure = one NuGet package. Independently consumable. Deletion shrinks the repo, never breaks it.
+
+---
+
+## Dependency Graph
 
 ```
-IAFahim.Collections.NoDeps      ← zero deps. Stubs only.
-IAFahim.Math.*                  ← UnityMathematics.NoDeps
-IAFahim.DS.*                    ← 
-IAFahim.Sort.*                  ← 
-IAFahim.Search.*                ← 
-IAFahim.Graph.*                 ← 
-IAFahim.String.*                ← 
-IAFahim.IO.*                    ← 
+IAFahim.Collections.NoDeps         ← zero deps (stubs only)
+UnityMathematics.NoDeps            ← zero deps (math types only)
+
+IAFahim.Math.*                     ← UnityMathematics.NoDeps
+IAFahim.DS.*                       ← IAFahim.Collections.NoDeps
+IAFahim.Sort.*                     ← zero deps (algorithms)
+IAFahim.Search.*                   ← zero deps (algorithms)
+IAFahim.Graph.*                    ← zero deps (algorithms)
+IAFahim.String.*                   ← zero deps (algorithms)
+IAFahim.IO.*                       ← zero deps (algorithms)
 ```
 
-### Package Granularity
+If a package needs a dependency not listed here, that dependency must be declared before the package is created. No implicit edges.
 
-One algorithm = one NuGet package. 200+ packages. Each independently consumable.
+---
 
 ## Type Constraints
 
@@ -44,14 +50,17 @@ One algorithm = one NuGet package. 200+ packages. Each independently consumable.
 | `static class`                           | `class`, `sealed class`, `abstract class`|
 | `struct` (unmanaged fields only)         | `interface`                              |
 | `where T : unmanaged`                    | `string`, `object`, `dynamic`            |
-| `void*`, `T*`, `nuint`, `nint`           | managed arrays `T[]`                     |
+| `void*`, `T*`, `nint`, `nuint`           | managed arrays `T[]`                     |
 | `bool`, value types                      | `List<T>`, `Dictionary<K,V>`             |
 | `stackalloc`                             | `new` on any class                       |
-| `ReadOnlySpan<byte>` (parameter only)    | Any GC-allocated type                    |
-| `"text"u8` (UTF-8 literals)             | `string` literals without `u8`           |
+| `ReadOnlySpan<byte>` (parameter only)    | `string` literals without `u8`           |
+| `Span<T>` (test and bench only)          | `Span<T>` in `src/`                      |
 | `sizeof(T)`                              | `Marshal.SizeOf<T>()`                    |
+| `"text"u8` (UTF-8 literals)             | managed exception handling               |
 
-If it touches the GC heap, it does not belong here.
+**`sizeof(T)` vs `UnsafeUtility.SizeOf<T>()`**: algorithms use `sizeof(T)` (zero deps). Data structures use `UnsafeUtility.SizeOf<T>()` and `UnsafeUtility.AlignOf<T>()` (already depend on Collections.NoDeps).
+
+If it touches the GC heap, it does not belong in `src/`.
 
 ---
 
@@ -62,11 +71,13 @@ If it touches the GC heap, it does not belong here.
 - No structs wrapping single primitives.
 - No implicit conversions. Cast explicitly.
 - No magic numbers. Named constants only.
+- No auto-properties on structs with `[StructLayout]`. Explicit readonly fields only.
 - Data separated from behavior. Structs = fields + Dispose. Static classes = methods.
-- Deletion shrinks, never breaks. Every package independently removable.
 - `[MethodImpl(MethodImplOptions.AggressiveInlining)]` on hot-path leaf functions.
 
-### Totality
+---
+
+## Totality
 
 **Unchecked (caller guarantees validity):**
 ```csharp
@@ -80,12 +91,65 @@ public static bool TryFind<T>(T* ptr, int len, T key, out int index)
     where T : unmanaged, IComparable<T>
 ```
 
-### Bounds Check Pattern
+**Bounds check pattern:**
 ```csharp
 (uint)index < (uint)length
 ```
 
-### Data Structure Template (BovineLabs Pattern)
+---
+
+## Allocation Size Safety
+
+Never multiply `int * int` for byte sizes. Widen first:
+
+```csharp
+long byteCount = (long)length * sizeof(T);
+```
+
+Applies everywhere: constructors, MemClear calls, MemCopy calls.
+
+---
+
+## Phase 1: Create
+
+1. Pick package kind: algorithm (zero deps) or data structure (Collections.NoDeps).
+2. Create `src/IAFahim.{Family}.{Name}/` with minimal csproj.
+3. One `static class` per algorithm. File = class name.
+4. Algorithms take `T* ptr, int len`. Data structures expose `T* Ptr, int Length`.
+5. Unchecked variant first. `Try*` if caller cannot guarantee preconditions.
+6. No allocation unless algorithm fundamentally requires scratch space (`stackalloc`).
+
+### Algorithm Template
+
+```csharp
+namespace IAFahim.Sort
+{
+    using System;
+    using System.Runtime.CompilerServices;
+
+    public static unsafe class Insertion
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Run<T>(T* ptr, int len)
+            where T : unmanaged, IComparable<T>
+        {
+            for (int i = 1; i < len; i++)
+            {
+                T key = ptr[i];
+                int j = i - 1;
+                while (j >= 0 && ptr[j].CompareTo(key) > 0)
+                {
+                    ptr[j + 1] = ptr[j];
+                    j--;
+                }
+                ptr[j + 1] = key;
+            }
+        }
+    }
+}
+```
+
+### Data Structure Template
 
 ```csharp
 namespace IAFahim.DS
@@ -97,33 +161,32 @@ namespace IAFahim.DS
 
     [StructLayout(LayoutKind.Sequential)]
     [NativeContainer]
-    public unsafe struct UnsafeThing<T> : IDisposable where T : unmanaged
+    public unsafe struct UnsafeArray<T> : IDisposable where T : unmanaged
     {
         [NativeDisableUnsafePtrRestriction]
         public T* Ptr;
 
-        public int Length;
+        public readonly int Length;
 
-        public UnsafeThing(int length, Allocator allocator)
+        public readonly Allocator Allocator;
+
+        public UnsafeArray(int length, Allocator allocator)
         {
-            this = default;
-            this.Length = length;
-            this.Allocator = allocator;
-            this.Ptr = (T*)AllocatorManager.Allocate(
+            long byteCount = (long)length * UnsafeUtility.SizeOf<T>();
+            Ptr = (T*)AllocatorManager.Allocate(
                 allocator,
-                length * UnsafeUtility.SizeOf<T>(),
+                byteCount,
                 UnsafeUtility.AlignOf<T>());
-            UnsafeUtility.MemClear(this.Ptr, length * UnsafeUtility.SizeOf<T>());
+            UnsafeUtility.MemClear(Ptr, byteCount);
+            Length = length;
+            Allocator = allocator;
         }
-
-        public Allocator Allocator { get; }
 
         public void Dispose()
         {
-            if (this.Ptr != null)
+            if (Ptr != null)
             {
-                AllocatorManager.Free(this.Allocator, this.Ptr);
-                this.Ptr = null;
+                AllocatorManager.Free(Allocator, Ptr);
             }
             this = default;
         }
@@ -131,21 +194,11 @@ namespace IAFahim.DS
 }
 ```
 
-## Phase 1: Create
-
-### Checklist
-1. Pick package kind: algorithm (zero deps) or data structure (Collections.NoDeps).
-2. Create `src/IAFahim.{Family}.{Name}/` with minimal csproj.
-3. One `static class` per algorithm. File = class name.
-4. Algorithms take `T* ptr, int len`. Data structures expose `T* Ptr, int Length`.
-5. Unchecked variant first. `Try*` if caller can't guarantee preconditions.
-6. No allocation unless algorithm fundamentally requires scratch space.
-
 ---
 
 ## Phase 2: Test
 
-Framework: xUnit. Test projects in `test/`. Target `net8.0`.
+Framework: xUnit. Projects in `test/`. Target `net8.0`.
 
 ### Checklist Per Public Method
 1. Empty input — `len == 0` does not crash.
@@ -163,12 +216,12 @@ namespace IAFahim.Sort.Tests
     using System.Runtime.InteropServices;
     using Xunit;
 
-    public sealed unsafe class QuickSortTests
+    public sealed unsafe class InsertionTests
     {
         [Fact]
         public void EmptyInput_NoOp()
         {
-            QuickSort.Run<int>(null, 0);
+            Insertion.Run<int>(null, 0);
         }
 
         [Fact]
@@ -176,16 +229,20 @@ namespace IAFahim.Sort.Tests
         {
             const int N = 64;
             int* ptr = (int*)Marshal.AllocHGlobal(N * sizeof(int));
+            try
+            {
+                for (int i = 0; i < N; i++)
+                    ptr[i] = N - i;
 
-            for (int i = 0; i < N; i++)
-                ptr[i] = N - i;
+                Insertion.Run(ptr, N);
 
-            QuickSort.Run(ptr, N);
-
-            for (int i = 0; i < N; i++)
-                Assert.Equal(i + 1, ptr[i]);
-
-            Marshal.FreeHGlobal((System.IntPtr)ptr);
+                for (int i = 0; i < N; i++)
+                    Assert.Equal(i + 1, ptr[i]);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal((nint)ptr);
+            }
         }
     }
 }
@@ -193,17 +250,17 @@ namespace IAFahim.Sort.Tests
 
 ### Rules
 - No mocking. No DI. Raw pointers, allocate, run, assert, free.
-- Every test allocates and frees its own memory.
+- Every test wraps allocation in `try/finally`. No leaks on assertion failure.
 - Test names: `Condition_ExpectedResult`.
 
 ---
 
 ## Phase 3: Benchmark
 
-Framework: BenchmarkDotNet. Bench projects in `bench/`. Target `net8.0`.
+Framework: BenchmarkDotNet. Projects in `bench/`. Target `net8.0`.
 
 ### Checklist
-1. Baseline comparison — compare against BCL or known fast impl.
+1. Baseline comparison — `Span<T>.Sort()` or BCL equivalent.
 2. Multiple sizes — `[Params(64, 256, 1024, 4096)]`.
 3. `[MemoryDiagnoser]` confirms zero managed allocation.
 4. `[IterationSetup]` resets mutated data.
@@ -222,12 +279,12 @@ namespace IAFahim.Sort.Bench
     {
         public static void Main(string[] args)
         {
-            BenchmarkRunner.Run<QuickSortBench>(args: args);
+            BenchmarkRunner.Run<InsertionBench>(args: args);
         }
     }
 
     [MemoryDiagnoser]
-    public unsafe class QuickSortBench
+    public unsafe class InsertionBench
     {
         [Params(64, 256, 1024, 4096)]
         public int N;
@@ -258,16 +315,16 @@ namespace IAFahim.Sort.Bench
         }
 
         [Benchmark]
-        public void QuickSort()
+        public void Insertion()
         {
-            Sort.QuickSort.Run(_work, N);
+            Sort.Insertion.Run(_work, N);
         }
 
         [GlobalCleanup]
         public void Cleanup()
         {
-            Marshal.FreeHGlobal((IntPtr)_source);
-            Marshal.FreeHGlobal((IntPtr)_work);
+            Marshal.FreeHGlobal((nint)_source);
+            Marshal.FreeHGlobal((nint)_work);
         }
     }
 }
@@ -280,24 +337,25 @@ namespace IAFahim.Sort.Bench
 ```
 IAFahim.CS/
 ├── src/
-│   ├── Directory.Build.props          ← netstandard2.1, packable
-│   ├── IAFahim.Collections.NoDeps/    ← Unity.Collections stubs
-│   ├── IAFahim.DS.UnsafeArray/        ← data structure
-│   ├── IAFahim.Sort.Insertion/        ← algorithm
-│   └── ... (200+ packages)
+│   ├── Directory.Build.props              ← netstandard2.1, packable
+│   ├── IAFahim.Collections.NoDeps/        ← stubs: Allocator, AllocatorManager,
+│   │                                         UnsafeUtility, NativeContainer,
+│   │                                         NativeDisableUnsafePtrRestriction
+│   ├── IAFahim.DS.UnsafeArray/            ← data structure
+│   ├── IAFahim.Sort.Insertion/            ← algorithm
+│   └── ...
 ├── test/
-│   ├── Directory.Build.props          ← net8.0, xUnit
-│   ├── IAFahim.DS.UnsafeArray.Tests/
-│   ├── IAFahim.Sort.Insertion.Tests/
+│   ├── Directory.Build.props              ← net8.0, xUnit
 │   └── ...
 ├── bench/
-│   ├── Directory.Build.props          ← net8.0, BenchmarkDotNet
-│   ├── IAFahim.Sort.Insertion.Bench/
+│   ├── Directory.Build.props              ← net8.0, BenchmarkDotNet
 │   └── ...
-├── TODO/
-│   └── Roadmap.md
-├── Directory.Build.props              ← shared: unsafe, LangVersion 12
+├── .github/
+│   └── workflows/
+│       └── publish-nuget.yml
+├── Directory.Build.props                  ← shared: unsafe, LangVersion 12
 ├── IAFahim.CS.sln
+├── TODO.md
 └── AGENTS.md
 ```
 
@@ -307,54 +365,18 @@ IAFahim.CS/
 
 1. `dotnet pack` each `src/` project → NuGet packages.
 2. Unity project installs via NuGetForUnity.
-3. `IAFahim.Collections.NoDeps` excluded (`PrivateAssets="All"`) — Unity provides `Unity.Collections`.
-4. `UnityMathematics.NoDeps` excluded — Unity provides `Unity.Mathematics`.
-5. Algorithm DLLs contain only the algorithm code. Zero Unity deps in the binary.
+3. `IAFahim.Collections.NoDeps` excluded (`PrivateAssets="All"`) — Unity provides the real assemblies.
+4. `UnityMathematics.NoDeps` excluded — same reason.
+5. Algorithm DLLs contain only algorithm code. Zero Unity deps in the binary.
 
-Burst compilation works because:
-- All types are `unmanaged` by construction.
-- All methods are `static` on `static` classes.
-- No virtual dispatch. No managed types in call chain.
-- No GC allocation.
-
-```csharp
-[BurstCompile]
-struct SortJob : IJob
-{
-    [NativeDisableUnsafePtrRestriction]
-    public int* Ptr;
-    public int Len;
-
-    public void Execute()
-    {
-        Insertion.Run(Ptr, Len);
-    }
-}
-```
-
----
-
-## Things That Are Always Wrong
-
-```csharp
-new List<int>()              // managed heap
-string s = "YES"             // managed string — use "YES"u8
-class Foo { }                // regular class
-interface IFoo { }           // interface
-catch (Exception e)          // managed exception handling
-Marshal.SizeOf<T>()          // use sizeof(T)
-Console.WriteLine(...)       // managed I/O
-int[] arr = new int[n]       // managed array
-var x = ...                  // implicit typing
-```
+Burst-compatible by construction: all types unmanaged, all methods static, no virtual dispatch, no managed types in call chain, no GC allocation.
 
 ---
 
 ## Conversation Style
 
-Terse. All technical substance stays. Only fluff dies.
+Terse. All technical substance stays. Only fluff dies. Fragments OK.
 
-Drop: articles, filler, pleasantries, hedging. Fragments OK.
 Pattern: `[thing] [action] [reason]. [next step].`
 
 Exceptions: security warnings, irreversible ops, confusion → full clarity.

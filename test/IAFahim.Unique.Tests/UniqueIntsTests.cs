@@ -55,11 +55,17 @@ namespace IAFahim.Unique.Tests
         {
             const int N = 1024;
             int* ptr = (int*)Marshal.AllocHGlobal(N * sizeof(int));
-            for (int i = 0; i < N; i++)
-                ptr[i] = i / 2;
-            int count = IAFahim.Unique.UniqueInts.Run(ptr, N);
-            Assert.Equal(N / 2, count);
-            Marshal.FreeHGlobal((IntPtr)ptr);
+            try
+            {
+                for (int i = 0; i < N; i++)
+                    ptr[i] = i / 2;
+                int count = IAFahim.Unique.UniqueInts.Run(ptr, N);
+                Assert.Equal(N / 2, count);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal((nint)ptr);
+            }
         }
     }
 }

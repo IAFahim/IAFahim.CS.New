@@ -4,6 +4,7 @@ namespace IAFahim.DS.Grid.Bench
     using System.Runtime.InteropServices;
     using BenchmarkDotNet.Attributes;
     using BenchmarkDotNet.Running;
+    using IAFahim.DS.Grid;
 
     public static class Program
     {
@@ -31,22 +32,21 @@ namespace IAFahim.DS.Grid.Bench
         }
 
         [Benchmark]
-        public void MakeGrid()
+        public void MakeGrid_Bench()
         {
-            int rows, cols;
-            MakeGrid.Run(_flat, N * N, &rows, &cols);
+            MakeGrid.Run(_flat, N * N, N, N);
         }
 
         [Benchmark]
-        public void Reverse()
+        public void Reverse_Bench()
         {
             Reverse.Run(_flat, N * N);
         }
 
         [Benchmark]
-        public void Shuffle()
+        public void Shuffle_Bench()
         {
-            Shuffle.Run(_flat, N * N);
+            Shuffle.Run(_flat, N * N, 42);
         }
 
         [GlobalCleanup]

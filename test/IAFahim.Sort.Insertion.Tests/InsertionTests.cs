@@ -54,16 +54,20 @@ namespace IAFahim.Sort.Tests
         {
             const int N = 1024;
             int* ptr = (int*)Marshal.AllocHGlobal(N * sizeof(int));
+            try
+            {
+                for (int i = 0; i < N; i++)
+                    ptr[i] = N - i;
 
-            for (int i = 0; i < N; i++)
-                ptr[i] = N - i;
+                Insertion.Insertion.Run(ptr, N);
 
-            Insertion.Insertion.Run(ptr, N);
-
-            for (int i = 0; i < N; i++)
-                Assert.Equal(i + 1, ptr[i]);
-
-            Marshal.FreeHGlobal((System.IntPtr)ptr);
+                for (int i = 0; i < N; i++)
+                    Assert.Equal(i + 1, ptr[i]);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal((nint)ptr);
+            }
         }
 
         [Fact]

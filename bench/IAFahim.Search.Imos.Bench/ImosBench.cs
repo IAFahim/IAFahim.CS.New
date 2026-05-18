@@ -4,6 +4,8 @@ namespace IAFahim.Search.Imos.Bench
     using System.Runtime.InteropServices;
     using BenchmarkDotNet.Attributes;
     using BenchmarkDotNet.Running;
+    using Imos1D = IAFahim.Search.Imos.Imos1D;
+    using Imos2D = IAFahim.Search.Imos.Imos2D;
 
     public static class Program
     {
@@ -20,7 +22,7 @@ namespace IAFahim.Search.Imos.Bench
         public int N;
 
         [Benchmark]
-        public void Imos1D()
+        public void Imos1D_Bench()
         {
             int* diff = stackalloc int[N];
             for (int j = 0; j < 100; j++)
@@ -31,7 +33,7 @@ namespace IAFahim.Search.Imos.Bench
         }
 
         [Benchmark]
-        public void Imos2D()
+        public void Imos2D_Bench()
         {
             int size = 64;
             int* diff = stackalloc int[size * size];

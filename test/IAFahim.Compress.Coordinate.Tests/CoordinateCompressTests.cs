@@ -44,9 +44,15 @@ namespace IAFahim.Compress.Coordinate.Tests
             int* src = stackalloc int[] { 5, 2, 8, 2, 5 };
             int* dst = stackalloc int[5];
             int* tmp = (int*)Marshal.AllocHGlobal(5 * sizeof(int));
-            int unique = RankCompress.Run(src, dst, tmp, 5);
-            Assert.Equal(3, unique);
-            Marshal.FreeHGlobal((IntPtr)tmp);
+            try
+            {
+                int unique = RankCompress.Run(src, dst, tmp, 5);
+                Assert.Equal(3, unique);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal((nint)tmp);
+            }
         }
 
         [Fact]

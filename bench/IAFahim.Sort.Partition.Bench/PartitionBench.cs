@@ -4,6 +4,7 @@ namespace IAFahim.Sort.Partition.Bench
     using System.Runtime.InteropServices;
     using BenchmarkDotNet.Attributes;
     using BenchmarkDotNet.Running;
+    using Partition = IAFahim.Sort.Partition.Partition;
 
     public static class Program
     {
@@ -39,7 +40,7 @@ namespace IAFahim.Sort.Partition.Bench
         }
 
         [Benchmark]
-        public void Partition()
+        public void Partition_Bench()
         {
             Partition.Run(_work, N, N / 2);
         }
@@ -47,8 +48,7 @@ namespace IAFahim.Sort.Partition.Bench
         [Benchmark]
         public void NthElement()
         {
-            int val;
-            Partition.TryGetNthElement(_work, N, N / 2, out val);
+            Partition.TryGetNthElement(_work, N, N / 2, out int val);
         }
 
         [GlobalCleanup]

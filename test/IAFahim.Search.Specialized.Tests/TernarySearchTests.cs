@@ -58,11 +58,17 @@ namespace IAFahim.Search.Specialized.Tests
         {
             const int N = 1024;
             int* ptr = (int*)Marshal.AllocHGlobal(N * sizeof(int));
-            for (int i = 0; i < N; i++)
-                ptr[i] = i * 2;
-            int pos = IAFahim.Search.Specialized.TernarySearch.Run(ptr, N, 500);
-            Assert.Equal(250, pos);
-            Marshal.FreeHGlobal((IntPtr)ptr);
+            try
+            {
+                for (int i = 0; i < N; i++)
+                    ptr[i] = i * 2;
+                int pos = IAFahim.Search.Specialized.TernarySearch.Run(ptr, N, 500);
+                Assert.Equal(250, pos);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal((nint)ptr);
+            }
         }
 
         [Fact]
@@ -70,11 +76,17 @@ namespace IAFahim.Search.Specialized.Tests
         {
             const int N = 1024;
             int* ptr = (int*)Marshal.AllocHGlobal(N * sizeof(int));
-            for (int i = 0; i < N; i++)
-                ptr[i] = i * 2;
-            int pos = IAFahim.Search.Specialized.TernarySearch.Run(ptr, N, 501);
-            Assert.True(pos < 0);
-            Marshal.FreeHGlobal((IntPtr)ptr);
+            try
+            {
+                for (int i = 0; i < N; i++)
+                    ptr[i] = i * 2;
+                int pos = IAFahim.Search.Specialized.TernarySearch.Run(ptr, N, 501);
+                Assert.True(pos < 0);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal((nint)ptr);
+            }
         }
     }
 }

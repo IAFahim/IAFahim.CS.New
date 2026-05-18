@@ -4,6 +4,7 @@ namespace IAFahim.Search.Specialized.Bench
     using System.Runtime.InteropServices;
     using BenchmarkDotNet.Attributes;
     using BenchmarkDotNet.Running;
+    using IAFahim.Search.Specialized;
 
     public static class Program
     {
@@ -40,24 +41,24 @@ namespace IAFahim.Search.Specialized.Bench
         }
 
         [Benchmark]
-        public void LowerBound()
+        public void LowerBound_Bench()
         {
             for (int i = 0; i < N; i += N / 16 + 1)
                 LowerBound.Run(_sorted, N, _sorted[i]);
         }
 
         [Benchmark]
-        public void UpperBound()
+        public void UpperBound_Bench()
         {
             for (int i = 0; i < N; i += N / 16 + 1)
                 UpperBound.Run(_sorted, N, _sorted[i]);
         }
 
         [Benchmark]
-        public void BinarySearch()
+        public void BinarySearch_Bench()
         {
             for (int i = 0; i < N; i += N / 16 + 1)
-                BinarySearch.Run(_sorted, N, _sorted[i]);
+                BinarySearch.TryFind(_sorted, N, _sorted[i], out int index);
         }
 
         [GlobalCleanup]

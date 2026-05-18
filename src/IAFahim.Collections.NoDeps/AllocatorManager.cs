@@ -18,22 +18,21 @@ namespace Unity.Collections
     public static unsafe class AllocatorManager
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void* Allocate(AllocatorHandle allocator, int sizeInBytes, int alignInBytes)
+        public static void* Allocate(AllocatorHandle allocator, long sizeInBytes, int alignInBytes)
         {
-            return (void*)Marshal.AllocHGlobal(sizeInBytes);
+            return (void*)Marshal.AllocHGlobal((nint)sizeInBytes);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Allocate(AllocatorHandle allocator, void* ptr, int sizeInBytes, int alignInBytes)
+        public static void Allocate(AllocatorHandle allocator, void* ptr, long sizeInBytes, int alignInBytes)
         {
-            // no-op resize hint variant
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Free(AllocatorHandle allocator, void* pointer)
         {
             if (pointer != null)
-                Marshal.FreeHGlobal((IntPtr)pointer);
+                Marshal.FreeHGlobal((nint)pointer);
         }
     }
 }

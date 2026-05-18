@@ -66,11 +66,17 @@ namespace IAFahim.Search.Specialized.Tests
         {
             const int N = 1024;
             int* ptr = (int*)Marshal.AllocHGlobal(N * sizeof(int));
-            for (int i = 0; i < N; i++)
-                ptr[i] = i * 2;
-            int pos = IAFahim.Search.Specialized.UpperBound.Run(ptr, N, 1000);
-            Assert.Equal(501, pos);
-            Marshal.FreeHGlobal((IntPtr)ptr);
+            try
+            {
+                for (int i = 0; i < N; i++)
+                    ptr[i] = i * 2;
+                int pos = IAFahim.Search.Specialized.UpperBound.Run(ptr, N, 1000);
+                Assert.Equal(501, pos);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal((nint)ptr);
+            }
         }
     }
 }

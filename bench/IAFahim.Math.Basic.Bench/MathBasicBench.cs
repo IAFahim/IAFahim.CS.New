@@ -3,6 +3,7 @@ namespace IAFahim.Math.Basic.Bench
     using System;
     using BenchmarkDotNet.Attributes;
     using BenchmarkDotNet.Running;
+    using IAFahim.Math.Basic;
 
     public static class Program
     {
@@ -19,28 +20,28 @@ namespace IAFahim.Math.Basic.Bench
         public int N;
 
         [Benchmark]
-        public void CeilDiv()
+        public void CeilDiv_Bench()
         {
             for (int i = 1; i < N; i++)
                 CeilDiv.Run(i, 7);
         }
 
         [Benchmark]
-        public void FloorDiv()
+        public void FloorDiv_Bench()
         {
             for (int i = 1; i < N; i++)
                 FloorDiv.Run(i, 7);
         }
 
         [Benchmark]
-        public void AbsInt()
+        public void AbsInt_Bench()
         {
             for (int i = -500; i < 500; i++)
                 AbsInt.Run(i);
         }
 
         [Benchmark]
-        public void MinInt()
+        public void MinInt_Bench()
         {
             int x = 0;
             for (int i = 0; i < N; i++)
@@ -48,7 +49,7 @@ namespace IAFahim.Math.Basic.Bench
         }
 
         [Benchmark]
-        public void MaxInt()
+        public void MaxInt_Bench()
         {
             int x = 0;
             for (int i = 0; i < N; i++)
@@ -56,7 +57,7 @@ namespace IAFahim.Math.Basic.Bench
         }
 
         [Benchmark]
-        public void Clamp()
+        public void Clamp_Bench()
         {
             for (int i = 0; i < N; i++)
                 Clamp.Run(i, 0, 1000);

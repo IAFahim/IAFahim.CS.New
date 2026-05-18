@@ -3,6 +3,7 @@ name: Publish to NuGet
 on:
   push:
     tags:
+      - "*-v*"
       - "v*"
 
 env:
@@ -23,12 +24,58 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - run: dotnet restore
+      - name: Extract package name and version from tag
+        id: tag_info
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          if [[ "$TAG" == *-v* ]]; then
+            PKG_NAME="${TAG%%-v*}"
+            PKG_VERSION="${TAG#*-v}"
+          else
+            PKG_NAME=""
+            PKG_VERSION="${TAG#v}"
+          fi
+          echo "PKG_NAME=$PKG_NAME" >> $GITHUB_OUTPUT
+          echo "PKG_VERSION=$PKG_VERSION" >> $GITHUB_OUTPUT
 
-      - run: dotnet build --configuration Release --no-restore
+      - name: Find project to pack
+        id: project
+        run: |
+          if [[ -n "${{ steps.tag_info.outputs.PKG_NAME }}" ]]; then
+            PROJ=$(find src -maxdepth 1 -type d -name "IAFahim.${{ steps.tag_info.outputs.PKG_NAME }}" | head -1)
+            if [[ -z "$PROJ" ]]; then
+              PROJ=$(find src -name "*.csproj" -exec grep -l "<AssemblyName>IAFahim.${{ steps.tag_info.outputs.PKG_NAME }}</AssemblyName>" {} \; | head -1 | xargs dirname 2>/dev/null || echo "")
+            fi
+          else
+            PROJ=""
+          fi
+          echo "PROJ=$PROJ" >> $GITHUB_OUTPUT
 
-      - run: dotnet test --configuration Release --no-build --no-restore
+      - name: Restore and build
+        run: |
+          dotnet restore
+          dotnet build --configuration Release --no-restore
 
-      - run: dotnet pack --configuration Release --no-build --output ${{ env.PACKAGE_OUTPUT }} /p:Version=${GITHUB_REF_NAME#v}
+      - name: Run tests
+        run: dotnet test --configuration Release --no-build --no-restore
 
-      - run: dotnet nuget push "${{ env.PACKAGE_OUTPUT }}/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+      - name: Pack specific package
+        if: steps.project.outputs.PROJ != ''
+        run: |
+          dotnet pack "${{ steps.project.outputs.PROJ }}" --configuration Release --no-build \
+            --output ${{ env.PACKAGE_OUTPUT }} \
+            /p:Version=${{ steps.tag_info.outputs.PKG_VERSION }}
+
+      - name: Pack all packages
+        if: steps.tag_info.outputs.PKG_NAME == ''
+        run: |
+          for proj in src/*/; do
+            if [[ -f "$proj"*.csproj ]]; then
+              dotnet pack "$proj" --configuration Release --no-build \
+                --output ${{ env.PACKAGE_OUTPUT }} \
+                /p:Version=${{ steps.tag_info.outputs.PKG_VERSION }}
+            fi
+          done
+
+      - name: Push to NuGet
+        run: dotnet nuget push "${{ env.PACKAGE_OUTPUT }}/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.html --skip-duplicate

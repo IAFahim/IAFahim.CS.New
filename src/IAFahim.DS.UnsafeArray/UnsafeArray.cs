@@ -9,30 +9,29 @@ namespace IAFahim.DS.UnsafeArray
     [NativeContainer]
     public unsafe struct UnsafeArray<T> : IDisposable where T : unmanaged
     {
-        [NativeDisableUnsafePtrRestriction] public T* Ptr;
+        [NativeDisableUnsafePtrRestriction]
+        public T* Ptr;
 
-        public int Length;
+        public readonly int Length;
+
+        public readonly Allocator Allocator;
 
         public UnsafeArray(int length, Allocator allocator)
         {
+            long byteCount = (long)length * UnsafeUtility.SizeOf<T>();
             this = default;
-            this.Length = length;
-            this.Allocator = allocator;
-            this.Ptr = (T*)AllocatorManager.Allocate(allocator, length * UnsafeUtility.SizeOf<T>(),
-                UnsafeUtility.AlignOf<T>());
-            UnsafeUtility.MemClear(this.Ptr, length * UnsafeUtility.SizeOf<T>());
+            Length = length;
+            Allocator = allocator;
+            Ptr = (T*)AllocatorManager.Allocate(allocator, byteCount, UnsafeUtility.AlignOf<T>());
+            UnsafeUtility.MemClear(Ptr, byteCount);
         }
-
-        public Allocator Allocator { get; }
 
         public void Dispose()
         {
-            if (this.Ptr != null)
+            if (Ptr != null)
             {
-                AllocatorManager.Free(this.Allocator, this.Ptr);
-                this.Ptr = null;
+                AllocatorManager.Free(Allocator, Ptr);
             }
-
             this = default;
         }
     }

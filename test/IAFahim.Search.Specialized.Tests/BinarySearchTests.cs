@@ -64,7 +64,7 @@ namespace IAFahim.Search.Specialized.Tests
             bool found = IAFahim.Search.Specialized.BinarySearch.TryFind(ptr, N, 500, out index);
             Assert.True(found);
             Assert.Equal(250, index);
-            Marshal.FreeHGlobal((IntPtr)ptr);
+            Marshal.FreeHGlobal((nint)ptr);
         }
 
         [Fact]
@@ -77,7 +77,7 @@ namespace IAFahim.Search.Specialized.Tests
             int index;
             bool found = IAFahim.Search.Specialized.BinarySearch.TryFind(ptr, N, 501, out index);
             Assert.False(found);
-            Marshal.FreeHGlobal((IntPtr)ptr);
+            Marshal.FreeHGlobal((nint)ptr);
         }
     }
 }

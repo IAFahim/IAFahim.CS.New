@@ -4,6 +4,9 @@ namespace IAFahim.Compress.Bench
     using System.Runtime.InteropServices;
     using BenchmarkDotNet.Attributes;
     using BenchmarkDotNet.Running;
+    using IAFahim.Compress;
+    using CV = IAFahim.Compress.CompressValues;
+    using RC = IAFahim.Compress.RestoreCompressed;
 
     public static class Program
     {
@@ -20,14 +23,14 @@ namespace IAFahim.Compress.Bench
         public int N;
 
         private int* _values;
-        private int* _compressed;
+        private long* _compressed;
         private int* _restored;
 
         [GlobalSetup]
         public void Setup()
         {
             _values = (int*)Marshal.AllocHGlobal(N * sizeof(int));
-            _compressed = (int*)Marshal.AllocHGlobal(N * sizeof(int));
+            _compressed = (long*)Marshal.AllocHGlobal(N * sizeof(long));
             _restored = (int*)Marshal.AllocHGlobal(N * sizeof(int));
             Random rng = new Random(42);
             for (int i = 0; i < N; i++)
@@ -35,16 +38,16 @@ namespace IAFahim.Compress.Bench
         }
 
         [Benchmark]
-        public void CompressValues()
+        public void CompressValues_Bench()
         {
-            CompressValues.Run(_values, _compressed, N);
+            CV.Run(_values, _compressed, N);
         }
 
         [Benchmark]
-        public void RestoreCompressed()
+        public void CompressValuesUnique_Bench()
         {
-            int count = CompressValues.Run(_values, _compressed, N);
-            RestoreCompressed.Run(_compressed, _restored, count);
+            int count = CV.RunUnique(_values, _compressed, N);
+            RC.Run(_compressed, _restored, count);
         }
 
         [GlobalCleanup]

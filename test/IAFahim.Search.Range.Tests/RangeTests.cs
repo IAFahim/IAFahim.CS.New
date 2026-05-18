@@ -68,9 +68,15 @@ namespace IAFahim.Search.Range.Tests
         {
             int* src = stackalloc int[] { 3, 1, 4, 1, 5, 9, 2, 6 };
             int* sparse = (int*)Marshal.AllocHGlobal(8 * 4 * 3);
-            RangeMin.BuildSparse(sparse, src, 8);
-            Assert.Equal(1, RangeMin.Query(sparse, src, 8, 0, 3));
-            Marshal.FreeHGlobal((IntPtr)sparse);
+            try
+            {
+                RangeMin.BuildSparse(sparse, src, 8);
+                Assert.Equal(1, RangeMin.Query(sparse, src, 8, 0, 3));
+            }
+            finally
+            {
+                Marshal.FreeHGlobal((nint)sparse);
+            }
         }
     }
 
@@ -81,9 +87,15 @@ namespace IAFahim.Search.Range.Tests
         {
             int* src = stackalloc int[] { 3, 1, 4, 1, 5, 9, 2, 6 };
             int* sparse = (int*)Marshal.AllocHGlobal(8 * 4 * 3);
-            RangeMax.BuildSparse(sparse, src, 8);
-            Assert.Equal(4, RangeMax.Query(sparse, 8, 0, 3));
-            Marshal.FreeHGlobal((IntPtr)sparse);
+            try
+            {
+                RangeMax.BuildSparse(sparse, src, 8);
+                Assert.Equal(4, RangeMax.Query(sparse, 8, 0, 3));
+            }
+            finally
+            {
+                Marshal.FreeHGlobal((nint)sparse);
+            }
         }
     }
 }
