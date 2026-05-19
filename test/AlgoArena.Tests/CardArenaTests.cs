@@ -88,10 +88,43 @@ namespace AlgoArena.Tests
 
                 MergeSorted.RunInPlace(ptr, N);
 
-                for (int i = 1; i < N; i++)
-                    Assert.True(ptr[i] >= ptr[i - 1], $"Array not sorted at position {i}: {ptr[i]} < {ptr[i - 1]}");
+                for (int i = 0; i < N; i++)
+                    Assert.Equal(i + 1, ptr[i]);
             }
             finally { Marshal.FreeHGlobal((nint)ptr); }
+        }
+
+        [Fact]
+        public void MergeSort_PreservesElements()
+        {
+            const int N = 64;
+            int* ptr = (int*)Marshal.AllocHGlobal(N * sizeof(int));
+            try
+            {
+                long sumBefore = 0;
+                for (int i = 0; i < N; i++) { ptr[i] = N - i; sumBefore += ptr[i]; }
+
+                MergeSorted.RunInPlace(ptr, N);
+
+                long sumAfter = 0;
+                for (int i = 0; i < N; i++) sumAfter += ptr[i];
+                Assert.Equal(sumBefore, sumAfter);
+            }
+            finally { Marshal.FreeHGlobal((nint)ptr); }
+        }
+
+        [Fact]
+        public void MergeSort_AllSizes_OneToThirtyThree()
+        {
+            for (int sz = 1; sz <= 33; sz++)
+            {
+                int* q = (int*)Marshal.AllocHGlobal(sz * sizeof(int));
+                for (int i = 0; i < sz; i++) q[i] = sz - i;
+                MergeSorted.RunInPlace(q, sz);
+                for (int i = 1; i < sz; i++)
+                    Assert.True(q[i] >= q[i - 1], $"size={sz} not sorted at {i}");
+                Marshal.FreeHGlobal((nint)q);
+            }
         }
 
         [Fact]

@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace IAFahim.Sort.Merge
 {
@@ -22,6 +23,20 @@ namespace IAFahim.Sort.Merge
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void RunInPlace<T>(T* ptr, int len) where T : unmanaged, IComparable<T>
         {
+            if (len <= 1) return;
+            T* tmp = (T*)Marshal.AllocHGlobal((nint)((long)len * sizeof(T)));
+            try
+            {
+                RunInPlaceCore(ptr, len, tmp);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal((nint)tmp);
+            }
+        }
+
+        private static void RunInPlaceCore<T>(T* ptr, int len, T* tmp) where T : unmanaged, IComparable<T>
+        {
             int width = 1;
             while (width < len)
             {
@@ -30,13 +45,16 @@ namespace IAFahim.Sort.Merge
                 {
                     int m = Math.Min(l + width, len);
                     int r = Math.Min(l + 2 * width, len);
-                    int i = l, j = m, k = l;
-                    while (i < m && j < r)
-                        ptr[k++] = ptr[i].CompareTo(ptr[j]) <= 0 ? ptr[i++] : ptr[j++];
-                    while (i < m)
-                        ptr[k++] = ptr[i++];
-                    while (j < r)
-                        ptr[k++] = ptr[j++];
+                    int segLen = r - l;
+                    for (int i = 0; i < segLen; i++) tmp[i] = ptr[l + i];
+                    int ia = 0, ib = m - l, ic = l;
+                    int aEnd = m - l, bEnd = r - l;
+                    while (ia < aEnd && ib < bEnd)
+                        ptr[ic++] = tmp[ia].CompareTo(tmp[ib]) <= 0 ? tmp[ia++] : tmp[ib++];
+                    while (ia < aEnd)
+                        ptr[ic++] = tmp[ia++];
+                    while (ib < bEnd)
+                        ptr[ic++] = tmp[ib++];
                     l += 2 * width;
                 }
                 width <<= 1;

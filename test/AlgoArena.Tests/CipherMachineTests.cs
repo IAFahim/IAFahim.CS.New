@@ -39,19 +39,30 @@ namespace AlgoArena.Tests
         [Fact]
         public void ModPow_SimplePowers()
         {
+            Assert.Equal(24, ModPow.Run(2, 10, 1000));
             Assert.Equal(8, ModPow.Run(2, 3, 100));
             Assert.Equal(27, ModPow.Run(3, 3, 1000));
             Assert.Equal(1, ModPow.Run(5, 0, 100));
             Assert.Equal(7, ModPow.Run(7, 1, 100));
+            Assert.Equal(65536, ModPow.Run(2, 16, 1000000007));
         }
 
-        [Theory]
-        [InlineData(1, 26, 1)]
-        public void ModInverse_KnownValues(long a, long mod, long expected)
+        [Fact]
+        public void ModPow_ModularInverseViaEuler()
         {
-            long inv = ModPow.Run(a, mod - 2, mod);
-            Assert.Equal(expected, inv);
-            Assert.Equal(1, (a * inv) % mod);
+            // 3^(-1) mod 26 = 3^11 mod 26 = 9 (since phi(26)=12, inv = 3^(11))
+            long inv3 = ModPow.Run(3, 11, 26);
+            Assert.Equal(9, inv3);
+            Assert.Equal(1, (3 * inv3) % 26);
+        }
+
+        [Fact]
+        public void ModPow_LargeExponent()
+        {
+            // 2^30 mod (1e9+7)
+            long expected = 1;
+            for (int i = 0; i < 30; i++) expected = (expected * 2) % 1000000007;
+            Assert.Equal(expected, ModPow.Run(2, 30, 1000000007));
         }
 
         [Fact]

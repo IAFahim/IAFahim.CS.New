@@ -129,6 +129,47 @@ namespace AlgoArena.Tests
             Assert.Equal(expected, Gcd.Run(a, b));
         }
 
+        [Fact]
+        public void Factorize_LargeSemiprime_ProductMatches()
+        {
+            long n = 997 * 991;
+            long* factors = (long*)Marshal.AllocHGlobal(64 * sizeof(long));
+            try
+            {
+                int count = Factorize.Run(n, factors);
+                long prod = 1;
+                for (int i = 0; i < count; i++) prod *= factors[i];
+                Assert.Equal(n, prod);
+                Assert.Equal(2, count);
+            }
+            finally { Marshal.FreeHGlobal((nint)factors); }
+        }
+
+        [Fact]
+        public void Factorize_VeryLargeSemiprime_ProductMatches()
+        {
+            long n = 999999937L * 999999929L;
+            long* factors = (long*)Marshal.AllocHGlobal(64 * sizeof(long));
+            try
+            {
+                int count = Factorize.Run(n, factors);
+                long prod = 1;
+                for (int i = 0; i < count; i++) prod *= factors[i];
+                Assert.Equal(n, prod);
+                Assert.Equal(2, count);
+            }
+            finally { Marshal.FreeHGlobal((nint)factors); }
+        }
+
+        [Fact]
+        public void PrimitiveRoot_SmallPrimes()
+        {
+            Assert.Equal(1, PrimitiveRoot.Run(2));
+            Assert.Equal(2, PrimitiveRoot.Run(3));
+            Assert.Equal(2, PrimitiveRoot.Run(5));
+            Assert.Equal(3, PrimitiveRoot.Run(7));
+        }
+
         [Theory]
         [InlineData(6, 12)]
         [InlineData(28, 56)]

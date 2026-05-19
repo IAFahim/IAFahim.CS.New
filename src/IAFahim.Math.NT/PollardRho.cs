@@ -46,19 +46,28 @@ namespace IAFahim.Math.NT
             if (n % 3 == 0) return 3;
             if (MillerRabin.Run(n)) return n;
 
-            long c = 1;
-            long x = 2;
-            long y = 2;
-            long d = 1;
-            while (d == 1)
+            return FindFactor(n, 1);
+        }
+
+        private static long FindFactor(long n, long startC)
+        {
+            long c = startC;
+            while (true)
             {
-                x = F(x, c, n);
-                y = F(F(y, c, n), c, n);
-                d = AbsLong(x - y);
-                d = Gcd(d, n);
+                long x = 2;
+                long y = 2;
+                long d = 1;
+                while (d == 1)
+                {
+                    x = F(x, c, n);
+                    y = F(F(y, c, n), c, n);
+                    d = AbsLong(x - y);
+                    d = Gcd(d, n);
+                }
+                if (d != n) return d;
+                c++;
+                if (c < 0) c = 1;
             }
-            if (d == n) return PollardRho.Run(n);
-            return d;
         }
     }
 }
