@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../cli/AlgoArena/AlgoArena.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Math.NT/IAFahim.Math.NT.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Math.Modular/IAFahim.Math.Modular.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Graph/IAFahim.Graph.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Graph.Tree/IAFahim.Graph.Tree.csproj" />
+    <ProjectReference Include="../../src/IAFahim.String/IAFahim.String.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Sort.Insertion/IAFahim.Sort.Insertion.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Sort.Merge/IAFahim.Sort.Merge.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Sort.Partition/IAFahim.Sort.Partition.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Search.Specialized/IAFahim.Search.Specialized.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Search.Bit/IAFahim.Search.Bit.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Search.Range/IAFahim.Search.Range.csproj" />
+    <ProjectReference Include="../../src/IAFahim.DS.Dsu/IAFahim.DS.Dsu.csproj" />
+    <ProjectReference Include="../../src/IAFahim.DS.SegmentTree/IAFahim.DS.SegmentTree.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Math.Combinatorics/IAFahim.Math.Combinatorics.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Permutation/IAFahim.Permutation.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Unique/IAFahim.Unique.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Math.Transform/IAFahim.Math.Transform.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+</Project>
