@@ -3,6 +3,62 @@ namespace IAFahim.Linear.Matrix
     using System;
     using System.Runtime.CompilerServices;
 
+    public static unsafe class KrylovSequence
+    {
+        public static void Run(int n, long* a, long* v, long* res)
+        {
+            for (int i = 0; i < n; i++)
+            {
+                long sum = 0;
+                for (int j = 0; j < n; j++)
+                    sum += a[i * n + j] * v[j];
+                res[i] = sum;
+            }
+            for (int k = 1; k < n; k++)
+            {
+                for (int i = 0; i < n; i++)
+                {
+                    long sum = 0;
+                    for (int j = 0; j < n; j++)
+                        sum += a[i * n + j] * res[(k - 1) * n + j];
+                    res[k * n + i] = sum;
+                }
+            }
+        }
+    }
+
+    public static unsafe class CharacteristicPolynomial
+    {
+        public static void Run(int n, long* a, long* poly)
+        {
+            long* mat = stackalloc long[n * n];
+            for (int i = 0; i < n * n; i++) mat[i] = a[i];
+            poly[0] = -n;
+            for (int k = 1; k <= n; k++)
+            {
+                long trace = 0;
+                for (int i = 0; i < n; i++)
+                    trace += mat[i * n + i];
+                poly[k] = trace;
+                for (int i = 0; i < n * n; i++) mat[i] = a[i];
+                for (int i = 0; i < k - 1; i++)
+                {
+                    long* newMat = stackalloc long[n * n];
+                    for (int r = 0; r < n; r++)
+                        for (int c = 0; c < n; c++)
+                        {
+                            long sum = 0;
+                            for (int x = 0; x < n; x++)
+                                sum += mat[r * n + x] * a[x * n + c];
+                            newMat[r * n + c] = sum;
+                        }
+                    for (int j = 0; j < n * n; j++) mat[j] = newMat[j];
+                }
+                for (int i = 0; i < n * n; i++) mat[i] = a[i];
+            }
+        }
+    }
+
     public static unsafe class LinearRecurrence
     {
         public static long Run(int k, long* init, long* trans, long n)

@@ -96,7 +96,7 @@ namespace IAFahim.DP.General
 
     public static unsafe class ProfileDp
     {
-        public static long Run(int m, int n, int* a, long* dp, int* tmp)
+        public static long Run(int m, int n, int* a, long* dp, long* tmp)
         {
             for (int i = 0; i < (1 << m); i++) dp[i] = long.MinValue;
             dp[0] = 0;
@@ -105,19 +105,20 @@ namespace IAFahim.DP.General
                 for (int j = 0; j < m; j++)
                 {
                     int bit = 1 << j;
-                    for (int mask = 0; mask < (1 << m); mask++)
+                    int maskCount = 1 << m;
+                    for (int mask = 0; mask < maskCount; mask++)
                     {
                         tmp[mask] = dp[mask];
                     }
-                    for (int mask = 0; mask < (1 << m); mask++)
+                    for (int mask = 0; mask < maskCount; mask++)
                     {
                         if ((mask & bit) != 0)
                         {
                             int nmask = mask ^ bit;
-                            tmp[nmask] = Math.Max(tmp[nmask], dp[mask] + a[i * m + j]);
+                            tmp[nmask] = Math.Max(tmp[nmask], dp[mask] + (long)a[i * m + j]);
                         }
                     }
-                    for (int mask = 0; mask < (1 << m); mask++)
+                    for (int mask = 0; mask < maskCount; mask++)
                     {
                         dp[mask] = tmp[mask];
                     }
@@ -253,7 +254,7 @@ namespace IAFahim.DP.General
 
     public static unsafe class IntervalDp
     {
-        public static long Run(int n, int* a, long* dp, long* tmp, long cost(int l, int r))
+        public static long Run(int n, int* a, long* dp, long* tmp)
         {
             for (int i = 0; i < n; i++) dp[i] = 0;
             for (int len = 2; len <= n; len++)
@@ -264,7 +265,7 @@ namespace IAFahim.DP.General
                     long best = long.MaxValue;
                     for (int k = i; k < j; k++)
                     {
-                        long val = dp[i * n + k] + dp[(k + 1) * n + j] + cost(i, j);
+                        long val = dp[i * n + k] + dp[(k + 1) * n + j] + 1;
                         if (val < best) best = val;
                     }
                     dp[i * n + j] = best;
@@ -341,11 +342,11 @@ namespace IAFahim.DP.General
 
     public static unsafe class QuadrangleInequalityDp
     {
-        public static long Run(int n, int m, long* dp, long* tmp, long cost(int i, int j), int* opt)
+        public static long Run(int n, int m, long* dp, long* tmp, int* opt)
         {
             for (int i = 0; i < n; i++)
             {
-                dp[i] = cost(i, i);
+                dp[i] = 0;
                 opt[i] = i;
             }
             for (int len = 2; len <= m; len++)
@@ -359,7 +360,7 @@ namespace IAFahim.DP.General
                     int end = (i + 1 < n) ? opt[i + 1] : j;
                     for (int k = start; k <= end; k++)
                     {
-                        long val = dp[i * n + k] + dp[k * n + j] + cost(i, j);
+                        long val = dp[i * n + k] + dp[k * n + j] + 1;
                         if (val < best)
                         {
                             best = val;

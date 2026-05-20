@@ -6,17 +6,13 @@ namespace IAFahim.DS.Fenwick
     public static unsafe class Fenwick
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AddInt64(long* bit, int idx, long val)
+        public static void AddInt64(long* bit, int n, int idx, long val)
         {
-            int n = 0;
-            bit += idx;
-            while (true)
+            while (idx < n)
             {
-                *bit += val;
-                n = idx + 1;
-                idx += n & -n;
-                if (idx <= 0) break;
-                bit += n;
+                bit[idx] += val;
+                idx = (idx + 1) & -idx;
+                if (idx == 0) break;
             }
         }
 
@@ -24,13 +20,11 @@ namespace IAFahim.DS.Fenwick
         public static long SumInt64(long* bit, int idx)
         {
             long res = 0;
-            bit += idx;
             while (idx >= 0)
             {
-                res += *bit;
+                res += bit[idx];
                 idx = (idx + 1) & -idx;
                 if (idx == 0) break;
-                bit -= idx;
             }
             return res;
         }
@@ -48,18 +42,16 @@ namespace IAFahim.DS.Fenwick
         public static int LowerBoundInt64(long* bit, int n, long target)
         {
             int idx = 0;
-            int bitMask = 1 << (31 - (n - 1).ToString().Length);
-            while (bitMask != 0)
+            for (int bitMask = 1 << 20; bitMask != 0; bitMask >>= 1)
             {
                 int next = idx + bitMask;
-                if (next <= n && bit[next] < target)
+                if (next < n && bit[next] < target)
                 {
                     idx = next;
                     target -= bit[next];
                 }
-                bitMask >>= 1;
             }
-            return idx;
+            return Math.Min(idx, n - 1);
         }
     }
 }

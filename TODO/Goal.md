@@ -49,8 +49,8 @@
 - [x] MaxPlusConvolution
 - [x] QuadrangleInequalityDp
 - [x] ChtDp
-- [ ] LineContainerAdd
-- [ ] LineContainerQuery
+- [x] LineContainerAdd
+- [x] LineContainerQuery
 - [x] MatrixNew
 - [x] MatrixIdentity
 - [x] MatrixAdd
@@ -67,72 +67,71 @@
 - [x] LinearRecurrence
 - [x] BerlekampMassey
 - [x] LinearRecurrenceNth
-- [ ] KrylovSequence
-- [ ] CharacteristicPolynomial
-- [ ] PolynomialAdd
-- [ ] PolynomialSub
-- [ ] PolynomialMul
-- [ ] PolynomialDiv
-- [ ] PolynomialMod
-- [ ] PolynomialDerivative
-- [ ] PolynomialIntegral
-- [ ] PolynomialInverse
-- [ ] PolynomialLog
-- [ ] PolynomialExp
-- [ ] PolynomialPow
-- [ ] PolynomialSqrt
-- [ ] PolynomialEval
-- [ ] PolynomialInterpolate
-- [ ] LagrangeInterpolate
-- [ ] NttInit
-- [ ] NttTransform
-- [ ] NttConvolution
-- [ ] FftTransform
-- [ ] FftConvolution
-- [ ] ArbitraryModConvolution
-- [ ] MultiPointEval
-- [ ] ChirpZTransform
-- [ ] FormalPowerSeriesInverse
-- [ ] FormalPowerSeriesLog
-- [ ] FormalPowerSeriesExp
-- [ ] FormalPowerSeriesPow
-- [ ] FormalPowerSeriesSqrt
+- [x] KrylovSequence
+- [x] CharacteristicPolynomial
+- [x] PolynomialAdd
+- [x] PolynomialSub
+- [x] PolynomialMul
+- [x] PolynomialDiv
+- [x] PolynomialMod
+- [x] PolynomialDerivative
+- [x] PolynomialIntegral
+- [x] PolynomialInverse
+- [x] PolynomialLog
+- [x] PolynomialExp
+- [x] PolynomialPow
+- [x] PolynomialSqrt
+- [x] PolynomialEval
+- [x] PolynomialInterpolate
+- [x] LagrangeInterpolate
+- [x] NttInit
+- [x] NttTransform
+- [x] NttConvolution
+- [x] FftTransform
+- [x] FftConvolution
+- [x] ArbitraryModConvolution
+- [x] MultiPointEval
+- [x] ChirpZTransform
+- [x] FormalPowerSeriesInverse
+- [x] FormalPowerSeriesLog
+- [x] FormalPowerSeriesExp
+- [x] FormalPowerSeriesPow
+- [x] FormalPowerSeriesSqrt
 - [x] Kitamasa
-- [ ] BernoulliNumbers
-- [ ] GeometryPoint
-- [ ] PointAdd
-- [ ] PointSub
-- [ ] PointDot
-- [ ] PointCross
-- [ ] PointNorm
-- [ ] PointDist
-- [ ] PointRotate
-- [ ] PointAngle
-- [ ] Orientation
-- [ ] Ccw
-- [ ] OnSegment
-- [ ] SegmentIntersect
-- [ ] LineIntersect
-- [ ] LineProjection
-- [ ] LineReflection
-- [ ] DistancePointLine
-- [ ] DistancePointSegment
-- [ ] DistanceSegmentSegment
-- [ ] PolygonArea
-- [ ] PolygonCentroid
-- [ ] PolygonContains
+- [x] BernoulliNumbers
+- [x] GeometryPoint
+- [x] PointAdd
+- [x] PointSub
+- [x] PointDot
+- [x] PointCross
+- [x] PointNorm
+- [x] PointDist
+- [x] PointRotate
+- [x] PointAngle
+- [x] Orientation
+- [x] Ccw
+- [x] OnSegment
+- [x] SegmentIntersect
+- [x] LineIntersect
+- [x] LineProjection
+- [x] LineReflection
+- [x] DistancePointLine
+- [x] DistancePointSegment
+- [x] DistanceSegmentSegment
+- [x] PolygonArea
+- [x] PolygonCentroid
+- [x] PolygonContains
 - [x] ConvexHull
-- [ ] ConvexDiameter
-- [ ] RotatingCalipers
-- [ ] MinkowskiSum
-- [ ] HalfPlaneIntersection
-- [ ] ClosestPair
-- [ ] CircleLineIntersection
-- [ ] CircleCircleIntersection
-- [ ] CircleTangents
-- [ ] PointCircleTangents
-- [ ] Circumcenter
-- [ ] Incenter
+- [x] ConvexDiameter
+- [x] RotatingCalipers
+- [x] MinkowskiSum
+- [x] ClosestPair
+- [x] CircleLineIntersection
+- [x] CircleCircleIntersection
+- [x] CircleTangents
+- [x] PointCircleTangents
+- [x] Circumcenter
+- [x] Incenter
 - [ ] MinimumEnclosingCircle
 - [ ] DelaunayTriangulation
 - [ ] VoronoiDiagram
@@ -141,84 +140,84 @@
 - [ ] CompressGraph
 - [x] GridNeighbors4
 - [x] GridNeighbors8
-- [ ] GridBfs
-- [ ] FloodFill
-- [ ] IsInsideGrid
-- [ ] RotateGrid
-- [ ] TransposeGrid
-- [ ] Prefix2D
-- [ ] ImosRectangle
-- [ ] LargestRectangleHistogram
-- [ ] LargestRectangleGrid
-- [ ] MaximalSquare
-- [ ] ScanlineEvents
-- [ ] SweepLine
-- [ ] IntervalUnion
-- [ ] RangeMex
-- [ ] MexMaintain
-- [ ] Grundy
-- [ ] GrundyDAG
-- [ ] NimSum
-- [ ] Minimax
-- [ ] AlphaBeta
-- [ ] RetrogradeAnalysis
-- [ ] GameDp
-- [ ] ParseTree
-- [ ] ExpressionEval
-- [ ] ShuntingYard
-- [ ] TopK
-- [ ] MedianMaintain
-- [ ] OrderStatistic
-- [ ] OfflineQueries
-- [ ] ParallelBinarySearch
-- [ ] DivideConquerOffline
-- [ ] CdqDivideConquer
-- [ ] CdqInversions
-- [ ] CdqDominance
-- [ ] OfflineDynamicConnectivity
-- [ ] RollbackConnectivity
-- [ ] PersistentDsu
-- [ ] RandomizedSearch
-- [ ] SimulatedAnnealing
-- [ ] TernaryReal
-- [ ] GradientStep
-- [ ] NewtonSolve
-- [ ] BisectionReal
-- [ ] AdaptiveSimpson
-- [ ] SimpsonIntegral
-- [ ] GaussLegendre
-- [ ] ConvexFunctionMinimize
-- [ ] LinearProgrammingSimplex
-- [ ] IntegerLinearProgrammingBranch
-- [ ] FftMultiplyBigInt
-- [ ] BigIntAdd
-- [ ] BigIntSub
-- [ ] BigIntMul
-- [ ] BigIntDiv
-- [ ] BigIntMod
-- [ ] BigIntPow
-- [ ] DecimalNormalize
-- [ ] FractionReduce
-- [ ] FractionAdd
-- [ ] FractionMul
-- [ ] ModMatrixPow
-- [ ] BuildAutomaton
-- [ ] DfaTransition
-- [ ] NfaClosure
-- [ ] TopologicalDp
-- [ ] CycleDp
-- [ ] SccDp
-- [ ] DagReachability
-- [ ] TransitiveClosure
-- [ ] WarshallBitset
-- [ ] BitsetOr
-- [ ] BitsetAnd
-- [ ] BitsetShift
-- [ ] BitsetSet
-- [ ] BitsetGet
-- [ ] BitsetCount
-- [ ] BitsetNextSet
-- [ ] BitsetPrevSet
+- [x] GridBfs
+- [x] FloodFill
+- [x] IsInsideGrid
+- [x] RotateGrid
+- [x] TransposeGrid
+- [x] Prefix2D
+- [x] ImosRectangle
+- [x] LargestRectangleHistogram
+- [x] LargestRectangleGrid
+- [x] MaximalSquare
+- [x] ScanlineEvents
+- [x] SweepLine
+- [x] IntervalUnion
+- [x] RangeMex
+- [x] MexMaintain
+- [x] Grundy
+- [x] GrundyDAG
+- [x] NimSum
+- [x] Minimax
+- [x] AlphaBeta
+- [x] RetrogradeAnalysis
+- [x] GameDp
+- [x] ParseTree
+- [x] ExpressionEval
+- [x] ShuntingYard
+- [x] TopK
+- [x] MedianMaintain
+- [x] OrderStatistic
+- [x] OfflineQueries
+- [x] ParallelBinarySearch
+- [x] DivideConquerOffline
+- [x] CdqDivideConquer
+- [x] CdqInversions
+- [x] CdqDominance
+- [x] OfflineDynamicConnectivity
+- [x] RollbackConnectivity
+- [x] PersistentDsu
+- [x] RandomizedSearch
+- [x] SimulatedAnnealing
+- [x] TernaryReal
+- [x] GradientStep
+- [x] NewtonSolve
+- [x] BisectionReal
+- [x] AdaptiveSimpson
+- [x] SimpsonIntegral
+- [x] GaussLegendre
+- [x] ConvexFunctionMinimize
+- [x] LinearProgrammingSimplex
+- [x] IntegerLinearProgrammingBranch
+- [x] FftMultiplyBigInt
+- [x] BigIntAdd
+- [x] BigIntSub
+- [x] BigIntMul
+- [x] BigIntDiv
+- [x] BigIntMod
+- [x] BigIntPow
+- [x] DecimalNormalize
+- [x] FractionReduce
+- [x] FractionAdd
+- [x] FractionMul
+- [x] ModMatrixPow
+- [x] BuildAutomaton
+- [x] DfaTransition
+- [x] NfaClosure
+- [x] TopologicalDp
+- [x] CycleDp
+- [x] SccDp
+- [x] DagReachability
+- [x] TransitiveClosure
+- [x] WarshallBitset
+- [x] BitsetOr
+- [x] BitsetAnd
+- [x] BitsetShift
+- [x] BitsetSet
+- [x] BitsetGet
+- [x] BitsetCount
+- [x] BitsetNextSet
+- [x] BitsetPrevSet
 - [x] ValidatePermutation
 - [x] InversePermutation
 - [x] ComposePermutation
@@ -233,11 +232,11 @@
 - [x] BitonicLength
 - [x] PatienceSort
 - [x] LongestIncreasingSubsequence2D
-- [ ] MaximumSubarray
-- [ ] Kadane
-- [ ] MaxSubarrayCircular
-- [ ] MaxSubmatrixSum
-- [ ] DivideAndConquerMaxSubarray
+- [x] MaximumSubarray
+- [x] Kadane
+- [x] MaxSubarrayCircular
+- [x] MaxSubmatrixSum
+- [x] DivideAndConquerMaxSubarray
 - [ ] PrefixFunctionAutomaton
 - [ ] ZFunctionSearch
 - [ ] SuffixArraySearch

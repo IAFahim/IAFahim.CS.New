@@ -1,73 +1,173 @@
-using System;
-using System.Runtime.CompilerServices;
-
 namespace IAFahim.Search.Selection
 {
-    public static unsafe class Selection
+    using System;
+    using System.Runtime.CompilerServices;
+
+    public static unsafe class TopK
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void SelectTopK<intT>(intT* ptr, int len, int k) where intT : unmanaged, IComparable<intT>
+        public static int Run(int n, long* a, int k, long* res)
         {
-            if ((uint)k >= (uint)len)
+            if (k <= 0) return 0;
+            long* temp = stackalloc long[n];
+            for (int i = 0; i < n; i++) temp[i] = a[i];
+            int left = 0, right = n - 1;
+            while (left < right)
             {
-                return;
-            }
-            int lo = 0;
-            int hi = len;
-            while (hi > lo + 1)
-            {
-                int mid = lo + ((hi - lo) >> 1);
-                intT pivot = ptr[mid];
-                int i = lo;
-                int j = hi;
-                ptr[mid] = ptr[lo];
-                ptr[lo] = pivot;
-                while (true)
+                long pivot = temp[right];
+                int i = left - 1;
+                for (int j = left; j < right; j++)
                 {
-                    do { j--; } while (ptr[j].CompareTo(pivot) > 0);
-                    do { i++; } while (i < hi && ptr[i].CompareTo(pivot) < 0);
-                    if (i >= j)
+                    if (temp[j] >= pivot)
                     {
-                        break;
+                        i++;
+                        long t = temp[i]; temp[i] = temp[j]; temp[j] = t;
                     }
-                    intT tmp = ptr[i];
-                    ptr[i] = ptr[j];
-                    ptr[j] = tmp;
                 }
-                ptr[lo] = ptr[j];
-                ptr[j] = pivot;
-                if (j == k)
+                long t2 = temp[i + 1]; temp[i + 1] = temp[right]; temp[right] = t2;
+                int idx = i + 1;
+                if (idx == k) break;
+                else if (idx < k) left = idx;
+                else right = idx - 1;
+            }
+            int count = Math.Min(k, n);
+            for (int i = 0; i < count; i++) res[i] = temp[i];
+            return count;
+        }
+    }
+
+    public static unsafe class MedianMaintain
+    {
+        public static long Run(int n, long* a, long* res)
+        {
+            long* maxHeap = stackalloc long[n];
+            long* minHeap = stackalloc long[n];
+            int maxSize = 0, minSize = 0;
+            maxHeap[0] = a[0];
+            maxSize = 1;
+            res[0] = a[0];
+            for (int i = 1; i < n; i++)
+            {
+                if (a[i] <= maxHeap[0])
                 {
-                    return;
-                }
-                if (j < k)
-                {
-                    lo = j + 1;
+                    maxHeap[maxSize++] = a[i];
+                    SiftUpMax(maxHeap, maxSize - 1);
                 }
                 else
                 {
-                    hi = j;
+                    minHeap[minSize++] = a[i];
+                    SiftUpMin(minHeap, minSize - 1);
                 }
+                if (maxSize > minSize + 1)
+                {
+                    minHeap[minSize++] = maxHeap[0];
+                    SiftUpMin(minHeap, minSize - 1);
+                    maxHeap[0] = maxHeap[--maxSize];
+                    SiftDownMax(maxHeap, 0, maxSize);
+                }
+                else if (minSize > maxSize)
+                {
+                    maxHeap[maxSize++] = minHeap[0];
+                    SiftUpMax(maxHeap, maxSize - 1);
+                    minHeap[0] = minHeap[--minSize];
+                    SiftDownMin(minHeap, 0, minSize);
+                }
+                if ((maxSize + minSize) % 2 == 0)
+                    res[i] = (maxHeap[0] + minHeap[0]) >> 1;
+                else
+                    res[i] = maxHeap[0];
             }
+            return res[(n - 1) / 2];
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryGetKth<intT>(intT* ptr, int len, int k, out intT result) where intT : unmanaged, IComparable<intT>
+        private static void SiftUpMax(long* heap, int i)
         {
-            if ((uint)k >= (uint)len)
+            while (i > 0)
             {
-                result = default;
-                return false;
+                int parent = (i - 1) >> 1;
+                if (heap[parent] < heap[i])
+                {
+                    long t = heap[parent]; heap[parent] = heap[i]; heap[i] = t;
+                    i = parent;
+                }
+                else break;
             }
-            SelectTopK(ptr, len, k);
-            result = ptr[k];
-            return true;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int MedianIndex(int len)
+        private static void SiftDownMax(long* heap, int i, int size)
         {
-            return len >> 1;
+            while (true)
+            {
+                int left = 2 * i + 1, right = 2 * i + 2, largest = i;
+                if (left < size && heap[left] > heap[largest]) largest = left;
+                if (right < size && heap[right] > heap[largest]) largest = right;
+                if (largest != i)
+                {
+                    long t = heap[i]; heap[i] = heap[largest]; heap[largest] = t;
+                    i = largest;
+                }
+                else break;
+            }
+        }
+
+        private static void SiftUpMin(long* heap, int i)
+        {
+            while (i > 0)
+            {
+                int parent = (i - 1) >> 1;
+                if (heap[parent] > heap[i])
+                {
+                    long t = heap[parent]; heap[parent] = heap[i]; heap[i] = t;
+                    i = parent;
+                }
+                else break;
+            }
+        }
+
+        private static void SiftDownMin(long* heap, int i, int size)
+        {
+            while (true)
+            {
+                int left = 2 * i + 1, right = 2 * i + 2, smallest = i;
+                if (left < size && heap[left] < heap[smallest]) smallest = left;
+                if (right < size && heap[right] < heap[smallest]) smallest = right;
+                if (smallest != i)
+                {
+                    long t = heap[i]; heap[i] = heap[smallest]; heap[smallest] = t;
+                    i = smallest;
+                }
+                else break;
+            }
+        }
+    }
+
+    public static unsafe class OrderStatistic
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static long Select(int n, long* a, int k)
+        {
+            if ((uint)k >= (uint)n) return long.MinValue;
+            long* temp = stackalloc long[n];
+            for (int i = 0; i < n; i++) temp[i] = a[i];
+            int left = 0, right = n - 1;
+            while (left < right)
+            {
+                long pivot = temp[right];
+                int i = left - 1;
+                for (int j = left; j < right; j++)
+                {
+                    if (temp[j] >= pivot)
+                    {
+                        i++;
+                        long t = temp[i]; temp[i] = temp[j]; temp[j] = t;
+                    }
+                }
+                long t2 = temp[i + 1]; temp[i + 1] = temp[right]; temp[right] = t2;
+                int idx = i + 1;
+                if (idx == k) return temp[idx];
+                else if (idx < k) left = idx;
+                else right = idx - 1;
+            }
+            return temp[left];
         }
     }
 }

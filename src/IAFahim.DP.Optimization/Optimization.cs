@@ -179,4 +179,53 @@ namespace IAFahim.DP.Optimization
             return 0;
         }
     }
+
+    public static unsafe class LineContainerAdd
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static long IntersectX(long m1, long b1, long m2, long b2)
+        {
+            return (b2 - b1 + m1 - 1) / m1;
+        }
+
+        public static void Run(long* m, long* b, int* size, long newM, long newB)
+        {
+            int sz = *size;
+            while (sz > 0)
+            {
+                long x = IntersectX(newM, newB, m[sz - 1], b[sz - 1]);
+                if (sz == 1 || x > m[sz - 1] * (sz > 1 ? 1 : 0) + b[sz - 1])
+                {
+                    m[sz] = newM;
+                    b[sz] = newB;
+                    *size = sz + 1;
+                    return;
+                }
+                sz--;
+            }
+            m[0] = newM;
+            b[0] = newB;
+            *size = 1;
+        }
+    }
+
+    public static unsafe class LineContainerQuery
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static long Run(int* ptr, long* m, long* b, int size, long x)
+        {
+            int pos = *ptr;
+            int lo = 0, hi = size - 1;
+            while (lo < hi)
+            {
+                int mid = (lo + hi) >> 1;
+                if (m[mid] * x + b[mid] <= m[mid + 1] * x + b[mid + 1])
+                    hi = mid;
+                else
+                    lo = mid + 1;
+            }
+            *ptr = lo;
+            return m[lo] * x + b[lo];
+        }
+    }
 }

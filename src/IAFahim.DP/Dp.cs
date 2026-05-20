@@ -185,7 +185,7 @@ namespace IAFahim.DP
             long bestVal = long.MaxValue;
             for (int k = optL; k <= Math.Min(mid, optR); k++)
             {
-                long val = dp[k - 1] + cost[k * 1000 + mid];
+                long val = dp[k - 1] + k * 1000 + mid;
                 if (val < bestVal)
                 {
                     bestVal = val;
