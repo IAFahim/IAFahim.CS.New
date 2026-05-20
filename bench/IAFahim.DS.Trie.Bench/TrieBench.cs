@@ -23,17 +23,18 @@ namespace IAFahim.DS.Trie.Bench
         public void TrieInsert()
         {
             const int maxNodes = 50000;
-            int* next0 = (int*)Marshal.AllocHGlobal(maxNodes * sizeof(int));
-            int* next1 = (int*)Marshal.AllocHGlobal(maxNodes * sizeof(int));
-            int* cnt = (int*)Marshal.AllocHGlobal(maxNodes * sizeof(int));
-            for (int i = 0; i < maxNodes; i++) { next0[i] = -1; next1[i] = -1; cnt[i] = 0; }
-            int nodeCount = 1;
+            int* trie = (int*)Marshal.AllocHGlobal(maxNodes * 27 * sizeof(int));
+            for (int i = 0; i < maxNodes * 27; i++) trie[i] = 0;
+            trie[0] = 1;
+            int root = 1;
             Random rng = new Random(42);
+            byte* word = stackalloc byte[1];
             for (int i = 0; i < N; i++)
-                TrieInsert.Run(&nodeCount, next0, next1, cnt, rng.Next(N));
-            Marshal.FreeHGlobal((nint)next0);
-            Marshal.FreeHGlobal((nint)next1);
-            Marshal.FreeHGlobal((nint)cnt);
+            {
+                word[0] = (byte)('a' + (rng.Next() % 26));
+                TrieInsert.Run(trie, root, word, 1);
+            }
+            Marshal.FreeHGlobal((nint)trie);
         }
 
         [GlobalCleanup]

@@ -2,13 +2,13 @@ namespace AlgoArena.Tests
 {
     using System;
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
     using IAFahim.Graph;
     using IAFahim.Graph.Tree;
 
     public sealed unsafe class NetworkRangerTests
     {
-        [Fact]
+        [Test]
         public void Dijkstra_SingleEdge()
         {
             int n = 2;
@@ -28,8 +28,8 @@ namespace AlgoArena.Tests
 
                 Dijkstra.Run(n, 0, head, to, next, weight, dist, parent);
 
-                Assert.Equal(0, dist[0]);
-                Assert.Equal(5, dist[1]);
+                Assert.AreEqual(0, dist[0]);
+                Assert.AreEqual(5, dist[1]);
             }
             finally
             {
@@ -43,7 +43,7 @@ namespace AlgoArena.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void Dijkstra_MultiplePaths()
         {
             int n = 4;
@@ -68,10 +68,10 @@ namespace AlgoArena.Tests
 
                 Dijkstra.Run(n, 0, head, to, next, weight, dist, parent);
 
-                Assert.Equal(0, dist[0]);
-                Assert.Equal(1, dist[1]);
-                Assert.Equal(2, dist[2]);
-                Assert.Equal(3, dist[3]);
+                Assert.AreEqual(0, dist[0]);
+                Assert.AreEqual(1, dist[1]);
+                Assert.AreEqual(2, dist[2]);
+                Assert.AreEqual(3, dist[3]);
             }
             finally
             {
@@ -85,7 +85,7 @@ namespace AlgoArena.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void Dijkstra_Unreachable()
         {
             int n = 3;
@@ -105,9 +105,9 @@ namespace AlgoArena.Tests
 
                 Dijkstra.Run(n, 0, head, to, next, weight, dist, parent);
 
-                Assert.Equal(0, dist[0]);
-                Assert.Equal(2, dist[1]);
-                Assert.Equal(long.MaxValue, dist[2]);
+                Assert.AreEqual(0, dist[0]);
+                Assert.AreEqual(2, dist[1]);
+                Assert.AreEqual(long.MaxValue, dist[2]);
             }
             finally
             {
@@ -121,7 +121,7 @@ namespace AlgoArena.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void DijkstraRestorePath_Simple()
         {
             int n = 4;
@@ -137,11 +137,11 @@ namespace AlgoArena.Tests
 
                 int len = DijkstraRestorePath.Run(parent, 3, path);
 
-                Assert.Equal(4, len);
-                Assert.Equal(0, path[0]);
-                Assert.Equal(1, path[1]);
-                Assert.Equal(2, path[2]);
-                Assert.Equal(3, path[3]);
+                Assert.AreEqual(4, len);
+                Assert.AreEqual(0, path[0]);
+                Assert.AreEqual(1, path[1]);
+                Assert.AreEqual(2, path[2]);
+                Assert.AreEqual(3, path[3]);
             }
             finally
             {
@@ -150,7 +150,7 @@ namespace AlgoArena.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void DijkstraRestorePath_DirectEdge()
         {
             int n = 2;
@@ -163,9 +163,9 @@ namespace AlgoArena.Tests
 
                 int len = DijkstraRestorePath.Run(parent, 1, path);
 
-                Assert.Equal(2, len);
-                Assert.Equal(0, path[0]);
-                Assert.Equal(1, path[1]);
+                Assert.AreEqual(2, len);
+                Assert.AreEqual(0, path[0]);
+                Assert.AreEqual(1, path[1]);
             }
             finally
             {
@@ -174,7 +174,7 @@ namespace AlgoArena.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void Bfs_SimpleGraph()
         {
             int n = 4;
@@ -198,10 +198,10 @@ namespace AlgoArena.Tests
 
                 Bfs.Run(n, 0, head, to, next, dist, parent);
 
-                Assert.Equal(0, dist[0]);
-                Assert.Equal(1, dist[1]);
-                Assert.Equal(1, dist[2]);
-                Assert.Equal(2, dist[3]);
+                Assert.AreEqual(0, dist[0]);
+                Assert.AreEqual(1, dist[1]);
+                Assert.AreEqual(1, dist[2]);
+                Assert.AreEqual(2, dist[3]);
             }
             finally
             {
@@ -215,7 +215,7 @@ namespace AlgoArena.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void Bfs_DisconnectedNodes()
         {
             int n = 4;
@@ -235,10 +235,10 @@ namespace AlgoArena.Tests
 
                 Bfs.Run(n, 0, head, to, next, dist, parent);
 
-                Assert.Equal(0, dist[0]);
-                Assert.Equal(1, dist[1]);
-                Assert.Equal(-1, dist[2]);
-                Assert.Equal(-1, dist[3]);
+                Assert.AreEqual(0, dist[0]);
+                Assert.AreEqual(1, dist[1]);
+                Assert.AreEqual(-1, dist[2]);
+                Assert.AreEqual(-1, dist[3]);
             }
             finally
             {

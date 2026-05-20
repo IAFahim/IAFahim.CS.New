@@ -1,0 +1,1086 @@
+*** Begin Patch*** Update File: test/AlgoArena.Tests/CardArenaTests.cs@@ -2,7 +2,7 @@ {
+     using System;
+     using System.Runtime.InteropServices;
+-    using Xunit;
++    using NUnit.Framework;
+     using IAFahim.Sort.Insertion;
+     using IAFahim.Sort.Merge;
+     using IAFahim.Sort.Partition;
+@@ -11,7 +11,7 @@ 
+     public sealed unsafe class CardArenaTests
+     {
+-        [Fact]
++        [Test]
+         public void InsertionSort_Reversed_SortsCorrectly()
+         {
+             const int N = 64;
+@@ -23,18 +23,18 @@                 Insertion.Run(ptr, N);
+ 
+                 for (int i = 0; i < N; i++)
+-                    Assert.Equal(i + 1, ptr[i]);
+-            }
+-            finally { Marshal.FreeHGlobal((nint)ptr); }
+-        }
+-
+-        [Fact]
++                    Assert.AreEqual(i + 1, ptr[i]);
++            }
++            finally { Marshal.FreeHGlobal((nint)ptr); }
++        }
++
++        [Test]
+         public void InsertionSort_EmptyInput_NoOp()
+         {
+             Insertion.Run<int>(null, 0);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void InsertionSort_SingleElement_NoOp()
+         {
+             int* ptr = (int*)Marshal.AllocHGlobal(sizeof(int));
+@@ -42,12 +42,12 @@             {
+                 ptr[0] = 42;
+                 Insertion.Run(ptr, 1);
+-                Assert.Equal(42, ptr[0]);
+-            }
+-            finally { Marshal.FreeHGlobal((nint)ptr); }
+-        }
+-
+-        [Fact]
++                Assert.AreEqual(42, ptr[0]);
++            }
++            finally { Marshal.FreeHGlobal((nint)ptr); }
++        }
++
++        [Test]
+         public void InsertionSort_AlreadySorted_NoChange()
+         {
+             const int N = 16;
+@@ -57,12 +57,12 @@                 for (int i = 0; i < N; i++) ptr[i] = i;
+                 Insertion.Run(ptr, N);
+                 for (int i = 0; i < N; i++)
+-                    Assert.Equal(i, ptr[i]);
+-            }
+-            finally { Marshal.FreeHGlobal((nint)ptr); }
+-        }
+-
+-        [Fact]
++                    Assert.AreEqual(i, ptr[i]);
++            }
++            finally { Marshal.FreeHGlobal((nint)ptr); }
++        }
++
++        [Test]
+         public void InsertionSort_Duplicates_StableSort()
+         {
+             const int N = 32;
+@@ -72,12 +72,12 @@                 for (int i = 0; i < N; i++) ptr[i] = (i % 4 == 0) ? 1 : (i % 4 == 1) ? 2 : (i % 4 == 2) ? 3 : 4;
+                 Insertion.Run(ptr, N);
+                 for (int i = 1; i < N; i++)
+-                    Assert.True(ptr[i] >= ptr[i - 1]);
+-            }
+-            finally { Marshal.FreeHGlobal((nint)ptr); }
+-        }
+-
+-        [Fact]
++                    Assert.IsTrue(ptr[i] >= ptr[i - 1]);
++            }
++            finally { Marshal.FreeHGlobal((nint)ptr); }
++        }
++
++        [Test]
+         public void MergeSort_Reversed_SortsCorrectly()
+         {
+             const int N = 64;
+@@ -89,12 +89,12 @@                 MergeSorted.RunInPlace(ptr, N);
+ 
+                 for (int i = 0; i < N; i++)
+-                    Assert.Equal(i + 1, ptr[i]);
+-            }
+-            finally { Marshal.FreeHGlobal((nint)ptr); }
+-        }
+-
+-        [Fact]
++                    Assert.AreEqual(i + 1, ptr[i]);
++            }
++            finally { Marshal.FreeHGlobal((nint)ptr); }
++        }
++
++        [Test]
+         public void MergeSort_PreservesElements()
+         {
+             const int N = 64;
+@@ -108,12 +108,12 @@ 
+                 long sumAfter = 0;
+                 for (int i = 0; i < N; i++) sumAfter += ptr[i];
+-                Assert.Equal(sumBefore, sumAfter);
+-            }
+-            finally { Marshal.FreeHGlobal((nint)ptr); }
+-        }
+-
+-        [Fact]
++                Assert.AreEqual(sumBefore, sumAfter);
++            }
++            finally { Marshal.FreeHGlobal((nint)ptr); }
++        }
++
++        [Test]
+         public void MergeSort_AllSizes_OneToThirtyThree()
+         {
+             for (int sz = 1; sz <= 33; sz++)
+@@ -122,18 +122,18 @@                 for (int i = 0; i < sz; i++) q[i] = sz - i;
+                 MergeSorted.RunInPlace(q, sz);
+                 for (int i = 1; i < sz; i++)
+-                    Assert.True(q[i] >= q[i - 1], $"size={sz} not sorted at {i}");
++                    Assert.IsTrue(q[i] >= q[i - 1], $"size={sz} not sorted at {i}");
+                 Marshal.FreeHGlobal((nint)q);
+             }
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MergeSort_EmptyInput_NoOp()
+         {
+             MergeSorted.RunInPlace<int>(null, 0);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MergeSort_SingleElement_NoOp()
+         {
+             int* ptr = (int*)Marshal.AllocHGlobal(sizeof(int));
+@@ -141,12 +141,12 @@             {
+                 ptr[0] = 99;
+                 MergeSorted.RunInPlace(ptr, 1);
+-                Assert.Equal(99, ptr[0]);
+-            }
+-            finally { Marshal.FreeHGlobal((nint)ptr); }
+-        }
+-
+-        [Fact]
++                Assert.AreEqual(99, ptr[0]);
++            }
++            finally { Marshal.FreeHGlobal((nint)ptr); }
++        }
++
++        [Test]
+         public void BinarySearch_Found_ReturnsTrue()
+         {
+             const int N = 32;
+@@ -157,13 +157,13 @@ 
+                 bool found = BinarySearch.TryFind(ptr, N, 20, out int index);
+ 
+-                Assert.True(found);
+-                Assert.Equal(10, index);
+-            }
+-            finally { Marshal.FreeHGlobal((nint)ptr); }
+-        }
+-
+-        [Fact]
++                Assert.IsTrue(found);
++                Assert.AreEqual(10, index);
++            }
++            finally { Marshal.FreeHGlobal((nint)ptr); }
++        }
++
++        [Test]
+         public void BinarySearch_NotFound_ReturnsFalse()
+         {
+             const int N = 32;
+@@ -174,37 +174,37 @@ 
+                 bool found = BinarySearch.TryFind(ptr, N, 21, out int index);
+ 
+-                Assert.False(found);
+-            }
+-            finally { Marshal.FreeHGlobal((nint)ptr); }
+-        }
+-
+-        [Fact]
++                Assert.IsFalse(found);
++            }
++            finally { Marshal.FreeHGlobal((nint)ptr); }
++        }
++
++        [Test]
+         public void BinarySearch_EmptyArray_ReturnsFalse()
+         {
+             bool found = BinarySearch.TryFind(null, 0, 5, out int index);
+-            Assert.False(found);
+-        }
+-
+-        [Fact]
++            Assert.IsFalse(found);
++        }
++
++        [Test]
+         public void BinarySearch_FirstElement()
+         {
+             int* ptr = stackalloc int[] { 1, 3, 5, 7, 9 };
+             bool found = BinarySearch.TryFind(ptr, 5, 1, out int index);
+-            Assert.True(found);
+-            Assert.Equal(0, index);
+-        }
+-
+-        [Fact]
++            Assert.IsTrue(found);
++            Assert.AreEqual(0, index);
++        }
++
++        [Test]
+         public void BinarySearch_LastElement()
+         {
+             int* ptr = stackalloc int[] { 1, 3, 5, 7, 9 };
+             bool found = BinarySearch.TryFind(ptr, 5, 9, out int index);
+-            Assert.True(found);
+-            Assert.Equal(4, index);
+-        }
+-
+-        [Fact]
++            Assert.IsTrue(found);
++            Assert.AreEqual(4, index);
++        }
++
++        [Test]
+         public void Partition_Lomuto_CorrectPlacement()
+         {
+             const int N = 9;
+@@ -218,36 +218,36 @@                 int pi = Partition.Run(ptr, N, pivotIdx);
+ 
+                 for (int i = 0; i < pi; i++)
+-                    Assert.True(ptr[i] <= ptr[pi]);
++                    Assert.IsTrue(ptr[i] <= ptr[pi]);
+                 for (int i = pi + 1; i < N; i++)
+-                    Assert.True(ptr[i] >= ptr[pi]);
+-            }
+-            finally { Marshal.FreeHGlobal((nint)ptr); }
+-        }
+-
+-        [Fact]
++                    Assert.IsTrue(ptr[i] >= ptr[pi]);
++            }
++            finally { Marshal.FreeHGlobal((nint)ptr); }
++        }
++
++        [Test]
+         public void Partition_NullPtr()
+         {
+             int pi = Partition.Run<int>(null, 0, 0);
+-            Assert.True(pi < 0);
+-        }
+-
+-        [Fact]
++            Assert.IsTrue(pi < 0);
++        }
++
++        [Test]
+         public void LowerBound_FindsFirstGreaterOrEqual()
+         {
+             int* ptr = stackalloc int[] { 1, 3, 5, 7, 9 };
+-            Assert.Equal(2, LowerBound.Run(ptr, 5, 5));
+-            Assert.Equal(0, LowerBound.Run(ptr, 5, 0));
+-            Assert.Equal(5, LowerBound.Run(ptr, 5, 10));
+-        }
+-
+-        [Fact]
++            Assert.AreEqual(2, LowerBound.Run(ptr, 5, 5));
++            Assert.AreEqual(0, LowerBound.Run(ptr, 5, 0));
++            Assert.AreEqual(5, LowerBound.Run(ptr, 5, 10));
++        }
++
++        [Test]
+         public void UpperBound_FindsFirstGreater()
+         {
+             int* ptr = stackalloc int[] { 1, 3, 5, 7, 9 };
+-            Assert.Equal(3, UpperBound.Run(ptr, 5, 5));
+-            Assert.Equal(0, UpperBound.Run(ptr, 5, 0));
+-            Assert.Equal(5, UpperBound.Run(ptr, 5, 9));
++            Assert.AreEqual(3, UpperBound.Run(ptr, 5, 5));
++            Assert.AreEqual(0, UpperBound.Run(ptr, 5, 0));
++            Assert.AreEqual(5, UpperBound.Run(ptr, 5, 9));
+         }
+     }
+ }*** Update File: test/AlgoArena.Tests/CipherMachineTests.cs@@ -2,16 +2,15 @@ {
+     using System;
+     using System.Runtime.InteropServices;
+-    using Xunit;
++    using NUnit.Framework;
+     using IAFahim.Math.Modular;
+     using IAFahim.String;
+ 
+     public sealed unsafe class CipherMachineTests
+     {
+-        [Theory]
+-        [InlineData("Hello", 42, "Hello")]
+-        [InlineData("Test", 7, "Test")]
+-        [InlineData("ABC", 255, "ABC")]
++        [TestCase("Hello", 42, "Hello")]
++        [TestCase("Test", 7, "Test")]
++        [TestCase("ABC", 255, "ABC")]
+         public void XorCipher_RoundTrip(string plaintext, int key, string expected)
+         {
+             int len = plaintext.Length;
+@@ -26,7 +25,7 @@                 for (int i = 0; i < len; i++) decoded[i] = (byte)(encoded[i] ^ key);
+ 
+                 for (int i = 0; i < len; i++)
+-                    Assert.Equal((byte)expected[i], decoded[i]);
++                    Assert.AreEqual((byte)expected[i], decoded[i]);
+             }
+             finally
+             {
+@@ -36,36 +35,36 @@             }
+         }
+ 
+-        [Fact]
++        [Test]
+         public void ModPow_SimplePowers()
+         {
+-            Assert.Equal(24, ModPow.Run(2, 10, 1000));
+-            Assert.Equal(8, ModPow.Run(2, 3, 100));
+-            Assert.Equal(27, ModPow.Run(3, 3, 1000));
+-            Assert.Equal(1, ModPow.Run(5, 0, 100));
+-            Assert.Equal(7, ModPow.Run(7, 1, 100));
+-            Assert.Equal(65536, ModPow.Run(2, 16, 1000000007));
++            Assert.AreEqual(24, ModPow.Run(2, 10, 1000));
++            Assert.AreEqual(8, ModPow.Run(2, 3, 100));
++            Assert.AreEqual(27, ModPow.Run(3, 3, 1000));
++            Assert.AreEqual(1, ModPow.Run(5, 0, 100));
++            Assert.AreEqual(7, ModPow.Run(7, 1, 100));
++            Assert.AreEqual(65536, ModPow.Run(2, 16, 1000000007));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void ModPow_ModularInverseViaEuler()
+         {
+             // 3^(-1) mod 26 = 3^11 mod 26 = 9 (since phi(26)=12, inv = 3^(11))
+             long inv3 = ModPow.Run(3, 11, 26);
+-            Assert.Equal(9, inv3);
+-            Assert.Equal(1, (3 * inv3) % 26);
++            Assert.AreEqual(9, inv3);
++            Assert.AreEqual(1, (3 * inv3) % 26);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void ModPow_LargeExponent()
+         {
+             // 2^30 mod (1e9+7)
+             long expected = 1;
+             for (int i = 0; i < 30; i++) expected = (expected * 2) % 1000000007;
+-            Assert.Equal(expected, ModPow.Run(2, 30, 1000000007));
++            Assert.AreEqual(expected, ModPow.Run(2, 30, 1000000007));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void CaesarShift_Encrypt()
+         {
+             string plaintext = "ABC";
+@@ -82,7 +81,7 @@                     enc[i] = (text[i] + shift) % 26;
+ 
+                 for (int i = 0; i < len; i++)
+-                    Assert.Equal(expected[i], (char)('A' + enc[i]));
++                    Assert.AreEqual(expected[i], (char)('A' + enc[i]));
+             }
+             finally
+             {
+*** Update File: test/AlgoArena.Tests/NetworkRangerTests.cs@@ -2,13 +2,13 @@ {
+     using System;
+     using System.Runtime.InteropServices;
+-    using Xunit;
++    using NUnit.Framework;
+     using IAFahim.Graph;
+     using IAFahim.Graph.Tree;
+ 
+     public sealed unsafe class NetworkRangerTests
+     {
+-        [Fact]
++        [Test]
+         public void Dijkstra_SingleEdge()
+         {
+             int n = 2;
+@@ -28,22 +28,22 @@ 
+                 Dijkstra.Run(n, 0, head, to, next, weight, dist, parent);
+ 
+-                Assert.Equal(0, dist[0]);
+-                Assert.Equal(5, dist[1]);
+-            }
+-            finally
+-            {
+-                Marshal.FreeHGlobal((nint)head);
+-                Marshal.FreeHGlobal((nint)to);
+-                Marshal.FreeHGlobal((nint)next);
+-                Marshal.FreeHGlobal((nint)weight);
+-                Marshal.FreeHGlobal((nint)edgeId);
+-                Marshal.FreeHGlobal((nint)dist);
+-                Marshal.FreeHGlobal((nint)parent);
+-            }
+-        }
+-
+-        [Fact]
++                Assert.AreEqual(0, dist[0]);
++                Assert.AreEqual(5, dist[1]);
++            }
++            finally
++            {
++                Marshal.FreeHGlobal((nint)head);
++                Marshal.FreeHGlobal((nint)to);
++                Marshal.FreeHGlobal((nint)next);
++                Marshal.FreeHGlobal((nint)weight);
++                Marshal.FreeHGlobal((nint)edgeId);
++                Marshal.FreeHGlobal((nint)dist);
++                Marshal.FreeHGlobal((nint)parent);
++            }
++        }
++
++        [Test]
+         public void Dijkstra_MultiplePaths()
+         {
+             int n = 4;
+@@ -68,24 +68,24 @@ 
+                 Dijkstra.Run(n, 0, head, to, next, weight, dist, parent);
+ 
+-                Assert.Equal(0, dist[0]);
+-                Assert.Equal(1, dist[1]);
+-                Assert.Equal(2, dist[2]);
+-                Assert.Equal(3, dist[3]);
+-            }
+-            finally
+-            {
+-                Marshal.FreeHGlobal((nint)head);
+-                Marshal.FreeHGlobal((nint)to);
+-                Marshal.FreeHGlobal((nint)next);
+-                Marshal.FreeHGlobal((nint)weight);
+-                Marshal.FreeHGlobal((nint)edgeId);
+-                Marshal.FreeHGlobal((nint)dist);
+-                Marshal.FreeHGlobal((nint)parent);
+-            }
+-        }
+-
+-        [Fact]
++                Assert.AreEqual(0, dist[0]);
++                Assert.AreEqual(1, dist[1]);
++                Assert.AreEqual(2, dist[2]);
++                Assert.AreEqual(3, dist[3]);
++            }
++            finally
++            {
++                Marshal.FreeHGlobal((nint)head);
++                Marshal.FreeHGlobal((nint)to);
++                Marshal.FreeHGlobal((nint)next);
++                Marshal.FreeHGlobal((nint)weight);
++                Marshal.FreeHGlobal((nint)edgeId);
++                Marshal.FreeHGlobal((nint)dist);
++                Marshal.FreeHGlobal((nint)parent);
++            }
++        }
++
++        [Test]
+         public void Dijkstra_Unreachable()
+         {
+             int n = 3;
+@@ -105,23 +105,23 @@ 
+                 Dijkstra.Run(n, 0, head, to, next, weight, dist, parent);
+ 
+-                Assert.Equal(0, dist[0]);
+-                Assert.Equal(2, dist[1]);
+-                Assert.Equal(long.MaxValue, dist[2]);
+-            }
+-            finally
+-            {
+-                Marshal.FreeHGlobal((nint)head);
+-                Marshal.FreeHGlobal((nint)to);
+-                Marshal.FreeHGlobal((nint)next);
+-                Marshal.FreeHGlobal((nint)weight);
+-                Marshal.FreeHGlobal((nint)edgeId);
+-                Marshal.FreeHGlobal((nint)dist);
+-                Marshal.FreeHGlobal((nint)parent);
+-            }
+-        }
+-
+-        [Fact]
++                Assert.AreEqual(0, dist[0]);
++                Assert.AreEqual(2, dist[1]);
++                Assert.AreEqual(long.MaxValue, dist[2]);
++            }
++            finally
++            {
++                Marshal.FreeHGlobal((nint)head);
++                Marshal.FreeHGlobal((nint)to);
++                Marshal.FreeHGlobal((nint)next);
++                Marshal.FreeHGlobal((nint)weight);
++                Marshal.FreeHGlobal((nint)edgeId);
++                Marshal.FreeHGlobal((nint)dist);
++                Marshal.FreeHGlobal((nint)parent);
++            }
++        }
++
++        [Test]
+         public void DijkstraRestorePath_Simple()
+         {
+             int n = 4;
+@@ -137,11 +137,11 @@ 
+                 int len = DijkstraRestorePath.Run(parent, 3, path);
+ 
+-                Assert.Equal(4, len);
+-                Assert.Equal(0, path[0]);
+-                Assert.Equal(1, path[1]);
+-                Assert.Equal(2, path[2]);
+-                Assert.Equal(3, path[3]);
++                Assert.AreEqual(4, len);
++                Assert.AreEqual(0, path[0]);
++                Assert.AreEqual(1, path[1]);
++                Assert.AreEqual(2, path[2]);
++                Assert.AreEqual(3, path[3]);
+             }
+             finally
+             {
+@@ -150,7 +150,7 @@             }
+         }
+ 
+-        [Fact]
++        [Test]
+         public void DijkstraRestorePath_DirectEdge()
+         {
+             int n = 2;
+@@ -163,9 +163,9 @@ 
+                 int len = DijkstraRestorePath.Run(parent, 1, path);
+ 
+-                Assert.Equal(2, len);
+-                Assert.Equal(0, path[0]);
+-                Assert.Equal(1, path[1]);
++                Assert.AreEqual(2, len);
++                Assert.AreEqual(0, path[0]);
++                Assert.AreEqual(1, path[1]);
+             }
+             finally
+             {
+@@ -174,7 +174,7 @@             }
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Bfs_SimpleGraph()
+         {
+             int n = 4;
+@@ -198,24 +198,24 @@ 
+                 Bfs.Run(n, 0, head, to, next, dist, parent);
+ 
+-                Assert.Equal(0, dist[0]);
+-                Assert.Equal(1, dist[1]);
+-                Assert.Equal(1, dist[2]);
+-                Assert.Equal(2, dist[3]);
+-            }
+-            finally
+-            {
+-                Marshal.FreeHGlobal((nint)head);
+-                Marshal.FreeHGlobal((nint)to);
+-                Marshal.FreeHGlobal((nint)next);
+-                Marshal.FreeHGlobal((nint)weight);
+-                Marshal.FreeHGlobal((nint)edgeId);
+-                Marshal.FreeHGlobal((nint)dist);
+-                Marshal.FreeHGlobal((nint)parent);
+-            }
+-        }
+-
+-        [Fact]
++                Assert.AreEqual(0, dist[0]);
++                Assert.AreEqual(1, dist[1]);
++                Assert.AreEqual(1, dist[2]);
++                Assert.AreEqual(2, dist[3]);
++            }
++            finally
++            {
++                Marshal.FreeHGlobal((nint)head);
++                Marshal.FreeHGlobal((nint)to);
++                Marshal.FreeHGlobal((nint)next);
++                Marshal.FreeHGlobal((nint)weight);
++                Marshal.FreeHGlobal((nint)edgeId);
++                Marshal.FreeHGlobal((nint)dist);
++                Marshal.FreeHGlobal((nint)parent);
++            }
++        }
++
++        [Test]
+         public void Bfs_DisconnectedNodes()
+         {
+             int n = 4;
+@@ -235,10 +235,10 @@ 
+                 Bfs.Run(n, 0, head, to, next, dist, parent);
+ 
+-                Assert.Equal(0, dist[0]);
+-                Assert.Equal(1, dist[1]);
+-                Assert.Equal(-1, dist[2]);
+-                Assert.Equal(-1, dist[3]);
++                Assert.AreEqual(0, dist[0]);
++                Assert.AreEqual(1, dist[1]);
++                Assert.AreEqual(-1, dist[2]);
++                Assert.AreEqual(-1, dist[3]);
+             }
+             finally
+             {
+*** Update File: test/AlgoArena.Tests/PrimeFortressTests.cs@@ -2,134 +2,128 @@ {
+     using System;
+     using System.Runtime.InteropServices;
+-    using Xunit;
++    using NUnit.Framework;
+     using IAFahim.Math.NT;
+     using IAFahim.Math.Modular;
+ 
+     public sealed unsafe class PrimeFortressTests
+     {
+-        [Theory]
+-        [InlineData(2, true)]
+-        [InlineData(3, true)]
+-        [InlineData(5, true)]
+-        [InlineData(7, true)]
+-        [InlineData(11, true)]
+-        [InlineData(17, true)]
+-        [InlineData(19, true)]
+-        [InlineData(23, true)]
+-        [InlineData(4, false)]
+-        [InlineData(6, false)]
+-        [InlineData(9, false)]
+-        [InlineData(15, false)]
+-        [InlineData(21, false)]
+-        [InlineData(100, false)]
++        [TestCase(2, true)]
++        [TestCase(3, true)]
++        [TestCase(5, true)]
++        [TestCase(7, true)]
++        [TestCase(11, true)]
++        [TestCase(17, true)]
++        [TestCase(19, true)]
++        [TestCase(23, true)]
++        [TestCase(4, false)]
++        [TestCase(6, false)]
++        [TestCase(9, false)]
++        [TestCase(15, false)]
++        [TestCase(21, false)]
++        [TestCase(100, false)]
+         public void MillerRabin_PrimeDetection(long n, bool expected)
+         {
+-            Assert.Equal(expected, MillerRabin.Run(n));
++            Assert.AreEqual(expected, MillerRabin.Run(n));
+         }
+ 
+-        [Theory]
+-        [InlineData(1, 1)]
+-        [InlineData(2, 1)]
+-        [InlineData(3, 2)]
+-        [InlineData(4, 2)]
+-        [InlineData(5, 4)]
+-        [InlineData(6, 2)]
+-        [InlineData(7, 6)]
+-        [InlineData(8, 4)]
+-        [InlineData(9, 6)]
+-        [InlineData(10, 4)]
+-        [InlineData(12, 4)]
+-        [InlineData(15, 8)]
+-        [InlineData(20, 8)]
+-        [InlineData(30, 8)]
+-        [InlineData(97, 96)]
++        [TestCase(1, 1)]
++        [TestCase(2, 1)]
++        [TestCase(3, 2)]
++        [TestCase(4, 2)]
++        [TestCase(5, 4)]
++        [TestCase(6, 2)]
++        [TestCase(7, 6)]
++        [TestCase(8, 4)]
++        [TestCase(9, 6)]
++        [TestCase(10, 4)]
++        [TestCase(12, 4)]
++        [TestCase(15, 8)]
++        [TestCase(20, 8)]
++        [TestCase(30, 8)]
++        [TestCase(97, 96)]
+         public void Phi_EulerTotient(long n, long expected)
+         {
+-            Assert.Equal(expected, Phi.Run(n));
++            Assert.AreEqual(expected, Phi.Run(n));
+         }
+ 
+-        [Theory]
+-        [InlineData(1, 1)]
+-        [InlineData(2, -1)]
+-        [InlineData(3, -1)]
+-        [InlineData(4, 0)]
+-        [InlineData(5, -1)]
+-        [InlineData(6, 1)]
+-        [InlineData(7, -1)]
+-        [InlineData(8, 0)]
+-        [InlineData(9, 0)]
+-        [InlineData(10, 1)]
+-        [InlineData(12, 0)]
+-        [InlineData(15, 1)]
+-        [InlineData(18, 0)]
+-        [InlineData(30, -1)]
+-        [InlineData(42, -1)]
++        [TestCase(1, 1)]
++        [TestCase(2, -1)]
++        [TestCase(3, -1)]
++        [TestCase(4, 0)]
++        [TestCase(5, -1)]
++        [TestCase(6, 1)]
++        [TestCase(7, -1)]
++        [TestCase(8, 0)]
++        [TestCase(9, 0)]
++        [TestCase(10, 1)]
++        [TestCase(12, 0)]
++        [TestCase(15, 1)]
++        [TestCase(18, 0)]
++        [TestCase(30, -1)]
++        [TestCase(42, -1)]
+         public void Mobius_Classification(long n, int expected)
+         {
+-            Assert.Equal(expected, Mobius.Run(n));
++            Assert.AreEqual(expected, Mobius.Run(n));
+         }
+ 
+-        [Theory]
+-        [InlineData(12, new long[] { 2, 2, 3 })]
+-        [InlineData(60, new long[] { 2, 2, 3, 5 })]
+-        [InlineData(100, new long[] { 2, 2, 5, 5 })]
+-        [InlineData(7, new long[] { 7 })]
+-        [InlineData(16, new long[] { 2, 2, 2, 2 })]
+-        [InlineData(360, new long[] { 2, 2, 2, 3, 3, 5 })]
++        [TestCase(12, new long[] { 2, 2, 3 })]
++        [TestCase(60, new long[] { 2, 2, 3, 5 })]
++        [TestCase(100, new long[] { 2, 2, 5, 5 })]
++        [TestCase(7, new long[] { 7 })]
++        [TestCase(16, new long[] { 2, 2, 2, 2 })]
++        [TestCase(360, new long[] { 2, 2, 2, 3, 3, 5 })]
+         public void Factorize_PrimeFactors(long n, long[] expected)
+         {
+             long* factors = (long*)Marshal.AllocHGlobal(64 * sizeof(long));
+             try
+             {
+                 int count = Factorize.Run(n, factors);
+-                Assert.Equal(expected.Length, count);
++                Assert.AreEqual(expected.Length, count);
+                 for (int i = 0; i < count; i++)
+-                    Assert.Equal(expected[i], factors[i]);
++                    Assert.AreEqual(expected[i], factors[i]);
+             }
+             finally { Marshal.FreeHGlobal((nint)factors); }
+         }
+ 
+-        [Theory]
+-        [InlineData(1, 1)]
+-        [InlineData(2, 2)]
+-        [InlineData(3, 2)]
+-        [InlineData(4, 3)]
+-        [InlineData(6, 4)]
+-        [InlineData(12, 6)]
+-        [InlineData(28, 6)]
+-        [InlineData(30, 8)]
+-        [InlineData(60, 12)]
+-        [InlineData(100, 9)]
++        [TestCase(1, 1)]
++        [TestCase(2, 2)]
++        [TestCase(3, 2)]
++        [TestCase(4, 3)]
++        [TestCase(6, 4)]
++        [TestCase(12, 6)]
++        [TestCase(28, 6)]
++        [TestCase(30, 8)]
++        [TestCase(60, 12)]
++        [TestCase(100, 9)]
+         public void Divisors_Count(long n, int expected)
+         {
+             long* divisors = (long*)Marshal.AllocHGlobal(10000 * sizeof(long));
+             try
+             {
+                 int count = Divisors.Run(n, divisors);
+-                Assert.Equal(expected, count);
++                Assert.AreEqual(expected, count);
+                 var sortedDivs = new long[count];
+                 for (int i = 0; i < count; i++) sortedDivs[i] = divisors[i];
+                 Array.Sort(sortedDivs);
+                 for (int i = 1; i < count; i++)
+-                    Assert.True(sortedDivs[i] >= sortedDivs[i - 1]);
++                    Assert.IsTrue(sortedDivs[i] >= sortedDivs[i - 1]);
+             }
+             finally { Marshal.FreeHGlobal((nint)divisors); }
+         }
+ 
+-        [Theory]
+-        [InlineData(12, 42, 6)]
+-        [InlineData(18, 24, 6)]
+-        [InlineData(7, 14, 7)]
+-        [InlineData(25, 50, 25)]
+-        [InlineData(100, 35, 5)]
+-        [InlineData(17, 42, 1)]
++        [TestCase(12, 42, 6)]
++        [TestCase(18, 24, 6)]
++        [TestCase(7, 14, 7)]
++        [TestCase(25, 50, 25)]
++        [TestCase(100, 35, 5)]
++        [TestCase(17, 42, 1)]
+         public void Gcd_EuclideanAlgorithm(long a, long b, long expected)
+         {
+-            Assert.Equal(expected, Gcd.Run(a, b));
++            Assert.AreEqual(expected, Gcd.Run(a, b));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Factorize_LargeSemiprime_ProductMatches()
+         {
+             long n = 997 * 991;
+@@ -139,13 +133,13 @@                 int count = Factorize.Run(n, factors);
+                 long prod = 1;
+                 for (int i = 0; i < count; i++) prod *= factors[i];
+-                Assert.Equal(n, prod);
+-                Assert.Equal(2, count);
++                Assert.AreEqual(n, prod);
++                Assert.AreEqual(2, count);
+             }
+             finally { Marshal.FreeHGlobal((nint)factors); }
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Factorize_VeryLargeSemiprime_ProductMatches()
+         {
+             long n = 999999937L * 999999929L;
+@@ -155,41 +149,39 @@                 int count = Factorize.Run(n, factors);
+                 long prod = 1;
+                 for (int i = 0; i < count; i++) prod *= factors[i];
+-                Assert.Equal(n, prod);
+-                Assert.Equal(2, count);
++                Assert.AreEqual(n, prod);
++                Assert.AreEqual(2, count);
+             }
+             finally { Marshal.FreeHGlobal((nint)factors); }
+         }
+ 
+-        [Fact]
++        [Test]
+         public void PrimitiveRoot_SmallPrimes()
+         {
+-            Assert.Equal(1, PrimitiveRoot.Run(2));
+-            Assert.Equal(2, PrimitiveRoot.Run(3));
+-            Assert.Equal(2, PrimitiveRoot.Run(5));
+-            Assert.Equal(3, PrimitiveRoot.Run(7));
++            Assert.AreEqual(1, PrimitiveRoot.Run(2));
++            Assert.AreEqual(2, PrimitiveRoot.Run(3));
++            Assert.AreEqual(2, PrimitiveRoot.Run(5));
++            Assert.AreEqual(3, PrimitiveRoot.Run(7));
+         }
+ 
+-        [Theory]
+-        [InlineData(6, 12)]
+-        [InlineData(28, 56)]
+-        [InlineData(496, 992)]
+-        [InlineData(12, 28)]
++        [TestCase(6, 12)]
++        [TestCase(28, 56)]
++        [TestCase(496, 992)]
++        [TestCase(12, 28)]
+         public void DivisorSum_ReturnsSigma(long n, long expectedSigma)
+         {
+             long sum = DivisorSum.Run(n);
+-            Assert.Equal(expectedSigma, sum);
++            Assert.AreEqual(expectedSigma, sum);
+         }
+ 
+-        [Theory]
+-        [InlineData(1)]
+-        [InlineData(4)]
+-        [InlineData(27)]
+-        [InlineData(45)]
++        [TestCase(1)]
++        [TestCase(4)]
++        [TestCase(27)]
++        [TestCase(45)]
+         public void DivisorSum_DeficientNumber(long n)
+         {
+             long sum = DivisorSum.Run(n);
+-            Assert.True(sum < 2 * n);
++            Assert.IsTrue(sum < 2 * n);
+         }
+     }
+ }*** Update File: test/AlgoArena.Tests/TextForensicsTests.cs@@ -2,18 +2,17 @@ {
+     using System;
+     using System.Runtime.InteropServices;
+-    using Xunit;
++    using NUnit.Framework;
+     using IAFahim.String;
+ 
+     public sealed unsafe class TextForensicsTests
+     {
+-        [Theory]
+-        [InlineData("racecar", 7)]
+-        [InlineData("aba", 3)]
+-        [InlineData("a", 1)]
+-        [InlineData("babad", 3)]
+-        [InlineData("hello", 1)]
+-        [InlineData("ab", 1)]
++        [TestCase("racecar", 7)]
++        [TestCase("aba", 3)]
++        [TestCase("a", 1)]
++        [TestCase("babad", 3)]
++        [TestCase("hello", 1)]
++        [TestCase("ab", 1)]
+         public void ManacherOdd_MaxOddPalindrome(string s, int expectedMaxOdd)
+         {
+             int n = s.Length;
+@@ -28,7 +27,7 @@                 for (int i = 0; i < n; i++)
+                     maxOdd = Math.Max(maxOdd, radiiOdd[i] * 2 - 1);
+ 
+-                Assert.Equal(expectedMaxOdd, maxOdd);
++                Assert.AreEqual(expectedMaxOdd, maxOdd);
+             }
+             finally
+             {
+@@ -37,11 +36,10 @@             }
+         }
+ 
+-        [Theory]
+-        [InlineData("abba", 4)]
+-        [InlineData("ab", 0)]
+-        [InlineData("aabb", 2)]
+-        [InlineData("aaaa", 4)]
++        [TestCase("abba", 4)]
++        [TestCase("ab", 0)]
++        [TestCase("aabb", 2)]
++        [TestCase("aaaa", 4)]
+         public void ManacherEven_MaxEvenPalindrome(string s, int expectedMaxEven)
+         {
+             int n = s.Length;
+@@ -57,7 +55,7 @@                 for (int i = 0; i < n - 1; i++)
+                     maxEven = Math.Max(maxEven, radiiEven[i] * 2);
+ 
+-                Assert.Equal(expectedMaxEven, maxEven);
++                Assert.AreEqual(expectedMaxEven, maxEven);
+             }
+             finally
+             {
+@@ -66,13 +64,12 @@             }
+         }
+ 
+-        [Theory]
+-        [InlineData("hello", "ll", new[] { 2 })]
+-        [InlineData("hello", "lo", new[] { 3 })]
+-        [InlineData("ababab", "ab", new[] { 0, 2, 4 })]
+-        [InlineData("aaaa", "aa", new[] { 0, 1, 2 })]
+-        [InlineData("abc", "d", new int[] { })]
+-        [InlineData("abcabc", "abc", new[] { 0, 3 })]
++        [TestCase("hello", "ll", new[] { 2 })]
++        [TestCase("hello", "lo", new[] { 3 })]
++        [TestCase("ababab", "ab", new[] { 0, 2, 4 })]
++        [TestCase("aaaa", "aa", new[] { 0, 1, 2 })]
++        [TestCase("abc", "d", new int[] { })]
++        [TestCase("abcabc", "abc", new[] { 0, 3 })]
+         public void KmpSearch_FindsAllMatches(string textStr, string patternStr, int[] expectedPositions)
+         {
+             int n = textStr.Length;
+@@ -87,9 +84,9 @@ 
+                 int count = KmpSearch.Run(text, n, pattern, m, matches);
+ 
+-                Assert.Equal(expectedPositions.Length, count);
++                Assert.AreEqual(expectedPositions.Length, count);
+                 for (int i = 0; i < count; i++)
+-                    Assert.Equal(expectedPositions[i], matches[i]);
++                    Assert.AreEqual(expectedPositions[i], matches[i]);
+             }
+             finally
+             {
+@@ -99,11 +96,10 @@             }
+         }
+ 
+-        [Theory]
+-        [InlineData("abcabc", 3)]
+-        [InlineData("aaaa", 1)]
+-        [InlineData("abc", 3)]
+-        [InlineData("ababab", 2)]
++        [TestCase("abcabc", 3)]
++        [TestCase("aaaa", 1)]
++        [TestCase("abc", 3)]
++        [TestCase("ababab", 2)]
+         public void StringPeriod_ReturnsMinimalPeriod(string s, int expectedPeriod)
+         {
+             int n = s.Length;
+@@ -112,7 +108,7 @@             {
+                 for (int i = 0; i < n; i++) text[i] = (byte)s[i];
+                 int period = StringPeriod.Run(text, n);
+-                Assert.Equal(expectedPeriod, period);
++                Assert.AreEqual(expectedPeriod, period);
+             }
+             finally
+             {
+@@ -120,12 +116,11 @@             }
+         }
+ 
+-        [Theory]
+-        [InlineData("abab", 1)]
+-        [InlineData("abcdab", 1)]
+-        [InlineData("aaa", 2)]
+-        [InlineData("abc", 0)]
+-        [InlineData("aaaa", 3)]
++        [TestCase("abab", 1)]
++        [TestCase("abcdab", 1)]
++        [TestCase("aaa", 2)]
++        [TestCase("abc", 0)]
++        [TestCase("aaaa", 3)]
+         public void Borders_CountsCorrectly(string s, int expectedCount)
+         {
+             int n = s.Length;
+@@ -136,9 +131,9 @@                 for (int i = 0; i < n; i++) text[i] = (byte)s[i];
+                 int count = Borders.Run(text, n, borders);
+ 
+-                Assert.Equal(expectedCount, count);
++                Assert.AreEqual(expectedCount, count);
+                 for (int i = 0; i < count; i++)
+-                    Assert.True(borders[i] > 0 && borders[i] < n);
++                    Assert.IsTrue(borders[i] > 0 && borders[i] < n);
+             }
+             finally
+             {
+@@ -147,11 +142,10 @@             }
+         }
+ 
+-        [Theory]
+-        [InlineData("aabbaa", 'a', 2)]
+-        [InlineData("hello", 'h', 1)]
+-        [InlineData("aaaa", 'a', 4)]
+-        [InlineData("abc", 'a', 1)]
++        [TestCase("aabbaa", 'a', 2)]
++        [TestCase("hello", 'h', 1)]
++        [TestCase("aaaa", 'a', 4)]
++        [TestCase("abc", 'a', 1)]
+         public void RunLengthEncode_FirstRun(string s, char expectedChar, int expectedCount)
+         {
+             int n = s.Length;
+@@ -163,9 +157,9 @@                 for (int i = 0; i < n; i++) text[i] = (byte)s[i];
+                 int runs = RunLengthEncode.Run(text, n, values, counts);
+ 
+-                Assert.True(runs > 0);
+-                Assert.Equal((byte)expectedChar, values[0]);
+-                Assert.Equal(expectedCount, counts[0]);
++                Assert.IsTrue(runs > 0);
++                Assert.AreEqual((byte)expectedChar, values[0]);
++                Assert.AreEqual(expectedCount, counts[0]);
+             }
+             finally
+             {
+@@ -175,7 +169,7 @@             }
+         }
+ 
+-        [Fact]
++        [Test]
+         public void RunLengthEncode_EmptyInput()
+         {
+             byte* values = (byte*)Marshal.AllocHGlobal(1);
+@@ -183,7 +177,7 @@             try
+             {
+                 int runs = RunLengthEncode.Run(null, 0, values, counts);
+-                Assert.Equal(0, runs);
++                Assert.AreEqual(0, runs);
+             }
+             finally
+             {
+*** End Patch

@@ -10,16 +10,16 @@ namespace IAFahim.DS.Trie
             int cur = node;
             for (int i = 0; i < len; i++)
             {
-                int c = s[i];
-                int next = trie[cur * 26 + c];
+                int c = s[i] - 'a';
+                int next = trie[cur * 27 + c];
                 if (next == 0)
                 {
                     next = ++trie[0];
-                    trie[cur * 26 + c] = next;
+                    trie[cur * 27 + c] = next;
                 }
                 cur = next;
             }
-            trie[cur * 26] = -1;
+            trie[cur * 27 + 26] = -1;
         }
     }
 
@@ -32,25 +32,25 @@ namespace IAFahim.DS.Trie
             int pathLen = 0;
             for (int i = 0; i < len; i++)
             {
-                int c = s[i];
-                int next = trie[cur * 26 + c];
+                int c = s[i] - 'a';
+                int next = trie[cur * 27 + c];
                 if (next == 0) return false;
                 path[pathLen++] = cur;
                 cur = next;
             }
-            if (trie[cur * 26] != -1) return false;
-            trie[cur * 26] = 0;
+            if (trie[cur * 27 + 26] != -1) return false;
+            trie[cur * 27 + 26] = 0;
             for (int i = pathLen - 1; i >= 0; i--)
             {
                 int p = path[i];
                 bool hasChild = false;
                 for (int c = 0; c < 26; c++)
                 {
-                    if (trie[p * 26 + c] != 0) { hasChild = true; break; }
+                    if (trie[p * 27 + c] != 0) { hasChild = true; break; }
                 }
                 if (hasChild) break;
-                int pc = s[i];
-                trie[p * 26 + pc] = 0;
+                int pc = s[i] - 'a';
+                trie[p * 27 + pc] = 0;
             }
             return true;
         }
@@ -63,12 +63,12 @@ namespace IAFahim.DS.Trie
             int cur = node;
             for (int i = 0; i < len; i++)
             {
-                int c = s[i];
-                int next = trie[cur * 26 + c];
+                int c = s[i] - 'a';
+                int next = trie[cur * 27 + c];
                 if (next == 0) return false;
                 cur = next;
             }
-            return trie[cur * 26] == -1;
+            return trie[cur * 27 + 26] == -1;
         }
     }
 
@@ -79,12 +79,12 @@ namespace IAFahim.DS.Trie
             int cur = node;
             for (int i = 0; i < len; i++)
             {
-                int c = s[i];
-                int next = trie[cur * 26 + c];
+                int c = s[i] - 'a';
+                int next = trie[cur * 27 + c];
                 if (next == 0) return 0;
                 cur = next;
             }
-            return trie[cur * 26 + 26];
+            return trie[cur * 27 + 26];
         }
     }
 

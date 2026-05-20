@@ -30,7 +30,7 @@ namespace IAFahim.DS.Sparse.Tests
             int blockSize = 0;
             for (int i = 0; i < n; i++) arr[i] = i;
             SqrtDecomposeBuild.Run(arr, block, &blockSize, n);
-            int res = SqrtQuery.RangeMin(block, blockSize, 0, 5, n);
+            int res = SqrtQuery.RangeMin(arr, block, blockSize, 0, 5, n);
             Assert.Equal(0, res);
         }
 

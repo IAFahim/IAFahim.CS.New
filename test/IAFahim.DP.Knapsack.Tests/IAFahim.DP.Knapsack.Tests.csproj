@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.DP.Knapsack/IAFahim.DP.Knapsack.csproj" />
+  </ItemGroup>
+</Project>

@@ -123,9 +123,21 @@ namespace Unity.Collections
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ResizeCapacity(int newCapacity)
         {
-            var cap = 4;
-            while (cap < newCapacity)
-                cap <<= 1;
+            if (newCapacity <= _capacity)
+                return;
+
+            int cap = _capacity < 4 ? 4 : _capacity;
+            while (cap < newCapacity && cap > 0)
+            {
+                int nextCap = cap << 1;
+                if (nextCap < 0) // Overflow
+                {
+                    cap = newCapacity;
+                    break;
+                }
+                cap = nextCap;
+            }
+            if (cap < newCapacity) cap = newCapacity;
             Capacity = cap;
         }
 

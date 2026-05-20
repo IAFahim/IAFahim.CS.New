@@ -1,0 +1,715 @@
+*** Begin Patch*** Update File: test/IAFahim.Search.Specialized.Tests/BinarySearchTests.cs@@ -2,58 +2,58 @@ {
+     using System;
+     using System.Runtime.InteropServices;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class BinarySearchTests
+     {
+-        [Fact]
++        [Test]
+         public void EmptyInput_NotFound()
+         {
+             int index;
+             bool found = IAFahim.Search.Specialized.BinarySearch.TryFind(null, 0, 5, out index);
+-            Assert.False(found);
+-            Assert.Equal(0, index);
++            Assert.IsFalse(found);
++            Assert.AreEqual(0, index);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SingleElement_Found()
+         {
+             int* ptr = stackalloc int[] { 5 };
+             int index;
+             bool found = IAFahim.Search.Specialized.BinarySearch.TryFind(ptr, 1, 5, out index);
+-            Assert.True(found);
+-            Assert.Equal(0, index);
++            Assert.IsTrue(found);
++            Assert.AreEqual(0, index);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SingleElement_NotFound()
+         {
+             int* ptr = stackalloc int[] { 3 };
+             int index;
+             bool found = IAFahim.Search.Specialized.BinarySearch.TryFind(ptr, 1, 5, out index);
+-            Assert.False(found);
++            Assert.IsFalse(found);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MultipleElements_Found()
+         {
+             int* ptr = stackalloc int[] { 1, 3, 5, 7, 9 };
+             int index;
+             bool found = IAFahim.Search.Specialized.BinarySearch.TryFind(ptr, 5, 7, out index);
+-            Assert.True(found);
+-            Assert.Equal(3, index);
++            Assert.IsTrue(found);
++            Assert.AreEqual(3, index);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MultipleElements_NotFound()
+         {
+             int* ptr = stackalloc int[] { 1, 3, 5, 7, 9 };
+             int index;
+             bool found = IAFahim.Search.Specialized.BinarySearch.TryFind(ptr, 5, 4, out index);
+-            Assert.False(found);
++            Assert.IsFalse(found);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void LargeN_FoundCorrectly()
+         {
+             const int N = 1024;
+@@ -62,12 +62,12 @@                 ptr[i] = i * 2;
+             int index;
+             bool found = IAFahim.Search.Specialized.BinarySearch.TryFind(ptr, N, 500, out index);
+-            Assert.True(found);
+-            Assert.Equal(250, index);
++            Assert.IsTrue(found);
++            Assert.AreEqual(250, index);
+             Marshal.FreeHGlobal((nint)ptr);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void LargeN_NotFound()
+         {
+             const int N = 1024;
+@@ -76,7 +76,7 @@                 ptr[i] = i * 2;
+             int index;
+             bool found = IAFahim.Search.Specialized.BinarySearch.TryFind(ptr, N, 501, out index);
+-            Assert.False(found);
++            Assert.IsFalse(found);
+             Marshal.FreeHGlobal((nint)ptr);
+         }
+     }
+*** Update File: test/IAFahim.Search.Specialized.Tests/LowerBoundTests.cs@@ -2,66 +2,66 @@ {
+     using System;
+     using System.Runtime.InteropServices;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class LowerBoundTests
+     {
+-        [Fact]
++        [Test]
+         public void EmptyInput_ReturnsZero()
+         {
+             int pos = IAFahim.Search.Specialized.LowerBound.Run(null, 0, 5);
+-            Assert.Equal(0, pos);
++            Assert.AreEqual(0, pos);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SingleElement_Found()
+         {
+             int* ptr = stackalloc int[] { 5 };
+             int pos = IAFahim.Search.Specialized.LowerBound.Run(ptr, 1, 5);
+-            Assert.Equal(0, pos);
++            Assert.AreEqual(0, pos);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SingleElement_NotFound()
+         {
+             int* ptr = stackalloc int[] { 3 };
+             int pos = IAFahim.Search.Specialized.LowerBound.Run(ptr, 1, 5);
+-            Assert.Equal(1, pos);
++            Assert.AreEqual(1, pos);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MultipleElements_FoundFirst()
+         {
+             int* ptr = stackalloc int[] { 1, 3, 5, 7, 9 };
+             int pos = IAFahim.Search.Specialized.LowerBound.Run(ptr, 5, 3);
+-            Assert.Equal(1, pos);
++            Assert.AreEqual(1, pos);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MultipleElements_NotFoundInsertsAtEnd()
+         {
+             int* ptr = stackalloc int[] { 1, 3, 5, 7 };
+             int pos = IAFahim.Search.Specialized.LowerBound.Run(ptr, 4, 10);
+-            Assert.Equal(4, pos);
++            Assert.AreEqual(4, pos);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MultipleElements_InsertsAtBegin()
+         {
+             int* ptr = stackalloc int[] { 3, 5, 7, 9 };
+             int pos = IAFahim.Search.Specialized.LowerBound.Run(ptr, 4, 1);
+-            Assert.Equal(0, pos);
++            Assert.AreEqual(0, pos);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void AllSameElements_ReturnsFirst()
+         {
+             int* ptr = stackalloc int[] { 5, 5, 5, 5 };
+             int pos = IAFahim.Search.Specialized.LowerBound.Run(ptr, 4, 5);
+-            Assert.Equal(0, pos);
++            Assert.AreEqual(0, pos);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void LargeN_CorrectPosition()
+         {
+             const int N = 1024;
+@@ -71,7 +71,7 @@                 for (int i = 0; i < N; i++)
+                     ptr[i] = i * 2;
+                 int pos = IAFahim.Search.Specialized.LowerBound.Run(ptr, N, 1000);
+-                Assert.Equal(500, pos);
++                Assert.AreEqual(500, pos);
+             }
+             finally
+             {
+*** Update File: test/IAFahim.Search.Specialized.Tests/TernarySearchTests.cs@@ -2,58 +2,58 @@ {
+     using System;
+     using System.Runtime.InteropServices;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class TernarySearchTests
+     {
+-        [Fact]
++        [Test]
+         public void EmptyInput_ReturnsNegatedZero()
+         {
+             int pos = IAFahim.Search.Specialized.TernarySearch.Run(null, 0, 5);
+-            Assert.Equal(~0, pos);
++            Assert.AreEqual(~0, pos);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SingleElement_Found()
+         {
+             int* ptr = stackalloc int[] { 5 };
+             int pos = IAFahim.Search.Specialized.TernarySearch.Run(ptr, 1, 5);
+-            Assert.Equal(0, pos);
++            Assert.AreEqual(0, pos);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SingleElement_NotFound()
+         {
+             int* ptr = stackalloc int[] { 3 };
+             int pos = IAFahim.Search.Specialized.TernarySearch.Run(ptr, 1, 5);
+-            Assert.Equal(~1, pos);
++            Assert.AreEqual(~1, pos);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MultipleElements_FoundFirstMid()
+         {
+             int* ptr = stackalloc int[] { 1, 2, 3, 4, 5 };
+             int pos = IAFahim.Search.Specialized.TernarySearch.Run(ptr, 5, 3);
+-            Assert.Equal(2, pos);
++            Assert.AreEqual(2, pos);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MultipleElements_FoundSecondMid()
+         {
+             int* ptr = stackalloc int[] { 1, 2, 4, 5, 6 };
+             int pos = IAFahim.Search.Specialized.TernarySearch.Run(ptr, 5, 4);
+-            Assert.Equal(2, pos);
++            Assert.AreEqual(2, pos);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MultipleElements_NotFound()
+         {
+             int* ptr = stackalloc int[] { 1, 3, 5, 7 };
+             int pos = IAFahim.Search.Specialized.TernarySearch.Run(ptr, 4, 4);
+-            Assert.True(pos < 0);
++            Assert.IsTrue(pos < 0);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void LargeN_FoundCorrectly()
+         {
+             const int N = 1024;
+@@ -63,7 +63,7 @@                 for (int i = 0; i < N; i++)
+                     ptr[i] = i * 2;
+                 int pos = IAFahim.Search.Specialized.TernarySearch.Run(ptr, N, 500);
+-                Assert.Equal(250, pos);
++                Assert.AreEqual(250, pos);
+             }
+             finally
+             {
+@@ -71,7 +71,7 @@             }
+         }
+ 
+-        [Fact]
++        [Test]
+         public void LargeN_NotFound()
+         {
+             const int N = 1024;
+@@ -81,7 +81,7 @@                 for (int i = 0; i < N; i++)
+                     ptr[i] = i * 2;
+                 int pos = IAFahim.Search.Specialized.TernarySearch.Run(ptr, N, 501);
+-                Assert.True(pos < 0);
++                Assert.IsTrue(pos < 0);
+             }
+             finally
+             {
+*** Update File: test/IAFahim.Search.Specialized.Tests/UpperBoundTests.cs@@ -2,66 +2,66 @@ {
+     using System;
+     using System.Runtime.InteropServices;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class UpperBoundTests
+     {
+-        [Fact]
++        [Test]
+         public void EmptyInput_ReturnsZero()
+         {
+             int pos = IAFahim.Search.Specialized.UpperBound.Run(null, 0, 5);
+-            Assert.Equal(0, pos);
++            Assert.AreEqual(0, pos);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SingleElement_Found()
+         {
+             int* ptr = stackalloc int[] { 5 };
+             int pos = IAFahim.Search.Specialized.UpperBound.Run(ptr, 1, 5);
+-            Assert.Equal(1, pos);
++            Assert.AreEqual(1, pos);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SingleElement_NotFound()
+         {
+             int* ptr = stackalloc int[] { 3 };
+             int pos = IAFahim.Search.Specialized.UpperBound.Run(ptr, 1, 5);
+-            Assert.Equal(1, pos);
++            Assert.AreEqual(1, pos);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MultipleElements_ReturnsPastLast()
+         {
+             int* ptr = stackalloc int[] { 1, 3, 5, 7, 9 };
+             int pos = IAFahim.Search.Specialized.UpperBound.Run(ptr, 5, 5);
+-            Assert.Equal(3, pos);
++            Assert.AreEqual(3, pos);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MultipleElements_NotFoundAtEnd()
+         {
+             int* ptr = stackalloc int[] { 1, 3, 5, 7 };
+             int pos = IAFahim.Search.Specialized.UpperBound.Run(ptr, 4, 10);
+-            Assert.Equal(4, pos);
++            Assert.AreEqual(4, pos);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MultipleElements_ReturnsZero()
+         {
+             int* ptr = stackalloc int[] { 3, 5, 7, 9 };
+             int pos = IAFahim.Search.Specialized.UpperBound.Run(ptr, 4, 1);
+-            Assert.Equal(0, pos);
++            Assert.AreEqual(0, pos);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void AllSameElements_ReturnsEnd()
+         {
+             int* ptr = stackalloc int[] { 5, 5, 5, 5 };
+             int pos = IAFahim.Search.Specialized.UpperBound.Run(ptr, 4, 5);
+-            Assert.Equal(4, pos);
++            Assert.AreEqual(4, pos);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void LargeN_CorrectPosition()
+         {
+             const int N = 1024;
+@@ -71,7 +71,7 @@                 for (int i = 0; i < N; i++)
+                     ptr[i] = i * 2;
+                 int pos = IAFahim.Search.Specialized.UpperBound.Run(ptr, N, 1000);
+-                Assert.Equal(501, pos);
++                Assert.AreEqual(501, pos);
+             }
+             finally
+             {
+*** Update File: test/IAFahim.Search.Subset.Tests/SubsetTests.cs@@ -1,50 +1,50 @@ namespace IAFahim.Search.Subset.Tests
+ {
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class EnumerateSubsetsTests
+     {
+-        [Fact]
++        [Test]
+         public void Count()
+         {
+-            Assert.Equal(8, EnumerateSubsets.Count(7));
++            Assert.AreEqual(8, EnumerateSubsets.Count(7));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Run()
+         {
+             int* dst = stackalloc int[8];
+             EnumerateSubsets.Run(7, dst);
+-            Assert.Equal(7, dst[0]);
+-            Assert.Equal(0, dst[7]);
++            Assert.AreEqual(7, dst[0]);
++            Assert.AreEqual(0, dst[7]);
+         }
+     }
+ 
+     public sealed unsafe class EnumerateSupersetsTests
+     {
+-        [Fact]
++        [Test]
+         public void Run()
+         {
+             int* dst = stackalloc int[4];
+             int count = EnumerateSupersets.Run(2, 7, dst);
+-            Assert.Equal(3, count);
++            Assert.AreEqual(3, count);
+         }
+     }
+ 
+     public sealed unsafe class EnumerateMasksTests
+     {
+-        [Fact]
++        [Test]
+         public void Count()
+         {
+-            Assert.Equal(8, EnumerateMasks.Count(3));
++            Assert.AreEqual(8, EnumerateMasks.Count(3));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void CountPopBits()
+         {
+-            Assert.Equal(3, EnumerateMasks.CountPopBits(7));
+-            Assert.Equal(1, EnumerateMasks.CountPopBits(4));
+-            Assert.Equal(0, EnumerateMasks.CountPopBits(0));
++            Assert.AreEqual(3, EnumerateMasks.CountPopBits(7));
++            Assert.AreEqual(1, EnumerateMasks.CountPopBits(4));
++            Assert.AreEqual(0, EnumerateMasks.CountPopBits(0));
+         }
+     }
+ }*** Update File: test/IAFahim.Search.Suffix.Tests/SuffixTests.cs@@ -1,114 +1,114 @@ namespace IAFahim.Search.Suffix.Tests
+ {
+     using System;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class SuffixTests
+     {
+-        [Fact]
++        [Test]
+         public void SuffixSums_Empty_Returns0()
+         {
+             int* ptr = null;
+-            Assert.Equal(0, SuffixSums.Run(ptr, 0));
++            Assert.AreEqual(0, SuffixSums.Run(ptr, 0));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SuffixSums_Single_ReturnsElement()
+         {
+             int* ptr = stackalloc int[1];
+             ptr[0] = 5;
+-            Assert.Equal(5, SuffixSums.Run(ptr, 1));
++            Assert.AreEqual(5, SuffixSums.Run(ptr, 1));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SuffixSums_Normal_ComputesCorrect()
+         {
+             int* ptr = stackalloc int[5];
+             ptr[0] = 1; ptr[1] = 2; ptr[2] = 3; ptr[3] = 4; ptr[4] = 5;
+-            Assert.Equal(15, SuffixSums.Run(ptr, 5));
+-            Assert.Equal(15, ptr[0]);
+-            Assert.Equal(14, ptr[1]);
+-            Assert.Equal(12, ptr[2]);
+-            Assert.Equal(9, ptr[3]);
+-            Assert.Equal(5, ptr[4]);
++            Assert.AreEqual(15, SuffixSums.Run(ptr, 5));
++            Assert.AreEqual(15, ptr[0]);
++            Assert.AreEqual(14, ptr[1]);
++            Assert.AreEqual(12, ptr[2]);
++            Assert.AreEqual(9, ptr[3]);
++            Assert.AreEqual(5, ptr[4]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SuffixSums_Long_ComputesCorrect()
+         {
+             int* ptr = stackalloc int[10];
+             for (int i = 0; i < 10; i++) ptr[i] = 1;
+-            Assert.Equal(10, SuffixSums.Run(ptr, 10));
+-            Assert.Equal(10, ptr[0]);
+-            Assert.Equal(5, ptr[5]);
+-            Assert.Equal(1, ptr[9]);
++            Assert.AreEqual(10, SuffixSums.Run(ptr, 10));
++            Assert.AreEqual(10, ptr[0]);
++            Assert.AreEqual(5, ptr[5]);
++            Assert.AreEqual(1, ptr[9]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SuffixMin_Normal_FindsMin()
+         {
+             int* ptr = stackalloc int[5];
+             ptr[0] = 5; ptr[1] = 2; ptr[2] = 8; ptr[3] = 1; ptr[4] = 6;
+             int min = SuffixMin.Run(ptr, 5);
+-            Assert.Equal(1, min);
++            Assert.AreEqual(1, min);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SuffixMin_MinIndex_ReturnsCorrect()
+         {
+             int* ptr = stackalloc int[5];
+             ptr[0] = 5; ptr[1] = 2; ptr[2] = 8; ptr[3] = 1; ptr[4] = 6;
+             int idx = SuffixMin.MinIndex(ptr, 5);
+-            Assert.Equal(3, idx);
++            Assert.AreEqual(3, idx);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SuffixMax_Normal_FindsMax()
+         {
+             int* ptr = stackalloc int[5];
+             ptr[0] = 5; ptr[1] = 2; ptr[2] = 8; ptr[3] = 1; ptr[4] = 6;
+             int max = SuffixMax.Run(ptr, 5);
+-            Assert.Equal(8, max);
++            Assert.AreEqual(8, max);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SuffixMax_MaxIndex_ReturnsCorrect()
+         {
+             int* ptr = stackalloc int[5];
+             ptr[0] = 5; ptr[1] = 2; ptr[2] = 8; ptr[3] = 1; ptr[4] = 6;
+             int idx = SuffixMax.MaxIndex(ptr, 5);
+-            Assert.Equal(2, idx);
++            Assert.AreEqual(2, idx);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SuffixSums_RangeSum_InvalidRange_Returns0()
+         {
+             int* ptr = stackalloc int[5];
+             ptr[0] = 1; ptr[1] = 2; ptr[2] = 3; ptr[3] = 4; ptr[4] = 5;
+-            Assert.Equal(0, SuffixSums.RangeSum(ptr, 3, 1));
++            Assert.AreEqual(0, SuffixSums.RangeSum(ptr, 3, 1));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SuffixSums_RangeSum_Normal_ReturnsCorrect()
+         {
+             int* ptr = stackalloc int[6];
+             ptr[0] = 1; ptr[1] = 2; ptr[2] = 3; ptr[3] = 4; ptr[4] = 5; ptr[5] = 6;
+-            Assert.Equal(4 + 5 + 6, SuffixSums.RangeSum(ptr, 3, 5));
++            Assert.AreEqual(4 + 5 + 6, SuffixSums.RangeSum(ptr, 3, 5));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SuffixSums_Sum_Empty_Returns0()
+         {
+             int* ptr = null;
+-            Assert.Equal(0, SuffixSums.Sum(ptr, 0));
++            Assert.AreEqual(0, SuffixSums.Sum(ptr, 0));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SuffixSums_Sum_Normal_ReturnsFirst()
+         {
+             int* ptr = stackalloc int[5];
+             ptr[0] = 10; ptr[1] = 20; ptr[2] = 30;
+-            Assert.Equal(10, SuffixSums.Sum(ptr, 3));
++            Assert.AreEqual(10, SuffixSums.Sum(ptr, 3));
+         }
+     }
+ }*** Update File: test/IAFahim.Search.TwoPointer.Tests/TwoPointerTests.cs@@ -1,34 +1,34 @@ namespace IAFahim.Search.TwoPointer.Tests
+ {
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class TwoPointersTests
+     {
+-        [Fact]
++        [Test]
+         public void CountPairsWithSum()
+         {
+             int* a = stackalloc int[] { 1, 2, 4 };
+             int* b = stackalloc int[] { 1, 3, 5 };
+             int count = TwoPointers.CountPairsWithSum(a, 3, b, 3, 5);
+-            Assert.Equal(2, count);
++            Assert.AreEqual(2, count);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void HasPairWithSum_Found()
+         {
+             int* a = stackalloc int[] { 1, 2, 4 };
+             int* b = stackalloc int[] { 1, 3, 5 };
+             bool found = TwoPointers.HasPairWithSum(a, 3, b, 3, 5);
+-            Assert.True(found);
++            Assert.IsTrue(found);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void HasPairWithSum_NotFound()
+         {
+             int* a = stackalloc int[] { 1, 2, 4 };
+             int* b = stackalloc int[] { 1, 3 };
+             bool found = TwoPointers.HasPairWithSum(a, 3, b, 2, 10);
+-            Assert.False(found);
++            Assert.IsFalse(found);
+         }
+     }
+ }*** Update File: test/IAFahim.Search.Window.Tests/WindowTests.cs@@ -2,11 +2,11 @@ {
+     using System;
+     using System.Runtime.InteropServices;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class SlidingWindowMinTests
+     {
+-        [Fact]
++        [Test]
+         public void Normal()
+         {
+             int* src = stackalloc int[] { 3, 1, 4, 1, 5, 9, 2, 6 };
+@@ -14,12 +14,12 @@             try
+             {
+                 SlidingWindowMin.Run(src, dst, 8, 3);
+-                Assert.Equal(1, dst[0]);
+-                Assert.Equal(1, dst[1]);
+-                Assert.Equal(1, dst[2]);
+-                Assert.Equal(1, dst[3]);
+-                Assert.Equal(2, dst[4]);
+-                Assert.Equal(2, dst[5]);
++                Assert.AreEqual(1, dst[0]);
++                Assert.AreEqual(1, dst[1]);
++                Assert.AreEqual(1, dst[2]);
++                Assert.AreEqual(1, dst[3]);
++                Assert.AreEqual(2, dst[4]);
++                Assert.AreEqual(2, dst[5]);
+             }
+             finally
+             {
+@@ -27,21 +27,21 @@             }
+         }
+ 
+-        [Fact]
++        [Test]
+         public void WindowSizeOne()
+         {
+             int* src = stackalloc int[] { 3, 1, 4 };
+             int* dst = stackalloc int[3];
+             SlidingWindowMin.Run(src, dst, 3, 1);
+-            Assert.Equal(3, dst[0]);
+-            Assert.Equal(1, dst[1]);
+-            Assert.Equal(4, dst[2]);
++            Assert.AreEqual(3, dst[0]);
++            Assert.AreEqual(1, dst[1]);
++            Assert.AreEqual(4, dst[2]);
+         }
+     }
+ 
+     public sealed unsafe class SlidingWindowMaxTests
+     {
+-        [Fact]
++        [Test]
+         public void Normal()
+         {
+             int* src = stackalloc int[] { 3, 1, 4, 1, 5, 9, 2, 6 };
+@@ -49,12 +49,12 @@             try
+             {
+                 SlidingWindowMax.Run(src, dst, 8, 3);
+-                Assert.Equal(4, dst[0]);
+-                Assert.Equal(4, dst[1]);
+-                Assert.Equal(5, dst[2]);
+-                Assert.Equal(9, dst[3]);
+-                Assert.Equal(9, dst[4]);
+-                Assert.Equal(9, dst[5]);
++                Assert.AreEqual(4, dst[0]);
++                Assert.AreEqual(4, dst[1]);
++                Assert.AreEqual(5, dst[2]);
++                Assert.AreEqual(9, dst[3]);
++                Assert.AreEqual(9, dst[4]);
++                Assert.AreEqual(9, dst[5]);
+             }
+             finally
+             {
+@@ -62,15 +62,15 @@             }
+         }
+ 
+-        [Fact]
++        [Test]
+         public void WindowSizeOne()
+         {
+             int* src = stackalloc int[] { 3, 1, 4 };
+             int* dst = stackalloc int[3];
+             SlidingWindowMax.Run(src, dst, 3, 1);
+-            Assert.Equal(3, dst[0]);
+-            Assert.Equal(1, dst[1]);
+-            Assert.Equal(4, dst[2]);
++            Assert.AreEqual(3, dst[0]);
++            Assert.AreEqual(1, dst[1]);
++            Assert.AreEqual(4, dst[2]);
+         }
+     }
+ }*** End Patch

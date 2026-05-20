@@ -1,0 +1,898 @@
+*** Begin Patch*** Update File: test/IAFahim.DS.Grid.Tests/FillGridTests.cs@@ -1,62 +1,62 @@ namespace IAFahim.DS.Grid.Tests
+ {
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class FillGridTests
+     {
+-        [Fact]
++        [Test]
+         public void EmptyGrid_NoOp()
+         {
+             int* ptr = stackalloc int[0];
+             IAFahim.DS.Grid.FillGrid.Run(ptr, 0, 0, 42);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SingleCell_FillsCorrectly()
+         {
+             int* ptr = stackalloc int[1];
+             IAFahim.DS.Grid.FillGrid.Run(ptr, 1, 1, 99);
+-            Assert.Equal(99, ptr[0]);
++            Assert.AreEqual(99, ptr[0]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void TwoByTwo_FillsAll()
+         {
+             int* ptr = stackalloc int[4];
+             IAFahim.DS.Grid.FillGrid.Run(ptr, 2, 2, 7);
+             for (int i = 0; i < 4; i++)
+-                Assert.Equal(7, ptr[i]);
++                Assert.AreEqual(7, ptr[i]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Rectangular_FillsAll()
+         {
+             int* ptr = stackalloc int[6];
+             IAFahim.DS.Grid.FillGrid.Run(ptr, 3, 2, 5);
+             for (int i = 0; i < 6; i++)
+-                Assert.Equal(5, ptr[i]);
++                Assert.AreEqual(5, ptr[i]);
+         }
+     }
+ 
+     public sealed unsafe class FillGridXYTests
+     {
+-        [Fact]
++        [Test]
+         public void SingleCell_GetsValue()
+         {
+             int* ptr = stackalloc int[1];
+             IAFahim.DS.Grid.FillGrid.RunXY(ptr, 1, 1, 99, new FillXYConst(99));
+-            Assert.Equal(99, ptr[0]);
++            Assert.AreEqual(99, ptr[0]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void TwoByTwo_GetsCorrectValues()
+         {
+             int* ptr = stackalloc int[4];
+             IAFahim.DS.Grid.FillGrid.RunXY(ptr, 2, 2, 0, new FillXYLinear(2));
+-            Assert.Equal(0, ptr[0]);
+-            Assert.Equal(1, ptr[1]);
+-            Assert.Equal(2, ptr[2]);
+-            Assert.Equal(3, ptr[3]);
++            Assert.AreEqual(0, ptr[0]);
++            Assert.AreEqual(1, ptr[1]);
++            Assert.AreEqual(2, ptr[2]);
++            Assert.AreEqual(3, ptr[3]);
+         }
+ 
+         private struct FillXYConst : IAFahim.DS.Grid.IFillGridXY<int>
+*** Update File: test/IAFahim.DS.Grid.Tests/FillSliceTests.cs@@ -1,63 +1,63 @@ namespace IAFahim.DS.Grid.Tests
+ {
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class FillSliceTests
+     {
+-        [Fact]
++        [Test]
+         public void EmptyInput_NoOp()
+         {
+             int* ptr = stackalloc int[0];
+             IAFahim.DS.Grid.FillSlice.Run(ptr, 0, 0, 0, 42);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SingleElement_FillsCorrectly()
+         {
+             int* ptr = stackalloc int[] { 0, 0, 0 };
+             IAFahim.DS.Grid.FillSlice.Run(ptr, 3, 1, 2, 99);
+-            Assert.Equal(0, ptr[0]);
+-            Assert.Equal(99, ptr[1]);
+-            Assert.Equal(0, ptr[2]);
++            Assert.AreEqual(0, ptr[0]);
++            Assert.AreEqual(99, ptr[1]);
++            Assert.AreEqual(0, ptr[2]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void FullRange_FillsAll()
+         {
+             int* ptr = stackalloc int[] { 1, 2, 3, 4 };
+             IAFahim.DS.Grid.FillSlice.Run(ptr, 4, 0, 4, 7);
+             for (int i = 0; i < 4; i++)
+-                Assert.Equal(7, ptr[i]);
++                Assert.AreEqual(7, ptr[i]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void PartialRange_FillsCorrectRange()
+         {
+             int* ptr = stackalloc int[] { 1, 2, 3, 4, 5 };
+             IAFahim.DS.Grid.FillSlice.Run(ptr, 5, 1, 4, 8);
+-            Assert.Equal(1, ptr[0]);
+-            Assert.Equal(8, ptr[1]);
+-            Assert.Equal(8, ptr[2]);
+-            Assert.Equal(8, ptr[3]);
+-            Assert.Equal(5, ptr[4]);
++            Assert.AreEqual(1, ptr[0]);
++            Assert.AreEqual(8, ptr[1]);
++            Assert.AreEqual(8, ptr[2]);
++            Assert.AreEqual(8, ptr[3]);
++            Assert.AreEqual(5, ptr[4]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void StartBeyondLength_NoOp()
+         {
+             int* ptr = stackalloc int[] { 1, 2, 3 };
+             IAFahim.DS.Grid.FillSlice.Run(ptr, 3, 5, 8, 42);
+             for (int i = 0; i < 3; i++)
+-                Assert.Equal(i + 1, ptr[i]);
++                Assert.AreEqual(i + 1, ptr[i]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void StartEqualsEnd_NoOp()
+         {
+             int* ptr = stackalloc int[] { 1, 2, 3 };
+             IAFahim.DS.Grid.FillSlice.Run(ptr, 3, 2, 2, 42);
+             for (int i = 0; i < 3; i++)
+-                Assert.Equal(i + 1, ptr[i]);
++                Assert.AreEqual(i + 1, ptr[i]);
+         }
+     }
+ }*** Update File: test/IAFahim.DS.Grid.Tests/MakeGridTests.cs@@ -1,47 +1,47 @@ namespace IAFahim.DS.Grid.Tests
+ {
+     using System.Runtime.InteropServices;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class MakeGridTests
+     {
+-        [Fact]
++        [Test]
+         public void EmptyWidth_NoOp()
+         {
+             int* ptr = stackalloc int[0];
+             Grid.MakeGrid.Run(ptr, 0, 0, 0);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SingleCell_FillsCorrectly()
+         {
+             int* ptr = stackalloc int[1];
+             Grid.MakeGrid.Run(ptr, 1, 1, 1);
+-            Assert.Equal(0, ptr[0]);
++            Assert.AreEqual(0, ptr[0]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void TwoByTwo_FillsCorrectly()
+         {
+             int* ptr = stackalloc int[4];
+             Grid.MakeGrid.Run(ptr, 4, 2, 2);
+-            Assert.Equal(0, ptr[0]);
+-            Assert.Equal(1, ptr[1]);
+-            Assert.Equal(2, ptr[2]);
+-            Assert.Equal(3, ptr[3]);
++            Assert.AreEqual(0, ptr[0]);
++            Assert.AreEqual(1, ptr[1]);
++            Assert.AreEqual(2, ptr[2]);
++            Assert.AreEqual(3, ptr[3]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Rectangular_FillsCorrectly()
+         {
+             int* ptr = stackalloc int[6];
+             Grid.MakeGrid.Run(ptr, 6, 3, 2);
+-            Assert.Equal(0, ptr[0]);
+-            Assert.Equal(1, ptr[1]);
+-            Assert.Equal(2, ptr[2]);
+-            Assert.Equal(3, ptr[3]);
+-            Assert.Equal(4, ptr[4]);
+-            Assert.Equal(5, ptr[5]);
++            Assert.AreEqual(0, ptr[0]);
++            Assert.AreEqual(1, ptr[1]);
++            Assert.AreEqual(2, ptr[2]);
++            Assert.AreEqual(3, ptr[3]);
++            Assert.AreEqual(4, ptr[4]);
++            Assert.AreEqual(5, ptr[5]);
+         }
+     }
+ }*** Update File: test/IAFahim.DS.Grid.Tests/ReverseTests.cs@@ -1,55 +1,55 @@ namespace IAFahim.DS.Grid.Tests
+ {
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class ReverseTests
+     {
+-        [Fact]
++        [Test]
+         public void EmptyInput_NoOp()
+         {
+             int* ptr = stackalloc int[0];
+             Grid.Reverse.Run(ptr, 0);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SingleElement_Unchanged()
+         {
+             int val = 42;
+             Grid.Reverse.Run(&val, 1);
+-            Assert.Equal(42, val);
++            Assert.AreEqual(42, val);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void TwoElements_Swaps()
+         {
+             int* ptr = stackalloc int[] { 1, 2 };
+             Grid.Reverse.Run(ptr, 2);
+-            Assert.Equal(2, ptr[0]);
+-            Assert.Equal(1, ptr[1]);
++            Assert.AreEqual(2, ptr[0]);
++            Assert.AreEqual(1, ptr[1]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void OddLength_ReversesCorrectly()
+         {
+             int* ptr = stackalloc int[] { 1, 2, 3 };
+             Grid.Reverse.Run(ptr, 3);
+-            Assert.Equal(3, ptr[0]);
+-            Assert.Equal(2, ptr[1]);
+-            Assert.Equal(1, ptr[2]);
++            Assert.AreEqual(3, ptr[0]);
++            Assert.AreEqual(2, ptr[1]);
++            Assert.AreEqual(1, ptr[2]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void EvenLength_ReversesCorrectly()
+         {
+             int* ptr = stackalloc int[] { 1, 2, 3, 4 };
+             Grid.Reverse.Run(ptr, 4);
+-            Assert.Equal(4, ptr[0]);
+-            Assert.Equal(3, ptr[1]);
+-            Assert.Equal(2, ptr[2]);
+-            Assert.Equal(1, ptr[3]);
++            Assert.AreEqual(4, ptr[0]);
++            Assert.AreEqual(3, ptr[1]);
++            Assert.AreEqual(2, ptr[2]);
++            Assert.AreEqual(1, ptr[3]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void LargeN_ReversesCorrectly()
+         {
+             const int N = 64;
+@@ -58,7 +58,7 @@                 ptr[i] = i;
+             Grid.Reverse.Run(ptr, N);
+             for (int i = 0; i < N; i++)
+-                Assert.Equal(N - 1 - i, ptr[i]);
++                Assert.AreEqual(N - 1 - i, ptr[i]);
+         }
+     }
+ }*** Update File: test/IAFahim.DS.Grid.Tests/RotateTests.cs@@ -1,60 +1,60 @@ namespace IAFahim.DS.Grid.Tests
+ {
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class RotateTests
+     {
+-        [Fact]
++        [Test]
+         public void OneByOne_Clockwise_NoChange()
+         {
+             int* ptr = stackalloc int[] { 42 };
+             IAFahim.DS.Grid.Rotate.Run(ptr, 1, 1, true);
+-            Assert.Equal(42, ptr[0]);
++            Assert.AreEqual(42, ptr[0]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void TwoByTwo_Clockwise_Rotates()
+         {
+             int* ptr = stackalloc int[] { 1, 2, 3, 4 };
+             IAFahim.DS.Grid.Rotate.Run(ptr, 2, 2, true);
+-            Assert.Equal(3, ptr[0]);
+-            Assert.Equal(1, ptr[1]);
+-            Assert.Equal(4, ptr[2]);
+-            Assert.Equal(2, ptr[3]);
++            Assert.AreEqual(3, ptr[0]);
++            Assert.AreEqual(1, ptr[1]);
++            Assert.AreEqual(4, ptr[2]);
++            Assert.AreEqual(2, ptr[3]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void TwoByTwo_CounterClockwise_Rotates()
+         {
+             int* ptr = stackalloc int[] { 1, 2, 3, 4 };
+             IAFahim.DS.Grid.Rotate.Run(ptr, 2, 2, false);
+-            Assert.Equal(2, ptr[0]);
+-            Assert.Equal(4, ptr[1]);
+-            Assert.Equal(1, ptr[2]);
+-            Assert.Equal(3, ptr[3]);
++            Assert.AreEqual(2, ptr[0]);
++            Assert.AreEqual(4, ptr[1]);
++            Assert.AreEqual(1, ptr[2]);
++            Assert.AreEqual(3, ptr[3]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void ThreeByTwo_Clockwise_Rotates()
+         {
+             int* ptr = stackalloc int[] { 1, 2, 3, 4, 5, 6 };
+             IAFahim.DS.Grid.Rotate.Run(ptr, 3, 2, true);
+-            Assert.Equal(4, ptr[0]);
+-            Assert.Equal(1, ptr[1]);
+-            Assert.Equal(5, ptr[2]);
+-            Assert.Equal(2, ptr[3]);
+-            Assert.Equal(6, ptr[4]);
+-            Assert.Equal(3, ptr[5]);
++            Assert.AreEqual(4, ptr[0]);
++            Assert.AreEqual(1, ptr[1]);
++            Assert.AreEqual(5, ptr[2]);
++            Assert.AreEqual(2, ptr[3]);
++            Assert.AreEqual(6, ptr[4]);
++            Assert.AreEqual(3, ptr[5]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void OneByThree_Clockwise_NoChange()
+         {
+             int* ptr = stackalloc int[] { 1, 2, 3 };
+             IAFahim.DS.Grid.Rotate.Run(ptr, 3, 1, true);
+-            Assert.Equal(1, ptr[0]);
+-            Assert.Equal(2, ptr[1]);
+-            Assert.Equal(3, ptr[2]);
++            Assert.AreEqual(1, ptr[0]);
++            Assert.AreEqual(2, ptr[1]);
++            Assert.AreEqual(3, ptr[2]);
+         }
+     }
+ }*** Update File: test/IAFahim.DS.Grid.Tests/ShuffleTests.cs@@ -1,25 +1,25 @@ namespace IAFahim.DS.Grid.Tests
+ {
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class ShuffleTests
+     {
+-        [Fact]
++        [Test]
+         public void EmptyInput_NoOp()
+         {
+             int* ptr = stackalloc int[0];
+             Grid.Shuffle.Run(ptr, 0, 42);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SingleElement_Unchanged()
+         {
+             int val = 42;
+             Grid.Shuffle.Run(&val, 1, 123);
+-            Assert.Equal(42, val);
++            Assert.AreEqual(42, val);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SameSeed_SameResult()
+         {
+             const int N = 16;
+@@ -33,10 +33,10 @@             Grid.Shuffle.Run(ptr1, N, 42);
+             Grid.Shuffle.Run(ptr2, N, 42);
+             for (int i = 0; i < N; i++)
+-                Assert.Equal(ptr1[i], ptr2[i]);
++                Assert.AreEqual(ptr1[i], ptr2[i]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SameInput_DifferentSeeds_DifferentResults()
+         {
+             const int N = 32;
+@@ -58,10 +58,10 @@                     break;
+                 }
+             }
+-            Assert.False(allSame);
++            Assert.IsFalse(allSame);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void PreservesAllElements()
+         {
+             const int N = 64;
+@@ -73,7 +73,7 @@             for (int i = 0; i < N; i++)
+                 found[ptr[i]]++;
+             for (int i = 0; i < N; i++)
+-                Assert.Equal(1, found[i]);
++                Assert.AreEqual(1, found[i]);
+         }
+     }
+ }*** Update File: test/IAFahim.DS.Heap.Tests/HeapTests.cs@@ -2,33 +2,33 @@ {
+     using IAFahim.DS.Heap;
+     using System.Runtime.InteropServices;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class HeapTests
+     {
+-        [Fact]
++        [Test]
+         public void EmptyInput_NoOp()
+         {
+             int* heap = stackalloc int[1];
+             int len = 0;
+             HeapPush.Run(heap, &len, 5);
+-            Assert.Equal(0, len);
++            Assert.AreEqual(0, len);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void PushPop_SingleElement()
+         {
+             int* heap = stackalloc int[10];
+             int len = 0;
+             HeapPush.Run(heap, &len, 5);
+-            Assert.Equal(1, len);
+-            Assert.Equal(5, heap[0]);
++            Assert.AreEqual(1, len);
++            Assert.AreEqual(5, heap[0]);
+             int val = HeapPop.Run(heap, &len);
+-            Assert.Equal(5, val);
+-            Assert.Equal(0, len);
++            Assert.AreEqual(5, val);
++            Assert.AreEqual(0, len);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void PushPop_MaintainsMinHeap()
+         {
+             int* heap = stackalloc int[100];
+@@ -36,17 +36,17 @@             int[] vals = { 5, 3, 7, 1, 9, 2, 8 };
+             foreach (int v in vals) HeapPush.Run(heap, &len, v);
+ 
+-            Assert.Equal(1, HeapPop.Run(heap, &len));
+-            Assert.Equal(2, HeapPop.Run(heap, &len));
+-            Assert.Equal(3, HeapPop.Run(heap, &len));
+-            Assert.Equal(5, HeapPop.Run(heap, &len));
+-            Assert.Equal(7, HeapPop.Run(heap, &len));
+-            Assert.Equal(8, HeapPop.Run(heap, &len));
+-            Assert.Equal(9, HeapPop.Run(heap, &len));
+-            Assert.Equal(0, len);
++            Assert.AreEqual(1, HeapPop.Run(heap, &len));
++            Assert.AreEqual(2, HeapPop.Run(heap, &len));
++            Assert.AreEqual(3, HeapPop.Run(heap, &len));
++            Assert.AreEqual(5, HeapPop.Run(heap, &len));
++            Assert.AreEqual(7, HeapPop.Run(heap, &len));
++            Assert.AreEqual(8, HeapPop.Run(heap, &len));
++            Assert.AreEqual(9, HeapPop.Run(heap, &len));
++            Assert.AreEqual(0, len);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void HeapRemove_Middle()
+         {
+             int* heap = stackalloc int[100];
+@@ -57,10 +57,10 @@             HeapPush.Run(heap, &len, 4);
+             HeapRemove.Run(heap, &len, 1);
+             int first = HeapPop.Run(heap, &len);
+-            Assert.True(first == 1 || first == 2 || first == 4);
++            Assert.IsTrue(first == 1 || first == 2 || first == 4);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MonotonicQueueMin_Basic()
+         {
+             int* dq = stackalloc int[100];
+@@ -69,12 +69,12 @@             MonotonicQueuePush.Run(dq, &dlen, mq, &mlen, 3);
+             MonotonicQueuePush.Run(dq, &dlen, mq, &mlen, 5);
+             MonotonicQueuePush.Run(dq, &dlen, mq, &mlen, 2);
+-            Assert.Equal(2, MonotonicQueueMin.Run(dq, dlen, mq, mlen));
++            Assert.AreEqual(2, MonotonicQueueMin.Run(dq, dlen, mq, mlen));
+             MonotonicQueuePop.Run(dq, &dlen, mq, &mlen, 3);
+-            Assert.Equal(2, MonotonicQueueMin.Run(dq, dlen, mq, mlen));
++            Assert.AreEqual(2, MonotonicQueueMin.Run(dq, dlen, mq, mlen));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MonotonicStackProcess_Basic()
+         {
+             int* arr = stackalloc int[] { 2, 1, 4, 3, 6, 5 };
+@@ -83,8 +83,8 @@             int* right = stackalloc int[n];
+             for (int i = 0; i < n; i++) { left[i] = -1; right[i] = -1; }
+             MonotonicStackProcess.Run(arr, n, left, right);
+-            Assert.True(left[0] == -1);
+-            Assert.Equal(0, left[1]);
++            Assert.IsTrue(left[0] == -1);
++            Assert.AreEqual(0, left[1]);
+         }
+     }
+ }*** Update File: test/IAFahim.DS.Mo.Tests/MoTests.cs@@ -2,11 +2,11 @@ {
+     using IAFahim.DS.Mo;
+     using System.Runtime.InteropServices;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class MoTests
+     {
+-        [Fact]
++        [Test]
+         public void MoSort_Basic()
+         {
+             const int q = 5;
+@@ -21,10 +21,10 @@             l[4] = 3; r[4] = 6;
+             for (int i = 0; i < q; i++) { block[i] = l[i] / 2; queries[i] = i; }
+             MoSort.Run(queries, l, r, block, q, 2);
+-            Assert.True(l[0] <= l[1]);
++            Assert.IsTrue(l[0] <= l[1]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MoAdd_Remove_Basic()
+         {
+             int* curL = stackalloc int[1];
+@@ -37,12 +37,12 @@                 MoAdd.Run(curL, curR, freq, 5);
+                 MoAdd.Run(curL, curR, freq, 5);
+                 MoRemove.Run(curL, curR, freq, 5);
+-                Assert.Equal(1, freq[5]);
++                Assert.AreEqual(1, freq[5]);
+             }
+             finally { Marshal.FreeHGlobal((nint)freq); }
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MoRollback_ResetsState()
+         {
+             const int maxVal = 100;
+@@ -54,7 +54,7 @@                 freq[7] = 10;
+                 MoRollback.Run(freq, maxVal);
+                 for (int i = 0; i < maxVal; i++)
+-                    Assert.Equal(0, freq[i]);
++                    Assert.AreEqual(0, freq[i]);
+             }
+             finally { Marshal.FreeHGlobal((nint)freq); }
+         }
+*** Update File: test/IAFahim.DS.SegmentTree.Tests/SegmentTreeTests.cs@@ -2,20 +2,20 @@ {
+     using IAFahim.DS.SegmentTree;
+     using System.Runtime.InteropServices;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class SegmentTreeTests
+     {
+-        [Fact]
++        [Test]
+         public void EmptyInput_NoOp()
+         {
+             int* seg = stackalloc int[1];
+             long* lazy = stackalloc long[1];
+             SegmentTreeBuild.Run<int>(null, 0, seg);
+-            Assert.Equal(0, seg[0]);
++            Assert.AreEqual(0, seg[0]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void BuildAndQuery_SingleElement()
+         {
+             const int n = 1;
+@@ -23,10 +23,10 @@             int* seg = stackalloc int[n * 4];
+             arr[0] = 42;
+             SegmentTreeBuild.Run(arr, n, seg);
+-            Assert.Equal(42, SegmentTreeQuery.Run(seg, 0, 0, n - 1, 0, n - 1));
++            Assert.AreEqual(42, SegmentTreeQuery.Run(seg, 0, 0, n - 1, 0, n - 1));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void PointUpdate_AndQuery()
+         {
+             const int n = 8;
+@@ -36,11 +36,11 @@             SegmentTreeBuild.Run(arr, n, seg);
+ 
+             SegmentTreeSet.Run(seg, 0, 0, n - 1, 3, 100, 0);
+-            Assert.Equal(100, SegmentTreeQuery.Run(seg, 0, 0, n - 1, 3, 3));
+-            Assert.Equal(106, SegmentTreeQuery.Run(seg, 0, 0, n - 1, 2, 4));
++            Assert.AreEqual(100, SegmentTreeQuery.Run(seg, 0, 0, n - 1, 3, 3));
++            Assert.AreEqual(106, SegmentTreeQuery.Run(seg, 0, 0, n - 1, 2, 4));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void RangeQuery_AllElements()
+         {
+             const int n = 10;
+@@ -48,10 +48,10 @@             int* seg = stackalloc int[n * 4];
+             for (int i = 0; i < n; i++) arr[i] = i + 1;
+             SegmentTreeBuild.Run(arr, n, seg);
+-            Assert.Equal(55, SegmentTreeQuery.Run(seg, 0, 0, n - 1, 0, n - 1));
++            Assert.AreEqual(55, SegmentTreeQuery.Run(seg, 0, 0, n - 1, 0, n - 1));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void LazySegment_Basic()
+         {
+             const int n = 8;
+@@ -62,10 +62,10 @@             LazySegmentBuild.Run(arr, n, seg);
+ 
+             LazySegmentUpdate.Run(seg, lazy, 0, 0, n - 1, 0, 3, 5, 0);
+-            Assert.Equal(5, seg[0]);
++            Assert.AreEqual(5, seg[0]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void PersistentSegment_Basic()
+         {
+             const int n = 10;
+@@ -76,12 +76,12 @@ 
+             int* newRoot = stackalloc int[1];
+             *newRoot = PersistentSegmentUpdate.Run(*root, 0, 0, n - 1, 5, 100, 0);
+-            Assert.Equal(5, PersistentSegmentQuery.Run(*root, 0, 0, n - 1, 5, 5));
+-            Assert.Equal(100, PersistentSegmentQuery.Run(*newRoot, 0, 0, n - 1, 5, 5));
+-            Assert.Equal(3, PersistentSegmentQuery.Run(*newRoot, 0, 0, n - 1, 3, 3));
++            Assert.AreEqual(5, PersistentSegmentQuery.Run(*root, 0, 0, n - 1, 5, 5));
++            Assert.AreEqual(100, PersistentSegmentQuery.Run(*newRoot, 0, 0, n - 1, 5, 5));
++            Assert.AreEqual(3, PersistentSegmentQuery.Run(*newRoot, 0, 0, n - 1, 3, 3));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void DualSegment_Basic()
+         {
+             const int n = 5;
+@@ -89,7 +89,7 @@             long* lazy = stackalloc long[n];
+             for (int i = 0; i < n; i++) seg[i] = i;
+             DualSegmentApply.Run(seg, lazy, 0, 1, 3);
+-            Assert.Equal(1, seg[0]);
++            Assert.AreEqual(1, seg[0]);
+         }
+     }
+ }*** Update File: test/IAFahim.DS.Sparse.Tests/SparseTests.cs@@ -2,11 +2,11 @@ {
+     using IAFahim.DS.Sparse;
+     using System.Runtime.InteropServices;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class SparseTests
+     {
+-        [Fact]
++        [Test]
+         public void SparseTable_BuildAndQuery_RangeMin()
+         {
+             int* arr = stackalloc int[] { 5, 2, 8, 1, 9, 3 };
+@@ -16,12 +16,12 @@             for (int i = 2; i <= n; i++) log[i] = log[i / 2] + 1;
+             int* st = stackalloc int[n * (logN + 1)];
+             SparseTableBuild.RunInt32(arr, st, log, n);
+-            Assert.Equal(1, SparseTableQuery.MinInt32(st, log, 0, 5, n));
+-            Assert.Equal(1, SparseTableQuery.MinInt32(st, log, 1, 5, n));
+-            Assert.Equal(1, SparseTableQuery.MinInt32(st, log, 3, 3, n));
++            Assert.AreEqual(1, SparseTableQuery.MinInt32(st, log, 0, 5, n));
++            Assert.AreEqual(1, SparseTableQuery.MinInt32(st, log, 1, 5, n));
++            Assert.AreEqual(1, SparseTableQuery.MinInt32(st, log, 3, 3, n));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SqrtDecompose_Basic()
+         {
+             const int n = 16;
+@@ -31,10 +31,10 @@             for (int i = 0; i < n; i++) arr[i] = i;
+             SqrtDecomposeBuild.Run(arr, block, &blockSize, n);
+             int res = SqrtQuery.RangeMin(arr, block, blockSize, 0, 5, n);
+-            Assert.Equal(0, res);
++            Assert.AreEqual(0, res);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void DisjointSparse_Basic()
+         {
+             long* arr = stackalloc long[] { 3, 1, 4, 1, 5, 9, 2, 6 };
+@@ -42,7 +42,7 @@             int* blockSize = stackalloc int[1];
+             long* st = stackalloc long[n * 4];
+             DisjointSparseBuild.RunInt64(arr, st, blockSize, n);
+-            Assert.Equal(1, DisjointSparseQuery.RangeMinInt64(st, blockSize, 0, 3));
++            Assert.AreEqual(1, DisjointSparseQuery.RangeMinInt64(st, blockSize, 0, 3));
+         }
+     }
+ }
+*** Update File: test/IAFahim.DS.Trie.Tests/TrieTests.cs@@ -1,11 +1,11 @@ namespace IAFahim.DS.Trie.Tests
+ {
+     using IAFahim.DS.Trie;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class TrieTests
+     {
+-        [Fact]
++        [Test]
+         public void InsertAndFind_Basic()
+         {
+             const int maxNodes = 64;
+@@ -21,12 +21,12 @@             TrieInsert.Run(trie, root, word1, 3);
+             TrieInsert.Run(trie, root, word2, 2);
+ 
+-            Assert.True(TrieFind.Run(trie, root, word1, 3));
+-            Assert.True(TrieFind.Run(trie, root, word2, 2));
+-            Assert.False(TrieFind.Run(trie, root, miss, 2));
++            Assert.IsTrue(TrieFind.Run(trie, root, word1, 3));
++            Assert.IsTrue(TrieFind.Run(trie, root, word2, 2));
++            Assert.IsFalse(TrieFind.Run(trie, root, miss, 2));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Delete_RemovesWord()
+         {
+             const int maxNodes = 64;
+@@ -37,12 +37,12 @@ 
+             byte* word = stackalloc byte[2] { (byte)'a', (byte)'b' };
+             TrieInsert.Run(trie, root, word, 2);
+-            Assert.True(TrieFind.Run(trie, root, word, 2));
+-            Assert.True(TrieDelete.Run(trie, root, word, 2));
+-            Assert.False(TrieFind.Run(trie, root, word, 2));
++            Assert.IsTrue(TrieFind.Run(trie, root, word, 2));
++            Assert.IsTrue(TrieDelete.Run(trie, root, word, 2));
++            Assert.IsFalse(TrieFind.Run(trie, root, word, 2));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void BinaryTrie_MaxMinXor_Smoke()
+         {
+             const int maxNodes = 64;
+@@ -56,12 +56,12 @@ 
+             int maxXor = BinaryTrieMaxXor.Run(trie, root, 1, 1);
+             int minXor = BinaryTrieMinXor.Run(trie, root, 1, 1);
+-            Assert.True(maxXor >= 0);
+-            Assert.True(minXor >= 0);
++            Assert.IsTrue(maxXor >= 0);
++            Assert.IsTrue(minXor >= 0);
+ 
+             BinaryTrieErase.Run(trie, root, 0, 1);
+             int maxXorAfter = BinaryTrieMaxXor.Run(trie, root, 1, 1);
+-            Assert.True(maxXorAfter >= 0);
++            Assert.IsTrue(maxXorAfter >= 0);
+         }
+     }
+ }
+*** Update File: test/IAFahim.DS.UnsafeArray.Tests/UnsafeArrayTests.cs@@ -5,20 +5,20 @@ {
+     using System;
+     using Unity.Collections;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class UnsafeArrayTests
+     {
+-        [Fact]
++        [Test]
+         public void Constructor_AllocatesMemory()
+         {
+             UnsafeArray<int> array = new UnsafeArray<int>(8, Allocator.Persistent);
+ 
+             try
+             {
+-                Assert.True(array.Ptr != null);
+-                Assert.Equal(8, array.Length);
+-                Assert.Equal(Allocator.Persistent, array.Allocator);
++                Assert.IsTrue(array.Ptr != null);
++                Assert.AreEqual(8, array.Length);
++                Assert.AreEqual(Allocator.Persistent, array.Allocator);
+             }
+             finally
+             {
+@@ -26,7 +26,7 @@             }
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Constructor_ZeroInitializes()
+         {
+             UnsafeArray<int> array = new UnsafeArray<int>(4, Allocator.Persistent);
+@@ -34,7 +34,7 @@             try
+             {
+                 for (int i = 0; i < array.Length; i++)
+-                    Assert.Equal(0, array.Ptr[i]);
++                    Assert.AreEqual(0, array.Ptr[i]);
+             }
+             finally
+             {
+@@ -42,7 +42,7 @@             }
+         }
+ 
+-        [Fact]
++        [Test]
+         public void WriteAndRead_RoundTrips()
+         {
+             UnsafeArray<int> array = new UnsafeArray<int>(4, Allocator.Persistent);
+@@ -54,10 +54,10 @@                 array.Ptr[2] = 30;
+                 array.Ptr[3] = 40;
+ 
+-                Assert.Equal(10, array.Ptr[0]);
+-                Assert.Equal(20, array.Ptr[1]);
+-                Assert.Equal(30, array.Ptr[2]);
+-                Assert.Equal(40, array.Ptr[3]);
++                Assert.AreEqual(10, array.Ptr[0]);
++                Assert.AreEqual(20, array.Ptr[1]);
++                Assert.AreEqual(30, array.Ptr[2]);
++                Assert.AreEqual(40, array.Ptr[3]);
+             }
+             finally
+             {
+@@ -65,17 +65,17 @@             }
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Dispose_NullsPointer()
+         {
+             UnsafeArray<int> array = new UnsafeArray<int>(4, Allocator.Persistent);
+             array.Dispose();
+ 
+-            Assert.True(array.Ptr == null);
+-            Assert.Equal(0, array.Length);
++            Assert.IsTrue(array.Ptr == null);
++            Assert.AreEqual(0, array.Length);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SortIntegration_WorksWithRawPointer()
+         {
+             UnsafeArray<int> array = new UnsafeArray<int>(4, Allocator.Persistent);
+@@ -89,10 +89,10 @@ 
+                 Insertion.Run(array.Ptr, array.Length);
+ 
+-                Assert.Equal(1, array.Ptr[0]);
+-                Assert.Equal(2, array.Ptr[1]);
+-                Assert.Equal(3, array.Ptr[2]);
+-                Assert.Equal(4, array.Ptr[3]);
++                Assert.AreEqual(1, array.Ptr[0]);
++                Assert.AreEqual(2, array.Ptr[1]);
++                Assert.AreEqual(3, array.Ptr[2]);
++                Assert.AreEqual(4, array.Ptr[3]);
+             }
+             finally
+             {
+*** End Patch

@@ -1,0 +1,963 @@
+*** Begin Patch*** Update File: test/IAFahim.Search.Bit.Tests/BitSearchTests.cs@@ -1,143 +1,143 @@ namespace IAFahim.Search.Bit.Tests
+ {
+     using System;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class BitSearchTests
+     {
+-        [Fact]
++        [Test]
+         public void LisLength_Empty_Returns0()
+         {
+             fixed (int* arr = null)
+             {
+-                Assert.Equal(0, LisLength.Run(0, arr));
++                Assert.AreEqual(0, LisLength.Run(0, arr));
+             }
+         }
+ 
+-        [Fact]
++        [Test]
+         public void LisLength_SingleElement_Returns1()
+         {
+             int* arr = stackalloc int[] { 5 };
+-            Assert.Equal(1, LisLength.Run(1, arr));
++            Assert.AreEqual(1, LisLength.Run(1, arr));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void LisLength_AlreadySorted_ReturnsLength()
+         {
+             int* arr = stackalloc int[] { 1, 2, 3, 4, 5 };
+-            Assert.Equal(5, LisLength.Run(5, arr));
++            Assert.AreEqual(5, LisLength.Run(5, arr));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void LisLength_Reversed_Returns1()
+         {
+             int* arr = stackalloc int[] { 5, 4, 3, 2, 1 };
+-            Assert.Equal(1, LisLength.Run(5, arr));
++            Assert.AreEqual(1, LisLength.Run(5, arr));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void LisLength_Duplicates_ReturnsCorrect()
+         {
+             int* arr = stackalloc int[] { 1, 1, 1, 1 };
+-            Assert.Equal(1, LisLength.Run(4, arr));
++            Assert.AreEqual(1, LisLength.Run(4, arr));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void LdsLength_Empty_Returns0()
+         {
+             fixed (int* arr = null)
+             {
+-                Assert.Equal(0, LdsLength.Run(0, arr));
++                Assert.AreEqual(0, LdsLength.Run(0, arr));
+             }
+         }
+ 
+-        [Fact]
++        [Test]
+         public void LdsLength_Reversed_ReturnsLength()
+         {
+             int* arr = stackalloc int[] { 5, 4, 3, 2, 1 };
+-            Assert.Equal(5, LdsLength.Run(5, arr));
++            Assert.AreEqual(5, LdsLength.Run(5, arr));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void LdsLength_Sorted_Returns1()
+         {
+             int* arr = stackalloc int[] { 1, 2, 3, 4, 5 };
+-            Assert.Equal(1, LdsLength.Run(5, arr));
++            Assert.AreEqual(1, LdsLength.Run(5, arr));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void BinarySearchLower_Found_ReturnsIndex()
+         {
+             int* arr = stackalloc int[] { 1, 3, 5, 7, 9 };
+-            Assert.Equal(2, BinarySearchLower.Run(arr, 5, 5));
++            Assert.AreEqual(2, BinarySearchLower.Run(arr, 5, 5));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void BinarySearchLower_NotFound_ReturnsInsertPosition()
+         {
+             int* arr = stackalloc int[] { 1, 3, 5, 7, 9 };
+-            Assert.Equal(5, BinarySearchLower.Run(arr, 5, 10));
+-            Assert.Equal(0, BinarySearchLower.Run(arr, 5, 0));
++            Assert.AreEqual(5, BinarySearchLower.Run(arr, 5, 10));
++            Assert.AreEqual(0, BinarySearchLower.Run(arr, 5, 0));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void BinarySearchUpper_Found_ReturnsNextIndex()
+         {
+             int* arr = stackalloc int[] { 1, 3, 5, 7, 9 };
+-            Assert.Equal(3, BinarySearchUpper.Run(arr, 5, 5));
++            Assert.AreEqual(3, BinarySearchUpper.Run(arr, 5, 5));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void BinarySearchUpper_NotFound_ReturnsInsertPosition()
+         {
+             int* arr = stackalloc int[] { 1, 3, 5, 7, 9 };
+-            Assert.Equal(5, BinarySearchUpper.Run(arr, 5, 10));
+-            Assert.Equal(0, BinarySearchUpper.Run(arr, 5, 0));
++            Assert.AreEqual(5, BinarySearchUpper.Run(arr, 5, 10));
++            Assert.AreEqual(0, BinarySearchUpper.Run(arr, 5, 0));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void InversionCount_Empty_Returns0()
+         {
+             fixed (int* arr = null)
+             {
+-                Assert.Equal(0L, InversionCount.Run(0, arr));
++                Assert.AreEqual(0L, InversionCount.Run(0, arr));
+             }
+         }
+ 
+-        [Fact]
++        [Test]
+         public void InversionCount_Sorted_Returns0()
+         {
+             int* arr = stackalloc int[] { 1, 2, 3 };
+-            Assert.Equal(0L, InversionCount.Run(3, arr));
++            Assert.AreEqual(0L, InversionCount.Run(3, arr));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void InversionCount_Reversed_ReturnsCorrect()
+         {
+             int* arr = stackalloc int[] { 3, 2, 1 };
+-            Assert.Equal(3L, InversionCount.Run(3, arr));
++            Assert.AreEqual(3L, InversionCount.Run(3, arr));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void PatienceSort_Empty_Returns0()
+         {
+             fixed (int* arr = null)
+             {
+                 int* piles = stackalloc int[1];
+                 int* tops = stackalloc int[1];
+-                Assert.Equal(0, PatienceSort.Run(0, arr, piles, tops));
++                Assert.AreEqual(0, PatienceSort.Run(0, arr, piles, tops));
+             }
+         }
+ 
+-        [Fact]
++        [Test]
+         public void PatienceSort_Normal_ReturnsPileCount()
+         {
+             int* arr = stackalloc int[] { 3, 1, 5, 2, 4 };
+             int* piles = stackalloc int[5];
+             int* tops = stackalloc int[5];
+             int result = PatienceSort.Run(5, arr, piles, tops);
+-            Assert.True(result > 0);
+-            Assert.Equal(1, piles[0]);
++            Assert.IsTrue(result > 0);
++            Assert.AreEqual(1, piles[0]);
+         }
+     }
+ }*** Update File: test/IAFahim.Search.DifferenceArray.Tests/DifferenceArrayTests.cs@@ -1,47 +1,47 @@ namespace IAFahim.Search.DifferenceArray.Tests
+ {
+     using System;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class DifferenceArrayTests
+     {
+-        [Fact]
++        [Test]
+         public void Apply_EmptyDiff_NoOp()
+         {
+             int* diff = stackalloc int[0];
+             Diff.Apply(diff, 0, 0, 0, 1);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Apply_OutOfBounds_NoOp()
+         {
+             int* diff = stackalloc int[10];
+             for (int i = 0; i < 10; i++) diff[i] = 0;
+             Diff.Apply(diff, 10, 10, 15, 5);
+-            for (int i = 0; i < 10; i++) Assert.Equal(0, diff[i]);
++            for (int i = 0; i < 10; i++) Assert.AreEqual(0, diff[i]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Apply_Normal_AddsCorrectly()
+         {
+             int* diff = stackalloc int[10];
+             for (int i = 0; i < 10; i++) diff[i] = 0;
+             Diff.Apply(diff, 10, 2, 5, 3);
+-            Assert.Equal(3, diff[2]);
+-            Assert.Equal(-3, diff[6]);
++            Assert.AreEqual(3, diff[2]);
++            Assert.AreEqual(-3, diff[6]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Apply_EndAtLastIndex_NoUnderflow()
+         {
+             int* diff = stackalloc int[10];
+             for (int i = 0; i < 10; i++) diff[i] = 0;
+             Diff.Apply(diff, 10, 0, 9, 5);
+-            Assert.Equal(5, diff[0]);
+-            Assert.Equal(0, diff[10]);
++            Assert.AreEqual(5, diff[0]);
++            Assert.AreEqual(0, diff[10]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Build_Empty_NoOp()
+         {
+             int* output = stackalloc int[0];
+@@ -49,60 +49,60 @@             Diff.Build(output, diff, 0);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Build_Normal_ComputesCorrectPrefix()
+         {
+             int* output = stackalloc int[5];
+             int* diff = stackalloc int[5];
+             diff[0] = 1; diff[1] = 2; diff[2] = 0; diff[3] = -1; diff[4] = -2;
+             Diff.Build(output, diff, 5);
+-            Assert.Equal(1, output[0]);
+-            Assert.Equal(3, output[1]);
+-            Assert.Equal(3, output[2]);
+-            Assert.Equal(2, output[3]);
+-            Assert.Equal(0, output[4]);
++            Assert.AreEqual(1, output[0]);
++            Assert.AreEqual(3, output[1]);
++            Assert.AreEqual(3, output[2]);
++            Assert.AreEqual(2, output[3]);
++            Assert.AreEqual(0, output[4]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Build_AlreadyFlat_NoChange()
+         {
+             int* output = stackalloc int[5];
+             int* diff = stackalloc int[5];
+             for (int i = 0; i < 5; i++) diff[i] = 0;
+             Diff.Build(output, diff, 5);
+-            for (int i = 0; i < 5; i++) Assert.Equal(0, output[i]);
++            for (int i = 0; i < 5; i++) Assert.AreEqual(0, output[i]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void PrefixFromDiff_Normal_CreatesCorrectPrefix()
+         {
+             int* prefix = stackalloc int[6];
+             int* diff = stackalloc int[5];
+             diff[0] = 2; diff[1] = 3; diff[2] = -1; diff[3] = 0; diff[4] = -4;
+             Diff.PrefixFromDiff(prefix, diff, 5);
+-            Assert.Equal(5, prefix[0]);
+-            Assert.Equal(2, prefix[1]);
+-            Assert.Equal(5, prefix[2]);
+-            Assert.Equal(4, prefix[3]);
+-            Assert.Equal(4, prefix[4]);
+-            Assert.Equal(0, prefix[5]);
++            Assert.AreEqual(5, prefix[0]);
++            Assert.AreEqual(2, prefix[1]);
++            Assert.AreEqual(5, prefix[2]);
++            Assert.AreEqual(4, prefix[3]);
++            Assert.AreEqual(4, prefix[4]);
++            Assert.AreEqual(0, prefix[5]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void RangeSum_ValidIndex_ReturnsCorrect()
+         {
+             int* prefix = stackalloc int[6];
+             prefix[0] = 5;
+             prefix[1] = 3; prefix[2] = 7; prefix[3] = 10; prefix[4] = 12; prefix[5] = 15;
+-            Assert.Equal(7, Diff.RangeSum(prefix, 2));
++            Assert.AreEqual(7, Diff.RangeSum(prefix, 2));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void RangeSum_InvalidIndex_ReturnsZero()
+         {
+             int* prefix = stackalloc int[6];
+             prefix[0] = 5;
+-            Assert.Equal(0, Diff.RangeSum(prefix, 5));
++            Assert.AreEqual(0, Diff.RangeSum(prefix, 5));
+         }
+     }
+ }*** Update File: test/IAFahim.Search.Imos.Tests/ImosTests.cs@@ -1,20 +1,20 @@ namespace IAFahim.Search.Imos.Tests
+ {
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class Imos1DTests
+     {
+-        [Fact]
++        [Test]
+         public void Add_Normal()
+         {
+             int* diff = stackalloc int[10];
+             for (int i = 0; i < 10; i++) diff[i] = 0;
+             Imos1D.Add(diff, 10, 2, 5, 3);
+-            Assert.Equal(3, diff[2]);
+-            Assert.Equal(-3, diff[6]);
++            Assert.AreEqual(3, diff[2]);
++            Assert.AreEqual(-3, diff[6]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Build_Normal()
+         {
+             int* diff = stackalloc int[10];
+@@ -25,25 +25,25 @@             for (int i = 0; i < 10; i++)
+             {
+                 if (i < 2 || i > 5)
+-                    Assert.Equal(0, dst[i]);
++                    Assert.AreEqual(0, dst[i]);
+                 else
+-                    Assert.Equal(3, dst[i]);
++                    Assert.AreEqual(3, dst[i]);
+             }
+         }
+     }
+ 
+     public sealed unsafe class Imos2DTests
+     {
+-        [Fact]
++        [Test]
+         public void Add_Normal()
+         {
+             int* diff = stackalloc int[16];
+             for (int i = 0; i < 16; i++) diff[i] = 0;
+             Imos2D.Add(diff, 4, 4, 1, 1, 2, 2, 5);
+-            Assert.Equal(5, diff[1 * 4 + 1]);
++            Assert.AreEqual(5, diff[1 * 4 + 1]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Build_Normal()
+         {
+             int* diff = stackalloc int[16];
+@@ -56,9 +56,9 @@                 for (int c = 0; c < 4; c++)
+                 {
+                     if (r >= 1 && r <= 2 && c >= 1 && c <= 2)
+-                        Assert.Equal(5, dst[r * 4 + c]);
++                        Assert.AreEqual(5, dst[r * 4 + c]);
+                     else
+-                        Assert.Equal(0, dst[r * 4 + c]);
++                        Assert.AreEqual(0, dst[r * 4 + c]);
+                 }
+             }
+         }
+*** Update File: test/IAFahim.Search.Interval.Tests/IntervalTests.cs@@ -1,40 +1,40 @@ namespace IAFahim.Search.Interval.Tests
+ {
+     using System;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class IntervalTests
+     {
+-        [Fact]
++        [Test]
+         public void MergeIntervals_Empty_ReturnsZero()
+         {
+             fixed (Interval* ptr = null)
+             {
+-                Assert.Equal(0, MergeIntervals.Run(ptr, 0));
++                Assert.AreEqual(0, MergeIntervals.Run(ptr, 0));
+             }
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MergeIntervals_Single_ReturnsOne()
+         {
+             Interval* ptr = stackalloc Interval[1];
+             ptr[0] = new Interval { Start = 1, End = 3 };
+-            Assert.Equal(1, MergeIntervals.Run(ptr, 1));
+-            Assert.Equal(1, ptr[0].Start);
+-            Assert.Equal(3, ptr[0].End);
++            Assert.AreEqual(1, MergeIntervals.Run(ptr, 1));
++            Assert.AreEqual(1, ptr[0].Start);
++            Assert.AreEqual(3, ptr[0].End);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MergeIntervals_NonOverlapping_ReturnsCount()
+         {
+             Interval* ptr = stackalloc Interval[3];
+             ptr[0] = new Interval { Start = 1, End = 2 };
+             ptr[1] = new Interval { Start = 4, End = 5 };
+             ptr[2] = new Interval { Start = 7, End = 8 };
+-            Assert.Equal(3, MergeIntervals.Run(ptr, 3));
++            Assert.AreEqual(3, MergeIntervals.Run(ptr, 3));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MergeIntervals_Overlapping_Merges()
+         {
+             Interval* ptr = stackalloc Interval[3];
+@@ -42,24 +42,24 @@             ptr[1] = new Interval { Start = 2, End = 5 };
+             ptr[2] = new Interval { Start = 8, End = 10 };
+             int result = MergeIntervals.Run(ptr, 3);
+-            Assert.Equal(2, result);
+-            Assert.Equal(1, ptr[0].Start);
+-            Assert.Equal(5, ptr[0].End);
++            Assert.AreEqual(2, result);
++            Assert.AreEqual(1, ptr[0].Start);
++            Assert.AreEqual(5, ptr[0].End);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MergeIntervals_Adjacent_Merges()
+         {
+             Interval* ptr = stackalloc Interval[2];
+             ptr[0] = new Interval { Start = 1, End = 3 };
+             ptr[1] = new Interval { Start = 4, End = 6 };
+             int result = MergeIntervals.Run(ptr, 2);
+-            Assert.Equal(1, result);
+-            Assert.Equal(1, ptr[0].Start);
+-            Assert.Equal(6, ptr[0].End);
++            Assert.AreEqual(1, result);
++            Assert.AreEqual(1, ptr[0].Start);
++            Assert.AreEqual(6, ptr[0].End);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MergeIntervals_AllSameStart_Merges()
+         {
+             Interval* ptr = stackalloc Interval[3];
+@@ -67,12 +67,12 @@             ptr[1] = new Interval { Start = 1, End = 5 };
+             ptr[2] = new Interval { Start = 1, End = 2 };
+             int result = MergeIntervals.Run(ptr, 3);
+-            Assert.Equal(1, result);
+-            Assert.Equal(1, ptr[0].Start);
+-            Assert.Equal(5, ptr[0].End);
++            Assert.AreEqual(1, result);
++            Assert.AreEqual(1, ptr[0].Start);
++            Assert.AreEqual(5, ptr[0].End);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void IntersectIntervals_NoOverlap_ReturnsZero()
+         {
+             Interval* a = stackalloc Interval[2];
+@@ -82,10 +82,10 @@             a[1] = new Interval { Start = 5, End = 7 };
+             b[0] = new Interval { Start = 4, End = 6 };
+             b[1] = new Interval { Start = 8, End = 10 };
+-            Assert.Equal(0, IntersectIntervals.Run(a, 2, b, 2, dst));
++            Assert.AreEqual(0, IntersectIntervals.Run(a, 2, b, 2, dst));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void IntersectIntervals_Overlap_ReturnsCorrect()
+         {
+             Interval* a = stackalloc Interval[2];
+@@ -96,14 +96,14 @@             b[0] = new Interval { Start = 3, End = 7 };
+             b[1] = new Interval { Start = 9, End = 12 };
+             int result = IntersectIntervals.Run(a, 2, b, 2, dst);
+-            Assert.Equal(2, result);
+-            Assert.Equal(3, dst[0].Start);
+-            Assert.Equal(5, dst[0].End);
+-            Assert.Equal(9, dst[1].Start);
+-            Assert.Equal(10, dst[1].End);
++            Assert.AreEqual(2, result);
++            Assert.AreEqual(3, dst[0].Start);
++            Assert.AreEqual(5, dst[0].End);
++            Assert.AreEqual(9, dst[1].Start);
++            Assert.AreEqual(10, dst[1].End);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void NormalizeIntervals_Sorted_ReturnsCount()
+         {
+             Interval* ptr = stackalloc Interval[3];
+@@ -111,7 +111,7 @@             ptr[1] = new Interval { Start = 2, End = 4 };
+             ptr[2] = new Interval { Start = 5, End = 7 };
+             int result = NormalizeIntervals.Run(ptr, 3);
+-            Assert.Equal(2, result);
++            Assert.AreEqual(2, result);
+         }
+     }
+ }*** Update File: test/IAFahim.Search.MeetInMiddle.Tests/MeetInMiddleTests.cs@@ -1,31 +1,31 @@ namespace IAFahim.Search.MeetInMiddle.Tests
+ {
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class MeetInMiddleTests
+     {
+-        [Fact]
++        [Test]
+         public void SubsetSumCount()
+         {
+             int* values = stackalloc int[] { 1, 2, 3 };
+             int count = MeetInMiddle.SubsetSumCount(values, 3, 5);
+-            Assert.True(count > 0);
++            Assert.IsTrue(count > 0);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void HasSubsetSum_True()
+         {
+             int* values = stackalloc int[] { 1, 2, 3, 4 };
+             bool result = MeetInMiddle.HasSubsetSum(values, 4, 7);
+-            Assert.True(result);
++            Assert.IsTrue(result);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void HasSubsetSum_False()
+         {
+             int* values = stackalloc int[] { 1, 2, 3 };
+             bool result = MeetInMiddle.HasSubsetSum(values, 3, 10);
+-            Assert.False(result);
++            Assert.IsFalse(result);
+         }
+     }
+ }*** Update File: test/IAFahim.Search.Prefix.Tests/PrefixTests.cs@@ -1,121 +1,121 @@ namespace IAFahim.Search.Prefix.Tests
+ {
+     using System;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class PrefixTests
+     {
+-        [Fact]
++        [Test]
+         public void PrefixSums_Empty_Returns0()
+         {
+             int* ptr = null;
+-            Assert.Equal(0, PrefixSums.Run(ptr, 0));
++            Assert.AreEqual(0, PrefixSums.Run(ptr, 0));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void PrefixSums_Single_ReturnsElement()
+         {
+             int* ptr = stackalloc int[1];
+             ptr[0] = 5;
+-            Assert.Equal(5, PrefixSums.Run(ptr, 1));
+-            Assert.Equal(5, ptr[0]);
++            Assert.AreEqual(5, PrefixSums.Run(ptr, 1));
++            Assert.AreEqual(5, ptr[0]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void PrefixSums_Normal_ComputesCorrect()
+         {
+             int* ptr = stackalloc int[5];
+             ptr[0] = 1; ptr[1] = 2; ptr[2] = 3; ptr[3] = 4; ptr[4] = 5;
+-            Assert.Equal(15, PrefixSums.Run(ptr, 5));
+-            Assert.Equal(1, ptr[0]);
+-            Assert.Equal(3, ptr[1]);
+-            Assert.Equal(6, ptr[2]);
+-            Assert.Equal(10, ptr[3]);
+-            Assert.Equal(15, ptr[4]);
++            Assert.AreEqual(15, PrefixSums.Run(ptr, 5));
++            Assert.AreEqual(1, ptr[0]);
++            Assert.AreEqual(3, ptr[1]);
++            Assert.AreEqual(6, ptr[2]);
++            Assert.AreEqual(10, ptr[3]);
++            Assert.AreEqual(15, ptr[4]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void PrefixSums_Long_ComputesCorrect()
+         {
+             int* ptr = stackalloc int[10];
+             for (int i = 0; i < 10; i++) ptr[i] = 1;
+-            Assert.Equal(10, PrefixSums.Run(ptr, 10));
+-            Assert.Equal(5, ptr[4]);
+-            Assert.Equal(10, ptr[9]);
++            Assert.AreEqual(10, PrefixSums.Run(ptr, 10));
++            Assert.AreEqual(5, ptr[4]);
++            Assert.AreEqual(10, ptr[9]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void PrefixXor_Empty_Returns0()
+         {
+             int* ptr = null;
+-            Assert.Equal(0, PrefixXor.Run(ptr, 0));
++            Assert.AreEqual(0, PrefixXor.Run(ptr, 0));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void PrefixXor_Single_ReturnsElement()
+         {
+             int* ptr = stackalloc int[1];
+             ptr[0] = 7;
+-            Assert.Equal(7, PrefixXor.Run(ptr, 1));
++            Assert.AreEqual(7, PrefixXor.Run(ptr, 1));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void PrefixXor_Normal_ComputesCorrect()
+         {
+             int* ptr = stackalloc int[5];
+             ptr[0] = 1; ptr[1] = 3; ptr[2] = 5; ptr[3] = 7; ptr[4] = 9;
+-            Assert.Equal(1 ^ 3 ^ 5 ^ 7 ^ 9, PrefixXor.Run(ptr, 5));
+-            Assert.Equal(1, ptr[0]);
+-            Assert.Equal(2, ptr[1]);
+-            Assert.Equal(7, ptr[2]);
+-            Assert.Equal(0, ptr[3]);
+-            Assert.Equal(9, ptr[4]);
++            Assert.AreEqual(1 ^ 3 ^ 5 ^ 7 ^ 9, PrefixXor.Run(ptr, 5));
++            Assert.AreEqual(1, ptr[0]);
++            Assert.AreEqual(2, ptr[1]);
++            Assert.AreEqual(7, ptr[2]);
++            Assert.AreEqual(0, ptr[3]);
++            Assert.AreEqual(9, ptr[4]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void PrefixMin_Normal_FindsMin()
+         {
+             int* ptr = stackalloc int[5];
+             ptr[0] = 5; ptr[1] = 2; ptr[2] = 8; ptr[3] = 1; ptr[4] = 6;
+             int min = PrefixMin.Run(ptr, 5);
+-            Assert.Equal(1, min);
++            Assert.AreEqual(1, min);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void PrefixMin_MinIndex_ReturnsCorrect()
+         {
+             int* ptr = stackalloc int[5];
+             ptr[0] = 5; ptr[1] = 2; ptr[2] = 8; ptr[3] = 1; ptr[4] = 6;
+             int idx = PrefixMin.MinIndex(ptr, 5);
+-            Assert.Equal(3, idx);
++            Assert.AreEqual(3, idx);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void PrefixMax_Normal_FindsMax()
+         {
+             int* ptr = stackalloc int[5];
+             ptr[0] = 5; ptr[1] = 2; ptr[2] = 8; ptr[3] = 1; ptr[4] = 6;
+             int max = PrefixMax.Run(ptr, 5);
+-            Assert.Equal(8, max);
++            Assert.AreEqual(8, max);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void PrefixMax_MaxIndex_ReturnsCorrect()
+         {
+             int* ptr = stackalloc int[5];
+             ptr[0] = 5; ptr[1] = 2; ptr[2] = 8; ptr[3] = 1; ptr[4] = 6;
+             int idx = PrefixMax.MaxIndex(ptr, 5);
+-            Assert.Equal(2, idx);
++            Assert.AreEqual(2, idx);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void PrefixXor_RangeXor_Normal_ReturnsCorrect()
+         {
+             int* ptr = stackalloc int[6];
+             ptr[0] = 1; ptr[1] = 3; ptr[2] = 5; ptr[3] = 7; ptr[4] = 9; ptr[5] = 11;
+             PrefixXor.Run(ptr, 6);
+-            Assert.Equal(1 ^ 3 ^ 5 ^ 7 ^ 9 ^ 11, PrefixXor.RangeXor(ptr, 0, 5));
+-            Assert.Equal(3 ^ 5 ^ 7, PrefixXor.RangeXor(ptr, 1, 3));
++            Assert.AreEqual(1 ^ 3 ^ 5 ^ 7 ^ 9 ^ 11, PrefixXor.RangeXor(ptr, 0, 5));
++            Assert.AreEqual(3 ^ 5 ^ 7, PrefixXor.RangeXor(ptr, 1, 3));
+         }
+     }
+ }*** Update File: test/IAFahim.Search.Range.Tests/RangeTests.cs@@ -2,21 +2,21 @@ {
+     using System;
+     using System.Runtime.InteropServices;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class RangeAddTests
+     {
+-        [Fact]
++        [Test]
+         public void Normal()
+         {
+             int* diff = stackalloc int[10];
+             for (int i = 0; i < 10; i++) diff[i] = 0;
+             RangeAdd.Run(diff, 10, 2, 5, 3);
+-            Assert.Equal(3, diff[2]);
+-            Assert.Equal(-3, diff[6]);
++            Assert.AreEqual(3, diff[2]);
++            Assert.AreEqual(-3, diff[6]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Materialize()
+         {
+             int* diff = stackalloc int[10];
+@@ -27,43 +27,43 @@             for (int i = 0; i < 10; i++)
+             {
+                 if (i >= 1 && i <= 3)
+-                    Assert.Equal(2, dst[i]);
++                    Assert.AreEqual(2, dst[i]);
+                 else
+-                    Assert.Equal(0, dst[i]);
++                    Assert.AreEqual(0, dst[i]);
+             }
+         }
+     }
+ 
+     public sealed unsafe class RangeSumTests
+     {
+-        [Fact]
++        [Test]
+         public void BuildPrefix()
+         {
+             int* src = stackalloc int[] { 1, 2, 3, 4 };
+             int* dst = stackalloc int[4];
+             RangeSum.BuildPrefix(dst, src, 4);
+-            Assert.Equal(1, dst[0]);
+-            Assert.Equal(3, dst[1]);
+-            Assert.Equal(6, dst[2]);
+-            Assert.Equal(10, dst[3]);
++            Assert.AreEqual(1, dst[0]);
++            Assert.AreEqual(3, dst[1]);
++            Assert.AreEqual(6, dst[2]);
++            Assert.AreEqual(10, dst[3]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Run()
+         {
+             int* src = stackalloc int[] { 1, 2, 3, 4 };
+             int* prefix = stackalloc int[5];
+             RangeSum.BuildPrefix(prefix, src, 4);
+             prefix[4] = 10;
+-            Assert.Equal(9, RangeSum.Run(prefix, 1, 3));
+-            Assert.Equal(10, RangeSum.Run(prefix, 0, 3));
+-            Assert.Equal(1, RangeSum.Run(prefix, 0, 0));
++            Assert.AreEqual(9, RangeSum.Run(prefix, 1, 3));
++            Assert.AreEqual(10, RangeSum.Run(prefix, 0, 3));
++            Assert.AreEqual(1, RangeSum.Run(prefix, 0, 0));
+         }
+     }
+ 
+     public sealed unsafe class RangeMinTests
+     {
+-        [Fact]
++        [Test]
+         public void BuildAndQuery()
+         {
+             int* src = stackalloc int[] { 3, 1, 4, 1, 5, 9, 2, 6 };
+@@ -71,7 +71,7 @@             try
+             {
+                 RangeMin.BuildSparse(sparse, src, 8);
+-                Assert.Equal(1, RangeMin.Query(sparse, src, 8, 0, 3));
++                Assert.AreEqual(1, RangeMin.Query(sparse, src, 8, 0, 3));
+             }
+             finally
+             {
+@@ -82,7 +82,7 @@ 
+     public sealed unsafe class RangeMaxTests
+     {
+-        [Fact]
++        [Test]
+         public void BuildAndQuery()
+         {
+             int* src = stackalloc int[] { 3, 1, 4, 1, 5, 9, 2, 6 };
+@@ -90,7 +90,7 @@             try
+             {
+                 RangeMax.BuildSparse(sparse, src, 8);
+-                Assert.Equal(4, RangeMax.Query(sparse, 8, 0, 3));
++                Assert.AreEqual(4, RangeMax.Query(sparse, 8, 0, 3));
+             }
+             finally
+             {
+*** Update File: test/IAFahim.Search.Selection.Tests/SelectionTests.cs@@ -1,112 +1,112 @@ namespace IAFahim.Search.Selection.Tests
+ {
+     using System;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class SelectionTests
+     {
+-        [Fact]
++        [Test]
+         public void SelectTopK_Empty_NoOp()
+         {
+             int* ptr = null;
+             Selection.SelectTopK(ptr, 0, 0);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SelectTopK_K0_NoOp()
+         {
+             int* ptr = stackalloc int[5];
+             ptr[0] = 5; ptr[1] = 3; ptr[2] = 7; ptr[3] = 1; ptr[4] = 9;
+             Selection.SelectTopK(ptr, 5, 0);
+-            Assert.Equal(5, ptr[0]);
++            Assert.AreEqual(5, ptr[0]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SelectTopK_KEqualsN_NoOp()
+         {
+             int* ptr = stackalloc int[5];
+             ptr[0] = 5; ptr[1] = 3; ptr[2] = 7; ptr[3] = 1; ptr[4] = 9;
+             Selection.SelectTopK(ptr, 5, 5);
+-            Assert.Equal(5, ptr[0]);
++            Assert.AreEqual(5, ptr[0]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SelectTopK_K1_ReturnsMin()
+         {
+             int* ptr = stackalloc int[5];
+             ptr[0] = 5; ptr[1] = 3; ptr[2] = 7; ptr[3] = 1; ptr[4] = 9;
+             Selection.SelectTopK(ptr, 5, 1);
+-            Assert.Equal(1, ptr[0]);
++            Assert.AreEqual(1, ptr[0]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SelectTopK_K2_ReturnsTop2()
+         {
+             int* ptr = stackalloc int[5];
+             ptr[0] = 5; ptr[1] = 3; ptr[2] = 7; ptr[3] = 1; ptr[4] = 9;
+             Selection.SelectTopK(ptr, 5, 2);
+-            Assert.Equal(1, ptr[0]);
+-            Assert.Equal(3, ptr[1]);
++            Assert.AreEqual(1, ptr[0]);
++            Assert.AreEqual(3, ptr[1]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SelectTopK_K4_ReturnsTop4()
+         {
+             int* ptr = stackalloc int[5];
+             ptr[0] = 5; ptr[1] = 3; ptr[2] = 7; ptr[3] = 1; ptr[4] = 9;
+             Selection.SelectTopK(ptr, 5, 4);
+-            Assert.Equal(1, ptr[0]);
+-            Assert.Equal(3, ptr[1]);
+-            Assert.Equal(5, ptr[2]);
+-            Assert.Equal(7, ptr[3]);
+-            Assert.Equal(9, ptr[4]);
++            Assert.AreEqual(1, ptr[0]);
++            Assert.AreEqual(3, ptr[1]);
++            Assert.AreEqual(5, ptr[2]);
++            Assert.AreEqual(7, ptr[3]);
++            Assert.AreEqual(9, ptr[4]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void TryGetKth_InvalidK_ReturnsFalse()
+         {
+             int* ptr = stackalloc int[5];
+             ptr[0] = 5; ptr[1] = 3; ptr[2] = 7; ptr[3] = 1; ptr[4] = 9;
+             int result;
+-            Assert.False(Selection.TryGetKth(ptr, 5, 5, out result));
+-            Assert.False(Selection.TryGetKth(ptr, 5, 10, out result));
++            Assert.IsFalse(Selection.TryGetKth(ptr, 5, 5, out result));
++            Assert.IsFalse(Selection.TryGetKth(ptr, 5, 10, out result));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void TryGetKth_ValidK_ReturnsTrue()
+         {
+             int* ptr = stackalloc int[5];
+             ptr[0] = 5; ptr[1] = 3; ptr[2] = 7; ptr[3] = 1; ptr[4] = 9;
+             int result;
+-            Assert.True(Selection.TryGetKth(ptr, 5, 2, out result));
+-            Assert.Equal(3, result);
++            Assert.IsTrue(Selection.TryGetKth(ptr, 5, 2, out result));
++            Assert.AreEqual(3, result);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MedianIndex_OddLength_ReturnsMiddle()
+         {
+-            Assert.Equal(2, Selection.MedianIndex(5));
++            Assert.AreEqual(2, Selection.MedianIndex(5));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MedianIndex_EvenLength_ReturnsLeftMiddle()
+         {
+-            Assert.Equal(2, Selection.MedianIndex(6));
++            Assert.AreEqual(2, Selection.MedianIndex(6));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MedianIndex_Zero_ReturnsZero()
+         {
+-            Assert.Equal(0, Selection.MedianIndex(0));
++            Assert.AreEqual(0, Selection.MedianIndex(0));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SelectTopK_AllIdentical_NoChange()
+         {
+             int* ptr = stackalloc int[5];
+             for (int i = 0; i < 5; i++) ptr[i] = 7;
+             Selection.SelectTopK(ptr, 5, 2);
+-            for (int i = 0; i < 5; i++) Assert.Equal(7, ptr[i]);
++            for (int i = 0; i < 5; i++) Assert.AreEqual(7, ptr[i]);
+         }
+     }
+ }*** End Patch

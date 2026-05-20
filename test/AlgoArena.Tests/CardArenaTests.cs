@@ -2,7 +2,7 @@ namespace AlgoArena.Tests
 {
     using System;
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
     using IAFahim.Sort.Insertion;
     using IAFahim.Sort.Merge;
     using IAFahim.Sort.Partition;
@@ -11,7 +11,7 @@ namespace AlgoArena.Tests
 
     public sealed unsafe class CardArenaTests
     {
-        [Fact]
+        [Test]
         public void InsertionSort_Reversed_SortsCorrectly()
         {
             const int N = 64;
@@ -23,18 +23,18 @@ namespace AlgoArena.Tests
                 Insertion.Run(ptr, N);
 
                 for (int i = 0; i < N; i++)
-                    Assert.Equal(i + 1, ptr[i]);
+                    Assert.AreEqual(i + 1, ptr[i]);
             }
             finally { Marshal.FreeHGlobal((nint)ptr); }
         }
 
-        [Fact]
+        [Test]
         public void InsertionSort_EmptyInput_NoOp()
         {
             Insertion.Run<int>(null, 0);
         }
 
-        [Fact]
+        [Test]
         public void InsertionSort_SingleElement_NoOp()
         {
             int* ptr = (int*)Marshal.AllocHGlobal(sizeof(int));
@@ -42,12 +42,12 @@ namespace AlgoArena.Tests
             {
                 ptr[0] = 42;
                 Insertion.Run(ptr, 1);
-                Assert.Equal(42, ptr[0]);
+                Assert.AreEqual(42, ptr[0]);
             }
             finally { Marshal.FreeHGlobal((nint)ptr); }
         }
 
-        [Fact]
+        [Test]
         public void InsertionSort_AlreadySorted_NoChange()
         {
             const int N = 16;
@@ -57,12 +57,12 @@ namespace AlgoArena.Tests
                 for (int i = 0; i < N; i++) ptr[i] = i;
                 Insertion.Run(ptr, N);
                 for (int i = 0; i < N; i++)
-                    Assert.Equal(i, ptr[i]);
+                    Assert.AreEqual(i, ptr[i]);
             }
             finally { Marshal.FreeHGlobal((nint)ptr); }
         }
 
-        [Fact]
+        [Test]
         public void InsertionSort_Duplicates_StableSort()
         {
             const int N = 32;
@@ -72,12 +72,12 @@ namespace AlgoArena.Tests
                 for (int i = 0; i < N; i++) ptr[i] = (i % 4 == 0) ? 1 : (i % 4 == 1) ? 2 : (i % 4 == 2) ? 3 : 4;
                 Insertion.Run(ptr, N);
                 for (int i = 1; i < N; i++)
-                    Assert.True(ptr[i] >= ptr[i - 1]);
+                    Assert.IsTrue(ptr[i] >= ptr[i - 1]);
             }
             finally { Marshal.FreeHGlobal((nint)ptr); }
         }
 
-        [Fact]
+        [Test]
         public void MergeSort_Reversed_SortsCorrectly()
         {
             const int N = 64;
@@ -89,12 +89,12 @@ namespace AlgoArena.Tests
                 MergeSorted.RunInPlace(ptr, N);
 
                 for (int i = 0; i < N; i++)
-                    Assert.Equal(i + 1, ptr[i]);
+                    Assert.AreEqual(i + 1, ptr[i]);
             }
             finally { Marshal.FreeHGlobal((nint)ptr); }
         }
 
-        [Fact]
+        [Test]
         public void MergeSort_PreservesElements()
         {
             const int N = 64;
@@ -108,12 +108,12 @@ namespace AlgoArena.Tests
 
                 long sumAfter = 0;
                 for (int i = 0; i < N; i++) sumAfter += ptr[i];
-                Assert.Equal(sumBefore, sumAfter);
+                Assert.AreEqual(sumBefore, sumAfter);
             }
             finally { Marshal.FreeHGlobal((nint)ptr); }
         }
 
-        [Fact]
+        [Test]
         public void MergeSort_AllSizes_OneToThirtyThree()
         {
             for (int sz = 1; sz <= 33; sz++)
@@ -122,18 +122,18 @@ namespace AlgoArena.Tests
                 for (int i = 0; i < sz; i++) q[i] = sz - i;
                 MergeSorted.RunInPlace(q, sz);
                 for (int i = 1; i < sz; i++)
-                    Assert.True(q[i] >= q[i - 1], $"size={sz} not sorted at {i}");
+                    Assert.IsTrue(q[i] >= q[i - 1], $"size={sz} not sorted at {i}");
                 Marshal.FreeHGlobal((nint)q);
             }
         }
 
-        [Fact]
+        [Test]
         public void MergeSort_EmptyInput_NoOp()
         {
             MergeSorted.RunInPlace<int>(null, 0);
         }
 
-        [Fact]
+        [Test]
         public void MergeSort_SingleElement_NoOp()
         {
             int* ptr = (int*)Marshal.AllocHGlobal(sizeof(int));
@@ -141,12 +141,12 @@ namespace AlgoArena.Tests
             {
                 ptr[0] = 99;
                 MergeSorted.RunInPlace(ptr, 1);
-                Assert.Equal(99, ptr[0]);
+                Assert.AreEqual(99, ptr[0]);
             }
             finally { Marshal.FreeHGlobal((nint)ptr); }
         }
 
-        [Fact]
+        [Test]
         public void BinarySearch_Found_ReturnsTrue()
         {
             const int N = 32;
@@ -157,13 +157,13 @@ namespace AlgoArena.Tests
 
                 bool found = BinarySearch.TryFind(ptr, N, 20, out int index);
 
-                Assert.True(found);
-                Assert.Equal(10, index);
+                Assert.IsTrue(found);
+                Assert.AreEqual(10, index);
             }
             finally { Marshal.FreeHGlobal((nint)ptr); }
         }
 
-        [Fact]
+        [Test]
         public void BinarySearch_NotFound_ReturnsFalse()
         {
             const int N = 32;
@@ -174,37 +174,37 @@ namespace AlgoArena.Tests
 
                 bool found = BinarySearch.TryFind(ptr, N, 21, out int index);
 
-                Assert.False(found);
+                Assert.IsFalse(found);
             }
             finally { Marshal.FreeHGlobal((nint)ptr); }
         }
 
-        [Fact]
+        [Test]
         public void BinarySearch_EmptyArray_ReturnsFalse()
         {
             bool found = BinarySearch.TryFind(null, 0, 5, out int index);
-            Assert.False(found);
+            Assert.IsFalse(found);
         }
 
-        [Fact]
+        [Test]
         public void BinarySearch_FirstElement()
         {
             int* ptr = stackalloc int[] { 1, 3, 5, 7, 9 };
             bool found = BinarySearch.TryFind(ptr, 5, 1, out int index);
-            Assert.True(found);
-            Assert.Equal(0, index);
+            Assert.IsTrue(found);
+            Assert.AreEqual(0, index);
         }
 
-        [Fact]
+        [Test]
         public void BinarySearch_LastElement()
         {
             int* ptr = stackalloc int[] { 1, 3, 5, 7, 9 };
             bool found = BinarySearch.TryFind(ptr, 5, 9, out int index);
-            Assert.True(found);
-            Assert.Equal(4, index);
+            Assert.IsTrue(found);
+            Assert.AreEqual(4, index);
         }
 
-        [Fact]
+        [Test]
         public void Partition_Lomuto_CorrectPlacement()
         {
             const int N = 9;
@@ -218,36 +218,36 @@ namespace AlgoArena.Tests
                 int pi = Partition.Run(ptr, N, pivotIdx);
 
                 for (int i = 0; i < pi; i++)
-                    Assert.True(ptr[i] <= ptr[pi]);
+                    Assert.IsTrue(ptr[i] <= ptr[pi]);
                 for (int i = pi + 1; i < N; i++)
-                    Assert.True(ptr[i] >= ptr[pi]);
+                    Assert.IsTrue(ptr[i] >= ptr[pi]);
             }
             finally { Marshal.FreeHGlobal((nint)ptr); }
         }
 
-        [Fact]
+        [Test]
         public void Partition_NullPtr()
         {
             int pi = Partition.Run<int>(null, 0, 0);
-            Assert.True(pi < 0);
+            Assert.IsTrue(pi < 0);
         }
 
-        [Fact]
+        [Test]
         public void LowerBound_FindsFirstGreaterOrEqual()
         {
             int* ptr = stackalloc int[] { 1, 3, 5, 7, 9 };
-            Assert.Equal(2, BitSearch.LowerBound(ptr, 5, 5));
-            Assert.Equal(0, BitSearch.LowerBound(ptr, 5, 0));
-            Assert.Equal(5, BitSearch.LowerBound(ptr, 5, 10));
+            Assert.AreEqual(2, LowerBound.Run(ptr, 5, 5));
+            Assert.AreEqual(0, LowerBound.Run(ptr, 5, 0));
+            Assert.AreEqual(5, LowerBound.Run(ptr, 5, 10));
         }
 
-        [Fact]
+        [Test]
         public void UpperBound_FindsFirstGreater()
         {
             int* ptr = stackalloc int[] { 1, 3, 5, 7, 9 };
-            Assert.Equal(3, BitSearch.UpperBound(ptr, 5, 5));
-            Assert.Equal(0, BitSearch.UpperBound(ptr, 5, 0));
-            Assert.Equal(5, BitSearch.UpperBound(ptr, 5, 9));
+            Assert.AreEqual(3, UpperBound.Run(ptr, 5, 5));
+            Assert.AreEqual(0, UpperBound.Run(ptr, 5, 0));
+            Assert.AreEqual(5, UpperBound.Run(ptr, 5, 9));
         }
     }
 }

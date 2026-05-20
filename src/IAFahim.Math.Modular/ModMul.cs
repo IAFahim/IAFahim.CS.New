@@ -8,32 +8,21 @@ namespace IAFahim.Math.Modular
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long Run(long a, long b, long mod)
         {
+            if (mod <= 1) return 0;
             long result = 0;
             a %= mod;
             if (a < 0) a += mod;
-            if (a <= long.MaxValue / 2 && mod <= long.MaxValue / 2)
+            b %= mod;
+            if (b < 0) b += mod;
+
+            while (b > 0)
             {
-                while (b > 0)
+                if ((b & 1) == 1)
                 {
-                    if ((b & 1) == 1)
-                    {
-                        result = (result + a) % mod;
-                    }
-                    a = (a + a) % mod;
-                    b >>= 1;
+                    result = (mod - result <= a) ? result - (mod - a) : result + a;
                 }
-            }
-            else
-            {
-                while (b > 0)
-                {
-                    if ((b & 1) == 1)
-                    {
-                        result = ((result % mod) + (a % mod)) % mod;
-                    }
-                    a = ((a % mod) + (a % mod)) % mod;
-                    b >>= 1;
-                }
+                a = (mod - a <= a) ? a - (mod - a) : a + a;
+                b >>= 1;
             }
             return result;
         }

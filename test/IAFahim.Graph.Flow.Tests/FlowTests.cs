@@ -11,12 +11,16 @@ namespace IAFahim.Graph.Flow.Tests
         {
             const int n = 4;
             int* head = stackalloc int[n];
-            int* to = stackalloc int[8];
-            int* next = stackalloc int[8];
-            int* cap = stackalloc int[8];
+            int* to = stackalloc int[16];
+            int* next = stackalloc int[16];
+            int* cap = stackalloc int[16];
+            int* flowArr = stackalloc int[16];
+            int* level = stackalloc int[n];
+            int* it = stackalloc int[n];
             for (int i = 0; i < n; i++) head[i] = 0;
-            int edgeId = 0;
-            DinicBfs.Run(n, 0, 0, head, to, next, cap, null, null, null, null);
+            for (int i = 0; i < 16; i++) flowArr[i] = 0;
+            
+            DinicBfs.Run(n, 0, 2, head, to, next, cap, flowArr, level, it);
 
             for (int i = 0; i < 8; i++) { to[i] = -1; next[i] = 0; cap[i] = 0; }
             head[0] = 1; to[1] = 1; next[1] = 0; cap[1] = 10;
@@ -28,12 +32,12 @@ namespace IAFahim.Graph.Flow.Tests
             head[2] = 13; to[13] = 3; next[13] = 11; cap[13] = 8;
             head[3] = 15; to[15] = 3; next[15] = 13; cap[15] = 0;
 
-            long flow = DinicMaxFlow.Run(n, 0, 3, head, to, next, cap);
+            long flow = DinicMaxFlow.Run(n, 0, 3, head, to, next, cap, flowArr);
             Assert.True(flow >= 0);
         }
 
         [Fact]
-        public void MinCostMaxFlow_Basic()
+        public void MinCostMaxFlow_Empty()
         {
             const int n = 3;
             int* head = stackalloc int[n];
@@ -42,7 +46,6 @@ namespace IAFahim.Graph.Flow.Tests
             int* cost = stackalloc int[6];
             int* cap = stackalloc int[6];
             for (int i = 0; i < n; i++) head[i] = 0;
-            long flow = 0, minCost = 0;
             var result = MinCostMaxFlow.Run(n, 0, 2, head, to, next, cost, cap);
             Assert.True(result.flow >= 0);
         }

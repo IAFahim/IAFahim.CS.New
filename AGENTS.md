@@ -8,7 +8,7 @@ Workflow: **Create → Test → Benchmark**. Every algorithm passes all three.
 
 Unmanaged algorithm and data structure library. Runs on .NET. Runs on Unity. Zero code changes between them.
 
-**.NET path**: `IAFahim.Collections.NoDeps` provides stubs (Allocator, AllocatorManager, UnsafeUtility, NativeContainer, NativeDisableUnsafePtrRestriction). `UnityMathematics.NoDeps` provides math types (float3, int3, math.*). Code compiles against these.
+**.NET path**: `IAFahim.Collections.NoDeps` provides stubs (Allocator, AllocatorManager, UnsafeUtility, NativeContainer, NativeDisableUnsafePtrRestriction). `UnityMathematics.NoDeps` provides math types (float3, int3, math.\*). Code compiles against these.
 
 **Unity path**: Unity links its own `com.unity.collections` and `com.unity.mathematics`. NoDeps assemblies excluded via `PrivateAssets="All"`. Stubs vanish. Real implementations bind. Same source, different linker target.
 
@@ -41,22 +41,24 @@ IAFahim.IO.*                       ← zero deps (algorithms)
 
 If a package needs a dependency not listed here, that dependency must be declared before the package is created. No implicit edges.
 
+**Note**: `IAFahim.Math.*` packages must declare `<PackageReference Include="UnityMathematics.NoDeps" Version="1.3.2" PrivateAssets="All" />` in their csproj to enable Unity math types (float3, int3, math.\*) usage. This is checked at project level, not in source code.
+
 ---
 
 ## Type Constraints
 
-| Allowed                                  | Forbidden                                |
-|------------------------------------------|------------------------------------------|
-| `static class`                           | `class`, `sealed class`, `abstract class`|
-| `struct` (unmanaged fields only)         | `interface`                              |
-| `where T : unmanaged`                    | `string`, `object`, `dynamic`            |
-| `void*`, `T*`, `nint`, `nuint`           | managed arrays `T[]`                     |
-| `bool`, value types                      | `List<T>`, `Dictionary<K,V>`             |
-| `stackalloc`                             | `new` on any class                       |
-| `ReadOnlySpan<byte>` (parameter only)    | `string` literals without `u8`           |
-| `Span<T>` (test and bench only)          | `Span<T>` in `src/`                      |
-| `sizeof(T)`                              | `Marshal.SizeOf<T>()`                    |
-| `"text"u8` (UTF-8 literals)             | managed exception handling               |
+| Allowed                               | Forbidden                                 |
+| ------------------------------------- | ----------------------------------------- |
+| `static class`                        | `class`, `sealed class`, `abstract class` |
+| `struct` (unmanaged fields only)      | `interface`                               |
+| `where T : unmanaged`                 | `string`, `object`, `dynamic`             |
+| `void*`, `T*`, `nint`, `nuint`        | managed arrays `T[]`                      |
+| `bool`, value types                   | `List<T>`, `Dictionary<K,V>`              |
+| `stackalloc`                          | `new` on any class                        |
+| `ReadOnlySpan<byte>` (parameter only) | `string` literals without `u8`            |
+| `Span<T>` (test and bench only)       | `Span<T>` in `src/`                       |
+| `sizeof(T)`                           | `Marshal.SizeOf<T>()`                     |
+| `"text"u8` (UTF-8 literals)           | managed exception handling                |
 
 **`sizeof(T)` vs `UnsafeUtility.SizeOf<T>()`**: algorithms use `sizeof(T)` (zero deps). Data structures use `UnsafeUtility.SizeOf<T>()` and `UnsafeUtility.AlignOf<T>()` (already depend on Collections.NoDeps).
 
@@ -80,18 +82,21 @@ If it touches the GC heap, it does not belong in `src/`.
 ## Totality
 
 **Unchecked (caller guarantees validity):**
+
 ```csharp
 public static void Run<T>(T* ptr, int len)
     where T : unmanaged, IComparable<T>
 ```
 
 **Checked (`Try*` prefix, returns `bool`, `out` result):**
+
 ```csharp
 public static bool TryFind<T>(T* ptr, int len, T key, out int index)
     where T : unmanaged, IComparable<T>
 ```
 
 **Bounds check pattern:**
+
 ```csharp
 (uint)index < (uint)length
 ```
@@ -201,6 +206,7 @@ namespace IAFahim.DS
 Framework: xUnit. Projects in `test/`. Target `net8.0`.
 
 ### Checklist Per Public Method
+
 1. Empty input — `len == 0` does not crash.
 2. Single element — trivial case correct.
 3. Already sorted / already reversed.
@@ -210,6 +216,7 @@ Framework: xUnit. Projects in `test/`. Target `net8.0`.
 7. `Try*` true path — valid input returns `true`, out param correct.
 
 ### Test Template
+
 ```csharp
 namespace IAFahim.Sort.Tests
 {
@@ -249,6 +256,7 @@ namespace IAFahim.Sort.Tests
 ```
 
 ### Rules
+
 - No mocking. No DI. Raw pointers, allocate, run, assert, free.
 - Every test wraps allocation in `try/finally`. No leaks on assertion failure.
 - Test names: `Condition_ExpectedResult`.
@@ -260,6 +268,7 @@ namespace IAFahim.Sort.Tests
 Framework: BenchmarkDotNet. Projects in `bench/`. Target `net8.0`.
 
 ### Checklist
+
 1. Baseline comparison — `Span<T>.Sort()` or BCL equivalent.
 2. Multiple sizes — `[Params(64, 256, 1024, 4096)]`.
 3. `[MemoryDiagnoser]` confirms zero managed allocation.
@@ -267,6 +276,7 @@ Framework: BenchmarkDotNet. Projects in `bench/`. Target `net8.0`.
 5. Same seed (42) for reproducible distributions.
 
 ### Bench Template
+
 ```csharp
 namespace IAFahim.Sort.Bench
 {

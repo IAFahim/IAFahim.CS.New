@@ -68,17 +68,28 @@ namespace IAFahim.String.Tests
             const int maxNodes = 10;
             int* next = (int*)Marshal.AllocHGlobal(maxNodes * alphabet * sizeof(int));
             int* link = (int*)Marshal.AllocHGlobal(maxNodes * sizeof(int));
-            int* out_ = (int*)Marshal.AllocHGlobal(maxNodes * sizeof(int));
             try
             {
-                for (int i = 0; i < maxNodes * alphabet; i++) next[i] = -1;
-                for (int i = 0; i < maxNodes; i++) { link[i] = 0; out_[i] = 0; }
+                for (int i = 0; i < maxNodes * alphabet; i++) next[i] = 0;
+                for (int i = 0; i < maxNodes; i++) link[i] = 0;
                 int nodeCount = 1;
                 byte* pat = stackalloc byte[3] { (byte)'a', (byte)'b', (byte)'c' };
-                AhoBuild.Run(&nodeCount, next, link, out_, pat, 3, alphabet);
+                int cur = 0;
+                for (int i = 0; i < 3; i++)
+                {
+                    int c = pat[i] - 'a';
+                    int nextNode = next[cur * alphabet + c];
+                    if (nextNode == 0)
+                    {
+                        nextNode = nodeCount++;
+                        next[cur * alphabet + c] = nextNode;
+                    }
+                    cur = nextNode;
+                }
+                AhoBuild.Run(next, link, nodeCount, alphabet);
                 Assert.True(nodeCount > 1);
             }
-            finally { Marshal.FreeHGlobal((nint)next); Marshal.FreeHGlobal((nint)link); Marshal.FreeHGlobal((nint)out_); }
+            finally { Marshal.FreeHGlobal((nint)next); Marshal.FreeHGlobal((nint)link); }
         }
 
         [Fact]
@@ -88,18 +99,22 @@ namespace IAFahim.String.Tests
             int* next = (int*)Marshal.AllocHGlobal(maxLen * 256 * sizeof(int));
             int* link = (int*)Marshal.AllocHGlobal(maxLen * sizeof(int));
             int* len = (int*)Marshal.AllocHGlobal(maxLen * sizeof(int));
-            int* cnt = (int*)Marshal.AllocHGlobal(maxLen * sizeof(int));
             try
             {
-                for (int i = 0; i < maxLen * 256; i++) next[i] = -1;
-                for (int i = 0; i < maxLen; i++) { link[i] = 0; len[i] = 0; cnt[i] = 0; }
-                int last = 0, sz = 2;
+                for (int i = 0; i < maxLen * 256; i++) next[i] = 0;
+                for (int i = 0; i < maxLen; i++) { link[i] = 0; len[i] = 0; }
+                len[0] = 1;
+                len[1] = 0;
+                len[2] = -1;
+                link[1] = 0;
+                link[0] = 1;
+                int last = 1;
                 byte* s = stackalloc byte[5] { (byte)'a', (byte)'b', (byte)'a', (byte)'b', (byte)'a' };
                 for (int i = 0; i < 5; i++)
-                    PalindromicTreeAdd.Run(&last, &sz, next, link, len, cnt, s[i]);
-                Assert.True(sz > 2);
+                    PalindromicTreeAdd.Run(len, link, next, &last, s, i);
+                Assert.True(len[0] > 1);
             }
-            finally { Marshal.FreeHGlobal((nint)next); Marshal.FreeHGlobal((nint)link); Marshal.FreeHGlobal((nint)len); Marshal.FreeHGlobal((nint)cnt); }
+            finally { Marshal.FreeHGlobal((nint)next); Marshal.FreeHGlobal((nint)link); Marshal.FreeHGlobal((nint)len); }
         }
     }
 }

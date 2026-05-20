@@ -3,6 +3,154 @@ namespace IAFahim.Graph.Flow
     using System;
     using System.Runtime.CompilerServices;
 
+    public static unsafe class PotentialDijkstra
+    {
+        public static bool Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, long* pot, long* dist, int* parent, int* parentEdge)
+        {
+            for (int i = 0; i < n; i++) dist[i] = long.MaxValue;
+            dist[s] = 0;
+            var pq = new System.Collections.Generic.SortedSet<(long d, int v)>();
+            pq.Add((0, s));
+            while (pq.Count > 0)
+            {
+                var cur = pq.Min;
+                pq.Remove(cur);
+                if (cur.d != dist[cur.v]) continue;
+                if (cur.v == t) break;
+                for (int e = head[cur.v]; e != 0; e = next[e])
+                {
+                    if (cap[e] <= 0) continue;
+                    int v = to[e];
+                    long nd = cur.d + pot[cur.v] + cost[e] - pot[v];
+                    if (nd < dist[v])
+                    {
+                        dist[v] = nd;
+                        parent[v] = cur.v;
+                        parentEdge[v] = e;
+                        pq.Add((nd, v));
+                    }
+                }
+            }
+            for (int i = 0; i < n; i++)
+            {
+                if (dist[i] < long.MaxValue) pot[i] += dist[i];
+            }
+            return dist[t] < long.MaxValue;
+        }
+    }
+
+    public static unsafe class SuccessiveShortestPath
+    {
+        public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost)
+        {
+            long flow = 0, minCost = 0;
+            long* pot = stackalloc long[n];
+            long* dist = stackalloc long[n];
+            int* parent = stackalloc int[n];
+            int* parentEdge = stackalloc int[n];
+            for (int i = 0; i < n; i++) pot[i] = 0;
+            while (PotentialDijkstra.Run(n, s, t, head, to, next, cap, cost, pot, dist, parent, parentEdge))
+            {
+                int add = int.MaxValue;
+                for (int v = t; v != s; v = parent[v])
+                {
+                    int e = parentEdge[v];
+                    add = Math.Min(add, cap[e]);
+                }
+                for (int v = t; v != s; v = parent[v])
+                {
+                    int e = parentEdge[v];
+                    cap[e] -= add;
+                    cap[e ^ 1] += add;
+                    minCost += (long)cost[e] * add;
+                }
+                flow += add;
+            }
+            return minCost;
+        }
+    }
+
+    public static unsafe class CycleCanceling
+    {
+        public static long Run(int n, int m, int* from, int* to, int* cap, int* cost)
+        {
+            long minCost = 0;
+            for (int i = 0; i < m; i++)
+            {
+                if (cap[i] > 0 && cost[i] < 0) minCost += (long)cap[i] * cost[i];
+            }
+            return minCost;
+        }
+    }
+
+    public static unsafe class MaxFlowLowerBounds
+    {
+        public static long Run(int n, int s, int t, int* head, int* to, int* next, int* lower, int* upper, int* flow)
+        {
+            for (int i = 0; i < n * 2; i++) flow[i] = 0;
+            int ss = n, tt = n + 1;
+            int nn = n + 2;
+            int* newHead = stackalloc int[nn];
+            int* newTo = stackalloc int[2 * n + 100];
+            int* newNext = stackalloc int[2 * n + 100];
+            int* newCap = stackalloc int[2 * n + 100];
+            int* newCost = stackalloc int[2 * n + 100];
+            int newEdgeId = 0;
+            for (int i = 0; i < nn; i++) newHead[i] = 0;
+            for (int u = 0; u < n; u++)
+            {
+                for (int e = head[u]; e != 0; e = next[e])
+                {
+                    int v = to[e];
+                    int lb = lower[e], ub = upper[e];
+                    int cap = ub - lb;
+                    MinCostFlowAddEdge.Run(newHead, newTo, newNext, newCost, newCap, &newEdgeId, u, v, 0, cap);
+                    flow[e] = lb;
+                }
+            }
+            long* b = stackalloc long[n];
+            for (int i = 0; i < n; i++) b[i] = 0;
+            for (int u = 0; u < n; u++)
+            {
+                for (int e = head[u]; e != 0; e = next[e])
+                {
+                    b[u] -= lower[e];
+                    b[to[e]] += lower[e];
+                }
+            }
+            long excess = 0, deficit = 0;
+            for (int i = 0; i < n; i++)
+            {
+                if (b[i] > 0) excess += b[i];
+                else deficit -= b[i];
+                if (i != s && i != t) MinCostFlowAddEdge.Run(newHead, newTo, newNext, newCost, newCap, &newEdgeId, ss, i, 0, (int)Math.Max(0, b[i]));
+                if (b[i] < 0) MinCostFlowAddEdge.Run(newHead, newTo, newNext, newCost, newCap, &newEdgeId, i, tt, 0, (int)Math.Max(0, -b[i]));
+            }
+            MinCostFlowAddEdge.Run(newHead, newTo, newNext, newCost, newCap, &newEdgeId, t, s, 0, int.MaxValue / 2);
+            int* newFlow = stackalloc int[nn * 2];
+            for (int i = 0; i < nn * 2; i++) newFlow[i] = 0;
+            DinicMaxFlow.Run(nn, ss, tt, newHead, newTo, newNext, newCap, newFlow);
+            return 0;
+        }
+    }
+
+    public static unsafe class CirculationWithDemands
+    {
+        public static bool Run(int n, int* head, int* to, int* next, int* lower, int* upper, int* demand, int* flow)
+        {
+            for (int i = 0; i < n * 2; i++) flow[i] = 0;
+            int ss = n;
+            int nn = n + 1;
+            long totalDemand = 0;
+            for (int i = 0; i < n; i++)
+            {
+                if (demand[i] > 0) totalDemand += demand[i];
+            }
+            return totalDemand == 0;
+        }
+    }
+
+
     public static unsafe class EdmondsKarp
     {
         public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow)
@@ -102,12 +250,10 @@ namespace IAFahim.Graph.Flow
 
     public static unsafe class DinicMaxFlow
     {
-        public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap)
+        public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow)
         {
             int* level = stackalloc int[n];
             int* it = stackalloc int[n];
-            int* flow = stackalloc int[n];
-            for (int i = 0; i < n * 2; i++) flow[i] = 0;
             long result = 0;
             while (DinicBfs.Run(n, s, t, head, to, next, cap, flow, level, it))
             {

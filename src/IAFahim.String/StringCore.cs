@@ -72,13 +72,14 @@ namespace IAFahim.String
     {
         public static int Run(byte* s, int len)
         {
+            if (len <= 1) return 0;
             int i = 0, j = 1, k = 0;
-            byte* doubled = stackalloc byte[len * 2];
-            for (int x = 0; x < len * 2; x++) doubled[x] = s[x % len];
             while (i < len && j < len && k < len)
             {
-                if (doubled[i + k] == doubled[j + k]) { k++; continue; }
-                if (doubled[i + k] > doubled[j + k]) i += k + 1;
+                byte si = s[(i + k) % len];
+                byte sj = s[(j + k) % len];
+                if (si == sj) { k++; continue; }
+                if (si > sj) i += k + 1;
                 else j += k + 1;
                 if (i == j) j++;
                 k = 0;

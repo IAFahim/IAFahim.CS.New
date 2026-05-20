@@ -58,11 +58,16 @@ namespace IAFahim.Math.Combinatorics
     {
         public static long Run(long n, long mod)
         {
-            if (n <= 1) return 1;
+            if (n <= 0) return 1;
+            // C_n = (2n choose n) / (n + 1)
+            // C_n = product_{k=2}^n (n+k)/k
             long result = 1;
-            for (long i = 2; i <= n; i++)
-                result = (result * (n + i)) % mod;
-            return (result * MathHelper.ModInverse(n + 1, mod)) % mod;
+            for (long k = 2; k <= n; k++)
+            {
+                result = (result * (n + k)) % mod;
+                result = (result * MathHelper.ModInverse(k, mod)) % mod;
+            }
+            return result;
         }
     }
 

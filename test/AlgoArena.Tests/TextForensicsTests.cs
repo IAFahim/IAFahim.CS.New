@@ -2,18 +2,17 @@ namespace AlgoArena.Tests
 {
     using System;
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
     using IAFahim.String;
 
     public sealed unsafe class TextForensicsTests
     {
-        [Theory]
-        [InlineData("racecar", 7)]
-        [InlineData("aba", 3)]
-        [InlineData("a", 1)]
-        [InlineData("babad", 3)]
-        [InlineData("hello", 1)]
-        [InlineData("ab", 1)]
+        [TestCase("racecar", 7)]
+        [TestCase("aba", 3)]
+        [TestCase("a", 1)]
+        [TestCase("babad", 3)]
+        [TestCase("hello", 1)]
+        [TestCase("ab", 1)]
         public void ManacherOdd_MaxOddPalindrome(string s, int expectedMaxOdd)
         {
             int n = s.Length;
@@ -28,7 +27,7 @@ namespace AlgoArena.Tests
                 for (int i = 0; i < n; i++)
                     maxOdd = Math.Max(maxOdd, radiiOdd[i] * 2 - 1);
 
-                Assert.Equal(expectedMaxOdd, maxOdd);
+                Assert.AreEqual(expectedMaxOdd, maxOdd);
             }
             finally
             {
@@ -37,11 +36,10 @@ namespace AlgoArena.Tests
             }
         }
 
-        [Theory]
-        [InlineData("abba", 4)]
-        [InlineData("ab", 0)]
-        [InlineData("aabb", 2)]
-        [InlineData("aaaa", 4)]
+        [TestCase("abba", 4)]
+        [TestCase("ab", 0)]
+        [TestCase("aabb", 2)]
+        [TestCase("aaaa", 4)]
         public void ManacherEven_MaxEvenPalindrome(string s, int expectedMaxEven)
         {
             int n = s.Length;
@@ -57,7 +55,7 @@ namespace AlgoArena.Tests
                 for (int i = 0; i < n - 1; i++)
                     maxEven = Math.Max(maxEven, radiiEven[i] * 2);
 
-                Assert.Equal(expectedMaxEven, maxEven);
+                Assert.AreEqual(expectedMaxEven, maxEven);
             }
             finally
             {
@@ -66,13 +64,12 @@ namespace AlgoArena.Tests
             }
         }
 
-        [Theory]
-        [InlineData("hello", "ll", new[] { 2 })]
-        [InlineData("hello", "lo", new[] { 3 })]
-        [InlineData("ababab", "ab", new[] { 0, 2, 4 })]
-        [InlineData("aaaa", "aa", new[] { 0, 1, 2 })]
-        [InlineData("abc", "d", new int[] { })]
-        [InlineData("abcabc", "abc", new[] { 0, 3 })]
+        [TestCase("hello", "ll", new[] { 2 })]
+        [TestCase("hello", "lo", new[] { 3 })]
+        [TestCase("ababab", "ab", new[] { 0, 2, 4 })]
+        [TestCase("aaaa", "aa", new[] { 0, 1, 2 })]
+        [TestCase("abc", "d", new int[] { })]
+        [TestCase("abcabc", "abc", new[] { 0, 3 })]
         public void KmpSearch_FindsAllMatches(string textStr, string patternStr, int[] expectedPositions)
         {
             int n = textStr.Length;
@@ -87,9 +84,9 @@ namespace AlgoArena.Tests
 
                 int count = KmpSearch.Run(text, n, pattern, m, matches);
 
-                Assert.Equal(expectedPositions.Length, count);
+                Assert.AreEqual(expectedPositions.Length, count);
                 for (int i = 0; i < count; i++)
-                    Assert.Equal(expectedPositions[i], matches[i]);
+                    Assert.AreEqual(expectedPositions[i], matches[i]);
             }
             finally
             {
@@ -99,11 +96,10 @@ namespace AlgoArena.Tests
             }
         }
 
-        [Theory]
-        [InlineData("abcabc", 3)]
-        [InlineData("aaaa", 1)]
-        [InlineData("abc", 3)]
-        [InlineData("ababab", 2)]
+        [TestCase("abcabc", 3)]
+        [TestCase("aaaa", 1)]
+        [TestCase("abc", 3)]
+        [TestCase("ababab", 2)]
         public void StringPeriod_ReturnsMinimalPeriod(string s, int expectedPeriod)
         {
             int n = s.Length;
@@ -112,7 +108,7 @@ namespace AlgoArena.Tests
             {
                 for (int i = 0; i < n; i++) text[i] = (byte)s[i];
                 int period = StringPeriod.Run(text, n);
-                Assert.Equal(expectedPeriod, period);
+                Assert.AreEqual(expectedPeriod, period);
             }
             finally
             {
@@ -120,12 +116,11 @@ namespace AlgoArena.Tests
             }
         }
 
-        [Theory]
-        [InlineData("abab", 1)]
-        [InlineData("abcdab", 1)]
-        [InlineData("aaa", 2)]
-        [InlineData("abc", 0)]
-        [InlineData("aaaa", 3)]
+        [TestCase("abab", 1)]
+        [TestCase("abcdab", 1)]
+        [TestCase("aaa", 2)]
+        [TestCase("abc", 0)]
+        [TestCase("aaaa", 3)]
         public void Borders_CountsCorrectly(string s, int expectedCount)
         {
             int n = s.Length;
@@ -136,9 +131,9 @@ namespace AlgoArena.Tests
                 for (int i = 0; i < n; i++) text[i] = (byte)s[i];
                 int count = Borders.Run(text, n, borders);
 
-                Assert.Equal(expectedCount, count);
+                Assert.AreEqual(expectedCount, count);
                 for (int i = 0; i < count; i++)
-                    Assert.True(borders[i] > 0 && borders[i] < n);
+                    Assert.IsTrue(borders[i] > 0 && borders[i] < n);
             }
             finally
             {
@@ -147,11 +142,10 @@ namespace AlgoArena.Tests
             }
         }
 
-        [Theory]
-        [InlineData("aabbaa", 'a', 2)]
-        [InlineData("hello", 'h', 1)]
-        [InlineData("aaaa", 'a', 4)]
-        [InlineData("abc", 'a', 1)]
+        [TestCase("aabbaa", 'a', 2)]
+        [TestCase("hello", 'h', 1)]
+        [TestCase("aaaa", 'a', 4)]
+        [TestCase("abc", 'a', 1)]
         public void RunLengthEncode_FirstRun(string s, char expectedChar, int expectedCount)
         {
             int n = s.Length;
@@ -163,9 +157,9 @@ namespace AlgoArena.Tests
                 for (int i = 0; i < n; i++) text[i] = (byte)s[i];
                 int runs = RunLengthEncode.Run(text, n, values, counts);
 
-                Assert.True(runs > 0);
-                Assert.Equal((byte)expectedChar, values[0]);
-                Assert.Equal(expectedCount, counts[0]);
+                Assert.IsTrue(runs > 0);
+                Assert.AreEqual((byte)expectedChar, values[0]);
+                Assert.AreEqual(expectedCount, counts[0]);
             }
             finally
             {
@@ -175,7 +169,7 @@ namespace AlgoArena.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void RunLengthEncode_EmptyInput()
         {
             byte* values = (byte*)Marshal.AllocHGlobal(1);
@@ -183,7 +177,7 @@ namespace AlgoArena.Tests
             try
             {
                 int runs = RunLengthEncode.Run(null, 0, values, counts);
-                Assert.Equal(0, runs);
+                Assert.AreEqual(0, runs);
             }
             finally
             {

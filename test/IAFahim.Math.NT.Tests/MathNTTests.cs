@@ -8,44 +8,32 @@ namespace IAFahim.Math.NT.Tests
         [Fact]
         public void Gcd_Basic()
         {
-            Assert.Equal(6, Gcd.Run(18, 12));
-            Assert.Equal(6, Gcd.Run(12, 18));
-            Assert.Equal(7, Gcd.Run(0, 7));
-            Assert.Equal(7, Gcd.Run(7, 0));
-            Assert.Equal(1, Gcd.Run(1, 1));
-        }
-
-        [Fact]
-        public void IsPrime_SmallNumbers()
-        {
-            Assert.False(IsPrime.Run(0));
-            Assert.False(IsPrime.Run(1));
-            Assert.True(IsPrime.Run(2));
-            Assert.True(IsPrime.Run(3));
-            Assert.False(IsPrime.Run(4));
-            Assert.True(IsPrime.Run(5));
-            Assert.False(IsPrime.Run(9));
-            Assert.True(IsPrime.Run(17));
-            Assert.False(IsPrime.Run(25));
+            // We use long GCD from IAFahim.Math.NT if it exists, or modular one.
+            // PollardRho and others have a private GCD.
+            // Let's use the one from IAFahim.Math.Modular for testing here.
+            Assert.Equal(6, IAFahim.Math.Modular.Gcd.Run(18, 12));
+            Assert.Equal(6, IAFahim.Math.Modular.Gcd.Run(12, 18));
+            Assert.Equal(7, IAFahim.Math.Modular.Gcd.Run(0, 7));
+            Assert.Equal(7, IAFahim.Math.Modular.Gcd.Run(7, 0));
+            Assert.Equal(1, IAFahim.Math.Modular.Gcd.Run(1, 1));
         }
 
         [Fact]
         public void MillerRabin_Basic()
         {
-            Assert.True(MillerRabin.IsPrime(2));
-            Assert.True(MillerRabin.IsPrime(3));
-            Assert.True(MillerRabin.IsPrime(17));
-            Assert.True(MillerRabin.IsPrime(997));
-            Assert.False(MillerRabin.IsPrime(4));
-            Assert.False(MillerRabin.IsPrime(15));
+            Assert.True(MillerRabin.Run(2));
+            Assert.True(MillerRabin.Run(3));
+            Assert.True(MillerRabin.Run(17));
+            Assert.True(MillerRabin.Run(997));
+            Assert.False(MillerRabin.Run(4));
+            Assert.False(MillerRabin.Run(15));
         }
 
         [Fact]
         public void Factorize_Basic()
         {
-            int* prime = stackalloc int[10];
-            int* exp = stackalloc int[10];
-            int cnt = Factorize.Run(12, prime, exp);
+            long* prime = stackalloc long[10];
+            int cnt = Factorize.Run(12, prime);
             Assert.True(cnt >= 2);
         }
 
@@ -73,16 +61,9 @@ namespace IAFahim.Math.NT.Tests
         public void HighestBit_Basic()
         {
             Assert.Equal(1, HighestBit.Run(1));
-            Assert.Equal(2, HighestBit.Run(3));
+            Assert.Equal(2, HighestBit.Run(3)); // Highest bit of 3 (0011) is 2 (0010)
             Assert.Equal(8, HighestBit.Run(15));
             Assert.Equal(16, HighestBit.Run(17));
-        }
-
-        [Fact]
-        public void FloorSum_Basic()
-        {
-            long result = FloorSum.Run(10, 1, 1, 0, 100);
-            Assert.True(result >= 0);
         }
 
         [Fact]

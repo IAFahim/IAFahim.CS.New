@@ -1,0 +1,867 @@
+*** Begin Patch*** Update File: test/IAFahim.Sort.Insertion.Tests/InsertionTests.cs@@ -1,55 +1,55 @@ namespace IAFahim.Sort.Tests
+ {
+     using System.Runtime.InteropServices;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class InsertionTests
+     {
+-        [Fact]
++        [Test]
+         public void EmptyInput_NoOp()
+         {
+             Insertion.Insertion.Run<int>(null, 0);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SingleElement_Unchanged()
+         {
+             int value = 42;
+             Insertion.Insertion.Run(&value, 1);
+-            Assert.Equal(42, value);
++            Assert.AreEqual(42, value);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void AlreadySorted_Unchanged()
+         {
+             int* ptr = stackalloc int[] { 1, 2, 3, 4 };
+             Insertion.Insertion.Run(ptr, 4);
+ 
+             for (int i = 0; i < 4; i++)
+-                Assert.Equal(i + 1, ptr[i]);
++                Assert.AreEqual(i + 1, ptr[i]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Reversed_Sorts()
+         {
+             int* ptr = stackalloc int[] { 4, 3, 2, 1 };
+             Insertion.Insertion.Run(ptr, 4);
+ 
+             for (int i = 0; i < 4; i++)
+-                Assert.Equal(i + 1, ptr[i]);
++                Assert.AreEqual(i + 1, ptr[i]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void AllDuplicates_Unchanged()
+         {
+             int* ptr = stackalloc int[] { 7, 7, 7, 7 };
+             Insertion.Insertion.Run(ptr, 4);
+ 
+             for (int i = 0; i < 4; i++)
+-                Assert.Equal(7, ptr[i]);
++                Assert.AreEqual(7, ptr[i]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void LargeN_CorrectOrder()
+         {
+             const int N = 1024;
+@@ -62,7 +62,7 @@                 Insertion.Insertion.Run(ptr, N);
+ 
+                 for (int i = 0; i < N; i++)
+-                    Assert.Equal(i + 1, ptr[i]);
++                    Assert.AreEqual(i + 1, ptr[i]);
+             }
+             finally
+             {
+@@ -70,27 +70,27 @@             }
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Descending_CorrectOrder()
+         {
+             int* ptr = stackalloc int[] { 1, 2, 3, 4 };
+             Insertion.Insertion.RunDescending(ptr, 4);
+ 
+-            Assert.Equal(4, ptr[0]);
+-            Assert.Equal(3, ptr[1]);
+-            Assert.Equal(2, ptr[2]);
+-            Assert.Equal(1, ptr[3]);
++            Assert.AreEqual(4, ptr[0]);
++            Assert.AreEqual(3, ptr[1]);
++            Assert.AreEqual(2, ptr[2]);
++            Assert.AreEqual(1, ptr[3]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Float_Sorts()
+         {
+             float* ptr = stackalloc float[] { 3.14f, 1.41f, 2.71f };
+             Insertion.Insertion.Run(ptr, 3);
+ 
+-            Assert.Equal(1.41f, ptr[0]);
+-            Assert.Equal(2.71f, ptr[1]);
+-            Assert.Equal(3.14f, ptr[2]);
++            Assert.AreEqual(1.41f, ptr[0]);
++            Assert.AreEqual(2.71f, ptr[1]);
++            Assert.AreEqual(3.14f, ptr[2]);
+         }
+     }
+ }
+*** Update File: test/IAFahim.Sort.Merge.Tests/MergeTests.cs@@ -1,11 +1,11 @@ namespace IAFahim.Sort.Merge.Tests
+ {
+     using System;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class MergeTests
+     {
+-        [Fact]
++        [Test]
+         public void MergeSorted_BothEmpty_ProducesEmpty()
+         {
+             int* a = stackalloc int[0];
+@@ -14,7 +14,7 @@             MergeSorted.Run(a, 0, b, 0, dst);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MergeSorted_LeftEmpty_CopiesRight()
+         {
+             int* a = stackalloc int[0];
+@@ -22,12 +22,12 @@             b[0] = 1; b[1] = 3; b[2] = 5;
+             int* dst = stackalloc int[3];
+             MergeSorted.Run(a, 0, b, 3, dst);
+-            Assert.Equal(1, dst[0]);
+-            Assert.Equal(3, dst[1]);
+-            Assert.Equal(5, dst[2]);
++            Assert.AreEqual(1, dst[0]);
++            Assert.AreEqual(3, dst[1]);
++            Assert.AreEqual(5, dst[2]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MergeSorted_RightEmpty_CopiesLeft()
+         {
+             int* a = stackalloc int[3];
+@@ -35,12 +35,12 @@             int* b = stackalloc int[0];
+             int* dst = stackalloc int[3];
+             MergeSorted.Run(a, 3, b, 0, dst);
+-            Assert.Equal(2, dst[0]);
+-            Assert.Equal(4, dst[1]);
+-            Assert.Equal(6, dst[2]);
++            Assert.AreEqual(2, dst[0]);
++            Assert.AreEqual(4, dst[1]);
++            Assert.AreEqual(6, dst[2]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MergeSorted_BothHaveData_MergesCorrectly()
+         {
+             int* a = stackalloc int[3];
+@@ -49,15 +49,15 @@             b[0] = 2; b[1] = 4; b[2] = 6;
+             int* dst = stackalloc int[6];
+             MergeSorted.Run(a, 3, b, 3, dst);
+-            Assert.Equal(1, dst[0]);
+-            Assert.Equal(2, dst[1]);
+-            Assert.Equal(3, dst[2]);
+-            Assert.Equal(4, dst[3]);
+-            Assert.Equal(5, dst[4]);
+-            Assert.Equal(6, dst[5]);
++            Assert.AreEqual(1, dst[0]);
++            Assert.AreEqual(2, dst[1]);
++            Assert.AreEqual(3, dst[2]);
++            Assert.AreEqual(4, dst[3]);
++            Assert.AreEqual(5, dst[4]);
++            Assert.AreEqual(6, dst[5]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MergeSorted_Duplicates_MergesCorrectly()
+         {
+             int* a = stackalloc int[2];
+@@ -66,13 +66,13 @@             b[0] = 1; b[1] = 3;
+             int* dst = stackalloc int[4];
+             MergeSorted.Run(a, 2, b, 2, dst);
+-            Assert.Equal(1, dst[0]);
+-            Assert.Equal(1, dst[1]);
+-            Assert.Equal(3, dst[2]);
+-            Assert.Equal(3, dst[3]);
++            Assert.AreEqual(1, dst[0]);
++            Assert.AreEqual(1, dst[1]);
++            Assert.AreEqual(3, dst[2]);
++            Assert.AreEqual(3, dst[3]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MergeSorted_LargerLeft_MergesCorrectly()
+         {
+             int* a = stackalloc int[4];
+@@ -81,15 +81,15 @@             b[0] = 2; b[1] = 4;
+             int* dst = stackalloc int[6];
+             MergeSorted.Run(a, 4, b, 2, dst);
+-            Assert.Equal(1, dst[0]);
+-            Assert.Equal(2, dst[1]);
+-            Assert.Equal(3, dst[2]);
+-            Assert.Equal(4, dst[3]);
+-            Assert.Equal(5, dst[4]);
+-            Assert.Equal(7, dst[5]);
++            Assert.AreEqual(1, dst[0]);
++            Assert.AreEqual(2, dst[1]);
++            Assert.AreEqual(3, dst[2]);
++            Assert.AreEqual(4, dst[3]);
++            Assert.AreEqual(5, dst[4]);
++            Assert.AreEqual(7, dst[5]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MergeSorted_InPlace_Empty_NoOp()
+         {
+             fixed (int* ptr = null)
+@@ -98,53 +98,53 @@             }
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MergeSorted_InPlace_Single_NoOp()
+         {
+             int* ptr = stackalloc int[1];
+             ptr[0] = 5;
+             MergeSorted.RunInPlace(ptr, 1);
+-            Assert.Equal(5, ptr[0]);
++            Assert.AreEqual(5, ptr[0]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MergeSorted_InPlace_Reversed_Sorts()
+         {
+             int* ptr = stackalloc int[5];
+             ptr[0] = 5; ptr[1] = 4; ptr[2] = 3; ptr[3] = 2; ptr[4] = 1;
+             MergeSorted.RunInPlace(ptr, 5);
+-            Assert.Equal(1, ptr[0]);
+-            Assert.Equal(2, ptr[1]);
+-            Assert.Equal(3, ptr[2]);
+-            Assert.Equal(4, ptr[3]);
+-            Assert.Equal(5, ptr[4]);
++            Assert.AreEqual(1, ptr[0]);
++            Assert.AreEqual(2, ptr[1]);
++            Assert.AreEqual(3, ptr[2]);
++            Assert.AreEqual(4, ptr[3]);
++            Assert.AreEqual(5, ptr[4]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MergeSorted_InPlace_AlreadySorted_NoChange()
+         {
+             int* ptr = stackalloc int[5];
+             ptr[0] = 1; ptr[1] = 2; ptr[2] = 3; ptr[3] = 4; ptr[4] = 5;
+             MergeSorted.RunInPlace(ptr, 5);
+-            Assert.Equal(1, ptr[0]);
+-            Assert.Equal(2, ptr[1]);
+-            Assert.Equal(3, ptr[2]);
+-            Assert.Equal(4, ptr[3]);
+-            Assert.Equal(5, ptr[4]);
++            Assert.AreEqual(1, ptr[0]);
++            Assert.AreEqual(2, ptr[1]);
++            Assert.AreEqual(3, ptr[2]);
++            Assert.AreEqual(4, ptr[3]);
++            Assert.AreEqual(5, ptr[4]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MergeSorted_InPlace_Duplicates_Sorts()
+         {
+             int* ptr = stackalloc int[6];
+             ptr[0] = 3; ptr[1] = 1; ptr[2] = 3; ptr[3] = 1; ptr[4] = 3; ptr[5] = 1;
+             MergeSorted.RunInPlace(ptr, 6);
+-            Assert.Equal(1, ptr[0]);
+-            Assert.Equal(1, ptr[1]);
+-            Assert.Equal(1, ptr[2]);
+-            Assert.Equal(3, ptr[3]);
+-            Assert.Equal(3, ptr[4]);
+-            Assert.Equal(3, ptr[5]);
++            Assert.AreEqual(1, ptr[0]);
++            Assert.AreEqual(1, ptr[1]);
++            Assert.AreEqual(1, ptr[2]);
++            Assert.AreEqual(3, ptr[3]);
++            Assert.AreEqual(3, ptr[4]);
++            Assert.AreEqual(3, ptr[5]);
+         }
+     }
+ }*** Update File: test/IAFahim.Sort.Partition.Tests/PartitionTests.cs@@ -1,49 +1,49 @@ namespace IAFahim.Sort.Partition.Tests
+ {
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class PartitionTests
+     {
+-        [Fact]
++        [Test]
+         public void Run()
+         {
+             int* ptr = stackalloc int[] { 5, 3, 1, 4, 1, 9 };
+             int pivotIdx = Partition.Run(ptr, 6, 4);
+-            Assert.Equal(1, ptr[pivotIdx]);
++            Assert.AreEqual(1, ptr[pivotIdx]);
+             for (int i = 0; i < pivotIdx; i++)
+-                Assert.True(ptr[i] < ptr[pivotIdx]);
++                Assert.IsTrue(ptr[i] < ptr[pivotIdx]);
+             for (int i = pivotIdx + 1; i < 6; i++)
+-                Assert.True(ptr[i] >= ptr[pivotIdx]);
++                Assert.IsTrue(ptr[i] >= ptr[pivotIdx]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void InvalidPivotIdx()
+         {
+             int* ptr = stackalloc int[] { 1, 2, 3 };
+             int result = Partition.Run(ptr, 3, 10);
+-            Assert.Equal(-1, result);
++            Assert.AreEqual(-1, result);
+         }
+     }
+ 
+     public sealed unsafe class NthElementTests
+     {
+-        [Fact]
++        [Test]
+         public void TryGetNthElement_Found()
+         {
+             int* ptr = stackalloc int[] { 3, 1, 4, 1, 5, 9 };
+             int val;
+             bool found = Partition.TryGetNthElement(ptr, 6, 2, out val);
+-            Assert.True(found);
+-            Assert.Equal(3, val);
++            Assert.IsTrue(found);
++            Assert.AreEqual(3, val);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void TryGetNthElement_NotFound()
+         {
+             int* ptr = stackalloc int[] { 1, 2, 3 };
+             int val;
+             bool found = Partition.TryGetNthElement(ptr, 3, 10, out val);
+-            Assert.False(found);
++            Assert.IsFalse(found);
+         }
+     }
+ }*** Update File: test/IAFahim.Sort.Specialized.Tests/SortInt64sTests.cs@@ -2,47 +2,47 @@ {
+     using System;
+     using System.Runtime.InteropServices;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class SortInt64sTests
+     {
+-        [Fact]
++        [Test]
+         public void EmptyInput_NoOp()
+         {
+             SortInt64s.Run(null, 0);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SingleElement_Unchanged()
+         {
+             long val = 42L;
+             SortInt64s.Run(&val, 1);
+-            Assert.Equal(42L, val);
++            Assert.AreEqual(42L, val);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void AlreadySorted_Unchanged()
+         {
+             long* ptr = stackalloc long[] { 1, 2, 3, 4 };
+             SortInt64s.Run(ptr, 4);
+-            Assert.Equal(1, ptr[0]);
+-            Assert.Equal(2, ptr[1]);
+-            Assert.Equal(3, ptr[2]);
+-            Assert.Equal(4, ptr[3]);
++            Assert.AreEqual(1, ptr[0]);
++            Assert.AreEqual(2, ptr[1]);
++            Assert.AreEqual(3, ptr[2]);
++            Assert.AreEqual(4, ptr[3]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Reversed_Sorts()
+         {
+             long* ptr = stackalloc long[] { 4, 3, 2, 1 };
+             SortInt64s.Run(ptr, 4);
+-            Assert.Equal(1, ptr[0]);
+-            Assert.Equal(2, ptr[1]);
+-            Assert.Equal(3, ptr[2]);
+-            Assert.Equal(4, ptr[3]);
++            Assert.AreEqual(1, ptr[0]);
++            Assert.AreEqual(2, ptr[1]);
++            Assert.AreEqual(3, ptr[2]);
++            Assert.AreEqual(4, ptr[3]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void LargeN_CorrectOrder()
+         {
+             const int N = 512;
+@@ -53,7 +53,7 @@                     ptr[i] = N - i;
+                 SortInt64s.Run(ptr, N);
+                 for (int i = 0; i < N; i++)
+-                    Assert.Equal(i + 1, ptr[i]);
++                    Assert.AreEqual(i + 1, ptr[i]);
+             }
+             finally
+             {
+*** Update File: test/IAFahim.Sort.Specialized.Tests/SortIntsTests.cs@@ -2,56 +2,56 @@ {
+     using System;
+     using System.Runtime.InteropServices;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class SortIntsTests
+     {
+-        [Fact]
++        [Test]
+         public void EmptyInput_NoOp()
+         {
+             SortInts.Run(null, 0);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SingleElement_Unchanged()
+         {
+             int val = 42;
+             SortInts.Run(&val, 1);
+-            Assert.Equal(42, val);
++            Assert.AreEqual(42, val);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void AlreadySorted_Unchanged()
+         {
+             int* ptr = stackalloc int[] { 1, 2, 3, 4 };
+             SortInts.Run(ptr, 4);
+-            Assert.Equal(1, ptr[0]);
+-            Assert.Equal(2, ptr[1]);
+-            Assert.Equal(3, ptr[2]);
+-            Assert.Equal(4, ptr[3]);
++            Assert.AreEqual(1, ptr[0]);
++            Assert.AreEqual(2, ptr[1]);
++            Assert.AreEqual(3, ptr[2]);
++            Assert.AreEqual(4, ptr[3]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Reversed_Sorts()
+         {
+             int* ptr = stackalloc int[] { 4, 3, 2, 1 };
+             SortInts.Run(ptr, 4);
+-            Assert.Equal(1, ptr[0]);
+-            Assert.Equal(2, ptr[1]);
+-            Assert.Equal(3, ptr[2]);
+-            Assert.Equal(4, ptr[3]);
++            Assert.AreEqual(1, ptr[0]);
++            Assert.AreEqual(2, ptr[1]);
++            Assert.AreEqual(3, ptr[2]);
++            Assert.AreEqual(4, ptr[3]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void AllDuplicates_Unchanged()
+         {
+             int* ptr = stackalloc int[] { 7, 7, 7, 7 };
+             SortInts.Run(ptr, 4);
+             for (int i = 0; i < 4; i++)
+-                Assert.Equal(7, ptr[i]);
++                Assert.AreEqual(7, ptr[i]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void LargeN_CorrectOrder()
+         {
+             const int N = 1024;
+@@ -62,7 +62,7 @@                     ptr[i] = N - i;
+                 SortInts.Run(ptr, N);
+                 for (int i = 0; i < N; i++)
+-                    Assert.Equal(i + 1, ptr[i]);
++                    Assert.AreEqual(i + 1, ptr[i]);
+             }
+             finally
+             {
+@@ -70,16 +70,16 @@             }
+         }
+ 
+-        [Fact]
++        [Test]
+         public void NegativeNumbers_Sorts()
+         {
+             int* ptr = stackalloc int[] { -5, 3, 0, -1, 2 };
+             SortInts.Run(ptr, 5);
+-            Assert.Equal(-5, ptr[0]);
+-            Assert.Equal(-1, ptr[1]);
+-            Assert.Equal(0, ptr[2]);
+-            Assert.Equal(2, ptr[3]);
+-            Assert.Equal(3, ptr[4]);
++            Assert.AreEqual(-5, ptr[0]);
++            Assert.AreEqual(-1, ptr[1]);
++            Assert.AreEqual(0, ptr[2]);
++            Assert.AreEqual(2, ptr[3]);
++            Assert.AreEqual(3, ptr[4]);
+         }
+     }
+ }*** Update File: test/IAFahim.Sort.Specialized.Tests/SortPairsTests.cs@@ -2,26 +2,26 @@ {
+     using System;
+     using System.Runtime.InteropServices;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class SortPairsTests
+     {
+-        [Fact]
++        [Test]
+         public void EmptyInput_NoOp()
+         {
+             SortPairs.Run(null, 0);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SingleElement_Unchanged()
+         {
+             var val = new SortPairs.Pair { Key = 1, Value = 100 };
+             SortPairs.Run(&val, 1);
+-            Assert.Equal(1, val.Key);
+-            Assert.Equal(100, val.Value);
++            Assert.AreEqual(1, val.Key);
++            Assert.AreEqual(100, val.Value);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void AlreadySorted_Unchanged()
+         {
+             var ptr = (SortPairs.Pair*)Marshal.AllocHGlobal(3 * sizeof(SortPairs.Pair));
+@@ -31,9 +31,9 @@                 ptr[1] = new SortPairs.Pair { Key = 2, Value = 20 };
+                 ptr[2] = new SortPairs.Pair { Key = 3, Value = 30 };
+                 SortPairs.Run(ptr, 3);
+-                Assert.Equal(1, ptr[0].Key);
+-                Assert.Equal(2, ptr[1].Key);
+-                Assert.Equal(3, ptr[2].Key);
++                Assert.AreEqual(1, ptr[0].Key);
++                Assert.AreEqual(2, ptr[1].Key);
++                Assert.AreEqual(3, ptr[2].Key);
+             }
+             finally
+             {
+@@ -41,7 +41,7 @@             }
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Reversed_Sorts()
+         {
+             var ptr = (SortPairs.Pair*)Marshal.AllocHGlobal(3 * sizeof(SortPairs.Pair));
+@@ -51,9 +51,9 @@                 ptr[1] = new SortPairs.Pair { Key = 2, Value = 20 };
+                 ptr[2] = new SortPairs.Pair { Key = 1, Value = 10 };
+                 SortPairs.Run(ptr, 3);
+-                Assert.Equal(1, ptr[0].Key);
+-                Assert.Equal(2, ptr[1].Key);
+-                Assert.Equal(3, ptr[2].Key);
++                Assert.AreEqual(1, ptr[0].Key);
++                Assert.AreEqual(2, ptr[1].Key);
++                Assert.AreEqual(3, ptr[2].Key);
+             }
+             finally
+             {
+@@ -61,7 +61,7 @@             }
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SameKeyPreservesValue()
+         {
+             var ptr = (SortPairs.Pair*)Marshal.AllocHGlobal(3 * sizeof(SortPairs.Pair));
+@@ -71,10 +71,10 @@                 ptr[1] = new SortPairs.Pair { Key = 3, Value = 30 };
+                 ptr[2] = new SortPairs.Pair { Key = 5, Value = 51 };
+                 SortPairs.Run(ptr, 3);
+-                Assert.Equal(3, ptr[0].Key);
+-                Assert.Equal(30, ptr[0].Value);
+-                Assert.Equal(5, ptr[1].Key);
+-                Assert.Equal(5, ptr[2].Key);
++                Assert.AreEqual(3, ptr[0].Key);
++                Assert.AreEqual(30, ptr[0].Value);
++                Assert.AreEqual(5, ptr[1].Key);
++                Assert.AreEqual(5, ptr[2].Key);
+             }
+             finally
+             {
+*** Update File: test/IAFahim.String.Tests/StringTests.cs@@ -2,66 +2,66 @@ {
+     using IAFahim.String;
+     using System.Runtime.InteropServices;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class StringTests
+     {
+-        [Fact]
++        [Test]
+         public void ManacherOdd_Basic()
+         {
+             byte* s = stackalloc byte[5] { (byte)'a', (byte)'b', (byte)'a', (byte)'b', (byte)'a' };
+             int* d = stackalloc int[5];
+             ManacherOdd.Run(s, 5, d);
+-            Assert.True(d[2] > 0);
++            Assert.IsTrue(d[2] > 0);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void KmpPrefix_Basic()
+         {
+             byte* pat = stackalloc byte[3] { (byte)'a', (byte)'b', (byte)'a' };
+             int* pi = stackalloc int[3];
+             KmpPrefix.Run(pat, 3, pi);
+-            Assert.Equal(0, pi[0]);
+-            Assert.True(pi[1] >= 0);
++            Assert.AreEqual(0, pi[0]);
++            Assert.IsTrue(pi[1] >= 0);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void ZAlgorithm_Basic()
+         {
+             byte* s = stackalloc byte[6] { (byte)'a', (byte)'b', (byte)'a', (byte)'a', (byte)'b', (byte)'c' };
+             int* z = stackalloc int[6];
+             ZAlgorithm.Run(s, 6, z);
+-            Assert.Equal(6, z[0]);
+-            Assert.True(z[1] >= 0);
++            Assert.AreEqual(6, z[0]);
++            Assert.IsTrue(z[1] >= 0);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void EditDistance_Basic()
+         {
+             byte* a = stackalloc byte[3] { (byte)'a', (byte)'b', (byte)'c' };
+             byte* b = stackalloc byte[3] { (byte)'b', (byte)'d', (byte)'c' };
+             int dist = EditDistance.Run(a, 3, b, 3);
+-            Assert.Equal(2, dist);
++            Assert.AreEqual(2, dist);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Lcs_Basic()
+         {
+             byte* a = stackalloc byte[4] { (byte)'a', (byte)'b', (byte)'c', (byte)'d' };
+             byte* b = stackalloc byte[4] { (byte)'b', (byte)'c', (byte)'e', (byte)'f' };
+             int len = Lcs.Run(a, 4, b, 4);
+-            Assert.Equal(2, len);
++            Assert.AreEqual(2, len);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MinCyclicShift_Sorted()
+         {
+             byte* s = stackalloc byte[3] { (byte)'a', (byte)'a', (byte)'b' };
+             int idx = MinCyclicShift.Run(s, 3);
+-            Assert.Equal(0, idx);
++            Assert.AreEqual(0, idx);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void AhoBuild_Basic()
+         {
+             const int alphabet = 26;
+@@ -87,12 +87,12 @@                     cur = nextNode;
+                 }
+                 AhoBuild.Run(next, link, nodeCount, alphabet);
+-                Assert.True(nodeCount > 1);
++                Assert.IsTrue(nodeCount > 1);
+             }
+             finally { Marshal.FreeHGlobal((nint)next); Marshal.FreeHGlobal((nint)link); }
+         }
+ 
+-        [Fact]
++        [Test]
+         public void PalindromicTree_Basic()
+         {
+             const int maxLen = 100;
+@@ -112,7 +112,7 @@                 byte* s = stackalloc byte[5] { (byte)'a', (byte)'b', (byte)'a', (byte)'b', (byte)'a' };
+                 for (int i = 0; i < 5; i++)
+                     PalindromicTreeAdd.Run(len, link, next, &last, s, i);
+-                Assert.True(len[0] > 1);
++                Assert.IsTrue(len[0] > 1);
+             }
+             finally { Marshal.FreeHGlobal((nint)next); Marshal.FreeHGlobal((nint)link); Marshal.FreeHGlobal((nint)len); }
+         }
+*** Update File: test/IAFahim.Unique.Tests/UniqueInt64sTests.cs@@ -1,51 +1,51 @@ namespace IAFahim.Unique.Tests
+ {
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class UniqueInt64sTests
+     {
+-        [Fact]
++        [Test]
+         public void EmptyInput_ReturnsZero()
+         {
+             int count = IAFahim.Unique.UniqueInt64s.Run(null, 0);
+-            Assert.Equal(0, count);
++            Assert.AreEqual(0, count);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SingleElement_ReturnsOne()
+         {
+             long* ptr = stackalloc long[] { 42L };
+             int count = IAFahim.Unique.UniqueInt64s.Run(ptr, 1);
+-            Assert.Equal(1, count);
+-            Assert.Equal(42L, ptr[0]);
++            Assert.AreEqual(1, count);
++            Assert.AreEqual(42L, ptr[0]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void AllUnique_ReturnsLen()
+         {
+             long* ptr = stackalloc long[] { 1, 2, 3 };
+             int count = IAFahim.Unique.UniqueInt64s.Run(ptr, 3);
+-            Assert.Equal(3, count);
++            Assert.AreEqual(3, count);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void AllDuplicates_ReturnsOne()
+         {
+             long* ptr = stackalloc long[] { 7, 7, 7 };
+             int count = IAFahim.Unique.UniqueInt64s.Run(ptr, 3);
+-            Assert.Equal(1, count);
+-            Assert.Equal(7, ptr[0]);
++            Assert.AreEqual(1, count);
++            Assert.AreEqual(7, ptr[0]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SomeDuplicates_RemovesDuplicates()
+         {
+             long* ptr = stackalloc long[] { 1, 1, 2, 3, 3 };
+             int count = IAFahim.Unique.UniqueInt64s.Run(ptr, 5);
+-            Assert.Equal(3, count);
+-            Assert.Equal(1, ptr[0]);
+-            Assert.Equal(2, ptr[1]);
+-            Assert.Equal(3, ptr[2]);
++            Assert.AreEqual(3, count);
++            Assert.AreEqual(1, ptr[0]);
++            Assert.AreEqual(2, ptr[1]);
++            Assert.AreEqual(3, ptr[2]);
+         }
+     }
+ }*** Update File: test/IAFahim.Unique.Tests/UniqueIntsTests.cs@@ -2,55 +2,55 @@ {
+     using System;
+     using System.Runtime.InteropServices;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class UniqueIntsTests
+     {
+-        [Fact]
++        [Test]
+         public void EmptyInput_ReturnsZero()
+         {
+             int count = IAFahim.Unique.UniqueInts.Run(null, 0);
+-            Assert.Equal(0, count);
++            Assert.AreEqual(0, count);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SingleElement_ReturnsOne()
+         {
+             int* ptr = stackalloc int[] { 42 };
+             int count = IAFahim.Unique.UniqueInts.Run(ptr, 1);
+-            Assert.Equal(1, count);
+-            Assert.Equal(42, ptr[0]);
++            Assert.AreEqual(1, count);
++            Assert.AreEqual(42, ptr[0]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void AllUnique_ReturnsLen()
+         {
+             int* ptr = stackalloc int[] { 1, 2, 3, 4, 5 };
+             int count = IAFahim.Unique.UniqueInts.Run(ptr, 5);
+-            Assert.Equal(5, count);
++            Assert.AreEqual(5, count);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void AllDuplicates_ReturnsOne()
+         {
+             int* ptr = stackalloc int[] { 7, 7, 7, 7 };
+             int count = IAFahim.Unique.UniqueInts.Run(ptr, 4);
+-            Assert.Equal(1, count);
+-            Assert.Equal(7, ptr[0]);
++            Assert.AreEqual(1, count);
++            Assert.AreEqual(7, ptr[0]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SomeDuplicates_RemovesDuplicates()
+         {
+             int* ptr = stackalloc int[] { 1, 1, 2, 2, 3, 3 };
+             int count = IAFahim.Unique.UniqueInts.Run(ptr, 6);
+-            Assert.Equal(3, count);
+-            Assert.Equal(1, ptr[0]);
+-            Assert.Equal(2, ptr[1]);
+-            Assert.Equal(3, ptr[2]);
++            Assert.AreEqual(3, count);
++            Assert.AreEqual(1, ptr[0]);
++            Assert.AreEqual(2, ptr[1]);
++            Assert.AreEqual(3, ptr[2]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void LargeN_CorrectCount()
+         {
+             const int N = 1024;
+@@ -60,7 +60,7 @@                 for (int i = 0; i < N; i++)
+                     ptr[i] = i / 2;
+                 int count = IAFahim.Unique.UniqueInts.Run(ptr, N);
+-                Assert.Equal(N / 2, count);
++                Assert.AreEqual(N / 2, count);
+             }
+             finally
+             {
+*** End Patch

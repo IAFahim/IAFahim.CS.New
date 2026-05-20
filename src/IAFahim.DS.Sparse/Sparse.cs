@@ -128,12 +128,12 @@ namespace IAFahim.DS.Sparse
 
     public static unsafe class SqrtUpdate
     {
-        public static void Run(int* arr, int* blocks, int blockSize, int idx, int val)
+        public static void Run(int* arr, int* blocks, int blockSize, int idx, int val, int n)
         {
             arr[idx] = val;
             int block = idx / blockSize;
             int start = block * blockSize;
-            int end = Math.Min(start + blockSize - 1, arr[blockSize * 100]);
+            int end = Math.Min(start + blockSize - 1, n - 1);
             int minVal = arr[start];
             for (int i = start + 1; i <= end; i++)
                 minVal = Math.Min(minVal, arr[i]);
@@ -143,12 +143,12 @@ namespace IAFahim.DS.Sparse
 
     public static unsafe class SqrtQuery
     {
-        public static int RangeMin(int* blocks, int blockSize, int l, int r, int n)
+        public static int RangeMin(int* arr, int* blocks, int blockSize, int l, int r, int n)
         {
             int minVal = int.MaxValue;
             while (l <= r && l % blockSize != 0)
             {
-                minVal = Math.Min(minVal, l < n ? l : 0);
+                minVal = Math.Min(minVal, arr[l]);
                 l++;
             }
             while (l + blockSize <= r)
@@ -158,7 +158,7 @@ namespace IAFahim.DS.Sparse
             }
             while (l <= r)
             {
-                minVal = Math.Min(minVal, l < n ? l : 0);
+                minVal = Math.Min(minVal, arr[l]);
                 l++;
             }
             return minVal;

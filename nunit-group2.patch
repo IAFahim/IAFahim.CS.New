@@ -1,0 +1,1279 @@
+*** Begin Patch*** Update File: test/IAFahim.Collections.NoDeps.Tests/NoDepsTests.cs@@ -3,39 +3,39 @@     using System;
+     using System.Runtime.CompilerServices;
+     using System.Runtime.InteropServices;
+-    using Xunit;
++    using NUnit.Framework;
+     using Unity.Collections;
+     using Unity.Collections.LowLevel.Unsafe;
+ 
+     public sealed unsafe class NativeArrayTests
+     {
+-        [Fact]
++        [Test]
+         public void Ctor_ZeroLength_IsCreatedFalse()
+         {
+             var arr = new NativeArray<int>(0, Allocator.Persistent);
+-            Assert.False(arr.IsCreated);
+-            arr.Dispose();
+-        }
+-
+-        [Fact]
++            Assert.IsFalse(arr.IsCreated);
++            arr.Dispose();
++        }
++
++        [Test]
+         public void Ctor_NormalLength_IsCreatedTrue()
+         {
+             var arr = new NativeArray<int>(4, Allocator.Persistent);
+-            Assert.True(arr.IsCreated);
+-            Assert.Equal(4, arr.Length);
+-            arr.Dispose();
+-        }
+-
+-        [Fact]
++            Assert.IsTrue(arr.IsCreated);
++            Assert.AreEqual(4, arr.Length);
++            arr.Dispose();
++        }
++
++        [Test]
+         public void Ctor_ClearMemory_FillsWithZero()
+         {
+             var arr = new NativeArray<int>(4, Allocator.Persistent, NativeArrayOptions.ClearMemory);
+             for (int i = 0; i < arr.Length; i++)
+-                Assert.Equal(0, arr[i]);
+-            arr.Dispose();
+-        }
+-
+-        [Fact]
++                Assert.AreEqual(0, arr[i]);
++            arr.Dispose();
++        }
++
++        [Test]
+         public void Ctor_UninitializedMemory_ContainsGarbage()
+         {
+             var arr = new NativeArray<int>(4, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+@@ -46,7 +46,7 @@             GC.KeepAlive(sum);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Indexer_ReadWrite_Works()
+         {
+             var arr = new NativeArray<int>(4, Allocator.Persistent);
+@@ -54,14 +54,14 @@             arr[1] = 20;
+             arr[2] = 30;
+             arr[3] = 40;
+-            Assert.Equal(10, arr[0]);
+-            Assert.Equal(20, arr[1]);
+-            Assert.Equal(30, arr[2]);
+-            Assert.Equal(40, arr[3]);
+-            arr.Dispose();
+-        }
+-
+-        [Fact]
++            Assert.AreEqual(10, arr[0]);
++            Assert.AreEqual(20, arr[1]);
++            Assert.AreEqual(30, arr[2]);
++            Assert.AreEqual(40, arr[3]);
++            arr.Dispose();
++        }
++
++        [Test]
+         public void Dispose_Idempotent()
+         {
+             var arr = new NativeArray<int>(8, Allocator.Persistent);
+@@ -69,7 +69,7 @@             arr.Dispose();
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Dispose_CanAllocateAfter()
+         {
+             {
+@@ -78,9 +78,9 @@             }
+             {
+                 var arr = new NativeArray<double>(4, Allocator.Persistent);
+-                Assert.True(arr.IsCreated);
++                Assert.IsTrue(arr.IsCreated);
+                 arr[0] = 1.5;
+-                Assert.Equal(1.5, arr[0]);
++                Assert.AreEqual(1.5, arr[0]);
+                 arr.Dispose();
+             }
+         }
+@@ -88,62 +88,62 @@ 
+     public sealed unsafe class NativeListTests
+     {
+-        [Fact]
++        [Test]
+         public void Default_Ctor_IsNotCreated()
+         {
+             var list = default(NativeList<int>);
+-            Assert.False(list.IsCreated);
+-        }
+-
+-        [Fact]
++            Assert.IsFalse(list.IsCreated);
++        }
++
++        [Test]
+         public void Ctor_InitialCapacity_Works()
+         {
+             var list = new NativeList<int>(4, Allocator.Persistent);
+-            Assert.True(list.IsCreated);
+-            Assert.Equal(4, list.Capacity);
+-            Assert.Equal(0, list.Length);
+-            list.Dispose();
+-        }
+-
+-        [Fact]
++            Assert.IsTrue(list.IsCreated);
++            Assert.AreEqual(4, list.Capacity);
++            Assert.AreEqual(0, list.Length);
++            list.Dispose();
++        }
++
++        [Test]
+         public void Add_AppendsItem()
+         {
+             var list = new NativeList<int>(4, Allocator.Persistent);
+             list.Add(1);
+             list.Add(2);
+             list.Add(3);
+-            Assert.Equal(3, list.Length);
+-            Assert.Equal(1, list[0]);
+-            Assert.Equal(2, list[1]);
+-            Assert.Equal(3, list[2]);
+-            list.Dispose();
+-        }
+-
+-        [Fact]
++            Assert.AreEqual(3, list.Length);
++            Assert.AreEqual(1, list[0]);
++            Assert.AreEqual(2, list[1]);
++            Assert.AreEqual(3, list[2]);
++            list.Dispose();
++        }
++
++        [Test]
+         public void Add_ResizesWhenNeeded()
+         {
+             var list = new NativeList<int>(1, Allocator.Persistent);
+             for (int i = 0; i < 16; i++)
+                 list.Add(i);
+-            Assert.Equal(16, list.Length);
+-            Assert.True(list.Capacity >= 16);
++            Assert.AreEqual(16, list.Length);
++            Assert.IsTrue(list.Capacity >= 16);
+             for (int i = 0; i < 16; i++)
+-                Assert.Equal(i, list[i]);
+-            list.Dispose();
+-        }
+-
+-        [Fact]
++                Assert.AreEqual(i, list[i]);
++            list.Dispose();
++        }
++
++        [Test]
+         public void Clear_ResetsLength()
+         {
+             var list = new NativeList<int>(4, Allocator.Persistent);
+             list.Add(1);
+             list.Add(2);
+             list.Clear();
+-            Assert.Equal(0, list.Length);
+-            list.Dispose();
+-        }
+-
+-        [Fact]
++            Assert.AreEqual(0, list.Length);
++            list.Dispose();
++        }
++
++        [Test]
+         public void RemoveAt_Last_RemovesWithoutShift()
+         {
+             var list = new NativeList<int>(4, Allocator.Persistent);
+@@ -151,13 +151,13 @@             list.Add(2);
+             list.Add(3);
+             list.RemoveAt(2);
+-            Assert.Equal(2, list.Length);
+-            Assert.Equal(1, list[0]);
+-            Assert.Equal(2, list[1]);
+-            list.Dispose();
+-        }
+-
+-        [Fact]
++            Assert.AreEqual(2, list.Length);
++            Assert.AreEqual(1, list[0]);
++            Assert.AreEqual(2, list[1]);
++            list.Dispose();
++        }
++
++        [Test]
+         public void RemoveAt_Middle_ShiftsElements()
+         {
+             var list = new NativeList<int>(4, Allocator.Persistent);
+@@ -165,66 +165,66 @@             list.Add(2);
+             list.Add(3);
+             list.RemoveAt(1);
+-            Assert.Equal(2, list.Length);
+-            Assert.Equal(1, list[0]);
+-            Assert.Equal(3, list[1]);
+-            list.Dispose();
+-        }
+-
+-        [Fact]
++            Assert.AreEqual(2, list.Length);
++            Assert.AreEqual(1, list[0]);
++            Assert.AreEqual(3, list[1]);
++            list.Dispose();
++        }
++
++        [Test]
+         public void RemoveRange_RemovesMultiple()
+         {
+             var list = new NativeList<int>(4, Allocator.Persistent);
+             for (int i = 0; i < 8; i++)
+                 list.Add(i);
+             list.RemoveRange(2, 3);
+-            Assert.Equal(5, list.Length);
+-            Assert.Equal(0, list[0]);
+-            Assert.Equal(1, list[1]);
+-            Assert.Equal(5, list[2]);
+-            Assert.Equal(6, list[3]);
+-            Assert.Equal(7, list[4]);
+-            list.Dispose();
+-        }
+-
+-        [Fact]
++            Assert.AreEqual(5, list.Length);
++            Assert.AreEqual(0, list[0]);
++            Assert.AreEqual(1, list[1]);
++            Assert.AreEqual(5, list[2]);
++            Assert.AreEqual(6, list[3]);
++            Assert.AreEqual(7, list[4]);
++            list.Dispose();
++        }
++
++        [Test]
+         public void Resize_ClearMemory_ZeroesNew()
+         {
+             var list = new NativeList<int>(4, Allocator.Persistent);
+             list.Add(1);
+             list.Add(2);
+             list.Resize(4, NativeArrayOptions.ClearMemory);
+-            Assert.Equal(4, list.Length);
+-            Assert.Equal(1, list[0]);
+-            Assert.Equal(2, list[1]);
+-            Assert.Equal(0, list[2]);
+-            Assert.Equal(0, list[3]);
+-            list.Dispose();
+-        }
+-
+-        [Fact]
++            Assert.AreEqual(4, list.Length);
++            Assert.AreEqual(1, list[0]);
++            Assert.AreEqual(2, list[1]);
++            Assert.AreEqual(0, list[2]);
++            Assert.AreEqual(0, list[3]);
++            list.Dispose();
++        }
++
++        [Test]
+         public void ResizeUninitialized_SkipsZeroing()
+         {
+             var list = new NativeList<int>(4, Allocator.Persistent);
+             list.Add(1);
+             list.Add(2);
+             list.ResizeUninitialized(4);
+-            Assert.Equal(4, list.Length);
++            Assert.AreEqual(4, list.Length);
+             list.Dispose();
+             GC.KeepAlive(list);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void GetUnsafePtr_ReturnsPointer()
+         {
+             var list = new NativeList<int>(4, Allocator.Persistent);
+             list.Add(42);
+             var ptr = list.GetUnsafePtr();
+-            Assert.Equal(42, *ptr);
+-            list.Dispose();
+-        }
+-
+-        [Fact]
++            Assert.AreEqual(42, *ptr);
++            list.Dispose();
++        }
++
++        [Test]
+         public void Dispose_Idempotent()
+         {
+             var list = new NativeList<int>(4, Allocator.Persistent);
+@@ -232,7 +232,7 @@             list.Dispose();
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Capacity_Set_Reallocates()
+         {
+             var list = new NativeList<int>(4, Allocator.Persistent);
+@@ -240,28 +240,28 @@             list.Add(2);
+             list.Add(3);
+             list.Capacity = 32;
+-            Assert.Equal(32, list.Capacity);
+-            Assert.Equal(3, list.Length);
+-            Assert.Equal(1, list[0]);
+-            Assert.Equal(2, list[1]);
+-            Assert.Equal(3, list[2]);
+-            list.Dispose();
+-        }
+-
+-        [Fact]
++            Assert.AreEqual(32, list.Capacity);
++            Assert.AreEqual(3, list.Length);
++            Assert.AreEqual(1, list[0]);
++            Assert.AreEqual(2, list[1]);
++            Assert.AreEqual(3, list[2]);
++            list.Dispose();
++        }
++
++        [Test]
+         public void Length_Set_Expands()
+         {
+             var list = new NativeList<int>(4, Allocator.Persistent);
+             list.Add(1);
+             list.Add(2);
+             list.Length = 8;
+-            Assert.Equal(8, list.Length);
+-            Assert.Equal(1, list[0]);
+-            Assert.Equal(2, list[1]);
+-            list.Dispose();
+-        }
+-
+-        [Fact]
++            Assert.AreEqual(8, list.Length);
++            Assert.AreEqual(1, list[0]);
++            Assert.AreEqual(2, list[1]);
++            list.Dispose();
++        }
++
++        [Test]
+         public void Length_Set_Shrinks()
+         {
+             var list = new NativeList<int>(4, Allocator.Persistent);
+@@ -269,44 +269,44 @@             list.Add(2);
+             list.Add(3);
+             list.Length = 1;
+-            Assert.Equal(1, list.Length);
+-            Assert.Equal(1, list[0]);
++            Assert.AreEqual(1, list.Length);
++            Assert.AreEqual(1, list[0]);
+             list.Dispose();
+         }
+     }
+ 
+     public sealed unsafe class UnsafeListTests
+     {
+-        [Fact]
++        [Test]
+         public void Default_IsNotCreated()
+         {
+             var list = default(UnsafeList<int>);
+-            Assert.False(list.IsCreated);
+-        }
+-
+-        [Fact]
++            Assert.IsFalse(list.IsCreated);
++        }
++
++        [Test]
+         public void Ctor_Works()
+         {
+             var list = new UnsafeList<int>(4, Allocator.Persistent);
+-            Assert.True(list.IsCreated);
+-            Assert.Equal(4, list.Capacity);
+-            Assert.Equal(0, list.Length);
+-            list.Dispose();
+-        }
+-
+-        [Fact]
++            Assert.IsTrue(list.IsCreated);
++            Assert.AreEqual(4, list.Capacity);
++            Assert.AreEqual(0, list.Length);
++            list.Dispose();
++        }
++
++        [Test]
+         public void Add_AppendsItem()
+         {
+             var list = new UnsafeList<int>(4, Allocator.Persistent);
+             list.Add(1);
+             list.Add(2);
+-            Assert.Equal(2, list.Length);
+-            Assert.Equal(1, list[0]);
+-            Assert.Equal(2, list[1]);
+-            list.Dispose();
+-        }
+-
+-        [Fact]
++            Assert.AreEqual(2, list.Length);
++            Assert.AreEqual(1, list[0]);
++            Assert.AreEqual(2, list[1]);
++            list.Dispose();
++        }
++
++        [Test]
+         public void AddRange_CopiesItems()
+         {
+             var list = new UnsafeList<int>(4, Allocator.Persistent);
+@@ -316,27 +316,27 @@ 
+             list.AddRange(src, 4);
+ 
+-            Assert.Equal(4, list.Length);
+-            Assert.Equal(0, list[0]);
+-            Assert.Equal(10, list[1]);
+-            Assert.Equal(20, list[2]);
+-            Assert.Equal(30, list[3]);
++            Assert.AreEqual(4, list.Length);
++            Assert.AreEqual(0, list[0]);
++            Assert.AreEqual(10, list[1]);
++            Assert.AreEqual(20, list[2]);
++            Assert.AreEqual(30, list[3]);
+             Marshal.FreeHGlobal((nint)src);
+             list.Dispose();
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Clear_ResetsLength()
+         {
+             var list = new UnsafeList<int>(4, Allocator.Persistent);
+             list.Add(1);
+             list.Add(2);
+             list.Clear();
+-            Assert.Equal(0, list.Length);
+-            list.Dispose();
+-        }
+-
+-        [Fact]
++            Assert.AreEqual(0, list.Length);
++            list.Dispose();
++        }
++
++        [Test]
+         public void Dispose_Idempotent()
+         {
+             var list = new UnsafeList<int>(4, Allocator.Persistent);
+@@ -344,36 +344,36 @@             list.Dispose();
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Ptr_ReturnsValidPointer()
+         {
+             var list = new UnsafeList<int>(4, Allocator.Persistent);
+             list.Add(99);
+-            Assert.True(list.Ptr != null);
+-            Assert.Equal(99, *list.Ptr);
++            Assert.IsTrue(list.Ptr != null);
++            Assert.AreEqual(99, *list.Ptr);
+             list.Dispose();
+         }
+     }
+ 
+     public sealed unsafe class AllocatorManagerTests
+     {
+-        [Fact]
++        [Test]
+         public void AllocatorHandle_ImplicitConversion()
+         {
+             var handle = (AllocatorHandle)Allocator.Persistent;
+-            Assert.Equal((int)Allocator.Persistent, handle.Value);
+-        }
+-
+-        [Fact]
++            Assert.AreEqual((int)Allocator.Persistent, handle.Value);
++        }
++
++        [Test]
+         public void AllocateWithHandle_Allocates()
+         {
+             var handle = (AllocatorHandle)Allocator.Persistent;
+             var ptr = AllocatorManager.Allocate(handle, 64, 8);
+-            Assert.True(ptr != null);
++            Assert.IsTrue(ptr != null);
+             AllocatorManager.Free(handle, ptr);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void AllocateResizeHint_NoOp()
+         {
+             var handle = (AllocatorHandle)Allocator.Persistent;
+@@ -385,45 +385,45 @@ 
+     public sealed unsafe class UnsafeUtilityTests
+     {
+-        [Fact]
++        [Test]
+         public void AddressOf_ReturnsPointer()
+         {
+             int value = 42;
+             var ptr = UnsafeUtility.AddressOf(ref value);
+-            Assert.Equal((nint)Unsafe.AsPointer(ref value), (nint)ptr);
+-        }
+-
+-        [Fact]
++            Assert.AreEqual((nint)Unsafe.AsPointer(ref value), (nint)ptr);
++        }
++
++        [Test]
+         public void As_ReinterpretsRef()
+         {
+             int intVal = 0x12345678;
+             ref byte bRef = ref UnsafeUtility.As<int, byte>(ref intVal);
+             byte* bPtr = (byte*)UnsafeUtility.AddressOf(ref bRef);
+-            Assert.Equal(0x78, *bPtr);
+-        }
+-
+-        [Fact]
++            Assert.AreEqual(0x78, *bPtr);
++        }
++
++        [Test]
+         public void MemClear_ZerosMemory()
+         {
+             int* ptr = (int*)Marshal.AllocHGlobal(4 * sizeof(int));
+             ptr[0] = 1; ptr[1] = 2; ptr[2] = 3; ptr[3] = 4;
+             UnsafeUtility.MemClear(ptr, 4 * sizeof(int));
+             for (int i = 0; i < 4; i++)
+-                Assert.Equal(0, ptr[i]);
++                Assert.AreEqual(0, ptr[i]);
+             Marshal.FreeHGlobal((nint)ptr);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MemSet_FillsMemory()
+         {
+             byte* ptr = (byte*)Marshal.AllocHGlobal(16);
+             UnsafeUtility.MemSet(ptr, 0xAB, 16);
+             for (int i = 0; i < 16; i++)
+-                Assert.Equal(0xAB, ptr[i]);
++                Assert.AreEqual(0xAB, ptr[i]);
+             Marshal.FreeHGlobal((nint)ptr);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MemCpy_CopiesMemory()
+         {
+             int* src = (int*)Marshal.AllocHGlobal(4 * sizeof(int));
+@@ -432,7 +432,7 @@                 src[i] = i * 7;
+             UnsafeUtility.MemCpy(dst, src, 4 * sizeof(int));
+             for (int i = 0; i < 4; i++)
+-                Assert.Equal(src[i], dst[i]);
++                Assert.AreEqual(src[i], dst[i]);
+             Marshal.FreeHGlobal((nint)src);
+             Marshal.FreeHGlobal((nint)dst);
+         }
+*** Update File: test/IAFahim.Compress.Coordinate.Tests/CoordinateCompressTests.cs@@ -2,43 +2,43 @@ {
+     using System;
+     using System.Runtime.InteropServices;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class CoordinateCompressTests
+     {
+-        [Fact]
++        [Test]
+         public void Normal()
+         {
+             int* src = stackalloc int[] { 5, 2, 8, 2, 5 };
+             int* tmp = stackalloc int[5];
+             int* dst = stackalloc int[5];
+             int unique = CoordinateCompress.Run(src, tmp, dst, 5);
+-            Assert.Equal(3, unique);
++            Assert.AreEqual(3, unique);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void AllSame()
+         {
+             int* src = stackalloc int[] { 7, 7, 7 };
+             int* tmp = stackalloc int[3];
+             int* dst = stackalloc int[3];
+             int unique = CoordinateCompress.Run(src, tmp, dst, 3);
+-            Assert.Equal(1, unique);
++            Assert.AreEqual(1, unique);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Empty()
+         {
+             int* tmp = stackalloc int[0];
+             int* dst = stackalloc int[0];
+             int unique = CoordinateCompress.Run(null, tmp, dst, 0);
+-            Assert.Equal(0, unique);
++            Assert.AreEqual(0, unique);
+         }
+     }
+ 
+     public sealed unsafe class RankCompressTests
+     {
+-        [Fact]
++        [Test]
+         public void Normal()
+         {
+             int* src = stackalloc int[] { 5, 2, 8, 2, 5 };
+@@ -47,7 +47,7 @@             try
+             {
+                 int unique = RankCompress.Run(src, dst, tmp, 5);
+-                Assert.Equal(3, unique);
++                Assert.AreEqual(3, unique);
+             }
+             finally
+             {
+@@ -55,32 +55,32 @@             }
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Empty()
+         {
+             int* tmp = stackalloc int[0];
+             int* dst = stackalloc int[0];
+             int unique = RankCompress.Run(null, dst, tmp, 0);
+-            Assert.Equal(0, unique);
++            Assert.AreEqual(0, unique);
+         }
+     }
+ 
+     public sealed unsafe class DiscretizeTests
+     {
+-        [Fact]
++        [Test]
+         public void Normal()
+         {
+             int* src = stackalloc int[] { 5, 2, 8, 2, 5 };
+             int unique = Discretize.Run(src, 5);
+-            Assert.Equal(3, unique);
++            Assert.AreEqual(3, unique);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void AllSame()
+         {
+             int* src = stackalloc int[] { 7, 7, 7 };
+             int unique = Discretize.Run(src, 3);
+-            Assert.Equal(1, unique);
++            Assert.AreEqual(1, unique);
+         }
+     }
+ }*** Update File: test/IAFahim.Compress.Tests/CompressValuesTests.cs@@ -1,98 +1,98 @@ namespace IAFahim.Compress.Tests
+ {
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class CompressValuesTests
+     {
+-        [Fact]
++        [Test]
+         public void EmptyInput_NoOp()
+         {
+             long* dst = stackalloc long[0];
+             IAFahim.Compress.CompressValues.Run(null, dst, 0);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SingleValue_Compresses()
+         {
+             int* src = stackalloc int[] { 42 };
+             long* dst = stackalloc long[1];
+             IAFahim.Compress.CompressValues.Run(src, dst, 1);
+-            Assert.Equal(42, dst[0]);
++            Assert.AreEqual(42, dst[0]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MultipleValues_CompressesAll()
+         {
+             int* src = stackalloc int[] { -1, 0, 1, 2 };
+             long* dst = stackalloc long[4];
+             IAFahim.Compress.CompressValues.Run(src, dst, 4);
+-            Assert.Equal(-1, dst[0]);
+-            Assert.Equal(0, dst[1]);
+-            Assert.Equal(1, dst[2]);
+-            Assert.Equal(2, dst[3]);
++            Assert.AreEqual(-1, dst[0]);
++            Assert.AreEqual(0, dst[1]);
++            Assert.AreEqual(1, dst[2]);
++            Assert.AreEqual(2, dst[3]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void LargeValues_PreservesValues()
+         {
+             int* src = stackalloc int[] { int.MaxValue, int.MinValue };
+             long* dst = stackalloc long[2];
+             IAFahim.Compress.CompressValues.Run(src, dst, 2);
+-            Assert.Equal(int.MaxValue, dst[0]);
+-            Assert.Equal(int.MinValue, dst[1]);
++            Assert.AreEqual(int.MaxValue, dst[0]);
++            Assert.AreEqual(int.MinValue, dst[1]);
+         }
+     }
+ 
+     public sealed unsafe class CompressValuesUniqueTests
+     {
+-        [Fact]
++        [Test]
+         public void EmptyInput_ReturnsZero()
+         {
+             long* dst = stackalloc long[0];
+             int count = IAFahim.Compress.CompressValues.RunUnique(null, dst, 0);
+-            Assert.Equal(0, count);
++            Assert.AreEqual(0, count);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SingleValue_ReturnsOne()
+         {
+             int* src = stackalloc int[] { 42 };
+             long* dst = stackalloc long[1];
+             int count = IAFahim.Compress.CompressValues.RunUnique(src, dst, 1);
+-            Assert.Equal(1, count);
+-            Assert.Equal(42, dst[0]);
++            Assert.AreEqual(1, count);
++            Assert.AreEqual(42, dst[0]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void AllUnique_ReturnsLen()
+         {
+             int* src = stackalloc int[] { 3, 1, 4, 1, 5, 9 };
+             long* dst = stackalloc long[6];
+             int count = IAFahim.Compress.CompressValues.RunUnique(src, dst, 6);
+-            Assert.Equal(6, count);
++            Assert.AreEqual(6, count);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void AllDuplicates_ReturnsOne()
+         {
+             int* src = stackalloc int[] { 7, 7, 7 };
+             long* dst = stackalloc long[3];
+             int count = IAFahim.Compress.CompressValues.RunUnique(src, dst, 3);
+-            Assert.Equal(1, count);
+-            Assert.Equal(7, dst[0]);
++            Assert.AreEqual(1, count);
++            Assert.AreEqual(7, dst[0]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SomeDuplicates_Deduplicates()
+         {
+             int* src = stackalloc int[] { 1, 1, 2, 3, 3, 3, 4 };
+             long* dst = stackalloc long[7];
+             int count = IAFahim.Compress.CompressValues.RunUnique(src, dst, 7);
+-            Assert.Equal(4, count);
+-            Assert.Equal(1, dst[0]);
+-            Assert.Equal(2, dst[1]);
+-            Assert.Equal(3, dst[2]);
+-            Assert.Equal(4, dst[3]);
++            Assert.AreEqual(4, count);
++            Assert.AreEqual(1, dst[0]);
++            Assert.AreEqual(2, dst[1]);
++            Assert.AreEqual(3, dst[2]);
++            Assert.AreEqual(4, dst[3]);
+         }
+     }
+ }*** Update File: test/IAFahim.Compress.Tests/RestoreCompressedTests.cs@@ -1,36 +1,36 @@ namespace IAFahim.Compress.Tests
+ {
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class RestoreCompressedTests
+     {
+-        [Fact]
++        [Test]
+         public void EmptyInput_NoOp()
+         {
+             int* dst = stackalloc int[0];
+             IAFahim.Compress.RestoreCompressed.Run(null, dst, 0);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SingleValue_Restores()
+         {
+             long* src = stackalloc long[] { 42 };
+             int* dst = stackalloc int[1];
+             IAFahim.Compress.RestoreCompressed.Run(src, dst, 1);
+-            Assert.Equal(42, dst[0]);
++            Assert.AreEqual(42, dst[0]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void MultipleValues_RestoresAll()
+         {
+             long* src = stackalloc long[] { -1, 0, 1, int.MaxValue, int.MinValue };
+             int* dst = stackalloc int[5];
+             IAFahim.Compress.RestoreCompressed.Run(src, dst, 5);
+-            Assert.Equal(-1, dst[0]);
+-            Assert.Equal(0, dst[1]);
+-            Assert.Equal(1, dst[2]);
+-            Assert.Equal(int.MaxValue, dst[3]);
+-            Assert.Equal(int.MinValue, dst[4]);
++            Assert.AreEqual(-1, dst[0]);
++            Assert.AreEqual(0, dst[1]);
++            Assert.AreEqual(1, dst[2]);
++            Assert.AreEqual(int.MaxValue, dst[3]);
++            Assert.AreEqual(int.MinValue, dst[4]);
+         }
+     }
+ }*** Update File: test/IAFahim.DP.Knapsack.Tests/KnapsackTests.cs@@ -1,21 +1,21 @@ namespace IAFahim.DP.Knapsack.Tests
+ {
+     using System;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class KnapsackTests
+     {
+-        [Fact]
++        [Test]
+         public void Knapsack01_Empty_NoOp()
+         {
+             long* w = stackalloc long[0];
+             long* v = stackalloc long[0];
+             long* dp = stackalloc long[11];
+             long result = Knapsack01.Run(0, 10, w, v, dp);
+-            Assert.Equal(0, result);
+-        }
+-
+-        [Fact]
++            Assert.AreEqual(0, result);
++        }
++
++        [Test]
+         public void Knapsack01_ZeroCapacity_Returns0()
+         {
+             long* w = stackalloc long[3];
+@@ -25,10 +25,10 @@             w[1] = 4; v[1] = 15;
+             w[2] = 5; v[2] = 20;
+             long result = Knapsack01.Run(3, 0, w, v, dp);
+-            Assert.Equal(0, result);
+-        }
+-
+-        [Fact]
++            Assert.AreEqual(0, result);
++        }
++
++        [Test]
+         public void Knapsack01_SingleItem_Fits_ReturnsValue()
+         {
+             long* w = stackalloc long[1];
+@@ -36,10 +36,10 @@             long* dp = stackalloc long[11];
+             w[0] = 5; v[0] = 10;
+             long result = Knapsack01.Run(1, 10, w, v, dp);
+-            Assert.Equal(10, result);
+-        }
+-
+-        [Fact]
++            Assert.AreEqual(10, result);
++        }
++
++        [Test]
+         public void Knapsack01_SingleItem_TooHeavy_Returns0()
+         {
+             long* w = stackalloc long[1];
+@@ -47,10 +47,10 @@             long* dp = stackalloc long[11];
+             w[0] = 15; v[0] = 10;
+             long result = Knapsack01.Run(1, 10, w, v, dp);
+-            Assert.Equal(0, result);
+-        }
+-
+-        [Fact]
++            Assert.AreEqual(0, result);
++        }
++
++        [Test]
+         public void Knapsack01_TwoItems_ChoosesBetter()
+         {
+             long* w = stackalloc long[2];
+@@ -59,10 +59,10 @@             w[0] = 6; v[0] = 10;
+             w[1] = 10; v[1] = 21;
+             long result = Knapsack01.Run(2, 10, w, v, dp);
+-            Assert.Equal(21, result);
+-        }
+-
+-        [Fact]
++            Assert.AreEqual(21, result);
++        }
++
++        [Test]
+         public void Knapsack01_SpaceEfficient_ConsistentWithDp()
+         {
+             long* w = stackalloc long[3];
+@@ -73,10 +73,10 @@             w[2] = 5; v[2] = 20;
+             long result1 = Knapsack01.Run(3, 10, w, v, dp);
+             long result2 = Knapsack01.RunSpaceEfficient(3, 10, w, v);
+-            Assert.Equal(result1, result2);
+-        }
+-
+-        [Fact]
++            Assert.AreEqual(result1, result2);
++        }
++
++        [Test]
+         public void Knapsack01_FractionalWeight_ChoosesPartial()
+         {
+             long* w = stackalloc long[2];
+@@ -85,20 +85,20 @@             w[0] = 5; v[0] = 10;
+             w[1] = 3; v[1] = 8;
+             long result = Knapsack01.Run(2, 7, w, v, dp);
+-            Assert.Equal(18, result);
+-        }
+-
+-        [Fact]
++            Assert.AreEqual(18, result);
++        }
++
++        [Test]
+         public void KnapsackUnbounded_Empty_Returns0()
+         {
+             long* w = stackalloc long[0];
+             long* v = stackalloc long[0];
+             long* dp = stackalloc long[11];
+             long result = KnapsackUnbounded.Run(0, 10, w, v, dp);
+-            Assert.Equal(0, result);
+-        }
+-
+-        [Fact]
++            Assert.AreEqual(0, result);
++        }
++
++        [Test]
+         public void KnapsackUnbounded_SingleItem_Maximizes()
+         {
+             long* w = stackalloc long[1];
+@@ -106,10 +106,10 @@             long* dp = stackalloc long[11];
+             w[0] = 3; v[0] = 5;
+             long result = KnapsackUnbounded.Run(1, 10, w, v, dp);
+-            Assert.Equal(15, result);
+-        }
+-
+-        [Fact]
++            Assert.AreEqual(15, result);
++        }
++
++        [Test]
+         public void KnapsackUnbounded_TwoItems_ChoosesBetter()
+         {
+             long* w = stackalloc long[2];
+@@ -118,10 +118,10 @@             w[0] = 3; v[0] = 5;
+             w[1] = 5; v[1] = 10;
+             long result = KnapsackUnbounded.Run(2, 10, w, v, dp);
+-            Assert.Equal(20, result);
+-        }
+-
+-        [Fact]
++            Assert.AreEqual(20, result);
++        }
++
++        [Test]
+         public void KnapsackUnbounded_SpaceEfficient_Consistent()
+         {
+             long* w = stackalloc long[2];
+@@ -130,39 +130,39 @@             w[1] = 5; v[1] = 10;
+             long result1 = KnapsackUnbounded.Run(2, 10, w, v, stackalloc long[11]);
+             long result2 = KnapsackUnbounded.RunSpaceEfficient(2, 10, w, v);
+-            Assert.Equal(result1, result2);
+-        }
+-
+-        [Fact]
++            Assert.AreEqual(result1, result2);
++        }
++
++        [Test]
+         public void SubsetSum_EmptyTarget_True()
+         {
+             long* a = stackalloc long[3];
+             bool* dp = stackalloc bool[11];
+             bool result = SubsetSum.Run(0, 0, a, dp);
+-            Assert.True(result);
+-        }
+-
+-        [Fact]
++            Assert.IsTrue(result);
++        }
++
++        [Test]
+         public void SubsetSum_Target0_True()
+         {
+             long* a = stackalloc long[3];
+             a[0] = 1; a[1] = 2; a[2] = 3;
+             bool* dp = stackalloc bool[11];
+             bool result = SubsetSum.Run(3, 0, a, dp);
+-            Assert.True(result);
+-        }
+-
+-        [Fact]
++            Assert.IsTrue(result);
++        }
++
++        [Test]
+         public void SubsetSum_Normal_ReturnsCorrect()
+         {
+             long* a = stackalloc long[4];
+             a[0] = 3; a[1] = 5; a[2] = 7; a[3] = 8;
+             bool* dp = stackalloc bool[11];
+-            Assert.True(SubsetSum.Run(4, 10, a, dp));
+-            Assert.False(SubsetSum.Run(4, 15, a, dp));
+-        }
+-
+-        [Fact]
++            Assert.IsTrue(SubsetSum.Run(4, 10, a, dp));
++            Assert.IsFalse(SubsetSum.Run(4, 15, a, dp));
++        }
++
++        [Test]
+         public void SubsetSum_CanMakeAll()
+         {
+             long* a = stackalloc long[3];
+@@ -175,11 +175,11 @@             SubsetSum.Run(3, 6, a, dp);
+             for (int s = 0; s <= 6; s++)
+             {
+-                Assert.True(dp[s], $"Should be able to make sum {s}");
++                Assert.IsTrue(dp[s], $"Should be able to make sum {s}");
+             }
+         }
+ 
+-        [Fact]
++        [Test]
+         public void KnapsackBounded_SingleWithCount1_Effective()
+         {
+             long* w = stackalloc long[1];
+@@ -188,10 +188,10 @@             long* dp = stackalloc long[11];
+             w[0] = 5; v[0] = 10; cnt[0] = 1;
+             long result = KnapsackBounded.Run(1, 10, w, v, cnt, dp);
+-            Assert.Equal(10, result);
+-        }
+-
+-        [Fact]
++            Assert.AreEqual(10, result);
++        }
++
++        [Test]
+         public void KnapsackBounded_MultipleItems_ReturnsMax()
+         {
+             long* w = stackalloc long[3];
+@@ -202,7 +202,7 @@             w[1] = 4; v[1] = 8; cnt[1] = 2;
+             w[2] = 5; v[2] = 12; cnt[2] = 1;
+             long result = KnapsackBounded.Run(3, 10, w, v, cnt, dp);
+-            Assert.Equal(25, result);
++            Assert.AreEqual(25, result);
+         }
+     }
+ }*** Update File: test/IAFahim.DS.Dsu.Tests/DsuTests.cs@@ -2,32 +2,32 @@ {
+     using IAFahim.DS.Dsu;
+     using System.Runtime.InteropServices;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class DsuTests
+     {
+-        [Fact]
++        [Test]
+         public void EmptyInput_NoOp()
+         {
+             fixed (int* parent = new int[0])
+             fixed (int* size = new int[0])
+             {
+                 DsuInit.Run(parent, size, 0);
+-                Assert.True(true);
++                Assert.IsTrue(true);
+             }
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SingleElement_ParentIsSelf()
+         {
+             int* parent = stackalloc int[1];
+             int* size = stackalloc int[1];
+             DsuInit.Run(parent, size, 1);
+-            Assert.Equal(0, DsuFind.Run(parent, 0));
+-            Assert.Equal(1, DsuSize.Run(parent, size, 0));
++            Assert.AreEqual(0, DsuFind.Run(parent, 0));
++            Assert.AreEqual(1, DsuSize.Run(parent, size, 0));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void UnionFind_Basic()
+         {
+             const int n = 5;
+@@ -37,28 +37,28 @@ 
+             DsuUnion.Run(parent, size, 0, 1);
+             DsuUnion.Run(parent, size, 1, 2);
+-            Assert.True(DsuSame.Run(parent, 0, 2));
+-            Assert.Equal(3, DsuSize.Run(parent, size, 0));
++            Assert.IsTrue(DsuSame.Run(parent, 0, 2));
++            Assert.AreEqual(3, DsuSize.Run(parent, size, 0));
+ 
+-            Assert.False(DsuSame.Run(parent, 0, 3));
+-            Assert.False(DsuSame.Run(parent, 2, 4));
++            Assert.IsFalse(DsuSame.Run(parent, 0, 3));
++            Assert.IsFalse(DsuSame.Run(parent, 2, 4));
+ 
+             DsuUnion.Run(parent, size, 3, 4);
+-            Assert.True(DsuSame.Run(parent, 3, 4));
++            Assert.IsTrue(DsuSame.Run(parent, 3, 4));
+ 
+             DsuUnion.Run(parent, size, 2, 3);
+-            Assert.True(DsuSame.Run(parent, 0, 4));
+-            Assert.Equal(5, DsuSize.Run(parent, size, 0));
++            Assert.IsTrue(DsuSame.Run(parent, 0, 4));
++            Assert.AreEqual(5, DsuSize.Run(parent, size, 0));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SelfLoop_NoChange()
+         {
+             int* parent = stackalloc int[3];
+             int* size = stackalloc int[3];
+             DsuInit.Run(parent, size, 3);
+             DsuUnion.Run(parent, size, 0, 0);
+-            Assert.Equal(0, DsuFind.Run(parent, 0));
++            Assert.AreEqual(0, DsuFind.Run(parent, 0));
+         }
+     }
+ }
+*** Update File: test/IAFahim.DS.Fenwick.Tests/FenwickTests.cs@@ -2,27 +2,27 @@ {
+     using IAFahim.DS.Fenwick;
+     using System.Runtime.InteropServices;
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class FenwickTests
+     {
+-        [Fact]
++        [Test]
+         public void EmptyInput_NoOp()
+         {
+             int* bit = stackalloc int[0];
+             FenwickAdd.Run(bit, 0, 5);
+-            Assert.Equal(0, FenwickSum.Run(bit, 0));
++            Assert.AreEqual(0, FenwickSum.Run(bit, 0));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SingleElement_AddAndSum()
+         {
+             int* bit = stackalloc int[1];
+             FenwickAdd.Run(bit, 0, 5);
+-            Assert.Equal(5, FenwickSum.Run(bit, 1));
++            Assert.AreEqual(5, FenwickSum.Run(bit, 1));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void RangeSum_MultipleAdds()
+         {
+             const int n = 8;
+@@ -31,13 +31,13 @@             FenwickAdd.Run(bit, 1, 2);
+             FenwickAdd.Run(bit, 2, 3);
+             FenwickAdd.Run(bit, 3, 4);
+-            Assert.Equal(1, FenwickSum.Run(bit, 1));
+-            Assert.Equal(3, FenwickSum.Run(bit, 2));
+-            Assert.Equal(6, FenwickSum.Run(bit, 3));
+-            Assert.Equal(10, FenwickSum.Run(bit, 4));
++            Assert.AreEqual(1, FenwickSum.Run(bit, 1));
++            Assert.AreEqual(3, FenwickSum.Run(bit, 2));
++            Assert.AreEqual(6, FenwickSum.Run(bit, 3));
++            Assert.AreEqual(10, FenwickSum.Run(bit, 4));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void LowerBound_FindPrefixSum()
+         {
+             const int n = 10;
+@@ -45,36 +45,36 @@             for (int i = 0; i < n; i++)
+                 FenwickAdd.Run(bit, i, i + 1);
+ 
+-            Assert.Equal(0, FenwickLowerBound.Run(bit, n, 1));
+-            Assert.Equal(1, FenwickLowerBound.Run(bit, n, 2));
+-            Assert.Equal(9, FenwickLowerBound.Run(bit, n, 10));
+-            Assert.Equal(9, FenwickLowerBound.Run(bit, n, 55));
++            Assert.AreEqual(0, FenwickLowerBound.Run(bit, n, 1));
++            Assert.AreEqual(1, FenwickLowerBound.Run(bit, n, 2));
++            Assert.AreEqual(9, FenwickLowerBound.Run(bit, n, 10));
++            Assert.AreEqual(9, FenwickLowerBound.Run(bit, n, 55));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Fenwick2D_Basic()
+         {
+             const int n = 4, m = 4;
+             long* bit = stackalloc long[n * m];
+             Fenwick2DAdd.Run(bit, n, m, 1, 1, 5);
+             Fenwick2DAdd.Run(bit, n, m, 2, 2, 3);
+-            Assert.Equal(5, Fenwick2DSum.Run(bit, n, m, 2, 2));
++            Assert.AreEqual(5, Fenwick2DSum.Run(bit, n, m, 2, 2));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void RangeAdd_PointQuery()
+         {
+             const int n = 5;
+             int* bit = stackalloc int[n];
+             FenwickRangeAdd.Run(bit, 0, 4, 10);
+             FenwickRangeAdd.Run(bit, 1, 3, 5);
+-            Assert.Equal(10, FenwickPointQuery.Run(bit, 0));
+-            Assert.Equal(15, FenwickPointQuery.Run(bit, 1));
+-            Assert.Equal(15, FenwickPointQuery.Run(bit, 3));
+-            Assert.Equal(10, FenwickPointQuery.Run(bit, 4));
++            Assert.AreEqual(10, FenwickPointQuery.Run(bit, 0));
++            Assert.AreEqual(15, FenwickPointQuery.Run(bit, 1));
++            Assert.AreEqual(15, FenwickPointQuery.Run(bit, 3));
++            Assert.AreEqual(10, FenwickPointQuery.Run(bit, 4));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void LargeN_CorrectPrefixSums()
+         {
+             const int n = 1024;
+@@ -86,7 +86,7 @@                 for (int i = 0; i < n; i++)
+                 {
+                     long expected = (long)i * (i + 1) / 2;
+-                    Assert.Equal(expected, FenwickSum.Run(bit, i + 1));
++                    Assert.AreEqual(expected, FenwickSum.Run(bit, i + 1));
+                 }
+             }
+             finally { Marshal.FreeHGlobal((nint)bit); }
+*** End Patch

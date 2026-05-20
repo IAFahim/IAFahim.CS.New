@@ -1,2 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\\IAFahim.Graph.Flow\\IAFahim.Graph.Flow.csproj" />
+  </ItemGroup>
 </Project>

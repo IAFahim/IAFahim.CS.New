@@ -2,6 +2,147 @@ namespace IAFahim.Graph
 {
     using System;
     using System.Runtime.CompilerServices;
+    using IAFahim.Graph.Flow;
+
+    public static unsafe class MatroidIntersection
+    {
+        public static int Run(int n, int* set, int* rank1, int* rank2, int* basis, int* seen)
+        {
+            for (int i = 0; i < n; i++) basis[i] = -1;
+            int result = 0;
+            bool changed = true;
+            while (changed)
+            {
+                changed = false;
+                for (int i = 0; i < n; i++) seen[i] = 0;
+                int* queue = stackalloc int[n];
+                int qh = 0, qt = 0;
+                for (int i = 0; i < n; i++)
+                {
+                    if (basis[i] == -1) queue[qt++] = i;
+                }
+                while (qh < qt)
+                {
+                    int u = queue[qh++];
+                    int e = u;
+                    if (seen[e] != 0) continue;
+                    seen[e] = 1;
+                    for (int j = 0; j < n; j++)
+                    {
+                        if (basis[j] == -1) continue;
+                        if (e == basis[j]) continue;
+                        bool indep1 = true, indep2 = true;
+                        if (indep1 && indep2)
+                        {
+                            int temp = basis[j];
+                            basis[j] = e;
+                            changed = true;
+                            result++;
+                        }
+                    }
+                }
+            }
+            return result;
+        }
+    }
+
+    public static unsafe class StoerWagnerMinCut
+    {
+        public static long Run(int n, int* head, int* to, int* next, int* weight, long* add, long* dist, int* vis, int* parent)
+        {
+            long minCut = long.MaxValue;
+            for (int i = 0; i < n; i++) add[i] = 0;
+            for (int phase = 0; phase < n; phase++)
+            {
+                for (int i = 0; i < n; i++)
+                {
+                    dist[i] = 0;
+                    vis[i] = -1;
+                }
+                int last = -1;
+                for (int iter = 0; iter < n - phase; iter++)
+                {
+                    int v = -1;
+                    long maxDist = long.MinValue;
+                    for (int i = 0; i < n; i++)
+                    {
+                        if (vis[i] == -1)
+                        {
+                            add[i] += dist[i];
+                            if (add[i] > maxDist)
+                            {
+                                maxDist = add[i];
+                                v = i;
+                            }
+                        }
+                    }
+                    if (v == -1) break;
+                    vis[v] = phase;
+                    last = v;
+                    for (int e = head[v]; e != 0; e = next[e])
+                    {
+                        int toV = to[e];
+                        if (vis[toV] == -1)
+                        {
+                            dist[toV] += weight[e];
+                        }
+                    }
+                }
+                if (last != -1 && add[last] < minCut)
+                {
+                    minCut = add[last];
+                }
+                for (int e = head[last]; e != 0; e = next[e])
+                {
+                    int toV = to[e];
+                    if (vis[toV] == phase)
+                    {
+                        int eRev = e ^ 1;
+                        add[last] += weight[e] + weight[eRev];
+                    }
+                }
+            }
+            return minCut == long.MaxValue ? 0 : minCut;
+        }
+    }
+
+    public static unsafe class GlobalMinCut
+    {
+        public static long Run(int n, int* head, int* to, int* next, int* weight)
+        {
+            long* add = stackalloc long[n];
+            long* dist = stackalloc long[n];
+            int* vis = stackalloc int[n];
+            int* parent = stackalloc int[n];
+            return StoerWagnerMinCut.Run(n, head, to, next, weight, add, dist, vis, parent);
+        }
+    }
+
+    public static unsafe class GomoryHuTree
+    {
+        public static void Run(int n, int m, int* head, int* to, int* next, int* cap, int* treeHead, int* treeTo, int* treeNext, int* treeCap, int* parent)
+        {
+            for (int i = 0; i < n; i++) parent[i] = -1;
+            for (int i = 0; i < n; i++)
+            {
+                long cut = DinicMaxFlow.Run(n, i, parent[i], head, to, next, cap, m);
+                for (int j = i + 1; j < n; j++)
+                {
+                    if (parent[j] == i)
+                    {
+                        for (int e = head[j]; e != 0; e = next[e])
+                        {
+                            if (to[e] == parent[j])
+                            {
+                                cap[e] = (int)Math.Min(cut, cap[e]);
+                                cap[e ^ 1] = (int)Math.Min(cut, cap[e ^ 1]);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     public static unsafe class ArticulationPoints
     {
@@ -209,6 +350,28 @@ namespace IAFahim.Graph
             }
             Dfs(root, -1);
             return timer;
+        }
+    }
+
+    public static unsafe class DinicMaxFlow
+    {
+        public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int m)
+        {
+            int* level = stackalloc int[n];
+            int* it = stackalloc int[n];
+            int* flow = stackalloc int[m + 1];
+            for (int i = 0; i <= m; i++) flow[i] = 0;
+            long result = 0;
+            while (DinicBfs.Run(n, s, t, head, to, next, cap, flow, level, it))
+            {
+                while (true)
+                {
+                    int pushed = DinicDfs.Run(s, t, int.MaxValue, head, to, next, cap, flow, level, it);
+                    if (pushed == 0) break;
+                    result += pushed;
+                }
+            }
+            return result;
         }
     }
 }

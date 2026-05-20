@@ -330,4 +330,41 @@ namespace IAFahim.Graph
             }
         }
     }
+
+    public static unsafe class PotentialDijkstra
+    {
+        public static void Run(int n, int start, int* head, int* to, int* next, long* weight, long* dist, int* parent, long* potential)
+        {
+            for (int i = 0; i < n; i++) dist[i] = long.MaxValue;
+            for (int i = 0; i < n; i++) parent[i] = -1;
+            dist[start] = 0;
+            var pq = new System.Collections.Generic.SortedSet<(long d, int v)>();
+            pq.Add((0, start));
+            while (pq.Count > 0)
+            {
+                var cur = pq.Min;
+                pq.Remove(cur);
+                if (cur.d != dist[cur.v]) continue;
+                int u = cur.v;
+                for (int e = head[u]; e != 0; e = next[e])
+                {
+                    int v = to[e];
+                    long reduced = weight[e] + potential[u] - potential[v];
+                    long nd = dist[u] + reduced;
+                    if (nd < dist[v])
+                    {
+                        pq.Remove((dist[v], v));
+                        dist[v] = nd;
+                        parent[v] = u;
+                        pq.Add((nd, v));
+                    }
+                }
+            }
+            for (int i = 0; i < n; i++)
+            {
+                if (dist[i] != long.MaxValue)
+                    dist[i] = dist[i] - potential[start] + potential[i];
+            }
+        }
+    }
 }

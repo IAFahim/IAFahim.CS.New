@@ -116,8 +116,8 @@ namespace AlgoArena
                 Console.WriteLine();
                 Console.WriteLine($"  Binary search result: {(found ? $"✅ Found at index {index}" : "❌ Not found")}");
 
-                int lo = BitSearch.LowerBound(arr, n, key);
-                int hi = BitSearch.UpperBound(arr, n, key) - 1;
+                int lo = LowerBound.Run(arr, n, key);
+                int hi = UpperBound.Run(arr, n, key) - 1;
                 Console.WriteLine($"  Lower bound: {lo}, Upper bound: {hi}");
 
                 int first = FirstTrue.Run(arr, n);
