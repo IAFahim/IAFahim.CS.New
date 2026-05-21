@@ -132,12 +132,12 @@
 - [x] PointCircleTangents
 - [x] Circumcenter
 - [x] Incenter
-- [ ] MinimumEnclosingCircle
-- [ ] DelaunayTriangulation
-- [ ] VoronoiDiagram
-- [ ] IntegerPointCount
-- [ ] PickTheorem
-- [ ] CompressGraph
+- [x] MinimumEnclosingCircle
+- [x] DelaunayTriangulation
+- [x] VoronoiDiagram
+- [x] IntegerPointCount
+- [x] PickTheorem
+- [x] CompressGraph
 - [x] GridNeighbors4
 - [x] GridNeighbors8
 - [x] GridBfs
@@ -227,7 +227,7 @@
 - [x] KthPermutation
 - [x] PermutationRank
 - [x] LisLength
-- [ ] LisRestore
+- [x] LisRestore
 - [x] LdsLength
 - [x] BitonicLength
 - [x] PatienceSort
@@ -237,43 +237,43 @@
 - [x] MaxSubarrayCircular
 - [x] MaxSubmatrixSum
 - [x] DivideAndConquerMaxSubarray
-- [ ] PrefixFunctionAutomaton
-- [ ] ZFunctionSearch
-- [ ] SuffixArraySearch
-- [ ] SuffixLcpQuery
-- [ ] RangeMode
-- [ ] RangeMajority
-- [ ] BoyerMooreMajority
-- [ ] MajorityCheck
-- [ ] FrequencyMap
-- [ ] CounterAdd
-- [ ] CounterRemove
-- [ ] CoordinateHash
-- [ ] CanonicalizeState
-- [ ] EncodeState
-- [ ] DecodeState
-- [ ] MemoGet
-- [ ] MemoSet
-- [ ] DpTransition
-- [ ] RestoreChoice
-- [ ] RestorePath
-- [ ] ReconstructSolution
-- [ ] AssertBounds
-- [ ] DebugPrint
-- [ ] DebugGraph
-- [ ] DebugGrid
-- [ ] TimeLimitGuard
-- [ ] PanicOnError
+- [x] PrefixFunctionAutomaton
+- [x] ZFunctionSearch
+- [x] SuffixArraySearch
+- [x] SuffixLcpQuery
+- [x] RangeMode
+- [x] RangeMajority
+- [x] BoyerMooreMajority
+- [x] MajorityCheck
+- [x] FrequencyMap
+- [x] CounterAdd
+- [x] CounterRemove
+- [x] CoordinateHash
+- [x] CanonicalizeState
+- [x] EncodeState
+- [x] DecodeState
+- [x] MemoGet
+- [x] MemoSet
+- [x] DpTransition
+- [x] RestoreChoice
+- [x] RestorePath
+- [x] ReconstructSolution
+- [x] AssertBounds
+- [x] DebugPrint
+- [x] DebugGraph
+- [x] DebugGrid
+- [x] TimeLimitGuard
+- [x] PanicOnError
 - [x] Minimize
 - [x] Maximize
 - [x] RelaxMin
 - [x] RelaxMax
 - [x] SwapInts
 - [x] SwapPairs
-- [ ] ClearMap
-- [ ] CloneMap
-- [ ] CloneGraph
-- [ ] CloneMatrix
+- [x] ClearMap
+- [x] CloneMap
+- [x] CloneGraph
+- [x] CloneMatrix
 - [x] NormalizeModulo
 - [x] SafeMulMod
 - [x] FastPow
@@ -286,338 +286,338 @@
 - [x] PrevPowerOfTwo
 - [x] CeilLog2
 - [x] FloorLog2
-- [ ] HarmonicLemma
-- [ ] QuotientRanges
-- [ ] EnumerateDivisorQuotients
-- [ ] MobiusInversion
-- [ ] DirichletConvolution
-- [ ] FastZetaDivisors
-- [ ] FastMobiusDivisors
-- [ ] MultiplicativeFunctionPrefix
-- [ ] PrimeCounting
-- [ ] LagariasMillerOdlyzko
-- [ ] MeisselLehmer
+- [x] HarmonicLemma
+- [x] QuotientRanges
+- [x] EnumerateDivisorQuotients
+- [x] MobiusInversion
+- [x] DirichletConvolution
+- [x] FastZetaDivisors
+- [x] FastMobiusDivisors
+- [x] MultiplicativeFunctionPrefix
+- [x] PrimeCounting
+- [x] LagariasMillerOdlyzko
+- [x] MeisselLehmer
 - [x] LinearRecurrenceGuess
-- [ ] MinPlusMatrixMul
-- [ ] TropicalMatrixPow
-- [ ] TreePathHash
-- [ ] LcaKthNode
-- [ ] PathIntersection
-- [ ] SubtreeContains
-- [ ] AncestorCheck
-- [ ] CentroidPathUpdate
-- [ ] CentroidPathQuery
-- [ ] DsuOnTree
-- [ ] SmallToLargeOnTree
-- [ ] ColorFrequencyMerge
-- [ ] HeavyChild
-- [ ] EttBuild
-- [ ] EttSubtreeRange
-- [ ] RmqBuild
-- [ ] RmqQuery
-- [ ] CartesianRmqBuild
-- [ ] PersistentArrayGet
-- [ ] PersistentArraySet
-- [ ] RopeSplit
-- [ ] RopeMerge
-- [ ] ImplicitTreapSplit
-- [ ] ImplicitTreapMerge
-- [ ] IntervalSetAdd
-- [ ] IntervalSetRemove
-- [ ] IntervalSetMex
-- [ ] SegmentTreeBeatsBuild
-- [ ] SegmentTreeBeatsChmin
-- [ ] SegmentTreeBeatsChmax
-- [ ] SegmentTreeBeatsAdd
-- [ ] SegmentTreeBeatsSum
-- [ ] SegmentTreeBeatsMax
-- [ ] SegmentTreeBeatsMin
-- [ ] KineticHeapInsert
-- [ ] KineticHeapPop
+- [x] MinPlusMatrixMul
+- [x] TropicalMatrixPow
+- [x] TreePathHash
+- [x] LcaKthNode
+- [x] PathIntersection
+- [x] SubtreeContains
+- [x] AncestorCheck
+- [x] CentroidPathUpdate
+- [x] CentroidPathQuery
+- [x] DsuOnTree
+- [x] SmallToLargeOnTree
+- [x] ColorFrequencyMerge
+- [x] HeavyChild
+- [x] EttBuild
+- [x] EttSubtreeRange
+- [x] RmqBuild
+- [x] RmqQuery
+- [x] CartesianRmqBuild
+- [x] PersistentArrayGet
+- [x] PersistentArraySet
+- [x] RopeSplit
+- [x] RopeMerge
+- [x] ImplicitTreapSplit
+- [x] ImplicitTreapMerge
+- [x] IntervalSetAdd
+- [x] IntervalSetRemove
+- [x] IntervalSetMex
+- [x] SegmentTreeBeatsBuild
+- [x] SegmentTreeBeatsChmin
+- [x] SegmentTreeBeatsChmax
+- [x] SegmentTreeBeatsAdd
+- [x] SegmentTreeBeatsSum
+- [x] SegmentTreeBeatsMax
+- [x] SegmentTreeBeatsMin
+- [x] KineticHeapInsert
+- [x] KineticHeapPop
 - [x] ConvexHullDynamicAdd
 - [x] ConvexHullDynamicQuery
-- [ ] OfflineRectangleAdd
-- [ ] OfflineRectangleSum
-- [ ] FenwickOfVectorsBuild
-- [ ] FenwickOfVectorsQuery
-- [ ] RangeTreeBuild
-- [ ] RangeTreeQuery
-- [ ] KdTreeBuild
-- [ ] KdTreeNearest
-- [ ] KdTreeRangeQuery
-- [ ] DivideConquerClosestPair
-- [ ] DominanceCount
-- [ ] OrthogonalRangeCount
-- [ ] OrthogonalRangeSum
-- [ ] PointUpdateRectangleQuery
-- [ ] RectangleUpdatePointQuery
-- [ ] RectangleUpdateRectangleQuery
-- [ ] ScanlineAreaUnion
-- [ ] ScanlinePerimeterUnion
-- [ ] WeightedMedian
-- [ ] GeometricMedian
-- [ ] TernaryPointSearch
-- [ ] MinimumSpanningArborescence
-- [ ] MaximumClosure
-- [ ] MinCutClosure
-- [ ] ParametricSearch
-- [ ] WqsBinarySearch
-- [ ] MonotoneQueueDp
-- [ ] KnapsackDivideAndConquer
-- [ ] DivideConquerOptimization
-- [ ] KnuthDpOptimization
-- [ ] AliensTrick
-- [ ] CapacityScalingFlow
-- [ ] CostScalingFlow
-- [ ] HlppMaxFlow
-- [ ] PushRelabelMaxFlow
-- [ ] SapMaxFlow
-- [ ] IsapMaxFlow
+- [x] OfflineRectangleAdd
+- [x] OfflineRectangleSum
+- [x] FenwickOfVectorsBuild
+- [x] FenwickOfVectorsQuery
+- [x] RangeTreeBuild
+- [x] RangeTreeQuery
+- [x] KdTreeBuild
+- [x] KdTreeNearest
+- [x] KdTreeRangeQuery
+- [x] DivideConquerClosestPair
+- [x] DominanceCount
+- [x] OrthogonalRangeCount
+- [x] OrthogonalRangeSum
+- [x] PointUpdateRectangleQuery
+- [x] RectangleUpdatePointQuery
+- [x] RectangleUpdateRectangleQuery
+- [x] ScanlineAreaUnion
+- [x] ScanlinePerimeterUnion
+- [x] WeightedMedian
+- [x] GeometricMedian
+- [x] TernaryPointSearch
+- [x] MinimumSpanningArborescence
+- [x] MaximumClosure
+- [x] MinCutClosure
+- [x] ParametricSearch
+- [x] WqsBinarySearch
+- [x] MonotoneQueueDp
+- [x] KnapsackDivideAndConquer
+- [x] DivideConquerOptimization
+- [x] KnuthDpOptimization
+- [x] AliensTrick
+- [x] CapacityScalingFlow
+- [x] CostScalingFlow
+- [x] HlppMaxFlow
+- [x] PushRelabelMaxFlow
+- [x] SapMaxFlow
+- [x] IsapMaxFlow
 - [x] StoerWagner
 - [x] GomoryHu
-- [ ] BlossomMatch
+- [x] BlossomMatch
 - [x] EdmondsMatching
 - [x] WeightedBlossom
-- [ ] MaximumClique
-- [ ] BronKerbosch
+- [x] MaximumClique
+- [x] BronKerbosch
 - [x] MaximumIndependentSet
 - [x] MinimumVertexCover
-- [ ] ChromaticNumber
-- [ ] ChromaticPolynomial
-- [ ] GraphColoringBacktrack
-- [ ] TreewidthDp
-- [ ] BlockCutTreeBuild
-- [ ] BridgeTreeBuild
-- [ ] CactusBuild
-- [ ] CactusDistance
-- [ ] FunctionalGraphBuild
-- [ ] FunctionalGraphJump
-- [ ] FunctionalGraphCycle
-- [ ] FunctionalGraphDistance
-- [ ] FloydCycle
-- [ ] BrentCycle
-- [ ] BinaryLiftingFunctional
-- [ ] PermutationJump
-- [ ] RandomWalkStationary
-- [ ] MarkovChainPower
-- [ ] ExpectedHittingTime
-- [ ] LinearEquationExpectation
-- [ ] AbsorbingMarkovChain
-- [ ] BurnsideCount
-- [ ] PolyaCount
-- [ ] NecklaceCount
-- [ ] BraceletCount
-- [ ] BoothAlgorithm
-- [ ] AhoCorasickDp
-- [ ] SuffixAutomatonDp
-- [ ] PalTreeDp
-- [ ] LyndonFactorization
-- [ ] RunsEnumerate
-- [ ] CriticalFactorization
-- [ ] MinimalRotation
-- [ ] MaximalSuffix
-- [ ] SaIsBuild
-- [ ] Dc3Build
-- [ ] KasaiLcp
-- [ ] LcpSparseBuild
-- [ ] LongestRepeatedSubstring
-- [ ] LongestCommonSubstring
-- [ ] MultipleStringLcs
-- [ ] PalindromeRadius
-- [ ] CountPalindromes
-- [ ] PalindromicFactorization
-- [ ] EertreeAdd
-- [ ] EertreeSuffixLink
-- [ ] WildcardKmp
-- [ ] BitapSearch
-- [ ] ShiftAndSearch
-- [ ] LevenshteinAutomaton
-- [ ] HashPalindromeCheck
-- [ ] DynamicHashUpdate
-- [ ] DynamicHashQuery
-- [ ] SqrtTreeBuild
-- [ ] SqrtTreeQuery
-- [ ] FischerHeunBuild
-- [ ] FischerHeunQuery
-- [ ] SuccinctRank
-- [ ] SuccinctSelect
-- [ ] WaveletMatrixBuild
-- [ ] WaveletMatrixRank
-- [ ] WaveletMatrixSelect
-- [ ] WaveletMatrixKth
-- [ ] WaveletMatrixRangeFreq
-- [ ] WaveletMatrixRangeSum
-- [ ] CompressedBitVectorBuild
-- [ ] CompressedBitVectorRank
-- [ ] CompressedBitVectorSelect
-- [ ] DancingLinksCover
-- [ ] DancingLinksUncover
-- [ ] ExactCoverSolve
-- [ ] SatAddClause
-- [ ] SatUnitPropagate
-- [ ] SatDpll
-- [ ] SatSolve
-- [ ] CnfEncodeAtMostOne
-- [ ] CnfEncodeExactlyOne
-- [ ] CnfEncodeCardinality
-- [ ] LinearBasisMerge
-- [ ] MatroidRank
-- [ ] GraphicMatroidRank
-- [ ] PartitionMatroidRank
-- [ ] MatroidExchange
-- [ ] PolynomialGcd
-- [ ] PolynomialExtendedGcd
-- [ ] Resultant
-- [ ] BerlekampFactorization
-- [ ] CantorExpansion
-- [ ] NumberTheoreticTransformAny
-- [ ] GarnerAlgorithm
-- [ ] CrtGarner
-- [ ] PrimitiveRootMod
-- [ ] DiscreteRoot
-- [ ] KthRootModulo
-- [ ] QuadraticResidueSolve
-- [ ] PellEquationSolve
-- [ ] LinearDiophantineSolve
-- [ ] DiophantineNonnegative
+- [x] ChromaticNumber
+- [x] ChromaticPolynomial
+- [x] GraphColoringBacktrack
+- [x] TreewidthDp
+- [x] BlockCutTreeBuild
+- [x] BridgeTreeBuild
+- [x] CactusBuild
+- [x] CactusDistance
+- [x] FunctionalGraphBuild
+- [x] FunctionalGraphJump
+- [x] FunctionalGraphCycle
+- [x] FunctionalGraphDistance
+- [x] FloydCycle
+- [x] BrentCycle
+- [x] BinaryLiftingFunctional
+- [x] PermutationJump
+- [x] RandomWalkStationary
+- [x] MarkovChainPower
+- [x] ExpectedHittingTime
+- [x] LinearEquationExpectation
+- [x] AbsorbingMarkovChain
+- [x] BurnsideCount
+- [x] PolyaCount
+- [x] NecklaceCount
+- [x] BraceletCount
+- [x] BoothAlgorithm
+- [x] AhoCorasickDp
+- [x] SuffixAutomatonDp
+- [x] PalTreeDp
+- [x] LyndonFactorization
+- [x] RunsEnumerate
+- [x] CriticalFactorization
+- [x] MinimalRotation
+- [x] MaximalSuffix
+- [x] SaIsBuild
+- [x] Dc3Build
+- [x] KasaiLcp
+- [x] LcpSparseBuild
+- [x] LongestRepeatedSubstring
+- [x] LongestCommonSubstring
+- [x] MultipleStringLcs
+- [x] PalindromeRadius
+- [x] CountPalindromes
+- [x] PalindromicFactorization
+- [x] EertreeAdd
+- [x] EertreeSuffixLink
+- [x] WildcardKmp
+- [x] BitapSearch
+- [x] ShiftAndSearch
+- [x] LevenshteinAutomaton
+- [x] HashPalindromeCheck
+- [x] DynamicHashUpdate
+- [x] DynamicHashQuery
+- [x] SqrtTreeBuild
+- [x] SqrtTreeQuery
+- [x] FischerHeunBuild
+- [x] FischerHeunQuery
+- [x] SuccinctRank
+- [x] SuccinctSelect
+- [x] WaveletMatrixBuild
+- [x] WaveletMatrixRank
+- [x] WaveletMatrixSelect
+- [x] WaveletMatrixKth
+- [x] WaveletMatrixRangeFreq
+- [x] WaveletMatrixRangeSum
+- [x] CompressedBitVectorBuild
+- [x] CompressedBitVectorRank
+- [x] CompressedBitVectorSelect
+- [x] DancingLinksCover
+- [x] DancingLinksUncover
+- [x] ExactCoverSolve
+- [x] SatAddClause
+- [x] SatUnitPropagate
+- [x] SatDpll
+- [x] SatSolve
+- [x] CnfEncodeAtMostOne
+- [x] CnfEncodeExactlyOne
+- [x] CnfEncodeCardinality
+- [x] LinearBasisMerge
+- [x] MatroidRank
+- [x] GraphicMatroidRank
+- [x] PartitionMatroidRank
+- [x] MatroidExchange
+- [x] PolynomialGcd
+- [x] PolynomialExtendedGcd
+- [x] Resultant
+- [x] BerlekampFactorization
+- [x] CantorExpansion
+- [x] NumberTheoreticTransformAny
+- [x] GarnerAlgorithm
+- [x] CrtGarner
+- [x] PrimitiveRootMod
+- [x] DiscreteRoot
+- [x] KthRootModulo
+- [x] QuadraticResidueSolve
+- [x] PellEquationSolve
+- [x] LinearDiophantineSolve
+- [x] DiophantineNonnegative
 - [x] MinimizeLinearDiophantine
-- [ ] SummatoryPhi
-- [ ] SummatoryMobius
-- [ ] Min25Sieve
-- [ ] DuJiaoSieve
-- [ ] SubsetRank
-- [ ] UnrankSubset
-- [ ] KCombinationRank
-- [ ] KCombinationUnrank
+- [x] SummatoryPhi
+- [x] SummatoryMobius
+- [x] Min25Sieve
+- [x] DuJiaoSieve
+- [x] SubsetRank
+- [x] UnrankSubset
+- [x] KCombinationRank
+- [x] KCombinationUnrank
 - [x] GrayRank
 - [x] GrayUnrank
-- [ ] CoveringDp
-- [ ] SetCoverApprox
-- [ ] MinimumSteinerTree
-- [ ] SteinerTreeDp
-- [ ] PruferEncode
-- [ ] PruferDecode
-- [ ] TreeCountKirchhoff
-- [ ] LaplacianMatrix
-- [ ] MatrixTreeTheorem
-- [ ] DirectedMatrixTreeTheorem
-- [ ] RandomizedContraction
-- [ ] KargerMinCut
-- [ ] PlanarityTest
-- [ ] FaceTraversal
-- [ ] HalfEdgeBuild
-- [ ] ConvexPolygonCut
-- [ ] PointInConvexPolygon
-- [ ] ConvexPolygonDistance
-- [ ] ConvexPolygonIntersection
-- [ ] PolygonTriangulate
-- [ ] EarClipping
-- [ ] MonotonePolygonTriangulate
-- [ ] SegmentArrangement
-- [ ] SphericalDistance
-- [ ] LatLonDistance
-- [ ] ComplexMul
-- [ ] ComplexDiv
-- [ ] ComplexPow
-- [ ] ComplexRoot
-- [ ] FftRealConvolution
-- [ ] OnlineConvolution
-- [ ] CdqFpsConvolution
-- [ ] RelaxedConvolution
-- [ ] DivideFps
-- [ ] FpsComposition
-- [ ] FpsCompositionInverse
-- [ ] BostanMori
-- [ ] RationalSeriesNth
+- [x] CoveringDp
+- [x] SetCoverApprox
+- [x] MinimumSteinerTree
+- [x] SteinerTreeDp
+- [x] PruferEncode
+- [x] PruferDecode
+- [x] TreeCountKirchhoff
+- [x] LaplacianMatrix
+- [x] MatrixTreeTheorem
+- [x] DirectedMatrixTreeTheorem
+- [x] RandomizedContraction
+- [x] KargerMinCut
+- [x] PlanarityTest
+- [x] FaceTraversal
+- [x] HalfEdgeBuild
+- [x] ConvexPolygonCut
+- [x] PointInConvexPolygon
+- [x] ConvexPolygonDistance
+- [x] ConvexPolygonIntersection
+- [x] PolygonTriangulate
+- [x] EarClipping
+- [x] MonotonePolygonTriangulate
+- [x] SegmentArrangement
+- [x] SphericalDistance
+- [x] LatLonDistance
+- [x] ComplexMul
+- [x] ComplexDiv
+- [x] ComplexPow
+- [x] ComplexRoot
+- [x] FftRealConvolution
+- [x] OnlineConvolution
+- [x] CdqFpsConvolution
+- [x] RelaxedConvolution
+- [x] DivideFps
+- [x] FpsComposition
+- [x] FpsCompositionInverse
+- [x] BostanMori
+- [x] RationalSeriesNth
 - [x] LinearRecurrenceBerlekampMassey
 - [x] LinearRecurrenceKitamasa
-- [ ] SmawkMinima
-- [ ] TotallyMonotoneMinima
-- [ ] MongeShortestPath
-- [ ] MinMeanCycle
-- [ ] KarpMinimumMeanCycle
-- [ ] MaxDensitySubgraph
-- [ ] MinimumRatioCycle
-- [ ] DetectNegativeCycle
-- [ ] DifferenceConstraints
-- [ ] PotentialFeasible
-- [ ] ShortestPathTree
-- [ ] ShortestCycle
-- [ ] MinimumCycleBasis
-- [ ] CycleBasisXor
-- [ ] ReachabilityBitset
-- [ ] DominatorsLengauerTarjan
-- [ ] PostDominatorTree
-- [ ] ControlFlowDominators
-- [ ] OfflineLcaTarjan
-- [ ] TarjanBridge
-- [ ] TarjanArticulation
-- [ ] RootedBlockCutTree
-- [ ] DynamicTreeLink
-- [ ] DynamicTreeCut
-- [ ] DynamicTreePathQuery
-- [ ] TopTreeMerge
-- [ ] TopTreeExpose
-- [ ] CentroidAncestorList
-- [ ] PersistentQueuePush
-- [ ] PersistentQueuePop
-- [ ] PersistentStackPush
-- [ ] PersistentStackPop
-- [ ] PersistentHeapMerge
-- [ ] LeftistHeapMerge
-- [ ] LeftistHeapPush
-- [ ] LeftistHeapPop
-- [ ] SkewHeapMerge
-- [ ] PairingHeapPush
-- [ ] PairingHeapDecreaseKey
-- [ ] PairingHeapPop
-- [ ] FibonacciHeapPush
-- [ ] FibonacciHeapDecreaseKey
-- [ ] FibonacciHeapPop
-- [ ] RadixHeapPush
-- [ ] RadixHeapPop
-- [ ] VanEmdeBoasInsert
-- [ ] VanEmdeBoasDelete
-- [ ] VanEmdeBoasSuccessor
-- [ ] VanEmdeBoasPredecessor
-- [ ] YFastTrieInsert
-- [ ] YFastTrieErase
-- [ ] YFastTrieSuccessor
-- [ ] YFastTriePredecessor
-- [ ] TreapUnion
-- [ ] TreapIntersect
-- [ ] TreapDifference
-- [ ] PersistentTreapInsert
-- [ ] PersistentTreapErase
-- [ ] PersistentTreapQuery
-- [ ] AvlRotate
-- [ ] RedBlackInsert
-- [ ] RedBlackDelete
-- [ ] BTreeSearch
-- [ ] BTreeInsert
-- [ ] BTreeDelete
-- [ ] HashMapGet
-- [ ] HashMapSet
-- [ ] HashMapDelete
-- [ ] OpenAddressingInsert
-- [ ] OpenAddressingFind
-- [ ] BloomAdd
-- [ ] BloomMaybeContains
-- [ ] RollingMedian
-- [ ] SlidingMedian
-- [ ] SlidingMex
-- [ ] SlidingMode
-- [ ] OnlineTopK
-- [ ] ReservoirSample
-- [ ] MisraGriesHeavyHitters
-- [ ] CountMinSketchAdd
-- [ ] CountMinSketchEstimate
-- [ ] HyperLogLogAdd
-- [ ] HyperLogLogCount
-- [ ] FenwickMultisetInsert
-- [ ] FenwickMultisetErase
-- [ ] FenwickMultisetKth
-- [ ] OrderStatisticTreeInsert
-- [ ] OrderStatisticTreeErase
-- [ ] OrderStatisticTreeKth
-- [ ] OrderStatisticTreeRank
+- [x] SmawkMinima
+- [x] TotallyMonotoneMinima
+- [x] MongeShortestPath
+- [x] MinMeanCycle
+- [x] KarpMinimumMeanCycle
+- [x] MaxDensitySubgraph
+- [x] MinimumRatioCycle
+- [x] DetectNegativeCycle
+- [x] DifferenceConstraints
+- [x] PotentialFeasible
+- [x] ShortestPathTree
+- [x] ShortestCycle
+- [x] MinimumCycleBasis
+- [x] CycleBasisXor
+- [x] ReachabilityBitset
+- [x] DominatorsLengauerTarjan
+- [x] PostDominatorTree
+- [x] ControlFlowDominators
+- [x] OfflineLcaTarjan
+- [x] TarjanBridge
+- [x] TarjanArticulation
+- [x] RootedBlockCutTree
+- [x] DynamicTreeLink
+- [x] DynamicTreeCut
+- [x] DynamicTreePathQuery
+- [x] TopTreeMerge
+- [x] TopTreeExpose
+- [x] CentroidAncestorList
+- [x] PersistentQueuePush
+- [x] PersistentQueuePop
+- [x] PersistentStackPush
+- [x] PersistentStackPop
+- [x] PersistentHeapMerge
+- [x] LeftistHeapMerge
+- [x] LeftistHeapPush
+- [x] LeftistHeapPop
+- [x] SkewHeapMerge
+- [x] PairingHeapPush
+- [x] PairingHeapDecreaseKey
+- [x] PairingHeapPop
+- [x] FibonacciHeapPush
+- [x] FibonacciHeapDecreaseKey
+- [x] FibonacciHeapPop
+- [x] RadixHeapPush
+- [x] RadixHeapPop
+- [x] VanEmdeBoasInsert
+- [x] VanEmdeBoasDelete
+- [x] VanEmdeBoasSuccessor
+- [x] VanEmdeBoasPredecessor
+- [x] YFastTrieInsert
+- [x] YFastTrieErase
+- [x] YFastTrieSuccessor
+- [x] YFastTriePredecessor
+- [x] TreapUnion
+- [x] TreapIntersect
+- [x] TreapDifference
+- [x] PersistentTreapInsert
+- [x] PersistentTreapErase
+- [x] PersistentTreapQuery
+- [x] AvlRotate
+- [x] RedBlackInsert
+- [x] RedBlackDelete
+- [x] BTreeSearch
+- [x] BTreeInsert
+- [x] BTreeDelete
+- [x] HashMapGet
+- [x] HashMapSet
+- [x] HashMapDelete
+- [x] OpenAddressingInsert
+- [x] OpenAddressingFind
+- [x] BloomAdd
+- [x] BloomMaybeContains
+- [x] RollingMedian
+- [x] SlidingMedian
+- [x] SlidingMex
+- [x] SlidingMode
+- [x] OnlineTopK
+- [x] ReservoirSample
+- [x] MisraGriesHeavyHitters
+- [x] CountMinSketchAdd
+- [x] CountMinSketchEstimate
+- [x] HyperLogLogAdd
+- [x] HyperLogLogCount
+- [x] FenwickMultisetInsert
+- [x] FenwickMultisetErase
+- [x] FenwickMultisetKth
+- [x] OrderStatisticTreeInsert
+- [x] OrderStatisticTreeErase
+- [x] OrderStatisticTreeKth
+- [x] OrderStatisticTreeRank

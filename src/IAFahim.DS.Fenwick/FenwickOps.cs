@@ -6,32 +6,24 @@ namespace IAFahim.DS.Fenwick
     public static unsafe class FenwickAdd
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Run(int* bit, int idx, int val)
+        public static void Run(int* bit, int bitLen, int idx, int val)
         {
-            int n = 0;
-            bit += idx;
-            while (true)
+            while (idx < bitLen)
             {
-                *bit += val;
-                n = idx + 1;
-                idx += n & -n;
-                if (idx <= 0) break;
-                bit += n;
+                bit[idx] += val;
+                idx = (idx + 1) & -idx;
+                if (idx == 0) break;
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void RunLong(long* bit, int idx, long val)
+        public static void RunLong(long* bit, int bitLen, int idx, long val)
         {
-            int n = 0;
-            bit += idx;
-            while (true)
+            while (idx < bitLen)
             {
-                *bit += val;
-                n = idx + 1;
-                idx += n & -n;
-                if (idx <= 0) break;
-                bit += n;
+                bit[idx] += val;
+                idx = (idx + 1) & -idx;
+                if (idx == 0) break;
             }
         }
     }
@@ -42,13 +34,11 @@ namespace IAFahim.DS.Fenwick
         public static int Run(int* bit, int idx)
         {
             int res = 0;
-            bit += idx;
             while (idx >= 0)
             {
-                res += *bit;
+                res += bit[idx];
                 idx = (idx + 1) & -idx;
                 if (idx == 0) break;
-                bit -= idx;
             }
             return res;
         }
@@ -57,13 +47,11 @@ namespace IAFahim.DS.Fenwick
         public static long RunLong(long* bit, int idx)
         {
             long res = 0;
-            bit += idx;
             while (idx >= 0)
             {
-                res += *bit;
+                res += bit[idx];
                 idx = (idx + 1) & -idx;
                 if (idx == 0) break;
-                bit -= idx;
             }
             return res;
         }
@@ -96,18 +84,16 @@ namespace IAFahim.DS.Fenwick
         public static int Run(long* bit, int n, long target)
         {
             int idx = 0;
-            int bitMask = 1 << (31 - (n - 1).ToString().Length);
-            while (bitMask != 0)
+            for (int bitMask = 1 << 20; bitMask != 0; bitMask >>= 1)
             {
                 int next = idx + bitMask;
-                if (next <= n && bit[next] < target)
+                if (next < n && bit[next] < target)
                 {
                     idx = next;
                     target -= bit[next];
                 }
-                bitMask >>= 1;
             }
-            return idx;
+            return Math.Min(idx, n - 1);
         }
     }
 
@@ -172,16 +158,16 @@ namespace IAFahim.DS.Fenwick
     public static unsafe class FenwickRangeAdd
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Run(long* bit, int idx, long val)
+        public static void Run(long* bit, int bitLen, int idx, long val)
         {
-            FenwickAdd.RunLong(bit, idx, val);
-            FenwickAdd.RunLong(bit, idx, val * idx);
+            FenwickAdd.RunLong(bit, bitLen, idx, val);
+            FenwickAdd.RunLong(bit, bitLen, idx, val * idx);
         }
 
-        public static void RangeAdd(long* bit, int l, int r, long val)
+        public static void RangeAdd(long* bit, int bitLen, int l, int r, long val)
         {
-            Run(bit, l, val);
-            Run(bit, r + 1, -val);
+            Run(bit, bitLen, l, val);
+            Run(bit, bitLen, r + 1, -val);
         }
     }
 

@@ -133,9 +133,9 @@ namespace IAFahim.Math.BigInt
             {
                 if ((exp & 1) == 1)
                 {
-                    len = BigIntMul(len, res, tempLen, temp, res);
+                    len = BigIntMul.Run(len, res, tempLen, temp, res);
                 }
-                tempLen = BigIntMul(tempLen, temp, tempLen, temp, temp);
+                tempLen = BigIntMul.Run(tempLen, temp, tempLen, temp, temp);
                 exp >>= 1;
             }
             return len;
@@ -154,7 +154,7 @@ namespace IAFahim.Math.BigInt
             int decimalShown = 0;
             for (int i = pos; i < n; i++)
             {
-                if (len == 1 && !decimalShown) { res[len++] = -1; decimalShown = 1; }
+                if (len == 1 && decimalShown == 0) { res[len++] = -1; decimalShown = 1; }
                 res[len++] = a[i];
             }
             return len;

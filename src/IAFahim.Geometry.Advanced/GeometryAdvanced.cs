@@ -76,10 +76,10 @@ namespace IAFahim.Geometry.Advanced
         {
             long* p1 = stackalloc long[n1];
             long* p2 = stackalloc long[n1];
-            for (int i = 0; i < n1; i++) { p1[i] = x1[(i + 1) % n1] - x1[i]; p2[i] = y1[(i + 1) % n1] - y1[i]; }
+            for (int k = 0; k < n1; k++) { p1[k] = x1[(k + 1) % n1] - x1[k]; p2[k] = y1[(k + 1) % n1] - y1[k]; }
             long* q1 = stackalloc long[n2];
             long* q2 = stackalloc long[n2];
-            for (int i = 0; i < n2; i++) { q1[i] = x2[(i + 1) % n2] - x2[i]; q2[i] = y2[(i + 1) % n2] - y2[i]; }
+            for (int k = 0; k < n2; k++) { q1[k] = x2[(k + 1) % n2] - x2[k]; q2[k] = y2[(k + 1) % n2] - y2[k]; }
             long* resX = stackalloc long[n1 + n2];
             long* resY = stackalloc long[n1 + n2];
             int m = 0, i = 0, j = 0;
@@ -188,8 +188,8 @@ namespace IAFahim.Geometry.Advanced
             long dy = cy2 - cy1;
             long d = (long)Math.Sqrt(dx * dx + dy * dy);
             if (d <= Math.Abs(r1 - r2)) return 0;
-            long cos = r1 / (double)(d);
-            long sin = (long)Math.Sqrt(1 - cos * cos);
+            long cos = (long)((double)r1 / d);
+            long sin = (long)Math.Sqrt((double)(r1 * r1 - cos * cos)) / r1;
             long cosSign = r1 > r2 ? 1 : -1;
             ax[0] = cx1 + (dx * cos - dy * sin * cosSign) / d * r1;
             ay[0] = cy1 + (dy * cos + dx * sin * cosSign) / d * r1;
@@ -213,10 +213,10 @@ namespace IAFahim.Geometry.Advanced
             if (dSq < r * r) return 0;
             if (dSq == r * r) { tx[0] = px; ty[0] = py; return 1; }
             long d = (long)Math.Sqrt((double)dSq);
-            long cos = r / (double)d;
-            long sin = (long)Math.Sqrt(1 - cos * cos);
-            long ex = dx / (double)d;
-            long ey = dy / (double)d;
+            long cos = (long)((double)r / d);
+            long sin = (long)Math.Sqrt((double)(r * r - cos * cos)) / r;
+            long ex = (long)((double)dx / d);
+            long ey = (long)((double)dy / d);
             tx[0] = cx + (ex * cos - ey * sin) * r;
             ty[0] = cy + (ey * cos + ex * sin) * r;
             tx[1] = cx + (ex * cos + ey * sin) * r;
