@@ -10,7 +10,7 @@ namespace IAFahim.Graph.Misc
             for (int i = 0; i < n; i++)
             {
                 int u = order[i];
-                for (int e = head[u]; e != -1; e = next[e])
+                for (int e = head[u]; e != 0; e = next[e])
                 {
                     int v = to[e];
                     if (dp[u] + 1 > dp[v]) dp[v] = dp[u] + 1;
@@ -56,7 +56,7 @@ namespace IAFahim.Graph.Misc
             int* inDeg = stackalloc int[sccCount];
             for (int i = 0; i < sccCount; i++) { dp[i] = sccSum[i]; inDeg[i] = 0; }
             for (int u = 0; u < sccCount; u++)
-                for (int e = sccHead[u]; e != -1; e = sccNext[e])
+                for (int e = sccHead[u]; e != 0; e = sccNext[e])
                     inDeg[sccEdges[e]]++;
             int front = 0, rear = 0;
             for (int i = 0; i < sccCount; i++)
@@ -64,7 +64,7 @@ namespace IAFahim.Graph.Misc
             while (front < rear)
             {
                 int u = queue[front++];
-                for (int e = sccHead[u]; e != -1; e = sccNext[e])
+                for (int e = sccHead[u]; e != 0; e = sccNext[e])
                 {
                     int v = sccEdges[e];
                     if (dp[u] + sccSum[v] > dp[v]) dp[v] = dp[u] + sccSum[v];
@@ -86,7 +86,7 @@ namespace IAFahim.Graph.Misc
             {
                 int u = order[i];
                 bitsets[u * bitsetSize + (u >> 6)] |= 1L << (u & 63);
-                for (int e = head[u]; e != -1; e = next[e])
+                for (int e = head[u]; e != 0; e = next[e])
                 {
                     int v = to[e];
                     for (int j = 0; j < bitsetSize; j++)

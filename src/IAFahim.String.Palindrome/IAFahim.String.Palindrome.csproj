@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <PackageId>IAFahim.String.$dir</PackageId>
+  </PropertyGroup>
+</Project>

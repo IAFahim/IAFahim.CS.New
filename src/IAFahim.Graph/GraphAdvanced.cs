@@ -225,16 +225,48 @@ namespace IAFahim.Graph
 
     public static unsafe class TwoSatAddClause
     {
-        public static void Run(int n, int* assignment, int u, bool valU, int v, bool valV)
+        public static void Run(int u, bool valU, int v, bool valV, int* head, int* to, int* next, int* edgeCount)
         {
+            int litU = valU ? (2 * u + 1) : (2 * u);
+            int litV = valV ? (2 * v + 1) : (2 * v);
+            AddEdge(litU ^ 1, litV, head, to, next, edgeCount);
+            AddEdge(litV ^ 1, litU, head, to, next, edgeCount);
+        }
+
+        private static void AddEdge(int from, int toVal, int* head, int* to, int* next, int* edgeCount)
+        {
+            int id = ++(*edgeCount);
+            to[id] = toVal;
+            next[id] = head[from];
+            head[from] = id;
         }
     }
 
     public static unsafe class TwoSatSolve
     {
-        public static bool Run(int n, int* assignment)
+        public static bool Run(int n, int* head, int* to, int* next, int* assignment)
         {
-            for (int i = 0; i < n * 2; i++) assignment[i] = 0;
+            int n2 = n * 2;
+            int* index = stackalloc int[n2];
+            int* lowlink = stackalloc int[n2];
+            bool* onStack = stackalloc bool[n2];
+            int* stack = stackalloc int[n2];
+            int* comp = stackalloc int[n2];
+            for (int i = 0; i < n2; i++) { index[i] = -1; onStack[i] = false; comp[i] = -1; }
+            int stackSize = 0;
+            int idx = 0;
+            int sccCount = 0;
+            for (int i = 0; i < n2; i++)
+            {
+                if (index[i] < 0)
+                    IAFahim.Graph.TarjanScc.Run(i, head, to, next, index, lowlink, onStack, stack, ref stackSize, ref idx, ref sccCount, comp);
+            }
+            for (int i = 0; i < n; i++)
+            {
+                if (comp[2 * i] == comp[2 * i + 1]) return false;
+            }
+            for (int i = 0; i < n; i++)
+                assignment[i] = comp[2 * i + 1] > comp[2 * i] ? 1 : 0;
             return true;
         }
     }

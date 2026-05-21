@@ -13,11 +13,9 @@ namespace IAFahim.DS.Sparse
             {
                 for (int i = 0; i + (1 << j) <= n; i++)
                 {
-                    int base_ = i * log[n] + (j - 1) * n;
-                    int prev = i * log[n] + (j - 1) * n;
-                    int left = i + (1 << (j - 1));
-                    int right = i * log[n] + (j - 1) * n;
-                    table[base_ + n] = Math.Min(table[prev], table[right]);
+                    int left = table[i + (j - 1) * n];
+                    int right = table[i + (1 << (j - 1)) + (j - 1) * n];
+                    table[i + j * n] = left < right ? left : right;
                 }
             }
         }
@@ -30,10 +28,9 @@ namespace IAFahim.DS.Sparse
             {
                 for (int i = 0; i + (1 << j) <= n; i++)
                 {
-                    int idx = i * log[n] + j * n;
-                    int left = i * log[n] + (j - 1) * n;
-                    int right = (i + (1 << (j - 1))) * log[n] + (j - 1) * n;
-                    table[idx] = Math.Min(table[left], table[right]);
+                    long left = table[i + (j - 1) * n];
+                    long right = table[i + (1 << (j - 1)) + (j - 1) * n];
+                    table[i + j * n] = left < right ? left : right;
                 }
             }
         }
@@ -45,18 +42,18 @@ namespace IAFahim.DS.Sparse
         {
             int len = r - l + 1;
             int j = log[len];
-            int left = l * log[n] + j * n;
-            int right = (r - (1 << j) + 1) * log[n] + j * n;
-            return Math.Min(table[left], table[right]);
+            int left = table[l + j * n];
+            int right = table[r - (1 << j) + 1 + j * n];
+            return left < right ? left : right;
         }
 
         public static long MinInt64(long* table, int* log, int l, int r, int n)
         {
             int len = r - l + 1;
             int j = log[len];
-            int left = l * log[n] + j * n;
-            int right = (r - (1 << j) + 1) * log[n] + j * n;
-            return Math.Min(table[left], table[right]);
+            long left = table[l + j * n];
+            long right = table[r - (1 << j) + 1 + j * n];
+            return left < right ? left : right;
         }
     }
 
@@ -169,7 +166,10 @@ namespace IAFahim.DS.Sparse
     {
         public static void Run(int* arr, int* left, int* right, int* b, int node, int l, int r, int maxVal)
         {
-            if (l > r || l == r) return;
+            if (l > r) return;
+            left[node] = l;
+            right[node] = r;
+            if (l == r) return;
             int mid = (l + r) >> 1;
             int lo = l, hi = r;
             while (lo <= hi)
@@ -177,7 +177,6 @@ namespace IAFahim.DS.Sparse
                 int m = (lo + hi) >> 1;
                 if (arr[m] <= mid)
                 {
-                    left[node * 2] = lo;
                     lo = m + 1;
                 }
                 else
@@ -185,18 +184,13 @@ namespace IAFahim.DS.Sparse
                     hi = m - 1;
                 }
             }
+            int leftCount = lo - l;
+            left[node * 2] = l;
+            left[node * 2 + 1] = lo;
             right[node * 2] = lo - 1;
-            for (int i = l; i <= r; i++)
-            {
-                if (arr[i] <= mid)
-                {
-                    left[node * 2 + 1] = left[node * 2] + 1;
-                }
-                else
-                {
-                    right[node * 2 + 1] = right[node * 2] + 1;
-                }
-            }
+            right[node * 2 + 1] = r;
+            Run(arr, left, right, b, node * 2, l, mid, maxVal);
+            Run(arr, left, right, b, node * 2 + 1, mid + 1, r, maxVal);
         }
     }
 
@@ -205,9 +199,11 @@ namespace IAFahim.DS.Sparse
         public static int Run(int* left, int* right, int node, int l, int r, int k, int val)
         {
             if (l > r || k < l || k > r) return 0;
-            if (val <= ((l + r) >> 1))
-                return left[node * 2 + 1] - left[node * 2] + 1;
-            return right[node * 2 + 1] - right[node * 2] + 1;
+            if (l == r) return 1;
+            int mid = (left[node] + right[node]) >> 1;
+            if (val <= mid)
+                return Run(left, right, node * 2, l, r, k, val);
+            return Run(left, right, node * 2 + 1, l, r, k, val);
         }
     }
 
@@ -217,10 +213,11 @@ namespace IAFahim.DS.Sparse
         {
             if (l > r || k < l || k > r) return -1;
             if (l == r) return l;
-            int inLeft = left[node * 2 + 1] - left[node * 2];
-            if (val <= ((l + r) >> 1))
-                return Run(left, right, node * 2, l, (l + r) >> 1, left[node * 2] + k - 1, val);
-            return Run(left, right, node * 2 + 1, (l + r) >> 1 + 1, r, right[node * 2] + k - 1, val);
+            int leftCount = left[node * 2 + 1] - left[node * 2];
+            int mid = (left[node] + right[node]) >> 1;
+            if (val <= mid)
+                return Run(left, right, node * 2, l, r, k, val);
+            return Run(left, right, node * 2 + 1, l, r, k, val);
         }
     }
 
@@ -229,12 +226,13 @@ namespace IAFahim.DS.Sparse
         public static int Run(int* left, int* right, int node, int l, int r, int ql, int qr, int k)
         {
             if (ql > r || qr < l) return -1;
-            if (l >= ql && r <= qr) return l + k - 1;
-            int mid = (l + r) >> 1;
-            int leftCount = Math.Min(qr, mid) - Math.Max(ql, l) + 1;
-            if (k <= leftCount)
+            if (l == r) return l;
+            int leftCount = left[node * 2 + 1] - left[node * 2];
+            int mid = (left[node] + right[node]) >> 1;
+            int inLeft = Math.Min(qr, mid) - Math.Max(ql, l) + 1;
+            if (k <= inLeft)
                 return Run(left, right, node * 2, l, mid, ql, Math.Min(qr, mid), k);
-            return Run(left, right, node * 2 + 1, mid + 1, r, Math.Max(ql, mid + 1), qr, k - leftCount);
+            return Run(left, right, node * 2 + 1, mid + 1, r, Math.Max(ql, mid + 1), qr, k - inLeft);
         }
     }
 
@@ -245,25 +243,10 @@ namespace IAFahim.DS.Sparse
             if (ql > r || qr < l) return 0;
             if (l >= ql && r <= qr)
             {
-                int lo = l, hi = r;
-                while (lo <= hi)
-                {
-                    int m = (lo + hi) >> 1;
-                    if (m <= b) lo = m + 1;
-                    else hi = m - 1;
-                }
-                int countB = lo - Math.Max(ql, l);
-                lo = l; hi = r;
-                while (lo <= hi)
-                {
-                    int m = (lo + hi) >> 1;
-                    if (m >= a) hi = m - 1;
-                    else lo = m + 1;
-                }
-                int countA = Math.Min(qr, r) - lo + 1;
-                return countB + countA;
+                if (a <= left[node] && right[node] <= b) return r - l + 1;
+                return 0;
             }
-            int mid = (l + r) >> 1;
+            int mid = (left[node] + right[node]) >> 1;
             return Run(left, right, node * 2, l, mid, ql, qr, a, b) +
                    Run(left, right, node * 2 + 1, mid + 1, r, ql, qr, a, b);
         }

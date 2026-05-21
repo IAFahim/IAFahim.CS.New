@@ -64,7 +64,7 @@ namespace IAFahim.Search.Bit
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Run(int pos, long* bitset, int wordsPerRow)
         {
-            return (bitset[pos >> 6] >> (pos & 63)) & 1;
+            return (int)((bitset[pos >> 6] >> (pos & 63)) & 1);
         }
     }
 
@@ -143,12 +143,12 @@ namespace IAFahim.Search.Bit
         private static int BitIndexRev(long x)
         {
             int n = 63;
-            if ((x & 0xFFFFFFFF00000000L) == 0) { n -= 32; x <<= 32; }
-            if ((x & 0xFFFF0000FFFF0000L) == 0) { n -= 16; x <<= 16; }
-            if ((x & 0xFF00FF00FF00FF00L) == 0) { n -= 8; x <<= 8; }
-            if ((x & 0xF0F0F0F0F0F0F0F0L) == 0) { n -= 4; x <<= 4; }
-            if ((x & 0xCCCCCCCCCCCCCCCCL) == 0) { n -= 2; x <<= 2; }
-            if ((x & 0xAAAAAAAAAAAAAAAAL) == 0) { n -= 1; }
+            if ((x & unchecked((long)0xFFFFFFFF00000000UL)) == 0) { n -= 32; x <<= 32; }
+            if ((x & unchecked((long)0xFFFF0000FFFF0000UL)) == 0) { n -= 16; x <<= 16; }
+            if ((x & unchecked((long)0xFF00FF00FF00FF00UL)) == 0) { n -= 8; x <<= 8; }
+            if ((x & unchecked((long)0xF0F0F0F0F0F0F0F0UL)) == 0) { n -= 4; x <<= 4; }
+            if ((x & unchecked((long)0xCCCCCCCCCCCCCCCCUL)) == 0) { n -= 2; x <<= 2; }
+            if ((x & unchecked((long)0xAAAAAAAAAAAAAAAAUL)) == 0) { n -= 1; }
             return n;
         }
     }

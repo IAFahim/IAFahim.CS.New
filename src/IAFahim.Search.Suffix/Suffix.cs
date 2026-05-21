@@ -29,12 +29,10 @@ namespace IAFahim.Search.Suffix
         {
             if (len <= 1)
                 return len == 1 ? ptr[0] : default;
-            for (int i = len - 2; i >= 0; i--)
-            {
-                dynamic a = ptr[i], b = ptr[i + 1];
-                ptr[i] = (T)(object)((int)(object)a + (int)(object)b);
-            }
-            return ptr[0];
+            long sum = 0;
+            for (int i = 0; i < len; i++)
+                sum += (long)(object)ptr[i];
+            return (T)(object)sum;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -48,15 +46,10 @@ namespace IAFahim.Search.Suffix
         {
             if (l > r || l < 0)
                 return default;
-            for (int i = r - 1; i >= l; i--)
-            {
-                dynamic a = ptr[i], b = ptr[i + 1];
-                ptr[i] = (T)(object)((int)(object)a + (int)(object)b);
-            }
-            T lr = l > 0 ? ptr[l - 1] : default;
-            dynamic result = ptr[r];
-            dynamic left = lr;
-            return (T)(object)((int)(object)result - (int)(object)left);
+            long sum = 0;
+            for (int i = l; i <= r; i++)
+                sum += (long)(object)ptr[i];
+            return (T)(object)sum;
         }
     }
 

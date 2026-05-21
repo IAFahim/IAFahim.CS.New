@@ -5,7 +5,7 @@ namespace IAFahim.DS.Treap
     using System.Runtime.InteropServices;
 
     [StructLayout(LayoutKind.Sequential)]
-    public struct TreapNode
+    public unsafe struct TreapNode
     {
         public int Key;
         public int Priority;
@@ -187,13 +187,16 @@ namespace IAFahim.DS.Treap
             if (node != null) node->Rev = !node->Rev;
         }
 
-        public static long RangeQuery(TreapNode* root, int l, int r)
+        public static long RangeQuery(TreapNode** root, int l, int r)
         {
-            TreapNode *left, *mid, *right;
+            TreapNode* left = null;
+            TreapNode* mid = null;
+            TreapNode* right = null;
             Split(root, l, &left, &mid);
-            Split(mid, r + 1, &mid, &right);
+            TreapNode** midRef = &mid;
+            Split(midRef, r + 1, &mid, &right);
             long result = SumOf(mid);
-            root = Merge(left, Merge(mid, right));
+            *root = Merge(left, Merge(mid, right));
             return result;
         }
     }

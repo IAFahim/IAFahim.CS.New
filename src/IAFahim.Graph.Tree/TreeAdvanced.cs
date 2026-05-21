@@ -43,7 +43,7 @@ namespace IAFahim.Graph.Tree
 
     public static unsafe class HldPathQuery
     {
-        public static long Run(int u, int v, long* segTree, int* headChain, int* pos, int* parent, int* depth, long* values)
+        public static long Run(int u, int v, long* segTree, int* headChain, int* pos, int* parent, int* depth, int n)
         {
             long result = 0;
             while (headChain[u] != headChain[v])
@@ -52,52 +52,60 @@ namespace IAFahim.Graph.Tree
                 {
                     int tmp = u; u = v; v = tmp;
                 }
-                result += QuerySeg(pos[headChain[v]], pos[v], segTree);
+                result += SegTreeRangeQuery.Run(segTree, pos[headChain[v]], pos[v], n);
                 v = parent[headChain[v]];
             }
             if (depth[u] > depth[v])
             {
                 int tmp = u; u = v; v = tmp;
             }
-            return result + QuerySeg(pos[u], pos[v], segTree);
-        }
-
-        private static long QuerySeg(int l, int r, long* seg)
-        {
-            return seg[l];
+            return result + SegTreeRangeQuery.Run(segTree, pos[u], pos[v], n);
         }
     }
 
     public static unsafe class HldPathUpdate
     {
-        public static void Run(int u, int v, int val, int* headChain, int* pos, int* parent, int* depth)
+        public static void Run(int u, int v, long val, long* segTree, int* headChain, int* pos, int* parent, int* depth, int n)
         {
             while (headChain[u] != headChain[v])
             {
-                int tmp;
                 if (depth[headChain[u]] > depth[headChain[v]])
                 {
-                    tmp = u; u = v; v = tmp;
+                    int tmp = u; u = v; v = tmp;
                 }
+                for (int i = pos[headChain[v]]; i <= pos[v]; i++)
+                    IAFahim.DS.SegmentTree.SegmentTreeSet.RunInt64(segTree, 1, 0, n - 1, i, val);
                 v = parent[headChain[v]];
             }
             int l = depth[u] < depth[v] ? pos[u] : pos[v];
             int r = depth[u] < depth[v] ? pos[v] : pos[u];
+            for (int i = l; i <= r; i++)
+                IAFahim.DS.SegmentTree.SegmentTreeSet.RunInt64(segTree, 1, 0, n - 1, i, val);
         }
     }
 
     public static unsafe class HldSubtreeQuery
     {
-        public static long Run(int u, long* segTree, int* pos)
+        public static long Run(int u, int subtreeSize, long* segTree, int* pos, int n)
         {
-            return segTree[pos[u]];
+            return SegTreeRangeQuery.Run(segTree, pos[u], pos[u] + subtreeSize - 1, n);
         }
     }
 
     public static unsafe class HldSubtreeUpdate
     {
-        public static void Run(int u, int val, long* segTree, int* pos)
+        public static void Run(int u, int subtreeSize, long val, long* segTree, int* pos, int n)
         {
+            for (int i = pos[u]; i < pos[u] + subtreeSize; i++)
+                IAFahim.DS.SegmentTree.SegmentTreeSet.RunInt64(segTree, 1, 0, n - 1, i, val);
+        }
+    }
+
+    public static unsafe class SegTreeRangeQuery
+    {
+        public static long Run(long* tree, int ql, int qr, int n)
+        {
+            return IAFahim.DS.SegmentTree.SegmentTreeQuery.RunInt64(tree, 1, 0, n - 1, ql, qr);
         }
     }
 

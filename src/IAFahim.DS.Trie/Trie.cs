@@ -19,7 +19,7 @@ namespace IAFahim.DS.Trie
                 }
                 cur = next;
             }
-            trie[cur * 27 + 26] = -1;
+            trie[cur * 27 + 26]++;
         }
     }
 
@@ -38,8 +38,8 @@ namespace IAFahim.DS.Trie
                 path[pathLen++] = cur;
                 cur = next;
             }
-            if (trie[cur * 27 + 26] != -1) return false;
-            trie[cur * 27 + 26] = 0;
+            if (trie[cur * 27 + 26] <= 0) return false;
+            trie[cur * 27 + 26]--;
             for (int i = pathLen - 1; i >= 0; i--)
             {
                 int p = path[i];
@@ -68,7 +68,7 @@ namespace IAFahim.DS.Trie
                 if (next == 0) return false;
                 cur = next;
             }
-            return trie[cur * 27 + 26] == -1;
+            return trie[cur * 27 + 26] > 0;
         }
     }
 
@@ -124,7 +124,7 @@ namespace IAFahim.DS.Trie
             trie[cur * 2]--;
             for (int i = pathLen - 1; i >= 0; i--)
             {
-                int b = (val >> (pathLen - 1 - i)) & 1;
+                int b = (val >> (bits - 1 - i)) & 1;
                 int child = trie[path[i] * 2 + b];
                 if (trie[child * 2] == 0) trie[path[i] * 2 + b] = 0;
             }

@@ -36,12 +36,14 @@ namespace IAFahim.Graph
         {
             for (int i = 0; i < n; i++) dist[i] = int.MaxValue;
             int* dq = stackalloc int[n];
-            int dh = 0, dt = 0;
+            int dh = 0, dt = 0, cnt = 0;
             dist[start] = 0;
             dq[dt++] = start;
+            cnt++;
             while (dh < dt)
             {
                 int u = dq[dh++];
+                cnt--;
                 for (int e = head[u]; e != 0; e = next[e])
                 {
                     int v = to[e];
@@ -49,8 +51,19 @@ namespace IAFahim.Graph
                     if (dist[v] > dist[u] + w)
                     {
                         dist[v] = dist[u] + w;
-                        if (w == 0) dq[dh--] = v;
-                        else dq[dt++] = v;
+                        if (w == 0)
+                        {
+                            dh--;
+                            if (dh < 0) dh = n - 1;
+                            dq[dh] = v;
+                            cnt++;
+                        }
+                        else
+                        {
+                            dq[dt++] = v;
+                            if (dt >= n) dt = 0;
+                            cnt++;
+                        }
                     }
                 }
             }

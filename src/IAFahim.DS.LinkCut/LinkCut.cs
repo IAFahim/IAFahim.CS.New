@@ -5,7 +5,7 @@ namespace IAFahim.DS.LinkCut
     using System.Runtime.InteropServices;
 
     [StructLayout(LayoutKind.Sequential)]
-    public struct LctNode
+    public unsafe struct LctNode
     {
         public int Index;
         public long Value;
@@ -54,9 +54,9 @@ namespace IAFahim.DS.LinkCut
 
         private static void Rotate(LctNode* x)
         {
+            if (x == null || x->Parent == null) return;
             LctNode* p = x->Parent;
             LctNode* g = p->Parent;
-            if (p == null) return;
             if (p->Left == x)
             {
                 p->Left = x->Right;

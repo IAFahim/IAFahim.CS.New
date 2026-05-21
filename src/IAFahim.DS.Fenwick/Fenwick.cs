@@ -8,24 +8,16 @@ namespace IAFahim.DS.Fenwick
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AddInt64(long* bit, int n, int idx, long val)
         {
-            while (idx < n)
-            {
+            for (idx += 1; idx <= n; idx += idx & -idx)
                 bit[idx] += val;
-                idx = (idx + 1) & -idx;
-                if (idx == 0) break;
-            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long SumInt64(long* bit, int idx)
         {
             long res = 0;
-            while (idx >= 0)
-            {
+            for (idx += 1; idx > 0; idx -= idx & -idx)
                 res += bit[idx];
-                idx = (idx + 1) & -idx;
-                if (idx == 0) break;
-            }
             return res;
         }
 
@@ -42,7 +34,8 @@ namespace IAFahim.DS.Fenwick
         public static int LowerBoundInt64(long* bit, int n, long target)
         {
             int idx = 0;
-            for (int bitMask = 1 << 20; bitMask != 0; bitMask >>= 1)
+            int bitMask = 1 << (31 - Math.Clamp(n - 1, 0, 30));
+            for (; bitMask != 0; bitMask >>= 1)
             {
                 int next = idx + bitMask;
                 if (next < n && bit[next] < target)
@@ -51,7 +44,7 @@ namespace IAFahim.DS.Fenwick
                     target -= bit[next];
                 }
             }
-            return Math.Min(idx, n - 1);
+            return idx;
         }
     }
 }

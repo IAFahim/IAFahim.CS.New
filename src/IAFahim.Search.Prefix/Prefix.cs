@@ -25,21 +25,6 @@ namespace IAFahim.Search.Prefix
             return ptr[len - 1];
         }
 
-        public static T Run<T>(T* ptr, int len) where T : unmanaged
-        {
-            if (len <= 1)
-                return len == 1 ? ptr[0] : default;
-            dynamic a = ptr[0], b = ptr[1];
-            ptr[1] = (T)(object)((int)(object)a + (int)(object)b);
-            for (int i = 2; i < len; i++)
-            {
-                dynamic prev = ptr[i - 1];
-                dynamic cur = ptr[i];
-                ptr[i] = (T)(object)((int)(object)prev + (int)(object)cur);
-            }
-            return ptr[len - 1];
-        }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T Sum<T>(T* ptr, int len) where T : unmanaged
         {
@@ -76,9 +61,7 @@ namespace IAFahim.Search.Prefix
                 return default;
             if (l == 0)
                 return ptr[r];
-            dynamic left = ptr[l - 1];
-            dynamic right = ptr[r];
-            return (T)(object)((long)(object)right ^ (long)(object)left);
+            return (T)(object)((long)(object)ptr[r] ^ (long)(object)ptr[l - 1]);
         }
     }
 

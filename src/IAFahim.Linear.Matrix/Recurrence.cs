@@ -218,7 +218,7 @@ namespace IAFahim.Linear.Matrix
 
     public static unsafe class Kitamasa
     {
-        public static long Run(int k, long* init, long* trans, long n)
+        public static long Run(int k, long* init, long* trans, long n, long mod)
         {
             if (n < k) return init[n];
             long* pol = stackalloc long[k];
@@ -238,11 +238,17 @@ namespace IAFahim.Linear.Matrix
                             for (int j = 0; j < k; j++)
                                 if (pol[j] != 0)
                                 {
-                                    int ni = i + j;
-                                    if (ni >= k) ni = ni % k + k;
-                                    newRes[ni] += res[i] * pol[j];
+                                    int idx = i + j;
+                                    long add = (res[i] % mod) * (pol[j] % mod) % mod;
+                                    if (idx < k)
+                                        newRes[idx] = (newRes[idx] + add) % mod;
+                                    else
+                                    {
+                                        for (int t = 0; t < k; t++)
+                                            newRes[idx - k + 1 + t] = (newRes[idx - k + 1 + t] + add * trans[t]) % mod;
+                                    }
                                 }
-                    for (int i = 0; i < k; i++) res[i] = newRes[i] % 1000000007;
+                    for (int i = 0; i < k; i++) res[i] = newRes[i];
                 }
                 long* newPol = stackalloc long[k];
                 for (int i = 0; i < k; i++) newPol[i] = 0;
@@ -251,17 +257,23 @@ namespace IAFahim.Linear.Matrix
                         for (int j = 0; j < k; j++)
                             if (pol[j] != 0)
                             {
-                                int ni = i + j;
-                                if (ni >= k) ni = ni % k + k;
-                                newPol[ni] += pol[i] * pol[j];
+                                int idx = i + j;
+                                long add = (pol[i] % mod) * (pol[j] % mod) % mod;
+                                if (idx < k)
+                                    newPol[idx] = (newPol[idx] + add) % mod;
+                                else
+                                {
+                                    for (int t = 0; t < k; t++)
+                                        newPol[idx - k + 1 + t] = (newPol[idx - k + 1 + t] + add * trans[t]) % mod;
+                                }
                             }
-                for (int i = 0; i < k; i++) pol[i] = newPol[i] % 1000000007;
+                for (int i = 0; i < k; i++) pol[i] = newPol[i];
                 exp >>= 1;
             }
             long ans = 0;
             for (int i = 0; i < k; i++)
-                ans += res[i] * init[k - 1 - i];
-            return ans % 1000000007;
+                ans = (ans + (res[i] % mod) * (init[k - 1 - i] % mod)) % mod;
+            return ans;
         }
     }
 }

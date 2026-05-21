@@ -163,17 +163,20 @@ namespace IAFahim.Graph
             for (int i = 0; i < n; i++) parent[i] = -1;
             for (int i = 0; i < n; i++) inqueue[i] = 0;
             int* q = stackalloc int[n];
-            int qh = 0, qt = 0;
+            int qh = 0, qt = 0, cnt = 0;
             dist[start] = 0;
             q[qt++] = start;
+            if (qt >= n) qt = 0;
+            cnt++;
             inqueue[start] = 1;
             int* count = stackalloc int[n];
             for (int i = 0; i < n; i++) count[i] = 0;
             count[start] = 1;
-            while (qh < qt)
+            while (cnt > 0)
             {
                 int u = q[qh++];
                 if (qh >= n) qh = 0;
+                cnt--;
                 inqueue[u] = 0;
                 for (int e = head[u]; e != 0; e = next[e])
                 {
@@ -187,6 +190,7 @@ namespace IAFahim.Graph
                         {
                             q[qt++] = v;
                             if (qt >= n) qt = 0;
+                            cnt++;
                             inqueue[v] = 1;
                             count[v]++;
                             if (count[v] > n) return false;

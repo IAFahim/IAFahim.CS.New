@@ -40,15 +40,17 @@ namespace IAFahim.Permutation
         {
             for (int i = 0; i < n; i++) result[i] = i;
             int* temp = stackalloc int[n];
+            int* basePerm = stackalloc int[n];
+            for (int i = 0; i < n; i++) basePerm[i] = p[i];
             while (k > 0)
             {
                 if ((k & 1) == 1)
                 {
                     for (int i = 0; i < n; i++) temp[i] = result[i];
-                    for (int i = 0; i < n; i++) result[i] = p[temp[i]];
+                    for (int i = 0; i < n; i++) result[i] = basePerm[temp[i]];
                 }
-                for (int i = 0; i < n; i++) temp[i] = p[i];
-                for (int i = 0; i < n; i++) p[i] = temp[temp[i]];
+                for (int i = 0; i < n; i++) temp[i] = basePerm[i];
+                for (int i = 0; i < n; i++) basePerm[i] = temp[temp[i]];
                 k >>= 1;
             }
         }
@@ -84,7 +86,7 @@ namespace IAFahim.Permutation
     {
         public static void Run(int n, long k, int* result)
         {
-            int* fact = stackalloc int[n + 1];
+            long* fact = stackalloc long[n + 1];
             fact[0] = 1;
             for (int i = 1; i <= n; i++) fact[i] = fact[i - 1] * i;
             bool* used = stackalloc bool[n];

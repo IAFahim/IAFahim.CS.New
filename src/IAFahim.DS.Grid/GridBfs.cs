@@ -55,19 +55,39 @@ namespace IAFahim.DS.Grid
             int count = 0;
             while (top > 0)
             {
-                int node = stack[--top];
-                int r = node / width;
-                int c = node % width;
-                if ((uint)r >= (uint)height || (uint)c >= (uint)width) continue;
-                int idx = r * width + c;
-                if (grid[idx] != target) continue;
-                grid[idx] = replacement;
-                count++;
-                if (top + 4 > maxStack) continue;
-                stack[top++] = (r - 1) * width + c;
-                stack[top++] = (r + 1) * width + c;
-                stack[top++] = r * width + (c - 1);
-                stack[top++] = r * width + (c + 1);
+                if (top >= maxStack)
+                {
+                    top--;
+                    int node = stack[top];
+                    int r = node / width;
+                    int c = node % width;
+                    if ((uint)r >= (uint)height || (uint)c >= (uint)width) continue;
+                    int idx = r * width + c;
+                    if (grid[idx] != target) continue;
+                    grid[idx] = replacement;
+                    count++;
+                    if (top + 4 > maxStack) continue;
+                    stack[top++] = (r - 1) * width + c;
+                    stack[top++] = (r + 1) * width + c;
+                    stack[top++] = r * width + (c - 1);
+                    stack[top++] = r * width + (c + 1);
+                }
+                else
+                {
+                    int node = stack[--top];
+                    int r = node / width;
+                    int c = node % width;
+                    if ((uint)r >= (uint)height || (uint)c >= (uint)width) continue;
+                    int idx = r * width + c;
+                    if (grid[idx] != target) continue;
+                    grid[idx] = replacement;
+                    count++;
+                    if (top + 4 > maxStack) continue;
+                    stack[top++] = (r - 1) * width + c;
+                    stack[top++] = (r + 1) * width + c;
+                    stack[top++] = r * width + (c - 1);
+                    stack[top++] = r * width + (c + 1);
+                }
             }
             return count;
         }
@@ -98,10 +118,26 @@ namespace IAFahim.DS.Grid
                 for (int i = 0; i < height * width; i++) dst[i] = src[i];
                 return;
             }
+            int len = height * width;
+            long* temp = stackalloc long[len];
+            long* cur = src;
+            long* next = dst;
             int h = height, w = width;
-            for (int i = 0; i < h; i++)
-                for (int j = 0; j < w; j++)
-                    dst[j * h + (h - 1 - i)] = src[i * width + j];
+            for (int r = 0; r < times; r++)
+            {
+                for (int i = 0; i < h; i++)
+                    for (int j = 0; j < w; j++)
+                        next[j * h + (h - 1 - i)] = cur[i * w + j];
+                for (int i = 0; i < len; i++) temp[i] = cur[i];
+                long* swap = cur;
+                cur = next;
+                next = temp;
+                int tmp = h;
+                h = w;
+                w = tmp;
+            }
+            if (cur != dst)
+                for (int i = 0; i < len; i++) dst[i] = cur[i];
         }
     }
 

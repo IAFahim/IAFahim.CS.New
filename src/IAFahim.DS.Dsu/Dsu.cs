@@ -76,16 +76,45 @@ namespace IAFahim.DS.Dsu
 
     public static unsafe class DsuRollbackSnapshot
     {
-        public static long Run()
+        public static int Run(int* history, int histSize)
         {
-            return 0;
+            return histSize;
         }
     }
 
     public static unsafe class DsuRollback
     {
-        public static void Run(int* parent, int* size, int* history, int histSize)
+        public static void Run(int* parent, int* size, int* history, int targetHistSize, int* currentHistSize)
         {
+            while (*currentHistSize > targetHistSize)
+            {
+                *currentHistSize -= 3;
+                int sz = history[*currentHistSize + 2];
+                int child = history[*currentHistSize + 1];
+                int par = history[*currentHistSize];
+                parent[child] = child;
+                size[par] = sz;
+            }
+        }
+    }
+
+    public static unsafe class DsuRollbackUnion
+    {
+        public static bool Run(int* parent, int* size, int* history, int* histSize, int a, int b)
+        {
+            int ra = DsuFind.Run(parent, a);
+            int rb = DsuFind.Run(parent, b);
+            if (ra == rb) return false;
+            if (size[ra] < size[rb])
+            {
+                int tmp = ra; ra = rb; rb = tmp;
+            }
+            history[(*histSize)++] = ra;
+            history[(*histSize)++] = rb;
+            history[(*histSize)++] = size[ra];
+            parent[rb] = ra;
+            size[ra] += size[rb];
+            return true;
         }
     }
 

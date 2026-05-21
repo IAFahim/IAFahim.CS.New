@@ -354,13 +354,13 @@ namespace IAFahim.Graph.Flow
     {
         public static void Run(int* head, int* to, int* next, int* cost, int* cap, int* edgeId, int u, int v, int w, int c)
         {
-            int id = ++(*edgeId);
+            int id = (*edgeId)++;
             to[id] = v;
             cost[id] = w;
             cap[id] = c;
             next[id] = head[u];
             head[u] = id;
-            id = ++(*edgeId);
+            id = (*edgeId)++;
             to[id] = u;
             cost[id] = -w;
             cap[id] = 0;

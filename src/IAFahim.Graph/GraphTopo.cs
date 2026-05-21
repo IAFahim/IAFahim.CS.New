@@ -168,16 +168,15 @@ namespace IAFahim.Graph
 
     public static unsafe class Kosaraju
     {
-        public static void FirstDfs(int u, int* head, int* to, int* next, bool* visited, int* order)
+        public static void FirstDfs(int u, int* head, int* to, int* next, bool* visited, int* order, int* top)
         {
             visited[u] = true;
             for (int e = head[u]; e != 0; e = next[e])
             {
                 int v = to[e];
-                if (!visited[v]) FirstDfs(v, head, to, next, visited, order);
+                if (!visited[v]) FirstDfs(v, head, to, next, visited, order, top);
             }
-            order[0] = u;
-            order[1]++;
+            order[(*top)++] = u;
         }
 
         public static void SecondDfs(int u, int* head, int* to, int* next, bool* visited, int* comp, int id)
@@ -193,15 +192,14 @@ namespace IAFahim.Graph
 
         public static int Run(int n, int* head, int* to, int* next, int* revHead, int* revTo, int* revNext, int* comp)
         {
-            int* order = stackalloc int[2];
-            order[0] = 0;
-            order[1] = 0;
+            int* order = stackalloc int[n];
+            int top = 0;
             bool* visited = stackalloc bool[n];
             for (int i = 0; i < n; i++) visited[i] = false;
             for (int i = 0; i < n; i++)
             {
                 if (!visited[i])
-                    FirstDfs(i, head, to, next, visited, order);
+                    FirstDfs(i, head, to, next, visited, order, &top);
             }
             for (int i = 0; i < n; i++) visited[i] = false;
             int sccCount = 0;
@@ -260,8 +258,6 @@ namespace IAFahim.Graph
         {
             for (int i = 0; i < sccCount; i++) condHead[i] = 0;
             *condEdgeId = 0;
-            bool* seen = stackalloc bool[n * n];
-            for (int i = 0; i < n * n; i++) seen[i] = false;
             for (int u = 0; u < n; u++)
             {
                 for (int e = head[u]; e != 0; e = next[e])
@@ -269,9 +265,14 @@ namespace IAFahim.Graph
                     int v = to[e];
                     int cu = comp[u];
                     int cv = comp[v];
-                    if (cu != cv && !seen[cu * n + cv])
+                    if (cu == cv) continue;
+                    bool exists = false;
+                    for (int ce = condHead[cu]; ce != 0; ce = condNext[ce])
                     {
-                        seen[cu * n + cv] = true;
+                        if (condTo[ce] == cv) { exists = true; break; }
+                    }
+                    if (!exists)
+                    {
                         int id = ++(*condEdgeId);
                         condTo[id] = cv;
                         condNext[id] = condHead[cu];

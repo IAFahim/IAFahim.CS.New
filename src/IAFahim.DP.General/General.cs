@@ -271,7 +271,7 @@ namespace IAFahim.DP.General
                     dp[i * n + j] = best;
                 }
             }
-            return dp[0];
+            return dp[0 * n + (n - 1)];
         }
     }
 

@@ -3,6 +3,67 @@ namespace IAFahim.Search.Selection
     using System;
     using System.Runtime.CompilerServices;
 
+    public static unsafe class Selection
+    {
+        public static void SelectTopK(int* ptr, int len, int k)
+        {
+            if (k <= 0 || len == 0) return;
+            if (k >= len) return;
+            int left = 0, right = len - 1;
+            while (left < right)
+            {
+                int pivot = ptr[right];
+                int i = left - 1;
+                for (int j = left; j < right; j++)
+                {
+                    if (ptr[j] <= pivot)
+                    {
+                        i++;
+                        int t = ptr[i]; ptr[i] = ptr[j]; ptr[j] = t;
+                    }
+                }
+                int t2 = ptr[i + 1]; ptr[i + 1] = ptr[right]; ptr[right] = t2;
+                int idx = i + 1;
+                if (idx == k) break;
+                else if (idx < k) left = idx + 1;
+                else right = idx - 1;
+            }
+        }
+
+        public static bool TryGetKth(int* ptr, int len, int k, out int result)
+        {
+            result = 0;
+            if ((uint)k >= (uint)len) return false;
+            int left = 0, right = len - 1;
+            while (left < right)
+            {
+                int pivot = ptr[right];
+                int i = left - 1;
+                for (int j = left; j < right; j++)
+                {
+                    if (ptr[j] <= pivot)
+                    {
+                        i++;
+                        int t = ptr[i]; ptr[i] = ptr[j]; ptr[j] = t;
+                    }
+                }
+                int t2 = ptr[i + 1]; ptr[i + 1] = ptr[right]; ptr[right] = t2;
+                int idx = i + 1;
+                if (idx == k) { result = ptr[idx]; return true; }
+                else if (idx < k) left = idx + 1;
+                else right = idx - 1;
+            }
+            result = ptr[left];
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int MedianIndex(int len)
+        {
+            return len == 0 ? 0 : (len - 1) >> 1;
+        }
+    }
+
     public static unsafe class TopK
     {
         public static int Run(int n, long* a, int k, long* res)

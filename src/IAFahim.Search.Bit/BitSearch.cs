@@ -40,7 +40,7 @@ namespace IAFahim.Search.Bit
                 while (lo < hi)
                 {
                     int mid = (lo + hi) >> 1;
-                    if (tail[mid] > arr[i]) lo = mid + 1;
+                    if (tail[mid] <= arr[i]) lo = mid + 1;
                     else hi = mid;
                 }
                 pos = lo;
@@ -88,7 +88,7 @@ namespace IAFahim.Search.Bit
             int lo = int.MinValue, hi = int.MaxValue;
             while (lo < hi)
             {
-                int mid = (lo + hi) >> 1;
+                int mid = lo + ((hi - lo) >> 1);
                 int cnt = 0;
                 for (int i = 0; i < n; i++)
                     if (arr[i] <= mid) cnt++;
