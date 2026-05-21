@@ -49,7 +49,8 @@ namespace IAFahim.String.Tests
         {
             byte* a = stackalloc byte[4] { (byte)'a', (byte)'b', (byte)'c', (byte)'d' };
             byte* b = stackalloc byte[4] { (byte)'b', (byte)'c', (byte)'e', (byte)'f' };
-            int len = Lcs.Run(a, 4, b, 4);
+            byte* res = stackalloc byte[4];
+            int len = Lcs.Run(a, 4, b, 4, res);
             Assert.Equal(2, len);
         }
 

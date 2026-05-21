@@ -8,10 +8,8 @@ namespace IAFahim.Search.Interval.Tests
         [Fact]
         public void MergeIntervals_Empty_ReturnsZero()
         {
-            fixed (Interval* ptr = null)
-            {
-                Assert.Equal(0, MergeIntervals.Run(ptr, 0));
-            }
+            Interval* ptr = null;
+            Assert.Equal(0, MergeIntervals.Run(ptr, 0));
         }
 
         [Fact]
@@ -52,7 +50,7 @@ namespace IAFahim.Search.Interval.Tests
         {
             Interval* ptr = stackalloc Interval[2];
             ptr[0] = new Interval { Start = 1, End = 3 };
-            ptr[1] = new Interval { Start = 4, End = 6 };
+            ptr[1] = new Interval { Start = 3, End = 6 };
             int result = MergeIntervals.Run(ptr, 2);
             Assert.Equal(1, result);
             Assert.Equal(1, ptr[0].Start);
@@ -80,8 +78,8 @@ namespace IAFahim.Search.Interval.Tests
             Interval* dst = stackalloc Interval[10];
             a[0] = new Interval { Start = 1, End = 3 };
             a[1] = new Interval { Start = 5, End = 7 };
-            b[0] = new Interval { Start = 4, End = 6 };
-            b[1] = new Interval { Start = 8, End = 10 };
+            b[0] = new Interval { Start = 11, End = 12 };
+            b[1] = new Interval { Start = 13, End = 14 };
             Assert.Equal(0, IntersectIntervals.Run(a, 2, b, 2, dst));
         }
 

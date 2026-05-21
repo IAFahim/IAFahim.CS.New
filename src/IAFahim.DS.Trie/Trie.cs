@@ -84,7 +84,21 @@ namespace IAFahim.DS.Trie
                 if (next == 0) return 0;
                 cur = next;
             }
-            return trie[cur * 27 + 26];
+            return SumSubtree(trie, cur);
+        }
+
+        private static int SumSubtree(int* trie, int cur)
+        {
+            int sum = trie[cur * 27 + 26];
+            for (int c = 0; c < 26; c++)
+            {
+                int next = trie[cur * 27 + c];
+                if (next != 0)
+                {
+                    sum += SumSubtree(trie, next);
+                }
+            }
+            return sum;
         }
     }
 
@@ -126,7 +140,8 @@ namespace IAFahim.DS.Trie
             {
                 int b = (val >> (bits - 1 - i)) & 1;
                 int child = trie[path[i] * 2 + b];
-                if (trie[child * 2] == 0) trie[path[i] * 2 + b] = 0;
+                if (trie[child * 2] == 0 && trie[child * 2 + 0] == 0 && trie[child * 2 + 1] == 0)
+                    trie[path[i] * 2 + b] = 0;
             }
         }
     }

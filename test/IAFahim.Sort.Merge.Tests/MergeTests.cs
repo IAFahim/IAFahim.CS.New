@@ -92,10 +92,8 @@ namespace IAFahim.Sort.Merge.Tests
         [Fact]
         public void MergeSorted_InPlace_Empty_NoOp()
         {
-            fixed (int* ptr = null)
-            {
-                MergeSorted.RunInPlace(ptr, 0);
-            }
+            int* ptr = null;
+            MergeSorted.RunInPlace(ptr, 0);
         }
 
         [Fact]

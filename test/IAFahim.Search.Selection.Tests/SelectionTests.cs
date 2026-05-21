@@ -78,7 +78,7 @@ namespace IAFahim.Search.Selection.Tests
             int* ptr = stackalloc int[5];
             ptr[0] = 5; ptr[1] = 3; ptr[2] = 7; ptr[3] = 1; ptr[4] = 9;
             int result;
-            Assert.True(Selection.TryGetKth(ptr, 5, 2, out result));
+            Assert.True(Selection.TryGetKth(ptr, 5, 1, out result));
             Assert.Equal(3, result);
         }
 

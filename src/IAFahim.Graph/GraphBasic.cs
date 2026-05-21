@@ -7,7 +7,7 @@ namespace IAFahim.Graph
     {
         public static void Run(int* head, int* to, int* next, int* edgeId, int u, int v, int* edgeCount)
         {
-            int id = ++(*edgeId);
+            int id = (*edgeId)++;
             to[id] = v;
             next[id] = head[u];
             head[u] = id;
@@ -18,7 +18,7 @@ namespace IAFahim.Graph
     {
         public static void Run(int* head, int* to, int* next, int* edgeId, int u, int v, int* edgeCount)
         {
-            int id = ++(*edgeId);
+            int id = (*edgeId)++;
             to[id] = v;
             next[id] = head[u];
             head[u] = id;
@@ -29,7 +29,7 @@ namespace IAFahim.Graph
     {
         public static void Run(int* head, int* to, int* next, int* weight, int* edgeId, int u, int v, int w, int* edgeCount)
         {
-            int id = ++(*edgeId);
+            int id = (*edgeId)++;
             to[id] = v;
             weight[id] = w;
             next[id] = head[u];
@@ -65,7 +65,7 @@ namespace IAFahim.Graph
                 for (int e = head[u]; e != 0; e = next[e])
                 {
                     int v = to[e];
-                    int id = ++(*revEdgeId);
+                    int id = (*revEdgeId)++;
                     revTo[id] = u;
                     revNext[id] = revHead[v];
                     revHead[v] = id;

@@ -290,9 +290,13 @@ namespace IAFahim.Geometry.Basic
             bool inside = false;
             for (int i = 0, j = n - 1; i < n; j = i++)
             {
-                if (((y[i] > py) != (y[j] > py)) &&
-                    (px < (x[j] - x[i]) * (py - y[i]) / (y[j] - y[i]) + x[i]))
-                    inside = !inside;
+                long xi = x[i], yi = y[i], xj = x[j], yj = y[j];
+                if ((yi > py) != (yj > py))
+                {
+                    long dy = yj - yi;
+                    long rhs = xi * dy + (xj - xi) * (py - yi);
+                    if (px * dy < rhs) inside = !inside;
+                }
             }
             return inside ? 1 : 0;
         }

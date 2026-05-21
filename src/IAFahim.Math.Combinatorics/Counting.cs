@@ -117,13 +117,9 @@ namespace IAFahim.Math.Combinatorics
         {
             if (n == 0) return 1;
             long result = 0;
-            long comb = 1;
             for (long k = 0; k <= n; k++)
             {
-                long term = (comb * StirlingSecond.Run(n, k, mod)) % mod;
-                result = (result + term) % mod;
-                comb = (comb * (n - k)) % mod;
-                comb = (comb * MathHelper.ModInverse(k + 1, mod)) % mod;
+                result = (result + StirlingSecond.Run(n, k, mod)) % mod;
             }
             return result;
         }

@@ -9,7 +9,7 @@ namespace IAFahim.DS.Fenwick.Tests
         [Fact]
         public void EmptyInput_NoOp()
         {
-            int* bit = stackalloc int[1];
+            int* bit = stackalloc int[2];
             FenwickAdd.Run(bit, 1, 0, 5);
             Assert.Equal(5, FenwickSum.Run(bit, 0));
         }
@@ -17,7 +17,7 @@ namespace IAFahim.DS.Fenwick.Tests
         [Fact]
         public void SingleElement_AddAndSum()
         {
-            int* bit = stackalloc int[1];
+            int* bit = stackalloc int[2];
             FenwickAdd.Run(bit, 1, 0, 5);
             Assert.Equal(5, FenwickSum.Run(bit, 0));
         }
@@ -26,7 +26,7 @@ namespace IAFahim.DS.Fenwick.Tests
         public void RangeSum_MultipleAdds()
         {
             const int n = 8;
-            int* bit = stackalloc int[n];
+            int* bit = stackalloc int[n + 1];
             FenwickAdd.Run(bit, n, 0, 1);
             FenwickAdd.Run(bit, n, 1, 2);
             FenwickAdd.Run(bit, n, 2, 3);
@@ -41,32 +41,37 @@ namespace IAFahim.DS.Fenwick.Tests
         public void LowerBound_FindPrefixSum()
         {
             const int n = 10;
-            long* bit = stackalloc long[n];
+            long* bit = stackalloc long[n + 1];
             for (int i = 0; i < n; i++)
                 FenwickAdd.RunLong(bit, n, i, (long)(i + 1));
 
             Assert.Equal(0, FenwickLowerBound.Run(bit, n, 1));
             Assert.Equal(1, FenwickLowerBound.Run(bit, n, 2));
-            Assert.Equal(8, FenwickLowerBound.Run(bit, n, 10));
+            Assert.Equal(3, FenwickLowerBound.Run(bit, n, 10));
         }
 
         [Fact]
         public void Fenwick2D_Basic()
         {
             const int n = 4, m = 4;
-            long* bit = stackalloc long[n * m];
+            long* bit = stackalloc long[(n + 1) * (m + 1)];
+            for (int i = 0; i < (n + 1) * (m + 1); i++)
+                bit[i] = 0;
             Fenwick2DAdd.Run(bit, n, m, 1, 1, 5);
             Fenwick2DAdd.Run(bit, n, m, 2, 2, 3);
-            Assert.Equal(5, Fenwick2DSum.Run(bit, n, m, 2, 2));
+            Assert.Equal(5, Fenwick2DSum.Run(bit, n, m, 1, 1));
+            Assert.Equal(8, Fenwick2DSum.Run(bit, n, m, 2, 2));
         }
 
         [Fact]
         public void LargeN_CorrectPrefixSums()
         {
             const int n = 1024;
-            int* bit = (int*)Marshal.AllocHGlobal(n * sizeof(int));
+            int* bit = (int*)Marshal.AllocHGlobal((n + 1) * sizeof(int));
             try
             {
+                for (int i = 0; i <= n; i++)
+                    bit[i] = 0;
                 for (int i = 0; i < n; i++)
                     FenwickAdd.Run(bit, n, i, i);
                 for (int i = 1; i < n; i++)

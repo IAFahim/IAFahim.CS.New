@@ -61,7 +61,19 @@ namespace IAFahim.Search.Prefix
                 return default;
             if (l == 0)
                 return ptr[r];
-            return (T)(object)((long)(object)ptr[r] ^ (long)(object)ptr[l - 1]);
+            if (sizeof(T) == 4)
+            {
+                int* p = (int*)ptr;
+                int res = p[r] ^ p[l - 1];
+                return *(T*)&res;
+            }
+            else if (sizeof(T) == 8)
+            {
+                long* p = (long*)ptr;
+                long res = p[r] ^ p[l - 1];
+                return *(T*)&res;
+            }
+            return default;
         }
     }
 
@@ -77,7 +89,7 @@ namespace IAFahim.Search.Prefix
                 if (ptr[i].CompareTo(ptr[i - 1]) > 0)
                     ptr[i] = ptr[i - 1];
             }
-            return ptr[0];
+            return ptr[len - 1];
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

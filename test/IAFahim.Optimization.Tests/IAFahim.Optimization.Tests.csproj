@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit" Version="2.6.6" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.6" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\IAFahim.Optimization.Exact\IAFahim.Optimization.Exact.csproj" />
+    <ProjectReference Include="..\..\src\IAFahim.Optimization.Treewidth\IAFahim.Optimization.Treewidth.csproj" />
+    <ProjectReference Include="..\..\src\IAFahim.Optimization.DivideConquer\IAFahim.Optimization.DivideConquer.csproj" />
+    <ProjectReference Include="..\..\src\IAFahim.Optimization.Knapsack\IAFahim.Optimization.Knapsack.csproj" />
+    <ProjectReference Include="..\..\src\IAFahim.Optimization.Approximation\IAFahim.Optimization.Approximation.csproj" />
+    <ProjectReference Include="..\..\src\IAFahim.Optimization.Matroid\IAFahim.Optimization.Matroid.csproj" />
+    <ProjectReference Include="..\..\src\IAFahim.Optimization.Submodular\IAFahim.Optimization.Submodular.csproj" />
+    <ProjectReference Include="..\..\src\IAFahim.Optimization.Geometric\IAFahim.Optimization.Geometric.csproj" />
+    <ProjectReference Include="..\..\src\IAFahim.Optimization.Games\IAFahim.Optimization.Games.csproj" />
+  </ItemGroup>
+</Project>

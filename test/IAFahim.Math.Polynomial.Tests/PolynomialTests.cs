@@ -387,4 +387,65 @@ namespace IAFahim.Math.Polynomial.Tests
             Assert.Equal(5, value);
         }
     }
+
+    public sealed unsafe class ConvolutionPrimitiveTests
+    {
+        [Fact]
+        public void KaratsubaMultiply_Basic()
+        {
+            long* a = stackalloc long[3] { 1, 2, 3 };
+            long* b = stackalloc long[3] { 4, 5, 6 };
+            long* res = stackalloc long[5];
+            long* scratch = stackalloc long[60];
+            int len = KaratsubaMultiply.Run(3, a, 3, b, res, scratch);
+            Assert.Equal(5, len);
+            Assert.Equal(4, res[0]);
+            Assert.Equal(13, res[1]);
+            Assert.Equal(28, res[2]);
+            Assert.Equal(27, res[3]);
+            Assert.Equal(18, res[4]);
+        }
+
+        [Fact]
+        public void PolynomialShift_Basic()
+        {
+            long* a = stackalloc long[5] { 1, 2, 3, 4, 5 };
+            PolynomialShift.RunLeft(a, 5, 2);
+            Assert.Equal(3, a[0]);
+            Assert.Equal(5, a[2]);
+            Assert.Equal(0, a[3]);
+
+            long* b = stackalloc long[5] { 1, 2, 3, 0, 0 };
+            PolynomialShift.RunRight(b, 5, 2);
+            Assert.Equal(0, b[0]);
+            Assert.Equal(0, b[1]);
+            Assert.Equal(1, b[2]);
+            Assert.Equal(3, b[4]);
+        }
+
+        [Fact]
+        public void PolynomialComposition_Basic()
+        {
+            long* f = stackalloc long[3] { 1, 2, 1 }; // 1 + 2x + x^2
+            long* g = stackalloc long[2] { 0, 1 };    // x
+            long* res = stackalloc long[3];
+            long* tmp = stackalloc long[20];
+            PolynomialComposition.Run(3, f, 2, g, res, 1000000007, tmp);
+            Assert.Equal(1, res[0]);
+            Assert.Equal(2, res[1]);
+            Assert.Equal(1, res[2]);
+        }
+
+        [Fact]
+        public void PolynomialComposition_Naive_Basic()
+        {
+            long* f = stackalloc long[3] { 1, 2, 1 };
+            long* g = stackalloc long[2] { 0, 1 };
+            long* res = stackalloc long[3];
+            PolynomialComposition.RunNaive(3, f, 2, g, res, 1000000007);
+            Assert.Equal(1, res[0]);
+            Assert.Equal(2, res[1]);
+            Assert.Equal(1, res[2]);
+        }
+    }
 }

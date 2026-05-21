@@ -40,9 +40,10 @@ namespace IAFahim.Graph
             dist[start] = 0;
             dq[dt++] = start;
             cnt++;
-            while (dh < dt)
+            while (cnt > 0)
             {
                 int u = dq[dh++];
+                if (dh >= n) dh = 0;
                 cnt--;
                 for (int e = head[u]; e != 0; e = next[e])
                 {

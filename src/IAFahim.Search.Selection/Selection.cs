@@ -28,6 +28,17 @@ namespace IAFahim.Search.Selection
                 else if (idx < k) left = idx + 1;
                 else right = idx - 1;
             }
+            for (int i = 1; i < k; i++)
+            {
+                int val = ptr[i];
+                int j = i - 1;
+                while (j >= 0 && ptr[j] > val)
+                {
+                    ptr[j + 1] = ptr[j];
+                    j--;
+                }
+                ptr[j + 1] = val;
+            }
         }
 
         public static bool TryGetKth(int* ptr, int len, int k, out int result)

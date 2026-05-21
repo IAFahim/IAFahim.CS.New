@@ -8,10 +8,8 @@ namespace IAFahim.Search.Bit.Tests
         [Fact]
         public void LisLength_Empty_Returns0()
         {
-            fixed (int* arr = null)
-            {
-                Assert.Equal(0, LisLength.Run(0, arr));
-            }
+            int* arr = null;
+            Assert.Equal(0, LisLength.Run(0, arr));
         }
 
         [Fact]
@@ -45,10 +43,8 @@ namespace IAFahim.Search.Bit.Tests
         [Fact]
         public void LdsLength_Empty_Returns0()
         {
-            fixed (int* arr = null)
-            {
-                Assert.Equal(0, LdsLength.Run(0, arr));
-            }
+            int* arr = null;
+            Assert.Equal(0, LdsLength.Run(0, arr));
         }
 
         [Fact]
@@ -98,10 +94,8 @@ namespace IAFahim.Search.Bit.Tests
         [Fact]
         public void InversionCount_Empty_Returns0()
         {
-            fixed (int* arr = null)
-            {
-                Assert.Equal(0L, InversionCount.Run(0, arr));
-            }
+            int* arr = null;
+            Assert.Equal(0L, InversionCount.Run(0, arr));
         }
 
         [Fact]
@@ -121,12 +115,10 @@ namespace IAFahim.Search.Bit.Tests
         [Fact]
         public void PatienceSort_Empty_Returns0()
         {
-            fixed (int* arr = null)
-            {
-                int* piles = stackalloc int[1];
-                int* tops = stackalloc int[1];
-                Assert.Equal(0, PatienceSort.Run(0, arr, piles, tops));
-            }
+            int* arr = null;
+            int* piles = stackalloc int[1];
+            int* tops = stackalloc int[1];
+            Assert.Equal(0, PatienceSort.Run(0, arr, piles, tops));
         }
 
         [Fact]

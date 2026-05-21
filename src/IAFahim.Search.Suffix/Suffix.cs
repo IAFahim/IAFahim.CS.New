@@ -27,12 +27,25 @@ namespace IAFahim.Search.Suffix
 
         public static T Run<T>(T* ptr, int len) where T : unmanaged
         {
-            if (len <= 1)
-                return len == 1 ? ptr[0] : default;
-            long sum = 0;
-            for (int i = 0; i < len; i++)
-                sum += (long)(object)ptr[i];
-            return (T)(object)sum;
+            if (len <= 0)
+                return default;
+            if (sizeof(T) == 4)
+            {
+                int* p = (int*)ptr;
+                int sum = 0;
+                for (int i = 0; i < len; i++)
+                    sum += p[i];
+                return *(T*)&sum;
+            }
+            else if (sizeof(T) == 8)
+            {
+                long* p = (long*)ptr;
+                long sum = 0;
+                for (int i = 0; i < len; i++)
+                    sum += p[i];
+                return *(T*)&sum;
+            }
+            return default;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -46,10 +59,23 @@ namespace IAFahim.Search.Suffix
         {
             if (l > r || l < 0)
                 return default;
-            long sum = 0;
-            for (int i = l; i <= r; i++)
-                sum += (long)(object)ptr[i];
-            return (T)(object)sum;
+            if (sizeof(T) == 4)
+            {
+                int* p = (int*)ptr;
+                int sum = 0;
+                for (int i = l; i <= r; i++)
+                    sum += p[i];
+                return *(T*)&sum;
+            }
+            else if (sizeof(T) == 8)
+            {
+                long* p = (long*)ptr;
+                long sum = 0;
+                for (int i = l; i <= r; i++)
+                    sum += p[i];
+                return *(T*)&sum;
+            }
+            return default;
         }
     }
 
@@ -65,7 +91,7 @@ namespace IAFahim.Search.Suffix
                 if (ptr[i].CompareTo(ptr[i + 1]) > 0)
                     ptr[i] = ptr[i + 1];
             }
-            return ptr[len - 1];
+            return ptr[0];
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

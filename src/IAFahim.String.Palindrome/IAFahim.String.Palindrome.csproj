@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <PackageId>IAFahim.String.$dir</PackageId>
+    <PackageId>IAFahim.String.Palindrome</PackageId>
   </PropertyGroup>
 </Project>

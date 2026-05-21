@@ -94,7 +94,7 @@ namespace IAFahim.Search.DifferenceArray.Tests
             int* prefix = stackalloc int[6];
             prefix[0] = 5;
             prefix[1] = 3; prefix[2] = 7; prefix[3] = 10; prefix[4] = 12; prefix[5] = 15;
-            Assert.Equal(7, Diff.RangeSum(prefix, 2));
+            Assert.Equal(7, Diff.RangeSum(prefix, 1));
         }
 
         [Fact]

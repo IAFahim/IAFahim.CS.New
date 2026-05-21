@@ -4,14 +4,6 @@ namespace IAFahim.Math.NT.Bench
     using BenchmarkDotNet.Attributes;
     using BenchmarkDotNet.Running;
 
-    public static class Program
-    {
-        public static void Main(string[] args)
-        {
-            BenchmarkRunner.Run<BitOpsBench>(args: args);
-        }
-    }
-
     [MemoryDiagnoser]
     public class BitOpsBench
     {
@@ -40,14 +32,6 @@ namespace IAFahim.Math.NT.Bench
             int sum = 0;
             for (int i = 0; i < N; i++)
                 sum += IAFahim.Math.NT.HighestBit.Run(i);
-        }
-
-        [Benchmark]
-        public void Gcd()
-        {
-            int sum = 0;
-            for (int i = 1; i < N; i++)
-                sum += IAFahim.Math.NT.Gcd.Run(i, i + 1);
         }
     }
 }

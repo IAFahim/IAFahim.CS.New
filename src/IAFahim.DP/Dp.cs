@@ -150,18 +150,21 @@ namespace IAFahim.DP
     {
         public static long Run(int n, long target, ulong* bitset, long* arr)
         {
+            int bitLen = (int)(target >> 6) + 1;
+            for (int i = 0; i < bitLen; i++) bitset[i] = 0;
             bitset[0] = 1UL;
             for (int i = 0; i < n; i++)
             {
-                int idx = (int)(arr[i] >> 6);
-                ulong mask = 1UL << (int)(arr[i] & 63);
-                int bitLen = (int)(target >> 6) + 1;
-                for (int b = bitLen; b >= 0; b--)
+                int shift = (int)arr[i];
+                if (shift < 0 || shift > target) continue;
+                int wordShift = shift >> 6;
+                int bitShift = shift & 63;
+                for (int b = bitLen - 1; b >= 0; b--)
                 {
-                    if ((bitset[b] & mask) != 0 && b + idx < bitLen)
-                    {
-                        bitset[b + idx] |= bitset[b] << (int)(arr[i] & 63);
-                    }
+                    ulong lo = 0, hi = 0;
+                    if (b - wordShift >= 0) lo = bitset[b - wordShift] << bitShift;
+                    if (bitShift > 0 && b - wordShift - 1 >= 0) hi = bitset[b - wordShift - 1] >> (64 - bitShift);
+                    bitset[b] |= lo | hi;
                 }
             }
             return (bitset[(int)(target >> 6)] & (1UL << (int)(target & 63))) != 0 ? 1 : 0;
@@ -174,10 +177,10 @@ namespace IAFahim.DP
         {
             for (int i = 0; i <= n; i++) newDp[i] = long.MaxValue;
             int* opt = stackalloc int[n + 1];
-            DcRec(1, n, 1, k, dp, newDp, opt);
+            DcRec(1, n, 1, k, dp, newDp, opt, cost);
         }
 
-        private static void DcRec(int l, int r, int optL, int optR, long* dp, long* newDp, int* opt)
+        private static void DcRec(int l, int r, int optL, int optR, long* dp, long* newDp, int* opt, long* cost)
         {
             if (l > r) return;
             int mid = (l + r) >> 1;
@@ -185,7 +188,7 @@ namespace IAFahim.DP
             long bestVal = long.MaxValue;
             for (int k = optL; k <= Math.Min(mid, optR); k++)
             {
-                long val = dp[k - 1] + k * 1000 + mid;
+                long val = dp[k - 1] + cost[k + mid];
                 if (val < bestVal)
                 {
                     bestVal = val;
@@ -194,8 +197,8 @@ namespace IAFahim.DP
             }
             newDp[mid] = bestVal;
             opt[mid] = bestOpt;
-            DcRec(l, mid - 1, optL, bestOpt, dp, newDp, opt);
-            DcRec(mid + 1, r, bestOpt, optR, dp, newDp, opt);
+            DcRec(l, mid - 1, optL, bestOpt, dp, newDp, opt, cost);
+            DcRec(mid + 1, r, bestOpt, optR, dp, newDp, opt, cost);
         }
     }
 
@@ -203,12 +206,12 @@ namespace IAFahim.DP
     {
         public static void Optimize(int n, long* dp, long* newDp, long* cost, int* opt)
         {
-            for (int i = 0; i <= n; i++) newDp[i] = long.MaxValue;
             for (int i = 1; i <= n; i++)
             {
+                newDp[i] = long.MaxValue;
                 for (int j = 1; j <= i; j++)
                 {
-                    long val = dp[j - 1] + cost[j * 1000 + i];
+                    long val = dp[j - 1] + cost[j + i];
                     if (val < newDp[i])
                     {
                         newDp[i] = val;
@@ -323,7 +326,8 @@ namespace IAFahim.DP
                     if (cur + dist(cur, arr[i]) > mid)
                     {
                         groups++;
-                        cur = arr[i];
+                        cur = 0;
+                        cur += dist(cur, arr[i]);
                     }
                     else cur += dist(cur, arr[i]);
                 }

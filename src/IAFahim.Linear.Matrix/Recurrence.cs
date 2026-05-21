@@ -64,26 +64,14 @@ namespace IAFahim.Linear.Matrix
         public static long Run(int k, long* init, long* trans, long n)
         {
             if (n < k) return init[n];
-            long* result = stackalloc long[k];
-            long* temp = stackalloc long[k];
-            for (int i = 0; i < k; i++) result[i] = init[i];
-            for (int i = 0; i < k; i++) temp[i] = trans[i];
-            long* baseMat = stackalloc long[k * k];
-            for (int i = 0; i < k; i++)
-                for (int j = 0; j < k; j++)
-                    baseMat[i * k + j] = 0;
-            for (int i = 0; i < k; i++) baseMat[i] = temp[i];
-            for (int i = 1; i < k; i++)
-            {
-                for (int j = 0; j < k - 1; j++)
-                    baseMat[i * k + j] = (i == j + 1) ? 1 : 0;
-            }
             long* mat = stackalloc long[k * k];
-            for (int i = 0; i < k * k; i++) mat[i] = baseMat[i];
+            for (int i = 0; i < k * k; i++) mat[i] = 0;
+            for (int i = 0; i < k; i++) mat[i] = trans[i];
+            for (int i = 1; i < k; i++)
+                mat[i * k + (i - 1)] = 1;
             long* res = stackalloc long[k * k];
-            for (int i = 0; i < k; i++)
-                for (int j = 0; j < k; j++)
-                    res[i * k + j] = (i == j) ? 1 : 0;
+            for (int i = 0; i < k * k; i++) res[i] = 0;
+            for (int i = 0; i < k; i++) res[i * k + i] = 1;
             long exp = n - k + 1;
             while (exp > 0)
             {
@@ -114,7 +102,7 @@ namespace IAFahim.Linear.Matrix
             }
             long ans = 0;
             for (int j = 0; j < k; j++)
-                ans += res[j] * init[k - 1 - j];
+                ans += res[0 * k + j] * init[k - 1 - j];
             return ans;
         }
     }
@@ -168,19 +156,13 @@ namespace IAFahim.Linear.Matrix
         {
             if (n < k) return init[n];
             long* mat = stackalloc long[k * k];
-            for (int i = 0; i < k; i++)
-                for (int j = 0; j < k; j++)
-                    mat[i * k + j] = 0;
+            for (int i = 0; i < k * k; i++) mat[i] = 0;
             for (int i = 0; i < k; i++) mat[i] = trans[i];
             for (int i = 1; i < k; i++)
-            {
-                for (int j = 0; j < k - 1; j++)
-                    mat[i * k + j] = (i == j + 1) ? 1 : 0;
-            }
+                mat[i * k + (i - 1)] = 1;
             long* res = stackalloc long[k * k];
-            for (int i = 0; i < k; i++)
-                for (int j = 0; j < k; j++)
-                    res[i * k + j] = (i == j) ? 1 : 0;
+            for (int i = 0; i < k * k; i++) res[i] = 0;
+            for (int i = 0; i < k; i++) res[i * k + i] = 1;
             long exp = n - k + 1;
             while (exp > 0)
             {
@@ -211,7 +193,7 @@ namespace IAFahim.Linear.Matrix
             }
             long ans = 0;
             for (int j = 0; j < k; j++)
-                ans += res[j] * init[k - 1 - j];
+                ans += res[0 * k + j] * init[k - 1 - j];
             return ans;
         }
     }
@@ -223,50 +205,36 @@ namespace IAFahim.Linear.Matrix
             if (n < k) return init[n];
             long* pol = stackalloc long[k];
             long* res = stackalloc long[k];
-            for (int i = 0; i < k; i++) pol[i] = 0;
-            pol[1] = 1;
-            for (int i = 0; i < k; i++) res[i] = (i == 0) ? 1 : 0;
+            for (int i = 0; i < k; i++) { pol[i] = 0; res[i] = 0; }
+            pol[0] = 1;
+            res[1] = 1;
             long exp = n - k + 1;
             while (exp > 0)
             {
                 if ((exp & 1) == 1)
                 {
-                    long* newRes = stackalloc long[k];
-                    for (int i = 0; i < k; i++) newRes[i] = 0;
+                    long* newRes = stackalloc long[2 * k];
+                    for (int i = 0; i < 2 * k; i++) newRes[i] = 0;
                     for (int i = 0; i < k; i++)
-                        if (res[i] != 0)
-                            for (int j = 0; j < k; j++)
-                                if (pol[j] != 0)
-                                {
-                                    int idx = i + j;
-                                    long add = (res[i] % mod) * (pol[j] % mod) % mod;
-                                    if (idx < k)
-                                        newRes[idx] = (newRes[idx] + add) % mod;
-                                    else
-                                    {
-                                        for (int t = 0; t < k; t++)
-                                            newRes[idx - k + 1 + t] = (newRes[idx - k + 1 + t] + add * trans[t]) % mod;
-                                    }
-                                }
+                        for (int j = 0; j < k; j++)
+                            newRes[i + j] = (newRes[i + j] + (res[i] % mod) * (pol[j] % mod)) % mod;
+                    for (int i = 2 * k - 1; i >= k; i--)
+                    {
+                        for (int j = 1; j <= k; j++)
+                            newRes[i - j] = (newRes[i - j] + (newRes[i] % mod) * (trans[k - j] % mod)) % mod;
+                    }
                     for (int i = 0; i < k; i++) res[i] = newRes[i];
                 }
-                long* newPol = stackalloc long[k];
-                for (int i = 0; i < k; i++) newPol[i] = 0;
+                long* newPol = stackalloc long[2 * k];
+                for (int i = 0; i < 2 * k; i++) newPol[i] = 0;
                 for (int i = 0; i < k; i++)
-                    if (pol[i] != 0)
-                        for (int j = 0; j < k; j++)
-                            if (pol[j] != 0)
-                            {
-                                int idx = i + j;
-                                long add = (pol[i] % mod) * (pol[j] % mod) % mod;
-                                if (idx < k)
-                                    newPol[idx] = (newPol[idx] + add) % mod;
-                                else
-                                {
-                                    for (int t = 0; t < k; t++)
-                                        newPol[idx - k + 1 + t] = (newPol[idx - k + 1 + t] + add * trans[t]) % mod;
-                                }
-                            }
+                    for (int j = 0; j < k; j++)
+                        newPol[i + j] = (newPol[i + j] + (pol[i] % mod) * (pol[j] % mod)) % mod;
+                for (int i = 2 * k - 1; i >= k; i--)
+                {
+                    for (int j = 1; j <= k; j++)
+                        newPol[i - j] = (newPol[i - j] + (newPol[i] % mod) * (trans[k - j] % mod)) % mod;
+                }
                 for (int i = 0; i < k; i++) pol[i] = newPol[i];
                 exp >>= 1;
             }

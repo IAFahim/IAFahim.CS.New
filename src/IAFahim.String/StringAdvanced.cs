@@ -138,6 +138,7 @@ namespace IAFahim.String
             int* rank = stackalloc int[n];
             int* tmp = stackalloc int[n];
             int* cnt = stackalloc int[Math.Max(n, 256)];
+            int* sa2 = stackalloc int[n];
             for (int i = 0; i < n; i++) sa[i] = i;
             for (int i = 0; i < n; i++) rank[i] = s[i];
             for (int k = 1; k < n; k <<= 1)
@@ -146,7 +147,6 @@ namespace IAFahim.String
                 for (int i = 0; i < n; i++) cnt[i] = 0;
                 for (int i = 0; i < n; i++) cnt[tmp[i]]++;
                 for (int i = 1; i < n; i++) cnt[i] += cnt[i - 1];
-                int* sa2 = stackalloc int[n];
                 for (int i = n - 1; i >= 0; i--) sa2[--cnt[tmp[i]]] = i;
                 for (int i = 0; i < n; i++) cnt[i] = 0;
                 for (int i = 0; i < n; i++) cnt[rank[i]]++;
@@ -161,6 +161,7 @@ namespace IAFahim.String
                     tmp[sa[i]] = tmp[sa[i - 1]] + (same ? 0 : 1);
                 }
                 for (int i = 0; i < n; i++) rank[i] = tmp[i];
+                if (rank[sa[n - 1]] == n - 1) break;
             }
         }
     }
@@ -367,10 +368,10 @@ namespace IAFahim.String
 
     public static unsafe class SuffixAutomatonExtend
     {
-        public static int Run(int* link, int* len_, int* next, int last, int c, int size)
+        public static int Run(int* link, int* len_, int* next, int last, int c, int* size)
         {
-            int cur = size;
-            size++;
+            int cur = *size;
+            (*size)++;
             int p = last;
             while (p != -1 && next[p * 26 + c] == 0)
             {
@@ -390,8 +391,8 @@ namespace IAFahim.String
                 }
                 else
                 {
-                    int clone = size;
-                    size++;
+                    int clone = *size;
+                    (*size)++;
                     for (int i = 0; i < 26; i++)
                         next[clone * 26 + i] = next[q * 26 + i];
                     link[clone] = link[q];
@@ -419,8 +420,7 @@ namespace IAFahim.String
             len_[0] = 0;
             for (int i = 0; i < len; i++)
             {
-                last = SuffixAutomatonExtend.Run(link, len_, next, last, s[i], size);
-                size++;
+                last = SuffixAutomatonExtend.Run(link, len_, next, last, s[i] - 'a', &size);
             }
             return size;
         }
@@ -501,11 +501,12 @@ namespace IAFahim.String
         public static int Run(int* len_, int* link, int* next, int* last, byte* s, int pos)
         {
             int cur = *last;
-            int c = s[pos];
+            int ch = s[pos];
+            int c = ch - 'a';
             while (true)
             {
                 int curlen = len_[cur];
-                if (pos - curlen - 1 >= 0 && s[pos - curlen - 1] == c) break;
+                if (pos - curlen - 1 >= 0 && s[pos - curlen - 1] == ch) break;
                 cur = link[cur];
             }
             if (next[cur * 26 + c] != 0)
@@ -526,7 +527,7 @@ namespace IAFahim.String
             while (true)
             {
                 int curlen = len_[cur];
-                if (pos - curlen - 1 >= 0 && s[pos - curlen - 1] == c) break;
+                if (pos - curlen - 1 >= 0 && s[pos - curlen - 1] == ch) break;
                 cur = link[cur];
             }
             link[now] = next[cur * 26 + c];
@@ -545,11 +546,13 @@ namespace IAFahim.String
             link[1] = 0;
             link[0] = 1;
             int last = 1;
+            int nodeCount = 2;
             for (int i = 0; i < len; i++)
             {
                 PalindromicTreeAdd.Run(len_, link, next, &last, s, i);
+                nodeCount++;
             }
-            return len_[0] - 1;
+            return nodeCount - 2;
         }
     }
 
@@ -558,16 +561,29 @@ namespace IAFahim.String
         public static int Run(byte* pattern, int patLen, int* transitions, int alphaSize)
         {
             int state = 0;
+            int* queue = stackalloc int[patLen];
+            int qlen = 0;
             for (int i = 0; i < patLen; i++)
             {
                 if (pattern[i] == '*')
                 {
-                    transitions[state * alphaSize + pattern[i - 1]] = state;
+                    int prevState = queue[qlen - 1];
+                    int starState = state++;
+                    int charIdx = pattern[i - 1];
+                    transitions[prevState * alphaSize + charIdx] = starState;
+                    transitions[starState * alphaSize + charIdx] = starState;
+                    queue[qlen++] = starState;
+                }
+                else if (pattern[i] == '?' || pattern[i] == '+')
+                {
+                    queue[qlen++] = state;
+                    state++;
                 }
                 else
                 {
+                    transitions[state * alphaSize + pattern[i]] = state + 1;
+                    queue[qlen++] = state;
                     state++;
-                    transitions[(state - 1) * alphaSize + pattern[i]] = state;
                 }
             }
             return state;

@@ -273,7 +273,7 @@ namespace IAFahim.Graph
                     }
                     if (!exists)
                     {
-                        int id = ++(*condEdgeId);
+                        int id = (*condEdgeId)++;
                         condTo[id] = cv;
                         condNext[id] = condHead[cu];
                         condHead[cu] = id;

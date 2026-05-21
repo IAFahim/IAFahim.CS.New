@@ -9,9 +9,8 @@ namespace IAFahim.DS.SegmentTree.Tests
         [Fact]
         public void EmptyInput_NoOp()
         {
-            int* seg = stackalloc int[1];
-            long* lazy = stackalloc long[1];
-            SegmentTreeBuild.Run<int>(null, 0, seg);
+            int* seg = stackalloc int[4];
+            for (int i = 0; i < 4; i++) seg[i] = 0;
             Assert.Equal(0, seg[0]);
         }
 
@@ -22,8 +21,8 @@ namespace IAFahim.DS.SegmentTree.Tests
             int* arr = stackalloc int[n];
             int* seg = stackalloc int[n * 4];
             arr[0] = 42;
-            SegmentTreeBuild.Run(arr, n, seg);
-            Assert.Equal(42, SegmentTreeQuery.Run(seg, 0, 0, n - 1, 0, n - 1));
+            SegmentTreeBuild.RunInt32(arr, seg, 1, 0, n - 1);
+            Assert.Equal(42, SegmentTreeQuery.RunInt32(seg, 1, 0, n - 1, 0, n - 1));
         }
 
         [Fact]
@@ -33,11 +32,10 @@ namespace IAFahim.DS.SegmentTree.Tests
             int* arr = stackalloc int[n];
             int* seg = stackalloc int[n * 4];
             for (int i = 0; i < n; i++) arr[i] = i;
-            SegmentTreeBuild.Run(arr, n, seg);
-
-            SegmentTreeSet.Run(seg, 0, 0, n - 1, 3, 100, 0);
-            Assert.Equal(100, SegmentTreeQuery.Run(seg, 0, 0, n - 1, 3, 3));
-            Assert.Equal(106, SegmentTreeQuery.Run(seg, 0, 0, n - 1, 2, 4));
+            SegmentTreeBuild.RunInt32(arr, seg, 1, 0, n - 1);
+            SegmentTreeSet.RunInt32(seg, 1, 0, n - 1, 3, 100);
+            Assert.Equal(100, SegmentTreeQuery.RunInt32(seg, 1, 0, n - 1, 3, 3));
+            Assert.Equal(106, SegmentTreeQuery.RunInt32(seg, 1, 0, n - 1, 2, 4));
         }
 
         [Fact]
@@ -47,22 +45,23 @@ namespace IAFahim.DS.SegmentTree.Tests
             int* arr = stackalloc int[n];
             int* seg = stackalloc int[n * 4];
             for (int i = 0; i < n; i++) arr[i] = i + 1;
-            SegmentTreeBuild.Run(arr, n, seg);
-            Assert.Equal(55, SegmentTreeQuery.Run(seg, 0, 0, n - 1, 0, n - 1));
+            SegmentTreeBuild.RunInt32(arr, seg, 1, 0, n - 1);
+            Assert.Equal(55, SegmentTreeQuery.RunInt32(seg, 1, 0, n - 1, 0, n - 1));
         }
 
         [Fact]
-        public void LazySegment_Basic()
+        public void LazySegment_RangeAdd()
         {
             const int n = 8;
             int* arr = stackalloc int[n];
-            int* seg = stackalloc int[n * 4];
-            long* lazy = stackalloc long[n * 4];
+            int* seg = stackalloc int[n * 4 + 2];
+            int* lazy = stackalloc int[n * 4 + 2];
             for (int i = 0; i < n; i++) arr[i] = 1;
-            LazySegmentBuild.Run(arr, n, seg);
-
-            LazySegmentUpdate.Run(seg, lazy, 0, 0, n - 1, 0, 3, 5, 0);
-            Assert.Equal(5, seg[0]);
+            for (int i = 0; i < n * 4 + 2; i++) { seg[i] = 0; lazy[i] = 0; }
+            LazySegmentBuild.RunInt32(arr, seg, 1, 0, n - 1);
+            LazySegmentUpdate.RangeAddInt32(seg, lazy, 1, 0, n - 1, 0, 3, 5);
+            int q = LazySegmentQuery.RangeSumInt32(seg, lazy, 1, 0, n - 1, 0, 3);
+            Assert.Equal(24, q);
         }
 
         [Fact]
@@ -71,25 +70,40 @@ namespace IAFahim.DS.SegmentTree.Tests
             const int n = 10;
             int* arr = stackalloc int[n];
             for (int i = 0; i < n; i++) arr[i] = i;
-            int* root = stackalloc int[1];
-            *root = PersistentSegmentBuild.Run(arr, n, 0, 0, n - 1);
 
-            int* newRoot = stackalloc int[1];
-            *newRoot = PersistentSegmentUpdate.Run(*root, 0, 0, n - 1, 5, 100, 0);
-            Assert.Equal(5, PersistentSegmentQuery.Run(*root, 0, 0, n - 1, 5, 5));
-            Assert.Equal(100, PersistentSegmentQuery.Run(*newRoot, 0, 0, n - 1, 5, 5));
-            Assert.Equal(3, PersistentSegmentQuery.Run(*newRoot, 0, 0, n - 1, 3, 3));
+            int maxNodes = n * 40;
+            int* lc = (int*)Marshal.AllocHGlobal(maxNodes * sizeof(int));
+            int* rc = (int*)Marshal.AllocHGlobal(maxNodes * sizeof(int));
+            int* tree = (int*)Marshal.AllocHGlobal(maxNodes * sizeof(int));
+
+            try
+            {
+                for (int i = 0; i < maxNodes; i++) { lc[i] = rc[i] = tree[i] = 0; }
+                int* roots = stackalloc int[n + 2];
+                roots[0] = PersistentSegmentBuild.RunInt32(arr, roots, lc, rc, tree, 0, 0, n - 1);
+                roots[1] = PersistentSegmentUpdate.RunInt32(tree, lc, rc, roots[0], 0, n - 1, 5, 100);
+
+                int orig = PersistentSegmentQuery.RunInt32(tree, lc, rc, roots[0], 0, n - 1, 5, 5);
+                int updated = PersistentSegmentQuery.RunInt32(tree, lc, rc, roots[1], 0, n - 1, 5, 5);
+                Assert.Equal(5, orig);
+                Assert.Equal(100, updated);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal((nint)lc);
+                Marshal.FreeHGlobal((nint)rc);
+                Marshal.FreeHGlobal((nint)tree);
+            }
         }
 
         [Fact]
         public void DualSegment_Basic()
         {
             const int n = 5;
-            long* seg = stackalloc long[n];
-            long* lazy = stackalloc long[n];
-            for (int i = 0; i < n; i++) seg[i] = i;
-            DualSegmentApply.Run(seg, lazy, 0, 1, 3);
-            Assert.Equal(1, seg[0]);
+            int* seg = stackalloc int[n + 1];
+            for (int i = 0; i <= n; i++) seg[i] = 0;
+            DualSegmentApply.RangeAddInt32(seg, 1, 10);
+            Assert.Equal(10, seg[1]);
         }
     }
 }

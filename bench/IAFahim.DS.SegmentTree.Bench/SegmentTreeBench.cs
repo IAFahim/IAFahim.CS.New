@@ -1,6 +1,7 @@
 namespace IAFahim.DS.SegmentTree.Bench
 {
     using IAFahim.DS.SegmentTree;
+    using System;
     using System.Runtime.InteropServices;
     using BenchmarkDotNet.Attributes;
     using BenchmarkDotNet.Running;
@@ -31,20 +32,20 @@ namespace IAFahim.DS.SegmentTree.Bench
         [IterationSetup]
         public void Reset()
         {
-            SegmentTreeBuild.Run(_arr, N, _seg);
+            SegmentTreeBuild.RunInt32(_arr, _seg, 1, 0, N - 1);
         }
 
         [Benchmark(Baseline = true)]
         public void Build()
         {
-            SegmentTreeBuild.Run(_arr, N, _seg);
+            SegmentTreeBuild.RunInt32(_arr, _seg, 1, 0, N - 1);
         }
 
         [Benchmark]
         public void Query()
         {
             for (int i = 0; i < N; i++)
-                SegmentTreeQuery.Run(_seg, 0, 0, N - 1, i / 2, N - 1 - i / 2);
+                SegmentTreeQuery.RunInt32(_seg, 1, 0, N - 1, i / 2, N - 1 - i / 2);
         }
 
         [GlobalCleanup]
