@@ -28,14 +28,13 @@ namespace IAFahim.Optimization.Exact
                 Search(n, adj, dom, idx + 1, used, best, order);
                 return;
             }
-            dom[vi2] = 1;
-            Search(n, adj, dom, idx + 1, used + 1, best, order);
-            dom[vi2] = 0;
+            dom[vi2]++;
             for (int u = 0; u < n; u++)
-                if (adj[vi2 * n + u]) dom[u] = 1;
+                if (adj[vi2 * n + u]) dom[u]++;
             Search(n, adj, dom, idx + 1, used + 1, best, order);
+            dom[vi2]--;
             for (int u = 0; u < n; u++)
-                if (adj[vi2 * n + u]) dom[u] = 0;
+                if (adj[vi2 * n + u]) dom[u]--;
         }
     }
 }

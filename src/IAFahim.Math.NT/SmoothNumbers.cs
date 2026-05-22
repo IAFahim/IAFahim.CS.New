@@ -5,7 +5,7 @@ namespace IAFahim.Math.NT
 
     public static unsafe class SmoothNumbers
     {
-        public static int Generate(int b, long limit, long* result)
+        public static int Generate(int b, long limit, long* result, int* primes)
         {
             if (limit <= 0 || b < 2)
             {
@@ -17,7 +17,6 @@ namespace IAFahim.Math.NT
                 return 0;
             }
 
-            int* primes = stackalloc int[10000];
             int primeCount = GetPrimes(b, primes);
 
             int count = 0;
@@ -26,16 +25,14 @@ namespace IAFahim.Math.NT
             return count;
         }
 
-        public static long Count(int b, long limit)
+        public static long Count(int b, long limit, int* primes)
         {
             if (limit <= 0 || b < 2)
             {
                 return limit >= 1 ? 1L : 0L;
             }
 
-            int* primes = stackalloc int[10000];
             int primeCount = GetPrimes(b, primes);
-
             return CountSmooth(0, 1, primeCount, primes, limit);
         }
 

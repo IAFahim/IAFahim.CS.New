@@ -132,6 +132,16 @@ namespace IAFahim.Search
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int GetUnmanagedHash<T>(T* key) where T : unmanaged
+        {
+            int hash = 17;
+            byte* ptr = (byte*)key;
+            int size = sizeof(T);
+            for (int i = 0; i < size; i++) hash = hash * 31 + ptr[i];
+            return hash & 0x7FFFFFFF;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool QueryCacheGet<TKey, TValue>(
             TKey* keys,
             TValue* values,
@@ -139,24 +149,23 @@ namespace IAFahim.Search
             int capacity,
             TKey key,
             out TValue value)
-            where TKey : unmanaged, IEquatable<TKey>
+            where TKey : unmanaged
             where TValue : unmanaged
         {
             value = default;
-            int hash = key.GetHashCode() & 0x7FFFFFFF;
+            TKey* keyPtr = &key;
+            int hash = GetUnmanagedHash(keyPtr);
             int idx = hash % capacity;
             for (int i = 0; i < capacity; i++)
             {
                 int curr = (idx + i) % capacity;
-                if (occupied[curr] == 0)
-                {
-                    return false;
-                }
-                if (keys[curr].Equals(key))
-                {
-                    value = values[curr];
-                    return true;
-                }
+                if (occupied[curr] == 0) return false;
+                byte* kp = (byte*)&keys[curr];
+                byte* tp = (byte*)keyPtr;
+                bool match = true;
+                for (int j = 0; j < sizeof(TKey); j++)
+                    if (kp[j] != tp[j]) { match = false; break; }
+                if (match) { value = values[curr]; return true; }
             }
             return false;
         }
@@ -169,17 +178,25 @@ namespace IAFahim.Search
             int capacity,
             TKey key,
             TValue value)
-            where TKey : unmanaged, IEquatable<TKey>
+            where TKey : unmanaged
             where TValue : unmanaged
         {
-            int hash = key.GetHashCode() & 0x7FFFFFFF;
+            TKey* keyPtr = &key;
+            int hash = GetUnmanagedHash(keyPtr);
             int idx = hash % capacity;
             for (int i = 0; i < capacity; i++)
             {
                 int curr = (idx + i) % capacity;
-                if (occupied[curr] == 0 || keys[curr].Equals(key))
+                byte* kp = (byte*)&keys[curr];
+                byte* tp = (byte*)keyPtr;
+                bool match = true;
+                for (int j = 0; j < sizeof(TKey); j++)
+                    if (kp[j] != tp[j]) { match = false; break; }
+                if (occupied[curr] == 0 || !match)
                 {
-                    keys[curr] = key;
+                    byte* dp = (byte*)&keys[curr];
+                    byte* sp = (byte*)keyPtr;
+                    for (int j = 0; j < sizeof(TKey); j++) dp[j] = sp[j];
                     values[curr] = value;
                     occupied[curr] = 1;
                     return true;
@@ -206,6 +223,7 @@ namespace IAFahim.Search
             return (*rangeL + *rangeR) / 2;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool UnknownArrayBinarySearch<T>(
             T target,
             delegate*<int, T> queryFn,
@@ -260,6 +278,7 @@ namespace IAFahim.Search
             return found;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void InteractiveGraphExplore(
             int startVertex,
             int* visited,
@@ -268,46 +287,36 @@ namespace IAFahim.Search
             int* discoveredEdges,
             int* edgeCount)
         {
-            for (int i = 0; i < maxVertices; i++)
-            {
-                visited[i] = 0;
-            }
+            for (int i = 0; i < maxVertices; i++) visited[i] = 0;
             *edgeCount = 0;
 
             int* queue = stackalloc int[maxVertices];
-            int head = 0;
-            int tail = 0;
-
+            int head = 0, tail = 0;
             queue[tail++] = startVertex;
             visited[startVertex] = 1;
 
             int* neighbors = stackalloc int[maxVertices];
-
             while (head < tail)
             {
                 int u = queue[head++];
                 int neighborCount = 0;
                 getNeighborsFn(u, neighbors, &neighborCount);
-
                 for (int i = 0; i < neighborCount; i++)
                 {
                     int v = neighbors[i];
                     discoveredEdges[(*edgeCount) * 2 + 0] = u;
                     discoveredEdges[(*edgeCount) * 2 + 1] = v;
                     (*edgeCount)++;
-
                     if (visited[v] == 0)
                     {
                         visited[v] = 1;
-                        if (tail < maxVertices)
-                        {
-                            queue[tail++] = v;
-                        }
+                        if (tail < maxVertices) queue[tail++] = v;
                     }
                 }
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int InteractiveTreeFind(
             int startVertex,
             delegate*<int, int> queryNeighborTowardsTargetFn)
@@ -316,14 +325,12 @@ namespace IAFahim.Search
             while (true)
             {
                 int next = queryNeighborTowardsTargetFn(curr);
-                if (next == curr)
-                {
-                    return curr;
-                }
+                if (next == curr) return curr;
                 curr = next;
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int InteractiveTreeCentroidFind(
             int numNodes,
             int* head,
@@ -332,10 +339,7 @@ namespace IAFahim.Search
             delegate*<int, int> queryFn)
         {
             byte* removed = stackalloc byte[numNodes];
-            for (int i = 0; i < numNodes; i++)
-            {
-                removed[i] = 0;
-            }
+            for (int i = 0; i < numNodes; i++) removed[i] = 0;
 
             int* sz = stackalloc int[numNodes];
             int* parent = stackalloc int[numNodes];
@@ -363,23 +367,14 @@ namespace IAFahim.Search
                 }
 
                 int componentSize = qTail;
-                if (componentSize == 1)
-                {
-                    return queue[0];
-                }
+                if (componentSize == 1) return queue[0];
 
-                for (int i = 0; i < componentSize; i++)
-                {
-                    sz[queue[i]] = 1;
-                }
+                for (int i = 0; i < componentSize; i++) sz[queue[i]] = 1;
                 for (int i = componentSize - 1; i >= 0; i--)
                 {
                     int u = queue[i];
                     int p = parent[u];
-                    if (p != -1)
-                    {
-                        sz[p] += sz[u];
-                    }
+                    if (p != -1) sz[p] += sz[u];
                 }
 
                 int centroid = -1;
@@ -387,64 +382,39 @@ namespace IAFahim.Search
                 {
                     int u = queue[i];
                     bool isCentroid = true;
-                    if (componentSize - sz[u] > componentSize / 2)
-                    {
-                        isCentroid = false;
-                    }
+                    if (componentSize - sz[u] > componentSize / 2) isCentroid = false;
                     for (int e = head[u]; e != -1; e = next[e])
                     {
                         int v = to[e];
                         if (v != parent[u] && removed[v] == 0)
                         {
-                            if (sz[v] > componentSize / 2)
-                            {
-                                isCentroid = false;
-                                break;
-                            }
+                            if (sz[v] > componentSize / 2) { isCentroid = false; break; }
                         }
                     }
-                    if (isCentroid)
-                    {
-                        centroid = u;
-                        break;
-                    }
+                    if (isCentroid) { centroid = u; break; }
                 }
 
-                if (centroid == -1)
-                {
-                    centroid = queue[0];
-                }
-
+                if (centroid == -1) centroid = queue[0];
                 int nextHop = queryFn(centroid);
-                if (nextHop == centroid)
-                {
-                    return centroid;
-                }
-
+                if (nextHop == centroid) return centroid;
                 removed[centroid] = 1;
                 currentRoot = nextHop;
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void InteractivePermutationRecover(
             int n,
             int* recoveredPermutation,
             delegate*<int, int, int> queryCompareFn)
         {
             int* indices = stackalloc int[n];
-            for (int i = 0; i < n; i++)
-            {
-                indices[i] = i;
-            }
-
+            for (int i = 0; i < n; i++) indices[i] = i;
             InteractiveQuicksort(indices, 0, n - 1, queryCompareFn);
-
-            for (int i = 0; i < n; i++)
-            {
-                recoveredPermutation[indices[i]] = i;
-            }
+            for (int i = 0; i < n; i++) recoveredPermutation[indices[i]] = i;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void InteractiveQuicksort(
             int* arr,
             int low,
@@ -459,6 +429,7 @@ namespace IAFahim.Search
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int InteractivePartition(
             int* arr,
             int low,
@@ -472,14 +443,10 @@ namespace IAFahim.Search
                 if (cmp(arr[j], pivot) < 0)
                 {
                     i++;
-                    int temp = arr[i];
-                    arr[i] = arr[j];
-                    arr[j] = temp;
+                    int temp = arr[i]; arr[i] = arr[j]; arr[j] = temp;
                 }
             }
-            int temp2 = arr[i + 1];
-            arr[i + 1] = arr[high];
-            arr[high] = temp2;
+            int temp2 = arr[i + 1]; arr[i + 1] = arr[high]; arr[high] = temp2;
             return i + 1;
         }
     }

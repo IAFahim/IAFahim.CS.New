@@ -21,19 +21,14 @@ namespace IAFahim.Optimization.Games
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int[] SpragueGrundy(int* moves, int* counts, int n)
+        public static void SpragueGrundy(int* moves, int* counts, int n, int* g, int* scratch)
         {
-            int* g = stackalloc int[n];
             for (int i = 0; i < n; i++)
             {
-                int* vals = stackalloc int[counts[i]];
                 for (int j = 0; j < counts[i]; j++)
-                    vals[j] = g[moves[i * 10 + j]];
-                g[i] = Mex(vals, counts[i]);
+                    scratch[j] = g[moves[i * 10 + j]];
+                g[i] = Mex(scratch, counts[i]);
             }
-            int[] result = new int[n];
-            for (int i = 0; i < n; i++) result[i] = g[i];
-            return result;
         }
     }
 }

@@ -34,7 +34,8 @@ namespace IAFahim.DS.Fenwick
         public static int LowerBoundInt64(long* bit, int n, long target)
         {
             int idx = 0;
-            int bitMask = 1 << (31 - Math.Clamp(n - 1, 0, 30));
+            int bitMask = 1;
+            while ((bitMask << 1) <= n) bitMask <<= 1;
             for (; bitMask != 0; bitMask >>= 1)
             {
                 int next = idx + bitMask;

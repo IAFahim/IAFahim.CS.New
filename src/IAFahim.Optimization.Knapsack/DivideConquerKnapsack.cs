@@ -5,9 +5,8 @@ namespace IAFahim.Optimization.Knapsack
 
     public static unsafe class DivideConquerKnapsack
     {
-        public static long Run(long* w, long* v, int* cnt, int n, int cap)
+        public static long Run(long* w, long* v, int* cnt, int n, int cap, long* dp)
         {
-            long* dp = stackalloc long[cap + 1];
             for (int i = 0; i <= cap; i++) dp[i] = 0;
             for (int i = 0; i < n; i++)
             {

@@ -11,14 +11,13 @@ namespace IAFahim.Math.NT
             return Radical.Run(n);
         }
 
-        public static long Count(long n)
+        public static long Count(long n, int* mu)
         {
             if (n <= 0)
             {
                 return 0;
             }
             int limit = (int)Math.Sqrt((double)n);
-            int* mu = stackalloc int[limit + 1];
             SieveMobius(limit, mu);
             long ans = 0;
             for (int d = 1; d <= limit; d++)

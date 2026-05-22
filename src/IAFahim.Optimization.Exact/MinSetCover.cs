@@ -25,7 +25,8 @@ namespace IAFahim.Optimization.Exact
                 for (int j = 0; j < setSizes[i]; j++)
                 {
                     int elem = sets[i][j];
-                    if (covered[elem] == 0) { covered[elem] = 1; added++; }
+                    if (covered[elem] == 0) added++;
+                    covered[elem]++;
                 }
                 if (added > 0)
                 {
@@ -33,20 +34,7 @@ namespace IAFahim.Optimization.Exact
                     Search(m, sets, setSizes, covered, covCount + added, used + 1, best, cur, i + 1, remain);
                 }
                 for (int j = 0; j < setSizes[i]; j++)
-                {
-                    int elem = sets[i][j];
-                    bool hasOther = false;
-                    for (int k = 0; k < m; k++)
-                    {
-                        if (k == i) continue;
-                        for (int t = 0; t < setSizes[k]; t++)
-                        {
-                            if (sets[k][t] == elem) { hasOther = true; break; }
-                        }
-                        if (hasOther) break;
-                    }
-                    if (!hasOther) covered[elem] = 0;
-                }
+                    covered[sets[i][j]]--;
             }
         }
     }

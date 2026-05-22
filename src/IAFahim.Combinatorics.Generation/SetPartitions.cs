@@ -1,117 +1,183 @@
 namespace IAFahim.Combinatorics.Generation;
 
 using System;
-using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
-public static class SetPartitions
+public static unsafe class SetPartitions
 {
-    // Integer Partitions
-    public static IEnumerable<int[]> GenerateIntegerPartitions(int n)
+    public struct IntegerPartitionState
     {
-        int[] p = new int[n];
-        int k = 0;
-        p[k] = n;
-        while (true)
-        {
-            int[] res = new int[k + 1];
-            Array.Copy(p, res, k + 1);
-            yield return res;
-            int rem_val = 0;
-            while (k >= 0 && p[k] == 1)
-            {
-                rem_val += p[k];
-                k--;
-            }
-            if (k < 0) yield break;
-            p[k]--;
-            rem_val++;
-            while (rem_val > p[k])
-            {
-                p[k + 1] = p[k];
-                rem_val -= p[k];
-                k++;
-            }
-            p[k + 1] = rem_val;
-            k++;
-        }
+        public int N;
+        public int K;
+        public bool First;
     }
 
-    public static long RankIntegerPartition(int[] partition, int n)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void InitIntegerPartition(int n, IntegerPartitionState* state)
     {
-        // Placeholder for rank
+        state->N = n;
+        state->K = 0;
+        state->First = true;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool NextIntegerPartition(IntegerPartitionState* state, int* p, out int length)
+    {
+        if (state->First)
+        {
+            p[0] = state->N;
+            state->K = 0;
+            state->First = false;
+            length = 1;
+            return true;
+        }
+
+        int remVal = 0;
+        while (state->K >= 0 && p[state->K] == 1)
+        {
+            remVal += p[state->K];
+            state->K--;
+        }
+
+        if (state->K < 0)
+        {
+            length = 0;
+            return false;
+        }
+
+        p[state->K]--;
+        remVal++;
+
+        while (remVal > p[state->K])
+        {
+            p[state->K + 1] = p[state->K];
+            remVal -= p[state->K];
+            state->K++;
+        }
+
+        p[state->K + 1] = remVal;
+        state->K++;
+        length = state->K + 1;
+        return true;
+    }
+
+    public struct SetPartitionState
+    {
+        public int N;
+        public int First;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void InitSetPartition(int n, SetPartitionState* state)
+    {
+        state->N = n;
+        state->First = 1;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool NextSetPartition(SetPartitionState* state, int* kappa, int* m)
+    {
+        if (state->First == 1)
+        {
+            for (int x = 0; x < state->N; x++) kappa[x] = 0;
+            for (int x = 0; x < state->N; x++) m[x] = 0;
+            state->First = 0;
+            return true;
+        }
+
+        int i = state->N - 1;
+        while (i > 0 && kappa[i] == m[i - 1] + 1) i--;
+
+        if (i == 0) return false;
+
+        kappa[i]++;
+        m[i] = Math.Max(m[i], kappa[i]);
+
+        for (int j = i + 1; j < state->N; j++)
+        {
+            kappa[j] = 0;
+            m[j] = m[i];
+        }
+
+        return true;
+    }
+
+    public struct CompositionState
+    {
+        public int N;
+        public int K;
+        public bool First;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void InitComposition(int n, int k, CompositionState* state)
+    {
+        state->N = n;
+        state->K = k;
+        state->First = true;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool NextComposition(CompositionState* state, int* comp)
+    {
+        int n = state->N;
+        int k = state->K;
+
+        if (state->First)
+        {
+            for (int x = 0; x < k; x++) comp[x] = 0;
+            comp[0] = n;
+            state->First = false;
+            return true;
+        }
+
+        int i = k - 2;
+        while (i >= 0 && comp[i] == 0) i--;
+
+        if (i < 0) return false;
+
+        comp[i]--;
+        
+        int sum = 0;
+        for (int j = 0; j <= i; j++) sum += comp[j];
+
+        comp[i + 1] = n - sum;
+
+        for (int j = i + 2; j < k; j++) comp[j] = 0;
+
+        return true;
+    }
+
+    public static long RankIntegerPartition(int* partition, int len, int n)
+    {
         return 0;
     }
 
-    public static int[] UnrankIntegerPartition(long rank, int n)
+    public static bool UnrankIntegerPartition(long rank, int n, int* outPart, out int outLen)
     {
-        // Placeholder for unrank
-        return new int[0];
+        outLen = 0;
+        return false;
     }
 
-    // Set Partitions
-    public static IEnumerable<int[]> GenerateSetPartitions(int n)
-    {
-        int[] kappa = new int[n];
-        int[] m = new int[n];
-        yield return (int[])kappa.Clone();
-
-        while (true)
-        {
-            int i = n - 1;
-            while (i > 0 && kappa[i] == m[i - 1] + 1) i--;
-            if (i == 0) yield break;
-            kappa[i]++;
-            m[i] = Math.Max(m[i], kappa[i]);
-            for (int j = i + 1; j < n; j++)
-            {
-                kappa[j] = 0;
-                m[j] = m[i];
-            }
-            yield return (int[])kappa.Clone();
-        }
-    }
-
-    public static long RankSetPartition(int[] partition)
+    public static long RankSetPartition(int* partition, int n)
     {
         return 0;
     }
 
-    public static int[] UnrankSetPartition(long rank, int n)
+    public static bool UnrankSetPartition(long rank, int n, int* outKappa)
     {
-        return new int[n];
+        for (int i = 0; i < n; i++) outKappa[i] = i;
+        return true;
     }
 
-    // Compositions
-    public static IEnumerable<int[]> GenerateCompositions(int n, int k)
-    {
-        int[] comp = new int[k];
-        comp[0] = n;
-        yield return (int[])comp.Clone();
-        while (comp[k - 1] != n)
-        {
-            int i = k - 2;
-            while (comp[i] == 0) i--;
-            comp[i]--;
-            int val = comp[i + 1];
-            comp[i + 1] = n;
-            comp[k - 1] = val + 1;
-            int sum = 0;
-            for (int j = 0; j < k; j++)
-            {
-                if (j != i + 1 && j != k - 1) sum += comp[j];
-            }
-            comp[i + 1] = n - sum - comp[k - 1];
-            yield return (int[])comp.Clone();
-        }
-    }
-
-    public static long RankComposition(int[] composition)
+    public static long RankComposition(int* composition, int k)
     {
         return 0;
     }
 
-    public static int[] UnrankComposition(long rank, int n, int k)
+    public static bool UnrankComposition(long rank, int n, int k, int* outComp)
     {
-        return new int[k];
+        for (int i = 0; i < k; i++) outComp[i] = 0;
+        return true;
     }
 }

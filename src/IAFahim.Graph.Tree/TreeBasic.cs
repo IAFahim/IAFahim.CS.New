@@ -5,7 +5,7 @@ namespace IAFahim.Graph.Tree
 
     public static unsafe class LcaBuild
     {
-        public static void Run(int n, int root, int* head, int* to, int* next, int* parent, int* depth, int** ancestors, int logN)
+        public static void Run(int n, int root, int* head, int* to, int* next, int* parent, int* depth, int* ancestors, int logN)
         {
             int* q = stackalloc int[n];
             int qh = 0, qt = 0;
@@ -26,42 +26,42 @@ namespace IAFahim.Graph.Tree
                     }
                 }
             }
-            for (int i = 0; i < n; i++) ancestors[i][0] = parent[i] < 0 ? i : parent[i];
+            for (int i = 0; i < n; i++) ancestors[i * logN + 0] = parent[i] < 0 ? i : parent[i];
             for (int j = 1; j < logN; j++)
             {
                 for (int i = 0; i < n; i++)
-                    ancestors[i][j] = ancestors[ancestors[i][j - 1]][j - 1];
+                    ancestors[i * logN + j] = ancestors[ancestors[i * logN + (j - 1)] * logN + (j - 1)];
             }
         }
     }
 
     public static unsafe class LcaQuery
     {
-        public static int Run(int u, int v, int* depth, int** ancestors, int logN)
+        public static int Run(int u, int v, int* depth, int* ancestors, int logN)
         {
             if (depth[u] < depth[v]) { int t = u; u = v; v = t; }
             int diff = depth[u] - depth[v];
             for (int j = 0; j < logN; j++)
             {
                 if (((diff >> j) & 1) != 0)
-                    u = ancestors[u][j];
+                    u = ancestors[u * logN + j];
             }
             if (u == v) return u;
             for (int j = logN - 1; j >= 0; j--)
             {
-                if (ancestors[u][j] != ancestors[v][j])
+                if (ancestors[u * logN + j] != ancestors[v * logN + j])
                 {
-                    u = ancestors[u][j];
-                    v = ancestors[v][j];
+                    u = ancestors[u * logN + j];
+                    v = ancestors[v * logN + j];
                 }
             }
-            return ancestors[u][0];
+            return ancestors[u * logN + 0];
         }
     }
 
     public static unsafe class LcaDistance
     {
-        public static int Run(int u, int v, int* depth, int** ancestors, int logN)
+        public static int Run(int u, int v, int* depth, int* ancestors, int logN)
         {
             int lca = LcaQuery.Run(u, v, depth, ancestors, logN);
             return depth[u] + depth[v] - 2 * depth[lca];
@@ -70,25 +70,25 @@ namespace IAFahim.Graph.Tree
 
     public static unsafe class BinaryLiftBuild
     {
-        public static void Run(int n, int root, int* parent, int** ancestors, int logN)
+        public static void Run(int n, int root, int* parent, int* ancestors, int logN)
         {
-            for (int i = 0; i < n; i++) ancestors[i][0] = parent[i] < 0 ? i : parent[i];
+            for (int i = 0; i < n; i++) ancestors[i * logN + 0] = parent[i] < 0 ? i : parent[i];
             for (int j = 1; j < logN; j++)
             {
                 for (int i = 0; i < n; i++)
-                    ancestors[i][j] = ancestors[ancestors[i][j - 1]][j - 1];
+                    ancestors[i * logN + j] = ancestors[ancestors[i * logN + (j - 1)] * logN + (j - 1)];
             }
         }
     }
 
     public static unsafe class BinaryLiftKthAncestor
     {
-        public static int Run(int node, int k, int** ancestors, int logN)
+        public static int Run(int node, int k, int* ancestors, int logN)
         {
             for (int j = 0; j < logN; j++)
             {
                 if (((k >> j) & 1) != 0)
-                    node = ancestors[node][j];
+                    node = ancestors[node * logN + j];
             }
             return node;
         }

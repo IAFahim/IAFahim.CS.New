@@ -6,11 +6,9 @@ namespace IAFahim.Optimization.Games
     public static unsafe class AttractorSet
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool Solve(int n, bool* player, bool* adj, bool* even, int start)
+        public static bool Solve(int n, bool* player, bool* adj, bool* even, int start, bool* inAttr, int* queue)
         {
-            bool* inAttr = stackalloc bool[n];
             for (int i = 0; i < n; i++) inAttr[i] = false;
-            int* queue = stackalloc int[n];
             int head = 0, tail = 0;
             if (even[start]) { inAttr[start] = true; queue[tail++] = start; }
             else

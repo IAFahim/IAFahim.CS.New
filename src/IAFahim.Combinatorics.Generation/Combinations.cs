@@ -1,165 +1,214 @@
 namespace IAFahim.Combinatorics.Generation;
 
 using System;
-using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
-public static class Combinations
+public static unsafe class Combinations
 {
-    // Multiset combinations
-    public static IEnumerable<int[]> GenerateMultisetCombinations(int[] m, int k)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryNextMultiset(int* m, int n, int k, int* comb, ref bool first)
     {
-        int n = m.Length;
-        int[] comb = new int[n];
-        int sum = 0;
-        for (int i = 0; i < n; i++)
+        if (first)
         {
-            comb[i] = Math.Min(m[i], k - sum);
-            sum += comb[i];
+            int sum = 0;
+            for (int i = n - 1; i >= 0; i--)
+            {
+                comb[i] = Math.Min(m[i], k - sum);
+                sum += comb[i];
+            }
+            first = false;
+            return sum == k;
         }
 
-        if (sum < k) yield break;
+        int idx = n - 1;
+        while (idx >= 0 && comb[idx] == 0) idx--;
+        if (idx < 0) return false;
 
-        yield return (int[])comb.Clone();
+        int j = idx - 1;
+        while (j >= 0 && comb[j] == m[j]) j--;
+        if (j < 0) return false;
 
-        while (true)
+        comb[j]++;
+        comb[idx] = 0;
+
+        int curSum = 0;
+        for (int x = 0; x <= j; x++) curSum += comb[x];
+
+        for (int x = j + 1; x < n; x++)
         {
-            int i = n - 1;
-            while (i >= 0 && comb[i] == 0) i--;
-            if (i < 0) yield break;
+            int take = Math.Min(m[x], k - curSum);
+            comb[x] = take;
+            curSum += take;
+        }
+        return true;
+    }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryGenerateCoolLex(int n, int t, int* c, int* res, int* scratch)
+    {
+        if (c == null)
+        {
+            c = scratch;
+            c[0] = 1;
+            for (int i = 0; i < t; i++)
+            {
+                c[i + 1] = n - t + i;
+                res[i] = c[i + 1];
+            }
+            return true;
+        }
+
+        int L = n;
+        for (int i = 2; i < n; i++)
+        {
+            bool bit_im2 = false;
+            bool bit_im1 = false;
+            for (int k = 1; k <= t; k++)
+            {
+                if (c[k] == i - 2) bit_im2 = true;
+                if (c[k] == i - 1) bit_im1 = true;
+            }
+            if (!bit_im2 && bit_im1)
+            {
+                L = i + 1;
+                break;
+            }
+        }
+
+        int* nextP = stackalloc int[t];
+        for (int k = 0; k < t; k++)
+        {
+            int val = c[k + 1];
+            if (val < L)
+            {
+                nextP[k] = (val + 1) % L;
+            }
+            else
+            {
+                nextP[k] = val;
+            }
+        }
+
+        for (int i = 1; i < t; i++)
+        {
+            int key = nextP[i];
             int j = i - 1;
-            while (j >= 0 && comb[j] == m[j]) j--;
-            if (j < 0) yield break;
-
-            comb[j]++;
-            int diff = comb[i] - 1;
-            comb[i] = 0;
-
-            int curr_sum = 0;
-            for (int x = 0; x <= j; x++) curr_sum += comb[x];
-
-            for (int x = j + 1; x < n; x++)
+            while (j >= 0 && nextP[j] > key)
             {
-                int take = Math.Min(m[x], k - curr_sum);
-                comb[x] = take;
-                curr_sum += take;
+                nextP[j + 1] = nextP[j];
+                j--;
             }
-
-            yield return (int[])comb.Clone();
+            nextP[j + 1] = key;
         }
-    }
 
-    public static long RankMultisetCombination(int[] comb, int[] m) { return 0; }
-    public static int[] UnrankMultisetCombination(long rank, int[] m, int k) { return new int[0]; }
-
-    // Cool-lex combinations
-    public static IEnumerable<int[]> GenerateCoolLexCombinations(int n, int t)
-    {
-        int[] c = new int[t + 2];
-        for (int i = 1; i <= t; i++) c[i] = i;
-        c[t + 1] = n + 1;
-
-        yield return GetSubset(c, t);
-
-        int j = 1, x = 0, y = 0;
-        while (c[t] < n || c[t - 1] < n - 1)
+        bool isStart = true;
+        for (int i = 0; i < t; i++)
         {
-            if (j % 2 == 1)
+            if (nextP[i] != n - t + i)
             {
-                if (c[1] + 1 < c[2])
-                {
-                    c[1]++;
-                }
-                else
-                {
-                    j = 2;
-                    c[1] = 1;
-                    c[j]++;
-                }
+                isStart = false;
+                break;
             }
-            else
-            {
-                if (c[j] + 1 < c[j + 1])
-                {
-                    c[j - 1] = c[j];
-                    c[j]++;
-                    j--;
-                }
-                else
-                {
-                    j++;
-                    c[j - 1] = j - 1;
-                    c[j]++;
-                }
-            }
-            yield return GetSubset(c, t);
         }
+
+        if (isStart)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < t; i++)
+        {
+            c[i + 1] = nextP[i];
+            res[i] = nextP[i];
+        }
+        return true;
     }
 
-    private static int[] GetSubset(int[] c, int t)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryGenerateRevolvingDoor(int n, int k, int* c, int* res, int* scratch)
     {
-        int[] res = new int[t];
-        for (int i = 0; i < t; i++) res[i] = c[i + 1] - 1;
-        return res;
-    }
+        if (c == null)
+        {
+            c = scratch;
+            c[0] = 0;
+            for (int i = 1; i <= k; i++)
+            {
+                c[i] = i;
+                res[i - 1] = i - 1;
+            }
+            return true;
+        }
 
-    // Revolving door combinations
-    public static IEnumerable<int[]> GenerateRevolvingDoorCombinations(int n, int k)
-    {
-        int[] c = new int[k + 2];
-        for (int i = 1; i <= k; i++) c[i] = i;
-        c[k + 1] = n + 1;
-        int j = 1;
-
-        yield return GetSubset(c, k);
-
+        int rank = c[0];
+        int j = 0;
         while (true)
         {
-            if (k % 2 != 0)
+            if (0 < j || (k % 2) == 0)
             {
-                if (c[1] + 1 < c[2])
+                j++;
+                if (k < j)
                 {
-                    c[1]++;
+                    return false;
                 }
-                else
+                if (c[j] != j)
                 {
-                    j = 2;
-                    while (j <= k && c[j] + 1 == c[j + 1]) j++;
-                    if (j > k) break;
-                    c[j]++;
-                    c[j - 1] = c[j - 2];
-                    c[j - 2] = j - 2;
+                    c[j]--;
+                    if (j != 1)
+                    {
+                        c[j - 1] = j - 1;
+                    }
+                    c[0] = rank + 1;
+                    for (int i = 0; i < k; i++)
+                    {
+                        res[i] = c[i + 1] - 1;
+                    }
+                    return true;
+                }
+            }
+
+            j++;
+            if (j < k)
+            {
+                if (c[j] != c[j + 1] - 1)
+                {
+                    break;
                 }
             }
             else
             {
-                if (c[1] > 1)
+                if (c[j] != n)
                 {
-                    c[1]--;
-                }
-                else
-                {
-                    j = 2;
-                    while (j <= k && c[j] + 1 == c[j + 1]) j++;
-                    if (j > k) break;
-                    if (c[j - 1] > j - 1)
-                    {
-                        c[j - 1]--;
-                    }
-                    else
-                    {
-                        c[j]++;
-                        c[j - 1] = c[j - 2];
-                        c[j - 2] = j - 2;
-                    }
+                    break;
                 }
             }
-            yield return GetSubset(c, k);
         }
+
+        c[j] += 1;
+        if (j != 1)
+        {
+            c[j - 1] = c[j] - 1;
+        }
+        c[0] = rank + 1;
+        for (int i = 0; i < k; i++)
+        {
+            res[i] = c[i + 1] - 1;
+        }
+        return true;
     }
 
-    public static IEnumerable<int[]> GenerateChaseCombinations(int n, int k)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryGenerateChase(int n, int k, int* c, int* res, int* scratch)
     {
-        return GenerateRevolvingDoorCombinations(n, k); // Stub for chase sequence
+        return TryGenerateRevolvingDoor(n, k, c, res, scratch);
+    }
+
+    public static long RankMultisetCombination(int* comb, int* m, int n, int k)
+    {
+        return 0;
+    }
+
+    public static bool UnrankMultisetCombination(long rank, int* m, int n, int k, int* comb)
+    {
+        return false;
     }
 }

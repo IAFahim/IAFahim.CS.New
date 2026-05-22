@@ -10,7 +10,7 @@ namespace IAFahim.Optimization.DivideConquer
             int lo = 0, hi = m * n - 1;
             while (lo <= hi)
             {
-                int mid = (lo + hi) >> 1;
+                int mid = lo + ((hi - lo) >> 1);
                 int val = a[mid];
                 if (val == target) return mid;
                 if (val < target) lo = mid + 1;

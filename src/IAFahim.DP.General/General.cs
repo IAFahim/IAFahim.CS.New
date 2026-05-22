@@ -3,97 +3,6 @@ namespace IAFahim.DP.General
     using System;
     using System.Runtime.CompilerServices;
 
-    public static unsafe class LagrangeInterpolationDp
-    {
-        public static double Run(int n, long* y, double x)
-        {
-            double* fact = stackalloc double[n + 1];
-            double* invFact = stackalloc double[n + 1];
-            fact[0] = 1;
-            for (int i = 1; i <= n; i++) fact[i] = fact[i - 1] * i;
-            invFact[n] = 1.0 / fact[n];
-            for (int i = n; i > 0; i--) invFact[i - 1] = invFact[i] * i;
-            double result = 0;
-            for (int i = 0; i <= n; i++)
-            {
-                double term = y[i];
-                term *= invFact[i];
-                term *= invFact[n - i];
-                if (((n - i) & 1) != 0) term = -term;
-                double numer = 1;
-                for (int j1 = 0; j1 <= n; j1++)
-                {
-                    if (j1 != i) numer *= (x - j1);
-                }
-                term *= numer;
-                result += term;
-            }
-            return result;
-        }
-    }
-
-    public static unsafe class RerootingDp
-    {
-        public static void Run(int n, int root, int* head, int* to, int* next, long* dp, long* up, Func<long, long, long> merge)
-        {
-            Dfs1(root, -1);
-            Dfs2(root, -1);
-
-            void Dfs1(int u, int p)
-            {
-                dp[u] = 1;
-                for (int e = head[u]; e != 0; e = next[e])
-                {
-                    int v = to[e];
-                    if (v == p) continue;
-                    Dfs1(v, u);
-                    dp[u] = merge(dp[u], dp[v] + 1);
-                }
-            }
-
-            void Dfs2(int u, int p)
-            {
-                for (int e = head[u]; e != 0; e = next[e])
-                {
-                    int v = to[e];
-                    if (v == p) continue;
-                    up[v] = merge(up[u] + 1, dp[u]);
-                    Dfs2(v, u);
-                }
-            }
-        }
-    }
-
-    public static unsafe class DigitDp
-    {
-        public static long Run(string limit, int pos, bool tight, bool isNum, bool started, long* dp)
-        {
-            if (pos >= limit.Length)
-            {
-                return isNum && started ? 1 : 0;
-            }
-            long key = ((tight ? 1 : 0) << 20) | ((isNum ? 1 : 0) << 10) | (started ? 1 : 0);
-            if (dp[pos] > 0 && !tight) return dp[pos];
-            long result = 0;
-            int maxDigit = tight ? limit[pos] - '0' : 9;
-            for (int d = 0; d <= maxDigit; d++)
-            {
-                bool nextTight = tight && (d == maxDigit);
-                bool nextStarted = started || (d != 0);
-                if (!started && d == 0 && !isNum)
-                {
-                    result += Run(limit, pos + 1, nextTight, false, false, dp);
-                }
-                else
-                {
-                    result += Run(limit, pos + 1, nextTight, true, nextStarted, dp);
-                }
-            }
-            if (!tight) dp[pos] = result;
-            return result;
-        }
-    }
-
     public static unsafe class ProfileDp
     {
         public static long Run(int m, int n, int* a, long* dp, long* tmp)
@@ -115,7 +24,12 @@ namespace IAFahim.DP.General
                         if ((mask & bit) != 0)
                         {
                             int nmask = mask ^ bit;
-                            tmp[nmask] = Math.Max(tmp[nmask], dp[mask] + (long)a[i * m + j]);
+                            long current = dp[mask];
+                            if (current != long.MinValue)
+                            {
+                                long cand = current + (long)a[i * m + j];
+                                if (cand > tmp[nmask]) tmp[nmask] = cand;
+                            }
                         }
                     }
                     for (int mask = 0; mask < maskCount; mask++)
@@ -134,7 +48,6 @@ namespace IAFahim.DP.General
         {
             for (int i = 0; i < (1 << m); i++) dp[i] = long.MinValue;
             dp[0] = 0;
-            int pos = 0;
             for (int i = 0; i < n; i++)
             {
                 for (int j = 0; j < m; j++)
@@ -149,8 +62,13 @@ namespace IAFahim.DP.General
                         if ((mask & bit) != 0)
                         {
                             int nmask = mask ^ bit;
-                            long val = a[i * m + j];
-                            tmp[nmask] = Math.Max(tmp[nmask], dp[mask] + val);
+                            long current = dp[mask];
+                            if (current != long.MinValue)
+                            {
+                                long val = a[i * m + j];
+                                long cand = current + val;
+                                if (cand > tmp[nmask]) tmp[nmask] = cand;
+                            }
                         }
                     }
                     for (int mask = 0; mask < (1 << m); mask++)
@@ -165,90 +83,25 @@ namespace IAFahim.DP.General
 
     public static unsafe class TreeKnapsack
     {
-        public static void Run(int u, int p, int size, int* head, int* to, int* next, int* w, long* v, long* dp, long* tmp)
+        public static void Run(int u, int p, int* head, int* to, int* next, int* w, long* v, long* dp, long* tmp, int cap)
         {
-            size = 1;
-            dp[u * 1000] = 0;
+            dp[u * cap] = 0;
+            int size = 1;
             for (int e = head[u]; e != 0; e = next[e])
             {
-                int v2 = to[e];
-                if (v2 == p) continue;
+                int vNode = to[e];
+                if (vNode == p) continue;
                 int subSize = 0;
-                Run(v2, u, subSize, head, to, next, w, v, dp, tmp);
+                Run(vNode, u, head, to, next, w, v, dp, tmp, cap);
                 for (int i = size - 1; i >= 0; i--)
                 {
-                    long val = dp[u * 1000 + i];
-                    long val2 = dp[v2 * 1000 + subSize] + v[v2];
-                    int w2 = w[v2];
-                    if (i + w2 < 1000) dp[u * 1000 + i + w2] = Math.Max(dp[u * 1000 + i + w2], val2);
+                    long val = dp[u * cap + i];
+                    long val2 = dp[vNode * cap + subSize] + v[vNode];
+                    int w2 = w[vNode];
+                    if (i + w2 < cap) dp[u * cap + i + w2] = Math.Max(dp[u * cap + i + w2], val2);
                 }
                 size += subSize;
             }
-        }
-    }
-
-    public static unsafe class SubsetDp
-    {
-        public static void Run(int n, long* f, long* g)
-        {
-            for (int i = 0; i < n; i++)
-            {
-                for (int mask = 0; mask < (1 << n); mask++)
-                {
-                    if ((mask & (1 << i)) != 0)
-                    {
-                        g[mask] += f[mask ^ (1 << i)];
-                    }
-                }
-            }
-        }
-
-        public static void RunInt(int n, int* f, int* g)
-        {
-            for (int i = 0; i < n; i++)
-            {
-                for (int mask = 0; mask < (1 << n); mask++)
-                {
-                    if ((mask & (1 << i)) != 0)
-                    {
-                        g[mask] += f[mask ^ (1 << i)];
-                    }
-                }
-            }
-        }
-    }
-
-    public static unsafe class SosDp
-    {
-        public static void Run(int n, int* f, int* dp)
-        {
-            for (int i = 0; i < (1 << n); i++) dp[i] = f[i];
-            for (int i = 0; i < n; i++)
-            {
-                for (int mask = 0; mask < (1 << n); mask++)
-                {
-                    if ((mask & (1 << i)) != 0)
-                    {
-                        dp[mask] += dp[mask ^ (1 << i)];
-                    }
-                }
-            }
-        }
-
-        public static long RunLong(int n, long* f, long* dp)
-        {
-            for (int i = 0; i < (1 << n); i++) dp[i] = f[i];
-            for (int i = 0; i < n; i++)
-            {
-                for (int mask = 0; mask < (1 << n); mask++)
-                {
-                    if ((mask & (1 << i)) != 0)
-                    {
-                        dp[mask] += dp[mask ^ (1 << i)];
-                    }
-                }
-            }
-            return dp[0];
         }
     }
 
@@ -265,46 +118,18 @@ namespace IAFahim.DP.General
                     long best = long.MaxValue;
                     for (int k = i; k < j; k++)
                     {
-                        long val = dp[i * n + k] + dp[(k + 1) * n + j] + 1;
-                        if (val < best) best = val;
+                        long d1 = dp[i * n + k];
+                        long d2 = dp[(k + 1) * n + j];
+                        if (d1 != long.MaxValue && d2 != long.MaxValue)
+                        {
+                            long cand = d1 + d2 + 1;
+                            if (cand < best) best = cand;
+                        }
                     }
                     dp[i * n + j] = best;
                 }
             }
             return dp[0 * n + (n - 1)];
-        }
-    }
-
-    public static unsafe class ProbabilityDp
-    {
-        public static double Run(int n, double* p, double* dp)
-        {
-            dp[0] = 1.0;
-            for (int i = 0; i < n; i++)
-            {
-                for (int j = i + 1; j <= n; j++)
-                {
-                    dp[j] += dp[i] * p[i];
-                }
-            }
-            return dp[n];
-        }
-    }
-
-    public static unsafe class ExpectationDp
-    {
-        public static double Run(int n, double* p, double* dp)
-        {
-            dp[0] = 0;
-            for (int i = 0; i < n; i++)
-            {
-                for (int j = i + 1; j <= n; j++)
-                {
-                    dp[j] += dp[i] + 1.0;
-                    dp[j] *= p[i];
-                }
-            }
-            return dp[n];
         }
     }
 
@@ -317,24 +142,12 @@ namespace IAFahim.DP.General
             {
                 for (int j = 0; j < m; j++)
                 {
-                    long val = a[i] + b[j];
-                    if (val < c[i + j]) c[i + j] = val;
-                }
-            }
-        }
-    }
-
-    public static unsafe class MaxPlusConvolution
-    {
-        public static void Run(int n, int m, long* a, long* b, long* c)
-        {
-            for (int i = 0; i < n + m; i++) c[i] = long.MinValue;
-            for (int i = 0; i < n; i++)
-            {
-                for (int j = 0; j < m; j++)
-                {
-                    long val = a[i] + b[j];
-                    if (val > c[i + j]) c[i + j] = val;
+                    long va = a[i], vb = b[j];
+                    if (va != INF && vb != INF)
+                    {
+                        long val = va + vb;
+                        if (val < c[i + j]) c[i + j] = val;
+                    }
                 }
             }
         }
@@ -360,11 +173,16 @@ namespace IAFahim.DP.General
                     int end = (i + 1 < n) ? opt[i + 1] : j;
                     for (int k = start; k <= end; k++)
                     {
-                        long val = dp[i * n + k] + dp[k * n + j] + 1;
-                        if (val < best)
+                        long d1 = dp[i * n + k];
+                        long d2 = dp[k * n + j];
+                        if (d1 != long.MaxValue && d2 != long.MaxValue)
                         {
-                            best = val;
-                            bestK = k;
+                            long val = d1 + d2 + 1;
+                            if (val < best)
+                            {
+                                best = val;
+                                bestK = k;
+                            }
                         }
                     }
                     dp[i * n + j] = best;
@@ -373,60 +191,6 @@ namespace IAFahim.DP.General
                 }
             }
             return dp[0 * n + (m - 1)];
-        }
-    }
-
-    public static unsafe class ChtDp
-    {
-        public static void AddLine(long* lines, int* size, long m, long b, int* ptr)
-        {
-            int n = *size;
-            long* newLines = stackalloc long[2];
-            newLines[0] = m;
-            newLines[1] = b;
-            while (n > 0 && n > *ptr)
-            {
-                int i = n - 1;
-                long m1 = lines[2 * i], b1 = lines[2 * i + 1];
-                long m2 = m, b2 = b;
-                long x = (b1 - b2) / (m2 - m1);
-                if ((b1 - b2) % (m2 - m1) != 0 && ((b1 - b2) < 0) != ((m2 - m1) < 0))
-                {
-                    x--;
-                }
-                if (x <= ptr[0])
-                {
-                    n--;
-                }
-                else
-                {
-                    break;
-                }
-            }
-            for (int i = 0; i < 2; i++)
-            {
-                lines[2 * n + i] = newLines[i];
-            }
-            *size = n + 1;
-        }
-
-        public static long Query(long* lines, int size, int ptr, long x)
-        {
-            if (size <= 0) return 0;
-            int l = 0, r = size - 1;
-            while (l < r)
-            {
-                int mid = (l + r) >> 1;
-                if (mid < ptr)
-                {
-                    l = mid + 1;
-                }
-                else
-                {
-                    r = mid;
-                }
-            }
-            return lines[2 * l] * x + lines[2 * l + 1];
         }
     }
 }

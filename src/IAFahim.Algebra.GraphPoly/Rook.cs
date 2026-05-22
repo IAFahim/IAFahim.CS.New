@@ -10,12 +10,12 @@ namespace IAFahim.Algebra.GraphPoly
         {
             long result = 0;
             int size = 1 << (n * m);
+            bool* rowUsed = stackalloc bool[n];
+            bool* colUsed = stackalloc bool[m];
             for (int mask = 0; mask < size; mask++)
             {
                 int count = 0;
                 bool valid = true;
-                bool* rowUsed = stackalloc bool[n];
-                bool* colUsed = stackalloc bool[m];
                 for (int i = 0; i < n; i++) rowUsed[i] = false;
                 for (int j = 0; j < m; j++) colUsed[j] = false;
                 for (int i = 0; i < n && valid; i++)

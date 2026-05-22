@@ -20,22 +20,23 @@ namespace IAFahim.Optimization.Exact
                 if (solSize > *best) { *best = solSize; return 1; }
                 return 0;
             }
-            for (int i = 0; i < candSize; i++) tmp[i] = cand[i];
+            int* currentTmp = tmp + depth * n;
+            for (int i = 0; i < candSize; i++) currentTmp[i] = cand[i];
             int count = 0;
             while (candSize > 0)
             {
                 if (solSize + candSize <= *best) return 0;
-                int v = tmp[0];
+                int v = currentTmp[0];
                 int sz = 0;
                 for (int i = 0; i < candSize; i++)
                 {
-                    if (adj[v * n + tmp[i]]) cand[sz++] = tmp[i];
+                    if (adj[v * n + currentTmp[i]]) cand[sz++] = currentTmp[i];
                 }
                 sol[solSize] = v;
                 Search(n, adj, cand, sz, depth + 1, sol, solSize + 1, best, dp, ref timer, tmp);
                 candSize--;
-                int last = tmp[candSize];
-                for (int i = 0; i < candSize; i++) tmp[i] = tmp[i] == v ? last : tmp[i];
+                int last = currentTmp[candSize];
+                for (int i = 0; i < candSize; i++) currentTmp[i] = currentTmp[i] == v ? last : currentTmp[i];
                 for (int i = 0; i < count; i++) cand[i] = cand[i] == v ? cand[count] : cand[i];
                 count++;
             }

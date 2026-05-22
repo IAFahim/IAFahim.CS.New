@@ -15,9 +15,9 @@ namespace IAFahim.Math.NT
             return IAFahim.Math.NT.ModPow.Run(a, e, mod);
         }
 
-        public static long Run(long a, long b, long mod)
+        public static long Run(long a, long b, long mod, long* scratchKeys, long* scratchVals)
         {
-            return Bsgs.Run(a, b, mod);
+            return Bsgs.Run(a, b, mod, scratchKeys, scratchVals);
         }
     }
 }

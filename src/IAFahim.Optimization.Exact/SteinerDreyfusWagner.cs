@@ -32,8 +32,14 @@ namespace IAFahim.Optimization.Exact
                 for (int j = 0; j < n; j++)
                 for (int k = 0; k < n; k++)
                 {
-                    long cand = dp[mask * n + i] + w[i * n + j] + w[j * n + k];
-                    if (cand < dp[mask * n + k]) dp[mask * n + k] = cand;
+                    long d1 = dp[mask * n + i];
+                    long w1 = w[i * n + j];
+                    long w2 = w[j * n + k];
+                    if (d1 != inf && w1 != inf && w2 != inf)
+                    {
+                        long cand = d1 + w1 + w2;
+                        if (cand < dp[mask * n + k]) dp[mask * n + k] = cand;
+                    }
                 }
             }
             return dp[((1 << m) - 1) * n];

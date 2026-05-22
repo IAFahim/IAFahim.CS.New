@@ -5,13 +5,14 @@ namespace IAFahim.Graph.Matching
 
     public static unsafe class StableMarriage
     {
-        public static void Run(int n, int* manPref, int* womanPref, int* manMatch, int* womanMatch)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Run(int n, int* manPref, int* womanPref, int* manMatch, int* womanMatch, int* scratch)
         {
             for (int i = 0; i < n; i++) manMatch[i] = -1;
             for (int i = 0; i < n; i++) womanMatch[i] = -1;
-            int* manNext = stackalloc int[n];
+            int* manNext = scratch;
+            int* womanRank = scratch + n;
             for (int i = 0; i < n; i++) manNext[i] = 0;
-            int* womanRank = stackalloc int[n * n];
             for (int w = 0; w < n; w++)
             {
                 for (int r = 0; r < n; r++)
@@ -20,7 +21,7 @@ namespace IAFahim.Graph.Matching
                     womanRank[w * n + mID] = r;
                 }
             }
-            int* stack = stackalloc int[n];
+            int* stack = scratch + n * 3;
             int top = 0;
             for (int i = 0; i < n; i++) stack[top++] = i;
             while (top > 0)
@@ -51,9 +52,10 @@ namespace IAFahim.Graph.Matching
             }
         }
 
-        public static bool IsStable(int n, int* manPref, int* womanPref, int* manMatch, int* womanMatch)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsStable(int n, int* manPref, int* womanPref, int* manMatch, int* womanMatch, int* scratch)
         {
-            int* womanRank = stackalloc int[n * n];
+            int* womanRank = scratch;
             for (int w = 0; w < n; w++)
             {
                 for (int r = 0; r < n; r++)
@@ -82,18 +84,20 @@ namespace IAFahim.Graph.Matching
 
     public static unsafe class GaleShapley
     {
-        public static void Run(int n, int* proposerPref, int* receiverPref, int* proposerMatch, int* receiverMatch)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Run(int n, int* proposerPref, int* receiverPref, int* proposerMatch, int* receiverMatch, int* scratch)
         {
-            StableMarriage.Run(n, proposerPref, receiverPref, proposerMatch, receiverMatch);
+            StableMarriage.Run(n, proposerPref, receiverPref, proposerMatch, receiverMatch, scratch);
         }
 
-        public static void RunWithHistory(int n, int* manPref, int* womanPref, int* manMatch, int* womanMatch, int* history, int* histSize)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void RunWithHistory(int n, int* manPref, int* womanPref, int* manMatch, int* womanMatch, int* history, int* histSize, int* scratch)
         {
             for (int i = 0; i < n; i++) manMatch[i] = -1;
             for (int i = 0; i < n; i++) womanMatch[i] = -1;
-            int* manNext = stackalloc int[n];
+            int* manNext = scratch;
+            int* womanRank = scratch + n;
             for (int i = 0; i < n; i++) manNext[i] = 0;
-            int* womanRank = stackalloc int[n * n];
             for (int w = 0; w < n; w++)
             {
                 for (int r = 0; r < n; r++)
@@ -102,7 +106,7 @@ namespace IAFahim.Graph.Matching
                     womanRank[w * n + mID] = r;
                 }
             }
-            int* stack = stackalloc int[n];
+            int* stack = scratch + n * 3;
             int top = 0;
             for (int i = 0; i < n; i++) stack[top++] = i;
             *histSize = 0;

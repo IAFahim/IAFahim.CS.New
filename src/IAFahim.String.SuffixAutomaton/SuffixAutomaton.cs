@@ -2,6 +2,7 @@ namespace IAFahim.String.SuffixAutomaton
 {
     using System;
     using System.Runtime.InteropServices;
+    using System.Runtime.CompilerServices;
 
     public static unsafe class SuffixAutomaton
     {
@@ -16,6 +17,7 @@ namespace IAFahim.String.SuffixAutomaton
         private static int _last;
         private static State* _st;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Build(int* ptr, int len)
         {
             _size = 1;
@@ -28,6 +30,19 @@ namespace IAFahim.String.SuffixAutomaton
                 Extend(ptr[i]);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Dispose()
+        {
+            if (_st != null)
+            {
+                Marshal.FreeHGlobal((nint)_st);
+                _st = null;
+            }
+            _size = 0;
+            _last = 0;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void Extend(int c)
         {
             int cur = _size++;
@@ -66,11 +81,13 @@ namespace IAFahim.String.SuffixAutomaton
             _last = cur;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int GetNext(int state, int c)
         {
             return ((int*)((IntPtr)_st + state * sizeof(State) + sizeof(int)))[c];
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void SetNext(int state, int c, int next)
         {
             ((int*)((IntPtr)_st + state * sizeof(State) + sizeof(int)))[c] = next;

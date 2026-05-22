@@ -15,7 +15,11 @@ namespace IAFahim.Graph.DAG
                 for (int e = head[u]; e != -1; e = next[e])
                 {
                     int v = to[e];
-                    pathCount[u] += pathCount[v];
+                    long add = pathCount[v];
+                    if (long.MaxValue - pathCount[u] < add)
+                        pathCount[u] = long.MaxValue;
+                    else
+                        pathCount[u] += add;
                 }
             }
         }

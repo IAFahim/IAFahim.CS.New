@@ -111,7 +111,7 @@ namespace IAFahim.Graph.Tree
 
     public static unsafe class VirtualTreeBuild
     {
-        public static int Run(int* nodes, int count, int* order, int* parent, int* depth, int** ancestors, int logN)
+        public static int Run(int* nodes, int count, int* order, int* parent, int* depth, int* ancestors, int logN)
         {
             for (int i = 0; i < count; i++)
             {

@@ -2,7 +2,6 @@ namespace IAFahim.Math.Transform
 {
     using System;
     using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
 
     public static unsafe class OrAndXorConvolution
     {
@@ -100,140 +99,59 @@ namespace IAFahim.Math.Transform
             return g;
         }
 
-        public static void RunOr(long* a, long* b, long* c, int logN, long mod)
+        public static void RunOr(long* a, long* b, long* c, int logN, long mod, long* ta, long* tb)
         {
             int n = 1 << logN;
-            long* ta = null;
-            long* tb = null;
-            bool allocated = false;
-            if (n > 1024)
+            for (int i = 0; i < n; i++)
             {
-                ta = (long*)Marshal.AllocHGlobal(n * sizeof(long));
-                tb = (long*)Marshal.AllocHGlobal(n * sizeof(long));
-                allocated = true;
+                ta[i] = a[i] % mod;
+                tb[i] = b[i] % mod;
             }
-            else
+            FwtOr(ta, n, mod, false);
+            FwtOr(tb, n, mod, false);
+            for (int i = 0; i < n; i++)
             {
-                long* tempA = stackalloc long[n];
-                long* tempB = stackalloc long[n];
-                ta = tempA;
-                tb = tempB;
+                c[i] = ta[i] * tb[i] % mod;
             }
-            try
-            {
-                for (int i = 0; i < n; i++)
-                {
-                    ta[i] = a[i] % mod;
-                    tb[i] = b[i] % mod;
-                }
-                FwtOr(ta, n, mod, false);
-                FwtOr(tb, n, mod, false);
-                for (int i = 0; i < n; i++)
-                {
-                    c[i] = ta[i] * tb[i] % mod;
-                }
-                FwtOr(c, n, mod, true);
-            }
-            finally
-            {
-                if (allocated)
-                {
-                    Marshal.FreeHGlobal((nint)ta);
-                    Marshal.FreeHGlobal((nint)tb);
-                }
-            }
+            FwtOr(c, n, mod, true);
         }
 
-        public static void RunAnd(long* a, long* b, long* c, int logN, long mod)
+        public static void RunAnd(long* a, long* b, long* c, int logN, long mod, long* ta, long* tb)
         {
             int n = 1 << logN;
-            long* ta = null;
-            long* tb = null;
-            bool allocated = false;
-            if (n > 1024)
+            for (int i = 0; i < n; i++)
             {
-                ta = (long*)Marshal.AllocHGlobal(n * sizeof(long));
-                tb = (long*)Marshal.AllocHGlobal(n * sizeof(long));
-                allocated = true;
+                ta[i] = a[i] % mod;
+                tb[i] = b[i] % mod;
             }
-            else
+            FwtAnd(ta, n, mod, false);
+            FwtAnd(tb, n, mod, false);
+            for (int i = 0; i < n; i++)
             {
-                long* tempA = stackalloc long[n];
-                long* tempB = stackalloc long[n];
-                ta = tempA;
-                tb = tempB;
+                c[i] = ta[i] * tb[i] % mod;
             }
-            try
-            {
-                for (int i = 0; i < n; i++)
-                {
-                    ta[i] = a[i] % mod;
-                    tb[i] = b[i] % mod;
-                }
-                FwtAnd(ta, n, mod, false);
-                FwtAnd(tb, n, mod, false);
-                for (int i = 0; i < n; i++)
-                {
-                    c[i] = ta[i] * tb[i] % mod;
-                }
-                FwtAnd(c, n, mod, true);
-            }
-            finally
-            {
-                if (allocated)
-                {
-                    Marshal.FreeHGlobal((nint)ta);
-                    Marshal.FreeHGlobal((nint)tb);
-                }
-            }
+            FwtAnd(c, n, mod, true);
         }
 
-        public static void RunXor(long* a, long* b, long* c, int logN, long mod)
+        public static void RunXor(long* a, long* b, long* c, int logN, long mod, long* ta, long* tb)
         {
             int n = 1 << logN;
-            long* ta = null;
-            long* tb = null;
-            bool allocated = false;
-            if (n > 1024)
+            for (int i = 0; i < n; i++)
             {
-                ta = (long*)Marshal.AllocHGlobal(n * sizeof(long));
-                tb = (long*)Marshal.AllocHGlobal(n * sizeof(long));
-                allocated = true;
+                ta[i] = a[i] % mod;
+                tb[i] = b[i] % mod;
             }
-            else
+            FwtXor(ta, n, mod);
+            FwtXor(tb, n, mod);
+            for (int i = 0; i < n; i++)
             {
-                long* tempA = stackalloc long[n];
-                long* tempB = stackalloc long[n];
-                ta = tempA;
-                tb = tempB;
+                c[i] = ta[i] * tb[i] % mod;
             }
-            try
+            FwtXor(c, n, mod);
+            long invN = ModInverse(n, mod);
+            for (int i = 0; i < n; i++)
             {
-                for (int i = 0; i < n; i++)
-                {
-                    ta[i] = a[i] % mod;
-                    tb[i] = b[i] % mod;
-                }
-                FwtXor(ta, n, mod);
-                FwtXor(tb, n, mod);
-                for (int i = 0; i < n; i++)
-                {
-                    c[i] = ta[i] * tb[i] % mod;
-                }
-                FwtXor(c, n, mod);
-                long invN = ModInverse(n, mod);
-                for (int i = 0; i < n; i++)
-                {
-                    c[i] = c[i] * invN % mod;
-                }
-            }
-            finally
-            {
-                if (allocated)
-                {
-                    Marshal.FreeHGlobal((nint)ta);
-                    Marshal.FreeHGlobal((nint)tb);
-                }
+                c[i] = c[i] * invN % mod;
             }
         }
     }

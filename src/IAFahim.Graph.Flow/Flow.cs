@@ -3,7 +3,7 @@ namespace IAFahim.Graph.Flow
     using System;
     using System.Runtime.CompilerServices;
 
-    internal unsafe struct MinHeap
+    public unsafe struct MinHeap
     {
         public long* Dist;
         public int* V;
@@ -79,35 +79,31 @@ namespace IAFahim.Graph.Flow
 
     public static unsafe class PotentialDijkstra
     {
-        public static bool Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, long* pot, long* dist, int* parent, int* parentEdge)
+        public static bool Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, long* pot, long* dist, int* parent, int* parentEdge, MinHeap* pq)
         {
             for (int i = 0; i < n; i++) dist[i] = long.MaxValue;
             dist[s] = 0;
-            var pq = new MinHeap(n);
-            try
+            pq->Size = 0;
+            pq->PushOrUpdate(s, 0);
+            while (pq->Size > 0)
             {
-                pq.PushOrUpdate(s, 0);
-                while (pq.Size > 0)
+                int u = pq->Pop(out long d);
+                if (d != dist[u]) continue;
+                if (u == t) break;
+                for (int e = head[u]; e != 0; e = next[e])
                 {
-                    int u = pq.Pop(out long d);
-                    if (d != dist[u]) continue;
-                    if (u == t) break;
-                    for (int e = head[u]; e != 0; e = next[e])
+                    if (cap[e] <= 0) continue;
+                    int v = to[e];
+                    long nd = d + pot[u] + cost[e] - pot[v];
+                    if (nd < dist[v])
                     {
-                        if (cap[e] <= 0) continue;
-                        int v = to[e];
-                        long nd = d + pot[u] + cost[e] - pot[v];
-                        if (nd < dist[v])
-                        {
-                            dist[v] = nd;
-                            parent[v] = u;
-                            parentEdge[v] = e;
-                            pq.PushOrUpdate(v, nd);
-                        }
+                        dist[v] = nd;
+                        parent[v] = u;
+                        parentEdge[v] = e;
+                        pq->PushOrUpdate(v, nd);
                     }
                 }
             }
-            finally { pq.Dispose(); }
             for (int i = 0; i < n; i++)
             {
                 if (dist[i] < long.MaxValue) pot[i] += dist[i];
@@ -125,24 +121,29 @@ namespace IAFahim.Graph.Flow
             long* dist = stackalloc long[n];
             int* parent = stackalloc int[n];
             int* parentEdge = stackalloc int[n];
-            for (int i = 0; i < n; i++) pot[i] = 0;
-            while (PotentialDijkstra.Run(n, s, t, head, to, next, cap, cost, pot, dist, parent, parentEdge))
+            var pq = new MinHeap(n);
+            try
             {
-                int add = int.MaxValue;
-                for (int v = t; v != s; v = parent[v])
+                for (int i = 0; i < n; i++) pot[i] = 0;
+                while (PotentialDijkstra.Run(n, s, t, head, to, next, cap, cost, pot, dist, parent, parentEdge, &pq))
                 {
-                    int e = parentEdge[v];
-                    add = Math.Min(add, cap[e]);
+                    int add = int.MaxValue;
+                    for (int v = t; v != s; v = parent[v])
+                    {
+                        int e = parentEdge[v];
+                        add = Math.Min(add, cap[e]);
+                    }
+                    for (int v = t; v != s; v = parent[v])
+                    {
+                        int e = parentEdge[v];
+                        cap[e] -= add;
+                        cap[e ^ 1] += add;
+                        minCost += (long)cost[e] * add;
+                    }
+                    flow += add;
                 }
-                for (int v = t; v != s; v = parent[v])
-                {
-                    int e = parentEdge[v];
-                    cap[e] -= add;
-                    cap[e ^ 1] += add;
-                    minCost += (long)cost[e] * add;
-                }
-                flow += add;
             }
+            finally { pq.Dispose(); }
             return minCost;
         }
     }
@@ -162,16 +163,11 @@ namespace IAFahim.Graph.Flow
 
     public static unsafe class MaxFlowLowerBounds
     {
-        public static long Run(int n, int s, int t, int* head, int* to, int* next, int* lower, int* upper, int* flow)
+        public static long Run(int n, int s, int t, int* head, int* to, int* next, int* lower, int* upper, int* flow, int* newHead, int* newTo, int* newNext, int* newCap, int* newCost)
         {
             for (int i = 0; i < n * 2; i++) flow[i] = 0;
             int ss = n, tt = n + 1;
             int nn = n + 2;
-            int* newHead = stackalloc int[nn];
-            int* newTo = stackalloc int[2 * n + 100];
-            int* newNext = stackalloc int[2 * n + 100];
-            int* newCap = stackalloc int[2 * n + 100];
-            int* newCost = stackalloc int[2 * n + 100];
             int newEdgeId = 2;
             for (int i = 0; i < nn; i++) newHead[i] = 0;
             for (int u = 0; u < n; u++)
@@ -373,7 +369,7 @@ namespace IAFahim.Graph.Flow
 
     public static unsafe class FlowDecompose
     {
-        public static int Run(int n, int s, int t, int m, int* eu, int* ev, int* cap, int* flow, int* pathEdges, int* pathLen)
+        public static int Run(int n, int s, int t, int m, int* eu, int* ev, int* cap, int* flow, int* pathEdges, int* pathLen, int* parent, int* edgeId, int* q)
         {
             int pathCount = 0;
             int* used = stackalloc int[m];
@@ -381,10 +377,7 @@ namespace IAFahim.Graph.Flow
             bool done = false;
             while (!done)
             {
-                int* parent = stackalloc int[n];
-                int* edgeId = stackalloc int[n];
                 for (int i = 0; i < n; i++) { parent[i] = -1; edgeId[i] = -1; }
-                int* q = stackalloc int[n];
                 int qh = 0, qt = 0;
                 parent[s] = s;
                 q[qt++] = s;
@@ -454,13 +447,14 @@ namespace IAFahim.Graph.Flow
             long* dist = stackalloc long[n];
             int* parent = stackalloc int[n];
             int* parentEdge = stackalloc int[n];
-            while (true)
+            var pq = new MinHeap(n);
+            try
             {
-                for (int i = 0; i < n; i++) dist[i] = long.MaxValue;
-                dist[s] = 0;
-                var pq = new MinHeap(n);
-                try
+                while (true)
                 {
+                    for (int i = 0; i < n; i++) dist[i] = long.MaxValue;
+                    dist[s] = 0;
+                    pq.Size = 0;
                     pq.PushOrUpdate(s, 0);
                     while (pq.Size > 0)
                     {
@@ -480,24 +474,24 @@ namespace IAFahim.Graph.Flow
                             }
                         }
                     }
+                    if (dist[t] == long.MaxValue) break;
+                    int add = int.MaxValue;
+                    for (int v = t; v != s; v = parent[v])
+                    {
+                        int e = parentEdge[v];
+                        add = Math.Min(add, cap[e]);
+                    }
+                    for (int v = t; v != s; v = parent[v])
+                    {
+                        int e = parentEdge[v];
+                        cap[e] -= add;
+                        cap[e ^ 1] += add;
+                        minCost += (long)cost[e] * add;
+                    }
+                    flow += add;
                 }
-                finally { pq.Dispose(); }
-                if (dist[t] == long.MaxValue) break;
-                int add = int.MaxValue;
-                for (int v = t; v != s; v = parent[v])
-                {
-                    int e = parentEdge[v];
-                    add = Math.Min(add, cap[e]);
-                }
-                for (int v = t; v != s; v = parent[v])
-                {
-                    int e = parentEdge[v];
-                    cap[e] -= add;
-                    cap[e ^ 1] += add;
-                    minCost += (long)cost[e] * add;
-                }
-                flow += add;
             }
+            finally { pq.Dispose(); }
             return (flow, minCost);
         }
     }

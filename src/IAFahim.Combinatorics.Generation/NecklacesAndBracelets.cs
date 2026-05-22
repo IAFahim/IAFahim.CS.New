@@ -1,75 +1,101 @@
 namespace IAFahim.Combinatorics.Generation;
 
 using System;
-using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
-public static class NecklacesAndBracelets
+public static unsafe class NecklacesAndBracelets
 {
-    public static long NecklaceRank(int[] necklace, int k) { return 0; }
-    public static int[] NecklaceUnrank(long rank, int n, int k) { return new int[0]; }
-    public static long BraceletRank(int[] bracelet, int k) { return 0; }
-    public static int[] BraceletUnrank(long rank, int n, int k) { return new int[0]; }
-
-    public static IEnumerable<int[]> GenerateLyndonWords(int n, int k)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryGenerateLyndon(int n, int k, int* w, int* res, ref int jState, int* scratch)
     {
-        int[] w = new int[n + 1];
-        for (int i = 0; i <= n; i++) w[i] = 0;
-
-        int j = 1;
-        while (j > 0)
+        if (w == null)
         {
-            if (n % j == 0)
+            w = scratch;
+            for (int i = 0; i <= n + 1; i++) w[i] = 0;
+            jState = 1;
+        }
+
+        while (jState > 0)
+        {
+            int currentJ = jState;
+            bool yieldIt = (n % currentJ == 0);
+            if (yieldIt)
             {
-                int[] res = new int[j];
-                Array.Copy(w, 1, res, 0, j);
-                yield return res;
+                for (int i = 0; i < currentJ; i++) res[i] = w[i + 1];
+                w[0] = currentJ;
             }
-            j = n;
-            while (j > 0 && w[j] == k - 1)
+
+            int nextJ = n;
+            while (nextJ > 0 && w[nextJ] == k - 1) nextJ--;
+            if (nextJ > 0)
             {
-                j--;
+                w[nextJ]++;
+                for (int m = nextJ + 1; m <= n; m++) w[m] = w[m - nextJ];
             }
-            if (j > 0)
+            else
             {
-                w[j]++;
-                for (int m = j + 1; m <= n; m++)
-                {
-                    w[m] = w[m - j];
-                }
+                nextJ = 0;
+            }
+
+            jState = nextJ;
+
+            if (yieldIt)
+            {
+                return true;
             }
         }
+        return false;
     }
 
-    public static long LyndonWordRank(int[] word, int k) { return 0; }
-    public static int[] LyndonWordUnrank(long rank, int n, int k) { return new int[0]; }
-
-    public static int[] DeBruijnFromLyndon(int k, int n)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int DeBruijnFromLyndon(int k, int n, int* outSeq)
     {
-        var seq = new List<int>();
-        int[] w = new int[n + 1];
+        int* w = stackalloc int[n + 1];
         for (int i = 0; i <= n; i++) w[i] = 0;
-
         int j = 1;
+        int pos = 0;
         while (j > 0)
         {
             if (n % j == 0)
-            {
-                for (int i = 1; i <= j; i++) seq.Add(w[i]);
-            }
+                for (int i = 1; i <= j; i++) outSeq[pos++] = w[i];
             j = n;
-            while (j > 0 && w[j] == k - 1)
-            {
-                j--;
-            }
+            while (j > 0 && w[j] == k - 1) j--;
             if (j > 0)
             {
                 w[j]++;
-                for (int m = j + 1; m <= n; m++)
-                {
-                    w[m] = w[m - j];
-                }
+                for (int m = j + 1; m <= n; m++) w[m] = w[m - j];
             }
         }
-        return seq.ToArray();
+        return pos;
+    }
+
+    public static long NecklaceRank(int* necklace, int n, int k)
+    {
+        return 0;
+    }
+
+    public static bool NecklaceUnrank(long rank, int n, int k, int* outObj)
+    {
+        return false;
+    }
+
+    public static long BraceletRank(int* bracelet, int n, int k)
+    {
+        return 0;
+    }
+
+    public static bool BraceletUnrank(long rank, int n, int k, int* outObj)
+    {
+        return false;
+    }
+
+    public static long LyndonWordRank(int* word, int n, int k)
+    {
+        return 0;
+    }
+
+    public static bool LyndonWordUnrank(long rank, int n, int k, int* outObj)
+    {
+        return false;
     }
 }

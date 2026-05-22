@@ -24,8 +24,12 @@ namespace IAFahim.Optimization.Exact
                         long wlu = w[last * n + u];
                         if (wlu >= inf) continue;
                         int newMask = mask | (1 << u);
-                        long cand = dp[mask * n + last] + wlu;
-                        if (cand < dp[newMask * n + u]) dp[newMask * n + u] = cand;
+                        long current = dp[mask * n + last];
+                        if (current != inf && wlu != inf)
+                        {
+                            long cand = current + wlu;
+                            if (cand < dp[newMask * n + u]) dp[newMask * n + u] = cand;
+                        }
                     }
                 }
             }
@@ -36,8 +40,12 @@ namespace IAFahim.Optimization.Exact
                 if (dp[full * n + last] >= inf) continue;
                 long wln = w[last * n + 0];
                 if (wln >= inf) continue;
-                long cand = dp[full * n + last] + wln;
-                if (cand < best) best = cand;
+                long current = dp[full * n + last];
+                if (current != inf && wln != inf)
+                {
+                    long cand = current + wln;
+                    if (cand < best) best = cand;
+                }
             }
             return best;
         }

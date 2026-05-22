@@ -13,6 +13,8 @@ namespace IAFahim.Math.NT
 
     public static unsafe class HighlyCompositeNumbers
     {
+        private const int MaxCandidates = 20000;
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int GetPrime(int index)
         {
@@ -37,26 +39,25 @@ namespace IAFahim.Math.NT
             }
         }
 
-        public static int Run(long limit, long* result)
+        public static int Run(long limit, long* result, HighlyCompositeCandidate* scratch)
         {
             if (limit <= 0)
             {
                 return 0;
             }
 
-            HighlyCompositeCandidate* candidates = stackalloc HighlyCompositeCandidate[20000];
             int count = 0;
-            Generate(0, 1, 1, 60, limit, candidates, ref count);
-            QuickSort(candidates, 0, count - 1);
+            Generate(0, 1, 1, 60, limit, scratch, ref count);
+            QuickSort(scratch, 0, count - 1);
 
             int outCount = 0;
             long maxDivisors = 0;
             for (int i = 0; i < count; i++)
             {
-                if (candidates[i].Divisors > maxDivisors)
+                if (scratch[i].Divisors > maxDivisors)
                 {
-                    maxDivisors = candidates[i].Divisors;
-                    result[outCount++] = candidates[i].Value;
+                    maxDivisors = scratch[i].Divisors;
+                    result[outCount++] = scratch[i].Value;
                 }
             }
             return outCount;
@@ -71,6 +72,11 @@ namespace IAFahim.Math.NT
             HighlyCompositeCandidate* candidates,
             ref int count)
         {
+            if (count >= MaxCandidates)
+            {
+                return;
+            }
+
             candidates[count].Value = currentValue;
             candidates[count].Divisors = currentDivisors;
             count++;

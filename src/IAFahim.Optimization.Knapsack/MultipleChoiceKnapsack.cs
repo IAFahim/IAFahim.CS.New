@@ -6,9 +6,8 @@ namespace IAFahim.Optimization.Knapsack
     public static unsafe class MultipleChoiceKnapsack
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static long Run(int* groupStart, int* itemW, long* itemV, int n, int cap)
+        public static long Run(int* groupStart, int* itemW, long* itemV, int n, int cap, long* dp)
         {
-            long* dp = stackalloc long[cap + 1];
             for (int i = 0; i <= cap; i++) dp[i] = 0;
             for (int g = 0; g < n; g++)
             {

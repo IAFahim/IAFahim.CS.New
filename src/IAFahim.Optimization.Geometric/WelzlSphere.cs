@@ -13,9 +13,19 @@ namespace IAFahim.Optimization.Geometric
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Sphere Run(double* xs, double* ys, double* zs, int n)
         {
+            if (n == 0) return default;
+
+            ulong seed = 123456789;
+            for (int i = n - 1; i > 0; i--)
+            {
+                seed = seed * 6364136223846793005UL + 1442695040888963407UL;
+                int j = (int)(seed % (ulong)(i + 1));
+                double tx = xs[i]; xs[i] = xs[j]; xs[j] = tx;
+                double ty = ys[i]; ys[i] = ys[j]; ys[j] = ty;
+                double tz = zs[i]; zs[i] = zs[j]; zs[j] = tz;
+            }
+
             Sphere s = default;
-            s.X = 0; s.Y = 0; s.Z = 0; s.R = 0;
-            if (n == 0) return s;
             s.X = xs[0]; s.Y = ys[0]; s.Z = zs[0]; s.R = 1e-9;
             for (int i = 0; i < n && i < 4; i++)
             {

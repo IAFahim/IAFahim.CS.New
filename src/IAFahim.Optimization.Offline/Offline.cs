@@ -29,9 +29,7 @@ namespace IAFahim.Optimization.Offline
             return lo + ((hi - lo) >> 1);
         }
 
-        public static int* buckets;
-
-        public static void GroupByMid(int* lo, int* hi, int* queryIdx, int* bucketSize, int n)
+        public static void GroupByMid(int* lo, int* hi, int* queryIdx, int* bucketSize, int n, int* buckets)
         {
             for (int i = 0; i < n; i++)
             {
@@ -116,14 +114,14 @@ namespace IAFahim.Optimization.Offline
         }
 
         public static void Process(int* x, int* y, int* z, int* idx, int l, int r,
-            int* bit, int maxY,
+            int* bit, int maxZ,
             delegate*<int*, int, int, void> bitAdd,
             delegate*<int*, int, int> bitSum)
         {
             if (l == r) return;
             int mid = l + ((r - l) >> 1);
-            Process(x, y, z, idx, l, mid, bit, maxY, bitAdd, bitSum);
-            Process(x, y, z, idx, mid + 1, r, bit, maxY, bitAdd, bitSum);
+            Process(x, y, z, idx, l, mid, bit, maxZ, bitAdd, bitSum);
+            Process(x, y, z, idx, mid + 1, r, bit, maxZ, bitAdd, bitSum);
             int i = l, j = mid + 1;
             while (j <= r)
             {

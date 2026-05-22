@@ -2,111 +2,46 @@ namespace IAFahim.Math.Transform
 {
     using System;
     using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
 
     public static unsafe class MinMaxConvolution
     {
-        public static void MinIndex(long* a, long* b, long* c, int n, long mod)
+        public static void MinIndex(long* a, long* b, long* c, int n, long mod, long* sa, long* sb, long* sc)
         {
-            long* sa = null;
-            long* sb = null;
-            long* sc = null;
-            bool allocated = false;
-            if (n > 1024)
+            sa[n - 1] = a[n - 1] % mod;
+            sb[n - 1] = b[n - 1] % mod;
+            for (int i = n - 2; i >= 0; i--)
             {
-                sa = (long*)Marshal.AllocHGlobal(n * sizeof(long));
-                sb = (long*)Marshal.AllocHGlobal(n * sizeof(long));
-                sc = (long*)Marshal.AllocHGlobal(n * sizeof(long));
-                allocated = true;
+                sa[i] = (sa[i + 1] + a[i]) % mod;
+                sb[i] = (sb[i + 1] + b[i]) % mod;
             }
-            else
+            for (int i = 0; i < n; i++)
             {
-                long* tempA = stackalloc long[n];
-                long* tempB = stackalloc long[n];
-                long* tempC = stackalloc long[n];
-                sa = tempA;
-                sb = tempB;
-                sc = tempC;
+                sc[i] = sa[i] * sb[i] % mod;
             }
-            try
+            for (int i = 0; i < n - 1; i++)
             {
-                sa[n - 1] = a[n - 1] % mod;
-                sb[n - 1] = b[n - 1] % mod;
-                for (int i = n - 2; i >= 0; i--)
-                {
-                    sa[i] = (sa[i + 1] + a[i]) % mod;
-                    sb[i] = (sb[i + 1] + b[i]) % mod;
-                }
-                for (int i = 0; i < n; i++)
-                {
-                    sc[i] = sa[i] * sb[i] % mod;
-                }
-                for (int i = 0; i < n - 1; i++)
-                {
-                    c[i] = (sc[i] - sc[i + 1] + mod) % mod;
-                }
-                c[n - 1] = sc[n - 1];
+                c[i] = (sc[i] - sc[i + 1] + mod) % mod;
             }
-            finally
-            {
-                if (allocated)
-                {
-                    Marshal.FreeHGlobal((nint)sa);
-                    Marshal.FreeHGlobal((nint)sb);
-                    Marshal.FreeHGlobal((nint)sc);
-                }
-            }
+            c[n - 1] = sc[n - 1];
         }
 
-        public static void MaxIndex(long* a, long* b, long* c, int n, long mod)
+        public static void MaxIndex(long* a, long* b, long* c, int n, long mod, long* pa, long* pb, long* pc)
         {
-            long* pa = null;
-            long* pb = null;
-            long* pc = null;
-            bool allocated = false;
-            if (n > 1024)
+            pa[0] = a[0] % mod;
+            pb[0] = b[0] % mod;
+            for (int i = 1; i < n; i++)
             {
-                pa = (long*)Marshal.AllocHGlobal(n * sizeof(long));
-                pb = (long*)Marshal.AllocHGlobal(n * sizeof(long));
-                pc = (long*)Marshal.AllocHGlobal(n * sizeof(long));
-                allocated = true;
+                pa[i] = (pa[i - 1] + a[i]) % mod;
+                pb[i] = (pb[i - 1] + b[i]) % mod;
             }
-            else
+            for (int i = 0; i < n; i++)
             {
-                long* tempA = stackalloc long[n];
-                long* tempB = stackalloc long[n];
-                long* tempC = stackalloc long[n];
-                pa = tempA;
-                pb = tempB;
-                pc = tempC;
+                pc[i] = pa[i] * pb[i] % mod;
             }
-            try
+            c[0] = pc[0];
+            for (int i = 1; i < n; i++)
             {
-                pa[0] = a[0] % mod;
-                pb[0] = b[0] % mod;
-                for (int i = 1; i < n; i++)
-                {
-                    pa[i] = (pa[i - 1] + a[i]) % mod;
-                    pb[i] = (pb[i - 1] + b[i]) % mod;
-                }
-                for (int i = 0; i < n; i++)
-                {
-                    pc[i] = pa[i] * pb[i] % mod;
-                }
-                c[0] = pc[0];
-                for (int i = 1; i < n; i++)
-                {
-                    c[i] = (pc[i] - pc[i - 1] + mod) % mod;
-                }
-            }
-            finally
-            {
-                if (allocated)
-                {
-                    Marshal.FreeHGlobal((nint)pa);
-                    Marshal.FreeHGlobal((nint)pb);
-                    Marshal.FreeHGlobal((nint)pc);
-                }
+                c[i] = (pc[i] - pc[i - 1] + mod) % mod;
             }
         }
 
@@ -247,7 +182,7 @@ namespace IAFahim.Math.Transform
             {
                 return;
             }
-            int mid = (l + r) / 2;
+            int mid = (l + r) >> 1;
             long bestVal = long.MaxValue;
             int bestJ = -1;
             int startJ = Math.Max(optL, mid - n + 1);
@@ -257,11 +192,16 @@ namespace IAFahim.Math.Transform
                 int i = mid - j;
                 if (i >= 0 && i < n)
                 {
-                    long val = a[i] + b[j];
-                    if (val < bestVal)
+                    long candA = a[i];
+                    long candB = b[j];
+                    if (candA != long.MaxValue && candB != long.MaxValue)
                     {
-                        bestVal = val;
-                        bestJ = j;
+                        long val = candA + candB;
+                        if (val < bestVal)
+                        {
+                            bestVal = val;
+                            bestJ = j;
+                        }
                     }
                 }
             }
@@ -285,7 +225,7 @@ namespace IAFahim.Math.Transform
             {
                 return;
             }
-            int mid = (l + r) / 2;
+            int mid = (l + r) >> 1;
             long bestVal = long.MinValue;
             int bestJ = -1;
             int startJ = Math.Max(optL, mid - n + 1);
@@ -295,11 +235,16 @@ namespace IAFahim.Math.Transform
                 int i = mid - j;
                 if (i >= 0 && i < n)
                 {
-                    long val = a[i] + b[j];
-                    if (val > bestVal)
+                    long candA = a[i];
+                    long candB = b[j];
+                    if (candA != long.MinValue && candB != long.MinValue)
                     {
-                        bestVal = val;
-                        bestJ = j;
+                        long val = candA + candB;
+                        if (val > bestVal)
+                        {
+                            bestVal = val;
+                            bestJ = j;
+                        }
                     }
                 }
             }

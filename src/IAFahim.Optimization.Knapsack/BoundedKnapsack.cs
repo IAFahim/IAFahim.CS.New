@@ -6,9 +6,8 @@ namespace IAFahim.Optimization.Knapsack
     public static unsafe class BoundedKnapsack
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static long BinarySplit(long* w, long* v, int* cnt, int n, int cap)
+        public static long BinarySplit(long* w, long* v, int* cnt, int n, int cap, long* dp)
         {
-            long* dp = stackalloc long[cap + 1];
             for (int i = 0; i <= cap; i++) dp[i] = 0;
             for (int i = 0; i < n; i++)
             {
@@ -32,15 +31,13 @@ namespace IAFahim.Optimization.Knapsack
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static long MonotoneQueue(long* w, long* v, int* cnt, int n, int cap)
+        public static long MonotoneQueue(long* w, long* v, int* cnt, int n, int cap, long* dp, int* q)
         {
-            long* dp = stackalloc long[cap + 1];
             for (int i = 0; i <= cap; i++) dp[i] = 0;
             for (int i = 0; i < n; i++)
             {
                 for (int r = 0; r < w[i] && r <= cap; r++)
                 {
-                    int* q = stackalloc int[cap + 2];
                     int head = 0, tail = 0;
                     int maxJ = (int)((cap - r) / w[i]);
                     for (int j = 0; j <= maxJ; j++)

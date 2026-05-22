@@ -6,9 +6,8 @@ namespace IAFahim.Optimization.Games
     public static unsafe class Mdp
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ValueIteration(int n, int m, double* trans, double* reward, double gamma, double* v, int iters)
+        public static void ValueIteration(int n, int m, double* trans, double* reward, double gamma, double* v, double* newV, int iters)
         {
-            double* newV = stackalloc double[n];
             for (int iter = 0; iter < iters; iter++)
             {
                 for (int s = 0; s < n; s++)
@@ -28,9 +27,8 @@ namespace IAFahim.Optimization.Games
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void PolicyIteration(int n, int m, double* trans, double* reward, double gamma, int* policy, double* v)
+        public static void PolicyIteration(int n, int m, double* trans, double* reward, double gamma, int* policy, double* v, int* newPol)
         {
-            int* newPol = stackalloc int[n];
             for (int i = 0; i < n; i++) newPol[i] = 0;
             bool changed = true;
             while (changed)

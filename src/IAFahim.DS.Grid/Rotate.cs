@@ -6,16 +6,13 @@ namespace IAFahim.DS.Grid
     public static unsafe class Rotate
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Run<T>(T* ptr, int width, int height, bool clockwise) where T : unmanaged
+        public static void Run<T>(T* ptr, int width, int height, bool clockwise, T* temp) where T : unmanaged
         {
             int newWidth = height;
             int newHeight = width;
             int len = width * height;
-            T* temp = stackalloc T[len];
-            for (int i = 0; i < len; i++)
-            {
-                temp[i] = ptr[i];
-            }
+            long byteCount = (long)len * sizeof(T);
+            Buffer.MemoryCopy(ptr, temp, byteCount, byteCount);
             if (clockwise)
             {
                 for (int y = 0; y < height; y++)

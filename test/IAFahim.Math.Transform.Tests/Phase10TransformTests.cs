@@ -16,6 +16,8 @@ namespace IAFahim.Math.Transform.Tests
             long* a = (long*)Marshal.AllocHGlobal(n * sizeof(long));
             long* b = (long*)Marshal.AllocHGlobal(n * sizeof(long));
             long* c = (long*)Marshal.AllocHGlobal(n * sizeof(long));
+            long* ta = (long*)Marshal.AllocHGlobal(n * sizeof(long));
+            long* tb = (long*)Marshal.AllocHGlobal(n * sizeof(long));
             try
             {
                 for (int i = 0; i < n; i++)
@@ -23,7 +25,7 @@ namespace IAFahim.Math.Transform.Tests
                     a[i] = i + 1;
                     b[i] = i + 2;
                 }
-                OrAndXorConvolution.RunOr(a, b, c, logN, mod);
+                OrAndXorConvolution.RunOr(a, b, c, logN, mod, ta, tb);
                 long* expected = (long*)Marshal.AllocHGlobal(n * sizeof(long));
                 try
                 {
@@ -54,6 +56,8 @@ namespace IAFahim.Math.Transform.Tests
                 Marshal.FreeHGlobal((nint)a);
                 Marshal.FreeHGlobal((nint)b);
                 Marshal.FreeHGlobal((nint)c);
+                Marshal.FreeHGlobal((nint)ta);
+                Marshal.FreeHGlobal((nint)tb);
             }
         }
 
@@ -66,6 +70,8 @@ namespace IAFahim.Math.Transform.Tests
             long* a = (long*)Marshal.AllocHGlobal(n * sizeof(long));
             long* b = (long*)Marshal.AllocHGlobal(n * sizeof(long));
             long* c = (long*)Marshal.AllocHGlobal(n * sizeof(long));
+            long* ta = (long*)Marshal.AllocHGlobal(n * sizeof(long));
+            long* tb = (long*)Marshal.AllocHGlobal(n * sizeof(long));
             try
             {
                 for (int i = 0; i < n; i++)
@@ -73,7 +79,7 @@ namespace IAFahim.Math.Transform.Tests
                     a[i] = i + 1;
                     b[i] = i + 2;
                 }
-                OrAndXorConvolution.RunAnd(a, b, c, logN, mod);
+                OrAndXorConvolution.RunAnd(a, b, c, logN, mod, ta, tb);
                 long* expected = (long*)Marshal.AllocHGlobal(n * sizeof(long));
                 try
                 {
@@ -104,6 +110,8 @@ namespace IAFahim.Math.Transform.Tests
                 Marshal.FreeHGlobal((nint)a);
                 Marshal.FreeHGlobal((nint)b);
                 Marshal.FreeHGlobal((nint)c);
+                Marshal.FreeHGlobal((nint)ta);
+                Marshal.FreeHGlobal((nint)tb);
             }
         }
 
@@ -116,6 +124,8 @@ namespace IAFahim.Math.Transform.Tests
             long* a = (long*)Marshal.AllocHGlobal(n * sizeof(long));
             long* b = (long*)Marshal.AllocHGlobal(n * sizeof(long));
             long* c = (long*)Marshal.AllocHGlobal(n * sizeof(long));
+            long* ta = (long*)Marshal.AllocHGlobal(n * sizeof(long));
+            long* tb = (long*)Marshal.AllocHGlobal(n * sizeof(long));
             try
             {
                 for (int i = 0; i < n; i++)
@@ -123,7 +133,7 @@ namespace IAFahim.Math.Transform.Tests
                     a[i] = i + 1;
                     b[i] = i + 2;
                 }
-                OrAndXorConvolution.RunXor(a, b, c, logN, mod);
+                OrAndXorConvolution.RunXor(a, b, c, logN, mod, ta, tb);
                 long* expected = (long*)Marshal.AllocHGlobal(n * sizeof(long));
                 try
                 {
@@ -154,6 +164,8 @@ namespace IAFahim.Math.Transform.Tests
                 Marshal.FreeHGlobal((nint)a);
                 Marshal.FreeHGlobal((nint)b);
                 Marshal.FreeHGlobal((nint)c);
+                Marshal.FreeHGlobal((nint)ta);
+                Marshal.FreeHGlobal((nint)tb);
             }
         }
 
@@ -165,6 +177,9 @@ namespace IAFahim.Math.Transform.Tests
             long* a = (long*)Marshal.AllocHGlobal(n * sizeof(long));
             long* b = (long*)Marshal.AllocHGlobal(n * sizeof(long));
             long* c = (long*)Marshal.AllocHGlobal(n * sizeof(long));
+            long* sa = (long*)Marshal.AllocHGlobal(n * sizeof(long));
+            long* sb = (long*)Marshal.AllocHGlobal(n * sizeof(long));
+            long* sc = (long*)Marshal.AllocHGlobal(n * sizeof(long));
             try
             {
                 for (int i = 0; i < n; i++)
@@ -172,7 +187,7 @@ namespace IAFahim.Math.Transform.Tests
                     a[i] = i + 1;
                     b[i] = i + 2;
                 }
-                MinMaxConvolution.MinIndex(a, b, c, n, mod);
+                MinMaxConvolution.MinIndex(a, b, c, n, mod, sa, sb, sc);
                 long* expected = (long*)Marshal.AllocHGlobal(n * sizeof(long));
                 try
                 {
@@ -203,6 +218,9 @@ namespace IAFahim.Math.Transform.Tests
                 Marshal.FreeHGlobal((nint)a);
                 Marshal.FreeHGlobal((nint)b);
                 Marshal.FreeHGlobal((nint)c);
+                Marshal.FreeHGlobal((nint)sa);
+                Marshal.FreeHGlobal((nint)sb);
+                Marshal.FreeHGlobal((nint)sc);
             }
         }
 
@@ -214,6 +232,9 @@ namespace IAFahim.Math.Transform.Tests
             long* a = (long*)Marshal.AllocHGlobal(n * sizeof(long));
             long* b = (long*)Marshal.AllocHGlobal(n * sizeof(long));
             long* c = (long*)Marshal.AllocHGlobal(n * sizeof(long));
+            long* pa = (long*)Marshal.AllocHGlobal(n * sizeof(long));
+            long* pb = (long*)Marshal.AllocHGlobal(n * sizeof(long));
+            long* pc = (long*)Marshal.AllocHGlobal(n * sizeof(long));
             try
             {
                 for (int i = 0; i < n; i++)
@@ -221,7 +242,7 @@ namespace IAFahim.Math.Transform.Tests
                     a[i] = i + 1;
                     b[i] = i + 2;
                 }
-                MinMaxConvolution.MaxIndex(a, b, c, n, mod);
+                MinMaxConvolution.MaxIndex(a, b, c, n, mod, pa, pb, pc);
                 long* expected = (long*)Marshal.AllocHGlobal(n * sizeof(long));
                 try
                 {
@@ -252,6 +273,9 @@ namespace IAFahim.Math.Transform.Tests
                 Marshal.FreeHGlobal((nint)a);
                 Marshal.FreeHGlobal((nint)b);
                 Marshal.FreeHGlobal((nint)c);
+                Marshal.FreeHGlobal((nint)pa);
+                Marshal.FreeHGlobal((nint)pb);
+                Marshal.FreeHGlobal((nint)pc);
             }
         }
 
@@ -341,6 +365,10 @@ namespace IAFahim.Math.Transform.Tests
             long* a = (long*)Marshal.AllocHGlobal(n * sizeof(long));
             long* b = (long*)Marshal.AllocHGlobal(n * sizeof(long));
             long* c = (long*)Marshal.AllocHGlobal(n * sizeof(long));
+            long totalSize = (long)(logN + 1) * n;
+            long* f = (long*)Marshal.AllocHGlobal((nint)(totalSize * sizeof(long)));
+            long* g = (long*)Marshal.AllocHGlobal((nint)(totalSize * sizeof(long)));
+            long* h = (long*)Marshal.AllocHGlobal((nint)(totalSize * sizeof(long)));
             try
             {
                 for (int i = 0; i < n; i++)
@@ -348,7 +376,7 @@ namespace IAFahim.Math.Transform.Tests
                     a[i] = i + 1;
                     b[i] = i + 2;
                 }
-                SubsetConvolutionRanked.Run(a, b, c, logN, mod);
+                SubsetConvolutionRanked.Run(a, b, c, logN, mod, f, g, h);
                 long* expected = (long*)Marshal.AllocHGlobal(n * sizeof(long));
                 try
                 {
@@ -382,6 +410,9 @@ namespace IAFahim.Math.Transform.Tests
                 Marshal.FreeHGlobal((nint)a);
                 Marshal.FreeHGlobal((nint)b);
                 Marshal.FreeHGlobal((nint)c);
+                Marshal.FreeHGlobal((nint)f);
+                Marshal.FreeHGlobal((nint)g);
+                Marshal.FreeHGlobal((nint)h);
             }
         }
 

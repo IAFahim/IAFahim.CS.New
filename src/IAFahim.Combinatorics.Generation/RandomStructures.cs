@@ -1,131 +1,221 @@
 namespace IAFahim.Combinatorics.Generation;
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.Runtime.CompilerServices;
 
-public static class RandomStructures
+public static unsafe class RandomStructures
 {
-    private static Random rnd = new Random();
-
-    public static int[] RandomTreePrufer(int n)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void RandomPermutation(int n, int* a, ref uint seed)
     {
-        if (n <= 2) return new int[0];
-        int[] prufer = new int[n - 2];
-        for (int i = 0; i < n - 2; i++) prufer[i] = rnd.Next(n);
-        return prufer;
-    }
-
-    public static int[][] RandomGraphErdosRenyi(int n, double p)
-    {
-        var edges = new List<int[]>();
-        for (int i = 0; i < n; i++)
+        for (int i = 0; i < n; i++) a[i] = i;
+        for (int i = n - 1; i > 0; i--)
         {
-            for (int j = i + 1; j < n; j++)
-            {
-                if (rnd.NextDouble() < p)
-                {
-                    edges.Add(new[] { i, j });
-                }
-            }
+            seed ^= seed << 13;
+            seed ^= seed >> 17;
+            seed ^= seed << 5;
+            int j = (int)(seed % (uint)(i + 1));
+            int t = a[i]; a[i] = a[j]; a[j] = t;
         }
-        return edges.ToArray();
     }
 
-    public static int[][] RandomDAG(int n, double p)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void RandomTreePrufer(int n, int* prufer, ref uint seed)
     {
-        var edges = new List<int[]>();
-        // Topologically sorted by index implicitly
-        for (int i = 0; i < n; i++)
+        if (n <= 2) return;
+        for (int i = 0; i < n - 2; i++)
         {
-            for (int j = i + 1; j < n; j++)
-            {
-                if (rnd.NextDouble() < p)
-                {
-                    edges.Add(new[] { i, j });
-                }
-            }
+            seed ^= seed << 13;
+            seed ^= seed >> 17;
+            seed ^= seed << 5;
+            prufer[i] = (int)(seed % (uint)n);
         }
-        return edges.ToArray();
     }
 
-    public static int[][] RandomConnectedGraph(int n, int m)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void RandomConnectedGraph(int n, int m, int* outFrom, int* outTo, ref uint seed)
     {
-        if (m < n - 1) throw new ArgumentException("m must be >= n - 1");
-        if (m > (long)n * (n - 1) / 2) m = n * (n - 1) / 2;
+        if (m < n - 1) m = n - 1;
+        long maxEdges = (long)n * (n - 1) / 2;
+        if (m > maxEdges) m = (int)maxEdges;
 
-        var edges = new HashSet<(int, int)>();
-        int[] perm = Permutations.RandomPermutation(n);
+        int* perm = stackalloc int[n];
+        RandomPermutation(n, perm, ref seed);
+
+        int edgeCount = 0;
         for (int i = 1; i < n; i++)
         {
-            int u = perm[i];
-            int v = perm[rnd.Next(i)];
-            edges.Add((Math.Min(u, v), Math.Max(u, v)));
+            seed ^= seed << 13;
+            seed ^= seed >> 17;
+            seed ^= seed << 5;
+            int v = (int)(seed % (uint)i);
+            outFrom[edgeCount] = perm[i];
+            outTo[edgeCount] = perm[v];
+            edgeCount++;
         }
 
-        while (edges.Count < m)
+        while (edgeCount < m)
         {
-            int u = rnd.Next(n);
-            int v = rnd.Next(n);
-            if (u != v)
+            seed ^= seed << 13;
+            seed ^= seed >> 17;
+            seed ^= seed << 5;
+            int u = (int)(seed % (uint)n);
+            seed ^= seed << 13;
+            seed ^= seed >> 17;
+            seed ^= seed << 5;
+            int v = (int)(seed % (uint)n);
+            if (u == v) continue;
+
+            bool exists = false;
+            for (int i = 0; i < edgeCount; i++)
             {
-                var edge = (Math.Min(u, v), Math.Max(u, v));
-                edges.Add(edge);
+                if ((outFrom[i] == u && outTo[i] == v) || (outFrom[i] == v && outTo[i] == u))
+                {
+                    exists = true;
+                    break;
+                }
+            }
+            if (!exists)
+            {
+                outFrom[edgeCount] = u;
+                outTo[edgeCount++] = v;
             }
         }
-
-        return edges.Select(e => new[] { e.Item1, e.Item2 }).ToArray();
     }
 
-    public static int[][] RandomPlanarGraph(int n)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void RandomDAG(int n, int m, int* outFrom, int* outTo, ref uint seed)
     {
-        // Simple heuristic: just generate a tree for now. Generating uniformly random planar graph is very hard.
-        return RandomConnectedGraph(n, n - 1);
-    }
+        long maxEdges = (long)n * (n - 1) / 2;
+        if (m > maxEdges) m = (int)maxEdges;
 
-    public static int[][] RandomRegularGraph(int n, int d)
-    {
-        if (n * d % 2 != 0) throw new ArgumentException("n * d must be even");
-        // Configuration model
-        while (true)
+        int edgeCount = 0;
+        while (edgeCount < m)
         {
-            int[] points = new int[n * d];
-            for (int i = 0; i < n * d; i++) points[i] = i / d;
-            for (int i = points.Length - 1; i > 0; i--)
-            {
-                int j = rnd.Next(i + 1);
-                (points[i], points[j]) = (points[j], points[i]);
-            }
+            seed ^= seed << 13;
+            seed ^= seed >> 17;
+            seed ^= seed << 5;
+            int u = (int)(seed % (uint)n);
+            seed ^= seed << 13;
+            seed ^= seed >> 17;
+            seed ^= seed << 5;
+            int v = (int)(seed % (uint)n);
+            if (u >= v) continue;
 
-            var edges = new HashSet<(int, int)>();
-            bool ok = true;
-            for (int i = 0; i < n * d; i += 2)
+            bool exists = false;
+            for (int i = 0; i < edgeCount; i++)
             {
-                int u = points[i];
-                int v = points[i + 1];
-                if (u == v) { ok = false; break; }
-                var edge = (Math.Min(u, v), Math.Max(u, v));
-                if (!edges.Add(edge)) { ok = false; break; }
+                if (outFrom[i] == u && outTo[i] == v)
+                {
+                    exists = true;
+                    break;
+                }
             }
-            if (ok) return edges.Select(e => new[] { e.Item1, e.Item2 }).ToArray();
+            if (!exists)
+            {
+                outFrom[edgeCount] = u;
+                outTo[edgeCount++] = v;
+            }
         }
     }
 
-    public static int[][] RandomBipartiteGraph(int n1, int n2, int m)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void RandomErdosRenyi(int n, double p, int* outFrom, int* outTo, ref uint seed, int* edgeCount)
     {
-        if (m > (long)n1 * n2) m = n1 * n2;
-        var edges = new HashSet<(int, int)>();
-        while (edges.Count < m)
+        *edgeCount = 0;
+        int maxEdges = n * (n - 1) / 2;
+
+        for (int i = 0; i < n; i++)
         {
-            int u = rnd.Next(n1);
-            int v = rnd.Next(n2);
-            edges.Add((u, v));
+            for (int j = i + 1; j < n; j++)
+            {
+                seed ^= seed << 13;
+                seed ^= seed >> 17;
+                seed ^= seed << 5;
+                if ((seed % 1000) < p * 1000)
+                {
+                    if (*edgeCount < maxEdges)
+                    {
+                        outFrom[*edgeCount] = i;
+                        outTo[*edgeCount] = j;
+                        (*edgeCount)++;
+                    }
+                }
+            }
         }
-        return edges.Select(e => new[] { e.Item1, e.Item2 }).ToArray();
     }
 
-    public static string RandomTestcaseGenerate(string format)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void RandomBipartiteGraph(int n1, int n2, int m, int* outFrom, int* outTo, ref uint seed)
     {
-        return "Generated Test Case based on " + format;
+        int edgeCount = 0;
+        while (edgeCount < m)
+        {
+            seed ^= seed << 13;
+            seed ^= seed >> 17;
+            seed ^= seed << 5;
+            int u = (int)(seed % (uint)n1);
+            seed ^= seed << 13;
+            seed ^= seed >> 17;
+            seed ^= seed << 5;
+            int v = (int)(seed % (uint)n2);
+
+            bool exists = false;
+            for (int i = 0; i < edgeCount; i++)
+            {
+                if (outFrom[i] == u && outTo[i] == v)
+                {
+                    exists = true;
+                    break;
+                }
+            }
+            if (!exists)
+            {
+                outFrom[edgeCount] = u;
+                outTo[edgeCount++] = v;
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void RandomRegular(int n, int d, int* outFrom, int* outTo, ref uint seed, int* edgeCount)
+    {
+        *edgeCount = 0;
+        if (n * d % 2 != 0) return;
+
+        int* points = stackalloc int[n * d];
+        for (int i = 0; i < n * d; i++) points[i] = i / d;
+
+        for (int i = n * d - 1; i > 0; i--)
+        {
+            seed ^= seed << 13;
+            seed ^= seed >> 17;
+            seed ^= seed << 5;
+            int j = (int)(seed % (uint)(i + 1));
+            int tmp = points[i]; points[i] = points[j]; points[j] = tmp;
+        }
+
+        for (int i = 0; i < n * d; i += 2)
+        {
+            int u = points[i];
+            int v = points[i + 1];
+            if (u == v) return;
+
+            bool exists = false;
+            for (int k = 0; k < *edgeCount; k++)
+            {
+                if ((outFrom[k] == u && outTo[k] == v) || (outFrom[k] == v && outTo[k] == u))
+                {
+                    exists = true;
+                    break;
+                }
+            }
+            if (!exists)
+            {
+                outFrom[*edgeCount] = u;
+                outTo[*edgeCount] = v;
+                (*edgeCount)++;
+            }
+        }
     }
 }

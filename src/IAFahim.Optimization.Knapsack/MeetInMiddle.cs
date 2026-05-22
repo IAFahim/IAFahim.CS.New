@@ -5,13 +5,12 @@ namespace IAFahim.Optimization.Knapsack
 
     public static unsafe class MeetInMiddle
     {
-        public static long Run(long* w, long* v, int n, long cap)
+        public static long Run(long* w, long* v, int n, long cap, long* left)
         {
             if (n <= 40)
             {
                 int half = n >> 1;
                 int leftCount = 1 << half;
-                long* left = stackalloc long[leftCount * 2];
                 for (int i = 0; i < leftCount; i++)
                 {
                     long sw = 0, sv = 0;

@@ -2,257 +2,161 @@ namespace IAFahim.Math.NT
 {
     using System;
     using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
 
     public static unsafe class Min25Sieve
     {
-        public static long PrimePi(long n)
+        public static long PrimePi(long n, int* primes, bool* isPrime, long* w, long* g, int* map1, int* map2)
         {
             if (n <= 1)
             {
                 return 0;
             }
             long v = (long)Math.Sqrt((double)n);
-            int* primes = null;
-            bool* isPrime = null;
-            long* w = null;
-            long* g = null;
-            int* map1 = null;
-            int* map2 = null;
-            bool allocated = false;
+            int maxV = (int)v;
 
-            if (v > 1000)
+            for (int i = 2; i <= maxV; i++)
             {
-                primes = (int*)Marshal.AllocHGlobal(((int)v + 1) * sizeof(int));
-                isPrime = (bool*)Marshal.AllocHGlobal(((int)v + 1) * sizeof(bool));
-                w = (long*)Marshal.AllocHGlobal((2 * (int)v + 2) * sizeof(long));
-                g = (long*)Marshal.AllocHGlobal((2 * (int)v + 2) * sizeof(long));
-                map1 = (int*)Marshal.AllocHGlobal(((int)v + 1) * sizeof(int));
-                map2 = (int*)Marshal.AllocHGlobal(((int)v + 1) * sizeof(int));
-                allocated = true;
+                isPrime[i] = true;
             }
-            else
+            int pCount = 0;
+            for (int i = 2; i <= maxV; i++)
             {
-                int* tempPrimes = stackalloc int[(int)v + 1];
-                bool* tempIsPrime = stackalloc bool[(int)v + 1];
-                long* tempW = stackalloc long[2 * (int)v + 2];
-                long* tempG = stackalloc long[2 * (int)v + 2];
-                int* tempMap1 = stackalloc int[(int)v + 1];
-                int* tempMap2 = stackalloc int[(int)v + 1];
-                primes = tempPrimes;
-                isPrime = tempIsPrime;
-                w = tempW;
-                g = tempG;
-                map1 = tempMap1;
-                map2 = tempMap2;
-            }
-
-
-            try
-            {
-                for (int i = 2; i <= v; i++)
+                if (isPrime[i])
                 {
-                    isPrime[i] = true;
-                }
-                int pCount = 0;
-                for (int i = 2; i <= v; i++)
-                {
-                    if (isPrime[i])
+                    primes[pCount++] = i;
+                    for (int j = i * 2; j <= maxV; j += i)
                     {
-                        primes[pCount++] = i;
-                        for (int j = i * 2; j <= v; j += i)
-                        {
-                            isPrime[j] = false;
-                        }
+                        isPrime[j] = false;
                     }
                 }
-
-                int tot = 0;
-                for (long i = 1, j; i <= n; i = j + 1)
-                {
-                    long val = n / i;
-                    j = n / val;
-                    w[tot] = val;
-                    g[tot] = val - 1;
-                    tot++;
-                }
-
-                for (int i = 0; i <= v; i++)
-                {
-                    map1[i] = 0;
-                    map2[i] = 0;
-                }
-
-                for (int i = 0; i < tot; i++)
-                {
-                    if (w[i] <= v)
-                    {
-                        map1[w[i]] = i;
-                    }
-                    else
-                    {
-                        map2[n / w[i]] = i;
-                    }
-                }
-
-                for (int i = 0; i < pCount; i++)
-                {
-                    long p = primes[i];
-                    long p2 = p * p;
-                    for (int j = 0; j < tot; j++)
-                    {
-                        if (p2 > w[j])
-                        {
-                            break;
-                        }
-                        long val = w[j] / p;
-                        int idx = val <= v ? map1[val] : map2[n / val];
-                        g[j] -= g[idx] - (long)i;
-                    }
-                }
-
-                return g[0];
             }
-            finally
+
+            int tot = 0;
+            for (long i = 1, j; i <= n; i = j + 1)
             {
-                if (allocated)
+                long val = n / i;
+                j = n / val;
+                w[tot] = val;
+                g[tot] = val - 1;
+                tot++;
+            }
+
+            for (int i = 0; i <= maxV; i++)
+            {
+                map1[i] = 0;
+                map2[i] = 0;
+            }
+
+            for (int i = 0; i < tot; i++)
+            {
+                if (w[i] <= v)
                 {
-                    Marshal.FreeHGlobal((nint)primes);
-                    Marshal.FreeHGlobal((nint)isPrime);
-                    Marshal.FreeHGlobal((nint)w);
-                    Marshal.FreeHGlobal((nint)g);
-                    Marshal.FreeHGlobal((nint)map1);
-                    Marshal.FreeHGlobal((nint)map2);
+                    map1[w[i]] = i;
+                }
+                else
+                {
+                    map2[n / w[i]] = i;
                 }
             }
+
+            for (int i = 0; i < pCount; i++)
+            {
+                long p = primes[i];
+                long p2 = p * p;
+                for (int j = 0; j < tot; j++)
+                {
+                    if (p2 > w[j])
+                    {
+                        break;
+                    }
+                    long val = w[j] / p;
+                    int idx = val <= v ? map1[val] : map2[n / val];
+                    g[j] -= g[idx] - (long)i;
+                }
+            }
+
+            return g[0];
         }
 
-        public static long PrimeSum(long n, long mod)
+        public static long PrimeSum(long n, long mod, int* primes, bool* isPrime, long* w, long* g, int* map1, int* map2)
         {
             if (n <= 1)
             {
                 return 0;
             }
             long v = (long)Math.Sqrt((double)n);
-            int* primes = null;
-            bool* isPrime = null;
-            long* w = null;
-            long* g = null;
-            int* map1 = null;
-            int* map2 = null;
-            bool allocated = false;
+            int maxV = (int)v;
 
-            if (v > 1000)
+            for (int i = 2; i <= maxV; i++)
             {
-                primes = (int*)Marshal.AllocHGlobal(((int)v + 1) * sizeof(int));
-                isPrime = (bool*)Marshal.AllocHGlobal(((int)v + 1) * sizeof(bool));
-                w = (long*)Marshal.AllocHGlobal((2 * (int)v + 2) * sizeof(long));
-                g = (long*)Marshal.AllocHGlobal((2 * (int)v + 2) * sizeof(long));
-                map1 = (int*)Marshal.AllocHGlobal(((int)v + 1) * sizeof(int));
-                map2 = (int*)Marshal.AllocHGlobal(((int)v + 1) * sizeof(int));
-                allocated = true;
+                isPrime[i] = true;
             }
-            else
+            int pCount = 0;
+            for (int i = 2; i <= maxV; i++)
             {
-                int* tempPrimes = stackalloc int[(int)v + 1];
-                bool* tempIsPrime = stackalloc bool[(int)v + 1];
-                long* tempW = stackalloc long[2 * (int)v + 2];
-                long* tempG = stackalloc long[2 * (int)v + 2];
-                int* tempMap1 = stackalloc int[(int)v + 1];
-                int* tempMap2 = stackalloc int[(int)v + 1];
-                primes = tempPrimes;
-                isPrime = tempIsPrime;
-                w = tempW;
-                g = tempG;
-                map1 = tempMap1;
-                map2 = tempMap2;
+                if (isPrime[i])
+                {
+                    primes[pCount++] = i;
+                    for (int j = i * 2; j <= maxV; j += i)
+                    {
+                        isPrime[j] = false;
+                    }
+                }
             }
 
-            try
+            int tot = 0;
+            for (long i = 1, j; i <= n; i = j + 1)
             {
-                for (int i = 2; i <= v; i++)
-                {
-                    isPrime[i] = true;
-                }
-                int pCount = 0;
-                for (int i = 2; i <= v; i++)
-                {
-                    if (isPrime[i])
-                    {
-                        primes[pCount++] = i;
-                        for (int j = i * 2; j <= v; j += i)
-                        {
-                            isPrime[j] = false;
-                        }
-                    }
-                }
-
-                int tot = 0;
-                for (long i = 1, j; i <= n; i = j + 1)
-                {
-                    long val = n / i;
-                    j = n / val;
-                    w[tot] = val;
-                    long term = val % 2 == 0 ? (val / 2) % mod * ((val + 1) % mod) % mod : val % mod * (((val + 1) / 2) % mod) % mod;
-                    g[tot] = (term - 1 + mod) % mod;
-                    tot++;
-                }
-
-                for (int i = 0; i <= v; i++)
-                {
-                    map1[i] = 0;
-                    map2[i] = 0;
-                }
-
-                for (int i = 0; i < tot; i++)
-                {
-                    if (w[i] <= v)
-                    {
-                        map1[w[i]] = i;
-                    }
-                    else
-                    {
-                        map2[n / w[i]] = i;
-                    }
-                }
-
-                for (int i = 0; i < pCount; i++)
-                {
-                    long p = primes[i];
-                    long p2 = p * p;
-                    long sp = 0;
-                    for (int k = 0; k < i; k++)
-                    {
-                        sp = (sp + primes[k]) % mod;
-                    }
-
-                    for (int j = 0; j < tot; j++)
-                    {
-                        if (p2 > w[j])
-                        {
-                            break;
-                        }
-                        long val = w[j] / p;
-                        int idx = val <= v ? map1[val] : map2[n / val];
-                        long term = (g[idx] - sp + mod) % mod;
-                        g[j] = (g[j] - p % mod * term % mod + mod) % mod;
-                    }
-                }
-
-                return g[0];
+                long val = n / i;
+                j = n / val;
+                w[tot] = val;
+                long term = val % 2 == 0 ? (val / 2) % mod * ((val + 1) % mod) % mod : val % mod * (((val + 1) / 2) % mod) % mod;
+                g[tot] = (term - 1 + mod) % mod;
+                tot++;
             }
-            finally
+
+            for (int i = 0; i <= maxV; i++)
             {
-                if (allocated)
+                map1[i] = 0;
+                map2[i] = 0;
+            }
+
+            for (int i = 0; i < tot; i++)
+            {
+                if (w[i] <= v)
                 {
-                    Marshal.FreeHGlobal((nint)primes);
-                    Marshal.FreeHGlobal((nint)isPrime);
-                    Marshal.FreeHGlobal((nint)w);
-                    Marshal.FreeHGlobal((nint)g);
-                    Marshal.FreeHGlobal((nint)map1);
-                    Marshal.FreeHGlobal((nint)map2);
+                    map1[w[i]] = i;
+                }
+                else
+                {
+                    map2[n / w[i]] = i;
                 }
             }
+
+            for (int i = 0; i < pCount; i++)
+            {
+                long p = primes[i];
+                long p2 = p * p;
+                long sp = 0;
+                for (int k = 0; k < i; k++)
+                {
+                    sp = (sp + primes[k]) % mod;
+                }
+
+                for (int j = 0; j < tot; j++)
+                {
+                    if (p2 > w[j])
+                    {
+                        break;
+                    }
+                    long val = w[j] / p;
+                    int idx = val <= v ? map1[val] : map2[n / val];
+                    long term = (g[idx] - sp + mod) % mod;
+                    g[j] = (g[j] - p % mod * term % mod + mod) % mod;
+                }
+            }
+
+            return g[0];
         }
 
         public static long MultiplicativeSum(
@@ -260,7 +164,16 @@ namespace IAFahim.Math.NT
             long c0,
             long c1,
             delegate* managed<long, int, long> fPower,
-            long mod)
+            long mod,
+            int* primes,
+            bool* isPrime,
+            long* w,
+            long* g,
+            long* g0,
+            long* g1,
+            int* map1,
+            int* map2,
+            long* gPrimeSum)
         {
             if (n <= 0)
             {
@@ -272,157 +185,95 @@ namespace IAFahim.Math.NT
             }
 
             long v = (long)Math.Sqrt((double)n);
-            int* primes = null;
-            bool* isPrime = null;
-            long* w = null;
-            long* g = null;
-            long* g0 = null;
-            long* g1 = null;
-            int* map1 = null;
-            int* map2 = null;
-            long* gPrimeSum = null;
-            bool allocated = false;
+            int maxV = (int)v;
 
-            if (v > 1000)
+            for (int i = 2; i <= maxV; i++)
             {
-                primes = (int*)Marshal.AllocHGlobal(((int)v + 1) * sizeof(int));
-                isPrime = (bool*)Marshal.AllocHGlobal(((int)v + 1) * sizeof(bool));
-                w = (long*)Marshal.AllocHGlobal((2 * (int)v + 2) * sizeof(long));
-                g = (long*)Marshal.AllocHGlobal((2 * (int)v + 2) * sizeof(long));
-                g0 = (long*)Marshal.AllocHGlobal((2 * (int)v + 2) * sizeof(long));
-                g1 = (long*)Marshal.AllocHGlobal((2 * (int)v + 2) * sizeof(long));
-                map1 = (int*)Marshal.AllocHGlobal(((int)v + 1) * sizeof(int));
-                map2 = (int*)Marshal.AllocHGlobal(((int)v + 1) * sizeof(int));
-                gPrimeSum = (long*)Marshal.AllocHGlobal(((int)v + 1) * sizeof(long));
-                allocated = true;
+                isPrime[i] = true;
             }
-            else
+            int pCount = 0;
+            for (int i = 2; i <= maxV; i++)
             {
-                int* tempPrimes = stackalloc int[(int)v + 1];
-                bool* tempIsPrime = stackalloc bool[(int)v + 1];
-                long* tempW = stackalloc long[2 * (int)v + 2];
-                long* tempG = stackalloc long[2 * (int)v + 2];
-                long* tempG0 = stackalloc long[2 * (int)v + 2];
-                long* tempG1 = stackalloc long[2 * (int)v + 2];
-                int* tempMap1 = stackalloc int[(int)v + 1];
-                int* tempMap2 = stackalloc int[(int)v + 1];
-                long* tempGPrimeSum = stackalloc long[(int)v + 1];
-                primes = tempPrimes;
-                isPrime = tempIsPrime;
-                w = tempW;
-                g = tempG;
-                g0 = tempG0;
-                g1 = tempG1;
-                map1 = tempMap1;
-                map2 = tempMap2;
-                gPrimeSum = tempGPrimeSum;
+                if (isPrime[i])
+                {
+                    primes[pCount++] = i;
+                    for (int j = i * 2; j <= maxV; j += i)
+                    {
+                        isPrime[j] = false;
+                    }
+                }
             }
 
-            try
+            int tot = 0;
+            for (long i = 1, j; i <= n; i = j + 1)
             {
-                for (int i = 2; i <= v; i++)
-                {
-                    isPrime[i] = true;
-                }
-                int pCount = 0;
-                for (int i = 2; i <= v; i++)
-                {
-                    if (isPrime[i])
-                    {
-                        primes[pCount++] = i;
-                        for (int j = i * 2; j <= v; j += i)
-                        {
-                            isPrime[j] = false;
-                        }
-                    }
-                }
-
-                int tot = 0;
-                for (long i = 1, j; i <= n; i = j + 1)
-                {
-                    long val = n / i;
-                    j = n / val;
-                    w[tot] = val;
-                    g0[tot] = (val - 1) % mod;
-                    long term = val % 2 == 0 ? (val / 2) % mod * ((val + 1) % mod) % mod : val % mod * (((val + 1) / 2) % mod) % mod;
-                    g1[tot] = (term - 1 + mod) % mod;
-                    tot++;
-                }
-
-                for (int i = 0; i <= v; i++)
-                {
-                    map1[i] = 0;
-                    map2[i] = 0;
-                }
-
-                for (int i = 0; i < tot; i++)
-                {
-                    if (w[i] <= v)
-                    {
-                        map1[w[i]] = i;
-                    }
-                    else
-                    {
-                        map2[n / w[i]] = i;
-                    }
-                }
-
-                for (int i = 0; i < pCount; i++)
-                {
-                    long p = primes[i];
-                    long p2 = p * p;
-                    long sp0 = (long)i;
-                    long sp1 = 0;
-                    for (int k = 0; k < i; k++)
-                    {
-                        sp1 = (sp1 + primes[k]) % mod;
-                    }
-
-                    for (int j = 0; j < tot; j++)
-                    {
-                        if (p2 > w[j])
-                        {
-                            break;
-                        }
-                        long val = w[j] / p;
-                        int idx = val <= v ? map1[val] : map2[n / val];
-                        long term0 = (g0[idx] - sp0 + mod) % mod;
-                        g0[j] = (g0[j] - term0 + mod) % mod;
-
-                        long term1 = (g1[idx] - sp1 + mod) % mod;
-                        g1[j] = (g1[j] - p % mod * term1 % mod + mod) % mod;
-                    }
-                }
-
-                for (int i = 0; i < tot; i++)
-                {
-                    g[i] = (c0 % mod * g0[i] % mod + c1 % mod * g1[i] % mod) % mod;
-                }
-
-                gPrimeSum[0] = 0;
-                for (int i = 1; i <= pCount; i++)
-                {
-                    gPrimeSum[i] = (gPrimeSum[i - 1] + fPower(primes[i - 1], 1)) % mod;
-                }
-
-                long ans = SolveS(n, 1, n, v, pCount, primes, g, gPrimeSum, map1, map2, fPower, mod);
-                return (ans + 1) % mod;
+                long val = n / i;
+                j = n / val;
+                w[tot] = val;
+                g0[tot] = (val - 1) % mod;
+                long term = val % 2 == 0 ? (val / 2) % mod * ((val + 1) % mod) % mod : val % mod * (((val + 1) / 2) % mod) % mod;
+                g1[tot] = (term - 1 + mod) % mod;
+                tot++;
             }
-            finally
+
+            for (int i = 0; i <= maxV; i++)
             {
-                if (allocated)
+                map1[i] = 0;
+                map2[i] = 0;
+            }
+
+            for (int i = 0; i < tot; i++)
+            {
+                if (w[i] <= v)
                 {
-                    Marshal.FreeHGlobal((nint)primes);
-                    Marshal.FreeHGlobal((nint)isPrime);
-                    Marshal.FreeHGlobal((nint)w);
-                    Marshal.FreeHGlobal((nint)g);
-                    Marshal.FreeHGlobal((nint)g0);
-                    Marshal.FreeHGlobal((nint)g1);
-                    Marshal.FreeHGlobal((nint)map1);
-                    Marshal.FreeHGlobal((nint)map2);
-                    Marshal.FreeHGlobal((nint)gPrimeSum);
+                    map1[w[i]] = i;
+                }
+                else
+                {
+                    map2[n / w[i]] = i;
                 }
             }
+
+            for (int i = 0; i < pCount; i++)
+            {
+                long p = primes[i];
+                long p2 = p * p;
+                long sp0 = (long)i;
+                long sp1 = 0;
+                for (int k = 0; k < i; k++)
+                {
+                    sp1 = (sp1 + primes[k]) % mod;
+                }
+
+                for (int j = 0; j < tot; j++)
+                {
+                    if (p2 > w[j])
+                    {
+                        break;
+                    }
+                    long val = w[j] / p;
+                    int idx = val <= v ? map1[val] : map2[n / val];
+                    long term0 = (g0[idx] - sp0 + mod) % mod;
+                    g0[j] = (g0[j] - term0 + mod) % mod;
+
+                    long term1 = (g1[idx] - sp1 + mod) % mod;
+                    g1[j] = (g1[j] - p % mod * term1 % mod + mod) % mod;
+                }
+            }
+
+            for (int i = 0; i < tot; i++)
+            {
+                g[i] = (c0 % mod * g0[i] % mod + c1 % mod * g1[i] % mod) % mod;
+            }
+
+            gPrimeSum[0] = 0;
+            for (int i = 1; i <= pCount; i++)
+            {
+                gPrimeSum[i] = (gPrimeSum[i - 1] + fPower(primes[i - 1], 1)) % mod;
+            }
+
+            long ans = SolveS(n, 1, n, v, pCount, primes, g, gPrimeSum, map1, map2, fPower, mod);
+            return (ans + 1) % mod;
         }
 
         private static long SolveS(

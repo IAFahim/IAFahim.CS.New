@@ -6,7 +6,7 @@ namespace IAFahim.Math.NT
 
     public static unsafe class MoebiusPrefix
     {
-        public static void Run(int n, int* result)
+        public static void Run(int n, int* result, int* mu, int* primes, bool* isPrime)
         {
             if (n < 0)
             {
@@ -18,76 +18,42 @@ namespace IAFahim.Math.NT
                 return;
             }
 
-            int* mu = null;
-            int* primes = null;
-            bool* isPrime = null;
-            bool allocated = false;
-
-            if (n > 10000)
+            for (int i = 0; i <= n; i++)
             {
-                mu = (int*)Marshal.AllocHGlobal((nint)(n + 1) * sizeof(int));
-                primes = (int*)Marshal.AllocHGlobal((nint)(n + 1) * sizeof(int));
-                isPrime = (bool*)Marshal.AllocHGlobal((nint)(n + 1) * sizeof(bool));
-                allocated = true;
+                mu[i] = 1;
             }
-            else
+            for (int i = 2; i <= n; i++)
             {
-                int* tempMu = stackalloc int[n + 1];
-                int* tempPrimes = stackalloc int[n + 1];
-                bool* tempIsPrime = stackalloc bool[n + 1];
-                mu = tempMu;
-                primes = tempPrimes;
-                isPrime = tempIsPrime;
+                isPrime[i] = true;
             }
-
-            try
+            int pCount = 0;
+            mu[1] = 1;
+            for (int i = 2; i <= n; i++)
             {
-                for (int i = 0; i <= n; i++)
+                if (isPrime[i])
                 {
-                    mu[i] = 1;
+                    primes[pCount++] = i;
+                    mu[i] = -1;
                 }
-                for (int i = 2; i <= n; i++)
+                for (int j = 0; j < pCount && i * primes[j] <= n; j++)
                 {
-                    isPrime[i] = true;
-                }
-                int pCount = 0;
-                mu[1] = 1;
-                for (int i = 2; i <= n; i++)
-                {
-                    if (isPrime[i])
+                    int p = primes[j];
+                    isPrime[i * p] = false;
+                    if (i % p == 0)
                     {
-                        primes[pCount++] = i;
-                        mu[i] = -1;
+                        mu[i * p] = 0;
+                        break;
                     }
-                    for (int j = 0; j < pCount && i * primes[j] <= n; j++)
+                    else
                     {
-                        int p = primes[j];
-                        isPrime[i * p] = false;
-                        if (i % p == 0)
-                        {
-                            mu[i * p] = 0;
-                            break;
-                        }
-                        else
-                        {
-                            mu[i * p] = -mu[i];
-                        }
+                        mu[i * p] = -mu[i];
                     }
                 }
-                result[0] = 0;
-                for (int i = 1; i <= n; i++)
-                {
-                    result[i] = result[i - 1] + mu[i];
-                }
             }
-            finally
+            result[0] = 0;
+            for (int i = 1; i <= n; i++)
             {
-                if (allocated)
-                {
-                    Marshal.FreeHGlobal((nint)mu);
-                    Marshal.FreeHGlobal((nint)primes);
-                    Marshal.FreeHGlobal((nint)isPrime);
-                }
+                result[i] = result[i - 1] + mu[i];
             }
         }
     }

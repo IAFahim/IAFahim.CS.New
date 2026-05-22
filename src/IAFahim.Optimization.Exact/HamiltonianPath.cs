@@ -23,9 +23,13 @@ namespace IAFahim.Optimization.Exact
                         if ((mask & (1 << u)) != 0) continue;
                         long wvu = w[v * n + u];
                         if (wvu >= inf) continue;
-                        long cand = dp[mask * n + v] + wvu;
                         int newMask = mask | (1 << u);
-                        if (cand < dp[newMask * n + u]) dp[newMask * n + u] = cand;
+                        long current = dp[mask * n + v];
+                        if (current != inf && wvu != inf)
+                        {
+                            long cand = current + wvu;
+                            if (cand < dp[newMask * n + u]) dp[newMask * n + u] = cand;
+                        }
                     }
                 }
             }

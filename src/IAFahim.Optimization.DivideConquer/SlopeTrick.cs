@@ -28,13 +28,41 @@ namespace IAFahim.Optimization.DivideConquer
             if (l > r)
             {
                 s->Offset += l;
-                s->Lc = Math.Min(s->Lc, a);
+                if (a < s->Lc) s->Lc = a;
+                s->R = s->Lc;
             }
             else
             {
                 s->Offset += r;
-                s->Rc = Math.Max(s->Rc, a);
+                if (a > s->Rc) s->Rc = a;
+                s->L = s->Rc;
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void AddAbsWithHeaps(State* s, long a, long* leftHeap, ref int leftSize, long* rightHeap, ref int rightSize)
+        {
+            leftHeap[leftSize++] = s->L - a;
+            rightHeap[rightSize++] = a - s->R;
+            
+            if (leftSize > 0 && rightSize > 0)
+            {
+                long topL = leftHeap[leftSize - 1];
+                long topR = rightHeap[rightSize - 1];
+                
+                if (topL > topR)
+                {
+                    leftHeap[leftSize - 1] = topR;
+                    rightHeap[rightSize - 1] = topL;
+                    long diff = topL - topR;
+                    s->Offset += diff;
+                    s->L -= diff;
+                    s->R += diff;
+                }
+            }
+            
+            s->L = a - (leftSize > 0 ? leftHeap[leftSize - 1] : 0);
+            s->R = a + (rightSize > 0 ? rightHeap[rightSize - 1] : 0);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

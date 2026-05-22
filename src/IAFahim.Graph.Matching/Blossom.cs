@@ -174,23 +174,30 @@ namespace IAFahim.Graph.Matching
             return false;
         }
 
-        public static int Run(int n, int* head, int* to, int* next, int* match, int* base_, int* p, int* v, int* blossom)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int Run(int n, int* head, int* to, int* next, int* match, int* base_, int* p, int* v, int* blossom, int* scratch)
         {
             for (int i = 0; i < n; i++)
             {
                 match[i] = -1;
             }
             int result = 0;
-            int* q = stackalloc int[n];
             for (int s = 0; s < n; s++)
             {
                 if (match[s] != -1) continue;
-                if (FindAugmentingPath(n, head, to, next, match, p, base_, v, q, blossom, s))
+                if (FindAugmentingPath(n, head, to, next, match, p, base_, v, scratch, blossom, s))
                 {
                     result++;
                 }
             }
             return result;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int Run(int n, int* head, int* to, int* next, int* match, int* base_, int* p, int* v, int* blossom)
+        {
+            int* scratch = stackalloc int[n];
+            return Run(n, head, to, next, match, base_, p, v, blossom, scratch);
         }
     }
 

@@ -1,101 +1,154 @@
 namespace IAFahim.Combinatorics.Generation;
 
 using System;
-using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
-public static class CatalanStructures
+public static unsafe class CatalanStructures
 {
-    public static long RankCatalanObject(int[] obj) { return 0; }
-    public static int[] UnrankCatalanObject(long rank, int n) { return new int[0]; }
-
-    public static IEnumerable<string> GenerateDyckWords(int n)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryGenerateDyckWord(int n, byte* a, ref bool first)
     {
-        if (n == 0)
+        if (n == 0) return false;
+        if (first)
         {
-            yield return "";
-            yield break;
-        }
-
-        int[] a = new int[2 * n];
-        for (int i = 0; i < n; i++)
-        {
-            a[i] = 1;
-            a[2 * n - 1 - i] = -1;
-        }
-        
-        while (true)
-        {
-            char[] s = new char[2 * n];
-            for (int i = 0; i < 2 * n; i++) s[i] = a[i] == 1 ? '(' : ')';
-            yield return new string(s);
-
-            // Find next Dyck word
-            int i_val = 2 * n - 2;
-            int count = 0;
-            while (i_val >= 0)
+            for (int i = 0; i < n; i++)
             {
-                if (a[i_val] == -1) count--;
-                else count++;
+                a[i] = 1;
+                a[n + i] = 0;
+            }
+            first = false;
+            return true;
+        }
 
-                if (a[i_val] == 1 && a[i_val + 1] == -1 && count > 1)
-                {
-                    break;
-                }
-                i_val--;
+        int ones = n;
+        int zeros = n;
+
+        for (int i = 2 * n - 1; i >= 0; i--)
+        {
+            if (a[i] == 1)
+            {
+                ones--;
+            }
+            else
+            {
+                zeros--;
             }
 
-            if (i_val < 0) break;
-
-            a[i_val] = -1;
-            a[i_val + 1] = 1;
-            int k = 0;
-            for (int j = i_val + 2; j < 2 * n; j++) if (a[j] == 1) k++;
-            for (int j = i_val + 2; j < 2 * n; j++)
+            if (a[i] == 1)
             {
-                if (k > 0)
+                if (ones >= zeros + 1)
                 {
-                    a[j] = 1;
-                    k--;
+                    a[i] = 0;
+                    int remainingOnes = n - ones;
+                    for (int j = i + 1; j < 2 * n; j++)
+                    {
+                        if (remainingOnes > 0)
+                        {
+                            a[j] = 1;
+                            remainingOnes--;
+                        }
+                        else
+                        {
+                            a[j] = 0;
+                        }
+                    }
+                    return true;
                 }
-                else
-                {
-                    a[j] = -1;
-                }
+            }
+        }
+        return false;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void UnrankCatalanObject(long rank, int n, byte* outObj)
+    {
+        if (n == 0) return;
+        long* dp = stackalloc long[(n + 2) * (n + 2)];
+        for (int i = 0; i < (n + 2) * (n + 2); i++) dp[i] = 0;
+        dp[n * (n + 2) + n] = 1;
+        for (int i = n; i >= 0; i--)
+        {
+            for (int j = n; j >= 0; j--)
+            {
+                if (i < j) continue;
+                if (i == n && j == n) continue;
+                long val = 0;
+                if (i + 1 <= n) val += dp[(i + 1) * (n + 2) + j];
+                if (j + 1 <= i) val += dp[i * (n + 2) + (j + 1)];
+                dp[i * (n + 2) + j] = val;
+            }
+        }
+
+        int x = 0, y = 0;
+        for (int i = 0; i < 2 * n; i++)
+        {
+            long ways = 0;
+            if (x + 1 <= n) ways = dp[(x + 1) * (n + 2) + y];
+            if (rank < ways)
+            {
+                outObj[i] = 1;
+                x++;
+            }
+            else
+            {
+                outObj[i] = 0;
+                rank -= ways;
+                y++;
             }
         }
     }
 
-    public static long RankDyckWord(string word)
+    public static long RankCatalanObject(byte* obj, int n)
     {
+        if (n == 0) return 0;
+        long* dp = stackalloc long[(n + 2) * (n + 2)];
+        for (int i = 0; i < (n + 2) * (n + 2); i++) dp[i] = 0;
+        dp[n * (n + 2) + n] = 1;
+        for (int i = n; i >= 0; i--)
+        {
+            for (int j = n; j >= 0; j--)
+            {
+                if (i < j) continue;
+                if (i == n && j == n) continue;
+                long val = 0;
+                if (i + 1 <= n) val += dp[(i + 1) * (n + 2) + j];
+                if (j + 1 <= i) val += dp[i * (n + 2) + (j + 1)];
+                dp[i * (n + 2) + j] = val;
+            }
+        }
+
+        int x = 0, y = 0;
         long rank = 0;
-        int depth = 0;
-        int n = word.Length / 2;
-        // Requires DP table for Catalan paths (omitted for brevity)
+        for (int i = 0; i < 2 * n; i++)
+        {
+            if (obj[i] == 0)
+            {
+                if (x + 1 <= n) rank += dp[(x + 1) * (n + 2) + y];
+                y++;
+            }
+            else
+            {
+                x++;
+            }
+        }
         return rank;
     }
 
-    public static string UnrankDyckWord(long rank, int n)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void UnrankDyckWord(long rank, int n, byte* outObj)
     {
-        return ""; // Stub
+        UnrankCatalanObject(rank, n, outObj);
     }
 
-    public static long RankBalancedParentheses(string s) => RankDyckWord(s);
-    public static string UnrankBalancedParentheses(long rank, int n) => UnrankDyckWord(rank, n);
-
-    public static int[] RandomCombination(int n, int k)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static long RankDyckWord(byte* word, int n)
     {
-        Random rnd = new Random();
-        int[] comb = new int[k];
-        int curr = 0;
-        int remaining = k;
-        for (int i = 0; i < n && remaining > 0; i++)
-        {
-            if (rnd.NextDouble() < (double)remaining / (n - i))
-            {
-                comb[curr++] = i;
-                remaining--;
-            }
-        }
-        return comb;
+        return RankCatalanObject(word, n);
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static long RankBalancedParentheses(byte* s, int n) => RankDyckWord(s, n);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void UnrankBalancedParentheses(long rank, int n, byte* outObj) => UnrankDyckWord(rank, n, outObj);
 }

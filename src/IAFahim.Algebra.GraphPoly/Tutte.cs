@@ -10,9 +10,10 @@ namespace IAFahim.Algebra.GraphPoly
         {
             long result = 0;
             int size = 1 << edges;
+            int* parent = stackalloc int[n];
+            bool* counted = stackalloc bool[n];
             for (int mask = 0; mask < size; mask++)
             {
-                int* parent = stackalloc int[n];
                 for (int i = 0; i < n; i++) parent[i] = i;
                 int edgeCount = 0;
                 for (int e = 0; e < edges; e++)
@@ -31,7 +32,6 @@ namespace IAFahim.Algebra.GraphPoly
                     parent[i] = r;
                 }
                 int components = 0;
-                bool* counted = stackalloc bool[n];
                 for (int i = 0; i < n; i++) counted[i] = false;
                 for (int i = 0; i < n; i++)
                 {

@@ -28,7 +28,7 @@ namespace IAFahim.Math.NT
             return a;
         }
 
-        public static long Run(long a, long b, long mod)
+        public static long Run(long a, long b, long mod, long* scratchKeys, long* scratchVals)
         {
             if (b == 1) return 0;
             a %= mod;
@@ -40,23 +40,21 @@ namespace IAFahim.Math.NT
             if (b % g != 0) return -1;
 
             long m = (long)Math.Ceiling(Math.Sqrt(mod));
-            long* vals = stackalloc long[(int)m];
-            long* keys = stackalloc long[(int)m];
             for (int i = 0; i < m; i++)
             {
-                keys[i] = -1;
-                vals[i] = -1;
+                scratchKeys[i] = -1;
+                scratchVals[i] = -1;
             }
             long am = 1;
             for (int i = 0; i < m; i++)
             {
                 long key = am;
                 int pos = (int)(key % m);
-                while (pos < m && keys[pos] != -1 && keys[pos] != key) pos++;
-                if (pos < m && keys[pos] == -1)
+                while (pos < m && scratchKeys[pos] != -1 && scratchKeys[pos] != key) pos++;
+                if (pos < m && scratchKeys[pos] == -1)
                 {
-                    keys[pos] = key;
-                    vals[pos] = i;
+                    scratchKeys[pos] = key;
+                    scratchVals[pos] = i;
                 }
                 am = ModMul(am, a, mod);
             }
@@ -65,10 +63,10 @@ namespace IAFahim.Math.NT
             for (int i = 0; i < m; i++)
             {
                 int pos = (int)(cur % m);
-                while (pos < m && keys[pos] != -1 && keys[pos] != cur) pos++;
-                if (pos < m && keys[pos] == cur)
+                while (pos < m && scratchKeys[pos] != -1 && scratchKeys[pos] != cur) pos++;
+                if (pos < m && scratchKeys[pos] == cur)
                 {
-                    long ans = i * m + vals[pos];
+                    long ans = i * m + scratchVals[pos];
                     if (ans < mod) return ans;
                 }
                 cur = ModMul(cur, factor, mod);

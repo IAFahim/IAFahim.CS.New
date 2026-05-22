@@ -2,7 +2,6 @@ namespace IAFahim.Math.NT
 {
     using System;
     using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
 
     public static unsafe class DuJiao
     {
@@ -29,26 +28,16 @@ namespace IAFahim.Math.NT
                 b = n;
             }
 
-            long* preSumLarge = (long*)Marshal.AllocHGlobal((nint)(b + 1) * sizeof(long));
+            long* preSumLarge = stackalloc long[(int)b + 1];
             long memoSize = n / b + 2;
-            long* memo = (long*)Marshal.AllocHGlobal((nint)memoSize * sizeof(long));
-            bool* memoized = (bool*)Marshal.AllocHGlobal((nint)memoSize * sizeof(bool));
+            long* memo = stackalloc long[(int)memoSize];
+            bool* memoized = stackalloc bool[(int)memoSize];
 
-            try
+            for (int i = 0; i < memoSize; i++)
             {
-                SievePhi((int)b, preSumLarge);
-                for (int i = 0; i < memoSize; i++)
-                {
-                    memoized[i] = false;
-                }
-                return GetPhi(n, n, b, preSumLarge, memo, memoized);
+                memoized[i] = false;
             }
-            finally
-            {
-                Marshal.FreeHGlobal((nint)preSumLarge);
-                Marshal.FreeHGlobal((nint)memo);
-                Marshal.FreeHGlobal((nint)memoized);
-            }
+            return GetPhi(n, n, b, preSumLarge, memo, memoized);
         }
 
         public static long Mobius(long n)
@@ -74,133 +63,105 @@ namespace IAFahim.Math.NT
                 b = n;
             }
 
-            long* preSumLarge = (long*)Marshal.AllocHGlobal((nint)(b + 1) * sizeof(long));
+            long* preSumLarge = stackalloc long[(int)b + 1];
             long memoSize = n / b + 2;
-            long* memo = (long*)Marshal.AllocHGlobal((nint)memoSize * sizeof(long));
-            bool* memoized = (bool*)Marshal.AllocHGlobal((nint)memoSize * sizeof(bool));
+            long* memo = stackalloc long[(int)memoSize];
+            bool* memoized = stackalloc bool[(int)memoSize];
 
-            try
+            for (int i = 0; i < memoSize; i++)
             {
-                SieveMobius((int)b, preSumLarge);
-                for (int i = 0; i < memoSize; i++)
-                {
-                    memoized[i] = false;
-                }
-                return GetMobius(n, n, b, preSumLarge, memo, memoized);
+                memoized[i] = false;
             }
-            finally
-            {
-                Marshal.FreeHGlobal((nint)preSumLarge);
-                Marshal.FreeHGlobal((nint)memo);
-                Marshal.FreeHGlobal((nint)memoized);
-            }
+            return GetMobius(n, n, b, preSumLarge, memo, memoized);
         }
 
         private static void SievePhi(int limit, long* preSum)
         {
-            int* phi = (int*)Marshal.AllocHGlobal((nint)(limit + 1) * sizeof(int));
-            int* primes = (int*)Marshal.AllocHGlobal((nint)(limit + 1) * sizeof(int));
-            bool* isPrime = (bool*)Marshal.AllocHGlobal((nint)(limit + 1) * sizeof(bool));
+            int* phi = stackalloc int[limit + 1];
+            int* primes = stackalloc int[limit + 1];
+            bool* isPrime = stackalloc bool[limit + 1];
 
-            try
+            for (int i = 0; i <= limit; i++)
             {
-                for (int i = 0; i <= limit; i++)
+                phi[i] = i;
+            }
+            for (int i = 2; i <= limit; i++)
+            {
+                isPrime[i] = true;
+            }
+            int pCount = 0;
+            phi[1] = 1;
+            for (int i = 2; i <= limit; i++)
+            {
+                if (isPrime[i])
                 {
-                    phi[i] = i;
+                    primes[pCount++] = i;
+                    phi[i] = i - 1;
                 }
-                for (int i = 2; i <= limit; i++)
+                for (int j = 0; j < pCount && i * primes[j] <= limit; j++)
                 {
-                    isPrime[i] = true;
-                }
-                int pCount = 0;
-                phi[1] = 1;
-                for (int i = 2; i <= limit; i++)
-                {
-                    if (isPrime[i])
+                    int p = primes[j];
+                    isPrime[i * p] = false;
+                    if (i % p == 0)
                     {
-                        primes[pCount++] = i;
-                        phi[i] = i - 1;
+                        phi[i * p] = phi[i] * p;
+                        break;
                     }
-                    for (int j = 0; j < pCount && i * primes[j] <= limit; j++)
+                    else
                     {
-                        int p = primes[j];
-                        isPrime[i * p] = false;
-                        if (i % p == 0)
-                        {
-                            phi[i * p] = phi[i] * p;
-                            break;
-                        }
-                        else
-                        {
-                            phi[i * p] = phi[i] * (p - 1);
-                        }
+                        phi[i * p] = phi[i] * (p - 1);
                     }
-                }
-                preSum[0] = 0;
-                for (int i = 1; i <= limit; i++)
-                {
-                    preSum[i] = preSum[i - 1] + (long)phi[i];
                 }
             }
-            finally
+            preSum[0] = 0;
+            for (int i = 1; i <= limit; i++)
             {
-                Marshal.FreeHGlobal((nint)phi);
-                Marshal.FreeHGlobal((nint)primes);
-                Marshal.FreeHGlobal((nint)isPrime);
+                preSum[i] = preSum[i - 1] + (long)phi[i];
             }
         }
 
         private static void SieveMobius(int limit, long* preSum)
         {
-            int* mu = (int*)Marshal.AllocHGlobal((nint)(limit + 1) * sizeof(int));
-            int* primes = (int*)Marshal.AllocHGlobal((nint)(limit + 1) * sizeof(int));
-            bool* isPrime = (bool*)Marshal.AllocHGlobal((nint)(limit + 1) * sizeof(bool));
+            int* mu = stackalloc int[limit + 1];
+            int* primes = stackalloc int[limit + 1];
+            bool* isPrime = stackalloc bool[limit + 1];
 
-            try
+            for (int i = 0; i <= limit; i++)
             {
-                for (int i = 0; i <= limit; i++)
+                mu[i] = 1;
+            }
+            for (int i = 2; i <= limit; i++)
+            {
+                isPrime[i] = true;
+            }
+            int pCount = 0;
+            mu[1] = 1;
+            for (int i = 2; i <= limit; i++)
+            {
+                if (isPrime[i])
                 {
-                    mu[i] = 1;
+                    primes[pCount++] = i;
+                    mu[i] = -1;
                 }
-                for (int i = 2; i <= limit; i++)
+                for (int j = 0; j < pCount && i * primes[j] <= limit; j++)
                 {
-                    isPrime[i] = true;
-                }
-                int pCount = 0;
-                mu[1] = 1;
-                for (int i = 2; i <= limit; i++)
-                {
-                    if (isPrime[i])
+                    int p = primes[j];
+                    isPrime[i * p] = false;
+                    if (i % p == 0)
                     {
-                        primes[pCount++] = i;
-                        mu[i] = -1;
+                        mu[i * p] = 0;
+                        break;
                     }
-                    for (int j = 0; j < pCount && i * primes[j] <= limit; j++)
+                    else
                     {
-                        int p = primes[j];
-                        isPrime[i * p] = false;
-                        if (i % p == 0)
-                        {
-                            mu[i * p] = 0;
-                            break;
-                        }
-                        else
-                        {
-                            mu[i * p] = -mu[i];
-                        }
+                        mu[i * p] = -mu[i];
                     }
-                }
-                preSum[0] = 0;
-                for (int i = 1; i <= limit; i++)
-                {
-                    preSum[i] = preSum[i - 1] + (long)mu[i];
                 }
             }
-            finally
+            preSum[0] = 0;
+            for (int i = 1; i <= limit; i++)
             {
-                Marshal.FreeHGlobal((nint)mu);
-                Marshal.FreeHGlobal((nint)primes);
-                Marshal.FreeHGlobal((nint)isPrime);
+                preSum[i] = preSum[i - 1] + (long)mu[i];
             }
         }
 
