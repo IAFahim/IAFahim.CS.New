@@ -108,24 +108,41 @@ namespace IAFahim.DS.SegmentTree
     {
         public static int Run(int* tree, int n, int l, long target)
         {
-            int node = 1, lo = 0, hi = n - 1;
-            if (tree[node] < target) return n;
-            while (lo != hi)
+            int res = RunNode(tree, 1, 0, n - 1, l, &target);
+            return res == -1 ? n : res;
+        }
+
+        private static int RunNode(int* tree, int node, int lo, int hi, int l, long* target)
+        {
+            if (hi < l) return -1;
+            if (lo >= l)
             {
-                int mid = (lo + hi) >> 1;
-                if (tree[node * 2] >= target)
+                if (tree[node] < *target)
                 {
-                    node = node * 2;
-                    hi = mid;
+                    *target -= tree[node];
+                    return -1;
                 }
-                else
+                while (lo != hi)
                 {
-                    target -= tree[node * 2];
-                    node = node * 2 + 1;
-                    lo = mid + 1;
+                    int mid = (lo + hi) >> 1;
+                    if (tree[node * 2] >= *target)
+                    {
+                        node = node * 2;
+                        hi = mid;
+                    }
+                    else
+                    {
+                        *target -= tree[node * 2];
+                        node = node * 2 + 1;
+                        lo = mid + 1;
+                    }
                 }
+                return lo;
             }
-            return lo;
+            int mid2 = (lo + hi) >> 1;
+            int res = RunNode(tree, node * 2, lo, mid2, l, target);
+            if (res != -1) return res;
+            return RunNode(tree, node * 2 + 1, mid2 + 1, hi, l, target);
         }
     }
 
@@ -133,24 +150,41 @@ namespace IAFahim.DS.SegmentTree
     {
         public static int Run(int* tree, int n, int r, long target)
         {
-            int node = 1, lo = 0, hi = n - 1;
-            if (tree[node] < target) return -1;
-            while (lo != hi)
+            int res = RunNode(tree, 1, 0, n - 1, r, &target);
+            return res == -1 ? -1 : res;
+        }
+
+        private static int RunNode(int* tree, int node, int lo, int hi, int r, long* target)
+        {
+            if (lo > r) return -1;
+            if (hi <= r)
             {
-                int mid = (lo + hi) >> 1;
-                if (tree[node * 2 + 1] >= target)
+                if (tree[node] < *target)
                 {
-                    node = node * 2 + 1;
-                    lo = mid + 1;
+                    *target -= tree[node];
+                    return -1;
                 }
-                else
+                while (lo != hi)
                 {
-                    target -= tree[node * 2 + 1];
-                    node = node * 2;
-                    hi = mid;
+                    int mid = (lo + hi) >> 1;
+                    if (tree[node * 2 + 1] >= *target)
+                    {
+                        node = node * 2 + 1;
+                        lo = mid + 1;
+                    }
+                    else
+                    {
+                        *target -= tree[node * 2 + 1];
+                        node = node * 2;
+                        hi = mid;
+                    }
                 }
+                return lo;
             }
-            return lo;
+            int mid2 = (lo + hi) >> 1;
+            int res = RunNode(tree, node * 2 + 1, mid2 + 1, hi, r, target);
+            if (res != -1) return res;
+            return RunNode(tree, node * 2, lo, mid2, r, target);
         }
     }
 }

@@ -54,6 +54,10 @@ namespace IAFahim.DS.Splay
 
         private static void Rotate(SplayRevNode** root, SplayRevNode* x)
         {
+            if (x == null || x->Parent == null)
+            {
+                return;
+            }
             SplayRevNode* p = x->Parent;
             SplayRevNode* g = p->Parent;
             bool left = p->Left == x;

@@ -133,5 +133,46 @@ namespace IAFahim.Math.Modular.Tests
             long result = Crt.Run(1, 5, 3, 5);
             Assert.Equal(-1, result);
         }
+
+        [Fact]
+        public void LargeMod()
+        {
+            long result = Crt.Run(2, 1000000007L, 3, 1000000009L);
+            Assert.NotEqual(-1, result);
+            Assert.Equal(2, result % 1000000007L);
+            Assert.Equal(3, result % 1000000009L);
+        }
+    }
+
+    public sealed unsafe class ExcrtTests
+    {
+        [Fact]
+        public void Empty()
+        {
+            long result = Excrt.Run(null, null, 0);
+            Assert.Equal(0, result);
+        }
+
+        [Fact]
+        public void Normal()
+        {
+            long* remainders = stackalloc long[3] { 2, 3, 2 };
+            long* moduli = stackalloc long[3] { 3, 5, 7 };
+            long result = Excrt.Run(remainders, moduli, 3);
+            Assert.NotEqual(-1, result);
+            Assert.Equal(2, result % 3);
+            Assert.Equal(3, result % 5);
+            Assert.Equal(2, result % 7);
+            Assert.Equal(23, result);
+        }
+
+        [Fact]
+        public void NoSolution()
+        {
+            long* remainders = stackalloc long[2] { 1, 2 };
+            long* moduli = stackalloc long[2] { 4, 6 };
+            long result = Excrt.Run(remainders, moduli, 2);
+            Assert.Equal(-1, result);
+        }
     }
 }

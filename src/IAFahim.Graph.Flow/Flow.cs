@@ -172,7 +172,7 @@ namespace IAFahim.Graph.Flow
             int* newNext = stackalloc int[2 * n + 100];
             int* newCap = stackalloc int[2 * n + 100];
             int* newCost = stackalloc int[2 * n + 100];
-            int newEdgeId = 0;
+            int newEdgeId = 2;
             for (int i = 0; i < nn; i++) newHead[i] = 0;
             for (int u = 0; u < n; u++)
             {

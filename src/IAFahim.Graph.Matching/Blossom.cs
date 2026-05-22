@@ -79,61 +79,118 @@ namespace IAFahim.Graph.Matching
 
     public static unsafe class BlossomGeneral
     {
+        private static int GetLca(int n, int* base_, int* parent, int* match, int* inPath, int u, int v)
+        {
+            for (int i = 0; i < n; i++) inPath[i] = 0;
+            while (true)
+            {
+                u = base_[u];
+                inPath[u] = 1;
+                if (match[u] == -1) break;
+                u = base_[parent[match[u]]];
+            }
+            while (true)
+            {
+                v = base_[v];
+                if (inPath[v] == 1) return v;
+                v = base_[parent[match[v]]];
+            }
+        }
+
+        private static void Contract(int n, int* base_, int* parent, int* match, int* color, int* q, ref int qt, int u, int v, int lca)
+        {
+            while (base_[u] != lca)
+            {
+                parent[u] = v;
+                int mv = match[u];
+                if (color[mv] == 1)
+                {
+                    color[mv] = 0;
+                    q[qt++] = mv;
+                }
+                int oldBaseU = base_[u];
+                int oldBaseMv = base_[mv];
+                for (int i = 0; i < n; i++)
+                {
+                    if (base_[i] == oldBaseU || base_[i] == oldBaseMv)
+                    {
+                        base_[i] = lca;
+                    }
+                }
+                v = mv;
+                u = parent[v];
+            }
+        }
+
+        private static bool FindAugmentingPath(int n, int* head, int* to, int* next, int* match, int* parent, int* base_, int* color, int* q, int* inPath, int s)
+        {
+            for (int i = 0; i < n; i++)
+            {
+                color[i] = -1;
+                parent[i] = -1;
+                base_[i] = i;
+            }
+            int qh = 0, qt = 0;
+            color[s] = 0;
+            q[qt++] = s;
+            while (qh < qt)
+            {
+                int u = q[qh++];
+                for (int e = head[u]; e != 0; e = next[e])
+                {
+                    int v = to[e];
+                    if (base_[u] == base_[v] || match[u] == v) continue;
+                    if (color[v] == -1)
+                    {
+                        if (match[v] == -1)
+                        {
+                            parent[v] = u;
+                            int cur = v;
+                            while (cur != -1)
+                            {
+                                int pNode = parent[cur];
+                                int nextMatched = match[pNode];
+                                match[cur] = pNode;
+                                match[pNode] = cur;
+                                cur = nextMatched;
+                            }
+                            return true;
+                        }
+                        color[v] = 1;
+                        parent[v] = u;
+                        int mv = match[v];
+                        color[mv] = 0;
+                        parent[mv] = v;
+                        q[qt++] = mv;
+                    }
+                    else if (color[v] == 0)
+                    {
+                        int lca = GetLca(n, base_, parent, match, inPath, u, v);
+                        Contract(n, base_, parent, match, color, q, ref qt, u, v, lca);
+                        Contract(n, base_, parent, match, color, q, ref qt, v, u, lca);
+                    }
+                }
+            }
+            return false;
+        }
+
         public static int Run(int n, int* head, int* to, int* next, int* match, int* base_, int* p, int* v, int* blossom)
         {
             for (int i = 0; i < n; i++)
             {
                 match[i] = -1;
-                base_[i] = i;
-                p[i] = -1;
-                v[i] = -1;
             }
             int result = 0;
+            int* q = stackalloc int[n];
             for (int s = 0; s < n; s++)
             {
                 if (match[s] != -1) continue;
-                for (int i = 0; i < n; i++) v[i] = -1;
-                int* q = stackalloc int[n];
-                int qh = 0, qt = 0;
-                q[qt++] = s;
-                v[s] = s;
-                if (FindPath(n, head, to, next, match, base_, p, v, q, &qh, &qt, s))
-                    result++;
-            }
-            return result;
-        }
-
-        public static bool FindPath(int n, int* head, int* to, int* next, int* match, int* base_, int* p, int* v, int* q, int* qh, int* qt, int s)
-        {
-            while (*qh < *qt)
-            {
-                int u = q[(*qh)++];
-                for (int e = head[u]; e != 0; e = next[e])
+                if (FindAugmentingPath(n, head, to, next, match, p, base_, v, q, blossom, s))
                 {
-                    int u2 = to[e];
-                    if (match[u2] == u2 || base_[u2] == base_[u] || match[u] == u2) continue;
-                    if (v[u2] == s) continue;
-                    v[u2] = s;
-                    p[u2] = u;
-                    if (match[u2] == -1)
-                    {
-                        int cur = u2;
-                        while (cur != -1)
-                        {
-                            int prev = p[cur];
-                            int nextMatched = prev == -1 ? -1 : (match[prev] == cur ? prev : -1);
-                            match[cur] = prev;
-                            match[prev] = cur;
-                            cur = nextMatched;
-                        }
-                        return true;
-                    }
-                    int u3 = match[u2];
-                    v[u3] = s;
-                    q[(*qt)++] = u3;
+                    result++;
                 }
             }
-            return false;
+            return result;
         }
     }
 

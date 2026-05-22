@@ -224,31 +224,47 @@ namespace IAFahim.Linear.Matrix
     {
         public static long Run(int n, long* a)
         {
-            long det = 1;
-            int sign = 1;
-            for (int i = 0; i < n; i++)
+            if (n == 0)
             {
-                int sel = i;
-                for (int j = i + 1; j < n; j++)
-                    if (Math.Abs(a[j * n + i]) > Math.Abs(a[sel * n + i])) sel = j;
-                if (a[sel * n + i] == 0) return 0;
-                if (sel != i)
+                return 1;
+            }
+            long sign = 1;
+            long prevPivot = 1;
+            for (int k = 0; k < n; k++)
+            {
+                int pivotRow = k;
+                for (int i = k + 1; i < n; i++)
                 {
-                    sign *= -1;
-                    for (int j = 0; j < n; j++)
+                    if (Math.Abs(a[i * n + k]) > Math.Abs(a[pivotRow * n + k]))
                     {
-                        long tmp = a[i * n + j];
-                        a[i * n + j] = a[sel * n + j];
-                        a[sel * n + j] = tmp;
+                        pivotRow = i;
                     }
                 }
-                det *= a[i * n + i];
-                for (int j = i + 1; j < n; j++) a[j * n + i] /= a[i * n + i];
-                for (int j = i + 1; j < n; j++)
-                    for (int k = i + 1; k < n; k++)
-                        a[j * n + k] -= a[j * n + i] * a[i * n + k];
+                if (a[pivotRow * n + k] == 0)
+                {
+                    return 0;
+                }
+                if (pivotRow != k)
+                {
+                    sign = -sign;
+                    for (int j = 0; j < n; j++)
+                    {
+                        long tmp = a[k * n + j];
+                        a[k * n + j] = a[pivotRow * n + j];
+                        a[pivotRow * n + j] = tmp;
+                    }
+                }
+                long pivot = a[k * n + k];
+                for (int i = k + 1; i < n; i++)
+                {
+                    for (int j = k + 1; j < n; j++)
+                    {
+                        a[i * n + j] = (a[i * n + j] * pivot - a[i * n + k] * a[k * n + j]) / prevPivot;
+                    }
+                }
+                prevPivot = pivot;
             }
-            return det * sign;
+            return a[(n - 1) * n + (n - 1)] * sign;
         }
     }
 

@@ -187,15 +187,15 @@ namespace IAFahim.DS.Treap
             if (node != null) node->Rev = !node->Rev;
         }
 
-        public static long RangeQuery(ref TreapNode* root, int l, int r)
+        public static long RangeQuery(TreapNode** root, int l, int r)
         {
             TreapNode* left = null;
             TreapNode* mid = null;
             TreapNode* right = null;
-            Split(root, l, &left, &mid);
+            Split(*root, l, &left, &mid);
             Split(mid, r + 1, &mid, &right);
             long result = SumOf(mid);
-            root = Merge(left, Merge(mid, right));
+            *root = Merge(left, Merge(mid, right));
             return result;
         }
     }

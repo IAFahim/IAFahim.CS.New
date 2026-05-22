@@ -35,7 +35,7 @@ namespace IAFahim.Graph.Matching
                     for (int j = 1; j <= n; j++)
                     {
                         if (used[j] != 0) continue;
-                        long cur = a[(i0 - 1) * n + (j - 1)] + u[i0] + v[j];
+                        long cur = a[(i0 - 1) * n + (j - 1)] - u[i0] - v[j];
                         if (cur < minv[j])
                         {
                             minv[j] = cur;
@@ -75,9 +75,9 @@ namespace IAFahim.Graph.Matching
                 matchR[j - 1] = p[j] - 1;
             }
             long result = 0;
-            for (int i = 1; i <= n; i++)
+            for (int j = 0; j < n; j++)
             {
-                result += a[(i - 1) * n + matchR[i - 1]];
+                result += a[matchR[j] * n + j];
             }
             for (int j = 0; j < n; j++)
             {
@@ -119,7 +119,7 @@ namespace IAFahim.Graph.Matching
                     for (int j = 1; j <= n; j++)
                     {
                         if (used[j] != 0) continue;
-                        long cur = -a[(i0 - 1) * n + (j - 1)] + u[i0] + v[j];
+                        long cur = -a[(i0 - 1) * n + (j - 1)] - u[i0] - v[j];
                         if (cur < minv[j])
                         {
                             minv[j] = cur;
@@ -159,9 +159,9 @@ namespace IAFahim.Graph.Matching
                 matchR[j - 1] = p[j] - 1;
             }
             long result = 0;
-            for (int i = 1; i <= n; i++)
+            for (int j = 0; j < n; j++)
             {
-                result += a[(i - 1) * n + matchR[i - 1]];
+                result += a[matchR[j] * n + j];
             }
             for (int j = 0; j < n; j++)
             {

@@ -326,15 +326,27 @@ namespace IAFahim.Graph
             long* v = stackalloc long[n + 1];
             int* p = stackalloc int[n + 1];
             int* way = stackalloc int[n + 1];
-            for (int i = 0; i <= n; i++) { u[i] = 0; v[i] = 0; p[i] = 0; way[i] = 0; }
+            for (int i = 0; i <= n; i++)
+            {
+                u[i] = 0;
+                v[i] = 0;
+                p[i] = 0;
+                way[i] = 0;
+            }
             for (int i = 1; i <= n; i++)
             {
                 p[0] = i;
                 int j0 = 0;
                 long* minv = stackalloc long[n + 1];
-                for (int j = 0; j <= n; j++) minv[j] = long.MaxValue;
+                for (int j = 0; j <= n; j++)
+                {
+                    minv[j] = long.MaxValue;
+                }
                 bool* used = stackalloc bool[n + 1];
-                for (int j = 0; j <= n; j++) used[j] = false;
+                for (int j = 0; j <= n; j++)
+                {
+                    used[j] = false;
+                }
                 do
                 {
                     used[j0] = true;
@@ -345,7 +357,7 @@ namespace IAFahim.Graph
                     {
                         if (!used[j])
                         {
-                            long cur = cost[i0 * (n + 1) + j] - u[i0] - v[j];
+                            long cur = cost[(i0 - 1) * n + (j - 1)] - u[i0] - v[j];
                             if (cur < minv[j])
                             {
                                 minv[j] = cur;
@@ -379,10 +391,15 @@ namespace IAFahim.Graph
                     j0 = j1;
                 } while (j0 != 0);
             }
-            for (int j = 1; j <= n; j++) assign[p[j] - 1] = j - 1;
+            for (int j = 1; j <= n; j++)
+            {
+                assign[p[j] - 1] = j - 1;
+            }
             long result = 0;
             for (int i = 1; i <= n; i++)
-                result += cost[i * (n + 1) + (int)assign[i - 1] + 1];
+            {
+                result += cost[(i - 1) * n + (int)assign[i - 1]];
+            }
             return result;
         }
     }
@@ -391,21 +408,24 @@ namespace IAFahim.Graph
     {
         public static long Run(int n, long* cost, long* assign)
         {
-            long* maxCost = stackalloc long[(n + 1) * (n + 1)];
+            long* maxCost = stackalloc long[n * n];
             long maxVal = long.MinValue;
-            for (int i = 0; i <= n; i++)
+            for (int i = 0; i < n; i++)
             {
-                for (int j = 0; j <= n; j++)
+                for (int j = 0; j < n; j++)
                 {
-                    maxCost[i * (n + 1) + j] = cost[i * (n + 1) + j];
-                    if (cost[i * (n + 1) + j] > maxVal) maxVal = cost[i * (n + 1) + j];
+                    maxCost[i * n + j] = cost[i * n + j];
+                    if (cost[i * n + j] > maxVal)
+                    {
+                        maxVal = cost[i * n + j];
+                    }
                 }
             }
-            for (int i = 0; i <= n; i++)
+            for (int i = 0; i < n; i++)
             {
-                for (int j = 0; j <= n; j++)
+                for (int j = 0; j < n; j++)
                 {
-                    maxCost[i * (n + 1) + j] = maxVal - maxCost[i * (n + 1) + j];
+                    maxCost[i * n + j] = maxVal - maxCost[i * n + j];
                 }
             }
             long result = HungarianMin.Run(n, maxCost, assign);
@@ -430,58 +450,136 @@ namespace IAFahim.Graph
 
     public static unsafe class GeneralMatchingBlossom
     {
-        public static int Run(int n, int m, int* eu, int* ev, int* match)
+        private static int GetLca(int n, int* base_, int* parent, int* match, int* inPath, int u, int v)
         {
-            for (int i = 0; i < n; i++) match[i] = -1;
-            int matched = 0;
-            for (int u = 0; u < n; u++)
+            for (int i = 0; i < n; i++) inPath[i] = 0;
+            while (true)
             {
-                if (match[u] != -1) continue;
-                bool* used = stackalloc bool[n];
-                for (int i = 0; i < n; i++) used[i] = false;
-                int* q = stackalloc int[n];
-                int* parent = stackalloc int[n];
-                for (int i = 0; i < n; i++) parent[i] = -1;
-                int qh = 0, qt = 0;
-                q[qt++] = u;
-                used[u] = true;
-                while (qh < qt)
+                u = base_[u];
+                inPath[u] = 1;
+                if (match[u] == -1) break;
+                u = base_[parent[match[u]]];
+            }
+            while (true)
+            {
+                v = base_[v];
+                if (inPath[v] == 1) return v;
+                v = base_[parent[match[v]]];
+            }
+        }
+
+        private static void Contract(int n, int* base_, int* parent, int* match, int* color, int* q, ref int qt, int u, int v, int lca)
+        {
+            while (base_[u] != lca)
+            {
+                parent[u] = v;
+                int mv = match[u];
+                if (color[mv] == 1)
                 {
-                    int x = q[qh++];
-                    for (int i = 0; i < m; i++)
+                    color[mv] = 0;
+                    q[qt++] = mv;
+                }
+                int oldBaseU = base_[u];
+                int oldBaseMv = base_[mv];
+                for (int i = 0; i < n; i++)
+                {
+                    if (base_[i] == oldBaseU || base_[i] == oldBaseMv)
                     {
-                        int a = eu[i], b = ev[i];
-                        if (a != x && b != x) continue;
-                        int y = a == x ? b : a;
-                        if (match[y] == -1)
+                        base_[i] = lca;
+                    }
+                }
+                v = mv;
+                u = parent[v];
+            }
+        }
+
+        private static bool FindAugmentingPath(int n, int* head, int* to, int* next, int* match, int* parent, int* base_, int* color, int* q, int* inPath, int s)
+        {
+            for (int i = 0; i < n; i++)
+            {
+                color[i] = -1;
+                parent[i] = -1;
+                base_[i] = i;
+            }
+            int qh = 0, qt = 0;
+            color[s] = 0;
+            q[qt++] = s;
+            while (qh < qt)
+            {
+                int u = q[qh++];
+                for (int e = head[u]; e != 0; e = next[e])
+                {
+                    int v = to[e];
+                    if (base_[u] == base_[v] || match[u] == v) continue;
+                    if (color[v] == -1)
+                    {
+                        if (match[v] == -1)
                         {
-                            int v = y, w = x;
-                            while (v != -1)
+                            parent[v] = u;
+                            int cur = v;
+                            while (cur != -1)
                             {
-                                int pv = parent[v];
-                                int pw = parent[w];
-                                int mv = match[v];
-                                match[v] = w;
-                                match[w] = v;
-                                if (pv == -1) break;
-                                w = pv;
-                                v = pw;
+                                int pNode = parent[cur];
+                                int nextMatched = match[pNode];
+                                match[cur] = pNode;
+                                match[pNode] = cur;
+                                cur = nextMatched;
                             }
-                            matched++;
-                            break;
+                            return true;
                         }
-                        else if (!used[match[y]])
-                        {
-                            used[y] = true;
-                            used[match[y]] = true;
-                            parent[y] = x;
-                            parent[match[y]] = y;
-                            q[qt++] = match[y];
-                        }
+                        color[v] = 1;
+                        parent[v] = u;
+                        int mv = match[v];
+                        color[mv] = 0;
+                        parent[mv] = v;
+                        q[qt++] = mv;
+                    }
+                    else if (color[v] == 0)
+                    {
+                        int lca = GetLca(n, base_, parent, match, inPath, u, v);
+                        Contract(n, base_, parent, match, color, q, ref qt, u, v, lca);
+                        Contract(n, base_, parent, match, color, q, ref qt, v, u, lca);
                     }
                 }
             }
-            return matched;
+            return false;
+        }
+
+        public static int Run(int n, int m, int* eu, int* ev, int* match)
+        {
+            for (int i = 0; i < n; i++) match[i] = -1;
+            int* head = stackalloc int[n];
+            for (int i = 0; i < n; i++) head[i] = 0;
+            int* to = stackalloc int[2 * m + 2];
+            int* next = stackalloc int[2 * m + 2];
+            int edgeId = 1;
+            for (int i = 0; i < m; i++)
+            {
+                int u = eu[i];
+                int v = ev[i];
+                if (u == v) continue;
+                to[edgeId] = v;
+                next[edgeId] = head[u];
+                head[u] = edgeId++;
+                to[edgeId] = u;
+                next[edgeId] = head[v];
+                head[v] = edgeId++;
+            }
+            int* base_ = stackalloc int[n];
+            int* p = stackalloc int[n];
+            int* vArr = stackalloc int[n];
+            int* blossom = stackalloc int[n];
+            int* q = stackalloc int[n];
+            int result = 0;
+            for (int s = 0; s < n; s++)
+            {
+                if (match[s] != -1) continue;
+                if (FindAugmentingPath(n, head, to, next, match, p, base_, vArr, q, blossom, s))
+                {
+                    result++;
+                }
+            }
+            return result;
         }
     }
 
@@ -493,38 +591,41 @@ namespace IAFahim.Graph
             for (int i = 0; i < n; i++) womanMatch[i] = -1;
             int* manNext = stackalloc int[n];
             for (int i = 0; i < n; i++) manNext[i] = 0;
-            int* queue = stackalloc int[n];
-            int qh = 0, qt = 0;
-            for (int i = 0; i < n; i++) queue[qt++] = i;
-            while (qh < n)
+            int* womanRank = stackalloc int[n * n];
+            for (int w = 0; w < n; w++)
             {
-                int man = queue[qh++];
-                if (manNext[man] >= n) continue;
-                int woman = manPref[man * n + manNext[man]++];
-                if (womanMatch[woman] == -1)
+                for (int r = 0; r < n; r++)
                 {
-                    manMatch[man] = woman;
-                    womanMatch[woman] = man;
+                    int mID = womanPref[w * n + r];
+                    womanRank[w * n + mID] = r;
+                }
+            }
+            int* stack = stackalloc int[n];
+            int top = 0;
+            for (int i = 0; i < n; i++) stack[top++] = i;
+            while (top > 0)
+            {
+                int m = stack[--top];
+                if (manNext[m] >= n) continue;
+                int w = manPref[m * n + manNext[m]++];
+                if (womanMatch[w] == -1)
+                {
+                    manMatch[m] = w;
+                    womanMatch[w] = m;
                 }
                 else
                 {
-                    int currentMan = womanMatch[woman];
-                    bool preferNew = false;
-                    for (int i = 0; i < n; i++)
+                    int m2 = womanMatch[w];
+                    if (womanRank[w * n + m] < womanRank[w * n + m2])
                     {
-                        if (womanPref[woman * n + i] == man) { preferNew = true; break; }
-                        if (womanPref[woman * n + i] == currentMan) break;
-                    }
-                    if (preferNew)
-                    {
-                        manMatch[man] = woman;
-                        womanMatch[woman] = man;
-                        manMatch[currentMan] = -1;
-                        queue[qt++] = currentMan;
+                        manMatch[m2] = -1;
+                        manMatch[m] = w;
+                        womanMatch[w] = m;
+                        stack[top++] = m2;
                     }
                     else
                     {
-                        queue[qt++] = man;
+                        stack[top++] = m;
                     }
                 }
             }
@@ -539,12 +640,21 @@ namespace IAFahim.Graph
             for (int i = 0; i < n; i++) receiverMatch[i] = -1;
             int* nextIdx = stackalloc int[n];
             for (int i = 0; i < n; i++) nextIdx[i] = 0;
-            int* free = stackalloc int[n];
-            int fp = 0, bp = 0;
-            for (int i = 0; i < n; i++) free[bp++] = i;
-            while (fp < n)
+            int* receiverRank = stackalloc int[n * n];
+            for (int r = 0; r < n; r++)
             {
-                int proposer = free[fp++];
+                for (int rank = 0; rank < n; rank++)
+                {
+                    int pID = receiverPref[r * n + rank];
+                    receiverRank[r * n + pID] = rank;
+                }
+            }
+            int* stack = stackalloc int[n];
+            int top = 0;
+            for (int i = 0; i < n; i++) stack[top++] = i;
+            while (top > 0)
+            {
+                int proposer = stack[--top];
                 if (nextIdx[proposer] >= n) continue;
                 int receiver = proposerPref[proposer * n + nextIdx[proposer]++];
                 if (receiverMatch[receiver] == -1)
@@ -555,22 +665,16 @@ namespace IAFahim.Graph
                 else
                 {
                     int currentProposer = receiverMatch[receiver];
-                    bool preferNew = false;
-                    for (int i = 0; i < n; i++)
-                    {
-                        if (receiverPref[receiver * n + i] == proposer) { preferNew = true; break; }
-                        if (receiverPref[receiver * n + i] == currentProposer) break;
-                    }
-                    if (preferNew)
+                    if (receiverRank[receiver * n + proposer] < receiverRank[receiver * n + currentProposer])
                     {
                         proposerMatch[proposer] = receiver;
                         receiverMatch[receiver] = proposer;
                         proposerMatch[currentProposer] = -1;
-                        free[bp++] = currentProposer;
+                        stack[top++] = currentProposer;
                     }
                     else
                     {
-                        free[bp++] = proposer;
+                        stack[top++] = proposer;
                     }
                 }
             }

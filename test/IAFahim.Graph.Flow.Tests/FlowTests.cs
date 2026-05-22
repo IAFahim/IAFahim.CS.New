@@ -15,25 +15,19 @@ namespace IAFahim.Graph.Flow.Tests
             int* next = stackalloc int[16];
             int* cap = stackalloc int[16];
             int* flowArr = stackalloc int[16];
-            int* level = stackalloc int[n];
-            int* it = stackalloc int[n];
+            int* cost = stackalloc int[16];
             for (int i = 0; i < n; i++) head[i] = 0;
             for (int i = 0; i < 16; i++) flowArr[i] = 0;
             
-            DinicBfs.Run(n, 0, 2, head, to, next, cap, flowArr, level, it);
-
-            for (int i = 0; i < 8; i++) { to[i] = -1; next[i] = 0; cap[i] = 0; }
-            head[0] = 1; to[1] = 1; next[1] = 0; cap[1] = 10;
-            head[1] = 3; to[3] = 1; next[3] = 0; cap[3] = 0;
-            head[0] = 5; to[5] = 2; next[5] = 1; cap[5] = 5;
-            head[1] = 7; to[7] = 2; next[7] = 3; cap[7] = 0;
-            head[1] = 9; to[9] = 3; next[9] = 7; cap[9] = 7;
-            head[2] = 11; to[11] = 3; next[11] = 0; cap[11] = 0;
-            head[2] = 13; to[13] = 3; next[13] = 11; cap[13] = 8;
-            head[3] = 15; to[15] = 3; next[15] = 13; cap[15] = 0;
+            int edgeId = 2;
+            MinCostFlowAddEdge.Run(head, to, next, cost, cap, &edgeId, 0, 1, 0, 10);
+            MinCostFlowAddEdge.Run(head, to, next, cost, cap, &edgeId, 0, 2, 0, 5);
+            MinCostFlowAddEdge.Run(head, to, next, cost, cap, &edgeId, 1, 2, 0, 15);
+            MinCostFlowAddEdge.Run(head, to, next, cost, cap, &edgeId, 1, 3, 0, 10);
+            MinCostFlowAddEdge.Run(head, to, next, cost, cap, &edgeId, 2, 3, 0, 10);
 
             long flow = DinicMaxFlow.Run(n, 0, 3, head, to, next, cap, flowArr);
-            Assert.True(flow >= 0);
+            Assert.Equal(15, flow);
         }
 
         [Fact]

@@ -11,12 +11,21 @@ namespace IAFahim.Graph.Matching
             for (int i = 0; i < n; i++) womanMatch[i] = -1;
             int* manNext = stackalloc int[n];
             for (int i = 0; i < n; i++) manNext[i] = 0;
-            int* queue = stackalloc int[n];
-            int qh = 0, qt = 0;
-            for (int i = 0; i < n; i++) queue[qt++] = i;
-            while (qh < qt)
+            int* womanRank = stackalloc int[n * n];
+            for (int w = 0; w < n; w++)
             {
-                int m = queue[qh++];
+                for (int r = 0; r < n; r++)
+                {
+                    int mID = womanPref[w * n + r];
+                    womanRank[w * n + mID] = r;
+                }
+            }
+            int* stack = stackalloc int[n];
+            int top = 0;
+            for (int i = 0; i < n; i++) stack[top++] = i;
+            while (top > 0)
+            {
+                int m = stack[--top];
                 if (manNext[m] >= n) continue;
                 int w = manPref[m * n + manNext[m]++];
                 if (womanMatch[w] == -1)
@@ -27,17 +36,16 @@ namespace IAFahim.Graph.Matching
                 else
                 {
                     int m2 = womanMatch[w];
-                    int wPrefM = womanPref[w * n + m];
-                    int wPrefM2 = womanPref[w * n + m2];
-                    if (wPrefM < wPrefM2)
+                    if (womanRank[w * n + m] < womanRank[w * n + m2])
                     {
+                        manMatch[m2] = -1;
                         manMatch[m] = w;
                         womanMatch[w] = m;
-                        queue[qt++] = m2;
+                        stack[top++] = m2;
                     }
                     else
                     {
-                        queue[qt++] = m;
+                        stack[top++] = m;
                     }
                 }
             }
@@ -45,6 +53,15 @@ namespace IAFahim.Graph.Matching
 
         public static bool IsStable(int n, int* manPref, int* womanPref, int* manMatch, int* womanMatch)
         {
+            int* womanRank = stackalloc int[n * n];
+            for (int w = 0; w < n; w++)
+            {
+                for (int r = 0; r < n; r++)
+                {
+                    int mID = womanPref[w * n + r];
+                    womanRank[w * n + mID] = r;
+                }
+            }
             for (int m = 0; m < n; m++)
             {
                 int w = manMatch[m];
@@ -55,11 +72,7 @@ namespace IAFahim.Graph.Matching
                     if (w2 == w) break;
                     int m2 = womanMatch[w2];
                     if (m2 == -1) continue;
-                    int mPrefW = manPref[m * n + w];
-                    int mPrefW2 = manPref[m * n + w2];
-                    int wPrefM = womanPref[w2 * n + m];
-                    int wPrefM2 = womanPref[w2 * n + m2];
-                    if (mPrefW2 < mPrefW && wPrefM < wPrefM2)
+                    if (womanRank[w2 * n + m] < womanRank[w2 * n + m2])
                         return false;
                 }
             }
@@ -80,13 +93,22 @@ namespace IAFahim.Graph.Matching
             for (int i = 0; i < n; i++) womanMatch[i] = -1;
             int* manNext = stackalloc int[n];
             for (int i = 0; i < n; i++) manNext[i] = 0;
-            int* queue = stackalloc int[n];
-            int qh = 0, qt = 0;
-            for (int i = 0; i < n; i++) queue[qt++] = i;
-            *histSize = 0;
-            while (qh < qt)
+            int* womanRank = stackalloc int[n * n];
+            for (int w = 0; w < n; w++)
             {
-                int m = queue[qh++];
+                for (int r = 0; r < n; r++)
+                {
+                    int mID = womanPref[w * n + r];
+                    womanRank[w * n + mID] = r;
+                }
+            }
+            int* stack = stackalloc int[n];
+            int top = 0;
+            for (int i = 0; i < n; i++) stack[top++] = i;
+            *histSize = 0;
+            while (top > 0)
+            {
+                int m = stack[--top];
                 if (manNext[m] >= n) continue;
                 history[(*histSize)++] = m;
                 int w = manPref[m * n + manNext[m]++];
@@ -99,17 +121,16 @@ namespace IAFahim.Graph.Matching
                 else
                 {
                     int m2 = womanMatch[w];
-                    int wPrefM = womanPref[w * n + m];
-                    int wPrefM2 = womanPref[w * n + m2];
-                    if (wPrefM < wPrefM2)
+                    if (womanRank[w * n + m] < womanRank[w * n + m2])
                     {
+                        manMatch[m2] = -1;
                         manMatch[m] = w;
                         womanMatch[w] = m;
-                        queue[qt++] = m2;
+                        stack[top++] = m2;
                     }
                     else
                     {
-                        queue[qt++] = m;
+                        stack[top++] = m;
                     }
                 }
             }

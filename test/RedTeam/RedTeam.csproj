@@ -29,5 +29,6 @@
     <ProjectReference Include="../../src/IAFahim.Sort.Merge/IAFahim.Sort.Merge.csproj" />
     <ProjectReference Include="../../src/IAFahim.Sort.Partition/IAFahim.Sort.Partition.csproj" />
     <ProjectReference Include="../../src/IAFahim.Sort.Specialized/IAFahim.Sort.Specialized.csproj" />
+    <ProjectReference Include="../../src/IAFahim.DS.Treap/IAFahim.DS.Treap.csproj" />
   </ItemGroup>
 </Project>
