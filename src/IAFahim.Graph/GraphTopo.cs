@@ -56,10 +56,10 @@ namespace IAFahim.Graph
             for (int i = 0; i < n; i++) onStack[i] = false;
             bool* visited = stackalloc bool[n];
             for (int i = 0; i < n; i++) visited[i] = false;
+            int* stack = stackalloc int[n];
             for (int start = 0; start < n; start++)
             {
                 if (visited[start]) continue;
-                int* stack = stackalloc int[n];
                 int top = 0;
                 stack[top] = start;
                 while (top >= 0)
@@ -104,10 +104,10 @@ namespace IAFahim.Graph
         {
             bool* visited = stackalloc bool[n];
             for (int i = 0; i < n; i++) visited[i] = false;
+            int* stack = stackalloc int[n];
             for (int start = 0; start < n; start++)
             {
                 if (visited[start]) continue;
-                int* stack = stackalloc int[n];
                 int top = 0;
                 stack[top] = start;
                 parent[start] = -1;
@@ -140,10 +140,10 @@ namespace IAFahim.Graph
         {
             for (int i = 0; i < n; i++) comp[i] = -1;
             int compCount = 0;
+            int* q = stackalloc int[n];
             for (int start = 0; start < n; start++)
             {
                 if (comp[start] != -1) continue;
-                int* q = stackalloc int[n];
                 int qh = 0, qt = 0;
                 comp[start] = compCount;
                 q[qt++] = start;

@@ -133,6 +133,56 @@ namespace IAFahim.Math.NT.Tests
         }
 
         [Fact]
+        public void PrimePiLehmer_Basic()
+        {
+            int N = 1000000;
+            int* mp = (int*)Marshal.AllocHGlobal((N + 1) * sizeof(int));
+            int* pr = (int*)Marshal.AllocHGlobal((N + 1) * sizeof(int));
+            int* cache = (int*)Marshal.AllocHGlobal(20000 * 101 * sizeof(int));
+            try
+            {
+                LinearSieveMinPrime.Run(mp, pr, N, out int pc);
+                PrimePiLehmer.InitPhiCache(cache, pr, pc);
+                
+                Assert.Equal(4L, PrimePiLehmer.Run(10, pr, pc, cache));
+                Assert.Equal(25L, PrimePiLehmer.Run(100, pr, pc, cache));
+                Assert.Equal(168L, PrimePiLehmer.Run(1000, pr, pc, cache));
+                Assert.Equal(78498L, PrimePiLehmer.Run(1000000, pr, pc, cache));
+            }
+            finally
+            {
+                Marshal.FreeHGlobal((nint)mp);
+                Marshal.FreeHGlobal((nint)pr);
+                Marshal.FreeHGlobal((nint)cache);
+            }
+        }
+
+        [Fact]
+        public void PrimePiMeissel_Basic()
+        {
+            int N = 1000000;
+            int* mp = (int*)Marshal.AllocHGlobal((N + 1) * sizeof(int));
+            int* pr = (int*)Marshal.AllocHGlobal((N + 1) * sizeof(int));
+            int* cache = (int*)Marshal.AllocHGlobal(20000 * 101 * sizeof(int));
+            try
+            {
+                LinearSieveMinPrime.Run(mp, pr, N, out int pc);
+                PrimePiLehmer.InitPhiCache(cache, pr, pc);
+                
+                Assert.Equal(4L, PrimePiMeissel.Run(10, pr, pc, cache));
+                Assert.Equal(25L, PrimePiMeissel.Run(100, pr, pc, cache));
+                Assert.Equal(168L, PrimePiMeissel.Run(1000, pr, pc, cache));
+                Assert.Equal(78498L, PrimePiMeissel.Run(1000000, pr, pc, cache));
+            }
+            finally
+            {
+                Marshal.FreeHGlobal((nint)mp);
+                Marshal.FreeHGlobal((nint)pr);
+                Marshal.FreeHGlobal((nint)cache);
+            }
+        }
+
+        [Fact]
         public void MinMaxDivisorTransform_Max()
         {
             const int N = 10;

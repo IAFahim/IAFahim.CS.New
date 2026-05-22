@@ -3,6 +3,80 @@ namespace IAFahim.Graph
     using System;
     using System.Runtime.CompilerServices;
 
+    internal unsafe struct MstMinHeap
+    {
+        public long* Dist;
+        public int* V;
+        public int* Pos;
+        public int Size;
+
+        public MstMinHeap(int n)
+        {
+            Dist = (long*)System.Runtime.InteropServices.Marshal.AllocHGlobal(n * sizeof(long));
+            V = (int*)System.Runtime.InteropServices.Marshal.AllocHGlobal(n * sizeof(int));
+            Pos = (int*)System.Runtime.InteropServices.Marshal.AllocHGlobal(n * sizeof(int));
+            for (int i = 0; i < n; i++) Pos[i] = -1;
+            Size = 0;
+        }
+
+        public void Dispose()
+        {
+            System.Runtime.InteropServices.Marshal.FreeHGlobal((nint)Dist);
+            System.Runtime.InteropServices.Marshal.FreeHGlobal((nint)V);
+            System.Runtime.InteropServices.Marshal.FreeHGlobal((nint)Pos);
+        }
+
+        public void PushOrUpdate(int v, long d)
+        {
+            int idx = Pos[v];
+            if (idx == -1)
+            {
+                idx = Size++;
+                V[idx] = v;
+            }
+            Dist[idx] = d;
+            while (idx > 0)
+            {
+                int p = (idx - 1) / 2;
+                if (Dist[p] <= Dist[idx]) break;
+                long tmpD = Dist[p]; Dist[p] = Dist[idx]; Dist[idx] = tmpD;
+                int tmpV = V[p]; V[p] = V[idx]; V[idx] = tmpV;
+                Pos[V[p]] = p;
+                Pos[V[idx]] = idx;
+                idx = p;
+            }
+        }
+
+        public int Pop(out long d)
+        {
+            int u = V[0];
+            d = Dist[0];
+            Pos[u] = -1;
+            Size--;
+            if (Size > 0)
+            {
+                Dist[0] = Dist[Size];
+                V[0] = V[Size];
+                Pos[V[0]] = 0;
+                int idx = 0;
+                while (idx * 2 + 1 < Size)
+                {
+                    int left = idx * 2 + 1;
+                    int right = idx * 2 + 2;
+                    int smallest = left;
+                    if (right < Size && Dist[right] < Dist[left]) smallest = right;
+                    if (Dist[idx] <= Dist[smallest]) break;
+                    long tmpD = Dist[idx]; Dist[idx] = Dist[smallest]; Dist[smallest] = tmpD;
+                    int tmpV = V[idx]; V[idx] = V[smallest]; V[smallest] = tmpV;
+                    Pos[V[idx]] = idx;
+                    Pos[V[smallest]] = smallest;
+                    idx = smallest;
+                }
+            }
+            return u;
+        }
+    }
+
     public static unsafe class MinimumSpanningTreeKruskal
     {
         private static int Find(int* parent, int x)
@@ -64,24 +138,43 @@ namespace IAFahim.Graph
             for (int i = 0; i < n; i++) used[i] = false;
             long mstWeight = 0;
             int edgeCount = 0;
-            used[0] = true;
-            var pq = new System.Collections.Generic.SortedSet<(int w, int u, int e)>();
-            for (int e = head[0]; e != 0; e = next[e])
-                pq.Add((weight[e], to[e], e));
-            while (pq.Count > 0 && edgeCount < n - 1)
+            long* bestW = stackalloc long[n];
+            for (int i = 0; i < n; i++) bestW[i] = long.MaxValue;
+            int* parentEdge = stackalloc int[n];
+            for (int i = 0; i < n; i++) parentEdge[i] = -1;
+
+            var pq = new MstMinHeap(n);
+            try
             {
-                var cur = pq.Min;
-                pq.Remove(cur);
-                if (used[cur.u]) continue;
-                used[cur.u] = true;
-                mstEdges[edgeCount++] = cur.e;
-                mstWeight += cur.w;
-                for (int e = head[cur.u]; e != 0; e = next[e])
+                bestW[0] = 0;
+                pq.PushOrUpdate(0, 0);
+
+                while (pq.Size > 0 && edgeCount < n - 1)
                 {
-                    if (!used[to[e]])
-                        pq.Add((weight[e], to[e], e));
+                    int u = pq.Pop(out long d);
+                    if (used[u]) continue;
+                    used[u] = true;
+                    
+                    if (u != 0 && parentEdge[u] != -1)
+                    {
+                        mstEdges[edgeCount++] = parentEdge[u];
+                        mstWeight += d;
+                    }
+
+                    for (int e = head[u]; e != 0; e = next[e])
+                    {
+                        int v = to[e];
+                        if (!used[v] && weight[e] < bestW[v])
+                        {
+                            bestW[v] = weight[e];
+                            parentEdge[v] = e;
+                            pq.PushOrUpdate(v, weight[e]);
+                        }
+                    }
                 }
             }
+            finally { pq.Dispose(); }
+
             return edgeCount == n - 1 ? mstWeight : -1;
         }
     }

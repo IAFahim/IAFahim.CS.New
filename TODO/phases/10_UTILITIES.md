@@ -1,150 +1,150 @@
 # Phase 10: Utilities & Problem Solving
 
 ## 10.1 Enumeration Problems
-- [ ] shortestCommonSupersequence — Shortest common supersequence
-- [ ] shortestAbsentSubsequence — Shortest absent subsequence
-- [ ] shortestMissingSubstring — Shortest missing substring
-- [ ] deBruijnSequenceBuild — De Bruijn sequence build
-- [ ] deBruijnGraphBuild — De Bruijn graph build
-- [ ] deBruijnEulerianPath — De Bruijn Eulerian path
+- [x] shortestCommonSupersequence — Shortest common supersequence
+- [x] shortestAbsentSubsequence — Shortest absent subsequence
+- [x] shortestMissingSubstring — Shortest missing substring
+- [x] deBruijnSequenceBuild — De Bruijn sequence build
+- [x] deBruijnGraphBuild — De Bruijn graph build
+- [x] deBruijnEulerianPath — De Bruijn Eulerian path
 
 ## 10.2 SAT & Exact Cover
-- [ ] sudokuExactCover — Sudoku exact cover
-- [ ] sudokuBitmaskSolve — Sudoku bitmask solve
-- [ ] killerSudokuSolve — Killer Sudoku solve
-- [ ] kenkenSolve — KenKen solve
-- [ ] exactCoverDlx — Exact cover DLX
-- [ ] polyominoTilingDlx — Polyomino tiling DLX
-- [ ] nQueensBitmask — N-Queens bitmask
-- [ ] nQueensCount — N-Queens count
-- [ ] nQueensSymmetry — N-Queens with symmetry
-- [ ] magicSquareBacktrack — Magic square backtrack
-- [ ] cryptarithmSolve — Cryptarithm solve
-- [ ] constraintPropagation — Constraint propagation
-- [ ] arcConsistencyAc3 — Arc consistency AC-3
+- [x] sudokuExactCover — Sudoku exact cover
+- [x] sudokuBitmaskSolve — Sudoku bitmask solve
+- [x] killerSudokuSolve — Killer Sudoku solve
+- [x] kenkenSolve — KenKen solve
+- [x] exactCoverDlx — Exact cover DLX
+- [x] polyominoTilingDlx — Polyomino tiling DLX
+- [x] nQueensBitmask — N-Queens bitmask
+- [x] nQueensCount — N-Queens count
+- [x] nQueensSymmetry — N-Queens with symmetry
+- [x] magicSquareBacktrack — Magic square backtrack
+- [x] cryptarithmSolve — Cryptarithm solve
+- [x] constraintPropagation — Constraint propagation
+- [x] arcConsistencyAc3 — Arc consistency AC-3
 
 ## 10.3 Advanced Number Theory
-- [ ] allFactorizations — All factorizations
-- [ ] antiprimeGenerate — Antiprime generation
-- [ ] highlyCompositeNumbers — Highly composite numbers
-- [ ] smoothNumbersGenerate — Smooth numbers generate
-- [ ] smoothNumberCount — Smooth number count
-- [ ] powerfulNumbersGenerate — Powerful numbers generate
-- [ ] squareFreeKernel — Square-free kernel
-- [ ] squareFreeCount — Square-free count
-- [ ] squareFreePrefix — Square-free prefix
-- [ ] moebiusPrefix — Mobius prefix
-- [ ] totientPrefix — Totient prefix
-- [ ] primePiMin25 — Min25 prime pi
-- [ ] min25PrimeSum — Min25 prime sum
-- [ ] min25MultiplicativeSum — Min25 multiplicative sum
-- [ ] duJiaoPhi — Du Jiao phi
-- [ ] duJiaoMobius — Du Jiao Mobius
-- [ ] dirichletPrefixSum — Dirichlet prefix sum
-- [ ] dirichletHyperbolaSum — Dirichlet hyperbola method
-- [ ] linearSieveMultiplicative — Linear sieve multiplicative functions
-- [ ] orConvolution — OR convolution
-- [ ] andConvolution — AND convolution
-- [ ] xorConvolution — XOR convolution
-- [ ] minConvolution — Min convolution
-- [ ] maxConvolution — Max convolution
-- [ ] subsetConvolutionRanked — Ranked subset convolution
-- [ ] partitionConvolution — Partition convolution
+- [x] allFactorizations — All factorizations
+- [x] antiprimeGenerate — Antiprime generation
+- [x] highlyCompositeNumbers — Highly composite numbers
+- [x] smoothNumbersGenerate — Smooth numbers generate
+- [x] smoothNumberCount — Smooth number count
+- [x] powerfulNumbersGenerate — Powerful numbers generate
+- [x] squareFreeKernel — Square-free kernel
+- [x] squareFreeCount — Square-free count
+- [x] squareFreePrefix — Square-free prefix
+- [x] moebiusPrefix — Mobius prefix
+- [x] totientPrefix — Totient prefix
+- [x] primePiMin25 — Min25 prime pi
+- [x] min25PrimeSum — Min25 prime sum
+- [x] min25MultiplicativeSum — Min25 multiplicative sum
+- [x] duJiaoPhi — Du Jiao phi
+- [x] duJiaoMobius — Du Jiao Mobius
+- [x] dirichletPrefixSum — Dirichlet prefix sum
+- [x] dirichletHyperbolaSum — Dirichlet hyperbola method
+- [x] linearSieveMultiplicative — Linear sieve multiplicative functions
+- [x] orConvolution — OR convolution
+- [x] andConvolution — AND convolution
+- [x] xorConvolution — XOR convolution
+- [x] minConvolution — Min convolution
+- [x] maxConvolution — Max convolution
+- [x] subsetConvolutionRanked — Ranked subset convolution
+- [x] partitionConvolution — Partition convolution
 
 ## 10.4 Interactive & Online
-- [ ] stressCompare — Stress test compare
-- [ ] bruteforceSolve — Brute force solve
-- [ ] optimizedSolve — Optimized solve
-- [ ] validateOutput — Validate output
-- [ ] checkerCompare — Checker compare
-- [ ] interactiveFlush — Interactive flush
-- [ ] interactiveAsk — Interactive ask
-- [ ] interactiveAnswer — Interactive answer
-- [ ] interactiveReadVerdict — Interactive read verdict
-- [ ] queryCacheGet — Query cache get
-- [ ] queryCacheSet — Query cache set
-- [ ] adaptiveQueryStrategy — Adaptive query strategy
-- [ ] unknownArrayBinarySearch — Unknown array binary search
-- [ ] interactiveGraphExplore — Interactive graph explore
-- [ ] interactiveTreeFind — Interactive tree find
-- [ ] interactivePermutationRecover — Interactive permutation recover
+- [x] stressCompare — Stress test compare
+- [x] bruteforceSolve — Brute force solve
+- [x] optimizedSolve — Optimized solve
+- [x] validateOutput — Validate output
+- [x] checkerCompare — Checker compare
+- [x] interactiveFlush — Interactive flush
+- [x] interactiveAsk — Interactive ask
+- [x] interactiveAnswer — Interactive answer
+- [x] interactiveReadVerdict — Interactive read verdict
+- [x] queryCacheGet — Query cache get
+- [x] queryCacheSet — Query cache set
+- [x] adaptiveQueryStrategy — Adaptive query strategy
+- [x] unknownArrayBinarySearch — Unknown array binary search
+- [x] interactiveGraphExplore — Interactive graph explore
+- [x] interactiveTreeFind — Interactive tree find
+- [x] interactivePermutationRecover — Interactive permutation recover
 
 ## 10.5 Probabilistic & Verification
-- [ ] factorGraphBeliefPropagation — Factor graph BP
-- [ ] beliefPropagationTree — Tree belief propagation
-- [ ] randomizedMstVerify — Randomized MST verification
-- [ ] freivaldsMatrixVerify — Freivalds verification
-- [ ] polynomialIdentityTest — Polynomial identity test
-- [ ] schwartzZippelTest — Schwartz-Zippel test
-- [ ] rabinKarpLasVegas — Rabin-Karp Las Vegas
+- [x] factorGraphBeliefPropagation — Factor graph BP
+- [x] beliefPropagationTree — Tree belief propagation
+- [x] randomizedMstVerify — Randomized MST verification
+- [x] freivaldsMatrixVerify — Freivalds verification
+- [x] polynomialIdentityTest — Polynomial identity test
+- [x] schwartzZippelTest — Schwartz-Zippel test
+- [x] rabinKarpLasVegas — Rabin-Karp Las Vegas
 
 ## 10.6 Tournament & Orientation
-- [ ] tournamentHamiltonianPath — Hamiltonian path
-- [ ] tournamentHamiltonianCycle — Hamiltonian cycle
-- [ ] tournamentMedianOrder — Median order
-- [ ] tournamentKingFind — King finding
-- [ ] eulerianOrientation — Eulerian orientation
-- [ ] strongOrientation — Strong orientation
-- [ ] minimumStrongOrientation — Minimum strong orientation
-- [ ] orientEdgesStrongly — Orient edges strongly
-- [ ] orientEdgesAcyclic — Orient edges acyclic
-- [ ] feedbackArcTournament — Feedback arc tournament
+- [x] tournamentHamiltonianPath — Hamiltonian path
+- [x] tournamentHamiltonianCycle — Hamiltonian cycle
+- [x] tournamentMedianOrder — Median order
+- [x] tournamentKingFind — King finding
+- [x] eulerianOrientation — Eulerian orientation
+- [x] strongOrientation — Strong orientation
+- [x] minimumStrongOrientation — Minimum strong orientation
+- [x] orientEdgesStrongly — Orient edges strongly
+- [x] orientEdgesAcyclic — Orient edges acyclic
+- [x] feedbackArcTournament — Feedback arc tournament
 
 ## 10.7 MST Variants
-- [ ] minimumArborescenceDirected — Directed arborescence
-- [ ] maximumBranching — Maximum branching
-- [ ] branchingMatroidIntersection — Branching matroid intersection
-- [ ] arborescenceCount — Arborescence count
-- [ ] degreeConstrainedMst — Degree-constrained MST
-- [ ] capacitatedMst — Capacitated MST
-- [ ] minimumDiameterSpanningTree — Min diameter spanning tree
-- [ ] minimumBottleneckSpanningTree — Min bottleneck spanning tree
-- [ ] minimumBottleneckPath — Min bottleneck path
-- [ ] widestPath — Widest path
-- [ ] maximumCapacityPath — Max capacity path
-- [ ] lexicographicShortestPath — Lexicographic shortest path
-- [ ] lexicographicMst — Lexicographic MST
-- [ ] randomizedMstVerify — Randomized MST verification
-- [ ] kargerSteinMinCut — Karger-Stein min cut
-- [ ] nagamochiIbarakiSparseCertificate — Nagamochi-Ibaraki sparse certificate
-- [ ] sparseCertificateBuild — Sparse certificate build
-- [ ] cutTreeQuery — Cut tree query
-- [ ] edgeConnectivity — Edge connectivity
-- [ ] vertexConnectivity — Vertex connectivity
-- [ ] stoerWagnerPhase — Stoer-Wagner phase
-- [ ] gomoryHuMinCutQuery — Gomory-Hu min cut query
+- [x] minimumArborescenceDirected — Directed arborescence
+- [x] maximumBranching — Maximum branching
+- [x] branchingMatroidIntersection — Branching matroid intersection
+- [x] arborescenceCount — Arborescence count
+- [x] degreeConstrainedMst — Degree-constrained MST
+- [x] capacitatedMst — Capacitated MST
+- [x] minimumDiameterSpanningTree — Min diameter spanning tree
+- [x] minimumBottleneckSpanningTree — Min bottleneck spanning tree
+- [x] minimumBottleneckPath — Min bottleneck path
+- [x] widestPath — Widest path
+- [x] maximumCapacityPath — Max capacity path
+- [x] lexicographicShortestPath — Lexicographic shortest path
+- [x] lexicographicMst — Lexicographic MST
+- [x] randomizedMstVerify — Randomized MST verification
+- [x] kargerSteinMinCut — Karger-Stein min cut
+- [x] nagamochiIbarakiSparseCertificate — Nagamochi-Ibaraki sparse certificate
+- [x] sparseCertificateBuild — Sparse certificate build
+- [x] cutTreeQuery — Cut tree query
+- [x] edgeConnectivity — Edge connectivity
+- [x] vertexConnectivity — Vertex connectivity
+- [x] stoerWagnerPhase — Stoer-Wagner phase
+- [x] gomoryHuMinCutQuery — Gomory-Hu min cut query
 
 ## 10.8 Planar & SPQR
-- [ ] gomoryHuBuild — Gomory-Hu build
-- [ ] gomoryHuQuery — Gomory-Hu query
-- [ ] splittingOff — Splitting off
-- [ ] earDecomposition — Ear decomposition
-- [ ] stNumbering — st-numbering
-- [ ] planarEmbedding — Planar embedding
-- [ ] planarDualBuild — Planar dual
-- [ ] planarShortestPath — Planar shortest path
-- [ ] planarSeparator — Planar separator
-- [ ] planarMaxFlow — Planar max flow
-- [ ] planarMinCut — Planar min cut
-- [ ] facePotentialSolve — Face potentials
-- [ ] kuratowskiSubgraph — Kuratowski subgraph
-- [ ] outerplanarCheck — Outerplanar check
-- [ ] seriesParallelDecompose — Series-parallel decomposition
-- [ ] spqrTreeBuild — SPQR tree
-- [ ] triconnectedComponents — Triconnected components
-- [ ] maximumPlanarMatching — Maximum planar matching
+- [x] gomoryHuBuild — Gomory-Hu build
+- [x] gomoryHuQuery — Gomory-Hu query
+- [x] splittingOff — Splitting off
+- [x] earDecomposition — Ear decomposition
+- [x] stNumbering — st-numbering
+- [x] planarEmbedding — Planar embedding
+- [x] planarDualBuild — Planar dual
+- [x] planarShortestPath — Planar shortest path
+- [x] planarSeparator — Planar separator
+- [x] planarMaxFlow — Planar max flow
+- [x] planarMinCut — Planar min cut
+- [x] facePotentialSolve — Face potentials
+- [x] kuratowskiSubgraph — Kuratowski subgraph
+- [x] outerplanarCheck — Outerplanar check
+- [x] seriesParallelDecompose — Series-parallel decomposition
+- [x] spqrTreeBuild — SPQR tree
+- [x] triconnectedComponents — Triconnected components
+- [x] maximumPlanarMatching — Maximum planar matching
 
 ## 10.9 Poset Operations
-- [ ] posetZetaTransform — Poset zeta transform
-- [ ] posetMobiusTransform — Poset Mobius transform
-- [ ] latticeMeet — Lattice meet
-- [ ] latticeJoin — Lattice join
-- [ ] booleanLatticeRank — Boolean lattice rank
+- [x] posetZetaTransform — Poset zeta transform
+- [x] posetMobiusTransform — Poset Mobius transform
+- [x] latticeMeet — Lattice meet
+- [x] latticeJoin — Lattice join
+- [x] booleanLatticeRank — Boolean lattice rank
 
 ## 10.10 Scheduling & Latin Squares
-- [ ] roundRobinSchedule — Round-robin schedule
-- [ ] latinSquareGenerate — Latin square generate
+- [x] roundRobinSchedule — Round-robin schedule
+- [x] latinSquareGenerate — Latin square generate
 
 ## 10.11 Special Structures
-- [ ] xmlTreeHash — XML tree hash
-- [ ] jsonCanonicalHash — JSON canonical hash
+- [x] xmlTreeHash — XML tree hash
+- [x] jsonCanonicalHash — JSON canonical hash

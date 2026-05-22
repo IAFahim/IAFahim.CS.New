@@ -447,5 +447,25 @@ namespace IAFahim.Math.Polynomial.Tests
             Assert.Equal(2, res[1]);
             Assert.Equal(1, res[2]);
         }
+
+        [Fact]
+        public void OnlineNttConvolution_Basic()
+        {
+            const long mod = 998244353;
+            const long g = 3;
+            int n = 4;
+            long* a = stackalloc long[n];
+            long* res = stackalloc long[n];
+            long* work = stackalloc long[16 * n];
+            
+            for (int i = 0; i < n; i++) a[i] = i + 1;
+
+            OnlineNttConvolution.Run(a, n, res, n, mod, g, work);
+
+            Assert.Equal(1, res[0]);
+            Assert.Equal(4, res[1]);
+            Assert.Equal(10, res[2]);
+            Assert.Equal(20, res[3]);
+        }
     }
 }

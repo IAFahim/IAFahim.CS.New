@@ -5,67 +5,68 @@ namespace IAFahim.String.SuffixArray
 
     public static unsafe class SuffixArray
     {
-        public static void Build(byte* ptr, int len, int* saPtr)
+        public static void Build(byte* ptr, int len, int* sa)
         {
-            int* rank = (int*)Marshal.AllocHGlobal(sizeof(int) * len);
-            int* tmp = (int*)Marshal.AllocHGlobal(sizeof(int) * len * 2);
-            int* k = (int*)Marshal.AllocHGlobal(sizeof(int) * len);
+            if (len == 0) return;
+            if (len == 1) { sa[0] = 0; return; }
 
-            for (int i = 0; i < len; i++)
-            {
-                saPtr[i] = i;
-                rank[i] = ptr[i];
-            }
+            int maxSigma = 256;
+            if (len > 256) maxSigma = len;
 
-            for (int h = 1; h < len; h <<= 1)
+            int* rank = (int*)Marshal.AllocHGlobal(sizeof(int) * len * 2);
+            int* tmpSa = (int*)Marshal.AllocHGlobal(sizeof(int) * len);
+            int* count = (int*)Marshal.AllocHGlobal(sizeof(int) * maxSigma);
+            int* tmpRank = (int*)Marshal.AllocHGlobal(sizeof(int) * len);
+            
+            try
             {
+                for (int i = 0; i < len * 2; i++) rank[i] = -1;
+
+                for (int i = 0; i < maxSigma; i++) count[i] = 0;
                 for (int i = 0; i < len; i++)
                 {
-                    int j = saPtr[i] - h;
-                    if (j < 0) j += len;
-                    k[i] = j;
+                    rank[i] = ptr[i];
+                    count[rank[i]]++;
                 }
+                for (int i = 1; i < maxSigma; i++) count[i] += count[i - 1];
+                for (int i = len - 1; i >= 0; i--) sa[--count[rank[i]]] = i;
 
-                for (int i = 0; i < len; i++)
+                for (int h = 1; h < len; h <<= 1)
                 {
-                    if (i >= h) tmp[i] = rank[i - h];
-                    else tmp[i] = 0;
-                    tmp[len + i] = rank[i];
-                }
+                    int p = 0;
+                    for (int i = len - h; i < len; i++) tmpSa[p++] = i;
+                    for (int i = 0; i < len; i++) if (sa[i] >= h) tmpSa[p++] = sa[i] - h;
 
-                Sort(k, saPtr, tmp, len);
+                    for (int i = 0; i < maxSigma; i++) count[i] = 0;
+                    for (int i = 0; i < len; i++) count[rank[i]]++;
+                    for (int i = 1; i < maxSigma; i++) count[i] += count[i - 1];
+                    for (int i = len - 1; i >= 0; i--) sa[--count[rank[tmpSa[i]]]] = tmpSa[i];
 
-                tmp[len + saPtr[0]] = 0;
-                for (int i = 1; i < len; i++)
-                    tmp[len + saPtr[i]] = tmp[len + saPtr[i - 1]] + (tmp[len + saPtr[i]] != tmp[len + saPtr[i - 1]] ? 1 : 0);
-
-                for (int i = 0; i < len; i++)
-                    rank[i] = tmp[len + i];
-
-                if (rank[saPtr[len - 1]] == len - 1) break;
-            }
-
-            Marshal.FreeHGlobal((nint)rank);
-            Marshal.FreeHGlobal((nint)tmp);
-            Marshal.FreeHGlobal((nint)k);
-        }
-
-        private static void Sort(int* k, int* sa, int* tmp, int n)
-        {
-            for (int i = 0; i < n; i++)
-            {
-                for (int j = 0; j < n - i - 1; j++)
-                {
-                    if (tmp[k[j]] > tmp[k[j + 1]])
+                    tmpRank[sa[0]] = 0;
+                    p = 0;
+                    for (int i = 1; i < len; i++)
                     {
-                        int tk = k[j];
-                        k[j] = k[j + 1];
-                        k[j + 1] = tk;
+                        int curr1 = rank[sa[i]], curr2 = rank[sa[i] + h];
+                        int prev1 = rank[sa[i - 1]], prev2 = rank[sa[i - 1] + h];
+                        if (curr1 == prev1 && curr2 == prev2)
+                            tmpRank[sa[i]] = p;
+                        else
+                            tmpRank[sa[i]] = ++p;
                     }
+
+                    for (int i = 0; i < len; i++) rank[i] = tmpRank[i];
+
+                    if (p == len - 1) break;
+                    maxSigma = p + 1;
                 }
             }
-            for (int i = 0; i < n; i++)
-                sa[i] = k[i];
+            finally
+            {
+                Marshal.FreeHGlobal((nint)rank);
+                Marshal.FreeHGlobal((nint)tmpSa);
+                Marshal.FreeHGlobal((nint)count);
+                Marshal.FreeHGlobal((nint)tmpRank);
+            }
         }
     }
 }

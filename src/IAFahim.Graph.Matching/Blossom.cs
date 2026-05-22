@@ -3,6 +3,80 @@ namespace IAFahim.Graph.Matching
     using System;
     using System.Runtime.CompilerServices;
 
+    internal unsafe struct MinHeap
+    {
+        public long* Dist;
+        public int* V;
+        public int* Pos;
+        public int Size;
+
+        public MinHeap(int n)
+        {
+            Dist = (long*)System.Runtime.InteropServices.Marshal.AllocHGlobal(n * sizeof(long));
+            V = (int*)System.Runtime.InteropServices.Marshal.AllocHGlobal(n * sizeof(int));
+            Pos = (int*)System.Runtime.InteropServices.Marshal.AllocHGlobal(n * sizeof(int));
+            for (int i = 0; i < n; i++) Pos[i] = -1;
+            Size = 0;
+        }
+
+        public void Dispose()
+        {
+            System.Runtime.InteropServices.Marshal.FreeHGlobal((nint)Dist);
+            System.Runtime.InteropServices.Marshal.FreeHGlobal((nint)V);
+            System.Runtime.InteropServices.Marshal.FreeHGlobal((nint)Pos);
+        }
+
+        public void PushOrUpdate(int v, long d)
+        {
+            int idx = Pos[v];
+            if (idx == -1)
+            {
+                idx = Size++;
+                V[idx] = v;
+            }
+            Dist[idx] = d;
+            while (idx > 0)
+            {
+                int p = (idx - 1) / 2;
+                if (Dist[p] <= Dist[idx]) break;
+                long tmpD = Dist[p]; Dist[p] = Dist[idx]; Dist[idx] = tmpD;
+                int tmpV = V[p]; V[p] = V[idx]; V[idx] = tmpV;
+                Pos[V[p]] = p;
+                Pos[V[idx]] = idx;
+                idx = p;
+            }
+        }
+
+        public int Pop(out long d)
+        {
+            int u = V[0];
+            d = Dist[0];
+            Pos[u] = -1;
+            Size--;
+            if (Size > 0)
+            {
+                Dist[0] = Dist[Size];
+                V[0] = V[Size];
+                Pos[V[0]] = 0;
+                int idx = 0;
+                while (idx * 2 + 1 < Size)
+                {
+                    int left = idx * 2 + 1;
+                    int right = idx * 2 + 2;
+                    int smallest = left;
+                    if (right < Size && Dist[right] < Dist[left]) smallest = right;
+                    if (Dist[idx] <= Dist[smallest]) break;
+                    long tmpD = Dist[idx]; Dist[idx] = Dist[smallest]; Dist[smallest] = tmpD;
+                    int tmpV = V[idx]; V[idx] = V[smallest]; V[smallest] = tmpV;
+                    Pos[V[idx]] = idx;
+                    Pos[V[smallest]] = smallest;
+                    idx = smallest;
+                }
+            }
+            return u;
+        }
+    }
+
     public static unsafe class BlossomGeneral
     {
         public static int Run(int n, int* head, int* to, int* next, int* match, int* base_, int* p, int* v, int* blossom)
@@ -92,25 +166,28 @@ namespace IAFahim.Graph.Matching
                 int* parent = stackalloc int[n];
                 for (int j = 0; j < n; j++) parent[j] = -1;
                 dist[i] = 0;
-                var pq = new System.Collections.Generic.SortedSet<(long d, int v)>();
-                pq.Add((0, i));
-                while (pq.Count > 0)
+                var pq = new MinHeap(n);
+                try
                 {
-                    var cur = pq.Min;
-                    pq.Remove(cur);
-                    if (cur.d != dist[cur.v]) continue;
-                    for (int j = 0; j < n; j++)
+                    pq.PushOrUpdate(i, 0);
+                    while (pq.Size > 0)
                     {
-                        if (i == j) continue;
-                        long ndist = cur.d + w[cur.v * n + j] - potentials[cur.v] - potentials[j];
-                        if (ndist < dist[j])
+                        int u = pq.Pop(out long d);
+                        if (d != dist[u]) continue;
+                        for (int j = 0; j < n; j++)
                         {
-                            dist[j] = ndist;
-                            parent[j] = cur.v;
-                            pq.Add((ndist, j));
+                            if (i == j) continue;
+                            long ndist = d + w[u * n + j] - potentials[u] - potentials[j];
+                            if (ndist < dist[j])
+                            {
+                                dist[j] = ndist;
+                                parent[j] = u;
+                                pq.PushOrUpdate(j, ndist);
+                            }
                         }
                     }
                 }
+                finally { pq.Dispose(); }
                 for (int j = 0; j < n; j++) potentials[j] += dist[j];
             }
             for (int i = 0; i < n; i++)

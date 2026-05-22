@@ -540,11 +540,11 @@ namespace IAFahim.String
     {
         public static int Run(byte* s, int len, int* len_, int* link, int* next)
         {
-            len_[0] = 1;
+            len_[0] = 2;
             len_[1] = 0;
             len_[2] = -1;
-            link[1] = 0;
-            link[0] = 1;
+            link[1] = 2;
+            link[2] = 2;
             int last = 1;
             int nodeCount = 2;
             for (int i = 0; i < len; i++)

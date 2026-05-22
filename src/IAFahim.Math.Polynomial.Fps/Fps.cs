@@ -9,16 +9,16 @@ namespace IAFahim.Math.Polynomial.Fps
         {
             res[0] = ModInverse(a[0], mod);
             int len = 1;
+            long* temp = stackalloc long[n * 2];
+            long* inv = stackalloc long[n * 2];
+            long* buf = stackalloc long[n * 2];
             while (len < n)
             {
                 len <<= 1;
-                long* temp = stackalloc long[len];
                 for (int i = 0; i < Math.Min(len, n); i++) temp[i] = a[i];
                 for (int i = Math.Min(len, n); i < len; i++) temp[i] = 0;
-                long* inv = stackalloc long[len];
                 for (int i = 0; i < len >> 1; i++) inv[i] = res[i];
                 for (int i = len >> 1; i < len; i++) inv[i] = 0;
-                long* buf = stackalloc long[len];
                 PolynomialMul(len >> 1, res, len >> 1, res, buf, mod);
                 for (int i = 0; i < len; i++) buf[i] = (mod - buf[i]) % mod;
                 PolynomialMul(len, temp, len, buf, res, mod);
@@ -107,17 +107,17 @@ namespace IAFahim.Math.Polynomial.Fps
         {
             res[0] = 1;
             int len = 1;
+            long* lnRes = stackalloc long[n * 2];
+            long* diff = stackalloc long[n * 2];
+            long* newRes = stackalloc long[n * 2];
             while (len < n)
             {
                 len <<= 1;
-                long* lnRes = stackalloc long[len];
                 int lnLen = FormalPowerSeriesLog.Run(len, res, lnRes, mod);
-                long* diff = stackalloc long[len];
                 for (int i = 0; i < Math.Min(n, len); i++)
                     diff[i] = (a[i] - lnRes[i] + mod) % mod;
                 diff[0] = (diff[0] + 1) % mod;
                 for (int i = Math.Min(n, len); i < len; i++) diff[i] = 0;
-                long* newRes = stackalloc long[len];
                 PolynomialMul(len, res, len, diff, newRes, mod);
                 for (int i = 0; i < len && i < n; i++) res[i] = newRes[i];
                 if (len > n) len = n;
@@ -194,20 +194,20 @@ namespace IAFahim.Math.Polynomial.Fps
             if ((a[0] & 1) == 0) return -1;
             res[0] = 1;
             int len = 1;
+            long* inv = stackalloc long[n * 2];
+            long* temp = stackalloc long[n * 2];
+            long* half = stackalloc long[n * 2];
+            long* prod = stackalloc long[n * 2];
             while (len < n)
             {
                 len <<= 1;
-                long* inv = stackalloc long[len];
                 long inv2 = (mod + 1) >> 1;
                 for (int i = 0; i < len >> 1; i++) inv[i] = res[i];
                 for (int i = len >> 1; i < len; i++) inv[i] = 0;
-                long* temp = stackalloc long[len];
                 for (int i = 0; i < Math.Min(len, n); i++) temp[i] = a[i];
                 for (int i = Math.Min(len, n); i < len; i++) temp[i] = 0;
-                long* half = stackalloc long[len];
                 half[0] = 2;
                 for (int i = 1; i < len; i++) half[i] = 0;
-                long* prod = stackalloc long[len];
                 PolynomialMul(len >> 1, res, len >> 1, res, prod, mod);
                 for (int i = 0; i < len; i++) prod[i] = (temp[i] - prod[i] + mod) % mod;
                 PolynomialMul(len, half, len, prod, temp, mod);

@@ -5,37 +5,99 @@ namespace IAFahim.Geometry.Spatial
 
     public static unsafe class Quadtree
     {
-        public struct Node { public double X, Y, W, H; public int Child0, Child1, Child2, Child3; public int Count; }
+        public struct Node
+        {
+            public double MinX, MinY, MaxX, MaxY;
+            public int FirstChild;
+            public int PointIndex;
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Build(double* xs, double* ys, int n, Node* nodes, int maxDepth)
+        public static int Build(double* xs, double* ys, int n, Node* nodes, int maxNodes)
         {
+            if (n == 0 || maxNodes < 1) return 0;
+
+            double minX = xs[0], minY = ys[0], maxX = xs[0], maxY = ys[0];
+            for (int i = 1; i < n; i++)
+            {
+                if (xs[i] < minX) minX = xs[i];
+                if (xs[i] > maxX) maxX = xs[i];
+                if (ys[i] < minY) minY = ys[i];
+                if (ys[i] > maxY) maxY = ys[i];
+            }
+
             int nodeCount = 1;
-            nodes[0].X = 0; nodes[0].Y = 0; nodes[0].W = 100; nodes[0].H = 100;
-            nodes[0].Child0 = nodes[0].Child1 = nodes[0].Child2 = nodes[0].Child3 = -1;
-            nodes[0].Count = n;
+            nodes[0].MinX = minX; nodes[0].MinY = minY;
+            nodes[0].MaxX = maxX; nodes[0].MaxY = maxY;
+            nodes[0].FirstChild = -1;
+            nodes[0].PointIndex = -1;
+
+            int* indices = stackalloc int[n];
+            for (int i = 0; i < n; i++) indices[i] = i;
+
+            BuildRecursive(xs, ys, nodes, 0, indices, n, ref nodeCount, maxNodes);
             return nodeCount;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int RangeQuery(Node* nodes, int node, double x1, double y1, double x2, double y2, int* outIdx)
+        private static void BuildRecursive(double* xs, double* ys, Node* nodes, int u, int* indices, int count, ref int nodeCount, int maxNodes)
         {
-            int count = 0;
-            if (node < 0) return count;
-            Node n = nodes[node];
-            if (x2 < n.X || x1 > n.X + n.W || y2 < n.Y || y1 > n.Y + n.H) return count;
-            if (n.Child0 < 0)
+            if (count == 0) return;
+            if (count == 1)
             {
-                for (int i = 0; i < n.Count; i++) outIdx[count++] = i;
+                nodes[u].PointIndex = indices[0];
+                return;
             }
-            else
+
+            if (nodeCount + 4 > maxNodes)
             {
-                count += RangeQuery(nodes, n.Child0, x1, y1, x2, y2, outIdx + count);
-                count += RangeQuery(nodes, n.Child1, x1, y1, x2, y2, outIdx + count);
-                count += RangeQuery(nodes, n.Child2, x1, y1, x2, y2, outIdx + count);
-                count += RangeQuery(nodes, n.Child3, x1, y1, x2, y2, outIdx + count);
+                nodes[u].PointIndex = indices[0]; // Truncate
+                return;
             }
-            return count;
+
+            double midX = (nodes[u].MinX + nodes[u].MaxX) * 0.5;
+            double midY = (nodes[u].MinY + nodes[u].MaxY) * 0.5;
+
+            int first = nodeCount;
+            nodes[u].FirstChild = first;
+            nodeCount += 4;
+
+            for (int i = 0; i < 4; i++)
+            {
+                nodes[first + i].FirstChild = -1;
+                nodes[first + i].PointIndex = -1;
+            }
+
+            nodes[first].MinX = nodes[u].MinX; nodes[first].MaxX = midX;
+            nodes[first].MinY = nodes[u].MinY; nodes[first].MaxY = midY;
+
+            nodes[first + 1].MinX = midX; nodes[first + 1].MaxX = nodes[u].MaxX;
+            nodes[first + 1].MinY = nodes[u].MinY; nodes[first + 1].MaxY = midY;
+
+            nodes[first + 2].MinX = nodes[u].MinX; nodes[first + 2].MaxX = midX;
+            nodes[first + 2].MinY = midY; nodes[first + 2].MaxY = nodes[u].MaxY;
+
+            nodes[first + 3].MinX = midX; nodes[first + 3].MaxX = nodes[u].MaxX;
+            nodes[first + 3].MinY = midY; nodes[first + 3].MaxY = nodes[u].MaxY;
+
+            int* c0 = stackalloc int[count]; int n0 = 0;
+            int* c1 = stackalloc int[count]; int n1 = 0;
+            int* c2 = stackalloc int[count]; int n2 = 0;
+            int* c3 = stackalloc int[count]; int n3 = 0;
+
+            for (int i = 0; i < count; i++)
+            {
+                int p = indices[i];
+                if (xs[p] <= midX && ys[p] <= midY) c0[n0++] = p;
+                else if (xs[p] > midX && ys[p] <= midY) c1[n1++] = p;
+                else if (xs[p] <= midX && ys[p] > midY) c2[n2++] = p;
+                else c3[n3++] = p;
+            }
+
+            BuildRecursive(xs, ys, nodes, first, c0, n0, ref nodeCount, maxNodes);
+            BuildRecursive(xs, ys, nodes, first + 1, c1, n1, ref nodeCount, maxNodes);
+            BuildRecursive(xs, ys, nodes, first + 2, c2, n2, ref nodeCount, maxNodes);
+            BuildRecursive(xs, ys, nodes, first + 3, c3, n3, ref nodeCount, maxNodes);
         }
     }
 }

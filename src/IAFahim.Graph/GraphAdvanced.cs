@@ -3,6 +3,7 @@ namespace IAFahim.Graph
     using System;
     using System.Runtime.CompilerServices;
     using IAFahim.Graph.Flow;
+    using IAFahim.Graph.Flow;
 
     public static unsafe class MatroidIntersection
     {
@@ -125,7 +126,8 @@ namespace IAFahim.Graph
             for (int i = 0; i < n; i++) parent[i] = -1;
             for (int i = 0; i < n; i++)
             {
-                long cut = DinicMaxFlow.Run(n, i, parent[i], head, to, next, cap, m);
+                int* flowArr = stackalloc int[m * 2 + 2];
+                long cut = DinicMaxFlow.Run(n, i, parent[i], head, to, next, cap, flowArr);
                 for (int j = i + 1; j < n; j++)
                 {
                     if (parent[j] == i)
@@ -266,7 +268,7 @@ namespace IAFahim.Graph
                 if (comp[2 * i] == comp[2 * i + 1]) return false;
             }
             for (int i = 0; i < n; i++)
-                assignment[i] = comp[2 * i + 1] > comp[2 * i] ? 1 : 0;
+                assignment[i] = comp[2 * i + 1] < comp[2 * i] ? 1 : 0;
             return true;
         }
     }
@@ -385,7 +387,7 @@ namespace IAFahim.Graph
         }
     }
 
-    public static unsafe class DinicMaxFlow
+    public static unsafe class AdvancedDinicMaxFlow
     {
         public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int m)
         {

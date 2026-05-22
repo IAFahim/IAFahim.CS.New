@@ -63,6 +63,8 @@ namespace IAFahim.Linear.Matrix
         public static void Run(int n, long* a, long* result, long exp)
         {
             long* temp = stackalloc long[n * n];
+            long* res2 = stackalloc long[n * n];
+            long* temp2 = stackalloc long[n * n];
             for (int i = 0; i < n; i++)
                 for (int j = 0; j < n; j++)
                     result[i * n + j] = (i == j) ? 1 : 0;
@@ -73,7 +75,6 @@ namespace IAFahim.Linear.Matrix
             {
                 if ((exp & 1) == 1)
                 {
-                    long* res2 = stackalloc long[n * n];
                     for (int i = 0; i < n; i++)
                         for (int j = 0; j < n; j++)
                         {
@@ -84,7 +85,6 @@ namespace IAFahim.Linear.Matrix
                         }
                     for (int i = 0; i < n * n; i++) result[i] = res2[i];
                 }
-                long* temp2 = stackalloc long[n * n];
                 for (int i = 0; i < n; i++)
                     for (int j = 0; j < n; j++)
                     {

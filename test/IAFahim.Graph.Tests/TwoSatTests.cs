@@ -81,14 +81,15 @@ namespace IAFahim.Graph.Tests
         [Fact]
         public void Solve_XOrNotX_Unsatisfiable()
         {
-            const int n = 1, maxEdges = 4;
+            const int n = 1, maxEdges = 6;
             int* head = stackalloc int[n * 2];
             int* to = stackalloc int[maxEdges];
             int* next = stackalloc int[maxEdges];
             int* assignment = stackalloc int[n];
             for (int i = 0; i < n * 2; i++) head[i] = 0;
             int edgeCount = 0;
-            TwoSatAddClause.Run(0, true, 0, false, head, to, next, &edgeCount);
+            TwoSatAddClause.Run(0, true, 0, true, head, to, next, &edgeCount);
+            TwoSatAddClause.Run(0, false, 0, false, head, to, next, &edgeCount);
             bool result = TwoSatSolve.Run(n, head, to, next, assignment);
             Assert.False(result);
         }
@@ -122,7 +123,8 @@ namespace IAFahim.Graph.Tests
             TwoSatAddClause.Run(0, false, 1, false, head, to, next, &edgeCount);
             TwoSatAddClause.Run(1, true, 2, true, head, to, next, &edgeCount);
             TwoSatAddClause.Run(1, false, 2, false, head, to, next, &edgeCount);
-            TwoSatAddClause.Run(0, true, 2, false, head, to, next, &edgeCount);
+            TwoSatAddClause.Run(0, true, 2, true, head, to, next, &edgeCount);
+            TwoSatAddClause.Run(0, false, 2, false, head, to, next, &edgeCount);
             bool result = TwoSatSolve.Run(n, head, to, next, assignment);
             Assert.False(result);
         }

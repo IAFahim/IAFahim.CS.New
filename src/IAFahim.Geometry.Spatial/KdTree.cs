@@ -5,45 +5,70 @@ namespace IAFahim.Geometry.Spatial
 
     public static unsafe class KdTree
     {
-        public struct Node { public double X, Y; public int Left, Right; }
+        public struct Node
+        {
+            public double X, Y;
+            public int PointIndex;
+            public int Left, Right;
+            public int Axis;
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Build(double* xs, double* ys, int n, Node* nodes)
         {
-            for (int i = 0; i < n; i++) { nodes[i].X = xs[i]; nodes[i].Y = ys[i]; nodes[i].Left = nodes[i].Right = -1; }
-            return n;
+            if (n == 0) return 0;
+
+            int* indices = stackalloc int[n];
+            for (int i = 0; i < n; i++) indices[i] = i;
+
+            int nodeCount = 0;
+            BuildRecursive(xs, ys, nodes, indices, n, 0, ref nodeCount);
+            return nodeCount;
         }
 
-        public static int KNearest(Node* nodes, int root, double qx, double qy, int k, int* outIdx, double* dists)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int BuildRecursive(double* xs, double* ys, Node* nodes, int* indices, int count, int depth, ref int nodeCount)
         {
-            int count = 0;
-            for (int i = 0; i < k; i++) dists[i] = double.MaxValue;
-            KnearestRec(nodes, root, qx, qy, k, dists, outIdx, ref count, 0);
-            return count;
-        }
+            if (count == 0) return -1;
 
-        private static void KnearestRec(Node* nodes, int idx, double qx, double qy, int k, double* dists, int* outs, ref int c, int depth)
-        {
-            if (idx < 0) return;
-            Node n = nodes[idx];
-            double dx = n.X - qx, dy = n.Y - qy;
-            double d = dx * dx + dy * dy;
-            if (c < k) { outs[c] = idx; dists[c] = d; c++; }
-            else
+            int axis = depth % 2;
+            
+            // Sort indices based on axis
+            for (int i = 0; i < count - 1; i++)
             {
-                double maxD = 0; int maxI = 0;
-                for (int i = 0; i < c; i++) { if (dists[i] > maxD) { maxD = dists[i]; maxI = i; } }
-                if (d < maxD) { dists[maxI] = d; outs[maxI] = idx; }
-            }
-            int next = (depth % 2 == 0) ? n.Left : n.Right;
-            int other = (depth % 2 == 0) ? n.Right : n.Left;
-            KnearestRec(nodes, next, qx, qy, k, dists, outs, ref c, depth + 1);
-            KnearestRec(nodes, other, qx, qy, k, dists, outs, ref c, depth + 1);
-        }
+                for (int j = i + 1; j < count; j++)
+                {
+                    bool swap = false;
+                    if (axis == 0 && xs[indices[j]] < xs[indices[i]]) swap = true;
+                    if (axis == 1 && ys[indices[j]] < ys[indices[i]]) swap = true;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Insert(Node* nodes, int root, double x, double y) { return root; }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Delete(Node* nodes, int root, double x, double y) { return root; }
+                    if (swap)
+                    {
+                        int t = indices[i];
+                        indices[i] = indices[j];
+                        indices[j] = t;
+                    }
+                }
+            }
+
+            int mid = count / 2;
+            int u = nodeCount++;
+            
+            nodes[u].PointIndex = indices[mid];
+            nodes[u].X = xs[indices[mid]];
+            nodes[u].Y = ys[indices[mid]];
+            nodes[u].Axis = axis;
+
+            int* leftIndices = stackalloc int[mid];
+            for (int i = 0; i < mid; i++) leftIndices[i] = indices[i];
+            nodes[u].Left = BuildRecursive(xs, ys, nodes, leftIndices, mid, depth + 1, ref nodeCount);
+
+            int rightCount = count - mid - 1;
+            int* rightIndices = stackalloc int[rightCount];
+            for (int i = 0; i < rightCount; i++) rightIndices[i] = indices[mid + 1 + i];
+            nodes[u].Right = BuildRecursive(xs, ys, nodes, rightIndices, rightCount, depth + 1, ref nodeCount);
+
+            return u;
+        }
     }
 }

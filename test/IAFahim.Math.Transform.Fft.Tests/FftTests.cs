@@ -11,15 +11,14 @@ namespace IAFahim.Math.Transform.Fft.Tests
         public void RoundTrip_Length8()
         {
             const int N = 8;
-            double* a = stackalloc double[N] { 0.5, -1.25, 3.75, 2.0, -0.5, 1.5, 0.0, -2.25 };
-            double* original = stackalloc double[N];
-            for (int i = 0; i < N; i++) original[i] = a[i];
-            double* real = stackalloc double[N];
-            double* imag = stackalloc double[N];
-            FftTransform.Forward(a, N, real, imag);
-            FftTransform.Inverse(a, N, real, imag);
+            double* re = stackalloc double[N] { 0.5, -1.25, 3.75, 2.0, -0.5, 1.5, 0.0, -2.25 };
+            double* im = stackalloc double[N] { 0, 0, 0, 0, 0, 0, 0, 0 };
+            double* origRe = stackalloc double[N];
+            for (int i = 0; i < N; i++) origRe[i] = re[i];
+            FftTransform.Forward(re, im, N);
+            FftTransform.Inverse(re, im, N);
             for (int i = 0; i < N; i++)
-                Assert.True(Math.Abs(a[i] - original[i]) < Epsilon, $"Index {i}: {a[i]} vs {original[i]}");
+                Assert.True(Math.Abs(re[i] - origRe[i]) < Epsilon, $"Index {i}: {re[i]} vs {origRe[i]}");
         }
     }
 

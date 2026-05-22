@@ -43,6 +43,15 @@ namespace IAFahim.Math.Polynomial
                     res[i + j] += a[i] * b[j];
             return n + m - 1;
         }
+
+        public static int RunMod(int n, long* a, int m, long* b, long* res, long mod)
+        {
+            for (int i = 0; i < n + m - 1; i++) res[i] = 0;
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < m; j++)
+                    res[i + j] = (res[i + j] + a[i] % mod * (b[j] % mod)) % mod;
+            return n + m - 1;
+        }
     }
 
     public static unsafe class PolynomialDiv
@@ -111,7 +120,7 @@ namespace IAFahim.Math.Polynomial
             for (int i = 0; i < n; i++)
             {
                 long inv = ModInverse(i + 1, mod);
-                res[i + 1] = a[i] * inv % mod;
+                res[i + 1] = a[i] % mod * inv % mod;
             }
             return n + 1;
         }
@@ -140,19 +149,29 @@ namespace IAFahim.Math.Polynomial
         public static int Run(int n, long* a, long* res, long mod)
         {
             res[0] = ModInverse(a[0], mod);
+            long* tmp = stackalloc long[n * 6];
+            for (int i = 0; i < n * 6; i++) tmp[i] = 0;
             int m = 1;
             while (m < n)
             {
                 m <<= 1;
-                long* temp = stackalloc long[m];
-                for (int i = 0; i < Math.Min(n, m); i++) temp[i] = a[i];
-                for (int i = Math.Min(n, m); i < m; i++) temp[i] = 0;
-                long* buf = stackalloc long[m];
-                for (int i = 0; i < m; i++) buf[i] = 0;
-                PolynomialMul.Run(m >> 1, res, m >> 1, res, buf);
-                for (int i = 0; i < m; i++) buf[i] = (mod - buf[i]) % mod;
-                PolynomialMul.Run(m, temp, m, buf, res);
-                m = Math.Min(m, n);
+                int cur = Math.Min(m, n);
+                long* fa = tmp;
+                long* fb = tmp + m;
+                long* fc = tmp + 2 * m;
+                long* fr = tmp + 4 * m;
+                for (int i = 0; i < cur; i++) fa[i] = a[i];
+                for (int i = cur; i < m; i++) fa[i] = 0;
+                for (int i = 0; i < m / 2; i++) fb[i] = res[i];
+                for (int i = m / 2; i < m; i++) fb[i] = 0;
+                for (int i = 0; i < 2 * m; i++) fc[i] = 0;
+                PolynomialMul.RunMod(m, fa, m / 2, fb, fc, mod);
+                for (int i = 0; i < m; i++) fc[i] = (mod - fc[i] % mod) % mod;
+                fc[0] = (fc[0] + 2) % mod;
+                for (int i = m; i < 2 * m; i++) fc[i] = 0;
+                for (int i = 0; i < 2 * m; i++) fr[i] = 0;
+                PolynomialMul.RunMod(m / 2, fb, m, fc, fr, mod);
+                for (int i = 0; i < cur; i++) res[i] = fr[i] % mod;
             }
             return n;
         }
@@ -184,10 +203,14 @@ namespace IAFahim.Math.Polynomial
             long* der = stackalloc long[n];
             int derLen = PolynomialDerivative.Run(n, a, der);
             long* inv = stackalloc long[n];
-            int invLen = PolynomialInverse.Run(n, a, inv, mod);
-            long* buf = stackalloc long[n];
-            int bufLen = PolynomialMul.Run(derLen, der, invLen, inv, buf);
-            int integralLen = PolynomialIntegral.Run(bufLen, buf, res, mod);
+            PolynomialInverse.Run(n, a, inv, mod);
+            long* buf = stackalloc long[2 * n];
+            for (int i = 0; i < 2 * n; i++) buf[i] = 0;
+            PolynomialMul.RunMod(derLen, der, n, inv, buf, mod);
+            long* bufTrunc = stackalloc long[n];
+            for (int i = 0; i < n - 1; i++) bufTrunc[i] = buf[i] % mod;
+            PolynomialIntegral.Run(n - 1, bufTrunc, res, mod);
+            for (int i = 0; i < n; i++) res[i] = (res[i] % mod + mod) % mod;
             return n;
         }
     }
@@ -196,21 +219,25 @@ namespace IAFahim.Math.Polynomial
     {
         public static int Run(int n, long* a, long* res, long mod)
         {
+            if (n == 0) return 0;
             res[0] = 1;
+            for (int i = 1; i < n; i++) res[i] = 0;
             int m = 1;
+            long* lnBuf = stackalloc long[n];
+            long* diff = stackalloc long[n];
+            long* newRes = stackalloc long[2 * n];
             while (m < n)
             {
                 m <<= 1;
-                long* lnRes = stackalloc long[m];
-                int lnLen = PolynomialLog.Run(Math.Min(m, n), res, lnRes, mod);
-                long* buf = stackalloc long[m];
-                for (int i = 0; i < m; i++) buf[i] = 0;
-                for (int i = 0; i < Math.Min(n, m); i++)
-                    buf[i] = (a[i] - lnRes[i] + mod) % mod;
-                buf[0] = (buf[0] + 1) % mod;
-                long* newRes = stackalloc long[m];
-                PolynomialMul.Run(Math.Min(m, n), res, Math.Min(m, n), buf, newRes);
-                for (int i = 0; i < m; i++) res[i] = newRes[i];
+                int cur = Math.Min(m, n);
+                for (int i = 0; i < cur; i++) lnBuf[i] = 0;
+                PolynomialLog.Run(cur, res, lnBuf, mod);
+                for (int i = 0; i < cur; i++)
+                    diff[i] = ((i < n ? a[i] : 0) - lnBuf[i] % mod + mod) % mod;
+                diff[0] = (diff[0] + 1) % mod;
+                for (int i = 0; i < 2 * n; i++) newRes[i] = 0;
+                PolynomialMul.RunMod(Math.Min(m / 2, n), res, cur, diff, newRes, mod);
+                for (int i = 0; i < cur; i++) res[i] = newRes[i] % mod;
             }
             return n;
         }
@@ -250,26 +277,24 @@ namespace IAFahim.Math.Polynomial
     {
         public static int Run(int n, long* a, long* res, long mod)
         {
-            if ((a[0] & 1) == 0) return -1;
+            if ((a[0] & 1) == 0 && a[0] != 1) return -1;
             res[0] = 1;
             long inv2 = (mod + 1) >> 1;
+            long* inv = stackalloc long[n];
+            long* tmp = stackalloc long[2 * n];
             int m = 1;
             while (m < n)
             {
                 m <<= 1;
-                long* inv = stackalloc long[m];
-                for (int i = 0; i < m; i++) inv[i] = 0;
-                inv[0] = 2;
-                long* buf = stackalloc long[m];
-                for (int i = 0; i < m; i++) buf[i] = 0;
-                PolynomialMul.Run(Math.Min(m, n), res, 1, inv, buf);
-                for (int i = 0; i < m; i++) res[i] = buf[i] % mod;
-                long* temp = stackalloc long[m];
-                for (int i = 0; i < Math.Min(n, m); i++) temp[i] = a[i];
-                for (int i = Math.Min(n, m); i < m; i++) temp[i] = 0;
-                PolynomialMul.Run(Math.Min(m, n), temp, m, res, buf);
-                for (int i = 0; i < m; i++)
-                    res[i] = (res[i] + buf[i] * inv2) % mod;
+                int cur = Math.Min(m, n);
+                for (int i = 0; i < cur; i++) inv[i] = 0;
+                PolynomialInverse.Run(cur, res, inv, mod);
+                for (int i = 0; i < 2 * n; i++) tmp[i] = 0;
+                long* aTrunc = stackalloc long[cur];
+                for (int i = 0; i < cur; i++) aTrunc[i] = a[i] % mod;
+                PolynomialMul.RunMod(cur, aTrunc, cur, inv, tmp, mod);
+                for (int i = 0; i < cur; i++)
+                    res[i] = (res[i] + tmp[i]) % mod * inv2 % mod;
             }
             return n;
         }
@@ -283,8 +308,8 @@ namespace IAFahim.Math.Polynomial
             long res = 0, cur = 1;
             for (int i = 0; i < n; i++)
             {
-                res = (res + a[i] * cur) % mod;
-                cur = (cur * x) % mod;
+                res = (res + a[i] % mod * cur) % mod;
+                cur = cur * x % mod;
             }
             return res;
         }
@@ -294,26 +319,35 @@ namespace IAFahim.Math.Polynomial
     {
         public static int Run(int n, long* x, long* y, long* res, long mod)
         {
-            long* prefix = stackalloc long[n + 1];
-            long* suffix = stackalloc long[n + 1];
-            prefix[0] = 1;
-            for (int i = 0; i < n; i++)
-                prefix[i + 1] = (prefix[i] * (mod - x[i])) % mod;
-            suffix[n] = 1;
-            for (int i = n - 1; i >= 0; i--)
-                suffix[i] = (suffix[i + 1] * (mod - x[i])) % mod;
+            for (int i = 0; i < n; i++) res[i] = 0;
+            if (n == 0) return 0;
+            long* vand = stackalloc long[n + 1];
+            for (int i = 0; i <= n; i++) vand[i] = 0;
+            vand[0] = 1;
             for (int i = 0; i < n; i++)
             {
-                long den = (prefix[i] * suffix[i + 1]) % mod;
-                long l = ModInverse(den, mod);
-                long* left = stackalloc long[i + 1];
-                long* right = stackalloc long[n - i];
-                for (int j = 0; j <= i; j++) left[j] = prefix[j];
-                for (int j = 0; j < n - i; j++) right[j] = suffix[i + 1 + j];
-                long* w = stackalloc long[n];
-                PolynomialMul.Run(i + 1, left, n - i, right, w);
+                long negXi = (mod - x[i] % mod) % mod;
+                for (int j = i + 1; j >= 1; j--)
+                    vand[j] = (vand[j - 1] + vand[j] * negXi) % mod;
+                vand[0] = vand[0] * negXi % mod;
+            }
+            long* wi = stackalloc long[n];
+            for (int i = 0; i < n; i++)
+            {
+                long xi = x[i] % mod;
+                wi[n - 1] = vand[n];
+                for (int j = n - 2; j >= 0; j--)
+                    wi[j] = (vand[j + 1] + wi[j + 1] * xi) % mod;
+                long den = 1;
                 for (int j = 0; j < n; j++)
-                    res[j] = (res[j] + y[i] * l % mod * w[j]) % mod;
+                {
+                    if (j == i) continue;
+                    den = den * ((xi - x[j] % mod + mod) % mod) % mod;
+                }
+                long inv = ModInverse(den, mod);
+                long coef = y[i] % mod * inv % mod;
+                for (int j = 0; j < n; j++)
+                    res[j] = (res[j] + coef * wi[j]) % mod;
             }
             return n;
         }
@@ -341,22 +375,31 @@ namespace IAFahim.Math.Polynomial
     {
         public static long Run(long* x, long* y, long n, long t, long mod)
         {
-            if (n == 1) return y[0];
+            if (n == 1) return y[0] % mod;
             int nn = (int)n;
             long* prefix = stackalloc long[nn + 1];
             long* suffix = stackalloc long[nn + 1];
             prefix[0] = 1;
             for (int i = 0; i < nn; i++)
-                prefix[i + 1] = (prefix[i] * (t - x[i] + mod)) % mod;
+                prefix[i + 1] = prefix[i] * ((t - x[i] % mod + mod) % mod) % mod;
             suffix[nn] = 1;
             for (int i = nn - 1; i >= 0; i--)
-                suffix[i] = (suffix[i + 1] * (t - x[i] + mod)) % mod;
+                suffix[i] = suffix[i + 1] * ((t - x[i] % mod + mod) % mod) % mod;
             long res = 0;
             for (int i = 0; i < nn; i++)
             {
-                long den = (prefix[i] * suffix[i + 1]) % mod;
-                long l = ModInverse(den, mod);
-                long term = y[i] % mod * l % mod;
+                long num = prefix[i] * suffix[i + 1] % mod;
+                long* denTerms = stackalloc long[nn - 1];
+                int dc = 0;
+                for (int j = 0; j < nn; j++)
+                {
+                    if (j == i) continue;
+                    denTerms[dc++] = (x[i] - x[j] % mod + mod) % mod;
+                }
+                long den = 1;
+                for (int j = 0; j < dc; j++) den = den * denTerms[j] % mod;
+                long inv = ModInverse(den, mod);
+                long term = y[i] % mod * num % mod * inv % mod;
                 res = (res + term) % mod;
             }
             return res;

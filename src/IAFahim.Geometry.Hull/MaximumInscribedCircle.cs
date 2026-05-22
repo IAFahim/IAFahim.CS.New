@@ -6,22 +6,91 @@ namespace IAFahim.Geometry.Hull
     public static unsafe class MaximumInscribedCircle
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static double Cross(double x1, double y1, double x2, double y2, double x3, double y3)
+        {
+            return (x2 - x1) * (y3 - y1) - (y2 - y1) * (x3 - x1);
+        }
+
         public static double Run(double* xs, double* ys, int n)
         {
             if (n < 3) return 0;
-            double minR = double.MaxValue;
+            double lo = 0, hi = 2e9;
+            double* nx = stackalloc double[n];
+            double* ny = stackalloc double[n];
+            double* c = stackalloc double[n];
+            
             for (int i = 0; i < n; i++)
             {
-                int ni = (i + 1) % n;
-                double dx = ys[ni] - ys[i], dy = -(xs[ni] - xs[i]);
+                int nxt = (i + 1) % n;
+                double dx = xs[nxt] - xs[i];
+                double dy = ys[nxt] - ys[i];
                 double len = Math.Sqrt(dx * dx + dy * dy);
-                if (len < 1e-12) continue;
-                double cx = (xs[i] + xs[ni]) / 2;
-                double cy = (ys[i] + ys[ni]) / 2;
-                double dist = Math.Abs(cx * dx + cy * dy) / len;
-                if (dist < minR) minR = dist;
+                nx[i] = -dy / len;
+                ny[i] = dx / len;
+                c[i] = xs[i] * nx[i] + ys[i] * ny[i];
             }
-            return minR == double.MaxValue ? 0 : minR;
+
+            int* q = stackalloc int[n + 5];
+            
+            for (int iter = 0; iter < 60; iter++)
+            {
+                double mid = (lo + hi) / 2;
+                bool possible = true;
+                
+                int head = 0, tail = 0;
+                
+                q[tail++] = 0;
+                q[tail++] = 1;
+                
+                for (int i = 2; i < n; i++)
+                {
+                    while (head + 1 < tail)
+                    {
+                        int prev = q[tail - 2];
+                        int curr = q[tail - 1];
+                        double px_curr, py_curr;
+                        Intersect(nx[prev], ny[prev], c[prev] + mid, nx[curr], ny[curr], c[curr] + mid, out px_curr, out py_curr);
+                        if (nx[i] * px_curr + ny[i] * py_curr > c[i] + mid - 1e-9) tail--;
+                        else break;
+                    }
+                    while (head + 1 < tail)
+                    {
+                        int prev = q[head];
+                        int curr = q[head + 1];
+                        double px_curr, py_curr;
+                        Intersect(nx[prev], ny[prev], c[prev] + mid, nx[curr], ny[curr], c[curr] + mid, out px_curr, out py_curr);
+                        if (nx[i] * px_curr + ny[i] * py_curr > c[i] + mid - 1e-9) head++;
+                        else break;
+                    }
+                    q[tail++] = i;
+                }
+                
+                while (head + 1 < tail)
+                {
+                    int prev = q[tail - 2];
+                    int curr = q[tail - 1];
+                    int first = q[head];
+                    double px_curr, py_curr;
+                    Intersect(nx[prev], ny[prev], c[prev] + mid, nx[curr], ny[curr], c[curr] + mid, out px_curr, out py_curr);
+                    if (nx[first] * px_curr + ny[first] * py_curr > c[first] + mid - 1e-9) tail--;
+                    else break;
+                }
+                
+                if (tail - head < 3) possible = false;
+                
+                if (possible) lo = mid;
+                else hi = mid;
+            }
+            return lo;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void Intersect(double nx1, double ny1, double c1, double nx2, double ny2, double c2, out double x, out double y)
+        {
+            double det = nx1 * ny2 - ny1 * nx2;
+            if (Math.Abs(det) < 1e-12) { x = y = 0; return; }
+            x = (c1 * ny2 - c2 * ny1) / det;
+            y = (nx1 * c2 - nx2 * c1) / det;
         }
     }
 }

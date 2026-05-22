@@ -3,6 +3,80 @@ namespace IAFahim.Graph
     using System;
     using System.Runtime.CompilerServices;
 
+    internal unsafe struct SpMinHeap
+    {
+        public long* Dist;
+        public int* V;
+        public int* Pos;
+        public int Size;
+
+        public SpMinHeap(int n)
+        {
+            Dist = (long*)System.Runtime.InteropServices.Marshal.AllocHGlobal(n * sizeof(long));
+            V = (int*)System.Runtime.InteropServices.Marshal.AllocHGlobal(n * sizeof(int));
+            Pos = (int*)System.Runtime.InteropServices.Marshal.AllocHGlobal(n * sizeof(int));
+            for (int i = 0; i < n; i++) Pos[i] = -1;
+            Size = 0;
+        }
+
+        public void Dispose()
+        {
+            System.Runtime.InteropServices.Marshal.FreeHGlobal((nint)Dist);
+            System.Runtime.InteropServices.Marshal.FreeHGlobal((nint)V);
+            System.Runtime.InteropServices.Marshal.FreeHGlobal((nint)Pos);
+        }
+
+        public void PushOrUpdate(int v, long d)
+        {
+            int idx = Pos[v];
+            if (idx == -1)
+            {
+                idx = Size++;
+                V[idx] = v;
+            }
+            Dist[idx] = d;
+            while (idx > 0)
+            {
+                int p = (idx - 1) / 2;
+                if (Dist[p] <= Dist[idx]) break;
+                long tmpD = Dist[p]; Dist[p] = Dist[idx]; Dist[idx] = tmpD;
+                int tmpV = V[p]; V[p] = V[idx]; V[idx] = tmpV;
+                Pos[V[p]] = p;
+                Pos[V[idx]] = idx;
+                idx = p;
+            }
+        }
+
+        public int Pop(out long d)
+        {
+            int u = V[0];
+            d = Dist[0];
+            Pos[u] = -1;
+            Size--;
+            if (Size > 0)
+            {
+                Dist[0] = Dist[Size];
+                V[0] = V[Size];
+                Pos[V[0]] = 0;
+                int idx = 0;
+                while (idx * 2 + 1 < Size)
+                {
+                    int left = idx * 2 + 1;
+                    int right = idx * 2 + 2;
+                    int smallest = left;
+                    if (right < Size && Dist[right] < Dist[left]) smallest = right;
+                    if (Dist[idx] <= Dist[smallest]) break;
+                    long tmpD = Dist[idx]; Dist[idx] = Dist[smallest]; Dist[smallest] = tmpD;
+                    int tmpV = V[idx]; V[idx] = V[smallest]; V[smallest] = tmpV;
+                    Pos[V[idx]] = idx;
+                    Pos[V[smallest]] = smallest;
+                    idx = smallest;
+                }
+            }
+            return u;
+        }
+    }
+
     public static unsafe class Dijkstra
     {
         public static void Run(int n, int start, int* head, int* to, int* next, int* weight, long* dist, int* parent)
@@ -10,27 +84,28 @@ namespace IAFahim.Graph
             for (int i = 0; i < n; i++) dist[i] = long.MaxValue;
             for (int i = 0; i < n; i++) parent[i] = -1;
             dist[start] = 0;
-            var pq = new System.Collections.Generic.SortedSet<(long d, int v)>();
-            pq.Add((0, start));
-            while (pq.Count > 0)
+            var pq = new SpMinHeap(n);
+            try
             {
-                var cur = pq.Min;
-                pq.Remove(cur);
-                if (cur.d != dist[cur.v]) continue;
-                int u = cur.v;
-                for (int e = head[u]; e != 0; e = next[e])
+                pq.PushOrUpdate(start, 0);
+                while (pq.Size > 0)
                 {
-                    int v = to[e];
-                    long nd = dist[u] + weight[e];
-                    if (nd < dist[v])
+                    int u = pq.Pop(out long d);
+                    if (d != dist[u]) continue;
+                    for (int e = head[u]; e != 0; e = next[e])
                     {
-                        pq.Remove((dist[v], v));
-                        dist[v] = nd;
-                        parent[v] = u;
-                        pq.Add((nd, v));
+                        int v = to[e];
+                        long nd = dist[u] + weight[e];
+                        if (nd < dist[v])
+                        {
+                            dist[v] = nd;
+                            parent[v] = u;
+                            pq.PushOrUpdate(v, nd);
+                        }
                     }
                 }
             }
+            finally { pq.Dispose(); }
         }
     }
 
@@ -41,27 +116,28 @@ namespace IAFahim.Graph
             for (int i = 0; i < n; i++) dist[i] = long.MaxValue;
             for (int i = 0; i < n; i++) parent[i] = -1;
             dist[start] = 0;
-            var pq = new System.Collections.Generic.SortedSet<(long d, int v)>();
-            pq.Add((0, start));
-            while (pq.Count > 0)
+            var pq = new SpMinHeap(n);
+            try
             {
-                var cur = pq.Min;
-                pq.Remove(cur);
-                if (cur.d != dist[cur.v]) continue;
-                int u = cur.v;
-                for (int e = head[u]; e != 0; e = next[e])
+                pq.PushOrUpdate(start, 0);
+                while (pq.Size > 0)
                 {
-                    int v = to[e];
-                    long nd = dist[u] + weight[e];
-                    if (nd < dist[v])
+                    int u = pq.Pop(out long d);
+                    if (d != dist[u]) continue;
+                    for (int e = head[u]; e != 0; e = next[e])
                     {
-                        pq.Remove((dist[v], v));
-                        dist[v] = nd;
-                        parent[v] = u;
-                        pq.Add((nd, v));
+                        int v = to[e];
+                        long nd = dist[u] + weight[e];
+                        if (nd < dist[v])
+                        {
+                            dist[v] = nd;
+                            parent[v] = u;
+                            pq.PushOrUpdate(v, nd);
+                        }
                     }
                 }
             }
+            finally { pq.Dispose(); }
         }
     }
 
@@ -268,26 +344,28 @@ namespace IAFahim.Graph
             {
                 for (int i = 0; i < n; i++) dist[s * n + i] = long.MaxValue;
                 dist[s * n + s] = 0;
-                var pq = new System.Collections.Generic.SortedSet<(long d, int v)>();
-                pq.Add((0, s));
-                while (pq.Count > 0)
+                var pq = new SpMinHeap(n);
+                try
                 {
-                    var cur = pq.Min;
-                    pq.Remove(cur);
-                    if (cur.d != dist[s * n + cur.v]) continue;
-                    for (int i = 0; i < m; i++)
+                    pq.PushOrUpdate(s, 0);
+                    while (pq.Size > 0)
                     {
-                        if (eu[i] != cur.v) continue;
-                        int v = ev[i];
-                        long nd = cur.d + ew[i] + h[s] - h[v];
-                        if (nd < dist[s * n + v])
+                        int u = pq.Pop(out long d);
+                        if (d != dist[s * n + u]) continue;
+                        for (int i = 0; i < m; i++)
                         {
-                            pq.Remove((dist[s * n + v], v));
-                            dist[s * n + v] = nd;
-                            pq.Add((nd, v));
+                            if (eu[i] != u) continue;
+                            int v = ev[i];
+                            long nd = d + ew[i] + h[s] - h[v];
+                            if (nd < dist[s * n + v])
+                            {
+                                dist[s * n + v] = nd;
+                                pq.PushOrUpdate(v, nd);
+                            }
                         }
                     }
                 }
+                finally { pq.Dispose(); }
                 for (int t = 0; t < n; t++)
                 {
                     if (dist[s * n + t] != long.MaxValue)
@@ -342,28 +420,29 @@ namespace IAFahim.Graph
             for (int i = 0; i < n; i++) dist[i] = long.MaxValue;
             for (int i = 0; i < n; i++) parent[i] = -1;
             dist[start] = 0;
-            var pq = new System.Collections.Generic.SortedSet<(long d, int v)>();
-            pq.Add((0, start));
-            while (pq.Count > 0)
+            var pq = new SpMinHeap(n);
+            try
             {
-                var cur = pq.Min;
-                pq.Remove(cur);
-                if (cur.d != dist[cur.v]) continue;
-                int u = cur.v;
-                for (int e = head[u]; e != 0; e = next[e])
+                pq.PushOrUpdate(start, 0);
+                while (pq.Size > 0)
                 {
-                    int v = to[e];
-                    long reduced = weight[e] + potential[u] - potential[v];
-                    long nd = dist[u] + reduced;
-                    if (nd < dist[v])
+                    int u = pq.Pop(out long d);
+                    if (d != dist[u]) continue;
+                    for (int e = head[u]; e != 0; e = next[e])
                     {
-                        pq.Remove((dist[v], v));
-                        dist[v] = nd;
-                        parent[v] = u;
-                        pq.Add((nd, v));
+                        int v = to[e];
+                        long reduced = weight[e] + potential[u] - potential[v];
+                        long nd = dist[u] + reduced;
+                        if (nd < dist[v])
+                        {
+                            dist[v] = nd;
+                            parent[v] = u;
+                            pq.PushOrUpdate(v, nd);
+                        }
                     }
                 }
             }
+            finally { pq.Dispose(); }
             for (int i = 0; i < n; i++)
             {
                 if (dist[i] != long.MaxValue)

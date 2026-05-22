@@ -5,36 +5,66 @@ namespace IAFahim.Geometry.Voronoi
 
     public static unsafe class Delaunay
     {
+        public struct Triangle { public int A, B, C; }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Flip(double* xs, double* ys, int n, int* outA, int* outB, int* outC)
+        private static bool InCircle(double ax, double ay, double bx, double by, double cx, double cy, double dx, double dy)
         {
-            int t = 0;
-            for (int i = 0; i < n; i++)
-            for (int j = i + 1; j < n; j++)
-            for (int k = j + 1; k < n; k++)
-            {
-                double x1 = xs[i], y1 = ys[i], x2 = xs[j], y2 = ys[j], x3 = xs[k], y3 = ys[k];
-                double cx = (x1 + x2 + x3) / 3, cy = (y1 + y2 + y3) / 3;
-                double r = Math.Sqrt((x1 - cx) * (x1 - cx) + (y1 - cy) * (y1 - cy));
-                bool inside = false;
-                for (int p = 0; p < n; p++)
-                {
-                    if (p == i || p == j || p == k) continue;
-                    double d = Math.Sqrt((xs[p] - cx) * (xs[p] - cx) + (ys[p] - cy) * (ys[p] - cy));
-                    if (d < r - 1e-9) { inside = true; break; }
-                }
-                if (!inside)
-                {
-                    outA[t] = i; outB[t] = j; outC[t++] = k;
-                }
-            }
-            return t;
+            double adx = ax - dx, ady = ay - dy;
+            double bdx = bx - dx, bdy = by - dy;
+            double cdx = cx - dx, cdy = cy - dy;
+
+            double abdet = adx * bdy - bdx * ady;
+            double bcdet = bdx * cdy - cdx * bdy;
+            double cadet = cdx * ady - adx * cdy;
+            double alift = adx * adx + ady * ady;
+            double blift = bdx * bdx + bdy * bdy;
+            double clift = cdx * cdx + cdy * cdy;
+
+            return alift * bcdet + blift * cadet + clift * abdet > 0;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Constrained(double* xs, double* ys, int n, int* edges, int ec, int* outA, int* outB, int* outC)
+        public static int Build(double* xs, double* ys, int n, Triangle* outTriangles)
         {
-            return Flip(xs, ys, n, outA, outB, outC);
+            if (n < 3) return 0;
+            int count = 0;
+
+            for (int i = 0; i < n; i++)
+            {
+                for (int j = i + 1; j < n; j++)
+                {
+                    for (int k = j + 1; k < n; k++)
+                    {
+                        // Check if CCW
+                        double cross = (xs[j] - xs[i]) * (ys[k] - ys[i]) - (ys[j] - ys[i]) * (xs[k] - xs[i]);
+                        if (Math.Abs(cross) < 1e-9) continue;
+
+                        int u = i, v = j, w = k;
+                        if (cross < 0) { u = j; v = i; } // Force CCW
+
+                        bool valid = true;
+                        for (int t = 0; t < n; t++)
+                        {
+                            if (t == i || t == j || t == k) continue;
+                            if (InCircle(xs[u], ys[u], xs[v], ys[v], xs[w], ys[w], xs[t], ys[t]))
+                            {
+                                valid = false;
+                                break;
+                            }
+                        }
+
+                        if (valid)
+                        {
+                            outTriangles[count].A = u;
+                            outTriangles[count].B = v;
+                            outTriangles[count].C = w;
+                            count++;
+                        }
+                    }
+                }
+            }
+            return count;
         }
     }
 }

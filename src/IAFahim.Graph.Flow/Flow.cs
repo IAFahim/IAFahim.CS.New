@@ -3,34 +3,111 @@ namespace IAFahim.Graph.Flow
     using System;
     using System.Runtime.CompilerServices;
 
+    internal unsafe struct MinHeap
+    {
+        public long* Dist;
+        public int* V;
+        public int* Pos;
+        public int Size;
+
+        public MinHeap(int n)
+        {
+            Dist = (long*)System.Runtime.InteropServices.Marshal.AllocHGlobal(n * sizeof(long));
+            V = (int*)System.Runtime.InteropServices.Marshal.AllocHGlobal(n * sizeof(int));
+            Pos = (int*)System.Runtime.InteropServices.Marshal.AllocHGlobal(n * sizeof(int));
+            for (int i = 0; i < n; i++) Pos[i] = -1;
+            Size = 0;
+        }
+
+        public void Dispose()
+        {
+            System.Runtime.InteropServices.Marshal.FreeHGlobal((nint)Dist);
+            System.Runtime.InteropServices.Marshal.FreeHGlobal((nint)V);
+            System.Runtime.InteropServices.Marshal.FreeHGlobal((nint)Pos);
+        }
+
+        public void PushOrUpdate(int v, long d)
+        {
+            int idx = Pos[v];
+            if (idx == -1)
+            {
+                idx = Size++;
+                V[idx] = v;
+            }
+            Dist[idx] = d;
+            while (idx > 0)
+            {
+                int p = (idx - 1) / 2;
+                if (Dist[p] <= Dist[idx]) break;
+                long tmpD = Dist[p]; Dist[p] = Dist[idx]; Dist[idx] = tmpD;
+                int tmpV = V[p]; V[p] = V[idx]; V[idx] = tmpV;
+                Pos[V[p]] = p;
+                Pos[V[idx]] = idx;
+                idx = p;
+            }
+        }
+
+        public int Pop(out long d)
+        {
+            int u = V[0];
+            d = Dist[0];
+            Pos[u] = -1;
+            Size--;
+            if (Size > 0)
+            {
+                Dist[0] = Dist[Size];
+                V[0] = V[Size];
+                Pos[V[0]] = 0;
+                int idx = 0;
+                while (idx * 2 + 1 < Size)
+                {
+                    int left = idx * 2 + 1;
+                    int right = idx * 2 + 2;
+                    int smallest = left;
+                    if (right < Size && Dist[right] < Dist[left]) smallest = right;
+                    if (Dist[idx] <= Dist[smallest]) break;
+                    long tmpD = Dist[idx]; Dist[idx] = Dist[smallest]; Dist[smallest] = tmpD;
+                    int tmpV = V[idx]; V[idx] = V[smallest]; V[smallest] = tmpV;
+                    Pos[V[idx]] = idx;
+                    Pos[V[smallest]] = smallest;
+                    idx = smallest;
+                }
+            }
+            return u;
+        }
+    }
+
     public static unsafe class PotentialDijkstra
     {
         public static bool Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, long* pot, long* dist, int* parent, int* parentEdge)
         {
             for (int i = 0; i < n; i++) dist[i] = long.MaxValue;
             dist[s] = 0;
-            var pq = new System.Collections.Generic.SortedSet<(long d, int v)>();
-            pq.Add((0, s));
-            while (pq.Count > 0)
+            var pq = new MinHeap(n);
+            try
             {
-                var cur = pq.Min;
-                pq.Remove(cur);
-                if (cur.d != dist[cur.v]) continue;
-                if (cur.v == t) break;
-                for (int e = head[cur.v]; e != 0; e = next[e])
+                pq.PushOrUpdate(s, 0);
+                while (pq.Size > 0)
                 {
-                    if (cap[e] <= 0) continue;
-                    int v = to[e];
-                    long nd = cur.d + pot[cur.v] + cost[e] - pot[v];
-                    if (nd < dist[v])
+                    int u = pq.Pop(out long d);
+                    if (d != dist[u]) continue;
+                    if (u == t) break;
+                    for (int e = head[u]; e != 0; e = next[e])
                     {
-                        dist[v] = nd;
-                        parent[v] = cur.v;
-                        parentEdge[v] = e;
-                        pq.Add((nd, v));
+                        if (cap[e] <= 0) continue;
+                        int v = to[e];
+                        long nd = d + pot[u] + cost[e] - pot[v];
+                        if (nd < dist[v])
+                        {
+                            dist[v] = nd;
+                            parent[v] = u;
+                            parentEdge[v] = e;
+                            pq.PushOrUpdate(v, nd);
+                        }
                     }
                 }
             }
+            finally { pq.Dispose(); }
             for (int i = 0; i < n; i++)
             {
                 if (dist[i] < long.MaxValue) pot[i] += dist[i];
@@ -381,27 +458,30 @@ namespace IAFahim.Graph.Flow
             {
                 for (int i = 0; i < n; i++) dist[i] = long.MaxValue;
                 dist[s] = 0;
-                var pq = new System.Collections.Generic.SortedSet<(long d, int v)>();
-                pq.Add((0, s));
-                while (pq.Count > 0)
+                var pq = new MinHeap(n);
+                try
                 {
-                    var cur = pq.Min;
-                    pq.Remove(cur);
-                    if (cur.d != dist[cur.v]) continue;
-                    for (int e = head[cur.v]; e != 0; e = next[e])
+                    pq.PushOrUpdate(s, 0);
+                    while (pq.Size > 0)
                     {
-                        if (cap[e] <= 0) continue;
-                        int v = to[e];
-                        long nd = cur.d + cost[e];
-                        if (nd < dist[v])
+                        int u = pq.Pop(out long d);
+                        if (d != dist[u]) continue;
+                        for (int e = head[u]; e != 0; e = next[e])
                         {
-                            dist[v] = nd;
-                            parent[v] = cur.v;
-                            parentEdge[v] = e;
-                            pq.Add((nd, v));
+                            if (cap[e] <= 0) continue;
+                            int v = to[e];
+                            long nd = d + cost[e];
+                            if (nd < dist[v])
+                            {
+                                dist[v] = nd;
+                                parent[v] = u;
+                                parentEdge[v] = e;
+                                pq.PushOrUpdate(v, nd);
+                            }
                         }
                     }
                 }
+                finally { pq.Dispose(); }
                 if (dist[t] == long.MaxValue) break;
                 int add = int.MaxValue;
                 for (int v = t; v != s; v = parent[v])

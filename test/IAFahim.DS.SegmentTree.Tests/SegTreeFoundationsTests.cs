@@ -19,6 +19,8 @@ namespace IAFahim.DS.SegmentTree.Tests
             Assert.Equal(0L, result);
         }
 
+
+
         [Fact]
         public void ChairmanTree_Kth()
         {
@@ -31,14 +33,15 @@ namespace IAFahim.DS.SegmentTree.Tests
             int* lc = (int*)Marshal.AllocHGlobal(maxNodes * sizeof(int));
             int* rc = (int*)Marshal.AllocHGlobal(maxNodes * sizeof(int));
             int* cnt = (int*)Marshal.AllocHGlobal(maxNodes * sizeof(int));
+            long* sumArr = (long*)Marshal.AllocHGlobal(maxNodes * sizeof(long));
             int alloc = 0;
 
             try
             {
-                for (int i = 0; i < maxNodes; i++) { lc[i] = rc[i] = cnt[i] = 0; }
+                for (int i = 0; i < maxNodes; i++) { lc[i] = rc[i] = cnt[i] = 0; sumArr[i] = 0; }
                 for (int i = 0; i <= N; i++) roots[i] = 0;
 
-                ChairmanTreeBuild.Run(arr, N, 1, 5, roots, lc, rc, cnt, &alloc);
+                ChairmanTreeBuild.Run(arr, N, 1, 5, roots, lc, rc, cnt, sumArr, &alloc);
 
                 int kth = ChairmanTreeKth.Run(roots[0], roots[N], 1, 5, 2, lc, rc, cnt);
                 Assert.True(kth >= 1 && kth <= 5);
@@ -49,6 +52,7 @@ namespace IAFahim.DS.SegmentTree.Tests
                 Marshal.FreeHGlobal((nint)lc);
                 Marshal.FreeHGlobal((nint)rc);
                 Marshal.FreeHGlobal((nint)cnt);
+                Marshal.FreeHGlobal((nint)sumArr);
             }
         }
 

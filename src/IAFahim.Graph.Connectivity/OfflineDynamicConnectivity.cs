@@ -18,7 +18,7 @@ namespace IAFahim.Graph.Connectivity
             EdgeInterval* edges, int edgeCount,
             int* parent, int* size,
             RollbackOp* history, ref int historyCount,
-            int* answers)
+            int* answers, int* queriesType, int* queriesU, int* queriesV)
         {
             if (l > r) return;
 
@@ -40,8 +40,10 @@ namespace IAFahim.Graph.Connectivity
 
             if (l == r)
             {
-                // Normally process queries at time `l` and store in `answers`
-                // Example: answers[l] = numberOfComponents;
+                if (queriesType != null && queriesType[l] == 2)
+                {
+                    answers[l] = OfflineDynamicMst.Find(parent, queriesU[l]) == OfflineDynamicMst.Find(parent, queriesV[l]) ? 1 : 0;
+                }
             }
             else
             {
@@ -50,8 +52,8 @@ namespace IAFahim.Graph.Connectivity
                 for (int i = 0; i < activeEdges; i++)
                     nextEdges[i] = edges[activeIndices[i]];
 
-                Solve(l, mid, nextEdges, activeEdges, parent, size, history, ref historyCount, answers);
-                Solve(mid + 1, r, nextEdges, activeEdges, parent, size, history, ref historyCount, answers);
+                Solve(l, mid, nextEdges, activeEdges, parent, size, history, ref historyCount, answers, queriesType, queriesU, queriesV);
+                Solve(mid + 1, r, nextEdges, activeEdges, parent, size, history, ref historyCount, answers, queriesType, queriesU, queriesV);
             }
 
             OfflineDynamicMst.Rollback(parent, size, history, ref historyCount, initialHistory);

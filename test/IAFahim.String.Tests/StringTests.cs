@@ -104,11 +104,11 @@ namespace IAFahim.String.Tests
             {
                 for (int i = 0; i < maxLen * 256; i++) next[i] = 0;
                 for (int i = 0; i < maxLen; i++) { link[i] = 0; len[i] = 0; }
-                len[0] = 1;
+                len[0] = 2;
                 len[1] = 0;
                 len[2] = -1;
-                link[1] = 0;
-                link[0] = 1;
+                link[1] = 2;
+                link[2] = 2;
                 int last = 1;
                 byte* s = stackalloc byte[5] { (byte)'a', (byte)'b', (byte)'a', (byte)'b', (byte)'a' };
                 for (int i = 0; i < 5; i++)

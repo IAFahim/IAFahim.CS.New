@@ -2,63 +2,63 @@
 Prerequisites for everything else.
 
 ## 1.1 Number Theory
-- [ ] linearSieveMinPrime — Linear sieve for min prime factor
-- [ ] linearSieveMaxPrime — Linear sieve for max prime factor
-- [ ] linearSievePhi — Euler totient via linear sieve
-- [ ] linearSieveMobius — Mobius function via linear sieve
-- [ ] linearSieveDivisorCount — Divisor count function
-- [ ] linearSieveDivisorSum — Divisor sum function
-- [ ] minPrimeFactor — Basic SPF
-- [ ] primeFactorPower — Prime factorization power extraction
-- [ ] primePiLehmer — Prime counting pi(x)
-- [ ] primePiMeissel — Meissel-Lehmer method
-- [ ] minMaxDivisorTransform — Min/max convolution on divisors
-- [ ] gcdConvolution — Dirichlet GCD convolution
-- [ ] lcmConvolution — Dirichlet LCM convolution
+- [x] linearSieveMinPrime — Linear sieve for min prime factor
+- [x] linearSieveMaxPrime — Linear sieve for max prime factor
+- [x] linearSievePhi — Euler totient via linear sieve
+- [x] linearSieveMobius — Mobius function via linear sieve
+- [x] linearSieveDivisorCount — Divisor count function
+- [x] linearSieveDivisorSum — Divisor sum function
+- [x] minPrimeFactor — Basic SPF
+- [x] primeFactorPower — Prime factorization power extraction
+- [x] primePiLehmer — Prime counting pi(x)
+- [x] primePiMeissel — Meissel-Lehmer method
+- [x] minMaxDivisorTransform — Min/max convolution on divisors
+- [x] gcdConvolution — Dirichlet GCD convolution
+- [x] lcmConvolution — Dirichlet LCM convolution
 
 ## 1.2 Convolution Primitives
-- [ ] onlineNttConvolution — NTT-based convolution
-- [ ] fftKaratsubaMultiply — Karatsuba polynomial multiplication
-- [ ] karatsubaPolynomialMul — Polynomial Karatsuba
-- [ ] polynomialShift — Polynomial shifting
-- [ ] polynomialTaylorShift — Taylor shift
-- [ ] polynomialComposition — Polynomial composition
-- [ ] polynomialMultipointInterpolate — Multipoint interpolation
+- [x] onlineNttConvolution — NTT-based convolution
+- [x] fftKaratsubaMultiply — Karatsuba polynomial multiplication
+- [x] karatsubaPolynomialMul — Polynomial Karatsuba
+- [x] polynomialShift — Polynomial shifting
+- [x] polynomialTaylorShift — Taylor shift
+- [x] polynomialComposition — Polynomial composition
+- [x] polynomialMultipointInterpolate — Multipoint interpolation
 
 ## 1.3 Basic Data Structures
-- [ ] treapImplicitLazy — Treap with implicit key, lazy propagation
-- [ ] treapAffineRange — Affine range update treap
-- [ ] treapRangeMin — Range min query treap
-- [ ] treapRangeSum — Range sum query treap
-- [ ] treapRangeReverse — Range reverse treap
-- [ ] treapRangeRotate — Range rotate treap
-- [ ] splayRangeReverse — Splay tree range reverse
-- [ ] splayRangeQuery — Splay tree range query
-- [ ] ropeInsert — Rope insert
-- [ ] ropeErase — Rope erase
-- [ ] ropeSubstring — Rope substring
-- [ ] gapBufferInsert — Gap buffer insert
-- [ ] gapBufferDelete — Gap buffer delete
-- [ ] pieceTableInsert — Piece table insert
-- [ ] pieceTableDelete — Piece table delete
+- [x] treapImplicitLazy — Treap with implicit key, lazy propagation
+- [x] treapAffineRange — Affine range update treap
+- [x] treapRangeMin — Range min query treap
+- [x] treapRangeSum — Range sum query treap
+- [x] treapRangeReverse — Range reverse treap
+- [x] treapRangeRotate — Range rotate treap
+- [x] splayRangeReverse — Splay tree range reverse
+- [x] splayRangeQuery — Splay tree range query
+- [x] ropeInsert — Rope insert
+- [x] ropeErase — Rope erase
+- [x] ropeSubstring — Rope substring
+- [x] gapBufferInsert — Gap buffer insert
+- [x] gapBufferDelete — Gap buffer delete
+- [x] pieceTableInsert — Piece table insert
+- [x] pieceTableDelete — Piece table delete
 
 ## 1.4 Segment Trees
-- [ ] persistentFenwickUpdate — Persistent BIT update
-- [ ] persistentFenwickQuery — Persistent BIT query
-- [ ] persistentLazySegmentUpdate — Persistent lazy segment tree
-- [ ] persistentLazySegmentQuery — Persistent lazy segment tree query
-- [ ] mergeSortTreeKth — Merge sort tree k-th
-- [ ] mergeSortTreeCountLess — Count less than value
-- [ ] mergeSortTreeCountGreater — Count greater than value
-- [ ] mergeSortTreePredecessor — Predecessor query
-- [ ] mergeSortTreeSuccessor — Successor query
-- [ ] chairmanTreeBuild — Chairman tree build
-- [ ] chairmanTreeUpdate — Chairman tree update
-- [ ] chairmanTreeKth — Chairman tree k-th
-- [ ] chairmanTreeCount — Chairman tree count
-- [ ] chairmanTreeSum — Chairman tree sum
-- [ ] mergeableSegmentTreeMerge — Mergeable segment tree
-- [ ] mergeableSegmentTreeUpdate — Mergeable segment tree update
-- [ ] mergeableSegmentTreeQuery — Mergeable segment tree query
-- [ ] segmentTreeOnTreeMerge — Segment tree on tree
-- [ ] persistentMergeableSegmentTree — Persistent mergeable segment tree
+- [x] persistentFenwickUpdate — Persistent BIT update
+- [x] persistentFenwickQuery — Persistent BIT query
+- [x] persistentLazySegmentUpdate — Persistent lazy segment tree
+- [x] persistentLazySegmentQuery — Persistent lazy segment tree query
+- [x] mergeSortTreeKth — Merge sort tree k-th
+- [x] mergeSortTreeCountLess — Count less than value
+- [x] mergeSortTreeCountGreater — Count greater than value
+- [x] mergeSortTreePredecessor — Predecessor query
+- [x] mergeSortTreeSuccessor — Successor query
+- [x] chairmanTreeBuild — Chairman tree build
+- [x] chairmanTreeUpdate — Chairman tree update
+- [x] chairmanTreeKth — Chairman tree k-th
+- [x] chairmanTreeCount — Chairman tree count
+- [x] chairmanTreeSum — Chairman tree sum
+- [x] mergeableSegmentTreeMerge — Mergeable segment tree
+- [x] mergeableSegmentTreeUpdate — Mergeable segment tree update
+- [x] mergeableSegmentTreeQuery — Mergeable segment tree query
+- [x] segmentTreeOnTreeMerge — Segment tree on tree
+- [x] persistentMergeableSegmentTree — Persistent mergeable segment tree

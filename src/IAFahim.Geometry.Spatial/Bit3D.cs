@@ -5,23 +5,39 @@ namespace IAFahim.Geometry.Spatial
 
     public static unsafe class Bit3D
     {
-        public struct BIT3D { public int X, Y, Z; public int Size; public long* Tree; }
+        public struct BIT3D
+        {
+            public int X, Y, Z;
+            public int Size;
+            public long* Tree;
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Init(BIT3D* bit, int x, int y, int z)
         {
-            bit->X = x; bit->Y = y; bit->Z = z;
+            bit->X = x;
+            bit->Y = y;
+            bit->Z = z;
             bit->Size = x * y * z;
+            for (int i = 0; i < bit->Size; i++)
+            {
+                bit->Tree[i] = 0;
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Add(BIT3D* bit, int xi, int yi, int zi, long val)
         {
-            for (int i = xi; i < bit->X; i += i & -i)
-            for (int j = yi; j < bit->Y; j += j & -j)
-            for (int k = zi; k < bit->Z; k += k & -k)
+            for (int i = xi + 1; i <= bit->X; i += i & -i)
             {
-                long idx = (long)i * bit->Y * bit->Z + (long)j * bit->Z + k;
+                for (int j = yi + 1; j <= bit->Y; j += j & -j)
+                {
+                    for (int k = zi + 1; k <= bit->Z; k += k & -k)
+                    {
+                        long idx = (long)(i - 1) * bit->Y * bit->Z + (long)(j - 1) * bit->Z + (k - 1);
+                        bit->Tree[idx] += val;
+                    }
+                }
             }
         }
 
@@ -29,12 +45,16 @@ namespace IAFahim.Geometry.Spatial
         public static long Sum(BIT3D* bit, int xi, int yi, int zi)
         {
             long res = 0;
-            for (int i = xi; i > 0; i -= i & -i)
-            for (int j = yi; j > 0; j -= j & -j)
-            for (int k = zi; k > 0; k -= k & -k)
+            for (int i = xi + 1; i > 0; i -= i & -i)
             {
-                long idx = (long)i * bit->Y * bit->Z + (long)j * bit->Z + k;
-                res += idx;
+                for (int j = yi + 1; j > 0; j -= j & -j)
+                {
+                    for (int k = zi + 1; k > 0; k -= k & -k)
+                    {
+                        long idx = (long)(i - 1) * bit->Y * bit->Z + (long)(j - 1) * bit->Z + (k - 1);
+                        res += bit->Tree[idx];
+                    }
+                }
             }
             return res;
         }
