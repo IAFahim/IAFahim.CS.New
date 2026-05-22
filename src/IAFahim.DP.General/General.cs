@@ -346,7 +346,7 @@ namespace IAFahim.DP.General
         {
             for (int i = 0; i < n; i++)
             {
-                dp[i] = 0;
+                dp[i * n + i] = 0;
                 opt[i] = i;
             }
             for (int len = 2; len <= m; len++)
@@ -367,11 +367,12 @@ namespace IAFahim.DP.General
                             bestK = k;
                         }
                     }
+                    dp[i * n + j] = best;
                     tmp[i * n + j] = best;
                     opt[i] = bestK;
                 }
             }
-            return dp[0];
+            return dp[0 * n + (m - 1)];
         }
     }
 

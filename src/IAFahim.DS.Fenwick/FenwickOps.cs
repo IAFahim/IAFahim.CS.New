@@ -149,10 +149,11 @@ namespace IAFahim.DS.Fenwick
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Run(long* bit1, long* bit2, int bitLen, int idx, long val)
         {
+            long valStart = val * idx;
             for (idx += 1; idx <= bitLen; idx += idx & -idx)
             {
                 bit1[idx] += val;
-                bit2[idx] += val * (idx - 1);
+                bit2[idx] += valStart;
             }
         }
 
@@ -167,12 +168,13 @@ namespace IAFahim.DS.Fenwick
         public static long PrefixQuery(long* bit1, long* bit2, int idx)
         {
             long res1 = 0, res2 = 0;
+            int q = idx + 1;
             for (idx += 1; idx > 0; idx -= idx & -idx)
             {
                 res1 += bit1[idx];
                 res2 += bit2[idx];
             }
-            return res1 * idx - res2;
+            return res1 * q - res2;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

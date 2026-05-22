@@ -22,7 +22,7 @@ namespace AlgoArena.Tests
             try
             {
                 for (int i = 0; i < n; i++) head[i] = 0;
-                *edgeId = 0;
+                *edgeId = 1;
 
                 AddWeightedEdge.Run(head, to, next, weight, edgeId, 0, 1, 5, edgeId);
 
@@ -58,7 +58,7 @@ namespace AlgoArena.Tests
             try
             {
                 for (int i = 0; i < n; i++) head[i] = 0;
-                *edgeId = 0;
+                *edgeId = 1;
 
                 AddWeightedEdge.Run(head, to, next, weight, edgeId, 0, 1, 1, edgeId);
                 AddWeightedEdge.Run(head, to, next, weight, edgeId, 1, 2, 1, edgeId);
@@ -99,7 +99,7 @@ namespace AlgoArena.Tests
             try
             {
                 for (int i = 0; i < n; i++) head[i] = 0;
-                *edgeId = 0;
+                *edgeId = 1;
 
                 AddWeightedEdge.Run(head, to, next, weight, edgeId, 0, 1, 2, edgeId);
 
@@ -189,7 +189,7 @@ namespace AlgoArena.Tests
             try
             {
                 for (int i = 0; i < n; i++) head[i] = 0;
-                *edgeId = 0;
+                *edgeId = 1;
 
                 AddWeightedEdge.Run(head, to, next, weight, edgeId, 0, 1, 1, edgeId);
                 AddWeightedEdge.Run(head, to, next, weight, edgeId, 0, 2, 1, edgeId);
@@ -229,7 +229,7 @@ namespace AlgoArena.Tests
             try
             {
                 for (int i = 0; i < n; i++) head[i] = 0;
-                *edgeId = 0;
+                *edgeId = 1;
 
                 AddWeightedEdge.Run(head, to, next, weight, edgeId, 0, 1, 1, edgeId);
 

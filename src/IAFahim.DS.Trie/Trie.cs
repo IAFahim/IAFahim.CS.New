@@ -110,15 +110,15 @@ namespace IAFahim.DS.Trie
             for (int i = bits - 1; i >= 0; i--)
             {
                 int b = (val >> i) & 1;
-                int next = trie[cur * 2 + b];
+                int next = trie[cur * 3 + 1 + b];
                 if (next == 0)
                 {
                     next = ++trie[0];
-                    trie[cur * 2 + b] = next;
+                    trie[cur * 3 + 1 + b] = next;
                 }
                 cur = next;
             }
-            trie[cur * 2]++;
+            trie[cur * 3 + 3]++;
         }
     }
 
@@ -133,15 +133,15 @@ namespace IAFahim.DS.Trie
             {
                 int b = (val >> i) & 1;
                 path[pathLen++] = cur;
-                cur = trie[cur * 2 + b];
+                cur = trie[cur * 3 + 1 + b];
             }
-            trie[cur * 2]--;
+            trie[cur * 3 + 3]--;
             for (int i = pathLen - 1; i >= 0; i--)
             {
                 int b = (val >> (bits - 1 - i)) & 1;
-                int child = trie[path[i] * 2 + b];
-                if (trie[child * 2] == 0 && trie[child * 2 + 0] == 0 && trie[child * 2 + 1] == 0)
-                    trie[path[i] * 2 + b] = 0;
+                int child = trie[path[i] * 3 + 1 + b];
+                if (trie[child * 3 + 3] == 0 && trie[child * 3 + 1] == 0 && trie[child * 3 + 2] == 0)
+                    trie[path[i] * 3 + 1 + b] = 0;
             }
         }
     }
@@ -156,14 +156,14 @@ namespace IAFahim.DS.Trie
             {
                 int b = (val >> i) & 1;
                 int want = 1 - b;
-                if (trie[cur * 2 + want] != 0)
+                if (trie[cur * 3 + 1 + want] != 0)
                 {
                     result |= (1 << i);
-                    cur = trie[cur * 2 + want];
+                    cur = trie[cur * 3 + 1 + want];
                 }
                 else
                 {
-                    cur = trie[cur * 2 + b];
+                    cur = trie[cur * 3 + 1 + b];
                 }
             }
             return result;
@@ -180,14 +180,14 @@ namespace IAFahim.DS.Trie
             {
                 int b = (val >> i) & 1;
                 int want = b;
-                if (trie[cur * 2 + want] != 0)
+                if (trie[cur * 3 + 1 + want] != 0)
                 {
-                    cur = trie[cur * 2 + want];
+                    cur = trie[cur * 3 + 1 + want];
                 }
                 else
                 {
                     result |= (1 << i);
-                    cur = trie[cur * 2 + (1 - want)];
+                    cur = trie[cur * 3 + 1 + (1 - want)];
                 }
             }
             return result;
@@ -203,13 +203,13 @@ namespace IAFahim.DS.Trie
             for (int i = bits - 1; i >= 0; i--)
             {
                 int b = (val >> i) & 1;
-                int oldNext = oldTrie[cur * 2 + b];
+                int oldNext = oldTrie[cur * 3 + 1 + b];
                 int newNext = ++newTrie[0];
-                newTrie[newCur * 2 + b] = newNext;
+                newTrie[newCur * 3 + 1 + b] = newNext;
                 newCur = newNext;
                 cur = oldNext;
             }
-            newTrie[newCur * 2]++;
+            newTrie[newCur * 3 + 3]++;
             return newCur;
         }
     }
@@ -223,10 +223,10 @@ namespace IAFahim.DS.Trie
             for (int i = bits - 1; i >= 0; i--)
             {
                 int b = (val >> i) & 1;
-                int next = trie[cur * 2 + b];
+                int next = trie[cur * 3 + 1 + b];
                 if (next == 0)
                 {
-                    next = trie[cur * 2 + (1 - b)];
+                    next = trie[cur * 3 + 1 + (1 - b)];
                 }
                 else
                 {

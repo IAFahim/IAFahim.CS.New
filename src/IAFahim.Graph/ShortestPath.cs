@@ -33,6 +33,7 @@ namespace IAFahim.Graph
             {
                 idx = Size++;
                 V[idx] = v;
+                Pos[v] = idx;
             }
             Dist[idx] = d;
             while (idx > 0)

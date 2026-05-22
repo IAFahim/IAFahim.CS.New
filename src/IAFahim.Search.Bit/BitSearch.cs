@@ -40,7 +40,7 @@ namespace IAFahim.Search.Bit
                 while (lo < hi)
                 {
                     int mid = (lo + hi) >> 1;
-                    if (tail[mid] <= arr[i]) lo = mid + 1;
+                    if (tail[mid] > arr[i]) lo = mid + 1;
                     else hi = mid;
                 }
                 pos = lo;
@@ -125,8 +125,11 @@ namespace IAFahim.Search.Bit
     {
         public static int Run(int n, int* arr)
         {
+            if (n <= 0) return 0;
             int* inc = stackalloc int[n];
             int* dec = stackalloc int[n];
+            int* lisLengths = stackalloc int[n];
+            int* ldsLengths = stackalloc int[n];
             int lenI = 0, lenD = 0;
             for (int i = 0; i < n; i++)
             {
@@ -139,6 +142,7 @@ namespace IAFahim.Search.Bit
                 }
                 inc[lo] = i;
                 if (lo >= lenI) lenI++;
+                lisLengths[i] = lo + 1;
             }
             for (int i = n - 1; i >= 0; i--)
             {
@@ -146,13 +150,20 @@ namespace IAFahim.Search.Bit
                 while (lo < hi)
                 {
                     int mid = (lo + hi) >> 1;
-                    if (arr[dec[mid]] > arr[i]) lo = mid + 1;
+                    if (arr[dec[mid]] < arr[i]) lo = mid + 1;
                     else hi = mid;
                 }
                 dec[lo] = i;
                 if (lo >= lenD) lenD++;
+                ldsLengths[i] = lo + 1;
             }
-            return lenI + lenD - 1;
+            int maxLen = 0;
+            for (int i = 0; i < n; i++)
+            {
+                int val = lisLengths[i] + ldsLengths[i] - 1;
+                if (val > maxLen) maxLen = val;
+            }
+            return maxLen;
         }
     }
 
@@ -170,7 +181,7 @@ namespace IAFahim.Search.Bit
                     if (tops[mid] < arr[i]) lo = mid + 1;
                     else hi = mid;
                 }
-                piles[i] = lo;
+                piles[i] = lo + 1;
                 tops[lo] = arr[i];
                 if (lo >= numPiles) numPiles++;
             }

@@ -42,7 +42,7 @@ namespace IAFahim.Graph
         public static void Run(int n, int m, int* edges, int* head, int* to, int* next, int* edgeId, bool directed)
         {
             for (int i = 0; i < n; i++) head[i] = 0;
-            *edgeId = 0;
+            *edgeId = 1;
             for (int i = 0; i < m; i++)
             {
                 int u = edges[i * 2];
@@ -59,7 +59,7 @@ namespace IAFahim.Graph
         public static void Run(int n, int* head, int* to, int* next, int* revHead, int* revTo, int* revNext, int* revEdgeId)
         {
             for (int i = 0; i < n; i++) revHead[i] = 0;
-            *revEdgeId = 0;
+            *revEdgeId = 1;
             for (int u = 0; u < n; u++)
             {
                 for (int e = head[u]; e != 0; e = next[e])

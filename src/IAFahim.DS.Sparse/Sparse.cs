@@ -61,16 +61,45 @@ namespace IAFahim.DS.Sparse
     {
         public static void RunInt64(long* arr, long* table, int* blockSize, int n)
         {
-            int b = 0;
-            while ((1 << b) <= n) b++;
-            b--;
-            int sz = 1 << b;
+            int levels = 0;
+            while ((1 << levels) < n) levels++;
+            if (levels == 0) levels = 1;
+            *blockSize = n;
+
             for (int i = 0; i < n; i++)
             {
-                int base_ = i * b;
-                table[base_] = arr[i];
-                for (int j = 1; j < sz && i + j < n; j++)
-                    table[base_ + j] = Math.Min(table[base_ + j - 1], arr[i + j]);
+                table[i] = arr[i];
+            }
+
+            for (int j = 0; j < levels; j++)
+            {
+                int half = 1 << j;
+                int blockSizeBytes = 1 << (j + 1);
+                for (int blockStart = 0; blockStart < n; blockStart += blockSizeBytes)
+                {
+                    int mid = blockStart + half - 1;
+                    if (mid >= n) mid = n - 1;
+
+                    long currentMin = arr[mid];
+                    table[j * n + mid] = currentMin;
+                    for (int i = mid - 1; i >= blockStart; i--)
+                    {
+                        currentMin = currentMin < arr[i] ? currentMin : arr[i];
+                        table[j * n + i] = currentMin;
+                    }
+
+                    if (mid + 1 < n)
+                    {
+                        currentMin = arr[mid + 1];
+                        table[j * n + mid + 1] = currentMin;
+                        int end = Math.Min(blockStart + blockSizeBytes - 1, n - 1);
+                        for (int i = mid + 2; i <= end; i++)
+                        {
+                            currentMin = currentMin < arr[i] ? currentMin : arr[i];
+                            table[j * n + i] = currentMin;
+                        }
+                    }
+                }
             }
         }
     }
@@ -79,29 +108,17 @@ namespace IAFahim.DS.Sparse
     {
         public static long RangeMinInt64(long* table, int* blockSize, int l, int r)
         {
-            int b = 0;
-            while ((1 << b) <= r - l + 1) b++;
-            b--;
-            int sz = 1 << b;
-            int blockL = l / sz;
-            int blockR = r / sz;
-            if (blockL == blockR)
+            if (l == r)
             {
-                long res = long.MaxValue;
-                for (int i = l; i <= r; i++)
-                    res = Math.Min(res, table[i * b]);
-                return res;
+                return table[l];
             }
-            long leftRes = long.MaxValue;
-            int bsz = 0;
-            while ((1 << bsz) <= r - l + 1) bsz++;
-            bsz--;
-            for (int i = l; i < (blockL + 1) * sz; i++)
-                leftRes = Math.Min(leftRes, table[i * bsz]);
-            long rightRes = long.MaxValue;
-            for (int i = blockR * sz; i <= r; i++)
-                rightRes = Math.Min(rightRes, table[i * bsz]);
-            return Math.Min(leftRes, rightRes);
+            int n = *blockSize;
+            int diff = l ^ r;
+            int j = 0;
+            while ((1 << (j + 1)) <= diff) j++;
+            long left = table[j * n + l];
+            long right = table[j * n + r];
+            return left < right ? left : right;
         }
     }
 

@@ -110,34 +110,48 @@ namespace IAFahim.DS.Grid
 
     public static unsafe class RotateGrid
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void RotateOnce(int h, int w, long* src, long* dst)
+        {
+            for (int i = 0; i < h; i++)
+            {
+                for (int j = 0; j < w; j++)
+                {
+                    dst[j * h + (h - 1 - i)] = src[i * w + j];
+                }
+            }
+        }
+
         public static void Run(int height, int width, long* src, long* dst, int times)
         {
             times = ((times % 4) + 4) % 4;
             if (times == 0)
             {
-                for (int i = 0; i < height * width; i++) dst[i] = src[i];
+                for (int i = 0; i < height * width; i++)
+                {
+                    dst[i] = src[i];
+                }
                 return;
             }
+
             int len = height * width;
             long* temp = stackalloc long[len];
-            long* cur = src;
-            long* next = dst;
-            int h = height, w = width;
-            for (int r = 0; r < times; r++)
+
+            if (times == 1)
             {
-                for (int i = 0; i < h; i++)
-                    for (int j = 0; j < w; j++)
-                        next[j * h + (h - 1 - i)] = cur[i * w + j];
-                for (int i = 0; i < len; i++) temp[i] = cur[i];
-                long* swap = cur;
-                cur = next;
-                next = temp;
-                int tmp = h;
-                h = w;
-                w = tmp;
+                RotateOnce(height, width, src, dst);
             }
-            if (cur != dst)
-                for (int i = 0; i < len; i++) dst[i] = cur[i];
+            else if (times == 2)
+            {
+                RotateOnce(height, width, src, temp);
+                RotateOnce(width, height, temp, dst);
+            }
+            else if (times == 3)
+            {
+                RotateOnce(height, width, src, dst);
+                RotateOnce(width, height, dst, temp);
+                RotateOnce(height, width, temp, dst);
+            }
         }
     }
 

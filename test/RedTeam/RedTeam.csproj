@@ -6,8 +6,10 @@
     <ProjectReference Include="../../src/IAFahim.DS.Heap/IAFahim.DS.Heap.csproj" />
     <ProjectReference Include="../../src/IAFahim.DS.SegmentTree/IAFahim.DS.SegmentTree.csproj" />
     <ProjectReference Include="../../src/IAFahim.DS.Sparse/IAFahim.DS.Sparse.csproj" />
+    <ProjectReference Include="../../src/IAFahim.DS.Grid/IAFahim.DS.Grid.csproj" />
     <ProjectReference Include="../../src/IAFahim.DS.Trie/IAFahim.DS.Trie.csproj" />
     <ProjectReference Include="../../src/IAFahim.DS.UnsafeArray/IAFahim.DS.UnsafeArray.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Graph.Misc/IAFahim.Graph.Misc.csproj" />
     <ProjectReference Include="../../src/IAFahim.DP/IAFahim.DP.csproj" />
     <ProjectReference Include="../../src/IAFahim.DP.General/IAFahim.DP.General.csproj" />
     <ProjectReference Include="../../src/IAFahim.DP.Knapsack/IAFahim.DP.Knapsack.csproj" />
@@ -16,7 +18,8 @@
     <ProjectReference Include="../../src/IAFahim.Graph.Flow/IAFahim.Graph.Flow.csproj" />
     <ProjectReference Include="../../src/IAFahim.Graph.Matching/IAFahim.Graph.Matching.csproj" />
     <ProjectReference Include="../../src/IAFahim.Graph.Tree/IAFahim.Graph.Tree.csproj" />
-    <!-- Excluding IAFahim.Search.Bit due to compile errors -->
+    <ProjectReference Include="../../src/IAFahim.Search.Bit/IAFahim.Search.Bit.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Permutation/IAFahim.Permutation.csproj" />
     <ProjectReference Include="../../src/IAFahim.Search.Range/IAFahim.Search.Range.csproj" />
     <ProjectReference Include="../../src/IAFahim.Search.Selection/IAFahim.Search.Selection.csproj" />
     <ProjectReference Include="../../src/IAFahim.Search.Specialized/IAFahim.Search.Specialized.csproj" />

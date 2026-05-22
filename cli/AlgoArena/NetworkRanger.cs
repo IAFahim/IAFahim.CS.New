@@ -28,7 +28,7 @@ namespace AlgoArena
             try
             {
                 for (int i = 0; i < n; i++) head[i] = 0;
-                *edgeId = 0;
+                *edgeId = 1;
 
                 string[] names = { "Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta", "Theta" };
 
