@@ -20,12 +20,9 @@ namespace IAFahim.DS.Dsu
         public static int Run(int* parent, int x)
         {
             int root = x;
-            while (parent[root] != root) root = parent[root];
-            while (parent[x] != root)
+            while (parent[root] != root)
             {
-                int next = parent[x];
-                parent[x] = root;
-                x = next;
+                root = parent[root];
             }
             return root;
         }
@@ -102,12 +99,25 @@ namespace IAFahim.DS.Dsu
     {
         public static bool Run(int* parent, int* size, int* history, int* histSize, int a, int b)
         {
-            int ra = DsuFind.Run(parent, a);
-            int rb = DsuFind.Run(parent, b);
-            if (ra == rb) return false;
+            int ra = a;
+            while (parent[ra] != ra)
+            {
+                ra = parent[ra];
+            }
+            int rb = b;
+            while (parent[rb] != rb)
+            {
+                rb = parent[rb];
+            }
+            if (ra == rb)
+            {
+                return false;
+            }
             if (size[ra] < size[rb])
             {
-                int tmp = ra; ra = rb; rb = tmp;
+                int tmp = ra;
+                ra = rb;
+                rb = tmp;
             }
             history[(*histSize)++] = ra;
             history[(*histSize)++] = rb;
@@ -122,18 +132,15 @@ namespace IAFahim.DS.Dsu
     {
         public static void Run(int* parent, int* size, int a, int b)
         {
-            int ra = DsuFind.Run(parent, a);
-            int rb = DsuFind.Run(parent, b);
-            if (ra == rb) return;
-            if (size[ra] > size[rb])
+            if (parent[a] == b)
             {
-                parent[rb] = ra;
-                size[ra] -= size[rb];
+                parent[a] = a;
+                size[b] -= size[a];
             }
-            else
+            else if (parent[b] == a)
             {
-                parent[ra] = rb;
-                size[rb] -= size[ra];
+                parent[b] = b;
+                size[a] -= size[b];
             }
         }
     }
@@ -142,11 +149,23 @@ namespace IAFahim.DS.Dsu
     {
         public static bool Run(int* parent, int* parity, int* size, int* hist, int* histSize, int a, int b)
         {
-            int ra = DsuFind.Run(parent, a);
-            int rb = DsuFind.Run(parent, b);
+            int ra = a;
+            int pa = 0;
+            while (parent[ra] != ra)
+            {
+                pa ^= parity[ra];
+                ra = parent[ra];
+            }
+            int rb = b;
+            int pb = 0;
+            while (parent[rb] != rb)
+            {
+                pb ^= parity[rb];
+                rb = parent[rb];
+            }
             if (ra == rb)
             {
-                return ((parity[a] ^ parity[b]) & 1) == 0;
+                return (pa ^ pb) != 0;
             }
             hist[(*histSize)++] = ra;
             hist[(*histSize)++] = rb;
@@ -154,18 +173,16 @@ namespace IAFahim.DS.Dsu
             hist[(*histSize)++] = size[rb];
             hist[(*histSize)++] = parent[ra];
             hist[(*histSize)++] = parent[rb];
-            int da = parity[a];
-            int db = parity[b];
             if (size[ra] > size[rb])
             {
                 parent[rb] = ra;
-                parity[rb] = da ^ db ^ 1;
+                parity[rb] = pa ^ pb ^ 1;
                 size[ra] += size[rb];
             }
             else
             {
                 parent[ra] = rb;
-                parity[ra] = da ^ db ^ 1;
+                parity[ra] = pa ^ pb ^ 1;
                 size[rb] += size[ra];
             }
             return true;
@@ -176,7 +193,10 @@ namespace IAFahim.DS.Dsu
     {
         public static int Run(int* parent, int* parity, int x)
         {
-            if (parent[x] == x) return parity[x];
+            if (parent[x] == x)
+            {
+                return x;
+            }
             int p = parent[x];
             int root = DsuParityFind.Run(parent, parity, p);
             parity[x] ^= parity[p];

@@ -92,7 +92,7 @@ namespace IAFahim.DS.Heap
                 cur = p;
             }
             int n = len - 1;
-            if (cur == 0) return;
+            if (cur != i) return;
             int l = Left(cur);
             while (l < n)
             {

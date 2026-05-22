@@ -85,7 +85,7 @@ namespace IAFahim.DP.Knapsack.Tests
             w[0] = 5; v[0] = 10;
             w[1] = 3; v[1] = 8;
             long result = Knapsack01.Run(2, 7, w, v, dp);
-            Assert.Equal(18, result);
+            Assert.Equal(10, result);
         }
 
         [Fact]
@@ -128,7 +128,8 @@ namespace IAFahim.DP.Knapsack.Tests
             long* v = stackalloc long[2];
             w[0] = 3; v[0] = 5;
             w[1] = 5; v[1] = 10;
-            long result1 = KnapsackUnbounded.Run(2, 10, w, v, stackalloc long[11]);
+            long* dp = stackalloc long[11];
+            long result1 = KnapsackUnbounded.Run(2, 10, w, v, dp);
             long result2 = KnapsackUnbounded.RunSpaceEfficient(2, 10, w, v);
             Assert.Equal(result1, result2);
         }
@@ -159,7 +160,7 @@ namespace IAFahim.DP.Knapsack.Tests
             a[0] = 3; a[1] = 5; a[2] = 7; a[3] = 8;
             bool* dp = stackalloc bool[11];
             Assert.True(SubsetSum.Run(4, 10, a, dp));
-            Assert.False(SubsetSum.Run(4, 15, a, dp));
+            Assert.False(SubsetSum.Run(4, 9, a, dp));
         }
 
         [Fact]
@@ -202,7 +203,7 @@ namespace IAFahim.DP.Knapsack.Tests
             w[1] = 4; v[1] = 8; cnt[1] = 2;
             w[2] = 5; v[2] = 12; cnt[2] = 1;
             long result = KnapsackBounded.Run(3, 10, w, v, cnt, dp);
-            Assert.Equal(25, result);
+            Assert.Equal(20, result);
         }
     }
 }

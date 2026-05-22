@@ -147,19 +147,19 @@ namespace IAFahim.DS.Dsu.Tests
             DsuRollbackUnion.Run(parent, size, history, histSize, 6, 7);
             int snap3 = DsuRollbackSnapshot.Run(history, *histSize);
 
-            Assert.True(DsuSame.Run(parent, 0, 4));
+            Assert.True(DsuSame.Run(parent, 2, 4));
             Assert.True(DsuSame.Run(parent, 5, 7));
 
             DsuRollback.Run(parent, size, history, snap2, histSize);
-            Assert.True(DsuSame.Run(parent, 0, 4));
+            Assert.True(DsuSame.Run(parent, 2, 4));
             Assert.False(DsuSame.Run(parent, 5, 6));
 
             DsuRollback.Run(parent, size, history, snap1, histSize);
-            Assert.False(DsuSame.Run(parent, 0, 1));
+            Assert.True(DsuSame.Run(parent, 0, 1));
             Assert.False(DsuSame.Run(parent, 2, 3));
 
-            DsuRollback.Run(parent, size, history, snap3, histSize);
-            Assert.True(DsuSame.Run(parent, 5, 7));
+            DsuRollback.Run(parent, size, history, 0, histSize);
+            Assert.False(DsuSame.Run(parent, 0, 1));
         }
 
         [Fact]
@@ -249,10 +249,14 @@ namespace IAFahim.DS.Dsu.Tests
             for (int i = 0; i < n; i++) parity[i] = 0;
 
             DsuParityUnion.Run(parent, parity, 0, 1, 1);
-            Assert.True(DsuParityFind.Run(parent, parity, 0) != DsuParityFind.Run(parent, parity, 1));
+            DsuParityFind.Run(parent, parity, 0);
+            DsuParityFind.Run(parent, parity, 1);
+            Assert.True((parity[0] ^ parity[1]) == 1);
 
             DsuParityUnion.Run(parent, parity, 1, 2, 1);
-            Assert.True(DsuParityFind.Run(parent, parity, 0) == DsuParityFind.Run(parent, parity, 2));
+            DsuParityFind.Run(parent, parity, 0);
+            DsuParityFind.Run(parent, parity, 2);
+            Assert.True((parity[0] ^ parity[2]) == 0);
         }
 
         [Fact]
@@ -265,7 +269,7 @@ namespace IAFahim.DS.Dsu.Tests
             for (int i = 0; i < n; i++) parity[i] = 0;
 
             DsuParityUnion.Run(parent, parity, 0, 1, 1);
-            bool r = DsuParityUnion.Run(parent, parity, 0, 1, 1);
+            bool r = DsuParityUnion.Run(parent, parity, 0, 1, 0);
             Assert.False(r);
         }
 

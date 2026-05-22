@@ -98,38 +98,35 @@ namespace IAFahim.Graph.Tree
     {
         public static int Run(int n, int u, int* head, int* to, int* next, bool* removed, int* size)
         {
+            int* parent = stackalloc int[n];
+            for (int i = 0; i < n; i++) parent[i] = -1;
             int* q = stackalloc int[n];
             int qh = 0, qt = 0;
             q[qt++] = u;
+            parent[u] = u;
             int totalSize = 0;
             while (qh < qt)
             {
                 int cur = q[qh++];
-                size[cur] = 1;
                 totalSize++;
                 for (int e = head[cur]; e != 0; e = next[e])
                 {
                     int v = to[e];
-                    if (!removed[v] && v != u)
-                        q[qt++] = v;
-                }
-            }
-            int threshold = totalSize / 2;
-            qh = 0; qt = 0;
-            q[qt++] = u;
-            while (qh < qt)
-            {
-                int cur = q[qh++];
-                for (int e = head[cur]; e != 0; e = next[e])
-                {
-                    int v = to[e];
-                    if (!removed[v])
+                    if (!removed[v] && parent[v] == -1)
                     {
-                        size[v] = 1;
+                        parent[v] = cur;
                         q[qt++] = v;
                     }
                 }
             }
+            for (int i = 0; i < n; i++) size[i] = 0;
+            for (int i = 0; i < qt; i++) size[q[i]] = 1;
+            for (int i = qt - 1; i > 0; i--)
+            {
+                int cur = q[i];
+                size[parent[cur]] += size[cur];
+            }
+            int threshold = totalSize / 2;
             int centroid = u;
             bool found = false;
             while (!found)
@@ -138,7 +135,7 @@ namespace IAFahim.Graph.Tree
                 for (int e = head[centroid]; e != 0; e = next[e])
                 {
                     int v = to[e];
-                    if (!removed[v] && size[v] > threshold)
+                    if (!removed[v] && parent[v] == centroid && size[v] > threshold)
                     {
                         centroid = v;
                         found = false;

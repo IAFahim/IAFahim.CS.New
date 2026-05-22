@@ -24,7 +24,7 @@ namespace IAFahim.Math.Basic
         public static long Run(long x)
         {
             if (x < 0) return -1;
-            long lo = 0, hi = 1L << 32;
+            long lo = 0, hi = 3037000499L;
             while (lo < hi)
             {
                 long mid = (lo + hi + 1) >> 1;
@@ -39,7 +39,8 @@ namespace IAFahim.Math.Basic
     {
         public static long Run(long x)
         {
-            long lo = 0, hi = 1L << 22;
+            if (x < 0) return -1;
+            long lo = 0, hi = 2097151L;
             while (lo < hi)
             {
                 long mid = (lo + hi + 1) >> 1;
@@ -55,6 +56,7 @@ namespace IAFahim.Math.Basic
     {
         public static long Run(long x, int n)
         {
+            if (n <= 0) return -1;
             if (n == 1) return x;
             if (x < 0) return -1;
             long lo = 0, hi = 1L << (62 / n + 1);
@@ -62,8 +64,13 @@ namespace IAFahim.Math.Basic
             {
                 long mid = (lo + hi + 1) >> 1;
                 long p = 1;
-                for (int i = 0; i < n && p <= x / mid; i++) p *= mid;
-                if (p <= x) lo = mid;
+                bool ok = true;
+                for (int i = 0; i < n; i++)
+                {
+                    if (p > x / mid) { ok = false; break; }
+                    p *= mid;
+                }
+                if (ok && p <= x) lo = mid;
                 else hi = mid - 1;
             }
             return lo;
@@ -106,43 +113,46 @@ namespace IAFahim.Math.Basic
 
     public static unsafe class PrevPowerOfTwo
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long Run(long x)
         {
             if (x <= 0) return 0;
-            if (IsPowerOfTwo.Run(x)) return x;
-            return NextPowerOfTwo.Run(x) >> 1;
-        }
-    }
-
-    public static unsafe class CeilLog2
-    {
-        public static int Run(long x)
-        {
-            if (x <= 0) return 0;
-            int n = 0;
-            if (x <= 0xFFFFFFFFL) { n += 32; x <<= 32; }
-            if (x <= 0xFFFFFFFFFFFFL) { n += 16; x <<= 16; }
-            if (x <= 0xFFFFFFFFFFFFFFL) { n += 8; x <<= 8; }
-            if (x <= unchecked((long)0xFFFFFFFFFFFFFFFFUL)) { n += 4; x <<= 4; }
-            if (x <= unchecked((long)0x3FFFFFFFFFFFFFFFUL)) { n += 2; x <<= 2; }
-            if (x <= unchecked((long)0x7FFFFFFFFFFFFFFFUL)) { n += 1; }
-            return 64 - n;
+            x |= x >> 1;
+            x |= x >> 2;
+            x |= x >> 4;
+            x |= x >> 8;
+            x |= x >> 16;
+            x |= x >> 32;
+            return x - (x >>> 1);
         }
     }
 
     public static unsafe class FloorLog2
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Run(long x)
         {
             if (x <= 0) return 0;
-            int n = 0;
-            if (x <= 0xFFFFFFFFL) { n += 32; x <<= 32; }
-            if (x <= 0xFFFFFFFFFFFFL) { n += 16; x <<= 16; }
-            if (x <= 0xFFFFFFFFFFFFFFL) { n += 8; x <<= 8; }
-            if (x <= unchecked((long)0xFFFFFFFFFFFFFFFFUL)) { n += 4; x <<= 4; }
-            if (x <= unchecked((long)0x3FFFFFFFFFFFFFFFUL)) { n += 2; x <<= 2; }
-            if (x <= unchecked((long)0x7FFFFFFFFFFFFFFFUL)) { n += 1; }
-            return 64 - n;
+            int len = 0;
+            if ((x & unchecked((long)0xFFFFFFFF00000000UL)) != 0) { len += 32; x >>>= 32; }
+            if ((x & 0xFFFF0000L) != 0) { len += 16; x >>>= 16; }
+            if ((x & 0xFF00L) != 0) { len += 8; x >>>= 8; }
+            if ((x & 0xF0L) != 0) { len += 4; x >>>= 4; }
+            if ((x & 0xCL) != 0) { len += 2; x >>>= 2; }
+            if ((x & 0x2L) != 0) { len += 1; x >>>= 1; }
+            return len;
+        }
+    }
+
+    public static unsafe class CeilLog2
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int Run(long x)
+        {
+            if (x <= 0) return 0;
+            int floor = FloorLog2.Run(x);
+            if ((x & (x - 1)) == 0) return floor;
+            return floor + 1;
         }
     }
 
@@ -150,10 +160,11 @@ namespace IAFahim.Math.Basic
     {
         public static long Run(long a, long b, long mod)
         {
+            a = NormalizeModulo.Run(a, mod);
+            b = NormalizeModulo.Run(b, mod);
             if (mod <= int.MaxValue)
-                return ((a % mod) * (b % mod)) % mod;
+                return (a * b) % mod;
             long res = 0;
-            a %= mod;
             while (b > 0)
             {
                 if ((b & 1) == 1) res = (res + a) % mod;

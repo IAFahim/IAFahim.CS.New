@@ -81,7 +81,7 @@ namespace IAFahim.Geometry.Tests
         [Fact]
         public void Plane_PointPlaneDistance()
         {
-            double d = Plane.PointPlaneDistance(1, 1, 1, 0, 0, 1, 5);
+            double d = Plane.PointPlaneDistance(1, 1, 1, 0, 0, 1, -5);
             Assert.Equal(-4, d, 5);
         }
 
@@ -89,7 +89,7 @@ namespace IAFahim.Geometry.Tests
         public void Plane_LinePlaneIntersects()
         {
             double t;
-            bool hit = Plane.LinePlane(0, 0, 0, 0, 0, 1, 0, 0, 1, 5, &t);
+            bool hit = Plane.LinePlaneIntersection(0, 0, 0, 0, 0, 1, 0, 0, 1, -5, &t);
             Assert.True(hit);
             Assert.Equal(5, t, 5);
         }
@@ -98,7 +98,7 @@ namespace IAFahim.Geometry.Tests
         public void Plane_SegmentPlaneIntersects()
         {
             double t;
-            bool hit = Plane.SegmentPlane(0, 0, 0, 0, 0, 10, 0, 0, 1, 5, &t);
+            bool hit = Plane.SegmentPlaneIntersection(0, 0, 0, 0, 0, 10, 0, 0, 1, -5, &t);
             Assert.True(hit);
             Assert.Equal(0.5, t, 5);
         }
@@ -107,7 +107,7 @@ namespace IAFahim.Geometry.Tests
         public void Plane_SegmentPlaneMisses()
         {
             double t;
-            bool hit = Plane.SegmentPlane(0, 0, 0, 0, 0, 3, 0, 0, 1, 5, &t);
+            bool hit = Plane.SegmentPlaneIntersection(0, 0, 0, 0, 0, 3, 0, 0, 1, -5, &t);
             Assert.False(hit);
         }
 
@@ -122,8 +122,8 @@ namespace IAFahim.Geometry.Tests
         [Fact]
         public void Sphere_SphereIntersection()
         {
-            double cx, cy, cz;
-            bool hit = Sphere.SphereIntersection(0, 0, 0, 2, 3, 0, 0, 2, &cx, &cy, &cz);
+            double cx, cy, cz, circleRadius, nx, ny, nz;
+            bool hit = Sphere.SphereIntersection(0, 0, 0, 2, 3, 0, 0, 2, &cx, &cy, &cz, &circleRadius, &nx, &ny, &nz);
             Assert.True(hit);
             Assert.Equal(1.5, cx, 5);
         }
@@ -172,15 +172,13 @@ namespace IAFahim.Geometry.Tests
         }
 
         [Fact]
-        public void Delaunay_Flip()
+        public void Delaunay_Build()
         {
             double* xs = stackalloc double[4] { 0, 1, 0.5, 0 };
             double* ys = stackalloc double[4] { 0, 0, 0.5, 1 };
-            int* a = stackalloc int[4];
-            int* b = stackalloc int[4];
-            int* c = stackalloc int[4];
-            int t = Delaunay.Flip(xs, ys, 4, a, b, c);
-            Assert.True(t >= 2);
+            Delaunay.Triangle* triangles = stackalloc Delaunay.Triangle[10];
+            int count = Delaunay.Build(xs, ys, 4, triangles);
+            Assert.True(count >= 1);
         }
 
         [Fact]
@@ -241,10 +239,9 @@ namespace IAFahim.Geometry.Tests
         {
             double* xs = stackalloc double[4] { 0, 4, 4, 0 };
             double* ys = stackalloc double[4] { 0, 0, 3, 3 };
-            StraightSkeleton.Event* evts = stackalloc StraightSkeleton.Event[4];
             double* ox = stackalloc double[4];
             double* oy = stackalloc double[4];
-            int n = StraightSkeleton.Build(xs, ys, 4, evts, ox, oy);
+            int n = StraightSkeleton.Build(xs, ys, 4, ox, oy);
             Assert.Equal(4, n);
         }
 
@@ -253,8 +250,8 @@ namespace IAFahim.Geometry.Tests
         {
             Bit3D.BIT3D bit;
             long* tree = stackalloc long[27];
-            Bit3D.Init(&bit, 3, 3, 3);
             bit.Tree = tree;
+            Bit3D.Init(&bit, 3, 3, 3);
             for (int i = 0; i < 27; i++) tree[i] = 0;
             Bit3D.Add(&bit, 1, 1, 1, 5);
             long s = Bit3D.Sum(&bit, 1, 1, 1);

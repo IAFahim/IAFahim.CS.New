@@ -7,23 +7,14 @@ namespace IAFahim.DS.Heap.Tests
     public sealed unsafe class HeapTests
     {
         [Fact]
-        public void EmptyInput_NoOp()
-        {
-            int* heap = stackalloc int[1];
-            int len = 0;
-            HeapPush.Run(heap, &len, 5);
-            Assert.Equal(0, len);
-        }
-
-        [Fact]
         public void PushPop_SingleElement()
         {
             int* heap = stackalloc int[10];
             int len = 0;
-            HeapPush.Run(heap, &len, 5);
+            HeapPush.Run(heap, len++, 5);
             Assert.Equal(1, len);
             Assert.Equal(5, heap[0]);
-            int val = HeapPop.Run(heap, &len);
+            int val = HeapPop.Run(heap, len--);
             Assert.Equal(5, val);
             Assert.Equal(0, len);
         }
@@ -34,15 +25,20 @@ namespace IAFahim.DS.Heap.Tests
             int* heap = stackalloc int[100];
             int len = 0;
             int[] vals = { 5, 3, 7, 1, 9, 2, 8 };
-            foreach (int v in vals) HeapPush.Run(heap, &len, v);
+            foreach (int v in vals)
+            {
+                HeapPush.Run(heap, len, v);
+                len++;
+            }
 
-            Assert.Equal(1, HeapPop.Run(heap, &len));
-            Assert.Equal(2, HeapPop.Run(heap, &len));
-            Assert.Equal(3, HeapPop.Run(heap, &len));
-            Assert.Equal(5, HeapPop.Run(heap, &len));
-            Assert.Equal(7, HeapPop.Run(heap, &len));
-            Assert.Equal(8, HeapPop.Run(heap, &len));
-            Assert.Equal(9, HeapPop.Run(heap, &len));
+            Assert.Equal(7, len);
+            Assert.Equal(1, HeapPop.Run(heap, len--));
+            Assert.Equal(2, HeapPop.Run(heap, len--));
+            Assert.Equal(3, HeapPop.Run(heap, len--));
+            Assert.Equal(5, HeapPop.Run(heap, len--));
+            Assert.Equal(7, HeapPop.Run(heap, len--));
+            Assert.Equal(8, HeapPop.Run(heap, len--));
+            Assert.Equal(9, HeapPop.Run(heap, len--));
             Assert.Equal(0, len);
         }
 
@@ -51,40 +47,74 @@ namespace IAFahim.DS.Heap.Tests
         {
             int* heap = stackalloc int[100];
             int len = 0;
-            HeapPush.Run(heap, &len, 1);
-            HeapPush.Run(heap, &len, 2);
-            HeapPush.Run(heap, &len, 3);
-            HeapPush.Run(heap, &len, 4);
-            HeapRemove.Run(heap, &len, 1);
-            int first = HeapPop.Run(heap, &len);
-            Assert.True(first == 1 || first == 2 || first == 4);
+            HeapPush.Run(heap, len++, 1);
+            HeapPush.Run(heap, len++, 2);
+            HeapPush.Run(heap, len++, 3);
+            HeapPush.Run(heap, len++, 4);
+            HeapRemove.Run(heap, 1, len);
+            len--;
+            Assert.Equal(3, len);
+            Assert.Equal(1, HeapPop.Run(heap, len--));
+            Assert.Equal(3, HeapPop.Run(heap, len--));
+            Assert.Equal(4, HeapPop.Run(heap, len--));
+        }
+
+        [Fact]
+        public void Deque_BasicOperations()
+        {
+            const int cap = 5;
+            int* deque = stackalloc int[cap];
+            int front = 0;
+            int back = 0;
+
+            DequePush.PushBackInt32(deque, &front, &back, cap, 10);
+            DequePush.PushBackInt32(deque, &front, &back, cap, 20);
+            DequePush.PushFrontInt32(deque, &front, &back, cap, 5);
+
+            Assert.Equal(5, DequePop.PopFrontInt32(deque, &front, &back, cap));
+            Assert.Equal(20, DequePop.PopBackInt32(deque, &front, &back, cap));
+            Assert.Equal(10, DequePop.PopFrontInt32(deque, &front, &back, cap));
         }
 
         [Fact]
         public void MonotonicQueueMin_Basic()
         {
-            int* dq = stackalloc int[100];
-            int* mq = stackalloc int[100];
-            int dlen = 0, mlen = 0;
-            MonotonicQueuePush.Run(dq, &dlen, mq, &mlen, 3);
-            MonotonicQueuePush.Run(dq, &dlen, mq, &mlen, 5);
-            MonotonicQueuePush.Run(dq, &dlen, mq, &mlen, 2);
-            Assert.Equal(2, MonotonicQueueMin.Run(dq, dlen, mq, mlen));
-            MonotonicQueuePop.Run(dq, &dlen, mq, &mlen, 3);
-            Assert.Equal(2, MonotonicQueueMin.Run(dq, dlen, mq, mlen));
+            int* src = stackalloc int[] { 2, 1, 4, 3, 6, 5 };
+            int len = 6;
+            int* dst = stackalloc int[4];
+            MonotonicQueueMin.Run(src, dst, len, 3);
+            Assert.Equal(1, dst[0]);
+            Assert.Equal(1, dst[1]);
+            Assert.Equal(3, dst[2]);
+            Assert.Equal(3, dst[3]);
         }
 
         [Fact]
-        public void MonotonicStackProcess_Basic()
+        public void MonotonicQueuePush_MinInt32()
         {
-            int* arr = stackalloc int[] { 2, 1, 4, 3, 6, 5 };
-            int n = 6;
-            int* left = stackalloc int[n];
-            int* right = stackalloc int[n];
-            for (int i = 0; i < n; i++) { left[i] = -1; right[i] = -1; }
-            MonotonicStackProcess.Run(arr, n, left, right);
-            Assert.True(left[0] == -1);
-            Assert.Equal(0, left[1]);
+            int* mono = stackalloc int[10];
+            int size = 0;
+            MonotonicQueuePush.MinInt32(mono, &size, 3);
+            MonotonicQueuePush.MinInt32(mono, &size, 5);
+            MonotonicQueuePush.MinInt32(mono, &size, 2);
+            Assert.Equal(1, size);
+            Assert.Equal(2, mono[0]);
+        }
+
+        [Fact]
+        public void MonotonicStackProcess_NextGreaterInt32()
+        {
+            int* src = stackalloc int[] { 2, 1, 4, 3, 6, 5 };
+            int len = 6;
+            int* dst = stackalloc int[len];
+            for (int i = 0; i < len; i++) dst[i] = -1;
+            MonotonicStackProcess.NextGreaterInt32(src, dst, len);
+            Assert.Equal(2, dst[0]);
+            Assert.Equal(2, dst[1]);
+            Assert.Equal(4, dst[2]);
+            Assert.Equal(4, dst[3]);
+            Assert.Equal(-1, dst[4]);
+            Assert.Equal(-1, dst[5]);
         }
     }
 }

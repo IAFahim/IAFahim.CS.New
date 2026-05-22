@@ -5,35 +5,22 @@ namespace IAFahim.Math.Polynomial.Fps
 
     public static unsafe class FormalPowerSeriesInverse
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Run(int n, long* a, long* res, long mod)
         {
-            res[0] = ModInverse(a[0], mod);
-            int len = 1;
-            long* temp = stackalloc long[n * 2];
-            long* inv = stackalloc long[n * 2];
-            long* buf = stackalloc long[n * 2];
-            while (len < n)
+            if (n <= 0) return 0;
+            long invA0 = ModInverse(a[0], mod);
+            res[0] = invA0;
+            for (int i = 1; i < n; i++)
             {
-                len <<= 1;
-                for (int i = 0; i < Math.Min(len, n); i++) temp[i] = a[i];
-                for (int i = Math.Min(len, n); i < len; i++) temp[i] = 0;
-                for (int i = 0; i < len >> 1; i++) inv[i] = res[i];
-                for (int i = len >> 1; i < len; i++) inv[i] = 0;
-                PolynomialMul(len >> 1, res, len >> 1, res, buf, mod);
-                for (int i = 0; i < len; i++) buf[i] = (mod - buf[i]) % mod;
-                PolynomialMul(len, temp, len, buf, res, mod);
-                for (int i = 0; i < len; i++) res[i] = buf[i];
-                if (len > n) len = n;
+                long sum = 0;
+                for (int j = 1; j <= i; j++)
+                {
+                    sum = (sum + a[j] * res[i - j]) % mod;
+                }
+                res[i] = (mod - sum) * invA0 % mod;
             }
             return n;
-        }
-
-        private static void PolynomialMul(int n, long* a, int m, long* b, long* res, long mod)
-        {
-            for (int i = 0; i < n + m; i++) res[i] = 0;
-            for (int i = 0; i < n; i++)
-                for (int j = 0; j < m; j++)
-                    res[i + j] = (res[i + j] + a[i] * b[j]) % mod;
         }
 
         private static long ModInverse(long a, long m)
@@ -51,41 +38,24 @@ namespace IAFahim.Math.Polynomial.Fps
 
     public static unsafe class FormalPowerSeriesLog
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Run(int n, long* a, long* res, long mod)
         {
-            long* inv = stackalloc long[n];
-            FormalPowerSeriesInverse.Run(n, a, inv, mod);
-            long* der = stackalloc long[n];
-            int derLen = Derivative(n, a, der, mod);
-            long* conv = stackalloc long[n];
-            PolynomialMul(derLen, der, n, inv, conv, mod);
-            int integralLen = Integral(n - 1, conv, res, mod);
-            return n;
-        }
-
-        private static int Derivative(int n, long* a, long* res, long mod)
-        {
-            for (int i = 1; i < n; i++) res[i - 1] = a[i] * i % mod;
-            return n - 1;
-        }
-
-        private static int Integral(int n, long* a, long* res, long mod)
-        {
+            if (n <= 0) return 0;
             res[0] = 0;
-            for (int i = 0; i < n; i++)
+            long invA0 = ModInverse(a[0], mod);
+            for (int i = 1; i < n; i++)
             {
-                long inv = ModInverse(i + 1, mod);
-                res[i + 1] = a[i] * inv % mod;
+                long sum = 0;
+                for (int j = 1; j < i; j++)
+                {
+                    sum = (sum + (j * res[j] % mod) * a[i - j]) % mod;
+                }
+                long val = (i * a[i] % mod - sum + mod) % mod;
+                val = val * invA0 % mod;
+                res[i] = val * ModInverse(i, mod) % mod;
             }
-            return n + 1;
-        }
-
-        private static void PolynomialMul(int n, long* a, int m, long* b, long* res, long mod)
-        {
-            for (int i = 0; i < n + m; i++) res[i] = 0;
-            for (int i = 0; i < n; i++)
-                for (int j = 0; j < m; j++)
-                    res[i + j] = (res[i + j] + a[i] * b[j]) % mod;
+            return n;
         }
 
         private static long ModInverse(long a, long m)
@@ -103,51 +73,63 @@ namespace IAFahim.Math.Polynomial.Fps
 
     public static unsafe class FormalPowerSeriesExp
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Run(int n, long* a, long* res, long mod)
         {
+            if (n <= 0) return 0;
             res[0] = 1;
-            int len = 1;
-            long* lnRes = stackalloc long[n * 2];
-            long* diff = stackalloc long[n * 2];
-            long* newRes = stackalloc long[n * 2];
-            while (len < n)
+            for (int i = 1; i < n; i++)
             {
-                len <<= 1;
-                int lnLen = FormalPowerSeriesLog.Run(len, res, lnRes, mod);
-                for (int i = 0; i < Math.Min(n, len); i++)
-                    diff[i] = (a[i] - lnRes[i] + mod) % mod;
-                diff[0] = (diff[0] + 1) % mod;
-                for (int i = Math.Min(n, len); i < len; i++) diff[i] = 0;
-                PolynomialMul(len, res, len, diff, newRes, mod);
-                for (int i = 0; i < len && i < n; i++) res[i] = newRes[i];
-                if (len > n) len = n;
+                long sum = 0;
+                for (int j = 1; j <= i; j++)
+                {
+                    sum = (sum + (j * a[j] % mod) * res[i - j]) % mod;
+                }
+                res[i] = sum * ModInverse(i, mod) % mod;
             }
             return n;
         }
 
-        private static void PolynomialMul(int n, long* a, int m, long* b, long* res, long mod)
+        private static long ModInverse(long a, long m)
         {
-            for (int i = 0; i < n + m; i++) res[i] = 0;
-            for (int i = 0; i < n; i++)
-                for (int j = 0; j < m; j++)
-                    res[i + j] = (res[i + j] + a[i] * b[j]) % mod;
+            long b = m, u = 1, v = 0;
+            while (b != 0)
+            {
+                long t = a / b;
+                a -= t * b; long tmp = a; a = b; b = tmp;
+                u -= t * v; tmp = u; u = v; v = tmp;
+            }
+            return (u % m + m) % m;
         }
     }
 
     public static unsafe class FormalPowerSeriesPow
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Run(int n, long* a, long k, long* res, long mod)
         {
-            if (k == 0) { res[0] = 1; for (int i = 1; i < n; i++) res[i] = 0; return n; }
+            if (k == 0)
+            {
+                if (n > 0) res[0] = 1;
+                for (int i = 1; i < n; i++) res[i] = 0;
+                return n;
+            }
             int firstNonZero = 0;
             while (firstNonZero < n && a[firstNonZero] == 0) firstNonZero++;
-            if (firstNonZero >= n) { for (int i = 0; i < n; i++) res[i] = 0; return n; }
-            if (firstNonZero * k >= n) { for (int i = 0; i < n; i++) res[i] = 0; return n; }
+            if (firstNonZero >= n)
+            {
+                for (int i = 0; i < n; i++) res[i] = 0;
+                return n;
+            }
+            if (firstNonZero * k >= n)
+            {
+                for (int i = 0; i < n; i++) res[i] = 0;
+                return n;
+            }
             int newN = n - (int)(firstNonZero * k);
             long* shifted = stackalloc long[newN];
             for (int i = 0; i < newN; i++) shifted[i] = a[i + firstNonZero];
             long invFirst = ModInverse(shifted[0], mod);
-            long powInvFirst = FastPow(invFirst, k, mod);
             long powFirst = FastPow(a[firstNonZero], k, mod);
             for (int i = 0; i < newN; i++) shifted[i] = shifted[i] * invFirst % mod;
             long* lnShifted = stackalloc long[newN];
@@ -189,41 +171,89 @@ namespace IAFahim.Math.Polynomial.Fps
 
     public static unsafe class FormalPowerSeriesSqrt
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Run(int n, long* a, long* res, long mod)
         {
-            if ((a[0] & 1) == 0) return -1;
-            res[0] = 1;
-            int len = 1;
-            long* inv = stackalloc long[n * 2];
-            long* temp = stackalloc long[n * 2];
-            long* half = stackalloc long[n * 2];
-            long* prod = stackalloc long[n * 2];
-            while (len < n)
+            if (n <= 0) return 0;
+            long r0 = TonelliShanks(a[0], mod);
+            if (r0 < 0) return -1;
+            res[0] = r0;
+            long inv2Res0 = ModInverse(2 * r0 % mod, mod);
+            for (int i = 1; i < n; i++)
             {
-                len <<= 1;
-                long inv2 = (mod + 1) >> 1;
-                for (int i = 0; i < len >> 1; i++) inv[i] = res[i];
-                for (int i = len >> 1; i < len; i++) inv[i] = 0;
-                for (int i = 0; i < Math.Min(len, n); i++) temp[i] = a[i];
-                for (int i = Math.Min(len, n); i < len; i++) temp[i] = 0;
-                half[0] = 2;
-                for (int i = 1; i < len; i++) half[i] = 0;
-                PolynomialMul(len >> 1, res, len >> 1, res, prod, mod);
-                for (int i = 0; i < len; i++) prod[i] = (temp[i] - prod[i] + mod) % mod;
-                PolynomialMul(len, half, len, prod, temp, mod);
-                for (int i = 0; i < len; i++) temp[i] = temp[i] * inv2 % mod;
-                for (int i = 0; i < len && i < n; i++) res[i] = temp[i];
-                if (len > n) len = n;
+                long sum = 0;
+                for (int j = 1; j < i; j++)
+                {
+                    sum = (sum + res[j] * res[i - j]) % mod;
+                }
+                res[i] = (a[i] - sum + mod) % mod * inv2Res0 % mod;
             }
             return n;
         }
 
-        private static void PolynomialMul(int n, long* a, int m, long* b, long* res, long mod)
+        private static long TonelliShanks(long n, long p)
         {
-            for (int i = 0; i < n + m; i++) res[i] = 0;
-            for (int i = 0; i < n; i++)
-                for (int j = 0; j < m; j++)
-                    res[i + j] = (res[i + j] + a[i] * b[j]) % mod;
+            if (n == 0) return 0;
+            if (p == 2) return n & 1;
+            if (LegendresSymbol(n, p) != 1) return -1;
+            if (p % 4 == 3) return FastPow(n, (p + 1) / 4, p);
+            long s = p - 1;
+            int q = 0;
+            while ((s & 1) == 0) { s >>= 1; q++; }
+            long z = 2;
+            while (LegendresSymbol(z, p) != -1) z++;
+            long c = FastPow(z, s, p);
+            long r = FastPow(n, (s + 1) / 2, p);
+            long t = FastPow(n, s, p);
+            int m = q;
+            while (t != 1)
+            {
+                long t2 = t;
+                int i = 0;
+                for (; i < m; i++)
+                {
+                    if (t2 == 1) break;
+                    t2 = t2 * t2 % p;
+                }
+                if (i >= m) return -1;
+                long b = FastPow(c, 1L << (m - i - 1), p);
+                r = r * b % p;
+                c = b * b % p;
+                t = t * c % p;
+                m = i;
+            }
+            return r;
+        }
+
+        private static long LegendresSymbol(long a, long p)
+        {
+            long r = FastPow(a, (p - 1) / 2, p);
+            return r == p - 1 ? -1 : r;
+        }
+
+        private static long ModInverse(long a, long m)
+        {
+            long b = m, u = 1, v = 0;
+            while (b != 0)
+            {
+                long t = a / b;
+                a -= t * b; long tmp = a; a = b; b = tmp;
+                u -= t * v; tmp = u; u = v; v = tmp;
+            }
+            return (u % m + m) % m;
+        }
+
+        private static long FastPow(long a, long e, long mod)
+        {
+            long res = 1 % mod;
+            long b = a % mod;
+            while (e > 0)
+            {
+                if ((e & 1) == 1) res = res * b % mod;
+                b = b * b % mod;
+                e >>= 1;
+            }
+            return res;
         }
     }
 }

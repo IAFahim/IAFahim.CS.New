@@ -86,6 +86,7 @@ namespace IAFahim.Math.Combinatorics
                 {
                     s[j] = ((s[j - 1] + ((i - 1) * s[j]) % mod) % mod);
                 }
+                s[0] = 0;
             }
             return s[k];
         }
@@ -106,6 +107,7 @@ namespace IAFahim.Math.Combinatorics
                 {
                     s[j] = ((s[j - 1] + (j * s[j]) % mod) % mod);
                 }
+                s[0] = 0;
             }
             return s[k];
         }

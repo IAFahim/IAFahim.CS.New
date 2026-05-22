@@ -8,28 +8,39 @@ namespace IAFahim.Math.BigInt
         public static int Run(int n, int* a, int m, int* b, int* res)
         {
             int len = n > m ? n : m;
+            int* temp = stackalloc int[len + 1];
             int carry = 0;
             int i = 0;
             for (; i < n && i < m; i++)
             {
                 int sum = a[n - 1 - i] + b[m - 1 - i] + carry;
-                res[len - 1 - i] = sum % 10;
+                temp[len - i] = sum % 10;
                 carry = sum / 10;
             }
             for (; i < n; i++)
             {
                 int sum = a[n - 1 - i] + carry;
-                res[len - 1 - i] = sum % 10;
+                temp[len - i] = sum % 10;
                 carry = sum / 10;
             }
             for (; i < m; i++)
             {
                 int sum = b[m - 1 - i] + carry;
-                res[len - 1 - i] = sum % 10;
+                temp[len - i] = sum % 10;
                 carry = sum / 10;
             }
-            if (carry > 0) res[0] = carry;
-            return carry > 0 ? len + 1 : len;
+            if (carry > 0)
+            {
+                temp[0] = carry;
+                int finalLen = len + 1;
+                for (int j = 0; j < finalLen; j++) res[j] = temp[j];
+                return finalLen;
+            }
+            else
+            {
+                for (int j = 0; j < len; j++) res[j] = temp[j + 1];
+                return len;
+            }
         }
     }
 
@@ -38,6 +49,7 @@ namespace IAFahim.Math.BigInt
         public static int Run(int n, int* a, int m, int* b, int* res)
         {
             int len = n > m ? n : m;
+            int* temp = stackalloc int[len];
             int borrow = 0;
             int i = 0;
             for (; i < n && i < m; i++)
@@ -45,20 +57,25 @@ namespace IAFahim.Math.BigInt
                 int diff = a[n - 1 - i] - b[m - 1 - i] - borrow;
                 if (diff < 0) { diff += 10; borrow = 1; }
                 else borrow = 0;
-                res[len - 1 - i] = diff;
+                temp[len - 1 - i] = diff;
             }
             for (; i < n; i++)
             {
                 int diff = a[n - 1 - i] - borrow;
                 if (diff < 0) { diff += 10; borrow = 1; }
                 else borrow = 0;
-                res[len - 1 - i] = diff;
+                temp[len - 1 - i] = diff;
             }
             int start = 0;
-            while (start < len && res[start] == 0) start++;
-            if (start == len) return 1;
-            for (int j = start; j < len; j++) res[j - start] = res[j];
-            return len - start;
+            while (start < len && temp[start] == 0) start++;
+            if (start == len)
+            {
+                res[0] = 0;
+                return 1;
+            }
+            int finalLen = len - start;
+            for (int j = 0; j < finalLen; j++) res[j] = temp[start + j];
+            return finalLen;
         }
     }
 
@@ -67,26 +84,30 @@ namespace IAFahim.Math.BigInt
         public static int Run(int n, int* a, int m, int* b, int* res)
         {
             int len = n + m;
-            for (int i = 0; i < len; i++) res[i] = 0;
+            int* temp = stackalloc int[len];
+            for (int i = 0; i < len; i++) temp[i] = 0;
             for (int i = 0; i < n; i++)
             {
                 for (int j = 0; j < m; j++)
                 {
-                    res[i + j] += a[n - 1 - i] * b[m - 1 - j];
+                    temp[i + j] += a[n - 1 - i] * b[m - 1 - j];
                 }
             }
             int carry = 0;
             for (int i = 0; i < len; i++)
             {
-                int sum = res[i] + carry;
-                res[i] = sum % 10;
+                int sum = temp[i] + carry;
+                temp[i] = sum % 10;
                 carry = sum / 10;
             }
             int actualLen = len - 1;
-            while (actualLen > 0 && res[actualLen] == 0) actualLen--;
-            return actualLen + 1;
+            while (actualLen > 0 && temp[actualLen] == 0) actualLen--;
+            int finalLen = actualLen + 1;
+            for (int i = 0; i < finalLen; i++) res[i] = temp[finalLen - 1 - i];
+            return finalLen;
         }
     }
+
 
     public static unsafe class BigIntDiv
     {
