@@ -25,9 +25,17 @@ namespace IAFahim.DS.Mo
         {
             for (int i = 0; i < n; i++)
             {
-                if (freq[i] > 0) return freq[i];
+                if (freq[i] > 0) return i;
             }
-            return 0;
+            return -1;
+        }
+
+        public static int DistinctCount(int* freq, int n)
+        {
+            int count = 0;
+            for (int i = 0; i < n; i++)
+                if (freq[i] > 0) count++;
+            return count;
         }
     }
 
@@ -66,15 +74,36 @@ namespace IAFahim.DS.Mo
         }
     }
 
+    public static unsafe class MoDistinctCounter
+    {
+        public static void AddInt(int* freq, int* curDistinct, int val)
+        {
+            if (freq[val] == 0) (*curDistinct)++;
+            freq[val]++;
+        }
+
+        public static void RemoveInt(int* freq, int* curDistinct, int val)
+        {
+            freq[val]--;
+            if (freq[val] == 0) (*curDistinct)--;
+        }
+    }
+
     public static unsafe class WaveletTreeRangeSum
     {
-        public static int Run(int* left, int* right, int node, int l, int r, int ql, int qr, int k)
+        public static int Run(int* left, int* right, int node, int l, int r, int ql, int qr, int a, int b, int* data)
         {
             if (ql > r || qr < l) return 0;
-            if (l >= ql && r <= qr) return k;
+            if (l >= ql && r <= qr)
+            {
+                int count = 0;
+                for (int i = l; i <= r; i++)
+                    if (a <= data[i] && data[i] <= b) count++;
+                return count;
+            }
             int mid = (l + r) >> 1;
-            return Run(left, right, node * 2, l, mid, ql, qr, k) +
-                   Run(left, right, node * 2 + 1, mid + 1, r, ql, qr, k);
+            return Run(left, right, node * 2, l, mid, ql, qr, a, b, data) +
+                   Run(left, right, node * 2 + 1, mid + 1, r, ql, qr, a, b, data);
         }
     }
 }

@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.Graph.TreeQueries/IAFahim.Graph.TreeQueries.csproj" />
+  </ItemGroup>
+</Project>

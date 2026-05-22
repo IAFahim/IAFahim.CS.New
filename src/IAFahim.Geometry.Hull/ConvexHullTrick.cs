@@ -33,7 +33,7 @@ namespace IAFahim.Geometry.Hull
                 int mid = (lo + hi) >> 1;
                 long v1 = Eval(hull[mid], x);
                 long v2 = Eval(hull[mid + 1], x);
-                if (v1 <= v2) hi = mid;
+                if (v1 >= v2) hi = mid;
                 else lo = mid + 1;
             }
             return Eval(hull[lo], x);

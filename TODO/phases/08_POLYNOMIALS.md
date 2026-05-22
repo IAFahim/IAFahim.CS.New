@@ -1,51 +1,51 @@
 # Phase 8: Polynomials & Number Sequences
 
 ## 8.1 Polynomial Operations
-- [ ] toomCookMultiply — Toom-Cook multiplication
-- [ ] schonhageStrassenMultiply — Schonhage-Strassen
-- [ ] polynomialProductTreeBuild — Product tree build
-- [ ] polynomialRemainderTreeBuild — Remainder tree build
-- [ ] polynomialFactorSquareFree — Square-free factorization
-- [ ] polynomialFactorBerlekamp — Berlekamp factorization
-- [ ] polynomialFactorCantorZassenhaus — Cantor-Zassenhaus
-- [ ] polynomialRootFind — Polynomial root finding
-- [ ] linearRecurrenceBerlekampMasseyMod — BM for linear recurrence
-- [ ] linearRecurrenceBostanMori — Bostan-Mori for recurrence
-- [ ] rationalInterpolation — Rational interpolation
-- [ ] offlinePolynomialQueries — Offline polynomial queries
+- [x] `toomCookMultiply` — Toom-Cook multiplication
+- [x] `schonhageStrassenMultiply` — Schonhage-Strassen
+- [x] `polynomialProductTreeBuild` — Product tree build
+- [x] `polynomialRemainderTreeBuild` — Remainder tree build
+- [x] `polynomialFactorSquareFree` — Square-free factorization
+- [x] `polynomialFactorBerlekamp` — Berlekamp factorization
+- [x] `polynomialFactorCantorZassenhaus` — Cantor-Zassenhaus
+- [x] `polynomialRootFind` — Polynomial root finding
+- [x] `linearRecurrenceBerlekampMasseyMod` — BM for linear recurrence
+- [x] `linearRecurrenceBostanMori` — Bostan-Mori for recurrence
+- [x] `rationalInterpolation` — Rational interpolation
+- [x] `offlinePolynomialQueries` — Offline polynomial queries
 
 ## 8.2 Number Sequences
-- [ ] stirlingFirstRow — Stirling numbers first kind
-- [ ] stirlingSecondRow — Stirling numbers second kind
-- [ ] eulerianNumbers — Eulerian numbers
-- [ ] narayanaNumbers — Narayana numbers
-- [ ] lahNumbers — Lah numbers
-- [ ] youngTableauxCount — Young tableaux counting
-- [ ] hookLengthFormula — Hook length formula
-- [ ] qBinomial — Q-binomial coefficients
-- [ ] gaussianBinomial — Gaussian binomial
-- [ ] subsetBellTransform — Subset Bell transform
-- [ ] setPartitionDp — Set partition DP
-- [ ] exponentialGeneratingFunction — EGF operations
-- [ ] ordinaryGeneratingFunction — OGF operations
-- [ ] binomialTransform — Binomial transform
-- [ ] inverseBinomialTransform — Inverse binomial transform
-- [ ] lagrangeInversion — Lagrange inversion
-- [ ] treeGeneratingFunction — Tree generating function
-- [ ] pruferRank — Prufer sequence rank
-- [ ] pruferUnrank — Prufer sequence unrank
-- [ ] cayleyCount — Cayley formula counting
+- [x] `stirlingFirstRow` — Stirling numbers first kind
+- [x] `stirlingSecondRow` — Stirling numbers second kind
+- [x] `eulerianNumbers` — Eulerian numbers
+- [x] `narayanaNumbers` — Narayana numbers
+- [x] `lahNumbers` — Lah numbers
+- [x] `youngTableauxCount` — Young tableaux counting
+- [x] `hookLengthFormula` — Hook length formula
+- [x] `qBinomial` — Q-binomial coefficients
+- [x] `gaussianBinomial` — Gaussian binomial
+- [x] `subsetBellTransform` — Subset Bell transform
+- [x] `setPartitionDp` — Set partition DP
+- [x] `exponentialGeneratingFunction` — EGF operations
+- [x] `ordinaryGeneratingFunction` — OGF operations
+- [x] `binomialTransform` — Binomial transform
+- [x] `inverseBinomialTransform` — Inverse binomial transform
+- [x] `lagrangeInversion` — Lagrange inversion
+- [x] `treeGeneratingFunction` — Tree generating function
+- [x] `pruferRank` — Prufer sequence rank
+- [x] `pruferUnrank` — Prufer sequence unrank
+- [x] `cayleyCount` — Cayley formula counting
 
 ## 8.3 Graph Polynomials
-- [ ] chromaticPolynomialDeletion — Chromatic polynomial (deletion)
-- [ ] chromaticPolynomialSubset — Chromatic polynomial (subset)
-- [ ] chromaticNumberDp — Chromatic number DP
-- [ ] tuttePolynomialSubset — Tutte polynomial subset
-- [ ] matchingPolynomial — Matching polynomial
-- [ ] independencePolynomial — Independence polynomial
-- [ ] reliabilityPolynomial — Reliability polynomial
-- [ ] rookPolynomial — Rook polynomial
+- [x] `chromaticPolynomialDeletion` — Chromatic polynomial (deletion)
+- [x] `chromaticPolynomialSubset` — Chromatic polynomial (subset)
+- [x] `chromaticNumberDp` — Chromatic number DP
+- [x] `tuttePolynomialSubset` — Tutte polynomial subset
+- [x] `matchingPolynomial` — Matching polynomial
+- [x] `independencePolynomial` — Independence polynomial
+- [x] `reliabilityPolynomial` — Reliability polynomial
+- [x] `rookPolynomial` — Rook polynomial
 
 ## 8.4 Polynomial Convolutions
-- [ ] threePrimeNttConvolution — Three-prime NTT convolution
-- [ ] crtConvolution — CRT convolution
+- [x] `threePrimeNttConvolution` — Three-prime NTT convolution
+- [x] `crtConvolution` — CRT convolution

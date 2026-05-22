@@ -2,24 +2,24 @@
 
 ## 3.1 Connectivity
 - [ ] offlineConvexHull — Convex hull (offline)
-- [ ] offlineDynamicMst — Dynamic MST (offline)
+- [x] offlineDynamicMst — Dynamic MST (offline)
 - [ ] fullyDynamicConnectivity — Fully dynamic connectivity
-- [ ] incrementalConnectivity — Incremental connectivity
-- [ ] decrementalConnectivity — Decremental connectivity
-- [ ] dynamicTransitiveClosure — Dynamic transitive closure
-- [ ] dynamicReachabilityApprox — Approximate reachability
+- [x] incrementalConnectivity — Incremental connectivity
+- [x] decrementalConnectivity — Decremental connectivity
+- [x] dynamicTransitiveClosure — Dynamic transitive closure
+- [x] dynamicReachabilityApprox — Approximate reachability
 
 ## 3.2 Bridges & Articulation
 - [ ] dynamicBridgeCount — Dynamic bridges
 - [ ] dynamicArticulationCount — Dynamic articulation points
-- [ ] onlineBridgeFind — Online bridge finding
+- [x] onlineBridgeFind — Online bridge finding
 - [ ] edgeBiconnectivityAugmentation — Edge biconnectivity
 - [ ] vertexBiconnectivityAugmentation — Vertex biconnectivity
 
 ## 3.3 SCC & Components
 - [ ] onlineSccIncremental — Incremental SCC
 - [ ] minimumSccAugmentation — Minimum SCC augmentation
-- [ ] strongConnectivityAugmentation — Strong connectivity augmentation
+- [x] strongConnectivityAugmentation — Strong connectivity augmentation
 
 ## 3.4 Dynamic Trees
 - [ ] linkCutPathAdd — LCT path add

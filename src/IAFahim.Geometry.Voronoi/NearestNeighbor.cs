@@ -20,9 +20,9 @@ namespace IAFahim.Geometry.Voronoi
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int FromVoronoi(double qx, double qy, double* vc, int* idx, int n)
+        public static int FromVoronoi(double qx, double qy, double* xs, double* ys, int n)
         {
-            return FromPoints(vc, idx, n, qx, qy);
+            return FromPoints(xs, ys, n, qx, qy);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
