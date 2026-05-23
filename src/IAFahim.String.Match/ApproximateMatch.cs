@@ -15,13 +15,10 @@ using System.Runtime.InteropServices;
             }
         }
 
-        public static void LandauVishkin(byte* text, int textLen, byte* pattern, int patLen, int k, int* results, int* count)
+        public static void LandauVishkin(byte* text, int textLen, byte* pattern, int patLen, int k, int* results, int* count, int* curr, int* prev)
         {
             int n = textLen;
             int m = patLen;
-            int* D = (int*)Marshal.AllocHGlobal(sizeof(int) * (k + 1));
-            int* curr = (int*)Marshal.AllocHGlobal(sizeof(int) * (k + 1));
-            int* prev = (int*)Marshal.AllocHGlobal(sizeof(int) * (k + 1));
             *count = 0;
             for (int pos = 0; pos < n; pos++)
             {
@@ -41,9 +38,6 @@ using System.Runtime.InteropServices;
                     results[(*count)++] = pos - k;
                 int* tmp = prev; prev = curr; curr = tmp;
             }
-            Marshal.FreeHGlobal((nint)D);
-            Marshal.FreeHGlobal((nint)curr);
-            Marshal.FreeHGlobal((nint)prev);
         }
     }
 }

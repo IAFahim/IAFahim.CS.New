@@ -7,14 +7,14 @@ namespace IAFahim.Geometry.Voronoi
     public static unsafe class NearestNeighbor
     {
         [StructLayout(LayoutKind.Sequential)]
-        private struct PointIdx
+        public struct PointIdx
         {
             public double X, Y;
             public int Idx;
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        private struct KDNode
+        public struct KDNode
         {
             public double X, Y;
             public int Idx;
@@ -157,49 +157,31 @@ namespace IAFahim.Geometry.Voronoi
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int FromVoronoi(double qx, double qy, double* xs, double* ys, int n)
+        public static int FromVoronoi(double qx, double qy, double* xs, double* ys, int n, PointIdx* pts, KDNode* nodes)
         {
             // Instead of linear search, Build KD-Tree and query.
             if (n == 0) return -1;
-            PointIdx* pts = (PointIdx*)Marshal.AllocHGlobal(n * sizeof(PointIdx));
-            KDNode* nodes = (KDNode*)Marshal.AllocHGlobal(n * sizeof(KDNode));
-            try
-            {
-                for (int i = 0; i < n; i++) { pts[i].X = xs[i]; pts[i].Y = ys[i]; pts[i].Idx = i; }
-                int nodeCount = 0;
-                int root = BuildKD(pts, nodes, 0, n - 1, 0, ref nodeCount);
-                double bestDist = double.MaxValue;
-                int bestIdx = -1;
-                SearchNearest(nodes, root, qx, qy, ref bestDist, ref bestIdx);
-                return bestIdx;
-            }
-            finally
-            {
-                Marshal.FreeHGlobal((IntPtr)pts);
-                Marshal.FreeHGlobal((IntPtr)nodes);
-            }
+            
+            for (int i = 0; i < n; i++) { pts[i].X = xs[i]; pts[i].Y = ys[i]; pts[i].Idx = i; }
+            int nodeCount = 0;
+            int root = BuildKD(pts, nodes, 0, n - 1, 0, ref nodeCount);
+            double bestDist = double.MaxValue;
+            int bestIdx = -1;
+            SearchNearest(nodes, root, qx, qy, ref bestDist, ref bestIdx);
+            return bestIdx;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Range(double qx, double qy, double r, double* xs, double* ys, int n, int* outIdx)
+        public static int Range(double qx, double qy, double r, double* xs, double* ys, int n, int* outIdx, PointIdx* pts, KDNode* nodes)
         {
             if (n == 0) return 0;
-            PointIdx* pts = (PointIdx*)Marshal.AllocHGlobal(n * sizeof(PointIdx));
-            KDNode* nodes = (KDNode*)Marshal.AllocHGlobal(n * sizeof(KDNode));
-            try
-            {
-                for (int i = 0; i < n; i++) { pts[i].X = xs[i]; pts[i].Y = ys[i]; pts[i].Idx = i; }
-                int nodeCount = 0;
-                int root = BuildKD(pts, nodes, 0, n - 1, 0, ref nodeCount);
-                int outCount = 0;
-                SearchRange(nodes, root, qx, qy, r * r, outIdx, ref outCount);
-                return outCount;
-            }
-            finally
-            {
-                Marshal.FreeHGlobal((IntPtr)pts);
-                Marshal.FreeHGlobal((IntPtr)nodes);
-            }
+            
+            for (int i = 0; i < n; i++) { pts[i].X = xs[i]; pts[i].Y = ys[i]; pts[i].Idx = i; }
+            int nodeCount = 0;
+            int root = BuildKD(pts, nodes, 0, n - 1, 0, ref nodeCount);
+            int outCount = 0;
+            SearchRange(nodes, root, qx, qy, r * r, outIdx, ref outCount);
+            return outCount;
         }
     }
 }

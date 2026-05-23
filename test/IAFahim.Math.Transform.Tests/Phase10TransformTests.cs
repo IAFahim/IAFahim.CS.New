@@ -505,7 +505,8 @@ namespace IAFahim.Math.Transform.Tests
             Assert.Equal(4, g[2]);
             Assert.Equal(10, g[3]);
 
-            PosetTransforms.MobiusTransform(g, backF, topOrder, relation, n, mod);
+            long* mu = stackalloc long[n * n];
+            PosetTransforms.MobiusTransform(g, backF, topOrder, relation, n, mod, mu);
             for (int i = 0; i < n; i++)
             {
                 Assert.Equal(f[i], backF[i]);

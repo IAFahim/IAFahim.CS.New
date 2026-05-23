@@ -28,7 +28,7 @@ namespace IAFahim.String.Automata
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Dfa* BuildDfa(int** nfaTrans, bool* nfaAccept, int nfaStates, int sigma, int* stateMap, int* queue)
+        public static void BuildDfa(int** nfaTrans, bool* nfaAccept, int nfaStates, int sigma, int* stateMap, int* queue, Dfa* dfa)
         {
             int stateCount = 1;
             for (int i = 0; i < (1 << nfaStates); i++) stateMap[i] = -1;
@@ -55,15 +55,11 @@ namespace IAFahim.String.Automata
                 }
             }
 
-            Dfa* dfa = (Dfa*)Marshal.AllocHGlobal(sizeof(Dfa));
             dfa->StateCount = stateCount;
             dfa->AlphabetSize = sigma;
-            dfa->Transitions = (int**)Marshal.AllocHGlobal(stateCount * sizeof(int*));
-            dfa->IsAccept = (bool*)Marshal.AllocHGlobal(stateCount * sizeof(bool));
 
             for (int i = 0; i < stateCount; i++)
             {
-                dfa->Transitions[i] = (int*)Marshal.AllocHGlobal(sigma * sizeof(int));
                 for (int c = 0; c < sigma; c++) dfa->Transitions[i][c] = 0;
                 dfa->IsAccept[i] = false;
             }
@@ -91,25 +87,6 @@ namespace IAFahim.String.Automata
                     }
                 }
             }
-            return dfa;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void FreeDfa(Dfa* dfa)
-        {
-            if (dfa == null) return;
-            if (dfa->Transitions != null)
-            {
-                for (int i = 0; i < dfa->StateCount; i++)
-                {
-                    if (dfa->Transitions[i] != null)
-                        Marshal.FreeHGlobal((nint)dfa->Transitions[i]);
-                }
-                Marshal.FreeHGlobal((nint)dfa->Transitions);
-            }
-            if (dfa->IsAccept != null)
-                Marshal.FreeHGlobal((nint)dfa->IsAccept);
-            Marshal.FreeHGlobal((nint)dfa);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -119,21 +96,18 @@ namespace IAFahim.String.Automata
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Dfa* Complement(Dfa* dfa)
+        public static void Complement(Dfa* dfa, Dfa* result)
         {
-            return dfa;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Dfa* Union(Dfa* a, Dfa* b)
+        public static void Union(Dfa* a, Dfa* b, Dfa* result)
         {
-            return a;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Dfa* Intersection(Dfa* a, Dfa* b)
+        public static void Intersection(Dfa* a, Dfa* b, Dfa* result)
         {
-            return a;
         }
     }
 }

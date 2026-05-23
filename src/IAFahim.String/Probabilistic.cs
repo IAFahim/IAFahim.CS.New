@@ -38,129 +38,69 @@ namespace IAFahim.String
 
     public static unsafe class Probabilistic
     {
-        public static bool FreivaldsMatrixVerify(long* a, long* b, long* c, int n, int iterations, long mod)
+        public static bool FreivaldsMatrixVerify(long* a, long* b, long* c, int n, int iterations, long mod, long* r, long* br, long* abr, long* cr)
         {
             SimpleRand rand = new SimpleRand(42);
-            long* r = null;
-            long* br = null;
-            long* abr = null;
-            long* cr = null;
-            bool allocated = false;
-            long size = n;
-            if (size > 1024)
+            for (int iter = 0; iter < iterations; iter++)
             {
-                r = (long*)Marshal.AllocHGlobal((nint)(size * sizeof(long)));
-                br = (long*)Marshal.AllocHGlobal((nint)(size * sizeof(long)));
-                abr = (long*)Marshal.AllocHGlobal((nint)(size * sizeof(long)));
-                cr = (long*)Marshal.AllocHGlobal((nint)(size * sizeof(long)));
-                allocated = true;
-            }
-            else
-            {
-                long* tempR = stackalloc long[n];
-                long* tempBr = stackalloc long[n];
-                long* tempAbr = stackalloc long[n];
-                long* tempCr = stackalloc long[n];
-                r = tempR;
-                br = tempBr;
-                abr = tempAbr;
-                cr = tempCr;
-            }
-            try
-            {
-                for (int iter = 0; iter < iterations; iter++)
+                for (int i = 0; i < n; i++)
                 {
-                    for (int i = 0; i < n; i++)
-                    {
-                        r[i] = rand.Next() % 2;
-                    }
-                    for (int i = 0; i < n; i++)
-                    {
-                        long sum = 0;
-                        for (int j = 0; j < n; j++)
-                        {
-                            sum = (sum + b[(long)i * n + j] * r[j]) % mod;
-                        }
-                        br[i] = sum;
-                    }
-                    for (int i = 0; i < n; i++)
-                    {
-                        long sum = 0;
-                        for (int j = 0; j < n; j++)
-                        {
-                            sum = (sum + a[(long)i * n + j] * br[j]) % mod;
-                        }
-                        abr[i] = sum;
-                    }
-                    for (int i = 0; i < n; i++)
-                    {
-                        long sum = 0;
-                        for (int j = 0; j < n; j++)
-                        {
-                            sum = (sum + c[(long)i * n + j] * r[j]) % mod;
-                        }
-                        cr[i] = sum;
-                    }
-                    for (int i = 0; i < n; i++)
-                    {
-                        if (abr[i] != cr[i])
-                        {
-                            return false;
-                        }
-                    }
+                    r[i] = rand.Next() % 2;
                 }
-                return true;
-            }
-            finally
-            {
-                if (allocated)
+                for (int i = 0; i < n; i++)
                 {
-                    Marshal.FreeHGlobal((nint)r);
-                    Marshal.FreeHGlobal((nint)br);
-                    Marshal.FreeHGlobal((nint)abr);
-                    Marshal.FreeHGlobal((nint)cr);
-                }
-            }
-        }
-
-        public static bool SchwartzZippelTest(delegate* managed<long*, long, long> eval, int numVariables, long degree, int iterations, long mod)
-        {
-            SimpleRand rand = new SimpleRand(999);
-            long* points = null;
-            bool allocated = false;
-            if (numVariables > 1024)
-            {
-                points = (long*)Marshal.AllocHGlobal((nint)(numVariables * sizeof(long)));
-                allocated = true;
-            }
-            else
-            {
-                long* tempPoints = stackalloc long[numVariables];
-                points = tempPoints;
-            }
-            try
-            {
-                for (int iter = 0; iter < iterations; iter++)
-                {
-                    for (int i = 0; i < numVariables; i++)
+                    long sum = 0;
+                    for (int j = 0; j < n; j++)
                     {
-                        points[i] = rand.NextLong(0, mod - 1);
+                        sum = (sum + b[(long)i * n + j] * r[j]) % mod;
                     }
-                    long val = eval(points, numVariables);
-                    if (val != 0)
+                    br[i] = sum;
+                }
+                for (int i = 0; i < n; i++)
+                {
+                    long sum = 0;
+                    for (int j = 0; j < n; j++)
+                    {
+                        sum = (sum + a[(long)i * n + j] * br[j]) % mod;
+                    }
+                    abr[i] = sum;
+                }
+                for (int i = 0; i < n; i++)
+                {
+                    long sum = 0;
+                    for (int j = 0; j < n; j++)
+                    {
+                        sum = (sum + c[(long)i * n + j] * r[j]) % mod;
+                    }
+                    cr[i] = sum;
+                }
+                for (int i = 0; i < n; i++)
+                {
+                    if (abr[i] != cr[i])
                     {
                         return false;
                     }
                 }
-                return true;
             }
-            finally
+            return true;
+        }
+
+        public static bool SchwartzZippelTest(delegate* managed<long*, long, long> eval, int numVariables, long degree, int iterations, long mod, long* points)
+        {
+            SimpleRand rand = new SimpleRand(999);
+            for (int iter = 0; iter < iterations; iter++)
             {
-                if (allocated)
+                for (int i = 0; i < numVariables; i++)
                 {
-                    Marshal.FreeHGlobal((nint)points);
+                    points[i] = rand.NextLong(0, mod - 1);
+                }
+                long val = eval(points, numVariables);
+                if (val != 0)
+                {
+                    return false;
                 }
             }
+            return true;
         }
 
         public static int RabinKarpLasVegas(byte* text, int textLen, byte* pattern, int patternLen)
@@ -214,7 +154,7 @@ namespace IAFahim.String
             return -1;
         }
 
-        public static bool RandomizedMstVerify(int numVertices, int numEdges, int* u, int* v, long* weight, bool* inMst)
+        public static bool RandomizedMstVerify(int numVertices, int numEdges, int* u, int* v, long* weight, bool* inMst, int* parent, int* depth, int* up, long* maxEdge)
         {
             int treeEdgeCount = 0;
             for (int i = 0; i < numEdges; i++)
@@ -259,153 +199,115 @@ namespace IAFahim.String
             {
                 logV++;
             }
-            int* parent = null;
-            int* depth = null;
-            int* up = null;
-            long* maxEdge = null;
-            bool allocated = false;
-            long upSize = (long)numVertices * logV;
-            if (upSize > 1024)
+            for (int i = 0; i < numVertices; i++)
             {
-                parent = (int*)Marshal.AllocHGlobal((nint)(numVertices * sizeof(int)));
-                depth = (int*)Marshal.AllocHGlobal((nint)(numVertices * sizeof(int)));
-                up = (int*)Marshal.AllocHGlobal((nint)(upSize * sizeof(int)));
-                maxEdge = (long*)Marshal.AllocHGlobal((nint)(upSize * sizeof(long)));
-                allocated = true;
+                parent[i] = -1;
+                depth[i] = 0;
+                for (int j = 0; j < logV; j++)
+                {
+                    up[(long)i * logV + j] = -1;
+                    maxEdge[(long)i * logV + j] = 0;
+                }
             }
-            else
+            int* stack = stackalloc int[numVertices];
+            int stackPtr = 0;
+            stack[stackPtr++] = 0;
+            parent[0] = 0;
+            depth[0] = 0;
+            while (stackPtr > 0)
             {
-                int* tempParent = stackalloc int[numVertices];
-                int* tempDepth = stackalloc int[numVertices];
-                int* tempUp = stackalloc int[(int)upSize];
-                long* tempMaxEdge = stackalloc long[(int)upSize];
-                parent = tempParent;
-                depth = tempDepth;
-                up = tempUp;
-                maxEdge = tempMaxEdge;
+                int curr = stack[--stackPtr];
+                for (int e = head[curr]; e != -1; e = next[e])
+                {
+                    int nxtNode = to[e];
+                    if (nxtNode != parent[curr])
+                    {
+                        parent[nxtNode] = curr;
+                        depth[nxtNode] = depth[curr] + 1;
+                        up[(long)nxtNode * logV + 0] = curr;
+                        maxEdge[(long)nxtNode * logV + 0] = edgeWeight[e];
+                        stack[stackPtr++] = nxtNode;
+                    }
+                }
             }
-            try
+            for (int j = 1; j < logV; j++)
             {
                 for (int i = 0; i < numVertices; i++)
                 {
-                    parent[i] = -1;
-                    depth[i] = 0;
-                    for (int j = 0; j < logV; j++)
+                    int anc = up[(long)i * logV + j - 1];
+                    if (anc != -1)
                     {
-                        up[(long)i * logV + j] = -1;
-                        maxEdge[(long)i * logV + j] = 0;
+                        up[(long)i * logV + j] = up[(long)anc * logV + j - 1];
+                        long val1 = maxEdge[(long)i * logV + j - 1];
+                        long val2 = maxEdge[(long)anc * logV + j - 1];
+                        maxEdge[(long)i * logV + j] = val1 > val2 ? val1 : val2;
                     }
                 }
-                int* stack = stackalloc int[numVertices];
-                int stackPtr = 0;
-                stack[stackPtr++] = 0;
-                parent[0] = 0;
-                depth[0] = 0;
-                while (stackPtr > 0)
+            }
+            for (int i = 0; i < numEdges; i++)
+            {
+                if (!inMst[i])
                 {
-                    int curr = stack[--stackPtr];
-                    for (int e = head[curr]; e != -1; e = next[e])
+                    int x = u[i];
+                    int y = v[i];
+                    long w = weight[i];
+                    long pathMax = 0;
+                    if (depth[x] < depth[y])
                     {
-                        int nxtNode = to[e];
-                        if (nxtNode != parent[curr])
+                        int temp = x;
+                        x = y;
+                        y = temp;
+                    }
+                    for (int j = logV - 1; j >= 0; j--)
+                    {
+                        if (depth[x] - (1 << j) >= depth[y])
                         {
-                            parent[nxtNode] = curr;
-                            depth[nxtNode] = depth[curr] + 1;
-                            up[(long)nxtNode * logV + 0] = curr;
-                            maxEdge[(long)nxtNode * logV + 0] = edgeWeight[e];
-                            stack[stackPtr++] = nxtNode;
+                            long val = maxEdge[(long)x * logV + j];
+                            if (val > pathMax)
+                            {
+                                pathMax = val;
+                            }
+                            x = up[(long)x * logV + j];
                         }
                     }
-                }
-                for (int j = 1; j < logV; j++)
-                {
-                    for (int i = 0; i < numVertices; i++)
+                    if (x != y)
                     {
-                        int anc = up[(long)i * logV + j - 1];
-                        if (anc != -1)
-                        {
-                            up[(long)i * logV + j] = up[(long)anc * logV + j - 1];
-                            long val1 = maxEdge[(long)i * logV + j - 1];
-                            long val2 = maxEdge[(long)anc * logV + j - 1];
-                            maxEdge[(long)i * logV + j] = val1 > val2 ? val1 : val2;
-                        }
-                    }
-                }
-                for (int i = 0; i < numEdges; i++)
-                {
-                    if (!inMst[i])
-                    {
-                        int x = u[i];
-                        int y = v[i];
-                        long w = weight[i];
-                        long pathMax = 0;
-                        if (depth[x] < depth[y])
-                        {
-                            int temp = x;
-                            x = y;
-                            y = temp;
-                        }
                         for (int j = logV - 1; j >= 0; j--)
                         {
-                            if (depth[x] - (1 << j) >= depth[y])
+                            if (up[(long)x * logV + j] != up[(long)y * logV + j])
                             {
-                                long val = maxEdge[(long)x * logV + j];
-                                if (val > pathMax)
+                                long val1 = maxEdge[(long)x * logV + j];
+                                long val2 = maxEdge[(long)y * logV + j];
+                                if (val1 > pathMax)
                                 {
-                                    pathMax = val;
+                                    pathMax = val1;
+                                }
+                                if (val2 > pathMax)
+                                {
+                                    pathMax = val2;
                                 }
                                 x = up[(long)x * logV + j];
+                                y = up[(long)y * logV + j];
                             }
                         }
-                        if (x != y)
+                        long finalVal1 = maxEdge[(long)x * logV + 0];
+                        long finalVal2 = maxEdge[(long)y * logV + 0];
+                        if (finalVal1 > pathMax)
                         {
-                            for (int j = logV - 1; j >= 0; j--)
-                            {
-                                if (up[(long)x * logV + j] != up[(long)y * logV + j])
-                                {
-                                    long val1 = maxEdge[(long)x * logV + j];
-                                    long val2 = maxEdge[(long)y * logV + j];
-                                    if (val1 > pathMax)
-                                    {
-                                        pathMax = val1;
-                                    }
-                                    if (val2 > pathMax)
-                                    {
-                                        pathMax = val2;
-                                    }
-                                    x = up[(long)x * logV + j];
-                                    y = up[(long)y * logV + j];
-                                }
-                            }
-                            long finalVal1 = maxEdge[(long)x * logV + 0];
-                            long finalVal2 = maxEdge[(long)y * logV + 0];
-                            if (finalVal1 > pathMax)
-                            {
-                                pathMax = finalVal1;
-                            }
-                            if (finalVal2 > pathMax)
-                            {
-                                pathMax = finalVal2;
-                            }
+                            pathMax = finalVal1;
                         }
-                        if (pathMax > w)
+                        if (finalVal2 > pathMax)
                         {
-                            return false;
+                            pathMax = finalVal2;
                         }
                     }
-                }
-                return true;
-            }
-            finally
-            {
-                if (allocated)
-                {
-                    Marshal.FreeHGlobal((nint)parent);
-                    Marshal.FreeHGlobal((nint)depth);
-                    Marshal.FreeHGlobal((nint)up);
-                    Marshal.FreeHGlobal((nint)maxEdge);
+                    if (pathMax > w)
+                    {
+                        return false;
+                    }
                 }
             }
+            return true;
         }
     }
 }

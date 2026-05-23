@@ -14,19 +14,15 @@ using System.Runtime.InteropServices;
             public bool IsTerminal;
         }
 
-        private static Rule* _rules;
-        private static int _ruleCount;
-
-        public static void Build(byte* s, int len, int maxRules)
+        public static void Build(byte* s, int len, int maxRules, Rule* rules, ref int ruleCount)
         {
-            _rules = (Rule*)Marshal.AllocHGlobal(sizeof(Rule) * maxRules);
-            _ruleCount = 0;
+            ruleCount = 0;
             for (int i = 0; i < len; i++)
             {
                 int j = i;
                 while (j < len && !IsNewRule(s, j, len))
                     j++;
-                int ruleId = FindOrCreateRule(s, i, j - i);
+                int ruleId = FindOrCreateRule(s, i, j - i, rules, ref ruleCount);
                 i = j - 1;
             }
         }
@@ -49,25 +45,25 @@ using System.Runtime.InteropServices;
             return false;
         }
 
-        private static int FindOrCreateRule(byte* s, int start, int len)
+        private static int FindOrCreateRule(byte* s, int start, int len, Rule* rules, ref int ruleCount)
         {
-            for (int i = 0; i < _ruleCount; i++)
+            for (int i = 0; i < ruleCount; i++)
             {
-                if (!_rules[i].IsTerminal && _rules[i].Left == start && _rules[i].Right == len)
+                if (!rules[i].IsTerminal && rules[i].Left == start && rules[i].Right == len)
                     return i;
             }
-            int id = _ruleCount++;
-            _rules[id].IsTerminal = false;
-            _rules[id].Left = start;
-            _rules[id].Right = len;
+            int id = ruleCount++;
+            rules[id].IsTerminal = false;
+            rules[id].Left = start;
+            rules[id].Right = len;
             return id;
         }
 
-        public static byte Query(int ruleId, int pos)
+        public static byte Query(Rule* rules, int ruleId, int pos)
         {
-            if (_rules[ruleId].IsTerminal)
-                return _rules[ruleId].Char;
-            return _rules[ruleId].Char;
+            if (rules[ruleId].IsTerminal)
+                return rules[ruleId].Char;
+            return rules[ruleId].Char;
         }
     }
 }

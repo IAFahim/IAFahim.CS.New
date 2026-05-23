@@ -10,22 +10,6 @@ namespace IAFahim.Graph.Flow
         public int* Pos;
         public int Size;
 
-        public MinHeap(int n)
-        {
-            Dist = (long*)System.Runtime.InteropServices.Marshal.AllocHGlobal(n * sizeof(long));
-            V = (int*)System.Runtime.InteropServices.Marshal.AllocHGlobal(n * sizeof(int));
-            Pos = (int*)System.Runtime.InteropServices.Marshal.AllocHGlobal(n * sizeof(int));
-            for (int i = 0; i < n; i++) Pos[i] = -1;
-            Size = 0;
-        }
-
-        public void Dispose()
-        {
-            System.Runtime.InteropServices.Marshal.FreeHGlobal((nint)Dist);
-            System.Runtime.InteropServices.Marshal.FreeHGlobal((nint)V);
-            System.Runtime.InteropServices.Marshal.FreeHGlobal((nint)Pos);
-        }
-
         public void PushOrUpdate(int v, long d)
         {
             int idx = Pos[v];
@@ -121,29 +105,31 @@ namespace IAFahim.Graph.Flow
             long* dist = stackalloc long[n];
             int* parent = stackalloc int[n];
             int* parentEdge = stackalloc int[n];
-            var pq = new MinHeap(n);
-            try
+            
+            long* pqDist = stackalloc long[n];
+            int* pqV = stackalloc int[n];
+            int* pqPos = stackalloc int[n];
+            for (int i = 0; i < n; i++) pqPos[i] = -1;
+            var pq = new MinHeap { Dist = pqDist, V = pqV, Pos = pqPos, Size = 0 };
+
+            for (int i = 0; i < n; i++) pot[i] = 0;
+            while (PotentialDijkstra.Run(n, s, t, head, to, next, cap, cost, pot, dist, parent, parentEdge, &pq))
             {
-                for (int i = 0; i < n; i++) pot[i] = 0;
-                while (PotentialDijkstra.Run(n, s, t, head, to, next, cap, cost, pot, dist, parent, parentEdge, &pq))
+                int add = int.MaxValue;
+                for (int v = t; v != s; v = parent[v])
                 {
-                    int add = int.MaxValue;
-                    for (int v = t; v != s; v = parent[v])
-                    {
-                        int e = parentEdge[v];
-                        add = Math.Min(add, cap[e]);
-                    }
-                    for (int v = t; v != s; v = parent[v])
-                    {
-                        int e = parentEdge[v];
-                        cap[e] -= add;
-                        cap[e ^ 1] += add;
-                        minCost += (long)cost[e] * add;
-                    }
-                    flow += add;
+                    int e = parentEdge[v];
+                    add = Math.Min(add, cap[e]);
                 }
+                for (int v = t; v != s; v = parent[v])
+                {
+                    int e = parentEdge[v];
+                    cap[e] -= add;
+                    cap[e ^ 1] += add;
+                    minCost += (long)cost[e] * add;
+                }
+                flow += add;
             }
-            finally { pq.Dispose(); }
             return minCost;
         }
     }
@@ -447,51 +433,53 @@ namespace IAFahim.Graph.Flow
             long* dist = stackalloc long[n];
             int* parent = stackalloc int[n];
             int* parentEdge = stackalloc int[n];
-            var pq = new MinHeap(n);
-            try
+            
+            long* pqDist = stackalloc long[n];
+            int* pqV = stackalloc int[n];
+            int* pqPos = stackalloc int[n];
+            for (int i = 0; i < n; i++) pqPos[i] = -1;
+            var pq = new MinHeap { Dist = pqDist, V = pqV, Pos = pqPos, Size = 0 };
+
+            while (true)
             {
-                while (true)
+                for (int i = 0; i < n; i++) dist[i] = long.MaxValue;
+                dist[s] = 0;
+                pq.Size = 0;
+                pq.PushOrUpdate(s, 0);
+                while (pq.Size > 0)
                 {
-                    for (int i = 0; i < n; i++) dist[i] = long.MaxValue;
-                    dist[s] = 0;
-                    pq.Size = 0;
-                    pq.PushOrUpdate(s, 0);
-                    while (pq.Size > 0)
+                    int u = pq.Pop(out long d);
+                    if (d != dist[u]) continue;
+                    for (int e = head[u]; e != 0; e = next[e])
                     {
-                        int u = pq.Pop(out long d);
-                        if (d != dist[u]) continue;
-                        for (int e = head[u]; e != 0; e = next[e])
+                        if (cap[e] <= 0) continue;
+                        int v = to[e];
+                        long nd = d + cost[e];
+                        if (nd < dist[v])
                         {
-                            if (cap[e] <= 0) continue;
-                            int v = to[e];
-                            long nd = d + cost[e];
-                            if (nd < dist[v])
-                            {
-                                dist[v] = nd;
-                                parent[v] = u;
-                                parentEdge[v] = e;
-                                pq.PushOrUpdate(v, nd);
-                            }
+                            dist[v] = nd;
+                            parent[v] = u;
+                            parentEdge[v] = e;
+                            pq.PushOrUpdate(v, nd);
                         }
                     }
-                    if (dist[t] == long.MaxValue) break;
-                    int add = int.MaxValue;
-                    for (int v = t; v != s; v = parent[v])
-                    {
-                        int e = parentEdge[v];
-                        add = Math.Min(add, cap[e]);
-                    }
-                    for (int v = t; v != s; v = parent[v])
-                    {
-                        int e = parentEdge[v];
-                        cap[e] -= add;
-                        cap[e ^ 1] += add;
-                        minCost += (long)cost[e] * add;
-                    }
-                    flow += add;
                 }
+                if (dist[t] == long.MaxValue) break;
+                int add = int.MaxValue;
+                for (int v = t; v != s; v = parent[v])
+                {
+                    int e = parentEdge[v];
+                    add = Math.Min(add, cap[e]);
+                }
+                for (int v = t; v != s; v = parent[v])
+                {
+                    int e = parentEdge[v];
+                    cap[e] -= add;
+                    cap[e ^ 1] += add;
+                    minCost += (long)cost[e] * add;
+                }
+                flow += add;
             }
-            finally { pq.Dispose(); }
             return (flow, minCost);
         }
     }

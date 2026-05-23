@@ -128,36 +128,25 @@ namespace IAFahim.Graph.ShortestPath
     public static unsafe class ApspRepeatedSquaring
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Run(int n, int maxEdges, long* adj, long* result)
+        public static void Run(int n, int maxEdges, long* adj, long* result, long* temp, long* current)
         {
-            long byteCount = (long)(n * n) * sizeof(long);
-            long* temp = (long*)Marshal.AllocHGlobal((nint)byteCount);
-            long* current = (long*)Marshal.AllocHGlobal((nint)byteCount);
-            try
-            {
-                for (int i = 0; i < n * n; i++) result[i] = adj[i];
-                for (int i = 0; i < n * n; i++) current[i] = adj[i];
+            for (int i = 0; i < n * n; i++) result[i] = adj[i];
+            for (int i = 0; i < n * n; i++) current[i] = adj[i];
 
-                int p = maxEdges - 1;
-                while (p > 0)
-                {
-                    if ((p & 1) != 0)
-                    {
-                        AllPairsMinPlus.Run(n, result, current, temp);
-                        for (int i = 0; i < n * n; i++) result[i] = temp[i];
-                    }
-                    p >>= 1;
-                    if (p > 0)
-                    {
-                        AllPairsMinPlus.Run(n, current, current, temp);
-                        for (int i = 0; i < n * n; i++) current[i] = temp[i];
-                    }
-                }
-            }
-            finally
+            int p = maxEdges - 1;
+            while (p > 0)
             {
-                Marshal.FreeHGlobal((nint)temp);
-                Marshal.FreeHGlobal((nint)current);
+                if ((p & 1) != 0)
+                {
+                    AllPairsMinPlus.Run(n, result, current, temp);
+                    for (int i = 0; i < n * n; i++) result[i] = temp[i];
+                }
+                p >>= 1;
+                if (p > 0)
+                {
+                    AllPairsMinPlus.Run(n, current, current, temp);
+                    for (int i = 0; i < n * n; i++) current[i] = temp[i];
+                }
             }
         }
     }
@@ -281,58 +270,49 @@ namespace IAFahim.Graph.ShortestPath
     public static unsafe class MinimumCycleMean
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static double Run(int n, int m, int* eu, int* ev, long* ew)
+        public static double Run(int n, int m, int* eu, int* ev, long* ew, long* dp)
         {
-            long byteCount = (long)(n + 1) * n * sizeof(long);
-            long* dp = (long*)Marshal.AllocHGlobal((nint)byteCount);
-            try
+            for (int i = 0; i <= n; i++)
             {
-                for (int i = 0; i <= n; i++)
+                for (int j = 0; j < n; j++)
                 {
-                    for (int j = 0; j < n; j++)
-                    {
-                        dp[i * n + j] = long.MaxValue;
-                    }
+                    dp[i * n + j] = long.MaxValue;
                 }
-                for (int j = 0; j < n; j++) dp[j] = 0;
-
-                for (int k = 1; k <= n; k++)
-                {
-                    for (int e = 0; e < m; e++)
-                    {
-                        int u = eu[e];
-                        int v = ev[e];
-                        long w = ew[e];
-                        if (dp[(k - 1) * n + u] != long.MaxValue)
-                        {
-                            long val = dp[(k - 1) * n + u] + w;
-                            if (val < dp[k * n + v])
-                                dp[k * n + v] = val;
-                        }
-                    }
-                }
-
-                double minMean = double.PositiveInfinity;
-                for (int v = 0; v < n; v++)
-                {
-                    if (dp[n * n + v] == long.MaxValue) continue;
-                    double maxVal = double.NegativeInfinity;
-                    for (int k = 0; k < n; k++)
-                    {
-                        if (dp[k * n + v] != long.MaxValue)
-                        {
-                            double val = (double)(dp[n * n + v] - dp[k * n + v]) / (n - k);
-                            if (val > maxVal) maxVal = val;
-                        }
-                    }
-                    if (maxVal < minMean) minMean = maxVal;
-                }
-                return minMean;
             }
-            finally
+            for (int j = 0; j < n; j++) dp[j] = 0;
+
+            for (int k = 1; k <= n; k++)
             {
-                Marshal.FreeHGlobal((nint)dp);
+                for (int e = 0; e < m; e++)
+                {
+                    int u = eu[e];
+                    int v = ev[e];
+                    long w = ew[e];
+                    if (dp[(k - 1) * n + u] != long.MaxValue)
+                    {
+                        long val = dp[(k - 1) * n + u] + w;
+                        if (val < dp[k * n + v])
+                            dp[k * n + v] = val;
+                    }
+                }
             }
+
+            double minMean = double.PositiveInfinity;
+            for (int v = 0; v < n; v++)
+            {
+                if (dp[n * n + v] == long.MaxValue) continue;
+                double maxVal = double.NegativeInfinity;
+                for (int k = 0; k < n; k++)
+                {
+                    if (dp[k * n + v] != long.MaxValue)
+                    {
+                        double val = (double)(dp[n * n + v] - dp[k * n + v]) / (n - k);
+                        if (val > maxVal) maxVal = val;
+                    }
+                }
+                if (maxVal < minMean) minMean = maxVal;
+            }
+            return minMean;
         }
     }
 }

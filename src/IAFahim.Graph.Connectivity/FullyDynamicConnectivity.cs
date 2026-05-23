@@ -6,7 +6,8 @@ namespace IAFahim.Graph.Connectivity
 
     public static unsafe class FullyDynamicConnectivity
     {
-        private struct EdgeEvent : IComparable<EdgeEvent>
+        [StructLayout(LayoutKind.Sequential)]
+        public struct EdgeEvent : IComparable<EdgeEvent>
         {
             public int U;
             public int V;
@@ -47,98 +48,81 @@ namespace IAFahim.Graph.Connectivity
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Run(int* queriesU, int* queriesV, int* queriesType, int q,
-                               int* parent, int* size, int n, int* answers)
+                               int* parent, int* size, int n, int* answers,
+                               EdgeEvent* scratchEvents, EdgeEvent* scratchSorted,
+                               int* scratchMatch, EdgeInterval* scratchEdges,
+                               RollbackOp* scratchHistory)
         {
             if (q == 0) return;
 
-            EdgeEvent* events = (EdgeEvent*)Marshal.AllocHGlobal(q * sizeof(EdgeEvent));
-            try
+            EdgeEvent* events = scratchEvents;
+            for (int i = 0; i < q; i++)
             {
-                for (int i = 0; i < q; i++)
+                events[i].U = queriesU[i];
+                events[i].V = queriesV[i];
+                if (events[i].U > events[i].V)
                 {
-                    events[i].U = queriesU[i];
-                    events[i].V = queriesV[i];
-                    if (events[i].U > events[i].V)
-                    {
-                        int t = events[i].U; events[i].U = events[i].V; events[i].V = t;
-                    }
-                    events[i].Time = i;
-                    events[i].Type = queriesType[i];
-                    events[i].Id = i;
-                    answers[i] = -1;
+                    int t = events[i].U; events[i].U = events[i].V; events[i].V = t;
                 }
-
-                EdgeEvent* sorted = (EdgeEvent*)Marshal.AllocHGlobal(q * sizeof(EdgeEvent));
-                try
-                {
-                    Buffer.MemoryCopy(events, sorted, q * sizeof(EdgeEvent), q * sizeof(EdgeEvent));
-                    SortEdgeEvents(sorted, 0, q - 1);
-
-                    int* match = (int*)Marshal.AllocHGlobal(q * sizeof(int));
-                    try
-                    {
-                        for (int i = 0; i < q; i++) match[i] = -1;
-
-                        for (int i = 0; i < q; i++)
-                        {
-                            if (sorted[i].Type == 0) // Add
-                            {
-                                int j = i + 1;
-                                int matchedId = -1;
-                                while (j < q && sorted[j].U == sorted[i].U && sorted[j].V == sorted[i].V)
-                                {
-                                    if (sorted[j].Type == 1 && match[sorted[j].Id] == -1) // Remove
-                                    {
-                                        matchedId = sorted[j].Id;
-                                        match[sorted[j].Id] = sorted[i].Id;
-                                        break;
-                                    }
-                                    j++;
-                                }
-                                match[sorted[i].Id] = matchedId != -1 ? matchedId : q;
-                            }
-                        }
-
-                        int edgeCount = 0;
-                        for (int i = 0; i < q; i++)
-                        {
-                            if (events[i].Type == 0) edgeCount++;
-                        }
-
-                        EdgeInterval* edges = (EdgeInterval*)Marshal.AllocHGlobal(edgeCount * sizeof(EdgeInterval));
-                        try
-                        {
-                            int ec = 0;
-                            for (int i = 0; i < q; i++)
-                            {
-                                if (events[i].Type == 0)
-                                {
-                                    edges[ec].U = events[i].U;
-                                    edges[ec].V = events[i].V;
-                                    edges[ec].StartTime = i;
-                                    int endTime = match[i];
-                                    if (endTime == -1) endTime = q;
-                                    edges[ec].EndTime = endTime - 1;
-                                    ec++;
-                                }
-                            }
-
-                            RollbackOp* history = (RollbackOp*)Marshal.AllocHGlobal(n * sizeof(RollbackOp));
-                            try
-                            {
-                                int historyCount = 0;
-                                OfflineDynamicMst.Init(parent, size, n);
-                                OfflineDynamicConnectivity.Solve(0, q - 1, edges, edgeCount, parent, size, history, ref historyCount, answers, queriesType, queriesU, queriesV);
-                            }
-                            finally { Marshal.FreeHGlobal((nint)history); }
-                        }
-                        finally { Marshal.FreeHGlobal((nint)edges); }
-                    }
-                    finally { Marshal.FreeHGlobal((nint)match); }
-                }
-                finally { Marshal.FreeHGlobal((nint)sorted); }
+                events[i].Time = i;
+                events[i].Type = queriesType[i];
+                events[i].Id = i;
+                answers[i] = -1;
             }
-            finally { Marshal.FreeHGlobal((nint)events); }
+
+            EdgeEvent* sorted = scratchSorted;
+            Buffer.MemoryCopy(events, sorted, q * sizeof(EdgeEvent), q * sizeof(EdgeEvent));
+            SortEdgeEvents(sorted, 0, q - 1);
+
+            int* match = scratchMatch;
+            for (int i = 0; i < q; i++) match[i] = -1;
+
+            for (int i = 0; i < q; i++)
+            {
+                if (sorted[i].Type == 0) // Add
+                {
+                    int j = i + 1;
+                    int matchedId = -1;
+                    while (j < q && sorted[j].U == sorted[i].U && sorted[j].V == sorted[i].V)
+                    {
+                        if (sorted[j].Type == 1 && match[sorted[j].Id] == -1) // Remove
+                        {
+                            matchedId = sorted[j].Id;
+                            match[sorted[j].Id] = sorted[i].Id;
+                            break;
+                        }
+                        j++;
+                    }
+                    match[sorted[i].Id] = matchedId != -1 ? matchedId : q;
+                }
+            }
+
+            int edgeCount = 0;
+            for (int i = 0; i < q; i++)
+            {
+                if (events[i].Type == 0) edgeCount++;
+            }
+
+            EdgeInterval* edges = scratchEdges;
+            int ec = 0;
+            for (int i = 0; i < q; i++)
+            {
+                if (events[i].Type == 0)
+                {
+                    edges[ec].U = events[i].U;
+                    edges[ec].V = events[i].V;
+                    edges[ec].StartTime = i;
+                    int endTime = match[i];
+                    if (endTime == -1) endTime = q;
+                    edges[ec].EndTime = endTime - 1;
+                    ec++;
+                }
+            }
+
+            RollbackOp* history = scratchHistory;
+            int historyCount = 0;
+            OfflineDynamicMst.Init(parent, size, n);
+            OfflineDynamicConnectivity.Solve(0, q - 1, edges, edgeCount, parent, size, history, ref historyCount, answers, queriesType, queriesU, queriesV);
         }
     }
 }

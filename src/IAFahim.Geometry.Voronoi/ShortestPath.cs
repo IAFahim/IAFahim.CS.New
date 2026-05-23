@@ -7,7 +7,7 @@ namespace IAFahim.Geometry.Voronoi
     public static unsafe class ShortestPath
     {
         [StructLayout(LayoutKind.Sequential)]
-        private struct PQNode
+        public struct PQNode
         {
             public int V;
             public double Dist;
@@ -53,67 +53,49 @@ namespace IAFahim.Geometry.Voronoi
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static double Run(double* ox, double* oy, int n, int src, int dst, int* from, int* to, double* w, int e)
+        public static double Run(double* ox, double* oy, int n, int src, int dst, int* from, int* to, double* w, int e, double* dist, PQNode* pq, int* head, int* next, int* toEdge, double* weight)
         {
             if (src == dst) return 0;
-            double* dist = (double*)Marshal.AllocHGlobal(n * sizeof(double));
-            PQNode* pq = (PQNode*)Marshal.AllocHGlobal(e * 2 * sizeof(PQNode)); // size up to E
-            int* head = (int*)Marshal.AllocHGlobal(n * sizeof(int));
-            int* next = (int*)Marshal.AllocHGlobal(e * 2 * sizeof(int));
-            int* toEdge = (int*)Marshal.AllocHGlobal(e * 2 * sizeof(int));
-            double* weight = (double*)Marshal.AllocHGlobal(e * 2 * sizeof(double));
 
-            try
+            for (int i = 0; i < n; i++)
             {
-                for (int i = 0; i < n; i++)
+                dist[i] = double.MaxValue;
+                head[i] = -1;
+            }
+
+            int edgeCount = 0;
+            for (int i = 0; i < e; i++)
+            {
+                int u = from[i], v = to[i];
+                toEdge[edgeCount] = v; weight[edgeCount] = w[i]; next[edgeCount] = head[u]; head[u] = edgeCount++;
+                toEdge[edgeCount] = u; weight[edgeCount] = w[i]; next[edgeCount] = head[v]; head[v] = edgeCount++;
+            }
+
+            int pqSize = 0;
+            dist[src] = 0;
+            Push(pq, ref pqSize, src, 0);
+
+            while (pqSize > 0)
+            {
+                PQNode top = Pop(pq, ref pqSize);
+                int u = top.V;
+                double d = top.Dist;
+
+                if (d > dist[u]) continue;
+                if (u == dst) return d;
+
+                for (int curr = head[u]; curr != -1; curr = next[curr])
                 {
-                    dist[i] = double.MaxValue;
-                    head[i] = -1;
-                }
-
-                int edgeCount = 0;
-                for (int i = 0; i < e; i++)
-                {
-                    int u = from[i], v = to[i];
-                    toEdge[edgeCount] = v; weight[edgeCount] = w[i]; next[edgeCount] = head[u]; head[u] = edgeCount++;
-                    toEdge[edgeCount] = u; weight[edgeCount] = w[i]; next[edgeCount] = head[v]; head[v] = edgeCount++;
-                }
-
-                int pqSize = 0;
-                dist[src] = 0;
-                Push(pq, ref pqSize, src, 0);
-
-                while (pqSize > 0)
-                {
-                    PQNode top = Pop(pq, ref pqSize);
-                    int u = top.V;
-                    double d = top.Dist;
-
-                    if (d > dist[u]) continue;
-                    if (u == dst) return d;
-
-                    for (int curr = head[u]; curr != -1; curr = next[curr])
+                    int v = toEdge[curr];
+                    double nd = d + weight[curr];
+                    if (nd < dist[v])
                     {
-                        int v = toEdge[curr];
-                        double nd = d + weight[curr];
-                        if (nd < dist[v])
-                        {
-                            dist[v] = nd;
-                            Push(pq, ref pqSize, v, nd);
-                        }
+                        dist[v] = nd;
+                        Push(pq, ref pqSize, v, nd);
                     }
                 }
-                return dist[dst];
             }
-            finally
-            {
-                Marshal.FreeHGlobal((IntPtr)dist);
-                Marshal.FreeHGlobal((IntPtr)pq);
-                Marshal.FreeHGlobal((IntPtr)head);
-                Marshal.FreeHGlobal((IntPtr)next);
-                Marshal.FreeHGlobal((IntPtr)toEdge);
-                Marshal.FreeHGlobal((IntPtr)weight);
-            }
+            return dist[dst];
         }
     }
 }

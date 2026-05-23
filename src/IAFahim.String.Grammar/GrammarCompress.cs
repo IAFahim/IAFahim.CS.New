@@ -11,10 +11,9 @@ namespace IAFahim.String.Grammar
             public int Right;
         }
 
-        public static int Compress(byte* input, int len, Rule* rules, int maxRules)
+        public static int Compress(byte* input, int len, Rule* rules, int maxRules, byte* work)
         {
             int ruleCount = 0;
-            byte* work = (byte*)Marshal.AllocHGlobal(len);
             Buffer.MemoryCopy(input, work, len, len);
             int workLen = len;
             while (ruleCount < maxRules)
@@ -63,7 +62,6 @@ namespace IAFahim.String.Grammar
                 ruleCount++;
                 workLen = newLen;
             }
-            Marshal.FreeHGlobal((nint)work);
             return ruleCount;
         }
     }

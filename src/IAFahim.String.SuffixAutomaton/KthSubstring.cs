@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 
     public static unsafe class KthSubstring
     {
-        public static bool Find(int* stPtr, int stateCount, long k, int* outLen, int* outPtr)
+        public static bool Find(int* stPtr, int stateCount, long k, int* outLen, int* outPtr, long* dp)
         {
             var state = (SuffixAutomaton.State*)stPtr;
             long sum = 0;
@@ -19,7 +19,7 @@ using System.Runtime.InteropServices;
                         int next = GetNext(v, c, state);
                         if (next != -1)
                         {
-                            long cnt = CountSubstrings(next, state, stateCount);
+                            long cnt = CountSubstrings(next, state, stateCount, dp);
                             if (sum + cnt >= k)
                             {
                                 outPtr[0] = c;
@@ -41,13 +41,11 @@ using System.Runtime.InteropServices;
             return ((int*)ptr)[c];
         }
 
-        private static long CountSubstrings(int v, SuffixAutomaton.State* state, int stateCount)
+        private static long CountSubstrings(int v, SuffixAutomaton.State* state, int stateCount, long* dp)
         {
-            long* dp = (long*)Marshal.AllocHGlobal(sizeof(long) * stateCount);
             for (int i = 0; i < stateCount; i++)
                 dp[i] = -1;
             long result = Dfs(v, state, dp, stateCount);
-            Marshal.FreeHGlobal((nint)dp);
             return result;
         }
 

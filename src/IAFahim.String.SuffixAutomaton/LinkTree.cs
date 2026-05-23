@@ -5,9 +5,8 @@ namespace IAFahim.String.SuffixAutomaton
 
     public static unsafe class LinkTree
     {
-        public static void Traverse(int* linkPtr, int stateCount, int root, delegate*<int, void> callback)
+        public static void Traverse(int* linkPtr, int stateCount, int root, delegate*<int, void> callback, int* stack)
         {
-            int* stack = (int*)Marshal.AllocHGlobal(sizeof(int) * stateCount);
             int top = 0;
             stack[top++] = root;
             while (top > 0)
@@ -20,7 +19,6 @@ namespace IAFahim.String.SuffixAutomaton
                         stack[top++] = i;
                 }
             }
-            Marshal.FreeHGlobal((nint)stack);
         }
     }
 }

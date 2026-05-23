@@ -11,23 +11,14 @@ namespace IAFahim.String.SuffixAutomaton
             public int Len;
         }
 
-        private static int* _roots;
-        private static int _versionCount;
-
-        public static void Init(int maxVersions)
+        public static void PushVersion(int* roots, ref int versionCount, int root, int len)
         {
-            _roots = (int*)Marshal.AllocHGlobal(sizeof(int) * maxVersions);
-            _versionCount = 0;
+            roots[versionCount++] = root;
         }
 
-        public static void PushVersion(int root, int len)
+        public static int GetVersion(int* roots, int v)
         {
-            _roots[_versionCount++] = root;
-        }
-
-        public static int GetVersion(int v)
-        {
-            return _roots[v];
+            return roots[v];
         }
     }
 }

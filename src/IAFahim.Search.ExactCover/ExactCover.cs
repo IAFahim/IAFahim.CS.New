@@ -6,109 +6,57 @@ namespace IAFahim.Search
 
     public static unsafe class ExactCover
     {
-        public static bool SolveDlx(int* matrix, int rows, int cols, int* solution, int* solutionSize)
+        public static bool SolveDlx(int* matrix, int rows, int cols, int* solution, int* solutionSize, int* L, int* R, int* U, int* D, int* C, int* RowIdx, int* colSize)
         {
             int maxNodes = rows * cols + cols + 1;
-            int* L = null;
-            int* R = null;
-            int* U = null;
-            int* D = null;
-            int* C = null;
-            int* RowIdx = null;
-            int* colSize = null;
-            bool allocated = false;
-            if (maxNodes > 1024)
+            int nodeCount = cols + 1;
+            for (int c = 0; c <= cols; c++)
             {
-                L = (int*)Marshal.AllocHGlobal((nint)(maxNodes * sizeof(int)));
-                R = (int*)Marshal.AllocHGlobal((nint)(maxNodes * sizeof(int)));
-                U = (int*)Marshal.AllocHGlobal((nint)(maxNodes * sizeof(int)));
-                D = (int*)Marshal.AllocHGlobal((nint)(maxNodes * sizeof(int)));
-                C = (int*)Marshal.AllocHGlobal((nint)(maxNodes * sizeof(int)));
-                RowIdx = (int*)Marshal.AllocHGlobal((nint)(maxNodes * sizeof(int)));
-                colSize = (int*)Marshal.AllocHGlobal((nint)((cols + 1) * sizeof(int)));
-                allocated = true;
+                L[c] = c - 1;
+                R[c] = c + 1;
+                U[c] = c;
+                D[c] = c;
+                colSize[c] = 0;
             }
-            else
-            {
-                int* tempL = stackalloc int[maxNodes];
-                int* tempR = stackalloc int[maxNodes];
-                int* tempU = stackalloc int[maxNodes];
-                int* tempD = stackalloc int[maxNodes];
-                int* tempC = stackalloc int[maxNodes];
-                int* tempRowIdx = stackalloc int[maxNodes];
-                int* tempColSize = stackalloc int[cols + 1];
-                L = tempL;
-                R = tempR;
-                U = tempU;
-                D = tempD;
-                C = tempC;
-                RowIdx = tempRowIdx;
-                colSize = tempColSize;
-            }
-            try
-            {
-                int nodeCount = cols + 1;
-                for (int c = 0; c <= cols; c++)
-                {
-                    L[c] = c - 1;
-                    R[c] = c + 1;
-                    U[c] = c;
-                    D[c] = c;
-                    colSize[c] = 0;
-                }
-                L[0] = cols;
-                R[cols] = 0;
+            L[0] = cols;
+            R[cols] = 0;
 
-                for (int r = 0; r < rows; r++)
+            for (int r = 0; r < rows; r++)
+            {
+                int firstInRow = -1;
+                for (int c = 0; c < cols; c++)
                 {
-                    int firstInRow = -1;
-                    for (int c = 0; c < cols; c++)
+                    if (matrix[r * cols + c] == 1)
                     {
-                        if (matrix[r * cols + c] == 1)
+                        int colNode = c + 1;
+                        int currNode = nodeCount++;
+                        C[currNode] = colNode;
+                        RowIdx[currNode] = r;
+
+                        U[currNode] = U[colNode];
+                        D[currNode] = colNode;
+                        D[U[colNode]] = currNode;
+                        U[colNode] = currNode;
+                        colSize[colNode]++;
+
+                        if (firstInRow == -1)
                         {
-                            int colNode = c + 1;
-                            int currNode = nodeCount++;
-                            C[currNode] = colNode;
-                            RowIdx[currNode] = r;
-
-                            U[currNode] = U[colNode];
-                            D[currNode] = colNode;
-                            D[U[colNode]] = currNode;
-                            U[colNode] = currNode;
-                            colSize[colNode]++;
-
-                            if (firstInRow == -1)
-                            {
-                                firstInRow = currNode;
-                                L[currNode] = currNode;
-                                R[currNode] = currNode;
-                            }
-                            else
-                            {
-                                L[currNode] = L[firstInRow];
-                                R[currNode] = firstInRow;
-                                R[L[firstInRow]] = currNode;
-                                L[firstInRow] = currNode;
-                            }
+                            firstInRow = currNode;
+                            L[currNode] = currNode;
+                            R[currNode] = currNode;
+                        }
+                        else
+                        {
+                            L[currNode] = L[firstInRow];
+                            R[currNode] = firstInRow;
+                            R[L[firstInRow]] = currNode;
+                            L[firstInRow] = currNode;
                         }
                     }
                 }
-                *solutionSize = 0;
-                return SearchDlx(0, L, R, U, D, C, RowIdx, colSize, solution, solutionSize);
             }
-            finally
-            {
-                if (allocated)
-                {
-                    Marshal.FreeHGlobal((nint)L);
-                    Marshal.FreeHGlobal((nint)R);
-                    Marshal.FreeHGlobal((nint)U);
-                    Marshal.FreeHGlobal((nint)D);
-                    Marshal.FreeHGlobal((nint)C);
-                    Marshal.FreeHGlobal((nint)RowIdx);
-                    Marshal.FreeHGlobal((nint)colSize);
-                }
-            }
+            *solutionSize = 0;
+            return SearchDlx(0, L, R, U, D, C, RowIdx, colSize, solution, solutionSize);
         }
 
         private static bool SearchDlx(int k, int* L, int* R, int* U, int* D, int* C, int* RowIdx, int* colSize, int* solution, int* solutionSize)
@@ -186,13 +134,13 @@ namespace IAFahim.Search
             R[L[c]] = c;
         }
 
-        public static bool SolveSudokuDlx(int* sudoku)
+        public static bool SolveSudokuDlx(int* sudoku, int* L, int* R_dlx, int* U, int* D, int* C, int* RowIdx, int* colSize)
         {
             int* matrix = stackalloc int[729 * 324];
             int* rowMap = stackalloc int[729];
             for (int i = 0; i < 729 * 324; i++) matrix[i] = 0;
 
-            int R = 0;
+            int rowCount = 0;
             for (int r = 0; r < 9; r++)
             {
                 for (int c = 0; c < 9; c++)
@@ -201,23 +149,23 @@ namespace IAFahim.Search
                     if (val != 0)
                     {
                         int v = val - 1;
-                        rowMap[R] = r * 81 + c * 9 + v;
-                        matrix[R * 324 + (r * 9 + c)] = 1;
-                        matrix[R * 324 + (81 + r * 9 + v)] = 1;
-                        matrix[R * 324 + (162 + c * 9 + v)] = 1;
-                        matrix[R * 324 + (243 + ((r / 3) * 3 + c / 3) * 9 + v)] = 1;
-                        R++;
+                        rowMap[rowCount] = r * 81 + c * 9 + v;
+                        matrix[rowCount * 324 + (r * 9 + c)] = 1;
+                        matrix[rowCount * 324 + (81 + r * 9 + v)] = 1;
+                        matrix[rowCount * 324 + (162 + c * 9 + v)] = 1;
+                        matrix[rowCount * 324 + (243 + ((r / 3) * 3 + c / 3) * 9 + v)] = 1;
+                        rowCount++;
                     }
                     else
                     {
                         for (int v = 0; v < 9; v++)
                         {
-                            rowMap[R] = r * 81 + c * 9 + v;
-                            matrix[R * 324 + (r * 9 + c)] = 1;
-                            matrix[R * 324 + (81 + r * 9 + v)] = 1;
-                            matrix[R * 324 + (162 + c * 9 + v)] = 1;
-                            matrix[R * 324 + (243 + ((r / 3) * 3 + c / 3) * 9 + v)] = 1;
-                            R++;
+                            rowMap[rowCount] = r * 81 + c * 9 + v;
+                            matrix[rowCount * 324 + (r * 9 + c)] = 1;
+                            matrix[rowCount * 324 + (81 + r * 9 + v)] = 1;
+                            matrix[rowCount * 324 + (162 + c * 9 + v)] = 1;
+                            matrix[rowCount * 324 + (243 + ((r / 3) * 3 + c / 3) * 9 + v)] = 1;
+                            rowCount++;
                         }
                     }
                 }
@@ -225,7 +173,7 @@ namespace IAFahim.Search
 
             int* solution = stackalloc int[729];
             int solutionSize = 0;
-            bool solved = SolveDlx(matrix, R, 324, solution, &solutionSize);
+            bool solved = SolveDlx(matrix, rowCount, 324, solution, &solutionSize, L, R_dlx, U, D, C, RowIdx, colSize);
             if (solved)
             {
                 for (int i = 0; i < solutionSize; i++)
@@ -483,7 +431,7 @@ namespace IAFahim.Search
             return false;
         }
 
-        public static bool SolvePolyominoTiling(int width, int height, int numPieces, int numVariants, int* variantPieceId, int* variantOffsets, int* variantLengths, int* variantX, int* variantY, int* grid)
+        public static bool SolvePolyominoTiling(int width, int height, int numPieces, int numVariants, int* variantPieceId, int* variantOffsets, int* variantLengths, int* variantX, int* variantY, int* grid, int* placementVariant, int* placementR, int* placementC, int* dlxMatrix, int* L, int* R_dlx, int* U, int* D, int* C, int* RowIdx, int* colSize)
         {
             int totalPlacements = 0;
             for (int v = 0; v < numVariants; v++)
@@ -514,118 +462,75 @@ namespace IAFahim.Search
             }
 
             int dlxCols = width * height + numPieces;
-            int* placementRowMap = null;
-            int* placementVariant = null;
-            int* placementR = null;
-            int* placementC = null;
-            int* dlxMatrix = null;
-            bool allocated = false;
             long matrixSize = (long)totalPlacements * dlxCols;
 
-            if (matrixSize > 1024)
-            {
-                placementRowMap = (int*)Marshal.AllocHGlobal((nint)(totalPlacements * sizeof(int)));
-                placementVariant = (int*)Marshal.AllocHGlobal((nint)(totalPlacements * sizeof(int)));
-                placementR = (int*)Marshal.AllocHGlobal((nint)(totalPlacements * sizeof(int)));
-                placementC = (int*)Marshal.AllocHGlobal((nint)(totalPlacements * sizeof(int)));
-                dlxMatrix = (int*)Marshal.AllocHGlobal((nint)(matrixSize * sizeof(int)));
-                allocated = true;
-            }
-            else
-            {
-                int* tempRowMap = stackalloc int[totalPlacements];
-                int* tempVar = stackalloc int[totalPlacements];
-                int* tempR = stackalloc int[totalPlacements];
-                int* tempC = stackalloc int[totalPlacements];
-                int* tempMatrix = stackalloc int[(int)matrixSize];
-                placementRowMap = tempRowMap;
-                placementVariant = tempVar;
-                placementR = tempR;
-                placementC = tempC;
-                dlxMatrix = tempMatrix;
-            }
+            for (int i = 0; i < matrixSize; i++) dlxMatrix[i] = 0;
 
-            try
+            int pIdx = 0;
+            for (int v = 0; v < numVariants; v++)
             {
-                for (int i = 0; i < matrixSize; i++) dlxMatrix[i] = 0;
-
-                int pIdx = 0;
-                for (int v = 0; v < numVariants; v++)
+                int len = variantLengths[v];
+                int offset = variantOffsets[v];
+                int pieceId = variantPieceId[v];
+                for (int r = 0; r < height; r++)
                 {
-                    int len = variantLengths[v];
-                    int offset = variantOffsets[v];
-                    int pieceId = variantPieceId[v];
-                    for (int r = 0; r < height; r++)
+                    for (int c = 0; c < width; c++)
                     {
-                        for (int c = 0; c < width; c++)
+                        bool valid = true;
+                        for (int i = 0; i < len; i++)
                         {
-                            bool valid = true;
+                            int nr = r + variantY[offset + i];
+                            int nc = c + variantX[offset + i];
+                            if (nr < 0 || nr >= height || nc < 0 || nc >= width)
+                            {
+                                valid = false;
+                                break;
+                            }
+                        }
+                        if (valid)
+                        {
+                            placementVariant[pIdx] = v;
+                            placementR[pIdx] = r;
+                            placementC[pIdx] = c;
+
+                            dlxMatrix[(long)pIdx * dlxCols + (width * height + pieceId)] = 1;
                             for (int i = 0; i < len; i++)
                             {
                                 int nr = r + variantY[offset + i];
                                 int nc = c + variantX[offset + i];
-                                if (nr < 0 || nr >= height || nc < 0 || nc >= width)
-                                {
-                                    valid = false;
-                                    break;
-                                }
+                                dlxMatrix[(long)pIdx * dlxCols + (nr * width + nc)] = 1;
                             }
-                            if (valid)
-                            {
-                                placementVariant[pIdx] = v;
-                                placementR[pIdx] = r;
-                                placementC[pIdx] = c;
-
-                                dlxMatrix[(long)pIdx * dlxCols + (width * height + pieceId)] = 1;
-                                for (int i = 0; i < len; i++)
-                                {
-                                    int nr = r + variantY[offset + i];
-                                    int nc = c + variantX[offset + i];
-                                    dlxMatrix[(long)pIdx * dlxCols + (nr * width + nc)] = 1;
-                                }
-                                pIdx++;
-                            }
+                            pIdx++;
                         }
                     }
                 }
-
-                int* solution = stackalloc int[totalPlacements];
-                int solutionSize = 0;
-                bool solved = SolveDlx(dlxMatrix, totalPlacements, dlxCols, solution, &solutionSize);
-                if (solved)
-                {
-                    for (int i = 0; i < width * height; i++) grid[i] = -1;
-                    for (int i = 0; i < solutionSize; i++)
-                    {
-                        int p = solution[i];
-                        int v = placementVariant[p];
-                        int r = placementR[p];
-                        int c = placementC[p];
-                        int len = variantLengths[v];
-                        int offset = variantOffsets[v];
-                        int pieceId = variantPieceId[v];
-                        for (int j = 0; j < len; j++)
-                        {
-                            int nr = r + variantY[offset + j];
-                            int nc = c + variantX[offset + j];
-                            grid[nr * width + nc] = pieceId;
-                        }
-                    }
-                    return true;
-                }
-                return false;
             }
-            finally
+
+            int* solution = stackalloc int[totalPlacements];
+            int solutionSize = 0;
+            bool solved = SolveDlx(dlxMatrix, totalPlacements, dlxCols, solution, &solutionSize, L, R_dlx, U, D, C, RowIdx, colSize);
+            if (solved)
             {
-                if (allocated)
+                for (int i = 0; i < width * height; i++) grid[i] = -1;
+                for (int i = 0; i < solutionSize; i++)
                 {
-                    Marshal.FreeHGlobal((nint)placementRowMap);
-                    Marshal.FreeHGlobal((nint)placementVariant);
-                    Marshal.FreeHGlobal((nint)placementR);
-                    Marshal.FreeHGlobal((nint)placementC);
-                    Marshal.FreeHGlobal((nint)dlxMatrix);
+                    int p = solution[i];
+                    int v = placementVariant[p];
+                    int r = placementR[p];
+                    int c = placementC[p];
+                    int len = variantLengths[v];
+                    int offset = variantOffsets[v];
+                    int pieceId = variantPieceId[v];
+                    for (int j = 0; j < len; j++)
+                    {
+                        int nr = r + variantY[offset + j];
+                        int nc = c + variantX[offset + j];
+                        grid[nr * width + nc] = pieceId;
+                    }
                 }
+                return true;
             }
+            return false;
         }
 
         public static bool NQueensBitmask(int n, int* solution)

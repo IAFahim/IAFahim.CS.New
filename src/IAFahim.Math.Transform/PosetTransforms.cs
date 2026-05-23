@@ -32,70 +32,48 @@ namespace IAFahim.Math.Transform
             }
         }
 
-        public static void MobiusTransform(long* g, long* f, int* topOrder, bool* relation, int n, long mod)
+        public static void MobiusTransform(long* g, long* f, int* topOrder, bool* relation, int n, long mod, long* mu)
         {
-            long* mu = null;
-            bool allocated = false;
             long size = (long)n * n;
-            if (size > 1024)
+            for (int i = 0; i < size; i++)
             {
-                mu = (long*)Marshal.AllocHGlobal((nint)(size * sizeof(long)));
-                allocated = true;
+                mu[i] = 0;
             }
-            else
+            for (int i = 0; i < n; i++)
             {
-                long* tempMu = stackalloc long[(int)size];
-                mu = tempMu;
-            }
-            try
-            {
-                for (int i = 0; i < size; i++)
+                int x = topOrder[i];
+                mu[(long)x * n + x] = 1;
+                for (int j = i + 1; j < n; j++)
                 {
-                    mu[i] = 0;
-                }
-                for (int i = 0; i < n; i++)
-                {
-                    int x = topOrder[i];
-                    mu[(long)x * n + x] = 1;
-                    for (int j = i + 1; j < n; j++)
+                    int y = topOrder[j];
+                    if (relation[x * n + y])
                     {
-                        int y = topOrder[j];
-                        if (relation[x * n + y])
+                        long sum = 0;
+                        for (int k = i; k < j; k++)
                         {
-                            long sum = 0;
-                            for (int k = i; k < j; k++)
+                            int z = topOrder[k];
+                            if (relation[z * n + y])
                             {
-                                int z = topOrder[k];
-                                if (relation[z * n + y])
-                                {
-                                    sum = (sum + mu[(long)x * n + z]) % mod;
-                                }
+                                sum = (sum + mu[(long)x * n + z]) % mod;
                             }
-                            mu[(long)x * n + y] = (mod - sum) % mod;
                         }
+                        mu[(long)x * n + y] = (mod - sum) % mod;
                     }
-                }
-                for (int i = 0; i < n; i++)
-                {
-                    int y = topOrder[i];
-                    long sum = 0;
-                    for (int j = 0; j <= i; j++)
-                    {
-                        int x = topOrder[j];
-                        if (relation[x * n + y])
-                        {
-                            sum = (sum + mu[(long)x * n + y] * g[x]) % mod;
-                        }
-                    }
-                    f[y] = sum;
                 }
             }
-            finally
+            for (int i = 0; i < n; i++)
             {
-                if (allocated)
+                int y = topOrder[i];
+                long sum = 0;
+                for (int j = 0; j <= i; j++)
                 {
-                    Marshal.FreeHGlobal((nint)mu);
+                    int x = topOrder[j];
+                    if (relation[x * n + y])
+                    {
+                        sum = (sum + mu[(long)x * n + y] * g[x]) % mod;
+                    }
                 }
+                f[y] = sum;
             }
         }
 

@@ -23,7 +23,8 @@ namespace IAFahim.String.Tests
             byte* a = null;
             byte* b = null;
             byte* c = null;
-            int len = Enumeration.ShortestCommonSupersequence(a, 0, b, 0, c);
+            int* dp = stackalloc int[1];
+            int len = Enumeration.ShortestCommonSupersequence(a, 0, b, 0, c, dp);
             Assert.Equal(0, len);
         }
 
@@ -33,7 +34,8 @@ namespace IAFahim.String.Tests
             byte* a = stackalloc byte[2] { (byte)'a', (byte)'b' };
             byte* b = stackalloc byte[2] { (byte)'b', (byte)'a' };
             byte* c = stackalloc byte[4];
-            int len = Enumeration.ShortestCommonSupersequence(a, 2, b, 2, c);
+            int* dp = stackalloc int[3 * 3];
+            int len = Enumeration.ShortestCommonSupersequence(a, 2, b, 2, c, dp);
             Assert.Equal(3, len);
             // Possible SCS: "aba" or "bab"
             bool match1 = c[0] == 'a' && c[1] == 'b' && c[2] == 'a';
@@ -46,7 +48,10 @@ namespace IAFahim.String.Tests
         {
             byte* s = null;
             byte* result = stackalloc byte[2];
-            int len = Enumeration.ShortestAbsentSubsequence(s, 0, 2, result);
+            int* nextOcc = stackalloc int[4];
+            int* queue = stackalloc int[4];
+            int* backtrack = stackalloc int[4];
+            int len = Enumeration.ShortestAbsentSubsequence(s, 0, 2, result, nextOcc, queue, backtrack);
             Assert.Equal(1, len);
             Assert.Equal(0, result[0]);
         }
@@ -56,7 +61,10 @@ namespace IAFahim.String.Tests
         {
             byte* s = stackalloc byte[2] { 0, 1 }; // "ab"
             byte* result = stackalloc byte[4];
-            int len = Enumeration.ShortestAbsentSubsequence(s, 2, 2, result);
+            int* nextOcc = stackalloc int[8];
+            int* queue = stackalloc int[8];
+            int* backtrack = stackalloc int[8];
+            int len = Enumeration.ShortestAbsentSubsequence(s, 2, 2, result, nextOcc, queue, backtrack);
             Assert.Equal(2, len);
             // Lexicographically first shortest absent subsequence of "ab" with alphabet size 2 is "aa" (0, 0)
             Assert.Equal(0, result[0]);
@@ -68,7 +76,8 @@ namespace IAFahim.String.Tests
         {
             byte* s = null;
             byte* result = stackalloc byte[2];
-            int len = Enumeration.ShortestMissingSubstring(s, 0, 2, result);
+            bool* seen = stackalloc bool[16];
+            int len = Enumeration.ShortestMissingSubstring(s, 0, 2, result, seen);
             Assert.Equal(1, len);
             Assert.Equal(0, result[0]);
         }
@@ -78,7 +87,8 @@ namespace IAFahim.String.Tests
         {
             byte* s = stackalloc byte[3] { 0, 1, 0 }; // "aba"
             byte* result = stackalloc byte[4];
-            int len = Enumeration.ShortestMissingSubstring(s, 3, 2, result);
+            bool* seen = stackalloc bool[16];
+            int len = Enumeration.ShortestMissingSubstring(s, 3, 2, result, seen);
             Assert.Equal(2, len);
             // Missing length 2: "aa" (0,0) and "bb" (1,1). Lexicographically first is "aa".
             Assert.Equal(0, result[0]);
@@ -134,7 +144,11 @@ namespace IAFahim.String.Tests
             long* b = stackalloc long[4] { 5, 6, 7, 8 };
             // A * B = [19, 22; 43, 50]
             long* c = stackalloc long[4] { 19, 22, 43, 50 };
-            bool result = Probabilistic.FreivaldsMatrixVerify(a, b, c, n, 10, 1000000007L);
+            long* r = stackalloc long[4];
+            long* br = stackalloc long[4];
+            long* abr = stackalloc long[4];
+            long* cr = stackalloc long[4];
+            bool result = Probabilistic.FreivaldsMatrixVerify(a, b, c, n, 10, 1000000007L, r, br, abr, cr);
             Assert.True(result);
         }
 
@@ -145,21 +159,27 @@ namespace IAFahim.String.Tests
             long* a = stackalloc long[4] { 1, 2, 3, 4 };
             long* b = stackalloc long[4] { 5, 6, 7, 8 };
             long* c = stackalloc long[4] { 19, 22, 43, 51 }; // Incorrect
-            bool result = Probabilistic.FreivaldsMatrixVerify(a, b, c, n, 10, 1000000007L);
+            long* r = stackalloc long[4];
+            long* br = stackalloc long[4];
+            long* abr = stackalloc long[4];
+            long* cr = stackalloc long[4];
+            bool result = Probabilistic.FreivaldsMatrixVerify(a, b, c, n, 10, 1000000007L, r, br, abr, cr);
             Assert.False(result);
         }
 
         [Fact]
         public void SchwartzZippelTest_IdenticallyZero_ReturnsTrue()
         {
-            bool result = Probabilistic.SchwartzZippelTest(&ZeroPoly, 2, 2, 10, 1000000007L);
+            long* points = stackalloc long[2];
+            bool result = Probabilistic.SchwartzZippelTest(&ZeroPoly, 2, 2, 10, 1000000007L, points);
             Assert.True(result);
         }
 
         [Fact]
         public void SchwartzZippelTest_NotIdenticallyZero_ReturnsFalse()
         {
-            bool result = Probabilistic.SchwartzZippelTest(&NonZeroPoly, 2, 2, 100, 1000000007L);
+            long* points = stackalloc long[2];
+            bool result = Probabilistic.SchwartzZippelTest(&NonZeroPoly, 2, 2, 100, 1000000007L, points);
             Assert.False(result);
         }
 
@@ -190,10 +210,14 @@ namespace IAFahim.String.Tests
             int* v = stackalloc int[5] { 1, 2, 2, 3, 3 };
             long* w = stackalloc long[5] { 1, 3, 1, 4, 2 };
             bool* inMst = stackalloc bool[5] { true, false, true, false, true };
+            int* parent = stackalloc int[4];
+            int* depth = stackalloc int[4];
+            int* up = stackalloc int[16];
+            long* maxEdge = stackalloc long[16];
             // Tree edges are: (0,1) weight 1, (1,2) weight 1, (2,3) weight 2. Total weight 4.
             // Non-tree: (0,2) weight 3 -> path max (0-1-2) is max(1, 1) = 1 <= 3. Correct.
             // Non-tree: (1,3) weight 4 -> path max (1-2-3) is max(1, 2) = 2 <= 4. Correct.
-            bool result = Probabilistic.RandomizedMstVerify(numVertices, numEdges, u, v, w, inMst);
+            bool result = Probabilistic.RandomizedMstVerify(numVertices, numEdges, u, v, w, inMst, parent, depth, up, maxEdge);
             Assert.True(result);
         }
 
@@ -206,9 +230,13 @@ namespace IAFahim.String.Tests
             int* v = stackalloc int[5] { 1, 2, 2, 3, 3 };
             long* w = stackalloc long[5] { 1, 3, 1, 4, 2 };
             bool* inMst = stackalloc bool[5] { false, true, true, true, false };
+            int* parent = stackalloc int[4];
+            int* depth = stackalloc int[4];
+            int* up = stackalloc int[16];
+            long* maxEdge = stackalloc long[16];
             // Tree edges: (0,2) wt 3, (1,2) wt 1, (1,3) wt 4. Total weight 8.
             // Non-tree edge: (2,3) wt 2 -> path (2-1-3) max is max(1,4) = 4 > 2. So NOT MST.
-            bool result = Probabilistic.RandomizedMstVerify(numVertices, numEdges, u, v, w, inMst);
+            bool result = Probabilistic.RandomizedMstVerify(numVertices, numEdges, u, v, w, inMst, parent, depth, up, maxEdge);
             Assert.False(result);
         }
 

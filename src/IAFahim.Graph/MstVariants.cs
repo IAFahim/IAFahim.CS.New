@@ -1214,8 +1214,9 @@ namespace IAFahim.Graph
             return true;
         }
 
-        public static void KargerSteinMinCut(int n, int m, int* u, int* v, int* bestCutU, int* bestCutV, int* bestCutCount)
+        public static void KargerSteinMinCut(int n, int m, int* u, int* v, int* bestCutU, int* bestCutV, int* bestCutCount, ref uint seed)
         {
+            if (seed == 0) seed = 123456789;
             int* parent = stackalloc int[n];
             int Find(int x)
             {
@@ -1234,7 +1235,6 @@ namespace IAFahim.Graph
                 return root;
             }
 
-            Random rng = new Random(42);
             int minCut = m + 1;
 
             int iterations = Math.Max(5, n * n);
@@ -1248,7 +1248,12 @@ namespace IAFahim.Graph
                 int activeVertices = n;
                 while (activeVertices > 2)
                 {
-                    int e = rng.Next(m);
+                    uint x = seed;
+                    x ^= x << 13;
+                    x ^= x >> 17;
+                    x ^= x << 5;
+                    seed = x;
+                    int e = (int)(seed % (uint)m);
                     int rx = Find(u[e]);
                     int ry = Find(v[e]);
                     if (rx != ry)

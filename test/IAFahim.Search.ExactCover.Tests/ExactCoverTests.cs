@@ -58,7 +58,15 @@ namespace IAFahim.Search.ExactCover.Tests
                 matrix[2 * Cols + 0] = 0; matrix[2 * Cols + 1] = 1; matrix[2 * Cols + 2] = 0; matrix[2 * Cols + 3] = 1;
                 matrix[3 * Cols + 0] = 0; matrix[3 * Cols + 1] = 1; matrix[3 * Cols + 2] = 1; matrix[3 * Cols + 3] = 0;
 
-                bool solved = ExactCover.SolveDlx(matrix, Rows, Cols, solution, &solutionSize);
+                int maxNodes = Rows * Cols + Cols + 1;
+                int* L = stackalloc int[maxNodes];
+                int* R = stackalloc int[maxNodes];
+                int* U = stackalloc int[maxNodes];
+                int* D = stackalloc int[maxNodes];
+                int* C = stackalloc int[maxNodes];
+                int* RowIdx = stackalloc int[maxNodes];
+                int* colSize = stackalloc int[Cols + 1];
+                bool solved = ExactCover.SolveDlx(matrix, Rows, Cols, solution, &solutionSize, L, R, U, D, C, RowIdx, colSize);
                 Assert.True(solved);
                 Assert.Equal(2, solutionSize);
 
@@ -105,9 +113,30 @@ namespace IAFahim.Search.ExactCover.Tests
                     sudoku[i] = initial[i];
                 }
 
-                bool solved = ExactCover.SolveSudokuDlx(sudoku);
-                Assert.True(solved);
-                Assert.True(IsValidSudoku(sudoku));
+                int maxNodes = 729 * 324 + 324 + 1;
+                int* L = (int*)Marshal.AllocHGlobal(maxNodes * sizeof(int));
+                int* R_dlx = (int*)Marshal.AllocHGlobal(maxNodes * sizeof(int));
+                int* U = (int*)Marshal.AllocHGlobal(maxNodes * sizeof(int));
+                int* D = (int*)Marshal.AllocHGlobal(maxNodes * sizeof(int));
+                int* C = (int*)Marshal.AllocHGlobal(maxNodes * sizeof(int));
+                int* RowIdx = (int*)Marshal.AllocHGlobal(maxNodes * sizeof(int));
+                int* colSize = (int*)Marshal.AllocHGlobal(325 * sizeof(int));
+                try
+                {
+                    bool solved = ExactCover.SolveSudokuDlx(sudoku, L, R_dlx, U, D, C, RowIdx, colSize);
+                    Assert.True(solved);
+                    Assert.True(IsValidSudoku(sudoku));
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal((nint)L);
+                    Marshal.FreeHGlobal((nint)R_dlx);
+                    Marshal.FreeHGlobal((nint)U);
+                    Marshal.FreeHGlobal((nint)D);
+                    Marshal.FreeHGlobal((nint)C);
+                    Marshal.FreeHGlobal((nint)RowIdx);
+                    Marshal.FreeHGlobal((nint)colSize);
+                }
             }
             finally
             {
@@ -267,7 +296,22 @@ namespace IAFahim.Search.ExactCover.Tests
                 variantX[2] = 0; variantY[2] = 0;
                 variantX[3] = 1; variantY[3] = 0;
 
-                bool solved = ExactCover.SolvePolyominoTiling(W, H, 2, 2, variantPieceId, variantOffsets, variantLengths, variantX, variantY, grid);
+                int totalPlacements = 4;
+                int dlxCols = 6;
+                int maxNodes = totalPlacements * dlxCols + dlxCols + 1;
+                int* placementVariant = stackalloc int[totalPlacements];
+                int* placementR = stackalloc int[totalPlacements];
+                int* placementC = stackalloc int[totalPlacements];
+                int* dlxMatrix = stackalloc int[totalPlacements * dlxCols];
+                int* L = stackalloc int[maxNodes];
+                int* R_dlx = stackalloc int[maxNodes];
+                int* U = stackalloc int[maxNodes];
+                int* D = stackalloc int[maxNodes];
+                int* C = stackalloc int[maxNodes];
+                int* RowIdx = stackalloc int[maxNodes];
+                int* colSize = stackalloc int[dlxCols + 1];
+
+                bool solved = ExactCover.SolvePolyominoTiling(W, H, 2, 2, variantPieceId, variantOffsets, variantLengths, variantX, variantY, grid, placementVariant, placementR, placementC, dlxMatrix, L, R_dlx, U, D, C, RowIdx, colSize);
                 Assert.True(solved);
                 Assert.Equal(0, grid[0]);
                 Assert.Equal(0, grid[1]);

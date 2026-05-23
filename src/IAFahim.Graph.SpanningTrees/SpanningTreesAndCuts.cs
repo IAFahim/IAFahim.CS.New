@@ -144,170 +144,139 @@ namespace IAFahim.Graph.SpanningTrees
     public static unsafe class DilworthDecomposition
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Run(int n, int m, int* eu, int* ev, int* matchL, int* matchR)
+        public static int Run(int n, int m, int* eu, int* ev, int* matchL, int* matchR, bool* tc)
         {
-            long byteCount = (long)n * n * sizeof(bool);
-            bool* tc = (bool*)Marshal.AllocHGlobal((nint)byteCount);
-            try
+            for (int i = 0; i < n * n; i++) tc[i] = false;
+            for (int i = 0; i < m; i++) tc[eu[i] * n + ev[i]] = true;
+            for (int k = 0; k < n; k++)
             {
-                for (int i = 0; i < n * n; i++) tc[i] = false;
-                for (int i = 0; i < m; i++) tc[eu[i] * n + ev[i]] = true;
-                for (int k = 0; k < n; k++)
-                {
-                    for (int i = 0; i < n; i++)
-                    {
-                        if (tc[i * n + k])
-                        {
-                            for (int j = 0; j < n; j++)
-                            {
-                                if (tc[k * n + j])
-                                    tc[i * n + j] = true;
-                            }
-                        }
-                    }
-                }
-
-                int tcEdges = 0;
-                for (int i = 0; i < n * n; i++) if (tc[i]) tcEdges++;
-
-                int* tceu = stackalloc int[tcEdges];
-                int* tcev = stackalloc int[tcEdges];
-                int idx = 0;
                 for (int i = 0; i < n; i++)
                 {
-                    for (int j = 0; j < n; j++)
+                    if (tc[i * n + k])
                     {
-                        if (tc[i * n + j])
+                        for (int j = 0; j < n; j++)
                         {
-                            tceu[idx] = i;
-                            tcev[idx] = j;
-                            idx++;
+                            if (tc[k * n + j])
+                                tc[i * n + j] = true;
                         }
                     }
                 }
+            }
 
-                return MinimumPathCoverDag.Run(n, tcEdges, tceu, tcev, matchL, matchR);
-            }
-            finally
+            int tcEdges = 0;
+            for (int i = 0; i < n * n; i++) if (tc[i]) tcEdges++;
+
+            int* tceu = stackalloc int[tcEdges];
+            int* tcev = stackalloc int[tcEdges];
+            int idx = 0;
+            for (int i = 0; i < n; i++)
             {
-                Marshal.FreeHGlobal((nint)tc);
+                for (int j = 0; j < n; j++)
+                {
+                    if (tc[i * n + j])
+                    {
+                        tceu[idx] = i;
+                        tcev[idx] = j;
+                        idx++;
+                    }
+                }
             }
+
+            return MinimumPathCoverDag.Run(n, tcEdges, tceu, tcev, matchL, matchR);
         }
     }
 
     public static unsafe class MaximumAntichain
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Run(int n, int m, int* eu, int* ev, bool* inAntichain)
+        public static int Run(int n, int m, int* eu, int* ev, bool* inAntichain, bool* tc)
         {
             int* matchL = stackalloc int[n + 1];
             int* matchR = stackalloc int[n + 1];
-            int width = DilworthDecomposition.Run(n, m, eu, ev, matchL, matchR);
+            int width = DilworthDecomposition.Run(n, m, eu, ev, matchL, matchR, tc);
 
-            long byteCount = (long)n * n * sizeof(bool);
-            bool* tc = (bool*)Marshal.AllocHGlobal((nint)byteCount);
-            try
+            int tcEdges = 0;
+            for (int i = 0; i < n * n; i++) if (tc[i]) tcEdges++;
+            int* head = stackalloc int[n + 1];
+            int* to = stackalloc int[tcEdges + 1];
+            int* next = stackalloc int[tcEdges + 1];
+            for (int i = 0; i <= n; i++) head[i] = 0;
+            int edgeIdx = 1;
+            for (int i = 0; i < n; i++)
             {
-                for (int i = 0; i < n * n; i++) tc[i] = false;
-                for (int i = 0; i < m; i++) tc[eu[i] * n + ev[i]] = true;
-                for (int k = 0; k < n; k++)
+                for (int j = 0; j < n; j++)
                 {
-                    for (int i = 0; i < n; i++)
+                    if (tc[i * n + j])
                     {
-                        if (tc[i * n + k])
-                        {
-                            for (int j = 0; j < n; j++) tc[i * n + j] |= tc[k * n + j];
-                        }
+                        to[edgeIdx] = j + 1;
+                        next[edgeIdx] = head[i + 1];
+                        head[i + 1] = edgeIdx++;
                     }
                 }
-
-                int tcEdges = 0;
-                for (int i = 0; i < n * n; i++) if (tc[i]) tcEdges++;
-                int* head = stackalloc int[n + 1];
-                int* to = stackalloc int[tcEdges + 1];
-                int* next = stackalloc int[tcEdges + 1];
-                for (int i = 0; i <= n; i++) head[i] = 0;
-                int edgeIdx = 1;
-                for (int i = 0; i < n; i++)
-                {
-                    for (int j = 0; j < n; j++)
-                    {
-                        if (tc[i * n + j])
-                        {
-                            to[edgeIdx] = j + 1;
-                            next[edgeIdx] = head[i + 1];
-                            head[i + 1] = edgeIdx++;
-                        }
-                    }
-                }
-
-                bool* visitedL = stackalloc bool[n + 1];
-                bool* visitedR = stackalloc bool[n + 1];
-                for (int i = 0; i <= n; i++) { visitedL[i] = false; visitedR[i] = false; }
-
-                int* q = stackalloc int[n + 1];
-                int qh = 0, qt = 0;
-                for (int i = 1; i <= n; i++)
-                {
-                    if (matchL[i] == 0)
-                    {
-                        visitedL[i] = true;
-                        q[qt++] = i;
-                    }
-                }
-
-                while (qh < qt)
-                {
-                    int u = q[qh++];
-                    for (int e = head[u]; e != 0; e = next[e])
-                    {
-                        int v = to[e];
-                        if (!visitedR[v])
-                        {
-                            visitedR[v] = true;
-                            int leftNode = matchR[v];
-                            if (leftNode != 0 && !visitedL[leftNode])
-                            {
-                                visitedL[leftNode] = true;
-                                q[qt++] = leftNode;
-                            }
-                        }
-                    }
-                }
-
-                for (int i = 0; i < n; i++)
-                {
-                    inAntichain[i] = visitedL[i + 1] && !visitedR[i + 1];
-                }
-
-                return width;
             }
-            finally
+
+            bool* visitedL = stackalloc bool[n + 1];
+            bool* visitedR = stackalloc bool[n + 1];
+            for (int i = 0; i <= n; i++) { visitedL[i] = false; visitedR[i] = false; }
+
+            int* q = stackalloc int[n + 1];
+            int qh = 0, qt = 0;
+            for (int i = 1; i <= n; i++)
             {
-                Marshal.FreeHGlobal((nint)tc);
+                if (matchL[i] == 0)
+                {
+                    visitedL[i] = true;
+                    q[qt++] = i;
+                }
             }
+
+            while (qh < qt)
+            {
+                int u = q[qh++];
+                for (int e = head[u]; e != 0; e = next[e])
+                {
+                    int v = to[e];
+                    if (!visitedR[v])
+                    {
+                        visitedR[v] = true;
+                        int leftNode = matchR[v];
+                        if (leftNode != 0 && !visitedL[leftNode])
+                        {
+                            visitedL[leftNode] = true;
+                            q[qt++] = leftNode;
+                        }
+                    }
+                }
+            }
+
+            for (int i = 0; i < n; i++)
+            {
+                inAntichain[i] = visitedL[i + 1] && !visitedR[i + 1];
+            }
+
+            return width;
         }
     }
 
     public static unsafe class PosetWidth
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Run(int n, int m, int* eu, int* ev)
+        public static int Run(int n, int m, int* eu, int* ev, bool* tc)
         {
             int* matchL = stackalloc int[n + 1];
             int* matchR = stackalloc int[n + 1];
-            return DilworthDecomposition.Run(n, m, eu, ev, matchL, matchR);
+            return DilworthDecomposition.Run(n, m, eu, ev, matchL, matchR, tc);
         }
     }
 
     public static unsafe class PosetChainDecomposition
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Run(int n, int m, int* eu, int* ev, int* chainId)
+        public static int Run(int n, int m, int* eu, int* ev, int* chainId, bool* tc)
         {
             int* matchL = stackalloc int[n + 1];
             int* matchR = stackalloc int[n + 1];
-            int width = DilworthDecomposition.Run(n, m, eu, ev, matchL, matchR);
+            int width = DilworthDecomposition.Run(n, m, eu, ev, matchL, matchR, tc);
 
             for (int i = 0; i < n; i++) chainId[i] = -1;
             int currentChain = 0;
@@ -332,52 +301,43 @@ namespace IAFahim.Graph.SpanningTrees
     public static unsafe class TransitiveReductionDag
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Run(int n, int m, int* eu, int* ev, bool* keepEdge)
+        public static int Run(int n, int m, int* eu, int* ev, bool* keepEdge, bool* tc)
         {
-            long byteCount = (long)n * n * sizeof(bool);
-            bool* tc = (bool*)Marshal.AllocHGlobal((nint)byteCount);
-            try
-            {
-                for (int i = 0; i < n * n; i++) tc[i] = false;
-                for (int i = 0; i < m; i++) tc[eu[i] * n + ev[i]] = true;
+            for (int i = 0; i < n * n; i++) tc[i] = false;
+            for (int i = 0; i < m; i++) tc[eu[i] * n + ev[i]] = true;
 
+            for (int k = 0; k < n; k++)
+            {
+                for (int i = 0; i < n; i++)
+                {
+                    if (tc[i * n + k])
+                    {
+                        for (int j = 0; j < n; j++)
+                        {
+                            if (tc[k * n + j]) tc[i * n + j] = true;
+                        }
+                    }
+                }
+            }
+
+            int count = 0;
+            for (int i = 0; i < m; i++)
+            {
+                int u = eu[i];
+                int v = ev[i];
+                bool redundant = false;
                 for (int k = 0; k < n; k++)
                 {
-                    for (int i = 0; i < n; i++)
+                    if (k != u && k != v && tc[u * n + k] && tc[k * n + v])
                     {
-                        if (tc[i * n + k])
-                        {
-                            for (int j = 0; j < n; j++)
-                            {
-                                if (tc[k * n + j]) tc[i * n + j] = true;
-                            }
-                        }
+                        redundant = true;
+                        break;
                     }
                 }
-
-                int count = 0;
-                for (int i = 0; i < m; i++)
-                {
-                    int u = eu[i];
-                    int v = ev[i];
-                    bool redundant = false;
-                    for (int k = 0; k < n; k++)
-                    {
-                        if (k != u && k != v && tc[u * n + k] && tc[k * n + v])
-                        {
-                            redundant = true;
-                            break;
-                        }
-                    }
-                    keepEdge[i] = !redundant;
-                    if (!redundant) count++;
-                }
-                return count;
+                keepEdge[i] = !redundant;
+                if (!redundant) count++;
             }
-            finally
-            {
-                Marshal.FreeHGlobal((nint)tc);
-            }
+            return count;
         }
     }
 
