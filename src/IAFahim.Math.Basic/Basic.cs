@@ -21,34 +21,34 @@ namespace IAFahim.Math.Basic
 
     public static unsafe class IntegerSqrt
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long Run(long x)
         {
             if (x < 0) return -1;
-            long lo = 0, hi = 3037000499L;
-            while (lo < hi)
-            {
-                long mid = (lo + hi + 1) >> 1;
-                if (mid * mid <= x) lo = mid;
-                else hi = mid - 1;
-            }
-            return lo;
+            long r = (long)Math.Sqrt(x);
+            if (r * r > x)
+                r--;
+            else if (r < 3037000499L && (r + 1) * (r + 1) <= x)
+                r++;
+            return r;
         }
     }
 
     public static unsafe class IntegerCbrt
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long Run(long x)
         {
             if (x < 0) return -1;
-            long lo = 0, hi = 2097151L;
-            while (lo < hi)
-            {
-                long mid = (lo + hi + 1) >> 1;
-                long m3 = mid * mid * mid;
-                if (m3 <= x) lo = mid;
-                else hi = mid - 1;
-            }
-            return lo;
+            long r = (long)Math.Cbrt(x);
+            if (r > 2097151L) r = 2097151L;
+            long r3 = r * r * r;
+            if (r3 > x) return r - 1;
+
+            long r1 = r + 1;
+            if (r1 <= 2097151L && r1 * r1 * r1 <= x) return r + 1;
+
+            return r;
         }
     }
 
@@ -79,9 +79,16 @@ namespace IAFahim.Math.Basic
 
     public static unsafe class IsPerfectSquare
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool Run(long x)
         {
             if (x < 0) return false;
+
+            // Fast test with hex filter (mod 64)
+            // 0x0202021202030213L corresponds to squares mod 64
+            long m64 = x & 63;
+            if ((unchecked(0x0202021202030213L) & (1L << (int)m64)) == 0) return false;
+
             long r = IntegerSqrt.Run(x);
             return r * r == x;
         }
