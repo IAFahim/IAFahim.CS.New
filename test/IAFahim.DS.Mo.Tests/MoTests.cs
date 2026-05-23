@@ -2,11 +2,11 @@ namespace IAFahim.DS.Mo.Tests
 {
     using IAFahim.DS.Mo;
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class MoTests
     {
-        [Fact]
+        [Test]
         public void MoSort_Basic()
         {
             const int q = 5;
@@ -21,10 +21,10 @@ namespace IAFahim.DS.Mo.Tests
             l[4] = 3; r[4] = 6;
             for (int i = 0; i < q; i++) { block[i] = l[i] / 2; queries[i] = i; }
             MoSort.Run(queries, l, r, block, q, 2);
-            Assert.True(l[0] <= l[1]);
+            Assert.IsTrue(l[0] <= l[1]);
         }
 
-        [Fact]
+        [Test]
         public void MoAdd_Remove_Basic()
         {
             int* curL = stackalloc int[1];
@@ -34,15 +34,15 @@ namespace IAFahim.DS.Mo.Tests
             try
             {
                 for (int i = 0; i < maxVal; i++) freq[i] = 0;
-                MoAdd.Run(curL, curR, freq, 5);
-                MoAdd.Run(curL, curR, freq, 5);
-                MoRemove.Run(curL, curR, freq, 5);
-                Assert.Equal(1, freq[5]);
+                MoAdd.Run(freq, 5);
+                MoAdd.Run(freq, 5);
+                MoRemove.Run(freq, 5);
+                Assert.AreEqual(1, freq[5]);
             }
             finally { Marshal.FreeHGlobal((nint)freq); }
         }
 
-        [Fact]
+        [Test]
         public void MoRollback_ResetsState()
         {
             const int maxVal = 100;
@@ -54,7 +54,7 @@ namespace IAFahim.DS.Mo.Tests
                 freq[7] = 10;
                 MoRollback.Run(freq, maxVal);
                 for (int i = 0; i < maxVal; i++)
-                    Assert.Equal(0, freq[i]);
+                    Assert.AreEqual(0, freq[i]);
             }
             finally { Marshal.FreeHGlobal((nint)freq); }
         }

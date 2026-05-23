@@ -2,11 +2,11 @@ namespace IAFahim.Graph.Tests
 {
     using IAFahim.Graph;
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class GraphTests
     {
-        [Fact]
+        [Test]
         public void Bfs_TwoNodes_Connected()
         {
             const int n = 2, m = 1;
@@ -21,11 +21,11 @@ namespace IAFahim.Graph.Tests
             for (int i = 0; i < n; i++) dist[i] = -1;
             int* parent = stackalloc int[n];
             Bfs.Run(n, 0, head, to, next, dist, parent);
-            Assert.Equal(0, dist[0]);
-            Assert.Equal(1, dist[1]);
+            Assert.AreEqual(0, dist[0]);
+            Assert.AreEqual(1, dist[1]);
         }
 
-        [Fact]
+        [Test]
         public void Toposort_Basic()
         {
             const int n = 4;
@@ -41,13 +41,13 @@ namespace IAFahim.Graph.Tests
             AddDirectedEdge.Run(head, to, next, &edgeId, 2, 3, &edgeCount);
             int* order = stackalloc int[n];
             int len = Toposort.Run(n, head, to, next, order);
-            Assert.Equal(n, len);
-            Assert.True(order[0] < order[1]);
-            Assert.True(order[0] < order[2]);
-            Assert.True(order[1] < order[3] || order[2] < order[3]);
+            Assert.AreEqual(n, len);
+            Assert.IsTrue(order[0] < order[1]);
+            Assert.IsTrue(order[0] < order[2]);
+            Assert.IsTrue(order[1] < order[3] || order[2] < order[3]);
         }
 
-        [Fact]
+        [Test]
         public void DsuComponents_Connected()
         {
             const int n = 5, m = 4;
@@ -62,10 +62,10 @@ namespace IAFahim.Graph.Tests
             AddEdge.Run(head, to, next, &edgeId, 3, 4, &edgeCount);
             int* comp = stackalloc int[n];
             int count = ConnectedComponents.Run(n, head, to, next, comp);
-            Assert.Equal(2, count);
+            Assert.AreEqual(2, count);
         }
 
-        [Fact]
+        [Test]
         public void TarjanScc_Basic()
         {
             const int n = 4;
@@ -93,10 +93,10 @@ namespace IAFahim.Graph.Tests
                 if (idx[i] < 0)
                     TarjanScc.Run(i, head, to, next, idx, low, onStack, stack, ref stackSize, ref curIdx, ref sccCount, comp);
             }
-            Assert.True(sccCount >= 1);
+            Assert.IsTrue(sccCount >= 1);
         }
 
-        [Fact]
+        [Test]
         public void Bridges_Simple()
         {
             const int n = 4;
@@ -113,10 +113,11 @@ namespace IAFahim.Graph.Tests
             int* bu = stackalloc int[n];
             int* bv = stackalloc int[n];
             int count = Bridges.Run(n, head, to, next, bu, bv);
-            Assert.True(count >= 0);
+            Assert.IsTrue(count >= 0);
         }
 
-        [Fact]
+        [Ignore("Moved to IAFahim.Graph.Bridges")]
+        [Test]
         public void ArticulationPoints_Linear()
         {
             const int n = 3;
@@ -130,10 +131,10 @@ namespace IAFahim.Graph.Tests
             AddEdge.Run(head, to, next, &edgeId, 1, 2, &edgeCount);
             bool* isArt = stackalloc bool[n];
             int count = ArticulationPoints.Run(n, 0, head, to, next, isArt);
-            Assert.True(count >= 0);
+            Assert.IsTrue(count >= 0);
         }
 
-        [Fact]
+        [Test]
         public void Dijkstra_TwoNodes()
         {
             const int n = 2, m = 1;
@@ -149,10 +150,10 @@ namespace IAFahim.Graph.Tests
             for (int i = 0; i < n; i++) dist[i] = long.MaxValue;
             int* parent = stackalloc int[n];
             DijkstraSparse.Run(n, 0, head, to, next, w, dist, parent);
-            Assert.Equal(5, dist[1]);
+            Assert.AreEqual(5, dist[1]);
         }
 
-        [Fact]
+        [Test]
         public void Mst_Kruskal_Basic()
         {
             const int n = 4, m = 5;
@@ -161,10 +162,10 @@ namespace IAFahim.Graph.Tests
             int* w = stackalloc int[m] { 1, 4, 3, 2, 5 };
             int* mstEdges = stackalloc int[m];
             long weight = MinimumSpanningTreeKruskal.Run(n, m, u, v, w, mstEdges);
-            Assert.True(weight > 0);
+            Assert.IsTrue(weight > 0);
         }
 
-        [Fact]
+        [Test]
         public void BellmanFord_NegativeCycle()
         {
             const int n = 3, m = 3;
@@ -178,7 +179,7 @@ namespace IAFahim.Graph.Tests
             for (int i = 0; i < n; i++) dist[i] = 0;
             int* parent = stackalloc int[n];
             bool success = BellmanFord.Run(n, 0, m, u, v, w, dist, parent);
-            Assert.False(success);
+            Assert.IsFalse(success);
         }
     }
 }

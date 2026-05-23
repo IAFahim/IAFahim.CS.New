@@ -1,11 +1,11 @@
 namespace IAFahim.DS.SegmentTree.Tests
 {
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class SegTreeFoundationsTests
     {
-        [Fact]
+        [Test]
         public void PersistentLazySeg_EmptyInput_NoOp()
         {
             int* lc = stackalloc int[100];
@@ -16,12 +16,12 @@ namespace IAFahim.DS.SegmentTree.Tests
             int alloc = 0;
             for (int i = 0; i < 100; i++) { lc[i] = rc[i] = 0; sum[i] = lazy[i] = 0; cnt[i] = 0; }
             long result = PersistentLazySegmentQuery.Run(0, 0, 9, 0, 9, 0, lc, rc, sum, lazy, cnt);
-            Assert.Equal(0L, result);
+            Assert.AreEqual(0L, result);
         }
 
 
 
-        [Fact]
+        [Test]
         public void ChairmanTree_Kth()
         {
             const int N = 5;
@@ -44,7 +44,7 @@ namespace IAFahim.DS.SegmentTree.Tests
                 ChairmanTreeBuild.Run(arr, N, 1, 5, roots, lc, rc, cnt, sumArr, &alloc);
 
                 int kth = ChairmanTreeKth.Run(roots[0], roots[N], 1, 5, 2, lc, rc, cnt);
-                Assert.True(kth >= 1 && kth <= 5);
+                Assert.IsTrue(kth >= 1 && kth <= 5);
             }
             finally
             {
@@ -56,7 +56,7 @@ namespace IAFahim.DS.SegmentTree.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void MergeableSegTree_UpdateAndQuery()
         {
             int maxNodes = 200;
@@ -73,10 +73,10 @@ namespace IAFahim.DS.SegmentTree.Tests
 
             int merged = MergeableSegmentTreeMerge.Run(root1, root2, lc, rc, sum, &alloc);
             int q = MergeableSegmentTreeQuery.Run(merged, 0, 99, 10, 10, lc, rc, sum);
-            Assert.Equal(3, q);
+            Assert.AreEqual(3, q);
         }
 
-        [Fact]
+        [Test]
         public void MergeSortTree_CountLess()
         {
             const int N = 5;
@@ -95,8 +95,8 @@ namespace IAFahim.DS.SegmentTree.Tests
                 for (int i = 0; i < 4 * N; i++) { nodes[i] = null; sizes[i] = 0; }
 
                 MergeSortTreeBuild.Run(arr, N, nodes, sizes, pool, ref poolUsed);
-                int cnt = MergeSortTreeCountLess.Run(arr, N, 0, N - 1, 4, nodes, sizes);
-                Assert.Equal(3, cnt);
+                int cnt = MergeSortTreeCountLess.Run(N, 0, N - 1, 4, nodes, sizes);
+                Assert.AreEqual(3, cnt);
             }
             finally
             {
@@ -105,7 +105,7 @@ namespace IAFahim.DS.SegmentTree.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void SegTreeOnTreeMerge_Basic()
         {
             int maxNodes = 200;
@@ -122,7 +122,7 @@ namespace IAFahim.DS.SegmentTree.Tests
 
             int merged = SegmentTreeOnTreeMerge.Run(r1, r2, 0, 99, lc, rc, sum, &alloc);
             int q = MergeableSegmentTreeQuery.Run(merged, 0, 99, 5, 5, lc, rc, sum);
-            Assert.Equal(3, q);
+            Assert.AreEqual(3, q);
         }
     }
 }

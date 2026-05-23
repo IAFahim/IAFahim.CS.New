@@ -11,11 +11,11 @@ namespace IAFahim.Optimization.Tests
     using IAFahim.Optimization.Submodular;
     using IAFahim.Optimization.Geometric;
     using IAFahim.Optimization.Games;
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class OptimizationTests
     {
-        [Fact]
+        [Test]
         public void HamiltonianPath_ThreeNodes_Finds()
         {
             int n = 3;
@@ -26,10 +26,10 @@ namespace IAFahim.Optimization.Tests
             long* dp = stackalloc long[8 * 3];
             int* perm = stackalloc int[3];
             long result = IAFahim.Optimization.Exact.HamiltonianPath.Run(n, w, inf, dp, perm);
-            Assert.Equal(3, result);
+            Assert.AreEqual(3, result);
         }
 
-        [Fact]
+        [Test]
         public void HamiltonianCycle_ThreeNodes_Finds()
         {
             int n = 3;
@@ -39,10 +39,10 @@ namespace IAFahim.Optimization.Tests
             w[0 * 3 + 1] = 1; w[1 * 3 + 2] = 2; w[2 * 3 + 0] = 3;
             long* dp = stackalloc long[8 * 3];
             long result = IAFahim.Optimization.Exact.HamiltonianCycle.Run(n, w, inf, dp);
-            Assert.Equal(6, result);
+            Assert.AreEqual(6, result);
         }
 
-        [Fact]
+        [Test]
         public void MaxIndependentSet_Triangle()
         {
             int n = 3;
@@ -55,10 +55,10 @@ namespace IAFahim.Optimization.Tests
             int* best = stackalloc int[1];
             int* tmp = stackalloc int[3];
             int result = IAFahim.Optimization.Exact.MaxIndependentSet.Run(n, adj, used, best, tmp);
-            Assert.Equal(1, result);
+            Assert.AreEqual(1, result);
         }
 
-        [Fact]
+        [Test]
         public void MaxIndependentSet_Path()
         {
             int n = 3;
@@ -70,26 +70,26 @@ namespace IAFahim.Optimization.Tests
             int* best = stackalloc int[1];
             int* tmp = stackalloc int[3];
             int result = IAFahim.Optimization.Exact.MaxIndependentSet.Run(n, adj, used, best, tmp);
-            Assert.Equal(2, result);
+            Assert.AreEqual(2, result);
         }
 
-        [Fact]
+        [Test]
         public void SubsetSum_CanFind()
         {
             long* w = stackalloc long[4];
             w[0] = 1; w[1] = 3; w[2] = 5; w[3] = 7;
-            Assert.True(IAFahim.Optimization.Knapsack.SubsetSum.Can(w, 4, 8));
+            Assert.IsTrue(IAFahim.Optimization.Knapsack.SubsetSum.Can(w, 4, 8));
         }
 
-        [Fact]
+        [Test]
         public void SubsetSum_CannotFind()
         {
             long* w = stackalloc long[4];
             w[0] = 1; w[1] = 3; w[2] = 5; w[3] = 7;
-            Assert.False(IAFahim.Optimization.Knapsack.SubsetSum.Can(w, 4, 2));
+            Assert.IsFalse(IAFahim.Optimization.Knapsack.SubsetSum.Can(w, 4, 2));
         }
 
-        [Fact]
+        [Test]
         public void MeetInMiddle_SmallKnapsack()
         {
             long* w = stackalloc long[4];
@@ -97,10 +97,10 @@ namespace IAFahim.Optimization.Tests
             long* v = stackalloc long[4];
             v[0] = 10; v[1] = 20; v[2] = 30; v[3] = 40;
             long result = IAFahim.Optimization.Knapsack.MeetInMiddle.Run(w, v, 4, 5);
-            Assert.Equal(50, result);
+            Assert.AreEqual(50, result);
         }
 
-        [Fact]
+        [Test]
         public void BoundedKnapsack_BinarySplit()
         {
             long* w = stackalloc long[2];
@@ -109,20 +109,21 @@ namespace IAFahim.Optimization.Tests
             v[0] = 3; v[1] = 5;
             int* cnt = stackalloc int[2];
             cnt[0] = 3; cnt[1] = 2;
-            long result = IAFahim.Optimization.Knapsack.BoundedKnapsack.BinarySplit(w, v, cnt, 2, 10);
-            Assert.True(result > 0);
+            long* dp = stackalloc long[11];
+            long result = IAFahim.Optimization.Knapsack.BoundedKnapsack.BinarySplit(w, v, cnt, 2, 10, dp);
+            Assert.IsTrue(result > 0);
         }
 
-        [Fact]
+        [Test]
         public void KSum_CountTwoSum()
         {
             int* a = stackalloc int[4];
             a[0] = 1; a[1] = 2; a[2] = 3; a[3] = 4;
             int count = IAFahim.Optimization.Knapsack.KSum.Count(a, 4, 2, 5);
-            Assert.Equal(2, count);
+            Assert.AreEqual(2, count);
         }
 
-        [Fact]
+        [Test]
         public void MinEnclosingBall_ThreePoints()
         {
             double* xs = stackalloc double[3];
@@ -131,65 +132,65 @@ namespace IAFahim.Optimization.Tests
             xs[1] = 1; ys[1] = 0;
             xs[2] = 0.5; ys[2] = 1;
             MinEnclosingBall.Circle c = IAFahim.Optimization.Geometric.MinEnclosingBall.Welzl(xs, ys, 3);
-            Assert.True(c.R > 0);
-            Assert.True(c.R < 2);
+            Assert.IsTrue(c.R > 0);
+            Assert.IsTrue(c.R < 2);
         }
 
-        [Fact]
+        [Test]
         public void Grundy_Mex()
         {
             int* vals = stackalloc int[3];
             vals[0] = 0; vals[1] = 1; vals[2] = 3;
             int m = IAFahim.Optimization.Games.Grundy.Mex(vals, 3);
-            Assert.Equal(2, m);
+            Assert.AreEqual(2, m);
         }
 
-        [Fact]
+        [Test]
         public void Grundy_MexZero()
         {
             int* vals = stackalloc int[3];
             vals[0] = 1; vals[1] = 2; vals[2] = 3;
             int m = IAFahim.Optimization.Games.Grundy.Mex(vals, 3);
-            Assert.Equal(0, m);
+            Assert.AreEqual(0, m);
         }
 
-        [Fact]
+        [Test]
         public void ConvexHull_CheckMonge()
         {
             int m = 2, n = 2;
             long* a = stackalloc long[4];
             a[0] = 1; a[1] = 2; a[2] = 3; a[3] = 5;
-            Assert.False(IAFahim.Optimization.Treewidth.ConvexHull.CheckMonge(a, m, n));
+            Assert.IsFalse(IAFahim.Optimization.Treewidth.ConvexHull.CheckMonge(a, m, n));
         }
 
-        [Fact]
+        [Test]
         public void ConvexHull_CheckIsMonge()
         {
             int m = 2, n = 2;
             long* a = stackalloc long[4];
             a[0] = 1; a[1] = 3; a[2] = 2; a[3] = 4;
-            Assert.True(IAFahim.Optimization.Treewidth.ConvexHull.CheckMonge(a, m, n));
+            Assert.IsTrue(IAFahim.Optimization.Treewidth.ConvexHull.CheckMonge(a, m, n));
         }
 
-        [Fact]
+        [Test]
         public void MatrixSearch_Found()
         {
             int* a = stackalloc int[4];
             a[0] = 1; a[1] = 2; a[2] = 3; a[3] = 4;
             int idx = IAFahim.Optimization.DivideConquer.MatrixSearch.Run(2, 2, a, 3);
-            Assert.Equal(2, idx);
+            Assert.AreEqual(2, idx);
         }
 
-        [Fact]
+        [Test]
         public void MatrixSearch_NotFound()
         {
             int* a = stackalloc int[4];
             a[0] = 1; a[1] = 2; a[2] = 3; a[3] = 4;
             int idx = IAFahim.Optimization.DivideConquer.MatrixSearch.Run(2, 2, a, 99);
-            Assert.Equal(-1, idx);
+            Assert.AreEqual(-1, idx);
         }
 
-        [Fact]
+        [Test]
         public void MaxCut_LocalSearch()
         {
             int n = 4, m = 4;
@@ -202,10 +203,10 @@ namespace IAFahim.Optimization.Tests
             from[3] = 3; to[3] = 0; w[3] = 1;
             int* part = stackalloc int[4];
             long cut = IAFahim.Optimization.Submodular.MaxCut.LocalSearch(n, from, to, w, m, part);
-            Assert.True(cut >= 1);
+            Assert.IsTrue(cut >= 1);
         }
 
-        [Fact]
+        [Test]
         public void Mdp_ValueIteration()
         {
             int n = 2, m = 2;
@@ -217,30 +218,30 @@ namespace IAFahim.Optimization.Tests
             double* v = stackalloc double[2];
             v[0] = 0; v[1] = 0;
             IAFahim.Optimization.Games.Mdp.ValueIteration(n, m, trans, reward, 0.9, v, 100);
-            Assert.True(v[0] > 0);
-            Assert.True(v[1] > 0);
+            Assert.IsTrue(v[0] > 0);
+            Assert.IsTrue(v[1] > 0);
         }
 
-        [Fact]
+        [Test]
         public void SlopeTrick_AddAbs()
         {
             IAFahim.Optimization.DivideConquer.SlopeTrick.State s;
             IAFahim.Optimization.DivideConquer.SlopeTrick.Init(&s);
             IAFahim.Optimization.DivideConquer.SlopeTrick.AddAbs(&s, 5);
             long val = IAFahim.Optimization.DivideConquer.SlopeTrick.Query(&s);
-            Assert.True(val >= 0);
+            Assert.IsTrue(val >= 0);
         }
 
-        [Fact]
+        [Test]
         public void LagrangianRelaxation_BasicSearch()
         {
             long* w = stackalloc long[5];
             w[0] = 10; w[1] = 20; w[2] = 30; w[3] = 40; w[4] = 50;
             long result = IAFahim.Optimization.DivideConquer.LagrangianRelaxation.Search(w, 5, 2, 0, 100);
-            Assert.True(result >= 0);
+            Assert.IsTrue(result >= 0);
         }
 
-        [Fact]
+        [Test]
         public void LinearMatroid_Rank()
         {
             int n = 3, m = 3;
@@ -250,7 +251,12 @@ namespace IAFahim.Optimization.Tests
             a[6] = 0; a[7] = 0; a[8] = 1;
             int* basis = stackalloc int[3];
             int r = IAFahim.Optimization.Matroid.LinearMatroid.Rank(n, m, a, basis);
-            Assert.Equal(3, r);
+            Assert.AreEqual(3, r);
         }
+    }
+}
+   }
+}
+ }
     }
 }

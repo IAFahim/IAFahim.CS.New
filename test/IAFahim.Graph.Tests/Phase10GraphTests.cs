@@ -3,11 +3,11 @@ namespace IAFahim.Graph.Tests
     using IAFahim.Graph;
     using System;
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class Phase10GraphTests
     {
-        [Fact]
+        [Test]
         public void Tournament_Hamiltonian_PathAndCycle()
         {
             const int n = 3;
@@ -21,17 +21,17 @@ namespace IAFahim.Graph.Tests
 
             int* path = stackalloc int[n];
             Tournament.TournamentHamiltonianPath(n, adj, path);
-            Assert.True(path[0] >= 0 && path[0] < n);
+            Assert.IsTrue(path[0] >= 0 && path[0] < n);
 
             int* cycle = stackalloc int[n];
             bool hasCycle = Tournament.TournamentHamiltonianCycle(n, adj, cycle);
-            Assert.True(hasCycle);
-            Assert.Equal(0, cycle[0]);
-            Assert.Equal(1, cycle[1]);
-            Assert.Equal(2, cycle[2]);
+            Assert.IsTrue(hasCycle);
+            Assert.AreEqual(0, cycle[0]);
+            Assert.AreEqual(1, cycle[1]);
+            Assert.AreEqual(2, cycle[2]);
         }
 
-        [Fact]
+        [Test]
         public void Tournament_MedianAndKing()
         {
             const int n = 3;
@@ -44,13 +44,13 @@ namespace IAFahim.Graph.Tests
 
             int* bestOrder = stackalloc int[n];
             Tournament.TournamentMedianOrder(n, adj, bestOrder);
-            Assert.True(bestOrder[0] >= 0);
+            Assert.IsTrue(bestOrder[0] >= 0);
 
             int king = Tournament.TournamentKingFind(n, adj);
-            Assert.True(king >= 0 && king < n);
+            Assert.IsTrue(king >= 0 && king < n);
         }
 
-        [Fact]
+        [Test]
         public void Tournament_Orientations()
         {
             const int numNodes = 3;
@@ -83,16 +83,16 @@ namespace IAFahim.Graph.Tests
             int* orientedV = stackalloc int[numEdges];
 
             bool eulerian = Tournament.EulerianOrientation(numNodes, numEdges, head, next, to, edgeU, edgeV, orientedU, orientedV);
-            Assert.True(eulerian);
+            Assert.IsTrue(eulerian);
 
             bool strong = Tournament.StrongOrientation(numNodes, numEdges, head, next, to, edgeU, edgeV, orientedU, orientedV);
-            Assert.True(strong);
+            Assert.IsTrue(strong);
 
             Tournament.OrientEdgesAcyclic(numEdges, edgeU, edgeV, orientedU, orientedV);
-            Assert.True(orientedU[0] < orientedV[0]);
+            Assert.IsTrue(orientedU[0] < orientedV[0]);
         }
 
-        [Fact]
+        [Test]
         public void MstVariants_ArborescenceAndBranching()
         {
             const int n = 3;
@@ -103,18 +103,18 @@ namespace IAFahim.Graph.Tests
 
             long* result = stackalloc long[n];
             long cost = MstVariants.MinimumArborescenceDirected(n, 0, u, v, w, m, result);
-            Assert.Equal(30, cost);
+            Assert.AreEqual(30, cost);
 
             int* resultEdges = stackalloc int[m];
             int resultCount = 0;
             long maxBranch = MstVariants.MaximumBranching(n, u, v, w, m, resultEdges, &resultCount);
-            Assert.True(maxBranch >= 0);
+            Assert.IsTrue(maxBranch >= 0);
 
             long arbCount = MstVariants.ArborescenceCount(n, 0, u, v, m);
-            Assert.Equal(1, arbCount);
+            Assert.AreEqual(1, arbCount);
         }
 
-        [Fact]
+        [Test]
         public void MstVariants_DegreeAndCapacitated()
         {
             const int n = 4, m = 5;
@@ -126,13 +126,13 @@ namespace IAFahim.Graph.Tests
             int resultCount = 0;
 
             bool degMst = MstVariants.DegreeConstrainedMst(n, m, u, v, w, 0, 2, resultEdges, &resultCount);
-            Assert.True(degMst);
+            Assert.IsTrue(degMst);
 
             MstVariants.CapacitatedMst(n, m, u, v, w, 0, 10, resultEdges, &resultCount);
-            Assert.True(resultCount >= 0);
+            Assert.IsTrue(resultCount >= 0);
         }
 
-        [Fact]
+        [Test]
         public void MstVariants_MinDiameterAndBottleneck()
         {
             const int n = 4, m = 5;
@@ -144,16 +144,16 @@ namespace IAFahim.Graph.Tests
             int resultCount = 0;
 
             MstVariants.MinimumDiameterSpanningTree(n, m, u, v, w, resultEdges, &resultCount);
-            Assert.True(resultCount > 0);
+            Assert.IsTrue(resultCount > 0);
 
             MstVariants.MinimumBottleneckSpanningTree(n, m, u, v, w, resultEdges, &resultCount);
-            Assert.True(resultCount > 0);
+            Assert.IsTrue(resultCount > 0);
 
             long bp = MstVariants.MinimumBottleneckPath(n, m, u, v, w, 0, 3);
-            Assert.Equal(3, bp);
+            Assert.AreEqual(3, bp);
         }
 
-        [Fact]
+        [Test]
         public void MstVariants_KargerAndNagamochi()
         {
             const int n = 4, m = 5;
@@ -163,16 +163,17 @@ namespace IAFahim.Graph.Tests
             int* bestCutU = stackalloc int[m];
             int* bestCutV = stackalloc int[m];
             int bestCutCount = 0;
-            MstVariants.KargerSteinMinCut(n, m, u, v, bestCutU, bestCutV, &bestCutCount);
-            Assert.True(bestCutCount >= 0);
+            uint seed = 42;
+            MstVariants.KargerSteinMinCut(n, m, u, v, bestCutU, bestCutV, &bestCutCount, ref seed);
+            Assert.IsTrue(bestCutCount >= 0);
 
             int* certEdges = stackalloc int[m];
             int certCount = 0;
             MstVariants.NagamochiIbarakiSparseCertificate(n, m, u, v, 1, certEdges, &certCount);
-            Assert.True(certCount >= 0);
+            Assert.IsTrue(certCount >= 0);
         }
 
-        [Fact]
+        [Test]
         public void Planar_GomoryHu()
         {
             const int n = 4;
@@ -203,10 +204,10 @@ namespace IAFahim.Graph.Tests
             Planar.GomoryHuBuild(n, m, head, to, next, cap, parent, weight);
             
             int q = Planar.GomoryHuQuery(n, parent, weight, 0, 3);
-            Assert.True(q >= 0);
+            Assert.IsTrue(q >= 0);
         }
 
-        [Fact]
+        [Test]
         public void Planar_EarDecompositionAndSt()
         {
             const int n = 3, m = 3;
@@ -218,17 +219,17 @@ namespace IAFahim.Graph.Tests
             int earCount = 0;
 
             bool is2Connected = Planar.EarDecomposition(n, m, u, v, earEdges, earLengths, &earCount);
-            Assert.True(is2Connected);
-            Assert.Equal(1, earCount);
+            Assert.IsTrue(is2Connected);
+            Assert.AreEqual(1, earCount);
 
             int* stOrder = stackalloc int[n];
             bool stOk = Planar.StNumbering(n, m, u, v, 0, 2, stOrder);
-            Assert.True(stOk);
-            Assert.Equal(0, stOrder[0]);
-            Assert.Equal(2, stOrder[n - 1]);
+            Assert.IsTrue(stOk);
+            Assert.AreEqual(0, stOrder[0]);
+            Assert.AreEqual(2, stOrder[n - 1]);
         }
 
-        [Fact]
+        [Test]
         public void Planar_EmbeddingAndDual()
         {
             // K_4 (planar)
@@ -241,7 +242,7 @@ namespace IAFahim.Graph.Tests
             int* embedTo = stackalloc int[m * 2];
 
             bool isPlanar = Planar.PlanarEmbedding(n, m, u, v, embedHead, embedNext, embedTo);
-            Assert.True(isPlanar);
+            Assert.IsTrue(isPlanar);
 
             int dualN = 0, dualM = 0;
             int* dualU = stackalloc int[m];
@@ -249,11 +250,11 @@ namespace IAFahim.Graph.Tests
             int* faceSizes = stackalloc int[m];
 
             bool dualOk = Planar.PlanarDualBuild(n, m, u, v, embedHead, embedNext, embedTo, &dualN, &dualM, dualU, dualV, faceSizes);
-            Assert.True(dualOk);
-            Assert.True(dualN > 0);
+            Assert.IsTrue(dualOk);
+            Assert.IsTrue(dualN > 0);
         }
 
-        [Fact]
+        [Test]
         public void Planar_ShortestPathAndSeparator()
         {
             const int n = 4, m = 5;
@@ -263,7 +264,7 @@ namespace IAFahim.Graph.Tests
 
             long* dist = stackalloc long[n];
             Planar.PlanarShortestPath(n, m, u, v, w, 0, 3, dist);
-            Assert.Equal(30, dist[3]);
+            Assert.AreEqual(30, dist[3]);
 
             int* separator = stackalloc int[n];
             int separatorCount = 0;
@@ -273,10 +274,10 @@ namespace IAFahim.Graph.Tests
             int partBCount = 0;
 
             bool sepOk = Planar.PlanarSeparator(n, m, u, v, separator, &separatorCount, partA, &partACount, partB, &partBCount);
-            Assert.True(sepOk);
+            Assert.IsTrue(sepOk);
         }
 
-        [Fact]
+        [Test]
         public void Planar_KuratowskiAndOuterplanar()
         {
             // K_5 (non-planar)
@@ -289,21 +290,21 @@ namespace IAFahim.Graph.Tests
             int kuratowskiCount = 0;
 
             bool hasKuratowski = Planar.KuratowskiSubgraph(n, m, u, v, kuratowskiU, kuratowskiV, &kuratowskiCount);
-            Assert.True(hasKuratowski);
+            Assert.IsTrue(hasKuratowski);
 
             // Triangle is outerplanar, but K_4 is not
             const int nTri = 3, mTri = 3;
             int* uTri = stackalloc int[mTri] { 0, 1, 2 };
             int* vTri = stackalloc int[mTri] { 1, 2, 0 };
-            Assert.True(Planar.OuterplanarCheck(nTri, mTri, uTri, vTri));
+            Assert.IsTrue(Planar.OuterplanarCheck(nTri, mTri, uTri, vTri));
 
             const int nK4 = 4, mK4 = 6;
             int* uK4 = stackalloc int[mK4] { 0, 0, 0, 1, 1, 2 };
             int* vK4 = stackalloc int[mK4] { 1, 2, 3, 2, 3, 3 };
-            Assert.False(Planar.OuterplanarCheck(nK4, mK4, uK4, vK4));
+            Assert.IsFalse(Planar.OuterplanarCheck(nK4, mK4, uK4, vK4));
         }
 
-        [Fact]
+        [Test]
         public void Planar_SeriesParallelAndTriconnected()
         {
             const int n = 4, m = 5;
@@ -311,14 +312,14 @@ namespace IAFahim.Graph.Tests
             int* v = stackalloc int[m] { 1, 2, 3, 2, 3 };
 
             bool isSP = Planar.SeriesParallelDecompose(n, m, u, v, 0, 3);
-            Assert.True(isSP);
+            Assert.IsTrue(isSP);
 
             int* compType = stackalloc int[m];
             int triconn = Planar.TriconnectedComponents(n, m, u, v, compType);
-            Assert.True(triconn >= 0);
+            Assert.IsTrue(triconn >= 0);
         }
 
-        [Fact]
+        [Test]
         public void Planar_Matching()
         {
             const int n = 4, m = 4;
@@ -330,7 +331,7 @@ namespace IAFahim.Graph.Tests
             int matchCount = 0;
 
             Planar.MaximumPlanarMatching(n, m, u, v, matchU, matchV, &matchCount);
-            Assert.Equal(2, matchCount);
+            Assert.AreEqual(2, matchCount);
         }
     }
 }
