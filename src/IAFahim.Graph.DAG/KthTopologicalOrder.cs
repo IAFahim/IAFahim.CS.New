@@ -4,46 +4,43 @@ namespace IAFahim.Graph.DAG
 
     public static unsafe class KthTopologicalOrder
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool Run(int* adjMask, int n, long* dp, long k, int* order)
         {
             int maxMask = 1 << n;
             for (int i = 0; i < maxMask; i++) dp[i] = 0;
             dp[0] = 1;
 
-            for (int mask = 0; mask < maxMask; mask++)
-            {
-                if (dp[mask] == 0) continue;
-                for (int i = 0; i < n; i++)
-                {
-                    if ((mask & (1 << i)) == 0 && (adjMask[i] & mask) == adjMask[i])
-                    {
-                        dp[mask | (1 << i)] += dp[mask];
-                    }
-                }
-            }
+            for (int m = 0; m < maxMask; m++) if (dp[m] != 0) UpdateDpForMask(m, n, adjMask, dp);
 
             if (k > dp[maxMask - 1] || k <= 0) return false;
 
-            int currentMask = (1 << n) - 1;
-            for (int step = n - 1; step >= 0; step--)
+            int curM = maxMask - 1;
+            for (int s = n - 1; s >= 0; s--)
             {
-                for (int i = n - 1; i >= 0; i--) // Iterating backwards to find the node correctly based on k
-                {
-                    if ((currentMask & (1 << i)) != 0 && (adjMask[i] & (currentMask ^ (1 << i))) == adjMask[i])
-                    {
-                        long count = dp[currentMask ^ (1 << i)];
-                        if (k <= count)
-                        {
-                            order[step] = i;
-                            currentMask ^= (1 << i);
-                            break;
-                        }
-                        k -= count;
-                    }
-                }
+                int nextV = FindKthNode(curM, n, adjMask, dp, ref k);
+                order[s] = nextV; curM ^= (1 << nextV);
             }
             return true;
+        }
+
+        private static void UpdateDpForMask(int m, int n, int* adjMask, long* dp)
+        {
+            for (int i = 0; i < n; i++)
+                if ((m & (1 << i)) == 0 && (adjMask[i] & m) == adjMask[i]) dp[m | (1 << i)] += dp[m];
+        }
+
+        private static int FindKthNode(int m, int n, int* adjMask, long* dp, ref long k)
+        {
+            for (int i = n - 1; i >= 0; i--)
+            {
+                if ((m & (1 << i)) != 0 && (adjMask[i] & (m ^ (1 << i))) == adjMask[i])
+                {
+                    long cnt = dp[m ^ (1 << i)];
+                    if (k <= cnt) return i;
+                    k -= cnt;
+                }
+            }
+            return -1;
         }
     }
 }

@@ -13,31 +13,29 @@ namespace IAFahim.Math.NT
             if (n < 4) return true;
             if (n % 2 == 0 || n % 3 == 0) return false;
 
-            long d = n - 1;
-            int r = 0;
-            while ((d & 1) == 0)
-            {
-                d >>= 1;
-                r++;
-            }
-
+            Decompose(n - 1, out long d, out int r);
             for (int i = 0; i < SmallPrimes.Length; i++)
             {
-                long a = SmallPrimes[i];
-                if (a >= n) continue;
-                long x = ModPow.Run(a, d, n);
-                if (x == 1 || x == n - 1) continue;
-                bool composite = true;
-                for (int j = 0; j < r - 1; j++)
-                {
-                    x = ModMul.Run(x, x, n);
-                    if (x == n - 1)
-                    {
-                        composite = false;
-                        break;
-                    }
-                }
-                if (composite) return false;
+                if (SmallPrimes[i] >= n) continue;
+                if (IsComposite(n, SmallPrimes[i], d, r)) return false;
+            }
+            return true;
+        }
+
+        private static void Decompose(long n_minus_1, out long d, out int r)
+        {
+            d = n_minus_1; r = 0;
+            while ((d & 1) == 0) { d >>= 1; r++; }
+        }
+
+        private static bool IsComposite(long n, long a, long d, int r)
+        {
+            long x = ModPow.Run(a, d, n);
+            if (x == 1 || x == n - 1) return false;
+            for (int j = 0; j < r - 1; j++)
+            {
+                x = ModMul.Run(x, x, n);
+                if (x == n - 1) return false;
             }
             return true;
         }

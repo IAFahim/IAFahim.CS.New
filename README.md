@@ -1,5 +1,7 @@
 # IAFahim.CS
 
+[View Full Algorithm List & Use Cases (ALGORITHMS.md)](./ALGORITHMS.md)
+
 wandered into this repo and found a whole shelf of pointer‑friendly algorithms and data structures. Each package below has a tiny use‑case note written in the cat’s own, lightly curious voice.
 
 ## IAFahim.Collections.NoDeps

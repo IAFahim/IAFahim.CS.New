@@ -1,7 +1,7 @@
 namespace IAFahim.Graph.TreeDecomposition.Tests
 {
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
     using IAFahim.Graph.TreeDecomposition;
 
     public sealed unsafe class TreeDecompositionTests
@@ -17,7 +17,7 @@ namespace IAFahim.Graph.TreeDecomposition.Tests
             head[v] = edgeCount++;
         }
 
-        [Fact]
+        [Test]
         public void Hld_Basic()
         {
             const int N = 5;
@@ -70,13 +70,13 @@ namespace IAFahim.Graph.TreeDecomposition.Tests
             HeavyLightDecomposition.PathAdd(2, 4, 5, tree, lazyAdd, lazyAssign, hasAssign, headChain, pos, parent, depth, N);
             
             // PathQuery: sum on path 2-4 should be 5 * 4 = 20
-            Assert.Equal(20, HeavyLightDecomposition.PathSumQuery(2, 4, tree, lazyAdd, lazyAssign, hasAssign, headChain, pos, parent, depth, N));
+            Assert.AreEqual(20, HeavyLightDecomposition.PathSumQuery(2, 4, tree, lazyAdd, lazyAssign, hasAssign, headChain, pos, parent, depth, N));
 
             // PathAssign: assign 3 to path 1-4 (path is 1-3-4)
             HeavyLightDecomposition.PathAssign(1, 4, 3, tree, lazyAdd, lazyAssign, hasAssign, headChain, pos, parent, depth, N);
             // Now nodes 1, 3, 4 have value 3. Node 2 still has value 5. Node 0 has value 0.
             // PathQuery 2-4 (2-1-3-4): 5 + 3 + 3 + 3 = 14.
-            Assert.Equal(14, HeavyLightDecomposition.PathSumQuery(2, 4, tree, lazyAdd, lazyAssign, hasAssign, headChain, pos, parent, depth, N));
+            Assert.AreEqual(14, HeavyLightDecomposition.PathSumQuery(2, 4, tree, lazyAdd, lazyAssign, hasAssign, headChain, pos, parent, depth, N));
 
             // Segment Tree for max subarray
             HldSegNode* saTree = stackalloc HldSegNode[ST_SIZE];
@@ -104,7 +104,7 @@ namespace IAFahim.Graph.TreeDecomposition.Tests
             // Sequence from 2 to 4: [-1, 5, 4, -3]
             // Max subarray sum is 5 + 4 = 9.
             HldSegNode res = HeavyLightDecomposition.PathMaxSubarray(2, 4, saTree, saLazyAssign, saHasAssign, headChain, pos, parent, depth, N);
-            Assert.Equal(9, res.Ans);
+            Assert.AreEqual(9, res.Ans);
         }
 
         // --- TREE MO'S ALGORITHM TESTS ---
@@ -144,7 +144,7 @@ namespace IAFahim.Graph.TreeDecomposition.Tests
             ctx->Results[queryId] = ctx->CurrentUniqueCount;
         }
 
-        [Fact]
+        [Test]
         public void MoOnTree_Basic()
         {
             const int N = 5;
@@ -220,8 +220,8 @@ namespace IAFahim.Graph.TreeDecomposition.Tests
                 N, Q, euler, inTime, outTime, depth, parent,
                 queries, addPtr, removePtr, queryPtr, &ctx, 2);
 
-            Assert.Equal(3, results[0]);
-            Assert.Equal(2, results[1]);
+            Assert.AreEqual(3, results[0]);
+            Assert.AreEqual(2, results[1]);
         }
     }
 }

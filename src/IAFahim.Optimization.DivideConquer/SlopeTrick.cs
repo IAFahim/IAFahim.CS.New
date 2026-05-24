@@ -23,20 +23,23 @@ namespace IAFahim.Optimization.DivideConquer
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AddAbs(State* s, long a)
         {
-            long l = a - s->L;
-            long r = s->R - a;
-            if (l > r)
-            {
-                s->Offset += l;
-                if (a < s->Lc) s->Lc = a;
-                s->R = s->Lc;
-            }
-            else
-            {
-                s->Offset += r;
-                if (a > s->Rc) s->Rc = a;
-                s->L = s->Rc;
-            }
+            long l = a - s->L, r = s->R - a;
+            if (l > r) UpdateLeftSlope(s, a, l);
+            else UpdateRightSlope(s, a, r);
+        }
+
+        private static void UpdateLeftSlope(State* s, long a, long l)
+        {
+            s->Offset += l;
+            if (a < s->Lc) s->Lc = a;
+            s->R = s->Lc;
+        }
+
+        private static void UpdateRightSlope(State* s, long a, long r)
+        {
+            s->Offset += r;
+            if (a > s->Rc) s->Rc = a;
+            s->L = s->Rc;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -47,20 +50,25 @@ namespace IAFahim.Optimization.DivideConquer
             
             if (leftSize > 0 && rightSize > 0)
             {
-                long topL = leftHeap[leftSize - 1];
-                long topR = rightHeap[rightSize - 1];
-                
-                if (topL > topR)
-                {
-                    leftHeap[leftSize - 1] = topR;
-                    rightHeap[rightSize - 1] = topL;
-                    long diff = topL - topR;
-                    s->Offset += diff;
-                    s->L -= diff;
-                    s->R += diff;
-                }
+                AdjustHeaps(s, leftHeap, ref leftSize, rightHeap, ref rightSize);
             }
             
+            UpdateStateFromHeaps(s, a, leftHeap, leftSize, rightHeap, rightSize);
+        }
+
+        private static void AdjustHeaps(State* s, long* leftHeap, ref int leftSize, long* rightHeap, ref int rightSize)
+        {
+            long topL = leftHeap[leftSize - 1], topR = rightHeap[rightSize - 1];
+            if (topL > topR)
+            {
+                leftHeap[leftSize - 1] = topR; rightHeap[rightSize - 1] = topL;
+                long diff = topL - topR;
+                s->Offset += diff; s->L -= diff; s->R += diff;
+            }
+        }
+
+        private static void UpdateStateFromHeaps(State* s, long a, long* leftHeap, int leftSize, long* rightHeap, int rightSize)
+        {
             s->L = a - (leftSize > 0 ? leftHeap[leftSize - 1] : 0);
             s->R = a + (rightSize > 0 ? rightHeap[rightSize - 1] : 0);
         }
@@ -68,18 +76,13 @@ namespace IAFahim.Optimization.DivideConquer
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AddMaxZero(State* s)
         {
-            s->L--;
-            s->R++;
+            s->L--; s->R++;
             if (s->L > 0) { s->Offset += s->L; s->L = 0; }
             if (s->R < 0) { s->Offset -= s->R; s->R = 0; }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Shift(State* s, long add)
-        {
-            s->L += add;
-            s->R += add;
-        }
+        public static void Shift(State* s, long add) { s->L += add; s->R += add; }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long Query(State* s)

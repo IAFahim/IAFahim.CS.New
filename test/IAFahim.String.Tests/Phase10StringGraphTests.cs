@@ -3,7 +3,7 @@ namespace IAFahim.String.Tests
     using IAFahim.String;
     using System;
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class Phase10StringGraphTests
     {
@@ -17,7 +17,7 @@ namespace IAFahim.String.Tests
             return 0;
         }
 
-        [Fact]
+        [Test]
         public void ShortestCommonSupersequence_EmptyInput_NoOp()
         {
             byte* a = null;
@@ -25,10 +25,10 @@ namespace IAFahim.String.Tests
             byte* c = null;
             int* dp = stackalloc int[1];
             int len = Enumeration.ShortestCommonSupersequence(a, 0, b, 0, c, dp);
-            Assert.Equal(0, len);
+            Assert.AreEqual(0, len);
         }
 
-        [Fact]
+        [Test]
         public void ShortestCommonSupersequence_Basic()
         {
             byte* a = stackalloc byte[2] { (byte)'a', (byte)'b' };
@@ -36,14 +36,14 @@ namespace IAFahim.String.Tests
             byte* c = stackalloc byte[4];
             int* dp = stackalloc int[3 * 3];
             int len = Enumeration.ShortestCommonSupersequence(a, 2, b, 2, c, dp);
-            Assert.Equal(3, len);
+            Assert.AreEqual(3, len);
             // Possible SCS: "aba" or "bab"
             bool match1 = c[0] == 'a' && c[1] == 'b' && c[2] == 'a';
             bool match2 = c[0] == 'b' && c[1] == 'a' && c[2] == 'b';
-            Assert.True(match1 || match2);
+            Assert.IsTrue(match1 || match2);
         }
 
-        [Fact]
+        [Test]
         public void ShortestAbsentSubsequence_EmptyInput_NoOp()
         {
             byte* s = null;
@@ -52,11 +52,11 @@ namespace IAFahim.String.Tests
             int* queue = stackalloc int[4];
             int* backtrack = stackalloc int[4];
             int len = Enumeration.ShortestAbsentSubsequence(s, 0, 2, result, nextOcc, queue, backtrack);
-            Assert.Equal(1, len);
-            Assert.Equal(0, result[0]);
+            Assert.AreEqual(1, len);
+            Assert.AreEqual(0, result[0]);
         }
 
-        [Fact]
+        [Test]
         public void ShortestAbsentSubsequence_Basic()
         {
             byte* s = stackalloc byte[2] { 0, 1 }; // "ab"
@@ -65,37 +65,37 @@ namespace IAFahim.String.Tests
             int* queue = stackalloc int[8];
             int* backtrack = stackalloc int[8];
             int len = Enumeration.ShortestAbsentSubsequence(s, 2, 2, result, nextOcc, queue, backtrack);
-            Assert.Equal(2, len);
+            Assert.AreEqual(2, len);
             // Lexicographically first shortest absent subsequence of "ab" with alphabet size 2 is "aa" (0, 0)
-            Assert.Equal(0, result[0]);
-            Assert.Equal(0, result[1]);
+            Assert.AreEqual(0, result[0]);
+            Assert.AreEqual(0, result[1]);
         }
 
-        [Fact]
+        [Test]
         public void ShortestMissingSubstring_EmptyInput_NoOp()
         {
             byte* s = null;
             byte* result = stackalloc byte[2];
             bool* seen = stackalloc bool[16];
             int len = Enumeration.ShortestMissingSubstring(s, 0, 2, result, seen);
-            Assert.Equal(1, len);
-            Assert.Equal(0, result[0]);
+            Assert.AreEqual(1, len);
+            Assert.AreEqual(0, result[0]);
         }
 
-        [Fact]
+        [Test]
         public void ShortestMissingSubstring_Basic()
         {
             byte* s = stackalloc byte[3] { 0, 1, 0 }; // "aba"
             byte* result = stackalloc byte[4];
             bool* seen = stackalloc bool[16];
             int len = Enumeration.ShortestMissingSubstring(s, 3, 2, result, seen);
-            Assert.Equal(2, len);
+            Assert.AreEqual(2, len);
             // Missing length 2: "aa" (0,0) and "bb" (1,1). Lexicographically first is "aa".
-            Assert.Equal(0, result[0]);
-            Assert.Equal(0, result[1]);
+            Assert.AreEqual(0, result[0]);
+            Assert.AreEqual(0, result[1]);
         }
 
-        [Fact]
+        [Test]
         public void DeBruijn_SequenceBuild_Basic()
         {
             int n = 3;
@@ -103,10 +103,10 @@ namespace IAFahim.String.Tests
             int* sequence = stackalloc int[16];
             int seqLen = 0;
             DeBruijn.SequenceBuild(n, k, sequence, &seqLen);
-            Assert.Equal(8, seqLen);
+            Assert.AreEqual(8, seqLen);
         }
 
-        [Fact]
+        [Test]
         public void DeBruijn_GraphBuild_Basic()
         {
             int n = 3;
@@ -118,12 +118,12 @@ namespace IAFahim.String.Tests
             {
                 int v0 = adj[u * k + 0];
                 int v1 = adj[u * k + 1];
-                Assert.Equal((u * 2) % 4, v0);
-                Assert.Equal((u * 2 + 1) % 4, v1);
+                Assert.AreEqual((u * 2) % 4, v0);
+                Assert.AreEqual((u * 2 + 1) % 4, v1);
             }
         }
 
-        [Fact]
+        [Test]
         public void DeBruijn_EulerianPath_Basic()
         {
             int n = 3;
@@ -133,10 +133,10 @@ namespace IAFahim.String.Tests
             DeBruijn.EulerianPath(n, k, path, &pathLen);
             // Eulerian path of de bruijn graph of order n has V * k + 1 vertices (or V * k edges visited)
             // Vertices = k^(n-1) = 4, edges = 8, path length should be 9
-            Assert.Equal(9, pathLen);
+            Assert.AreEqual(9, pathLen);
         }
 
-        [Fact]
+        [Test]
         public void FreivaldsMatrixVerify_CorrectMatrixProduct_ReturnsTrue()
         {
             int n = 2;
@@ -149,10 +149,10 @@ namespace IAFahim.String.Tests
             long* abr = stackalloc long[4];
             long* cr = stackalloc long[4];
             bool result = Probabilistic.FreivaldsMatrixVerify(a, b, c, n, 10, 1000000007L, r, br, abr, cr);
-            Assert.True(result);
+            Assert.IsTrue(result);
         }
 
-        [Fact]
+        [Test]
         public void FreivaldsMatrixVerify_IncorrectMatrixProduct_ReturnsFalse()
         {
             int n = 2;
@@ -164,44 +164,44 @@ namespace IAFahim.String.Tests
             long* abr = stackalloc long[4];
             long* cr = stackalloc long[4];
             bool result = Probabilistic.FreivaldsMatrixVerify(a, b, c, n, 10, 1000000007L, r, br, abr, cr);
-            Assert.False(result);
+            Assert.IsFalse(result);
         }
 
-        [Fact]
+        [Test]
         public void SchwartzZippelTest_IdenticallyZero_ReturnsTrue()
         {
             long* points = stackalloc long[2];
             bool result = Probabilistic.SchwartzZippelTest(&ZeroPoly, 2, 2, 10, 1000000007L, points);
-            Assert.True(result);
+            Assert.IsTrue(result);
         }
 
-        [Fact]
+        [Test]
         public void SchwartzZippelTest_NotIdenticallyZero_ReturnsFalse()
         {
             long* points = stackalloc long[2];
             bool result = Probabilistic.SchwartzZippelTest(&NonZeroPoly, 2, 2, 100, 1000000007L, points);
-            Assert.False(result);
+            Assert.IsFalse(result);
         }
 
-        [Fact]
+        [Test]
         public void RabinKarpLasVegas_PatternFound_ReturnsCorrectIndex()
         {
             byte* text = stackalloc byte[5] { (byte)'a', (byte)'b', (byte)'a', (byte)'b', (byte)'a' };
             byte* pattern = stackalloc byte[3] { (byte)'b', (byte)'a', (byte)'b' };
             int idx = Probabilistic.RabinKarpLasVegas(text, 5, pattern, 3);
-            Assert.Equal(1, idx);
+            Assert.AreEqual(1, idx);
         }
 
-        [Fact]
+        [Test]
         public void RabinKarpLasVegas_PatternNotFound_ReturnsMinusOne()
         {
             byte* text = stackalloc byte[5] { (byte)'a', (byte)'b', (byte)'a', (byte)'b', (byte)'a' };
             byte* pattern = stackalloc byte[3] { (byte)'x', (byte)'y', (byte)'z' };
             int idx = Probabilistic.RabinKarpLasVegas(text, 5, pattern, 3);
-            Assert.Equal(-1, idx);
+            Assert.AreEqual(-1, idx);
         }
 
-        [Fact]
+        [Test]
         public void RandomizedMstVerify_CorrectMst_ReturnsTrue()
         {
             int numVertices = 4;
@@ -218,10 +218,10 @@ namespace IAFahim.String.Tests
             // Non-tree: (0,2) weight 3 -> path max (0-1-2) is max(1, 1) = 1 <= 3. Correct.
             // Non-tree: (1,3) weight 4 -> path max (1-2-3) is max(1, 2) = 2 <= 4. Correct.
             bool result = Probabilistic.RandomizedMstVerify(numVertices, numEdges, u, v, w, inMst, parent, depth, up, maxEdge);
-            Assert.True(result);
+            Assert.IsTrue(result);
         }
 
-        [Fact]
+        [Test]
         public void RandomizedMstVerify_IncorrectMst_ReturnsFalse()
         {
             int numVertices = 4;
@@ -237,10 +237,10 @@ namespace IAFahim.String.Tests
             // Tree edges: (0,2) wt 3, (1,2) wt 1, (1,3) wt 4. Total weight 8.
             // Non-tree edge: (2,3) wt 2 -> path (2-1-3) max is max(1,4) = 4 > 2. So NOT MST.
             bool result = Probabilistic.RandomizedMstVerify(numVertices, numEdges, u, v, w, inMst, parent, depth, up, maxEdge);
-            Assert.False(result);
+            Assert.IsFalse(result);
         }
 
-        [Fact]
+        [Test]
         public void XmlTreeHash_SameStructureDifferentOrder_ReturnsSameHash()
         {
             // Root has child 1 and child 2
@@ -265,10 +265,10 @@ namespace IAFahim.String.Tests
 
             uint rootHash2 = SpecialStructures.XmlTreeHash(nodes2, 0, childIndices2, hashes2);
 
-            Assert.Equal(rootHash1, rootHash2);
+            Assert.AreEqual(rootHash1, rootHash2);
         }
 
-        [Fact]
+        [Test]
         public void JsonCanonicalHash_SameObjectDifferentKeyOrder_ReturnsSameHash()
         {
             // Element index 0: Object (Type = 1), children: 1 and 2
@@ -292,7 +292,7 @@ namespace IAFahim.String.Tests
 
             uint rootHash2 = SpecialStructures.JsonCanonicalHash(elem2, 0, childIndices2, hashes2);
 
-            Assert.Equal(rootHash1, rootHash2);
+            Assert.AreEqual(rootHash1, rootHash2);
         }
     }
 }

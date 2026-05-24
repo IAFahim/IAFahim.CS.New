@@ -6,6 +6,29 @@ namespace IAFahim.Algebra.GraphPoly
     public static unsafe class Reliability
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsConnected(int n, int edges, int* from, int* to, int mask, int* parent)
+        {
+            for (int i = 0; i < n; i++) parent[i] = i;
+            for (int e = 0; e < edges; e++)
+            {
+                if ((mask & (1 << e)) == 0) continue;
+                int u = from[e], v = to[e];
+                while (parent[u] != u) u = parent[u];
+                while (parent[v] != v) v = parent[v];
+                if (u != v) parent[u] = v;
+            }
+            for (int i = 0; i < n; i++)
+            {
+                int r = i;
+                while (parent[r] != r) r = parent[r];
+                parent[i] = r;
+            }
+            for (int i = 1; i < n; i++)
+                if (parent[i] != parent[0]) return false;
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long Polynomial(int n, int edges, int* from, int* to, long p, int MOD)
         {
             long result = 0;
@@ -13,36 +36,26 @@ namespace IAFahim.Algebra.GraphPoly
             int* parent = stackalloc int[n];
             for (int mask = 0; mask < size; mask++)
             {
-                for (int i = 0; i < n; i++) parent[i] = i;
-                int edgeCount = 0;
-                for (int e = 0; e < edges; e++)
+                if (IsConnected(n, edges, from, to, mask, parent))
                 {
-                    if ((mask & (1 << e)) == 0) continue;
-                    edgeCount++;
-                    int u = from[e], v = to[e];
-                    while (parent[u] != u) u = parent[u];
-                    while (parent[v] != v) v = parent[v];
-                    if (u != v) parent[u] = v;
-                }
-                for (int i = 0; i < n; i++)
-                {
-                    int r = i;
-                    while (parent[r] != r) r = parent[r];
-                    parent[i] = r;
-                }
-                bool connected = true;
-                for (int i = 1; i < n; i++)
-                    if (parent[i] != parent[0]) { connected = false; break; }
-                if (connected)
-                {
-                    long pk = 1;
-                    for (int i = 0; i < edgeCount; i++) pk = pk * p % MOD;
-                    long qk = 1;
-                    for (int i = 0; i < edges - edgeCount; i++) qk = qk * (1 - p + MOD) % MOD;
-                    result = (result + pk * qk) % MOD;
+                    int edgeCount = 0;
+                    int m = mask;
+                    while (m > 0) { if ((m & 1) != 0) edgeCount++; m >>= 1; }
+                    long prob = CalculateProbability(edges, edgeCount, p, MOD);
+                    result = (result + prob) % MOD;
                 }
             }
             return result;
+        }
+
+        private static long CalculateProbability(int totalEdges, int edgeCount, long p, int MOD)
+        {
+            long pk = 1;
+            for (int i = 0; i < edgeCount; i++) pk = pk * p % MOD;
+            long qk = 1;
+            long q = (1 - p + MOD) % MOD;
+            for (int i = 0; i < totalEdges - edgeCount; i++) qk = qk * q % MOD;
+            return pk * qk % MOD;
         }
     }
 }

@@ -1,11 +1,11 @@
 namespace IAFahim.Graph.Bridges.Tests
 {
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class BridgeAndArticulationTests
     {
-        [Fact]
+        [Test]
         public void Tarjan_BridgeAndArticulation_Basic()
         {
             const int N = 4;
@@ -37,13 +37,13 @@ namespace IAFahim.Graph.Bridges.Tests
             
             BridgeAndArticulation.Find(N, head, next, to, tin, low, isArt, bridgesU, bridgesV, ref bridgeCount);
             
-            Assert.Equal(1, bridgeCount);
-            Assert.True((bridgesU[0] == 2 && bridgesV[0] == 3) || (bridgesU[0] == 3 && bridgesV[0] == 2));
+            Assert.AreEqual(1, bridgeCount);
+            Assert.IsTrue((bridgesU[0] == 2 && bridgesV[0] == 3) || (bridgesU[0] == 3 && bridgesV[0] == 2));
             
-            Assert.Equal(0, isArt[0]);
-            Assert.Equal(0, isArt[1]);
-            Assert.Equal(1, isArt[2]);
-            Assert.Equal(0, isArt[3]);
+            Assert.AreEqual(0, isArt[0]);
+            Assert.AreEqual(0, isArt[1]);
+            Assert.AreEqual(1, isArt[2]);
+            Assert.AreEqual(0, isArt[3]);
         }
     }
 }

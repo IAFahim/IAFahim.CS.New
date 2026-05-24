@@ -13,181 +13,63 @@ namespace IAFahim.DS.Grid
             dist[sr * width + sc] = 0;
             int* dr = stackalloc int[4] { -1, 1, 0, 0 };
             int* dc = stackalloc int[4] { 0, 0, -1, 1 };
-            int levelSize = 1;
-            int levelIdx = 0;
             while (front < rear)
             {
                 int node = queue[front++];
-                int r = node / width;
-                int c = node % width;
-                levelIdx++;
-                if (levelIdx == levelSize)
-                {
-                    levelSize = rear - front;
-                    levelIdx = 0;
-                }
-                for (int d = 0; d < 4; d++)
-                {
-                    int nr = r + dr[d];
-                    int nc = c + dc[d];
-                    if ((uint)nr < (uint)height && (uint)nc < (uint)width)
-                    {
-                        int idx = nr * width + nc;
-                        if (visited[idx] == 0)
-                        {
-                            visited[idx] = 1;
-                            dist[idx] = dist[r * width + c] + 1;
-                            queue[rear++] = idx;
-                        }
-                    }
-                }
+                ProcessNeighbors(node / width, node % width, height, width, dist, visited, queue, ref rear, dr, dc);
             }
             return rear;
         }
-    }
 
-    public static unsafe class FloodFill
-    {
-        public static int Run(int height, int width, int sr, int sc, long target, long replacement, long* grid, int* stack, int maxStack)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ProcessNeighbors(int r, int c, int h, int w, int* dist, long* vis, int* q, ref int rear, int* dr, int* dc)
         {
-            int top = 0;
-            stack[top++] = sr * width + sc;
-            int count = 0;
-            while (top > 0)
+            for (int d = 0; d < 4; d++)
             {
-                if (top >= maxStack)
+                int nr = r + dr[d], nc = c + dc[d];
+                if ((uint)nr < (uint)h && (uint)nc < (uint)w)
                 {
-                    top--;
-                    int node = stack[top];
-                    int r = node / width;
-                    int c = node % width;
-                    if ((uint)r >= (uint)height || (uint)c >= (uint)width) continue;
-                    int idx = r * width + c;
-                    if (grid[idx] != target) continue;
-                    grid[idx] = replacement;
-                    count++;
-                    if (top + 4 > maxStack) continue;
-                    stack[top++] = (r - 1) * width + c;
-                    stack[top++] = (r + 1) * width + c;
-                    stack[top++] = r * width + (c - 1);
-                    stack[top++] = r * width + (c + 1);
-                }
-                else
-                {
-                    int node = stack[--top];
-                    int r = node / width;
-                    int c = node % width;
-                    if ((uint)r >= (uint)height || (uint)c >= (uint)width) continue;
-                    int idx = r * width + c;
-                    if (grid[idx] != target) continue;
-                    grid[idx] = replacement;
-                    count++;
-                    if (top + 4 > maxStack) continue;
-                    stack[top++] = (r - 1) * width + c;
-                    stack[top++] = (r + 1) * width + c;
-                    stack[top++] = r * width + (c - 1);
-                    stack[top++] = r * width + (c + 1);
+                    int idx = nr * w + nc;
+                    if (vis[idx] == 0) { vis[idx] = 1; dist[idx] = dist[r * w + c] + 1; q[rear++] = idx; }
                 }
             }
-            return count;
-        }
-    }
-
-    public static unsafe class IsInsideGrid
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool Run(int r, int c, int height, int width)
-        {
-            return (uint)r < (uint)height && (uint)c < (uint)width;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool RunFlat(int idx, int height, int width)
-        {
-            return (uint)idx < (uint)(height * width);
         }
     }
 
     public static unsafe class RotateGrid
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void RotateOnce(int h, int w, long* src, long* dst)
-        {
-            for (int i = 0; i < h; i++)
-            {
-                for (int j = 0; j < w; j++)
-                {
-                    dst[j * h + (h - 1 - i)] = src[i * w + j];
-                }
-            }
-        }
-
-        public static void Run(int height, int width, long* src, long* dst, int times)
+        public static void Run(int h, int w, long* src, long* dst, int times)
         {
             times = ((times % 4) + 4) % 4;
-            if (times == 0)
-            {
-                for (int i = 0; i < height * width; i++)
-                {
-                    dst[i] = src[i];
-                }
-                return;
-            }
-
-            int len = height * width;
-            long* temp = stackalloc long[len];
-
-            if (times == 1)
-            {
-                RotateOnce(height, width, src, dst);
-            }
-            else if (times == 2)
-            {
-                RotateOnce(height, width, src, temp);
-                RotateOnce(width, height, temp, dst);
-            }
-            else if (times == 3)
-            {
-                RotateOnce(height, width, src, dst);
-                RotateOnce(width, height, dst, temp);
-                RotateOnce(height, width, temp, dst);
-            }
-        }
-    }
-
-    public static unsafe class TransposeGrid
-    {
-        public static void Run(int height, int width, long* src, long* dst)
-        {
-            for (int i = 0; i < height; i++)
-                for (int j = 0; j < width; j++)
-                    dst[j * height + i] = src[i * width + j];
-        }
-    }
-
-    public static unsafe class Prefix2D
-    {
-        public static void Build(int height, int width, long* grid, long* prefix)
-        {
-            for (int i = 0; i < height; i++)
-            {
-                long rowSum = 0;
-                for (int j = 0; j < width; j++)
-                {
-                    rowSum += grid[i * width + j];
-                    prefix[i * width + j] = rowSum;
-                    if (i > 0) prefix[i * width + j] += prefix[(i - 1) * width + j];
-                }
-            }
+            if (times == 0) CopyGrid(h, w, src, dst);
+            else if (times == 1) Rotate90(h, w, src, dst);
+            else if (times == 2) Rotate180(h, w, src, dst);
+            else Rotate270(h, w, src, dst);
         }
 
-        public static long Query(int r1, int c1, int r2, int c2, long* prefix, int height, int width)
+        private static void CopyGrid(int h, int w, long* src, long* dst)
         {
-            long res = prefix[r2 * width + c2];
-            if (r1 > 0) res -= prefix[(r1 - 1) * width + c2];
-            if (c1 > 0) res -= prefix[r2 * width + (c1 - 1)];
-            if (r1 > 0 && c1 > 0) res += prefix[(r1 - 1) * width + (c1 - 1)];
-            return res;
+            for (int i = 0; i < h * w; i++) dst[i] = src[i];
+        }
+
+        private static void Rotate90(int h, int w, long* src, long* dst)
+        {
+            for (int i = 0; i < h; i++)
+                for (int j = 0; j < w; j++)
+                    dst[j * h + (h - 1 - i)] = src[i * w + j];
+        }
+
+        private static void Rotate180(int h, int w, long* src, long* dst)
+        {
+            int len = h * w;
+            for (int i = 0; i < len; i++) dst[len - 1 - i] = src[i];
+        }
+
+        private static void Rotate270(int h, int w, long* src, long* dst)
+        {
+            for (int i = 0; i < h; i++)
+                for (int j = 0; j < w; j++)
+                    dst[(w - 1 - j) * h + i] = src[i * w + j];
         }
     }
 }

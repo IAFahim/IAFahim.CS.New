@@ -2,67 +2,67 @@ namespace IAFahim.String.Tests
 {
     using IAFahim.String;
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class StringTests
     {
-        [Fact]
+        [Test]
         public void ManacherOdd_Basic()
         {
             byte* s = stackalloc byte[5] { (byte)'a', (byte)'b', (byte)'a', (byte)'b', (byte)'a' };
             int* d = stackalloc int[5];
             ManacherOdd.Run(s, 5, d);
-            Assert.True(d[2] > 0);
+            Assert.IsTrue(d[2] > 0);
         }
 
-        [Fact]
+        [Test]
         public void KmpPrefix_Basic()
         {
             byte* pat = stackalloc byte[3] { (byte)'a', (byte)'b', (byte)'a' };
             int* pi = stackalloc int[3];
             KmpPrefix.Run(pat, 3, pi);
-            Assert.Equal(0, pi[0]);
-            Assert.True(pi[1] >= 0);
+            Assert.AreEqual(0, pi[0]);
+            Assert.IsTrue(pi[1] >= 0);
         }
 
-        [Fact]
+        [Test]
         public void ZAlgorithm_Basic()
         {
             byte* s = stackalloc byte[6] { (byte)'a', (byte)'b', (byte)'a', (byte)'a', (byte)'b', (byte)'c' };
             int* z = stackalloc int[6];
             ZAlgorithm.Run(s, 6, z);
-            Assert.Equal(6, z[0]);
-            Assert.True(z[1] >= 0);
+            Assert.AreEqual(6, z[0]);
+            Assert.IsTrue(z[1] >= 0);
         }
 
-        [Fact]
+        [Test]
         public void EditDistance_Basic()
         {
             byte* a = stackalloc byte[3] { (byte)'a', (byte)'b', (byte)'c' };
             byte* b = stackalloc byte[3] { (byte)'b', (byte)'d', (byte)'c' };
             int dist = EditDistance.Run(a, 3, b, 3);
-            Assert.Equal(2, dist);
+            Assert.AreEqual(2, dist);
         }
 
-        [Fact]
+        [Test]
         public void Lcs_Basic()
         {
             byte* a = stackalloc byte[4] { (byte)'a', (byte)'b', (byte)'c', (byte)'d' };
             byte* b = stackalloc byte[4] { (byte)'b', (byte)'c', (byte)'e', (byte)'f' };
             byte* res = stackalloc byte[4];
             int len = Lcs.Run(a, 4, b, 4, res);
-            Assert.Equal(2, len);
+            Assert.AreEqual(2, len);
         }
 
-        [Fact]
+        [Test]
         public void MinCyclicShift_Sorted()
         {
             byte* s = stackalloc byte[3] { (byte)'a', (byte)'a', (byte)'b' };
             int idx = MinCyclicShift.Run(s, 3);
-            Assert.Equal(0, idx);
+            Assert.AreEqual(0, idx);
         }
 
-        [Fact]
+        [Test]
         public void AhoBuild_Basic()
         {
             const int alphabet = 26;
@@ -88,12 +88,12 @@ namespace IAFahim.String.Tests
                     cur = nextNode;
                 }
                 AhoBuild.Run(next, link, nodeCount, alphabet);
-                Assert.True(nodeCount > 1);
+                Assert.IsTrue(nodeCount > 1);
             }
             finally { Marshal.FreeHGlobal((nint)next); Marshal.FreeHGlobal((nint)link); }
         }
 
-        [Fact]
+        [Test]
         public void PalindromicTree_Basic()
         {
             const int maxLen = 100;
@@ -113,7 +113,7 @@ namespace IAFahim.String.Tests
                 byte* s = stackalloc byte[5] { (byte)'a', (byte)'b', (byte)'a', (byte)'b', (byte)'a' };
                 for (int i = 0; i < 5; i++)
                     PalindromicTreeAdd.Run(len, link, next, &last, s, i);
-                Assert.True(len[0] > 1);
+                Assert.IsTrue(len[0] > 1);
             }
             finally { Marshal.FreeHGlobal((nint)next); Marshal.FreeHGlobal((nint)link); Marshal.FreeHGlobal((nint)len); }
         }

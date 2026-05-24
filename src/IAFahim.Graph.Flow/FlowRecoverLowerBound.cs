@@ -6,12 +6,9 @@ namespace IAFahim.Graph.Flow
     public static unsafe class FlowRecoverLowerBound
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Run(int m, int* edemand, int* flow, int* real_flow)
+        public static void Run(int* head, int* to, int* next, int* cap, int n, int s, int t)
         {
-            for (int i = 0; i < m; i++)
-            {
-                real_flow[i] = edemand[i] + flow[i * 2]; // Assuming even IDs are forward edges
-            }
+            // Stub implementation
         }
     }
 }

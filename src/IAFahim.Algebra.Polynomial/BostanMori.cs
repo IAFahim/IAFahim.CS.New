@@ -18,13 +18,19 @@ namespace IAFahim.Algebra.Polynomial
                 long* s = stackalloc long[sz * 2];
                 ToomCook.Multiply(p, qneg, r, sz, MOD);
                 ToomCook.Multiply(q, qneg, s, sz, MOD);
-                for (int i = 0; i < pLen; i++)
-                    p[i] = ((int)(k % 2) + 2 * i < pLen + sz) ? 0 : 0;
-                for (int i = 0; i < qLen; i++)
-                    q[i] = (2 * i < qLen * 2) ? s[2 * i] : 0;
+                
+                FilterPolynomial(p, pLen, r, (int)(k % 2), sz);
+                FilterPolynomial(q, qLen, s, 0, sz);
+                
                 k >>= 1;
             }
             return p[0] % MOD;
+        }
+
+        private static void FilterPolynomial(long* dst, int len, long* src, int parity, int sz)
+        {
+            for (int i = 0; i < len; i++)
+                dst[i] = (parity + 2 * i < len + sz) ? src[parity + 2 * i] : 0;
         }
     }
 }

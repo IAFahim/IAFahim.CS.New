@@ -1,7 +1,7 @@
 namespace IAFahim.DS.Splay.Tests
 {
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class SplayVariantTests
     {
@@ -35,13 +35,13 @@ namespace IAFahim.DS.Splay.Tests
             return root;
         }
 
-        [Fact]
+        [Test]
         public void SplayRangeReverse_EmptyRoot_NoOp()
         {
             SplayRevNode* root = null;
         }
 
-        [Fact]
+        [Test]
         public void SplayRangeQuery_SingleElement()
         {
             SplayRevNode* node = AllocNode(42, 0);
@@ -49,7 +49,7 @@ namespace IAFahim.DS.Splay.Tests
             try
             {
                 long sum = SplayRangeQuery.QuerySum(&root, 0, 0);
-                Assert.Equal(42L, sum);
+                Assert.AreEqual(42L, sum);
             }
             finally
             {
@@ -57,7 +57,7 @@ namespace IAFahim.DS.Splay.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void SplayRangeQuery_MultipleElements()
         {
             SplayRevNode* n1 = AllocNode(10, 0);
@@ -70,7 +70,7 @@ namespace IAFahim.DS.Splay.Tests
             try
             {
                 long sum = SplayRangeQuery.QuerySum(&root, 0, 0);
-                Assert.Equal(10L, sum);
+                Assert.AreEqual(10L, sum);
             }
             finally
             {

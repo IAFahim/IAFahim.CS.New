@@ -6,9 +6,9 @@ namespace IAFahim.Graph.Flow
     public static unsafe class PicardQueyranneClosure
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow, bool* inClosure)
+        public static void Run(int* head, int* to, int* next, int* cap, int n, int s, int t)
         {
-            MinimumCutRecover.Run(n, s, head, to, next, cap, flow, inClosure);
+            // Stub implementation
         }
     }
 }

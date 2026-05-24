@@ -2,76 +2,63 @@ namespace IAFahim.Math.Transform
 {
     using System;
     using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
 
     public static unsafe class PosetTransforms
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int PopCount(int i)
-        {
-            i = i - ((i >> 1) & 0x55555555);
-            i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
-            return (((i + (i >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
-        }
-
         public static void ZetaTransform(long* f, long* g, int* topOrder, bool* relation, int n, long mod)
         {
             for (int i = 0; i < n; i++)
             {
-                int y = topOrder[i];
-                long sum = 0;
-                for (int j = 0; j <= i; j++)
-                {
-                    int x = topOrder[j];
-                    if (relation[x * n + y])
-                    {
-                        sum = (sum + f[x]) % mod;
-                    }
-                }
+                int y = topOrder[i]; long sum = 0;
+                for (int j = 0; j <= i; j++) { int x = topOrder[j]; if (relation[x * n + y]) sum = (sum + f[x]) % mod; }
                 g[y] = sum;
             }
         }
 
         public static void MobiusTransform(long* g, long* f, int* topOrder, bool* relation, int n, long mod, long* mu)
         {
-            long size = (long)n * n;
-            for (int i = 0; i < size; i++)
-            {
-                mu[i] = 0;
-            }
+            ComputeMuMatrix(n, topOrder, relation, mod, mu);
+            ApplyMuMatrix(n, topOrder, relation, mod, mu, g, f);
+        }
+
+        private static void ComputeMuMatrix(int n, int* topOrder, bool* relation, long mod, long* mu)
+        {
+            for (int i = 0; i < (long)n * n; i++) mu[i] = 0;
             for (int i = 0; i < n; i++)
             {
-                int x = topOrder[i];
-                mu[(long)x * n + x] = 1;
+                int x = topOrder[i]; mu[(long)x * n + x] = 1;
                 for (int j = i + 1; j < n; j++)
                 {
                     int y = topOrder[j];
                     if (relation[x * n + y])
                     {
-                        long sum = 0;
-                        for (int k = i; k < j; k++)
-                        {
-                            int z = topOrder[k];
-                            if (relation[z * n + y])
-                            {
-                                sum = (sum + mu[(long)x * n + z]) % mod;
-                            }
-                        }
+                        long sum = ComputeMuSum(i, j, y, topOrder, relation, mod, mu, x, n);
                         mu[(long)x * n + y] = (mod - sum) % mod;
                     }
                 }
             }
+        }
+
+        private static long ComputeMuSum(int i, int j, int y, int* topOrder, bool* relation, long mod, long* mu, int x, int n)
+        {
+            long sum = 0;
+            for (int k = i; k < j; k++)
+            {
+                int z = topOrder[k];
+                if (relation[z * n + y]) sum = (sum + mu[(long)x * n + z]) % mod;
+            }
+            return sum;
+        }
+
+        private static void ApplyMuMatrix(int n, int* topOrder, bool* relation, long mod, long* mu, long* g, long* f)
+        {
             for (int i = 0; i < n; i++)
             {
-                int y = topOrder[i];
-                long sum = 0;
+                int y = topOrder[i]; long sum = 0;
                 for (int j = 0; j <= i; j++)
                 {
                     int x = topOrder[j];
-                    if (relation[x * n + y])
-                    {
-                        sum = (sum + mu[(long)x * n + y] * g[x]) % mod;
-                    }
+                    if (relation[x * n + y]) sum = (sum + mu[(long)x * n + y] * g[x]) % mod;
                 }
                 f[y] = sum;
             }
@@ -83,22 +70,9 @@ namespace IAFahim.Math.Transform
             {
                 if (relation[z * n + x] && relation[z * n + y])
                 {
-                    bool isGreatest = true;
-                    for (int w = 0; w < n; w++)
-                    {
-                        if (relation[w * n + x] && relation[w * n + y])
-                        {
-                            if (!relation[w * n + z])
-                            {
-                                isGreatest = false;
-                                break;
-                            }
-                        }
-                    }
-                    if (isGreatest)
-                    {
-                        return z;
-                    }
+                    bool ok = true;
+                    for (int w = 0; w < n; w++) if (relation[w * n + x] && relation[w * n + y] && !relation[w * n + z]) { ok = false; break; }
+                    if (ok) return z;
                 }
             }
             return -1;
@@ -110,30 +84,13 @@ namespace IAFahim.Math.Transform
             {
                 if (relation[x * n + z] && relation[y * n + z])
                 {
-                    bool isLeast = true;
-                    for (int w = 0; w < n; w++)
-                    {
-                        if (relation[x * n + w] && relation[y * n + w])
-                        {
-                            if (!relation[z * n + w])
-                            {
-                                isLeast = false;
-                                break;
-                            }
-                        }
-                    }
-                    if (isLeast)
-                    {
-                        return z;
-                    }
+                    bool ok = true;
+                    for (int w = 0; w < n; w++) if (relation[x * n + w] && relation[y * n + w] && !relation[z * n + w]) { ok = false; break; }
+                    if (ok) return z;
                 }
             }
             return -1;
         }
-
-        public static int BooleanLatticeRank(int x)
-        {
-            return PopCount(x);
-        }
+        public static int BooleanLatticeRank(int x) { int c = 0; while (x > 0) { x &= (x - 1); c++; } return c; }
     }
 }

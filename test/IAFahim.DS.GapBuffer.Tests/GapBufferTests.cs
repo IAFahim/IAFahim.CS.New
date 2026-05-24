@@ -1,11 +1,11 @@
 namespace IAFahim.DS.GapBuffer.Tests
 {
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class GapBufferTests
     {
-        [Fact]
+        [Test]
         public void GapBufferInsert_Basic()
         {
             const int Cap = 64;
@@ -23,7 +23,7 @@ namespace IAFahim.DS.GapBuffer.Tests
                 data[1] = (byte)'B';
                 data[2] = (byte)'C';
                 GapBufferInsert.Run(ref s, 0, data, 3);
-                Assert.Equal(3, s.GapStart);
+                Assert.AreEqual(3, s.GapStart);
             }
             finally
             {
@@ -31,7 +31,7 @@ namespace IAFahim.DS.GapBuffer.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void GapBufferDelete_Basic()
         {
             const int Cap = 64;
@@ -53,7 +53,7 @@ namespace IAFahim.DS.GapBuffer.Tests
                 GapBufferInsert.Run(ref s, 5, data, 3);
 
                 int gapAfter = s.GapEnd - s.GapStart;
-                Assert.True(gapAfter < gapBefore);
+                Assert.IsTrue(gapAfter < gapBefore);
             }
             finally
             {

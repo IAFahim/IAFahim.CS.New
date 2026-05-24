@@ -7,66 +7,43 @@ namespace IAFahim.Math.NT
     {
         public static int Generate(long limit, long* result)
         {
-            if (limit <= 0)
-            {
-                return 0;
-            }
+            if (limit <= 0) return 0;
+            int count = BuildRawPowerful(limit, result);
+            QuickSort(result, 0, count - 1);
+            return Unique(result, count);
+        }
+
+        private static int BuildRawPowerful(long limit, long* res)
+        {
             int count = 0;
             for (long b = 1; b * b * b <= limit; b++)
             {
-                long b3 = b * b * b;
-                long maxA = (long)Math.Sqrt((double)(limit / b3));
-                for (long a = 1; a <= maxA; a++)
-                {
-                    result[count++] = a * a * b3;
-                }
+                long b3 = b * b * b, maxA = (long)Math.Sqrt((double)(limit / b3));
+                for (long a = 1; a <= maxA; a++) res[count++] = a * a * b3;
             }
-            QuickSort(result, 0, count - 1);
-            int uniqueCount = 0;
-            if (count > 0)
-            {
-                result[uniqueCount++] = result[0];
-                for (int i = 1; i < count; i++)
-                {
-                    if (result[i] != result[i - 1])
-                    {
-                        result[uniqueCount++] = result[i];
-                    }
-                }
-            }
+            return count;
+        }
+
+        private static int Unique(long* res, int count)
+        {
+            if (count <= 0) return 0;
+            int uniqueCount = 1;
+            for (int i = 1; i < count; i++) if (res[i] != res[i - 1]) res[uniqueCount++] = res[i];
             return uniqueCount;
         }
 
         private static void QuickSort(long* ptr, int left, int right)
         {
-            if (left >= right)
-            {
-                return;
-            }
+            if (left >= right) return;
             long pivot = ptr[left + (right - left) / 2];
-            int i = left;
-            int j = right;
+            int i = left, j = right;
             while (i <= j)
             {
-                while (ptr[i] < pivot)
-                {
-                    i++;
-                }
-                while (ptr[j] > pivot)
-                {
-                    j--;
-                }
-                if (i <= j)
-                {
-                    long temp = ptr[i];
-                    ptr[i] = ptr[j];
-                    ptr[j] = temp;
-                    i++;
-                    j--;
-                }
+                while (ptr[i] < pivot) i++;
+                while (ptr[j] > pivot) j--;
+                if (i <= j) { long t = ptr[i]; ptr[i] = ptr[j]; ptr[j] = t; i++; j--; }
             }
-            QuickSort(ptr, left, j);
-            QuickSort(ptr, i, right);
+            QuickSort(ptr, left, j); QuickSort(ptr, i, right);
         }
     }
 }

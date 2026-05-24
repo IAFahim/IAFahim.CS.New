@@ -1,7 +1,7 @@
 namespace IAFahim.DS.Rope.Tests
 {
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class RopeTests
     {
@@ -16,7 +16,7 @@ namespace IAFahim.DS.Rope.Tests
             return n;
         }
 
-        [Fact]
+        [Test]
         public void RopeInsert_EmptyTree_SingleNode()
         {
             RopeNode* root = null;
@@ -24,7 +24,7 @@ namespace IAFahim.DS.Rope.Tests
             try
             {
                 root = RopeInsert.Run(root, 0, node);
-                Assert.Equal(1, root->Size);
+                Assert.AreEqual(1, root->Size);
             }
             finally
             {
@@ -32,19 +32,18 @@ namespace IAFahim.DS.Rope.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void RopeErase_SingleElement_BecomesEmpty()
         {
             RopeNode* root = null;
             RopeNode* node = AllocNode((byte)'A', 100);
             root = RopeInsert.Run(root, 0, node);
-            int freed = 0;
-            root = RopeErase.Run(root, 0, 1, null, ref freed);
-            Assert.True(root == null);
+            root = RopeErase.Run(root, 0, 1);
+            Assert.IsTrue(root == null);
             Marshal.FreeHGlobal((nint)node);
         }
 
-        [Fact]
+        [Test]
         public void RopeSubstring_Basic()
         {
             RopeNode* root = null;
@@ -58,7 +57,7 @@ namespace IAFahim.DS.Rope.Tests
 
             try
             {
-                Assert.Equal(2, count);
+                Assert.AreEqual(2, count);
             }
             finally
             {

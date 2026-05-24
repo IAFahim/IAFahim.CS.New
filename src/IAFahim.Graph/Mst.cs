@@ -79,54 +79,62 @@ namespace IAFahim.Graph
 
     public static unsafe class MinimumSpanningTreeKruskal
     {
+        public static long Run(int n, int m, int* eu, int* ev, int* ew, int* mstEdges)
+        {
+            int* parent = stackalloc int[n], size = stackalloc int[n];
+            InitializeKruskal(n, parent, size);
+            
+            int* idx = stackalloc int[m];
+            SortEdges(m, ew, idx);
+            
+            long mstWeight = 0;
+            int edgeCount = 0;
+            for (int i = 0; i < m && edgeCount < n - 1; i++)
+            {
+                if (ProcessKruskalEdge(idx[i], eu, ev, ew, parent, size, mstEdges, ref edgeCount, ref mstWeight)) { }
+            }
+            return edgeCount == n - 1 ? mstWeight : -1;
+        }
+
+        private static void InitializeKruskal(int n, int* parent, int* size)
+        {
+            for (int i = 0; i < n; i++) { parent[i] = i; size[i] = 1; }
+        }
+
+        private static void SortEdges(int m, int* ew, int* idx)
+        {
+            for (int i = 0; i < m; i++) idx[i] = i;
+            for (int i = 1; i < m; i++)
+            {
+                int key = ew[idx[i]], ki = idx[i], j = i - 1;
+                while (j >= 0 && ew[idx[j]] > key) { idx[j + 1] = idx[j]; j--; }
+                idx[j + 1] = ki;
+            }
+        }
+
+        private static bool ProcessKruskalEdge(int e, int* eu, int* ev, int* ew, int* parent, int* size, int* mstEdges, ref int edgeCount, ref long mstWeight)
+        {
+            int ra = Find(parent, eu[e]), rb = Find(parent, ev[e]);
+            if (ra != rb)
+            {
+                mstEdges[edgeCount++] = e;
+                mstWeight += ew[e];
+                Union(parent, size, ra, rb);
+                return true;
+            }
+            return false;
+        }
+
         private static int Find(int* parent, int x)
         {
             while (parent[x] != x) x = parent[x];
             return x;
         }
 
-        private static void Union(int* parent, int* size, int a, int b)
+        private static void Union(int* parent, int* size, int ra, int rb)
         {
-            int ra = Find(parent, a);
-            int rb = Find(parent, b);
-            if (ra == rb) return;
             if (size[ra] < size[rb]) { int t = ra; ra = rb; rb = t; }
-            parent[rb] = ra;
-            size[ra] += size[rb];
-        }
-
-        public static long Run(int n, int m, int* eu, int* ev, int* ew, int* mstEdges)
-        {
-            int* parent = stackalloc int[n];
-            int* size = stackalloc int[n];
-            for (int i = 0; i < n; i++) { parent[i] = i; size[i] = 1; }
-            int* idx = stackalloc int[m];
-            for (int i = 0; i < m; i++) idx[i] = i;
-            for (int i = 1; i < m; i++)
-            {
-                int key = ew[i];
-                int j = i - 1;
-                while (j >= 0 && ew[idx[j]] > key)
-                {
-                    idx[j + 1] = idx[j];
-                    j--;
-                }
-                idx[j + 1] = i;
-            }
-            long mstWeight = 0;
-            int edgeCount = 0;
-            for (int i = 0; i < m && edgeCount < n - 1; i++)
-            {
-                int e = idx[i];
-                int u = eu[e], v = ev[e];
-                if (Find(parent, u) != Find(parent, v))
-                {
-                    mstEdges[edgeCount++] = e;
-                    mstWeight += ew[e];
-                    Union(parent, size, u, v);
-                }
-            }
-            return edgeCount == n - 1 ? mstWeight : -1;
+            parent[rb] = ra; size[ra] += size[rb];
         }
     }
 
@@ -135,47 +143,45 @@ namespace IAFahim.Graph
         public static long Run(int n, int* head, int* to, int* next, int* weight, int* mstEdges)
         {
             bool* used = stackalloc bool[n];
-            for (int i = 0; i < n; i++) used[i] = false;
+            long* bestW = stackalloc long[n];
+            int* parentEdge = stackalloc int[n];
+            InitializePrim(n, used, bestW, parentEdge);
+
             long mstWeight = 0;
             int edgeCount = 0;
-            long* bestW = stackalloc long[n];
-            for (int i = 0; i < n; i++) bestW[i] = long.MaxValue;
-            int* parentEdge = stackalloc int[n];
-            for (int i = 0; i < n; i++) parentEdge[i] = -1;
-
             var pq = new MstMinHeap(n);
             try
             {
-                bestW[0] = 0;
-                pq.PushOrUpdate(0, 0);
-
+                bestW[0] = 0; pq.PushOrUpdate(0, 0);
                 while (pq.Size > 0 && edgeCount < n - 1)
                 {
                     int u = pq.Pop(out long d);
                     if (used[u]) continue;
                     used[u] = true;
-                    
-                    if (u != 0 && parentEdge[u] != -1)
-                    {
-                        mstEdges[edgeCount++] = parentEdge[u];
-                        mstWeight += d;
-                    }
-
-                    for (int e = head[u]; e != 0; e = next[e])
-                    {
-                        int v = to[e];
-                        if (!used[v] && weight[e] < bestW[v])
-                        {
-                            bestW[v] = weight[e];
-                            parentEdge[v] = e;
-                            pq.PushOrUpdate(v, weight[e]);
-                        }
-                    }
+                    if (u != 0) { mstEdges[edgeCount++] = parentEdge[u]; mstWeight += d; }
+                    PrimRelax(u, head, to, next, weight, used, bestW, parentEdge, &pq);
                 }
             }
             finally { pq.Dispose(); }
-
             return edgeCount == n - 1 ? mstWeight : -1;
+        }
+
+        private static void InitializePrim(int n, bool* used, long* bestW, int* parentEdge)
+        {
+            for (int i = 0; i < n; i++) { used[i] = false; bestW[i] = long.MaxValue; parentEdge[i] = -1; }
+        }
+
+        private static void PrimRelax(int u, int* head, int* to, int* next, int* weight, bool* used, long* bestW, int* parentEdge, MstMinHeap* pq)
+        {
+            for (int e = head[u]; e != 0; e = next[e])
+            {
+                int v = to[e];
+                if (!used[v] && weight[e] < bestW[v])
+                {
+                    bestW[v] = weight[e]; parentEdge[v] = e;
+                    pq->PushOrUpdate(v, weight[e]);
+                }
+            }
         }
     }
 

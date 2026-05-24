@@ -2,11 +2,11 @@ namespace IAFahim.Optimization.Offline.Tests
 {
     using IAFahim.Optimization.Offline;
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class ParallelBinarySearchTests
     {
-        [Fact]
+        [Test]
         public void Init_Basic()
         {
             int* lo = stackalloc int[10];
@@ -19,12 +19,12 @@ namespace IAFahim.Optimization.Offline.Tests
 
             for (int i = 0; i < 10; i++)
             {
-                Assert.Equal(0, lo[i]);
-                Assert.Equal(-1, hi[i]);
+                Assert.AreEqual(0, lo[i]);
+                Assert.AreEqual(-1, hi[i]);
             }
         }
 
-        [Fact]
+        [Test]
         public void InitWithRange_Basic()
         {
             int* lo = stackalloc int[10];
@@ -37,23 +37,23 @@ namespace IAFahim.Optimization.Offline.Tests
 
             for (int i = 0; i < 10; i++)
             {
-                Assert.Equal(1, lo[i]);
-                Assert.Equal(100, hi[i]);
+                Assert.AreEqual(1, lo[i]);
+                Assert.AreEqual(100, hi[i]);
             }
         }
 
-        [Fact]
+        [Test]
         public void Mid_Basic()
         {
-            Assert.Equal(50, ParallelBinarySearch.Mid(0, 100));
-            Assert.Equal(5, ParallelBinarySearch.Mid(0, 10));
-            Assert.Equal(5, ParallelBinarySearch.Mid(10, 0));
+            Assert.AreEqual(50, ParallelBinarySearch.Mid(0, 100));
+            Assert.AreEqual(5, ParallelBinarySearch.Mid(0, 10));
+            Assert.AreEqual(5, ParallelBinarySearch.Mid(10, 0));
         }
     }
 
     public sealed unsafe class OfflineKthNumberTests
     {
-        [Fact]
+        [Test]
         public void BuildPersistentSegTree_Basic()
         {
             const int maxNodes = 100;
@@ -68,10 +68,10 @@ namespace IAFahim.Optimization.Offline.Tests
             int root = OfflineKthNumber.BuildPersistentSegTree(
                 leftChild, rightChild, sum, version, 0, 0, 10, 5, allocCnt);
 
-            Assert.True(root > 0);
+            Assert.IsTrue(root > 0);
         }
 
-        [Fact]
+        [Test]
         public void QueryKth_Basic()
         {
             const int maxNodes = 100;
@@ -88,10 +88,10 @@ namespace IAFahim.Optimization.Offline.Tests
 
             int kth = OfflineKthNumber.QueryKth(
                 leftChild, rightChild, sum, root, 0, 10, 1);
-            Assert.True(kth >= 0 && kth <= 10);
+            Assert.IsTrue(kth >= 0 && kth <= 10);
         }
 
-        [Fact]
+        [Test]
         public void EmptyTree_QueryDoesNotCrash()
         {
             const int maxNodes = 10;

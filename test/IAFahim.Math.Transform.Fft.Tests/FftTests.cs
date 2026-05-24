@@ -1,13 +1,13 @@
 namespace IAFahim.Math.Transform.Fft.Tests
 {
     using System;
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class FftTransformTests
     {
         private const double Epsilon = 1e-6;
 
-        [Fact]
+        [Test]
         public void RoundTrip_Length8()
         {
             const int N = 8;
@@ -18,7 +18,7 @@ namespace IAFahim.Math.Transform.Fft.Tests
             FftTransform.Forward(re, im, N);
             FftTransform.Inverse(re, im, N);
             for (int i = 0; i < N; i++)
-                Assert.True(Math.Abs(re[i] - origRe[i]) < Epsilon, $"Index {i}: {re[i]} vs {origRe[i]}");
+                Assert.IsTrue(Math.Abs(re[i] - origRe[i]) < Epsilon, $"Index {i}: {re[i]} vs {origRe[i]}");
         }
     }
 
@@ -26,7 +26,7 @@ namespace IAFahim.Math.Transform.Fft.Tests
     {
         private const double Epsilon = 1e-6;
 
-        [Fact]
+        [Test]
         public void ConvolutionMatchesNaive()
         {
             const int N = 4;
@@ -38,9 +38,9 @@ namespace IAFahim.Math.Transform.Fft.Tests
             for (int i = 0; i < N + M - 1; i++) expected[i] = 0;
             FftTestHelper.NaiveConvolution(a, N, b, M, expected);
             int len = FftConvolution.Run(a, N, b, M, actual);
-            Assert.Equal(N + M - 1, len);
+            Assert.AreEqual(N + M - 1, len);
             for (int i = 0; i < len; i++)
-                Assert.True(Math.Abs(actual[i] - expected[i]) < Epsilon, $"Index {i}: {actual[i]} vs {expected[i]}");
+                Assert.IsTrue(Math.Abs(actual[i] - expected[i]) < Epsilon, $"Index {i}: {actual[i]} vs {expected[i]}");
         }
     }
 

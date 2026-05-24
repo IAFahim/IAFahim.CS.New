@@ -26,43 +26,55 @@ using System.Runtime.InteropServices;
             int v = 0;
             for (int i = 0; i < len; i++)
             {
-                int c = pattern[i];
-                int next = GetNext(st, v, c);
-                if (next == -1)
-                {
-                    next = size++;
-                    SetNext(st, v, c, next);
-                    st[next].Next0 = -1;
-                    st[next].Link = 0;
-                    st[next].Out = -1;
-                }
-                v = next;
+                v = GetOrAddNextState(st, ref size, v, pattern[i]);
             }
             st[v].Out = patternId;
         }
 
+        private static int GetOrAddNextState(State* st, ref int size, int v, int c)
+        {
+            int next = GetNext(st, v, c);
+            if (next == -1)
+            {
+                next = size++;
+                SetNext(st, v, c, next);
+                InitializeState(st, next);
+            }
+            return next;
+        }
+
+        private static void InitializeState(State* st, int idx)
+        {
+            st[idx].Next0 = -1; st[idx].Link = 0; st[idx].Out = -1;
+        }
+
         public static void BuildLinks(State* st, int size, int sigma, int* queue)
         {
-            int head = 0, tail = 0;
-            queue[tail++] = 0;
-            while (head < tail)
+            int qh = 0, qt = 0;
+            InitializeLinkQueue(st, sigma, queue, ref qt);
+            while (qh < qt)
             {
-                int v = queue[head++];
-                for (int c = 0; c < sigma; c++)
-                {
-                    int u = GetNext(st, v, c);
-                    if (u == -1) continue;
-                    int link = st[v].Link;
-                    while (link != 0 && GetNext(st, link, c) == -1)
-                        link = st[link].Link;
-                    if (v == 0 || GetNext(st, v, c) == u)
-                        st[u].Link = 0;
-                    else
-                        st[u].Link = GetNext(st, link, c);
-                    if (st[st[u].Link].Out != -1)
-                        st[u].Out = st[st[u].Link].Out;
-                    queue[tail++] = u;
-                }
+                int v = queue[qh++];
+                UpdateChildLinks(st, v, sigma, queue, ref qt);
+            }
+        }
+
+        private static void InitializeLinkQueue(State* st, int sigma, int* queue, ref int qt)
+        {
+            queue[qt++] = 0;
+        }
+
+        private static void UpdateChildLinks(State* st, int v, int sigma, int* queue, ref int qt)
+        {
+            for (int c = 0; c < sigma; c++)
+            {
+                int u = GetNext(st, v, c);
+                if (u == -1) continue;
+                int link = st[v].Link;
+                while (link != 0 && GetNext(st, link, c) == -1) link = st[link].Link;
+                st[u].Link = (v == 0 || GetNext(st, v, c) == u) ? 0 : GetNext(st, link, c);
+                if (st[st[u].Link].Out != -1) st[u].Out = st[st[u].Link].Out;
+                queue[qt++] = u;
             }
         }
 
@@ -71,15 +83,16 @@ using System.Runtime.InteropServices;
             int v = 0, matchCount = 0;
             for (int i = 0; i < textLen; i++)
             {
-                int c = text[i];
-                while (v != 0 && GetNext(st, v, c) == -1)
-                    v = st[v].Link;
-                if (GetNext(st, v, c) != -1)
-                    v = GetNext(st, v, c);
-                if (st[v].Out != -1)
-                    matches[matchCount++] = st[v].Out;
+                v = Transition(st, v, text[i]);
+                if (st[v].Out != -1) matches[matchCount++] = st[v].Out;
             }
             return matchCount;
+        }
+
+        private static int Transition(State* st, int v, int c)
+        {
+            while (v != 0 && GetNext(st, v, c) == -1) v = st[v].Link;
+            return GetNext(st, v, c) != -1 ? GetNext(st, v, c) : 0;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

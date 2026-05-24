@@ -7,40 +7,28 @@ namespace IAFahim.Math.Transform.Fft
     {
         public static void Forward(double* re, double* im, int n)
         {
-            for (int i = 1, j = 0; i < n; i++)
-            {
-                int bit = n >> 1;
-                while ((j & bit) != 0) { j ^= bit; bit >>= 1; }
-                j ^= bit;
-                if (i < j)
-                {
-                    double tr = re[i]; re[i] = re[j]; re[j] = tr;
-                    double ti = im[i]; im[i] = im[j]; im[j] = ti;
-                }
-            }
+            BitReverse(re, im, n);
             for (int len = 2; len <= n; len <<= 1)
             {
                 double ang = 2.0 * Math.PI / len;
-                double wlenRe = Math.Cos(ang);
-                double wlenIm = Math.Sin(ang);
+                double wlenRe = Math.Cos(ang), wlenIm = Math.Sin(ang);
                 for (int i = 0; i < n; i += len)
-                {
-                    double wRe = 1.0, wIm = 0.0;
-                    for (int j = 0; j < len / 2; j++)
-                    {
-                        double uRe = re[i + j];
-                        double uIm = im[i + j];
-                        double vRe = re[i + j + len / 2] * wRe - im[i + j + len / 2] * wIm;
-                        double vIm = re[i + j + len / 2] * wIm + im[i + j + len / 2] * wRe;
-                        re[i + j] = uRe + vRe;
-                        im[i + j] = uIm + vIm;
-                        re[i + j + len / 2] = uRe - vRe;
-                        im[i + j + len / 2] = uIm - vIm;
-                        double newWRe = wRe * wlenRe - wIm * wlenIm;
-                        wIm = wRe * wlenIm + wIm * wlenRe;
-                        wRe = newWRe;
-                    }
-                }
+                    PerformButterflyStep(re, im, i, len / 2, wlenRe, wlenIm);
+            }
+        }
+
+        private static void PerformButterflyStep(double* re, double* im, int i, int half, double wlenRe, double wlenIm)
+        {
+            double wRe = 1.0, wIm = 0.0;
+            for (int j = 0; j < half; j++)
+            {
+                int idx1 = i + j, idx2 = i + j + half;
+                double uRe = re[idx1], uIm = im[idx1];
+                double vRe = re[idx2] * wRe - im[idx2] * wIm, vIm = re[idx2] * wIm + im[idx2] * wRe;
+                re[idx1] = uRe + vRe; im[idx1] = uIm + vIm;
+                re[idx2] = uRe - vRe; im[idx2] = uIm - vIm;
+                double nextWRe = wRe * wlenRe - wIm * wlenIm;
+                wIm = wRe * wlenIm + wIm * wlenRe; wRe = nextWRe;
             }
         }
 
@@ -49,56 +37,40 @@ namespace IAFahim.Math.Transform.Fft
             for (int i = 0; i < n; i++) im[i] = -im[i];
             Forward(re, im, n);
             double invN = 1.0 / n;
-            for (int i = 0; i < n; i++)
+            for (int i = 0; i < n; i++) { re[i] *= invN; im[i] = -im[i] * invN; }
+        }
+
+        private static void BitReverse(double* re, double* im, int n)
+        {
+            for (int i = 1, j = 0; i < n; i++)
             {
-                re[i] *= invN;
-                im[i] = -im[i] * invN;
+                int bit = n >> 1;
+                while ((j & bit) != 0) { j ^= bit; bit >>= 1; }
+                j ^= bit;
+                if (i < j) { Swap(ref re[i], ref re[j]); Swap(ref im[i], ref im[j]); }
             }
         }
 
-        [Obsolete("Use Forward(double* re, double* im, int n) overload")]
-        public static void Forward(double* a, int n, double* real, double* imag)
-        {
-            for (int i = 0; i < n; i++) { real[i] = a[i]; imag[i] = 0; }
-            Forward(real, imag, n);
-            for (int i = 0; i < n; i++) a[i] = real[i];
-        }
-
-        [Obsolete("Use Inverse(double* re, double* im, int n) overload")]
-        public static void Inverse(double* a, int n, double* real, double* imag)
-        {
-            for (int i = 0; i < n; i++) { real[i] = a[i]; imag[i] = 0; }
-            Inverse(real, imag, n);
-            for (int i = 0; i < n; i++) a[i] = real[i];
-        }
+        private static void Swap(ref double a, ref double b) { double t = a; a = b; b = t; }
     }
 
     public static unsafe class FftConvolution
     {
         public static int Run(double* a, int n, double* b, int m, double* res)
         {
-            int size = 1;
-            while (size < n + m - 1) size <<= 1;
-            double* faRe = stackalloc double[size];
-            double* faIm = stackalloc double[size];
-            double* fbRe = stackalloc double[size];
-            double* fbIm = stackalloc double[size];
-            for (int i = 0; i < size; i++) { faRe[i] = 0; faIm[i] = 0; fbRe[i] = 0; fbIm[i] = 0; }
-            for (int i = 0; i < n; i++) faRe[i] = a[i];
-            for (int i = 0; i < m; i++) fbRe[i] = b[i];
-            FftTransform.Forward(faRe, faIm, size);
-            FftTransform.Forward(fbRe, fbIm, size);
+            int size = 1; while (size < n + m - 1) size <<= 1;
+            double* faRe = stackalloc double[size], faIm = stackalloc double[size];
+            double* fbRe = stackalloc double[size], fbIm = stackalloc double[size];
+            for (int i = 0; i < size; i++) { faRe[i] = i < n ? a[i] : 0; faIm[i] = 0; fbRe[i] = i < m ? b[i] : 0; fbIm[i] = 0; }
+            FftTransform.Forward(faRe, faIm, size); FftTransform.Forward(fbRe, fbIm, size);
             for (int i = 0; i < size; i++)
             {
-                double re = faRe[i] * fbRe[i] - faIm[i] * fbIm[i];
-                double im = faRe[i] * fbIm[i] + faIm[i] * fbRe[i];
-                faRe[i] = re;
-                faIm[i] = im;
+                double re = faRe[i] * fbRe[i] - faIm[i] * fbIm[i], im = faRe[i] * fbIm[i] + faIm[i] * fbRe[i];
+                faRe[i] = re; faIm[i] = im;
             }
             FftTransform.Inverse(faRe, faIm, size);
-            int len = n + m - 1;
-            for (int i = 0; i < len; i++) res[i] = faRe[i];
-            return len;
+            for (int i = 0; i < n + m - 1; i++) res[i] = faRe[i];
+            return n + m - 1;
         }
     }
 }

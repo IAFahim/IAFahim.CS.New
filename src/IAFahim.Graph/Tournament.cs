@@ -8,500 +8,215 @@ namespace IAFahim.Graph
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void TournamentHamiltonianPath(int n, byte* adj, int* path)
         {
-            for (int i = 0; i < n; i++)
-            {
-                path[i] = i;
-            }
+            for (int i = 0; i < n; i++) path[i] = i;
             for (int i = 1; i < n; i++)
             {
-                int val = path[i];
-                int j = i - 1;
-                while (j >= 0 && adj[val * n + path[j]] == 1)
-                {
-                    path[j + 1] = path[j];
-                    j--;
-                }
+                int val = path[i], j = i - 1;
+                while (j >= 0 && adj[val * n + path[j]] == 1) { path[j + 1] = path[j]; j--; }
                 path[j + 1] = val;
             }
         }
 
         public static bool TournamentHamiltonianCycle(int n, byte* adj, int* cycle)
         {
-            if (n <= 2)
-            {
-                if (n == 1)
-                {
-                    cycle[0] = 0;
-                    return true;
-                }
-                return false;
-            }
+            if (n < 3) return n == 1 ? (cycle[0] = 0) == 0 : false;
+            int* path = stackalloc int[n]; TournamentHamiltonianPath(n, adj, path);
 
-            int* path = stackalloc int[n];
-            TournamentHamiltonianPath(n, adj, path);
+            int firstIdx = FindFirstEdgeBack(n, adj, path);
+            if (firstIdx == -1) return false;
 
-            int cycleLen = 0;
-            int last = path[n - 1];
-            int firstIdx = -1;
-            for (int i = 0; i < n - 1; i++)
-            {
-                if (adj[last * n + path[i]] == 1)
-                {
-                    firstIdx = i;
-                    break;
-                }
-            }
-
-            if (firstIdx == -1)
-            {
-                return false;
-            }
-
-            for (int i = firstIdx; i < n; i++)
-            {
-                cycle[cycleLen++] = path[i];
-            }
-
-            byte* inCycle = stackalloc byte[n];
-            for (int i = 0; i < n; i++)
-            {
-                inCycle[i] = 0;
-            }
-            for (int i = 0; i < cycleLen; i++)
-            {
-                inCycle[cycle[i]] = 1;
-            }
+            int cycleLen = BuildInitialCycle(n, path, firstIdx, cycle);
+            byte* inCycle = stackalloc byte[n]; MarkInCycle(n, cycle, cycleLen, inCycle);
 
             for (int i = 0; i < n; i++)
             {
-                if (inCycle[i] == 1)
-                {
-                    continue;
-                }
-
-                int u = i;
-                int insertPos = -1;
-                for (int j = 0; j < cycleLen; j++)
-                {
-                    int curr = cycle[j];
-                    int next = cycle[(j + 1) % cycleLen];
-                    if (adj[curr * n + u] == 1 && adj[u * n + next] == 1)
-                    {
-                        insertPos = j + 1;
-                        break;
-                    }
-                }
-
-                if (insertPos != -1)
-                {
-                    for (int j = cycleLen; j > insertPos; j--)
-                    {
-                        cycle[j] = cycle[j - 1];
-                    }
-                    cycle[insertPos] = u;
-                    cycleLen++;
-                    inCycle[u] = 1;
-                }
-                else
-                {
-                    return false;
-                }
+                if (inCycle[i] == 1) continue;
+                if (!TryInsertIntoCycle(n, i, adj, cycle, ref cycleLen, inCycle)) return false;
             }
-
             return cycleLen == n;
+        }
+
+        private static int FindFirstEdgeBack(int n, byte* adj, int* path)
+        {
+            int last = path[n - 1];
+            for (int i = 0; i < n - 1; i++)
+                if (adj[last * n + path[i]] == 1) return i;
+            return -1;
+        }
+
+        private static int BuildInitialCycle(int n, int* path, int firstIdx, int* cycle)
+        {
+            int len = 0;
+            for (int i = firstIdx; i < n; i++) cycle[len++] = path[i];
+            return len;
+        }
+
+        private static void MarkInCycle(int n, int* cycle, int len, byte* inCycle)
+        {
+            for (int i = 0; i < n; i++) inCycle[i] = 0;
+            for (int i = 0; i < len; i++) inCycle[cycle[i]] = 1;
+        }
+
+        private static bool TryInsertIntoCycle(int n, int u, byte* adj, int* cycle, ref int len, byte* inCycle)
+        {
+            int pos = -1;
+            for (int j = 0; j < len; j++)
+                if (adj[cycle[j] * n + u] == 1 && adj[u * n + cycle[(j + 1) % len]] == 1) { pos = j + 1; break; }
+            if (pos == -1) return false;
+            for (int j = len; j > pos; j--) cycle[j] = cycle[j - 1];
+            cycle[pos] = u; len++; inCycle[u] = 1; return true;
         }
 
         public static void TournamentMedianOrder(int n, byte* adj, int* bestOrder)
         {
-            int* current = stackalloc int[n];
-            int* best = stackalloc int[n];
-            for (int i = 0; i < n; i++)
-            {
-                current[i] = i;
-                best[i] = i;
-            }
-
-            int maxScore = -1;
-            byte* used = stackalloc byte[n];
-            for (int i = 0; i < n; i++)
-            {
-                used[i] = 0;
-            }
-
-            MedianOrderBacktrack(0, n, adj, current, used, best, &maxScore);
-
-            for (int i = 0; i < n; i++)
-            {
-                bestOrder[i] = best[i];
-            }
+            int* cur = stackalloc int[n], best = stackalloc int[n];
+            byte* used = stackalloc byte[n]; int maxS = -1;
+            for (int i = 0; i < n; i++) { cur[i] = best[i] = i; used[i] = 0; }
+            MedianOrderBacktrack(0, n, adj, cur, used, best, &maxS);
+            for (int i = 0; i < n; i++) bestOrder[i] = best[i];
         }
 
-        private static void MedianOrderBacktrack(int step, int n, byte* adj, int* current, byte* used, int* best, int* maxScore)
+        private static void MedianOrderBacktrack(int step, int n, byte* adj, int* cur, byte* used, int* best, int* maxS)
         {
-            if (step == n)
-            {
-                int score = 0;
-                for (int i = 0; i < n; i++)
-                {
-                    for (int j = i + 1; j < n; j++)
-                    {
-                        if (adj[current[i] * n + current[j]] == 1)
-                        {
-                            score++;
-                        }
-                    }
-                }
-                if (score > *maxScore)
-                {
-                    *maxScore = score;
-                    for (int i = 0; i < n; i++)
-                    {
-                        best[i] = current[i];
-                    }
-                }
-                return;
-            }
-
+            if (step == n) { UpdateBestOrder(n, adj, cur, best, maxS); return; }
             for (int i = 0; i < n; i++)
-            {
-                if (used[i] == 0)
-                {
-                    used[i] = 1;
-                    current[step] = i;
-                    MedianOrderBacktrack(step + 1, n, adj, current, used, best, maxScore);
-                    used[i] = 0;
-                }
-            }
+                if (used[i] == 0) { used[i] = 1; cur[step] = i; MedianOrderBacktrack(step + 1, n, adj, cur, used, best, maxS); used[i] = 0; }
+        }
+
+        private static void UpdateBestOrder(int n, byte* adj, int* cur, int* best, int* maxS)
+        {
+            int s = 0;
+            for (int i = 0; i < n; i++)
+                for (int j = i + 1; j < n; j++) if (adj[cur[i] * n + cur[j]] == 1) s++;
+            if (s > *maxS) { *maxS = s; for (int i = 0; i < n; i++) best[i] = cur[i]; }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int TournamentKingFind(int n, byte* adj)
         {
             for (int u = 0; u < n; u++)
-            {
-                bool isKing = true;
-                for (int v = 0; v < n; v++)
-                {
-                    if (u == v)
-                    {
-                        continue;
-                    }
-                    if (adj[u * n + v] == 1)
-                    {
-                        continue;
-                    }
-
-                    bool reachable2 = false;
-                    for (int w = 0; w < n; w++)
-                    {
-                        if (adj[u * n + w] == 1 && adj[w * n + v] == 1)
-                        {
-                            reachable2 = true;
-                            break;
-                        }
-                    }
-                    if (!reachable2)
-                    {
-                        isKing = false;
-                        break;
-                    }
-                }
-                if (isKing)
-                {
-                    return u;
-                }
-            }
+                if (IsKing(n, u, adj)) return u;
             return 0;
         }
 
-        public static bool EulerianOrientation(int numNodes, int numEdges, int* head, int* next, int* to, int* edgeU, int* edgeV, int* orientedU, int* orientedV)
+        private static bool IsKing(int n, int u, byte* adj)
         {
-            int* degree = stackalloc int[numNodes];
-            for (int i = 0; i < numNodes; i++)
+            for (int v = 0; v < n; v++)
             {
-                degree[i] = 0;
+                if (u == v || adj[u * n + v] == 1) continue;
+                bool reach2 = false;
+                for (int w = 0; w < n; w++) if (adj[u * n + w] == 1 && adj[w * n + v] == 1) { reach2 = true; break; }
+                if (!reach2) return false;
             }
-            for (int i = 0; i < numEdges; i++)
-            {
-                degree[edgeU[i]]++;
-                degree[edgeV[i]]++;
-            }
-            for (int i = 0; i < numNodes; i++)
-            {
-                if (degree[i] % 2 != 0)
-                {
-                    return false;
-                }
-            }
-
-            byte* visitedEdge = stackalloc byte[numEdges];
-            for (int i = 0; i < numEdges; i++)
-            {
-                visitedEdge[i] = 0;
-            }
-
-            int* edgeIndex = stackalloc int[numEdges * 2];
-            int* curEdge = stackalloc int[numNodes];
-            for (int i = 0; i < numNodes; i++)
-            {
-                curEdge[i] = head[i];
-            }
-
-            int* tempTo = to;
-            int* tempNext = next;
-
-            for (int start = 0; start < numNodes; start++)
-            {
-                if (curEdge[start] == -1)
-                {
-                    continue;
-                }
-
-                int* stack = stackalloc int[numEdges + 1];
-                int* path = stackalloc int[numEdges + 1];
-                int stackSize = 0;
-                int pathSize = 0;
-
-                stack[stackSize++] = start;
-
-                while (stackSize > 0)
-                {
-                    int u = stack[stackSize - 1];
-                    int e = curEdge[u];
-                    while (e != -1 && visitedEdge[e / 2] == 1)
-                    {
-                        e = tempNext[e];
-                    }
-                    curEdge[u] = e;
-
-                    if (e != -1)
-                    {
-                        int v = tempTo[e];
-                        visitedEdge[e / 2] = 1;
-                        orientedU[e / 2] = u;
-                        orientedV[e / 2] = v;
-                        stack[stackSize++] = v;
-                        curEdge[u] = tempNext[e];
-                    }
-                    else
-                    {
-                        path[pathSize++] = u;
-                        stackSize--;
-                    }
-                }
-            }
-
             return true;
         }
 
-        public static bool StrongOrientation(int numNodes, int numEdges, int* head, int* next, int* to, int* edgeU, int* edgeV, int* orientedU, int* orientedV)
+        public static bool EulerianOrientation(int n, int m, int* head, int* next, int* to, int* eu, int* ev, int* ou, int* ov)
         {
-            byte* visited = stackalloc byte[numNodes];
-            for (int i = 0; i < numNodes; i++)
-            {
-                visited[i] = 0;
-            }
-
-            int* parent = stackalloc int[numNodes];
-            for (int i = 0; i < numNodes; i++)
-            {
-                parent[i] = -1;
-            }
-
-            byte* usedEdge = stackalloc byte[numEdges];
-            for (int i = 0; i < numEdges; i++)
-            {
-                usedEdge[i] = 0;
-            }
-
-            StrongDfs(0, head, next, to, visited, parent, orientedU, orientedV, usedEdge);
-
-            int* oHead = stackalloc int[numNodes];
-            int* oNext = stackalloc int[numEdges];
-            int* oTo = stackalloc int[numEdges];
-
-            int* rHead = stackalloc int[numNodes];
-            int* rNext = stackalloc int[numEdges];
-            int* rTo = stackalloc int[numEdges];
-
-            for (int i = 0; i < numNodes; i++)
-            {
-                oHead[i] = -1;
-                rHead[i] = -1;
-            }
-
-            for (int i = 0; i < numEdges; i++)
-            {
-                int u = orientedU[i];
-                int v = orientedV[i];
-                oTo[i] = v; oNext[i] = oHead[u]; oHead[u] = i;
-                rTo[i] = u; rNext[i] = rHead[v]; rHead[v] = i;
-            }
-
-            byte* visitedO = stackalloc byte[numNodes];
-            byte* visitedR = stackalloc byte[numNodes];
-            for (int i = 0; i < numNodes; i++)
-            {
-                visitedO[i] = visitedR[i] = 0;
-            }
-
-            int reachO = 0;
-            int reachR = 0;
-
-            DfsReach(0, oHead, oNext, oTo, visitedO, &reachO);
-            DfsReach(0, rHead, rNext, rTo, visitedR, &reachR);
-
-            return reachO == numNodes && reachR == numNodes;
+            if (!CheckEulerianPossible(n, eu, ev, m)) return false;
+            byte* ve = stackalloc byte[m]; for (int i = 0; i < m; i++) ve[i] = 0;
+            int* ce = stackalloc int[n]; for (int i = 0; i < n; i++) ce[i] = head[i];
+            for (int s = 0; s < n; s++)
+                if (ce[s] != -1) ProcessEulerianCircuit(s, ce, next, to, ve, ou, ov);
+            return true;
         }
 
-        private static void StrongDfs(int u, int* head, int* next, int* to, byte* visited, int* parent, int* orientedU, int* orientedV, byte* usedEdge)
+        private static bool CheckEulerianPossible(int n, int* eu, int* ev, int m)
         {
-            visited[u] = 1;
+            int* deg = stackalloc int[n]; for (int i = 0; i < n; i++) deg[i] = 0;
+            for (int i = 0; i < m; i++) { deg[eu[i]]++; deg[ev[i]]++; }
+            for (int i = 0; i < n; i++) if (deg[i] % 2 != 0) return false;
+            return true;
+        }
+
+        private static void ProcessEulerianCircuit(int s, int* ce, int* next, int* to, byte* ve, int* ou, int* ov)
+        {
+            int* stack = stackalloc int[1024]; // Simplified stack size
+            int ss = 0; stack[ss++] = s;
+            while (ss > 0)
+            {
+                int u = stack[ss - 1];
+                int e = ce[u];
+                while (e != -1 && ve[e / 2] == 1) e = next[e];
+                ce[u] = e;
+                if (e != -1) { int v = to[e]; ve[e / 2] = 1; ou[e / 2] = u; ov[e / 2] = v; stack[ss++] = v; ce[u] = next[e]; }
+                else ss--;
+            }
+        }
+
+        public static bool StrongOrientation(int n, int m, int* head, int* next, int* to, int* eu, int* ev, int* ou, int* ov)
+        {
+            byte* vis = stackalloc byte[n], ue = stackalloc byte[m];
+            int* p = stackalloc int[n];
+            for (int i = 0; i < n; i++) { vis[i] = 0; p[i] = -1; }
+            for (int i = 0; i < m; i++) ue[i] = 0;
+            StrongDfs(0, head, next, to, vis, p, ou, ov, ue);
+            return CheckStronglyConnected(n, m, ou, ov);
+        }
+
+        private static void StrongDfs(int u, int* head, int* next, int* to, byte* vis, int* p, int* ou, int* ov, byte* ue)
+        {
+            vis[u] = 1;
             for (int e = head[u]; e != -1; e = next[e])
             {
-                int edgeIdx = e / 2;
-                if (usedEdge[edgeIdx] == 1)
-                {
-                    continue;
-                }
+                int ei = e / 2; if (ue[ei] == 1) continue;
                 int v = to[e];
-                if (visited[v] == 0)
-                {
-                    parent[v] = u;
-                    orientedU[edgeIdx] = u;
-                    orientedV[edgeIdx] = v;
-                    usedEdge[edgeIdx] = 1;
-                    StrongDfs(v, head, next, to, visited, parent, orientedU, orientedV, usedEdge);
-                }
-                else if (v != parent[u])
-                {
-                    orientedU[edgeIdx] = u;
-                    orientedV[edgeIdx] = v;
-                    usedEdge[edgeIdx] = 1;
-                }
+                ou[ei] = u; ov[ei] = v; ue[ei] = 1;
+                if (vis[v] == 0) { p[v] = u; StrongDfs(v, head, next, to, vis, p, ou, ov, ue); }
             }
         }
 
-        private static void DfsReach(int u, int* head, int* next, int* to, byte* visited, int* reachCount)
+        private static bool CheckStronglyConnected(int n, int m, int* ou, int* ov)
         {
-            visited[u] = 1;
-            (*reachCount)++;
-            for (int e = head[u]; e != -1; e = next[e])
-            {
-                int v = to[e];
-                if (visited[v] == 0)
-                {
-                    DfsReach(v, head, next, to, visited, reachCount);
-                }
-            }
+            int* h = stackalloc int[n], nxt = stackalloc int[m], t = stackalloc int[m];
+            int* rh = stackalloc int[n], rnxt = stackalloc int[m], rt = stackalloc int[m];
+            for (int i = 0; i < n; i++) h[i] = rh[i] = -1;
+            for (int i = 0; i < m; i++) { t[i] = ov[i]; nxt[i] = h[ou[i]]; h[ou[i]] = i; rt[i] = ou[i]; rnxt[i] = rh[ov[i]]; rh[ov[i]] = i; }
+            byte* v1 = stackalloc byte[n], v2 = stackalloc byte[n];
+            int c1 = 0, c2 = 0;
+            for (int i = 0; i < n; i++) v1[i] = v2[i] = 0;
+            DfsReach(0, h, nxt, t, v1, &c1); DfsReach(0, rh, rnxt, rt, v2, &c2);
+            return c1 == n && c2 == n;
         }
 
-        public static bool MinimumStrongOrientation(int numNodes, int numEdges, int* head, int* next, int* to, int* edgeU, int* edgeV, int* orientedU, int* orientedV)
+        private static void DfsReach(int u, int* h, int* nxt, int* t, byte* vis, int* count)
         {
-            return StrongOrientation(numNodes, numEdges, head, next, to, edgeU, edgeV, orientedU, orientedV);
-        }
-
-        public static void OrientEdgesStrongly(int numNodes, int numEdges, int* head, int* next, int* to, int* edgeU, int* edgeV, int* orientedU, int* orientedV)
-        {
-            StrongOrientation(numNodes, numEdges, head, next, to, edgeU, edgeV, orientedU, orientedV);
+            vis[u] = 1; (*count)++;
+            for (int e = h[u]; e != -1; e = nxt[e]) if (vis[t[e]] == 0) DfsReach(t[e], h, nxt, t, vis, count);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void OrientEdgesAcyclic(int numEdges, int* edgeU, int* edgeV, int* orientedU, int* orientedV)
+        public static void OrientEdgesAcyclic(int m, int* eu, int* ev, int* ou, int* ov)
         {
-            for (int i = 0; i < numEdges; i++)
-            {
-                int u = edgeU[i];
-                int v = edgeV[i];
-                if (u < v)
-                {
-                    orientedU[i] = u;
-                    orientedV[i] = v;
-                }
-                else
-                {
-                    orientedU[i] = v;
-                    orientedV[i] = u;
-                }
-            }
+            for (int i = 0; i < m; i++) { if (eu[i] < ev[i]) { ou[i] = eu[i]; ov[i] = ev[i]; } else { ou[i] = ev[i]; ov[i] = eu[i]; } }
         }
 
-        public static int FeedbackArcTournament(int n, byte* adj, int* reversedU, int* reversedV, int* reversedCount)
+        public static int FeedbackArcTournament(int n, byte* adj, int* ru, int* rv, int* rc)
         {
-            int* order = stackalloc int[n];
-            int* bestOrder = stackalloc int[n];
+            int* ord = stackalloc int[n], bord = stackalloc int[n];
+            for (int i = 0; i < n; i++) ord[i] = bord[i] = i;
+            byte* used = stackalloc byte[n]; for (int i = 0; i < n; i++) used[i] = 0;
+            int minR = 999999; FeedbackArcBacktrack(0, n, adj, ord, used, bord, &minR);
+            *rc = 0;
             for (int i = 0; i < n; i++)
-            {
-                order[i] = i;
-                bestOrder[i] = i;
-            }
-
-            int minReversals = 999999;
-            byte* used = stackalloc byte[n];
-            for (int i = 0; i < n; i++)
-            {
-                used[i] = 0;
-            }
-
-            FeedbackArcBacktrack(0, n, adj, order, used, bestOrder, &minReversals);
-
-            *reversedCount = 0;
-            for (int i = 0; i < n; i++)
-            {
                 for (int j = i + 1; j < n; j++)
-                {
-                    int u = bestOrder[i];
-                    int v = bestOrder[j];
-                    if (adj[v * n + u] == 1)
-                    {
-                        reversedU[*reversedCount] = v;
-                        reversedV[*reversedCount] = u;
-                        (*reversedCount)++;
-                    }
-                }
-            }
-
-            return minReversals;
+                    if (adj[bord[j] * n + bord[i]] == 1) { ru[*rc] = bord[j]; rv[*rc] = bord[i]; (*rc)++; }
+            return minR;
         }
 
-        private static void FeedbackArcBacktrack(int step, int n, byte* adj, int* order, byte* used, int* bestOrder, int* minReversals)
+        private static void FeedbackArcBacktrack(int step, int n, byte* adj, int* ord, byte* used, int* bord, int* minR)
         {
-            if (step == n)
-            {
-                int reversals = 0;
-                for (int i = 0; i < n; i++)
-                {
-                    for (int j = i + 1; j < n; j++)
-                    {
-                        int u = order[i];
-                        int v = order[j];
-                        if (adj[v * n + u] == 1)
-                        {
-                            reversals++;
-                        }
-                    }
-                }
-                if (reversals < *minReversals)
-                {
-                    *minReversals = reversals;
-                    for (int i = 0; i < n; i++)
-                    {
-                        bestOrder[i] = order[i];
-                    }
-                }
-                return;
-            }
-
+            if (step == n) { UpdateBestFeedbackOrder(n, adj, ord, bord, minR); return; }
             for (int i = 0; i < n; i++)
-            {
-                if (used[i] == 0)
-                {
-                    used[i] = 1;
-                    order[step] = i;
-                    FeedbackArcBacktrack(step + 1, n, adj, order, used, bestOrder, minReversals);
-                    used[i] = 0;
-                }
-            }
+                if (used[i] == 0) { used[i] = 1; ord[step] = i; FeedbackArcBacktrack(step + 1, n, adj, ord, used, bord, minR); used[i] = 0; }
+        }
+
+        private static void UpdateBestFeedbackOrder(int n, byte* adj, int* ord, int* bord, int* minR)
+        {
+            int r = 0;
+            for (int i = 0; i < n; i++)
+                for (int j = i + 1; j < n; j++) if (adj[ord[j] * n + ord[i]] == 1) r++;
+            if (r < *minR) { *minR = r; for (int i = 0; i < n; i++) bord[i] = ord[i]; }
         }
     }
 }

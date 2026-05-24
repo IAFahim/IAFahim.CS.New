@@ -3,214 +3,133 @@ namespace IAFahim.Combinatorics.Generation;
 using System;
 using System.Runtime.CompilerServices;
 
-public static unsafe class Permutations
-{
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void HeapPermutation(int n, int* a, int* c, bool* hasNext, ref bool firstCall)
+    public unsafe struct HeapPermutationEnumerator
     {
-        if (firstCall)
-        {
-            for (int i = 0; i < n; i++) a[i] = i;
-            for (int i = 0; i < n; i++) c[i] = 0;
-            firstCall = false;
-            *hasNext = true;
-            return;
-        }
+        private int _n, _i;
+        private bool _first;
 
-        int iVar = 1;
-        while (iVar < n)
+        public HeapPermutationEnumerator(int n) { _n = n; _i = 1; _first = true; }
+
+        public bool MoveNext(int* a, int* c)
         {
-            if (c[iVar] < iVar)
+            if (_first)
             {
-                if ((iVar & 1) == 0)
+                for (int i = 0; i < _n; i++) { a[i] = i; c[i] = 0; }
+                _first = false; return true;
+            }
+            while (_i < _n)
+            {
+                if (c[_i] < _i)
                 {
-                    int tmp = a[0]; a[0] = a[iVar]; a[iVar] = tmp;
+                    if (_i % 2 == 0) { int t = a[0]; a[0] = a[_i]; a[_i] = t; }
+                    else { int t = a[c[_i]]; a[c[_i]] = a[_i]; a[_i] = t; }
+                    c[_i]++;
+                    _i = 1;
+                    return true;
                 }
                 else
                 {
-                    int tmp = a[c[iVar]]; a[c[iVar]] = a[iVar]; a[iVar] = tmp;
+                    c[_i] = 0;
+                    _i++;
                 }
-                *hasNext = true;
-                c[iVar]++;
-                return;
             }
-            c[iVar] = 0;
-            iVar++;
+            return false;
         }
-        *hasNext = false;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void JohnsonTrotter(int n, int* a, bool* dir, bool* hasNext, ref bool firstCall)
+    public unsafe struct JohnsonTrotterEnumerator
     {
-        if (firstCall)
+        private int _n;
+        private bool _first;
+
+        public JohnsonTrotterEnumerator(int n) { _n = n; _first = true; }
+
+        public bool MoveNext(int* a, byte* dir)
         {
-            for (int i = 0; i < n; i++)
+            if (_first)
             {
-                a[i] = i;
-                dir[i] = false;
+                for (int i = 0; i < _n; i++) { a[i] = i; dir[i] = 0; }
+                _first = false; return true;
             }
-            firstCall = false;
-            *hasNext = true;
-            return;
-        }
-
-        int mobileIdx = -1;
-        int mobileVal = -1;
-        for (int i = 0; i < n; i++)
-        {
-            if (dir[a[i]] == false && i > 0 && a[i] > a[i - 1])
+            int mobileIdx = -1, mobileVal = -1;
+            for (int i = 0; i < _n; i++)
             {
-                if (a[i] > mobileVal) { mobileVal = a[i]; mobileIdx = i; }
+                if (dir[a[i]] == 0 && i > 0 && a[i] > a[i - 1])
+                    if (a[i] > mobileVal) { mobileVal = a[i]; mobileIdx = i; }
+                if (dir[a[i]] == 1 && i < _n - 1 && a[i] > a[i + 1])
+                    if (a[i] > mobileVal) { mobileVal = a[i]; mobileIdx = i; }
             }
-            if (dir[a[i]] == true && i < n - 1 && a[i] > a[i + 1])
-            {
-                if (a[i] > mobileVal) { mobileVal = a[i]; mobileIdx = i; }
-            }
+            if (mobileIdx == -1) return false;
+            int mobileValActual = a[mobileIdx];
+            int swapIdx = dir[mobileValActual] == 1 ? mobileIdx + 1 : mobileIdx - 1;
+            int t = a[mobileIdx]; a[mobileIdx] = a[swapIdx]; a[swapIdx] = t;
+            for (int i = 0; i < _n; i++)
+                if (a[i] > mobileValActual) dir[a[i]] ^= 1;
+            return true;
         }
-
-        if (mobileIdx == -1) { *hasNext = false; return; }
-
-        int swapIdx = dir[a[mobileIdx]] ? mobileIdx + 1 : mobileIdx - 1;
-        int tmp = a[mobileIdx]; a[mobileIdx] = a[swapIdx]; a[swapIdx] = tmp;
-
-        for (int i = 0; i < n; i++)
-        {
-            if (a[i] > mobileVal) dir[a[i]] = !dir[a[i]];
-        }
-        *hasNext = true;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void PermutationsWithDuplicates(int n, int* elements, bool* hasNext, ref bool firstCall)
+    public static unsafe class Permutations
     {
-        if (firstCall)
+        public static bool NextDerangement(int* a, int n)
         {
-            firstCall = false;
-            *hasNext = true;
-            return;
+            while (NextPermutation(a, n))
+            {
+                bool ok = true;
+                for (int i = 0; i < n; i++) if (a[i] == i) { ok = false; break; }
+                if (ok) return true;
+            }
+            return false;
         }
 
-        int i = n - 2;
-        while (i >= 0 && elements[i] >= elements[i + 1]) i--;
-        if (i < 0) { *hasNext = false; return; }
-
-        int j = n - 1;
-        while (elements[j] <= elements[i]) j--;
-
-        int tmp = elements[i]; elements[i] = elements[j]; elements[j] = tmp;
-
-        int l = i + 1, r = n - 1;
-        while (l < r)
+        public static bool NextPermutation(int* ptr, int len)
         {
-            tmp = elements[l]; elements[l] = elements[r]; elements[r] = tmp;
-            l++; r--;
+            int i = len - 2;
+            while (i >= 0 && ptr[i] >= ptr[i + 1]) i--;
+            if (i < 0) return false;
+            int j = len - 1;
+            while (ptr[j] <= ptr[i]) j--;
+            int tmp = ptr[i]; ptr[i] = ptr[j]; ptr[j] = tmp;
+            int lo = i + 1, hi = len - 1;
+            while (lo < hi) { tmp = ptr[lo]; ptr[lo] = ptr[hi]; ptr[hi] = tmp; lo++; hi--; }
+            return true;
         }
-        *hasNext = true;
-    }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Derangement(int n, int* a, bool* hasNext, ref bool firstCall)
-    {
-        if (firstCall)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void RandomPermutation(int n, int* a, ref uint seed)
         {
             for (int i = 0; i < n; i++) a[i] = i;
-            firstCall = false;
-        }
-
-        while (true)
-        {
-            int i = n - 2;
-            while (i >= 0 && a[i] >= a[i + 1]) i--;
-            if (i < 0) { *hasNext = false; return; }
-
-            int j = n - 1;
-            while (a[j] <= a[i]) j--;
-
-            int tmp = a[i]; a[i] = a[j]; a[j] = tmp;
-
-            int l = i + 1, r = n - 1;
-            while (l < r)
+            for (int i = n - 1; i > 0; i--)
             {
-                tmp = a[l]; a[l] = a[r]; a[r] = tmp;
-                l++; r--;
-            }
-
-            bool ok = true;
-            for (int k = 0; k < n; k++) if (a[k] == k) { ok = false; break; }
-            if (ok) { *hasNext = true; return; }
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void RandomPermutation(int n, int* a, ref uint seed)
-    {
-        for (int i = 0; i < n; i++) a[i] = i;
-        for (int i = n - 1; i > 0; i--)
-        {
-            seed ^= seed << 13;
-            seed ^= seed >> 17;
-            seed ^= seed << 5;
-            int j = (int)(seed % (uint)(i + 1));
-            int t = a[i]; a[i] = a[j]; a[j] = t;
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void RandomDerangement(int n, int* a, ref uint seed)
-    {
-        RandomPermutation(n, a, ref seed);
-        for (int i = 0; i < n; i++)
-        {
-            if (a[i] == i)
-            {
-                int j = (i + 1) % n;
+                seed ^= seed << 13; seed ^= seed >> 17; seed ^= seed << 5;
+                int j = (int)(seed % (uint)(i + 1));
                 int tmp = a[i]; a[i] = a[j]; a[j] = tmp;
             }
         }
-    }
 
-    public static long InvolutionCount(int n)
-    {
-        if (n <= 1) return 1;
-        long* dp = stackalloc long[n + 1];
-        dp[0] = 1; dp[1] = 1;
-        for (int i = 2; i <= n; i++) dp[i] = dp[i - 1] + (i - 1) * dp[i - 2];
-        return dp[n];
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Involution(int n, int* a, bool* hasNext, ref bool firstCall)
-    {
-        if (firstCall)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void RandomDerangement(int n, int* a, ref uint seed)
         {
-            for (int i = 0; i < n; i++) a[i] = i;
-            firstCall = false;
-            *hasNext = true;
-            return;
-        }
-
-        while (true)
-        {
-            int i = n - 2;
-            while (i >= 0 && a[i] >= a[i + 1]) i--;
-            if (i < 0) { *hasNext = false; return; }
-
-            int j = n - 1;
-            while (a[j] <= a[i]) j--;
-
-            int tmp = a[i]; a[i] = a[j]; a[j] = tmp;
-
-            int l = i + 1, r = n - 1;
-            while (l < r)
+            RandomPermutation(n, a, ref seed);
+            for (int i = 0; i < n; i++)
             {
-                tmp = a[l]; a[l] = a[r]; a[r] = tmp;
-                l++; r--;
+                if (a[i] == i) { int j = (i + 1) % n; int tmp = a[i]; a[i] = a[j]; a[j] = tmp; }
             }
+        }
 
-            bool ok = true;
-            for (int k = 0; k < n; k++) if (a[a[k]] != k) { ok = false; break; }
-            if (ok) { *hasNext = true; return; }
+        public static long InvolutionCount(int n)
+        {
+            if (n <= 1) return 1;
+            long* dp = stackalloc long[n + 1];
+            dp[0] = 1; dp[1] = 1;
+            for (int i = 2; i <= n; i++) dp[i] = dp[i - 1] + (i - 1) * dp[i - 2];
+            return dp[n];
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsInvolution(int n, int* a)
+        {
+            for (int k = 0; k < n; k++) if (a[a[k]] != k) return false;
+            return true;
         }
     }
-}

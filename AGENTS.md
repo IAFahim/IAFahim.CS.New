@@ -115,6 +115,17 @@ Applies everywhere: constructors, MemClear calls, MemCopy calls.
 
 ---
 
+## Cyclomatic Complexity Reduction
+
+Maintain low cyclomatic complexity in all implementations. Avoid deeply nested loops or logic. 
+
+**Extraction Mandate**:
+- Extract internal logic (e.g., `IsIndependentSet`, `PerformButterfly`, `ComputeDotProduct`) into private sub-routines.
+- Keep primary `Run` or `Try*` methods focused on top-level orchestration.
+- Use `[MethodImpl(MethodImplOptions.AggressiveInlining)]` for extracted leaf routines to preserve zero-overhead performance.
+
+---
+
 ## Phase 1: Create
 
 1. Pick package kind: algorithm (zero deps) or data structure (Collections.NoDeps).

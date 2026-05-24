@@ -3,11 +3,11 @@ namespace IAFahim.Math.Transform.Tests
     using System;
     using System.Runtime.InteropServices;
     using IAFahim.Math.Transform;
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class Phase10TransformTests
     {
-        [Fact]
+        [Test]
         public void OrAndXorConvolution_Or_CorrectResult()
         {
             const int logN = 3;
@@ -43,7 +43,7 @@ namespace IAFahim.Math.Transform.Tests
                     }
                     for (int i = 0; i < n; i++)
                     {
-                        Assert.Equal(expected[i], c[i]);
+                        Assert.AreEqual(expected[i], c[i]);
                     }
                 }
                 finally
@@ -61,7 +61,7 @@ namespace IAFahim.Math.Transform.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void OrAndXorConvolution_And_CorrectResult()
         {
             const int logN = 3;
@@ -97,7 +97,7 @@ namespace IAFahim.Math.Transform.Tests
                     }
                     for (int i = 0; i < n; i++)
                     {
-                        Assert.Equal(expected[i], c[i]);
+                        Assert.AreEqual(expected[i], c[i]);
                     }
                 }
                 finally
@@ -115,7 +115,7 @@ namespace IAFahim.Math.Transform.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void OrAndXorConvolution_Xor_CorrectResult()
         {
             const int logN = 3;
@@ -151,7 +151,7 @@ namespace IAFahim.Math.Transform.Tests
                     }
                     for (int i = 0; i < n; i++)
                     {
-                        Assert.Equal(expected[i], c[i]);
+                        Assert.AreEqual(expected[i], c[i]);
                     }
                 }
                 finally
@@ -169,7 +169,7 @@ namespace IAFahim.Math.Transform.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void MinMaxConvolution_MinIndex_CorrectResult()
         {
             const int n = 5;
@@ -205,7 +205,7 @@ namespace IAFahim.Math.Transform.Tests
                     }
                     for (int i = 0; i < n; i++)
                     {
-                        Assert.Equal(expected[i], c[i]);
+                        Assert.AreEqual(expected[i], c[i]);
                     }
                 }
                 finally
@@ -224,7 +224,7 @@ namespace IAFahim.Math.Transform.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void MinMaxConvolution_MaxIndex_CorrectResult()
         {
             const int n = 5;
@@ -260,7 +260,7 @@ namespace IAFahim.Math.Transform.Tests
                     }
                     for (int i = 0; i < n; i++)
                     {
-                        Assert.Equal(expected[i], c[i]);
+                        Assert.AreEqual(expected[i], c[i]);
                     }
                 }
                 finally
@@ -279,7 +279,7 @@ namespace IAFahim.Math.Transform.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void MinMaxConvolution_MinPlusConvexArbitrary_MatchesGeneral()
         {
             const int n = 5;
@@ -305,7 +305,7 @@ namespace IAFahim.Math.Transform.Tests
                 MinMaxConvolution.MinPlusConvexArbitrary(a, n, b, m, cConvex);
                 for (int i = 0; i < limit; i++)
                 {
-                    Assert.Equal(cGeneral[i], cConvex[i]);
+                    Assert.AreEqual(cGeneral[i], cConvex[i]);
                 }
             }
             finally
@@ -317,7 +317,7 @@ namespace IAFahim.Math.Transform.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void MinMaxConvolution_MinPlusConvexConvex_MatchesGeneral()
         {
             const int n = 5;
@@ -344,7 +344,7 @@ namespace IAFahim.Math.Transform.Tests
                 MinMaxConvolution.MinPlusConvexConvex(a, n, b, m, cConvex);
                 for (int i = 0; i < limit; i++)
                 {
-                    Assert.Equal(cGeneral[i], cConvex[i]);
+                    Assert.AreEqual(cGeneral[i], cConvex[i]);
                 }
             }
             finally
@@ -356,7 +356,7 @@ namespace IAFahim.Math.Transform.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void SubsetConvolutionRanked_Basic_CorrectResult()
         {
             const int logN = 3;
@@ -397,7 +397,7 @@ namespace IAFahim.Math.Transform.Tests
                     }
                     for (int i = 0; i < n; i++)
                     {
-                        Assert.Equal(expected[i], c[i]);
+                        Assert.AreEqual(expected[i], c[i]);
                     }
                 }
                 finally
@@ -416,7 +416,7 @@ namespace IAFahim.Math.Transform.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void PartitionConvolution_Convolve_CorrectResult()
         {
             const int n = 6;
@@ -433,17 +433,17 @@ namespace IAFahim.Math.Transform.Tests
                 a[0] = 1;
                 PartitionConvolution.ConvolveWithPartition(a, c, n, mod);
                 // Partition function values should be: 1, 1, 2, 3, 5, 7
-                Assert.Equal(1, c[0]);
-                Assert.Equal(1, c[1]);
-                Assert.Equal(2, c[2]);
-                Assert.Equal(3, c[3]);
-                Assert.Equal(5, c[4]);
-                Assert.Equal(7, c[5]);
+                Assert.AreEqual(1, c[0]);
+                Assert.AreEqual(1, c[1]);
+                Assert.AreEqual(2, c[2]);
+                Assert.AreEqual(3, c[3]);
+                Assert.AreEqual(5, c[4]);
+                Assert.AreEqual(7, c[5]);
 
                 PartitionConvolution.ConvolveWithPentagonal(c, backA, n, mod);
                 for (int i = 0; i < n; i++)
                 {
-                    Assert.Equal(a[i], backA[i]);
+                    Assert.AreEqual(a[i], backA[i]);
                 }
             }
             finally
@@ -454,7 +454,7 @@ namespace IAFahim.Math.Transform.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void PosetTransforms_Diamond_CorrectResult()
         {
             const int n = 4;
@@ -500,29 +500,29 @@ namespace IAFahim.Math.Transform.Tests
             // g[1] = f[0] + f[1] = 3
             // g[2] = f[0] + f[2] = 4
             // g[3] = f[0] + f[1] + f[2] + f[3] = 10
-            Assert.Equal(1, g[0]);
-            Assert.Equal(3, g[1]);
-            Assert.Equal(4, g[2]);
-            Assert.Equal(10, g[3]);
+            Assert.AreEqual(1, g[0]);
+            Assert.AreEqual(3, g[1]);
+            Assert.AreEqual(4, g[2]);
+            Assert.AreEqual(10, g[3]);
 
             long* mu = stackalloc long[n * n];
             PosetTransforms.MobiusTransform(g, backF, topOrder, relation, n, mod, mu);
             for (int i = 0; i < n; i++)
             {
-                Assert.Equal(f[i], backF[i]);
+                Assert.AreEqual(f[i], backF[i]);
             }
 
             // Meet and Join check
             // Meet(1, 2) should be 0 (since 0 <= 1 and 0 <= 2)
-            Assert.Equal(0, PosetTransforms.LatticeMeet(1, 2, relation, n));
+            Assert.AreEqual(0, PosetTransforms.LatticeMeet(1, 2, relation, n));
             // Join(1, 2) should be 3 (since 1 <= 3 and 2 <= 3)
-            Assert.Equal(3, PosetTransforms.LatticeJoin(1, 2, relation, n));
+            Assert.AreEqual(3, PosetTransforms.LatticeJoin(1, 2, relation, n));
 
             // BooleanLatticeRank check
-            Assert.Equal(0, PosetTransforms.BooleanLatticeRank(0));
-            Assert.Equal(1, PosetTransforms.BooleanLatticeRank(1));
-            Assert.Equal(1, PosetTransforms.BooleanLatticeRank(2));
-            Assert.Equal(2, PosetTransforms.BooleanLatticeRank(3));
+            Assert.AreEqual(0, PosetTransforms.BooleanLatticeRank(0));
+            Assert.AreEqual(1, PosetTransforms.BooleanLatticeRank(1));
+            Assert.AreEqual(1, PosetTransforms.BooleanLatticeRank(2));
+            Assert.AreEqual(2, PosetTransforms.BooleanLatticeRank(3));
         }
     }
 }

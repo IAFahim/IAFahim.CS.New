@@ -1,12 +1,12 @@
 namespace IAFahim.Graph.DynamicTrees.Tests
 {
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
     using IAFahim.Graph.DynamicTrees;
 
     public sealed unsafe class DynamicTreesTests
     {
-        [Fact]
+        [Test]
         public void LinkCutTree_Basic()
         {
             const int N = 10;
@@ -23,7 +23,7 @@ namespace IAFahim.Graph.DynamicTrees.Tests
             // Initially disconnected
             for (int i = 0; i < N; i++)
             {
-                Assert.Equal(i, LinkCutTree.FindRoot(nodes, i));
+                Assert.AreEqual(i, LinkCutTree.FindRoot(nodes, i));
             }
 
             // Link: 0-1, 1-2, 3-4
@@ -31,25 +31,25 @@ namespace IAFahim.Graph.DynamicTrees.Tests
             LinkCutTree.Link(nodes, 1, 2);
             LinkCutTree.Link(nodes, 3, 4);
 
-            Assert.Equal(LinkCutTree.FindRoot(nodes, 0), LinkCutTree.FindRoot(nodes, 2));
-            Assert.NotEqual(LinkCutTree.FindRoot(nodes, 0), LinkCutTree.FindRoot(nodes, 3));
+            Assert.AreEqual(LinkCutTree.FindRoot(nodes, 0), LinkCutTree.FindRoot(nodes, 2));
+            Assert.AreNotEqual(LinkCutTree.FindRoot(nodes, 0), LinkCutTree.FindRoot(nodes, 3));
 
             // Path query: path between 0 and 2 should have values 1, 2, 3
             // PathMin = 1, PathMax = 3, PathSum = 6
-            Assert.Equal(1, LinkCutTree.PathMin(nodes, 0, 2));
-            Assert.Equal(3, LinkCutTree.PathMax(nodes, 0, 2));
+            Assert.AreEqual(1, LinkCutTree.PathMin(nodes, 0, 2));
+            Assert.AreEqual(3, LinkCutTree.PathMax(nodes, 0, 2));
 
             // PathAdd: add 10 to path 0-2
             LinkCutTree.PathAdd(nodes, 0, 2, 10);
-            Assert.Equal(11, LinkCutTree.PathMin(nodes, 0, 2));
-            Assert.Equal(13, LinkCutTree.PathMax(nodes, 0, 2));
+            Assert.AreEqual(11, LinkCutTree.PathMin(nodes, 0, 2));
+            Assert.AreEqual(13, LinkCutTree.PathMax(nodes, 0, 2));
 
             // Cut: 1-2
             LinkCutTree.Cut(nodes, 1, 2);
-            Assert.NotEqual(LinkCutTree.FindRoot(nodes, 0), LinkCutTree.FindRoot(nodes, 2));
+            Assert.AreNotEqual(LinkCutTree.FindRoot(nodes, 0), LinkCutTree.FindRoot(nodes, 2));
         }
 
-        [Fact]
+        [Test]
         public void EulerTourTree_Basic()
         {
             const int N = 10;
@@ -73,8 +73,8 @@ namespace IAFahim.Graph.DynamicTrees.Tests
             EulerTourTree.Link(nodes, 0, 1, N, N + 1, ref randState);
             EulerTourTree.Link(nodes, 1, 2, N + 2, N + 3, ref randState);
 
-            Assert.True(EulerTourTree.Connected(nodes, 0, 2));
-            Assert.False(EulerTourTree.Connected(nodes, 0, 3));
+            Assert.IsTrue(EulerTourTree.Connected(nodes, 0, 2));
+            Assert.IsFalse(EulerTourTree.Connected(nodes, 0, 3));
 
             // Subtree queries
             // Since we rerooted and linked, let's query the subtree of 1
@@ -82,14 +82,14 @@ namespace IAFahim.Graph.DynamicTrees.Tests
             EulerTourTree.Reroot(nodes, 0, ref randState);
             // Now 0 is the root. Subtree of 1 contains 1 and 2.
             // Values of 1 and 2 are 2 and 3. Sum = 5.
-            Assert.Equal(5, EulerTourTree.SubtreeQuery(nodes, 1));
+            Assert.AreEqual(5, EulerTourTree.SubtreeQuery(nodes, 1));
 
             // Cut 1-2
             EulerTourTree.Cut(nodes, N + 2, N + 3, ref randState);
-            Assert.False(EulerTourTree.Connected(nodes, 1, 2));
+            Assert.IsFalse(EulerTourTree.Connected(nodes, 1, 2));
         }
 
-        [Fact]
+        [Test]
         public void TopTree_Basic()
         {
             const int N = 5;
@@ -106,11 +106,11 @@ namespace IAFahim.Graph.DynamicTrees.Tests
             TopTree.Link(nodes, 0, 1);
             TopTree.Link(nodes, 1, 2);
 
-            Assert.Equal(1 + 2 + 3, TopTree.PathQuery(nodes, 0, 2));
+            Assert.AreEqual(1 + 2 + 3, TopTree.PathQuery(nodes, 0, 2));
 
             // Cut 1-2
             TopTree.Cut(nodes, 1, 2);
-            Assert.Equal(1 + 2, TopTree.PathQuery(nodes, 0, 1));
+            Assert.AreEqual(1 + 2, TopTree.PathQuery(nodes, 0, 1));
         }
     }
 }

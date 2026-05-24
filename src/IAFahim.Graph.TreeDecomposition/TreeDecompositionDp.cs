@@ -11,168 +11,70 @@ namespace IAFahim.Graph.TreeDecomposition
         public const int TYPE_FORGET = 2;
         public const int TYPE_JOIN = 3;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long MaxIndependentSet(
-            int niceNodesCount,
-            int* nodeType,
-            int* leftChild, int* rightChild,
-            int* introForgetVertex,
-            int* bagSizes,
-            int* bagElements,
-            int maxBagSize,
-            long* weights,
-            int* graphHead, int* graphTo, int* graphNext,
-            int n)
+            int niceCount, int* type, int* lc, int* rc, int* vIv, int* bSz, int* bEl, int mBS,
+            long* weights, int* gHead, int* gTo, int* gNext, int n, long* dp)
         {
-            long dpSize = (long)niceNodesCount * (1L << maxBagSize) * sizeof(long);
-            long* dp = (long*)Marshal.AllocHGlobal((nint)dpSize);
-            try
+            int maskSize = 1 << mBS;
+            for (int u = niceCount - 1; u >= 0; u--)
             {
-                UnsafeUtilityMemClear(dp, dpSize);
-                long* isIndependent = (long*)Marshal.AllocHGlobal((nint)((1L << maxBagSize) * sizeof(long)));
-                try
-                {
-                    for (int u = niceNodesCount - 1; u >= 0; u--)
-                    {
-                        int type = nodeType[u];
-                        long* curDp = dp + (long)u * (1L << maxBagSize);
-                        
-                        if (type == TYPE_LEAF)
-                        {
-                            curDp[0] = 0;
-                        }
-                        else if (type == TYPE_INTRODUCE)
-                        {
-                            int lc = leftChild[u];
-                            long* leftDp = dp + (long)lc * (1L << maxBagSize);
-                            int v = introForgetVertex[u];
-                            
-                            int oldSize = bagSizes[lc];
-                            int newSize = bagSizes[u];
-                            
-                            for (int mask = 0; mask < (1 << oldSize); mask++)
-                            {
-                                curDp[mask] = leftDp[mask];
-                                bool canAdd = true;
-                                for (int i = 0; i < oldSize; i++)
-                                {
-                                    if (((mask >> i) & 1) != 0)
-                                    {
-                                        int oldV = bagElements[lc * maxBagSize + i];
-                                        if (AreAdjacent(v, oldV, graphHead, graphTo, graphNext))
-                                        {
-                                            canAdd = false;
-                                            break;
-                                        }
-                                    }
-                                }
-                                if (canAdd)
-                                {
-                                    curDp[mask | (1 << (newSize - 1))] = leftDp[mask] + weights[v];
-                                }
-                            }
-                        }
-                        else if (type == TYPE_FORGET)
-                        {
-                            int lc = leftChild[u];
-                            long* leftDp = dp + (long)lc * (1L << maxBagSize);
-                            int v = introForgetVertex[u];
-                            
-                            int oldSize = bagSizes[lc];
-                            int newSize = bagSizes[u];
-                            
-                            int forgetIdx = -1;
-                            for (int i = 0; i < oldSize; i++)
-                            {
-                                if (bagElements[lc * maxBagSize + i] == v)
-                                {
-                                    forgetIdx = i;
-                                    break;
-                                }
-                            }
-                            
-                            for (int mask = 0; mask < (1 << oldSize); mask++)
-                            {
-                                int newMask = 0;
-                                int bitPos = 0;
-                                for (int i = 0; i < oldSize; i++)
-                                {
-                                    if (i != forgetIdx)
-                                    {
-                                        if (((mask >> i) & 1) != 0)
-                                        {
-                                            newMask |= (1 << bitPos);
-                                        }
-                                        bitPos++;
-                                    }
-                                }
-                                if (leftDp[mask] > curDp[newMask])
-                                {
-                                    curDp[newMask] = leftDp[mask];
-                                }
-                            }
-                        }
-                        else if (type == TYPE_JOIN)
-                        {
-                            int lc = leftChild[u];
-                            int rc = rightChild[u];
-                            long* leftDp = dp + (long)lc * (1L << maxBagSize);
-                            long* rightDp = dp + (long)rc * (1L << maxBagSize);
-                            
-                            int size = bagSizes[u];
-                            for (int mask = 0; mask < (1 << size); mask++)
-                            {
-                                long wt = 0;
-                                for (int i = 0; i < size; i++)
-                                {
-                                    if (((mask >> i) & 1) != 0)
-                                    {
-                                        wt += weights[bagElements[u * maxBagSize + i]];
-                                    }
-                                }
-                                curDp[mask] = leftDp[mask] + rightDp[mask] - wt;
-                            }
-                        }
-                    }
-                    
-                    long ans = 0;
-                    long* rootDp = dp + 0 * (1L << maxBagSize);
-                    for (int mask = 0; mask < (1 << bagSizes[0]); mask++)
-                    {
-                        if (rootDp[mask] > ans)
-                        {
-                            ans = rootDp[mask];
-                        }
-                    }
-                    return ans;
-                }
-                finally
-                {
-                    Marshal.FreeHGlobal((nint)isIndependent);
-                }
+                long* curDp = dp + (long)u * maskSize;
+                if (type[u] == TYPE_LEAF) curDp[0] = 0;
+                else if (type[u] == TYPE_INTRODUCE) ProcessIntroduce(u, lc[u], vIv[u], bSz, bEl, mBS, weights, gHead, gTo, gNext, dp);
+                else if (type[u] == TYPE_FORGET) ProcessForget(u, lc[u], vIv[u], bSz, bEl, mBS, dp);
+                else if (type[u] == TYPE_JOIN) ProcessJoin(u, lc[u], rc[u], bSz, bEl, mBS, weights, dp);
             }
-            finally
+            long ans = 0; for (int m = 0; m < (1 << bSz[0]); m++) ans = Math.Max(ans, dp[m]);
+            return ans;
+        }
+
+        private static void ProcessIntroduce(int u, int l, int v, int* bSz, int* bEl, int mBS, long* weights, int* gH, int* gT, int* gN, long* dp)
+        {
+            int mS = 1 << mBS; long* cur = dp + (long)u * mS, left = dp + (long)l * mS;
+            int oldSz = bSz[l], newSz = bSz[u];
+            for (int m = 0; m < (1 << oldSz); m++)
             {
-                Marshal.FreeHGlobal((nint)dp);
+                cur[m] = left[m];
+                if (CanAdd(v, m, oldSz, l, mBS, bEl, gH, gT, gN)) cur[m | (1 << (newSz - 1))] = left[m] + weights[v];
             }
         }
 
-        private static bool AreAdjacent(int u, int v, int* graphHead, int* graphTo, int* graphNext)
+        private static bool CanAdd(int v, int m, int oldSz, int l, int mBS, int* bEl, int* gH, int* gT, int* gN)
         {
-            for (int e = graphHead[u]; e != 0; e = graphNext[e])
+            for (int i = 0; i < oldSz; i++)
+                if (((m >> i) & 1) != 0 && AreAdjacent(v, bEl[l * mBS + i], gH, gT, gN)) return false;
+            return true;
+        }
+
+        private static void ProcessForget(int u, int l, int v, int* bSz, int* bEl, int mBS, long* dp)
+        {
+            int mS = 1 << mBS; long* cur = dp + (long)u * mS, left = dp + (long)l * mS;
+            int oldSz = bSz[l], fIdx = -1;
+            for (int i = 0; i < oldSz; i++) if (bEl[l * mBS + i] == v) { fIdx = i; break; }
+            for (int m = 0; m < (1 << oldSz); m++)
             {
-                if (graphTo[e] == v) return true;
+                int nextM = 0, pos = 0;
+                for (int i = 0; i < oldSz; i++) if (i != fIdx) { if (((m >> i) & 1) != 0) nextM |= (1 << pos); pos++; }
+                cur[nextM] = Math.Max(cur[nextM], left[m]);
             }
+        }
+
+        private static void ProcessJoin(int u, int l, int r, int* bSz, int* bEl, int mBS, long* weights, long* dp)
+        {
+            int mS = 1 << mBS; long* cur = dp + (long)u * mS, left = dp + (long)l * mS, right = dp + (long)r * mS;
+            int sz = bSz[u];
+            for (int m = 0; m < (1 << sz); m++)
+            {
+                long wt = 0;
+                for (int i = 0; i < sz; i++) if (((m >> i) & 1) != 0) wt += weights[bEl[u * mBS + i]];
+                cur[m] = left[m] + right[m] - wt;
+            }
+        }
+
+        private static bool AreAdjacent(int u, int v, int* gH, int* gT, int* gN)
+        {
+            for (int e = gH[u]; e != 0; e = gN[e]) if (gT[e] == v) return true;
             return false;
-        }
-
-        private static void UnsafeUtilityMemClear(void* ptr, long size)
-        {
-            byte* bPtr = (byte*)ptr;
-            for (long i = 0; i < size; i++)
-            {
-                bPtr[i] = 0;
-            }
         }
     }
 }

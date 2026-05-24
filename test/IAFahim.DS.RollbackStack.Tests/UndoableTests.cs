@@ -2,11 +2,11 @@ namespace IAFahim.DS.RollbackStack.Tests
 {
     using IAFahim.DS.RollbackStack;
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class UndoableUnionFindTests
     {
-        [Fact]
+        [Test]
         public void SnapshotAndRollback_Basic()
         {
             const int n = 5;
@@ -33,12 +33,12 @@ namespace IAFahim.DS.RollbackStack.Tests
             UndoableUnionFind.Rollback(parent, size, history, snap, &histSize);
 
             // Verify 0-1-2 is connected
-            Assert.Equal(UndoableUnionFind.Find(parent, 0), UndoableUnionFind.Find(parent, 2));
+            Assert.AreEqual(UndoableUnionFind.Find(parent, 0), UndoableUnionFind.Find(parent, 2));
             // Verify 3 and 4 are NOT connected (union(3,4) was rolled back)
-            Assert.NotEqual(UndoableUnionFind.Find(parent, 3), UndoableUnionFind.Find(parent, 4));
+            Assert.AreNotEqual(UndoableUnionFind.Find(parent, 3), UndoableUnionFind.Find(parent, 4));
         }
 
-        [Fact]
+        [Test]
         public void EmptySnapshot_NoOp()
         {
             int* parent = stackalloc int[3];
@@ -47,13 +47,13 @@ namespace IAFahim.DS.RollbackStack.Tests
             int histSize = 0;
 
             int snap = UndoableUnionFind.Snapshot(parent, size, history, histSize);
-            Assert.Equal(0, snap);
+            Assert.AreEqual(0, snap);
 
             UndoableUnionFind.Rollback(parent, size, history, snap, &histSize);
-            Assert.Equal(0, histSize);
+            Assert.AreEqual(0, histSize);
         }
 
-        [Fact]
+        [Test]
         public void MultipleSnapshots_StackBehavior()
         {
             int* parent = stackalloc int[4];
@@ -73,15 +73,15 @@ namespace IAFahim.DS.RollbackStack.Tests
 
             UndoableUnionFind.Rollback(parent, size, history, snap1, &histSize);
 
-            Assert.Equal(2, histSize);
-            Assert.Equal(UndoableUnionFind.Find(parent, 0), UndoableUnionFind.Find(parent, 1));
-            Assert.NotEqual(UndoableUnionFind.Find(parent, 0), UndoableUnionFind.Find(parent, 2));
+            Assert.AreEqual(2, histSize);
+            Assert.AreEqual(UndoableUnionFind.Find(parent, 0), UndoableUnionFind.Find(parent, 1));
+            Assert.AreNotEqual(UndoableUnionFind.Find(parent, 0), UndoableUnionFind.Find(parent, 2));
         }
     }
 
     public sealed unsafe class UndoableBipartiteDsuTests
     {
-        [Fact]
+        [Test]
         public void BipartiteUnion_Basic()
         {
             int* parent = stackalloc int[4];
@@ -92,20 +92,20 @@ namespace IAFahim.DS.RollbackStack.Tests
             for (int i = 0; i < 4; i++) { parent[i] = i; parity[i] = 0; }
 
             bool ok = UndoableBipartiteDsu.Union(parent, parity, history, &histSize, 0, 1);
-            Assert.True(ok);
+            Assert.IsTrue(ok);
 
             ok = UndoableBipartiteDsu.Union(parent, parity, history, &histSize, 2, 3);
-            Assert.True(ok);
+            Assert.IsTrue(ok);
 
             int snap = UndoableBipartiteDsu.Snapshot(parent, parity, history, histSize);
 
             ok = UndoableBipartiteDsu.Union(parent, parity, history, &histSize, 1, 2);
-            Assert.True(ok);
+            Assert.IsTrue(ok);
 
             UndoableBipartiteDsu.Rollback(parent, parity, history, snap, &histSize);
         }
 
-        [Fact]
+        [Test]
         public void DetectOddCycle()
         {
             int* parent = stackalloc int[3];
@@ -116,10 +116,10 @@ namespace IAFahim.DS.RollbackStack.Tests
             for (int i = 0; i < 3; i++) { parent[i] = i; parity[i] = 0; }
 
             bool ok = UndoableBipartiteDsu.Union(parent, parity, history, &histSize, 0, 1);
-            Assert.True(ok);
+            Assert.IsTrue(ok);
 
             ok = UndoableBipartiteDsu.Union(parent, parity, history, &histSize, 1, 2);
-            Assert.True(ok);
+            Assert.IsTrue(ok);
         }
     }
 }

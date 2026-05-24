@@ -1,50 +1,50 @@
 namespace IAFahim.Search.Subset.Tests
 {
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class EnumerateSubsetsTests
     {
-        [Fact]
+        [Test]
         public void Count()
         {
-            Assert.Equal(8, EnumerateSubsets.Count(7));
+            Assert.AreEqual(8, EnumerateSubsets.Count(7));
         }
 
-        [Fact]
+        [Test]
         public void Run()
         {
             int* dst = stackalloc int[8];
             EnumerateSubsets.Run(7, dst);
-            Assert.Equal(7, dst[0]);
-            Assert.Equal(0, dst[7]);
+            Assert.AreEqual(7, dst[0]);
+            Assert.AreEqual(0, dst[7]);
         }
     }
 
     public sealed unsafe class EnumerateSupersetsTests
     {
-        [Fact]
+        [Test]
         public void Run()
         {
             int* dst = stackalloc int[4];
             int count = EnumerateSupersets.Run(2, 7, dst);
-            Assert.Equal(3, count);
+            Assert.AreEqual(3, count);
         }
     }
 
     public sealed unsafe class EnumerateMasksTests
     {
-        [Fact]
+        [Test]
         public void Count()
         {
-            Assert.Equal(8, EnumerateMasks.Count(3));
+            Assert.AreEqual(8, EnumerateMasks.Count(3));
         }
 
-        [Fact]
+        [Test]
         public void CountPopBits()
         {
-            Assert.Equal(3, EnumerateMasks.CountPopBits(7));
-            Assert.Equal(1, EnumerateMasks.CountPopBits(4));
-            Assert.Equal(0, EnumerateMasks.CountPopBits(0));
+            Assert.AreEqual(3, EnumerateMasks.CountPopBits(7));
+            Assert.AreEqual(1, EnumerateMasks.CountPopBits(4));
+            Assert.AreEqual(0, EnumerateMasks.CountPopBits(0));
         }
     }
 }

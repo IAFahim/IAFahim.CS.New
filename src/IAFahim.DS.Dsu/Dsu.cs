@@ -85,13 +85,18 @@ namespace IAFahim.DS.Dsu
         {
             while (*currentHistSize > targetHistSize)
             {
-                *currentHistSize -= 3;
-                int sz = history[*currentHistSize + 2];
-                int child = history[*currentHistSize + 1];
-                int par = history[*currentHistSize];
-                parent[child] = child;
-                size[par] = sz;
+                RollbackStep(parent, size, history, currentHistSize);
             }
+        }
+
+        private static void RollbackStep(int* parent, int* size, int* history, int* currentHistSize)
+        {
+            *currentHistSize -= 3;
+            int par = history[*currentHistSize];
+            int child = history[*currentHistSize + 1];
+            int sz = history[*currentHistSize + 2];
+            parent[child] = child;
+            size[par] = sz;
         }
     }
 
@@ -99,49 +104,30 @@ namespace IAFahim.DS.Dsu
     {
         public static bool Run(int* parent, int* size, int* history, int* histSize, int a, int b)
         {
-            int ra = a;
-            while (parent[ra] != ra)
-            {
-                ra = parent[ra];
-            }
-            int rb = b;
-            while (parent[rb] != rb)
-            {
-                rb = parent[rb];
-            }
-            if (ra == rb)
-            {
-                return false;
-            }
-            if (size[ra] < size[rb])
-            {
-                int tmp = ra;
-                ra = rb;
-                rb = tmp;
-            }
-            history[(*histSize)++] = ra;
-            history[(*histSize)++] = rb;
-            history[(*histSize)++] = size[ra];
+            int ra = FindSimple(parent, a);
+            int rb = FindSimple(parent, b);
+            if (ra == rb) return false;
+            if (size[ra] < size[rb]) Swap(ref ra, ref rb);
+            
+            RecordHistory(history, histSize, ra, rb, size[ra]);
             parent[rb] = ra;
             size[ra] += size[rb];
             return true;
         }
-    }
 
-    public static unsafe class DsuUndo
-    {
-        public static void Run(int* parent, int* size, int a, int b)
+        private static int FindSimple(int* parent, int x)
         {
-            if (parent[a] == b)
-            {
-                parent[a] = a;
-                size[b] -= size[a];
-            }
-            else if (parent[b] == a)
-            {
-                parent[b] = b;
-                size[a] -= size[b];
-            }
+            while (parent[x] != x) x = parent[x];
+            return x;
+        }
+
+        private static void Swap(ref int a, ref int b) { int t = a; a = b; b = t; }
+
+        private static void RecordHistory(int* history, int* histSize, int ra, int rb, int sizeRa)
+        {
+            history[(*histSize)++] = ra;
+            history[(*histSize)++] = rb;
+            history[(*histSize)++] = sizeRa;
         }
     }
 
@@ -149,30 +135,34 @@ namespace IAFahim.DS.Dsu
     {
         public static bool Run(int* parent, int* parity, int* size, int* hist, int* histSize, int a, int b)
         {
-            int ra = a;
-            int pa = 0;
-            while (parent[ra] != ra)
-            {
-                pa ^= parity[ra];
-                ra = parent[ra];
-            }
-            int rb = b;
-            int pb = 0;
-            while (parent[rb] != rb)
-            {
-                pb ^= parity[rb];
-                rb = parent[rb];
-            }
-            if (ra == rb)
-            {
-                return (pa ^ pb) != 0;
-            }
+            int ra = FindBipartiteRoot(parent, parity, a, out int pa);
+            int rb = FindBipartiteRoot(parent, parity, b, out int pb);
+            if (ra == rb) return (pa ^ pb) != 0;
+
+            RecordBipartiteHistory(parent, size, hist, histSize, ra, rb);
+            UpdateBipartiteMerge(parent, parity, size, ra, rb, pa, pb);
+            return true;
+        }
+
+        private static int FindBipartiteRoot(int* parent, int* parity, int x, out int p)
+        {
+            p = 0;
+            while (parent[x] != x) { p ^= parity[x]; x = parent[x]; }
+            return x;
+        }
+
+        private static void RecordBipartiteHistory(int* parent, int* size, int* hist, int* histSize, int ra, int rb)
+        {
             hist[(*histSize)++] = ra;
             hist[(*histSize)++] = rb;
             hist[(*histSize)++] = size[ra];
             hist[(*histSize)++] = size[rb];
             hist[(*histSize)++] = parent[ra];
             hist[(*histSize)++] = parent[rb];
+        }
+
+        private static void UpdateBipartiteMerge(int* parent, int* parity, int* size, int ra, int rb, int pa, int pb)
+        {
             if (size[ra] > size[rb])
             {
                 parent[rb] = ra;
@@ -185,7 +175,6 @@ namespace IAFahim.DS.Dsu
                 parity[ra] = pa ^ pb ^ 1;
                 size[rb] += size[ra];
             }
-            return true;
         }
     }
 

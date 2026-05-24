@@ -7,53 +7,56 @@ namespace IAFahim.DS.Sparse
     {
         public static void RunInt32(int* arr, int* table, int* log, int n)
         {
-            for (int i = 0; i < n; i++)
-                table[i] = arr[i];
+            InitializeLevel0(arr, table, n);
             for (int j = 1; (1 << j) <= n; j++)
             {
-                for (int i = 0; i + (1 << j) <= n; i++)
-                {
-                    int left = table[i + (j - 1) * n];
-                    int right = table[i + (1 << (j - 1)) + (j - 1) * n];
-                    table[i + j * n] = left < right ? left : right;
-                }
+                ComputeNextLevelInt32(table, n, j);
+            }
+        }
+
+        private static void InitializeLevel0(int* arr, int* table, int n)
+        {
+            for (int i = 0; i < n; i++) table[i] = arr[i];
+        }
+
+        private static void ComputeNextLevelInt32(int* table, int n, int j)
+        {
+            int offset = j * n;
+            int prevOffset = (j - 1) * n;
+            int half = 1 << (j - 1);
+            for (int i = 0; i + (1 << j) <= n; i++)
+            {
+                int left = table[i + prevOffset];
+                int right = table[i + half + prevOffset];
+                table[i + offset] = left < right ? left : right;
             }
         }
 
         public static void RunInt64(long* arr, long* table, int* log, int n)
         {
-            for (int i = 0; i < n; i++)
-                table[i] = arr[i];
+            InitializeLevel0Int64(arr, table, n);
             for (int j = 1; (1 << j) <= n; j++)
             {
-                for (int i = 0; i + (1 << j) <= n; i++)
-                {
-                    long left = table[i + (j - 1) * n];
-                    long right = table[i + (1 << (j - 1)) + (j - 1) * n];
-                    table[i + j * n] = left < right ? left : right;
-                }
+                ComputeNextLevelInt64(table, n, j);
             }
         }
-    }
 
-    public static unsafe class SparseTableQuery
-    {
-        public static int MinInt32(int* table, int* log, int l, int r, int n)
+        private static void InitializeLevel0Int64(long* arr, long* table, int n)
         {
-            int len = r - l + 1;
-            int j = log[len];
-            int left = table[l + j * n];
-            int right = table[r - (1 << j) + 1 + j * n];
-            return left < right ? left : right;
+            for (int i = 0; i < n; i++) table[i] = arr[i];
         }
 
-        public static long MinInt64(long* table, int* log, int l, int r, int n)
+        private static void ComputeNextLevelInt64(long* table, int n, int j)
         {
-            int len = r - l + 1;
-            int j = log[len];
-            long left = table[l + j * n];
-            long right = table[r - (1 << j) + 1 + j * n];
-            return left < right ? left : right;
+            int offset = j * n;
+            int prevOffset = (j - 1) * n;
+            int half = 1 << (j - 1);
+            for (int i = 0; i + (1 << j) <= n; i++)
+            {
+                long left = table[i + prevOffset];
+                long right = table[i + half + prevOffset];
+                table[i + offset] = left < right ? left : right;
+            }
         }
     }
 
@@ -61,317 +64,64 @@ namespace IAFahim.DS.Sparse
     {
         public static void RunInt64(long* arr, long* table, int* blockSize, int n)
         {
-            int levels = 0;
-            while ((1 << levels) < n) levels++;
-            if (levels == 0) levels = 1;
+            int levels = CalculateLevels(n);
             *blockSize = n;
-
-            for (int i = 0; i < n; i++)
-            {
-                table[i] = arr[i];
-            }
+            InitializeLevel0(arr, table, n);
 
             for (int j = 0; j < levels; j++)
             {
-                int half = 1 << j;
-                int blockSizeBytes = 1 << (j + 1);
-                for (int blockStart = 0; blockStart < n; blockStart += blockSizeBytes)
+                ComputeLevelInt64(arr, table, n, j);
+            }
+        }
+
+        private static int CalculateLevels(int n)
+        {
+            int levels = 0;
+            while ((1 << levels) < n) levels++;
+            return levels == 0 ? 1 : levels;
+        }
+
+        private static void InitializeLevel0(long* arr, long* table, int n)
+        {
+            for (int i = 0; i < n; i++) table[i] = arr[i];
+        }
+
+        private static void ComputeLevelInt64(long* arr, long* table, int n, int j)
+        {
+            int half = 1 << j;
+            int blockLen = 1 << (j + 1);
+            for (int start = 0; start < n; start += blockLen)
+            {
+                int mid = Math.Min(start + half - 1, n - 1);
+                ProcessLeftBlock(arr, table, n, j, start, mid);
+                if (mid + 1 < n)
                 {
-                    int mid = blockStart + half - 1;
-                    if (mid >= n) mid = n - 1;
-
-                    long currentMin = arr[mid];
-                    table[j * n + mid] = currentMin;
-                    for (int i = mid - 1; i >= blockStart; i--)
-                    {
-                        currentMin = currentMin < arr[i] ? currentMin : arr[i];
-                        table[j * n + i] = currentMin;
-                    }
-
-                    if (mid + 1 < n)
-                    {
-                        currentMin = arr[mid + 1];
-                        table[j * n + mid + 1] = currentMin;
-                        int end = Math.Min(blockStart + blockSizeBytes - 1, n - 1);
-                        for (int i = mid + 2; i <= end; i++)
-                        {
-                            currentMin = currentMin < arr[i] ? currentMin : arr[i];
-                            table[j * n + i] = currentMin;
-                        }
-                    }
+                    int end = Math.Min(start + blockLen - 1, n - 1);
+                    ProcessRightBlock(arr, table, n, j, mid + 1, end);
                 }
             }
         }
-    }
 
-    public static unsafe class DisjointSparseQuery
-    {
-        public static long RangeMinInt64(long* table, int* blockSize, int l, int r)
+        private static void ProcessLeftBlock(long* arr, long* table, int n, int j, int start, int mid)
         {
-            if (l == r)
+            long cur = arr[mid];
+            table[j * n + mid] = cur;
+            for (int i = mid - 1; i >= start; i--)
             {
-                return table[l];
-            }
-            int n = *blockSize;
-            int diff = l ^ r;
-            int j = 0;
-            while ((1 << (j + 1)) <= diff) j++;
-            long left = table[j * n + l];
-            long right = table[j * n + r];
-            return left < right ? left : right;
-        }
-    }
-
-    public static unsafe class SqrtDecomposeBuild
-    {
-        public static void Run(int* arr, int* blocks, int* blockSize, int n)
-        {
-            int b = 0;
-            while ((b + 1) * (b + 1) <= n) b++;
-            *blockSize = b == 0 ? n : b;
-            for (int i = 0; i < n; i++)
-            {
-                int block = i / (*blockSize);
-                if (i == 0 || i % (*blockSize) == 0)
-                    blocks[block] = arr[i];
-                else
-                    blocks[block] = Math.Min(blocks[block], arr[i]);
+                cur = cur < arr[i] ? cur : arr[i];
+                table[j * n + i] = cur;
             }
         }
-    }
 
-    public static unsafe class SqrtUpdate
-    {
-        public static void Run(int* arr, int* blocks, int blockSize, int idx, int val, int n)
+        private static void ProcessRightBlock(long* arr, long* table, int n, int j, int start, int end)
         {
-            arr[idx] = val;
-            int block = idx / blockSize;
-            int start = block * blockSize;
-            int end = Math.Min(start + blockSize - 1, n - 1);
-            int minVal = arr[start];
+            long cur = arr[start];
+            table[j * n + start] = cur;
             for (int i = start + 1; i <= end; i++)
-                minVal = Math.Min(minVal, arr[i]);
-            blocks[block] = minVal;
-        }
-    }
-
-    public static unsafe class SqrtQuery
-    {
-        public static int RangeMin(int* arr, int* blocks, int blockSize, int l, int r, int n)
-        {
-            int minVal = int.MaxValue;
-            while (l <= r && l % blockSize != 0)
             {
-                minVal = Math.Min(minVal, arr[l]);
-                l++;
+                cur = cur < arr[i] ? cur : arr[i];
+                table[j * n + i] = cur;
             }
-            while (l + blockSize <= r)
-            {
-                minVal = Math.Min(minVal, blocks[l / blockSize]);
-                l += blockSize;
-            }
-            while (l <= r)
-            {
-                minVal = Math.Min(minVal, arr[l]);
-                l++;
-            }
-            return minVal;
-        }
-    }
-
-    public static unsafe class WaveletTreeBuild
-    {
-        public static void Run(int* arr, int* left, int* right, int* b, int node, int l, int r, int maxVal)
-        {
-            if (l > r) return;
-            left[node] = l;
-            right[node] = r;
-            if (l == r) { b[node] = 0; return; }
-            int mid = (l + r) >> 1;
-            int lo = l, hi = r;
-            while (lo <= hi)
-            {
-                int m = (lo + hi) >> 1;
-                if (arr[m] <= mid) lo = m + 1;
-                else hi = m - 1;
-            }
-            int leftCount = lo - l;
-            b[node] = leftCount;
-            left[node * 2] = l;
-            left[node * 2 + 1] = lo;
-            right[node * 2] = lo - 1;
-            right[node * 2 + 1] = r;
-            Run(arr, left, right, b, node * 2, l, mid, maxVal);
-            Run(arr, left, right, b, node * 2 + 1, mid + 1, r, maxVal);
-        }
-
-        public static void RunIndex(int* data, int n, int maxVal, int* left, int* right, int* b, int node, int l, int r)
-        {
-            if (l > r) return;
-            if (l == r) { b[node] = l; return; }
-            int mid = (l + r) >> 1;
-            int lo = l, hi = r;
-            while (lo <= hi)
-            {
-                int m = (lo + hi) >> 1;
-                if (data[m] <= mid) lo = m + 1;
-                else hi = m - 1;
-            }
-            int leftCount = lo - l;
-            b[node] = leftCount;
-            left[node * 2] = l;
-            left[node * 2 + 1] = lo;
-            right[node * 2] = lo - 1;
-            right[node * 2 + 1] = r;
-            RunIndex(data, n, maxVal, left, right, b, node * 2, l, mid);
-            RunIndex(data, n, maxVal, left, right, b, node * 2 + 1, mid + 1, r);
-        }
-    }
-
-    public static unsafe class WaveletRank
-    {
-        public static int Run(int* left, int* right, int* b, int node, int l, int r, int k, int val)
-        {
-            if (l > r || k < l || k > r) return 0;
-            if (l == r) return 1;
-            int leftCount = b[node];
-            if (val <= right[node * 2])
-                return Run(left, right, b, node * 2, l, l + leftCount - 1, k, val);
-            return Run(left, right, b, node * 2 + 1, l + leftCount, r, k, val);
-        }
-    }
-
-    public static unsafe class WaveletSelect
-    {
-        public static int Run(int* left, int* right, int* b, int node, int l, int r, int k, int val)
-        {
-            if (l > r || k < l || k > r) return -1;
-            if (l == r) return l;
-            int leftCount = b[node];
-            if (val <= right[node * 2])
-                return Run(left, right, b, node * 2, l, l + leftCount - 1, k, val);
-            return Run(left, right, b, node * 2 + 1, l + leftCount, r, k, val);
-        }
-    }
-
-    public static unsafe class WaveletKth
-    {
-        public static int Run(int* left, int* right, int* b, int node, int l, int r, int ql, int qr, int k)
-        {
-            if (ql > r || qr < l || k < 1) return -1;
-            if (l == r) return l;
-            int leftCount = b[node];
-            int inLeft = Math.Min(qr, right[node * 2]) - Math.Max(ql, l) + 1;
-            inLeft = Math.Max(0, inLeft);
-            if (k <= inLeft)
-                return Run(left, right, b, node * 2, l, l + leftCount - 1, ql, Math.Min(qr, right[node * 2]), k);
-            return Run(left, right, b, node * 2 + 1, l + leftCount, r, Math.Max(ql, l + leftCount), qr, k - inLeft);
-        }
-    }
-
-    public static unsafe class WaveletRangeFreq
-    {
-        public static int Run(int* left, int* right, int* b, int node, int l, int r, int ql, int qr, int a, int b_)
-        {
-            if (ql > r || qr < l) return 0;
-            if (l >= ql && r <= qr)
-            {
-                if (a <= left[node] && right[node] <= b_) return r - l + 1;
-                return 0;
-            }
-            int leftCount = b[node];
-            int mid = (left[node] + right[node]) >> 1;
-            int leftL = l, leftR = l + leftCount - 1;
-            int rightL = l + leftCount, rightR = r;
-            return Run(left, right, b, node * 2, leftL, leftR, ql, qr, a, b_) +
-                   Run(left, right, b, node * 2 + 1, rightL, rightR, ql, qr, a, b_);
-        }
-    }
-
-    public static unsafe class WaveletTreeRangeSum
-    {
-        public static int Run(int* left, int* right, int* b, int node, int l, int r, int ql, int qr, int a, int b_, int* data)
-        {
-            if (ql > r || qr < l) return 0;
-            if (l >= ql && r <= qr)
-            {
-                int sum = 0;
-                for (int i = l; i <= r; i++)
-                    if (a <= data[i] && data[i] <= b_) sum++;
-                return sum;
-            }
-            int leftCount = b[node];
-            return Run(left, right, b, node * 2, l, l + leftCount - 1, ql, qr, a, b_, data) +
-                   Run(left, right, b, node * 2 + 1, l + leftCount, r, ql, qr, a, b_, data);
-        }
-    }
-
-    public static unsafe class WaveletTreeLessThan
-    {
-        public static int Run(int* left, int* right, int* b, int node, int l, int r, int k, int val)
-        {
-            if (l > r || k > r) return 0;
-            if (l == r) return (val >= left[node]) ? (k >= l ? 1 : 0) : 0;
-            int leftCount = b[node];
-            int inLeft = Math.Min(r, leftCount) - Math.Max(l, 0) + 1;
-            inLeft = Math.Max(0, inLeft);
-            if (val <= right[node * 2])
-                return Run(left, right, b, node * 2, l, l + leftCount - 1, k, val);
-            return inLeft + Run(left, right, b, node * 2 + 1, l + leftCount, r, k, val);
-        }
-    }
-
-    public static unsafe class SuccinctWaveletBuild
-    {
-        public static int Run(int* data, int n, int maxVal, int* bitmaps, int* ranks, int* mids, int log)
-        {
-            for (int b = 0; b < log; b++)
-            {
-                int ones = 0;
-                for (int i = 0; i < n; i++)
-                {
-                    bitmaps[b * (n + 1) + i] = ((data[i] >> b) & 1);
-                    if (bitmaps[b * (n + 1) + i] == 1) ones++;
-                }
-                bitmaps[b * (n + 1) + n] = 0;
-                ranks[b * (n + 1) + 0] = 0;
-                for (int i = 1; i <= n; i++)
-                    ranks[b * (n + 1) + i] = ranks[b * (n + 1) + i - 1] + bitmaps[b * (n + 1) + i - 1];
-                mids[b] = ones;
-            }
-            return log;
-        }
-    }
-
-    public static unsafe class SuccinctWaveletRank
-    {
-        public static int Run(int* bitmaps, int* ranks, int* mids, int b, int l, int r, int k, int val)
-        {
-            if (l > r || k < l || k > r) return 0;
-            int* rk = ranks + b * (r + 1);
-            int* bm = bitmaps + b * (r + 1);
-            if (k == l && l == r) return 1;
-            int leftCount = rk[r + 1] - rk[l];
-            int bit = (val >> b) & 1;
-            if (bit == 0) return Run(bitmaps, ranks, mids, b + 1, rk[l], rk[r + 1] - 1, k, val);
-            int mid = mids[b];
-            return Run(bitmaps, ranks, mids, b + 1, mid + (l - rk[l]), mid + (r - rk[r + 1] + 1) - 1, k, val);
-        }
-    }
-
-    public static unsafe class SuccinctWaveletSelect
-    {
-        public static int Run(int* bitmaps, int* ranks, int* mids, int b, int l, int r, int k, int val)
-        {
-            if (l > r || k < l || k > r) return -1;
-            if (l == r) return l;
-            int* rk = ranks + b * (r + 1);
-            int* bm = bitmaps + b * (r + 1);
-            int leftCount = rk[r + 1] - rk[l];
-            int bit = (val >> b) & 1;
-            if (bit == 0) return Run(bitmaps, ranks, mids, b + 1, rk[l], rk[r + 1] - 1, k, val);
-            int mid = mids[b];
-            return Run(bitmaps, ranks, mids, b + 1, mid + (l - rk[l]), mid + (r - rk[r + 1] + 1) - 1, k, val);
         }
     }
 }

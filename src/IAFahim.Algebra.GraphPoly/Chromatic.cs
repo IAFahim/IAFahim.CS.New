@@ -6,6 +6,21 @@ namespace IAFahim.Algebra.GraphPoly
     public static unsafe class Chromatic
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsIndependentSet(int n, bool* adj, int mask)
+        {
+            for (int i = 0; i < n; i++)
+            {
+                if ((mask & (1 << i)) == 0) continue;
+                for (int j = i + 1; j < n; j++)
+                {
+                    if ((mask & (1 << j)) == 0) continue;
+                    if (adj[i * n + j]) return false;
+                }
+            }
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Subset(int n, bool* adj, int MOD, long* coeffs)
         {
             int size = 1 << n;
@@ -13,24 +28,19 @@ namespace IAFahim.Algebra.GraphPoly
             for (int i = 0; i <= n; i++) indep[i] = 0;
             for (int mask = 0; mask < size; mask++)
             {
-                bool valid = true;
-                for (int i = 0; i < n && valid; i++)
-                {
-                    if ((mask & (1 << i)) == 0) continue;
-                    for (int j = i + 1; j < n && valid; j++)
-                    {
-                        if ((mask & (1 << j)) == 0) continue;
-                        if (adj[i * n + j]) valid = false;
-                    }
-                }
-                if (valid)
+                if (IsIndependentSet(n, adj, mask))
                 {
                     int bits = 0;
-                    for (int v = 0; v < n; v++)
-                        if ((mask & (1 << v)) != 0) bits++;
+                    int m = mask;
+                    while (m > 0) { if ((m & 1) != 0) bits++; m >>= 1; }
                     indep[bits]++;
                 }
             }
+            CalculateCoefficients(n, MOD, coeffs, indep);
+        }
+
+        private static void CalculateCoefficients(int n, int MOD, long* coeffs, long* indep)
+        {
             for (int k = 0; k <= n; k++)
             {
                 long c = 0;
@@ -51,16 +61,21 @@ namespace IAFahim.Algebra.GraphPoly
             Subset(n, adj, MOD, coeffs);
             for (int k = 1; k <= n; k++)
             {
-                long val = 0;
-                long kPow = 1;
-                for (int i = 0; i <= n; i++)
-                {
-                    val = (val + coeffs[i] * kPow) % MOD;
-                    kPow = kPow * k % MOD;
-                }
-                if (val > 0) return k;
+                if (EvaluatePolynomial(n, coeffs, k, MOD) > 0) return k;
             }
             return n;
+        }
+
+        private static long EvaluatePolynomial(int n, long* coeffs, int x, int MOD)
+        {
+            long val = 0;
+            long xPow = 1;
+            for (int i = 0; i <= n; i++)
+            {
+                val = (val + coeffs[i] * xPow) % MOD;
+                xPow = xPow * x % MOD;
+            }
+            return val;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -78,9 +93,16 @@ namespace IAFahim.Algebra.GraphPoly
             for (int i = 0; i <= n; i++) row[i] = 0;
             row[0] = 1;
             for (int i = 1; i <= n; i++)
-                for (int j = i; j >= 1; j--)
-                    row[j] = (row[j - 1] + (MOD - (long)(i - 1) % MOD) % MOD * row[j]) % MOD;
+                UpdateStirlingRow(i, row, MOD);
             return row[k];
+        }
+
+        private static void UpdateStirlingRow(int i, long* row, int MOD)
+        {
+            long factor = (MOD - (long)(i - 1) % MOD) % MOD;
+            for (int j = i; j >= 1; j--)
+                row[j] = (row[j - 1] + factor * row[j]) % MOD;
+            row[0] = 0;
         }
     }
 }

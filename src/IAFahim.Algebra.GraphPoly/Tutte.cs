@@ -6,46 +6,38 @@ namespace IAFahim.Algebra.GraphPoly
     public static unsafe class Tutte
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int Find(int* parent, int i) { while (parent[i] != i) i = parent[i]; return i; }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int CountComponents(int n, int edges, int* from, int* to, int mask, int* parent)
+        {
+            for (int i = 0; i < n; i++) parent[i] = i;
+            for (int e = 0; e < edges; e++)
+                if ((mask & (1 << e)) != 0) { int u = Find(parent, from[e]), v = Find(parent, to[e]); if (u != v) parent[u] = v; }
+            int comps = 0; for (int i = 0; i < n; i++) if (parent[i] == i) comps++;
+            return comps;
+        }
+
         public static long Subset(int n, int edges, int* from, int* to, long x, long y, int MOD)
         {
-            long result = 0;
-            int size = 1 << edges;
+            long result = 0; int size = 1 << edges;
             int* parent = stackalloc int[n];
-            bool* counted = stackalloc bool[n];
             for (int mask = 0; mask < size; mask++)
             {
-                for (int i = 0; i < n; i++) parent[i] = i;
-                int edgeCount = 0;
-                for (int e = 0; e < edges; e++)
-                {
-                    if ((mask & (1 << e)) == 0) continue;
-                    edgeCount++;
-                    int u = from[e], v = to[e];
-                    while (parent[u] != u) u = parent[u];
-                    while (parent[v] != v) v = parent[v];
-                    if (u != v) parent[u] = v;
-                }
-                for (int i = 0; i < n; i++)
-                {
-                    int r = i;
-                    while (parent[r] != r) r = parent[r];
-                    parent[i] = r;
-                }
-                int components = 0;
-                for (int i = 0; i < n; i++) counted[i] = false;
-                for (int i = 0; i < n; i++)
-                {
-                    int r = i;
-                    while (parent[r] != r) r = parent[r];
-                    if (!counted[r]) { counted[r] = true; components++; }
-                }
-                int internalEdges = edgeCount - (n - components);
-                long xPow = ModPow(x, internalEdges, MOD);
-                long yPow = ModPow(y, edges - edgeCount - (n - components) + internalEdges, MOD);
-                if (edges - edgeCount - (n - components) + internalEdges < 0) yPow = 1;
-                result = (result + xPow * yPow) % MOD;
+                int comps = CountComponents(n, edges, from, to, mask, parent);
+                int edgeCount = PopCount(mask);
+                result = (result + CalculateTerm(n, edges, comps, edgeCount, x, y, MOD)) % MOD;
             }
             return result;
+        }
+
+        private static int PopCount(int m) { int c = 0; while (m > 0) { m &= (m - 1); c++; } return c; }
+
+        private static long CalculateTerm(int n, int totalE, int comps, int eCount, long x, long y, int MOD)
+        {
+            int rank = n - comps, internalE = eCount - rank;
+            long xPow = ModPow(x, internalE, MOD), yPow = ModPow(y, totalE - eCount - rank + internalE, MOD);
+            return xPow * yPow % MOD;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

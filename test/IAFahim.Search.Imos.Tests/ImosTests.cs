@@ -1,20 +1,20 @@
 namespace IAFahim.Search.Imos.Tests
 {
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class Imos1DTests
     {
-        [Fact]
+        [Test]
         public void Add_Normal()
         {
             int* diff = stackalloc int[10];
             for (int i = 0; i < 10; i++) diff[i] = 0;
             Imos1D.Add(diff, 10, 2, 5, 3);
-            Assert.Equal(3, diff[2]);
-            Assert.Equal(-3, diff[6]);
+            Assert.AreEqual(3, diff[2]);
+            Assert.AreEqual(-3, diff[6]);
         }
 
-        [Fact]
+        [Test]
         public void Build_Normal()
         {
             int* diff = stackalloc int[10];
@@ -25,25 +25,25 @@ namespace IAFahim.Search.Imos.Tests
             for (int i = 0; i < 10; i++)
             {
                 if (i < 2 || i > 5)
-                    Assert.Equal(0, dst[i]);
+                    Assert.AreEqual(0, dst[i]);
                 else
-                    Assert.Equal(3, dst[i]);
+                    Assert.AreEqual(3, dst[i]);
             }
         }
     }
 
     public sealed unsafe class Imos2DTests
     {
-        [Fact]
+        [Test]
         public void Add_Normal()
         {
             int* diff = stackalloc int[16];
             for (int i = 0; i < 16; i++) diff[i] = 0;
             Imos2D.Add(diff, 4, 4, 1, 1, 2, 2, 5);
-            Assert.Equal(5, diff[1 * 4 + 1]);
+            Assert.AreEqual(5, diff[1 * 4 + 1]);
         }
 
-        [Fact]
+        [Test]
         public void Build_Normal()
         {
             int* diff = stackalloc int[16];
@@ -56,9 +56,9 @@ namespace IAFahim.Search.Imos.Tests
                 for (int c = 0; c < 4; c++)
                 {
                     if (r >= 1 && r <= 2 && c >= 1 && c <= 2)
-                        Assert.Equal(5, dst[r * 4 + c]);
+                        Assert.AreEqual(5, dst[r * 4 + c]);
                     else
-                        Assert.Equal(0, dst[r * 4 + c]);
+                        Assert.AreEqual(0, dst[r * 4 + c]);
                 }
             }
         }

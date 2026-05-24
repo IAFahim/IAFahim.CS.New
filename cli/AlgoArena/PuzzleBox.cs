@@ -9,21 +9,34 @@ namespace AlgoArena
 
     public static unsafe class PuzzleBox
     {
+        private const int Mod = 1000000007;
+
         public static void Run()
         {
-            Console.WriteLine();
-            Console.WriteLine("╔═══════════════════════════════════════════╗");
+            DisplayHeader();
+            string choice = GetUserChoice();
+            RouteChoice(choice);
+        }
+
+        private static void DisplayHeader()
+        {
+            Console.WriteLine("\n╔═══════════════════════════════════════════╗");
             Console.WriteLine("║        🧩  PUZZLE BOX  🧩                ║");
             Console.WriteLine("║  Master combinatorics and permutations! ║");
-            Console.WriteLine("╚═══════════════════════════════════════════╝");
-            Console.WriteLine();
-
+            Console.WriteLine("╚═══════════════════════════════════════════╝\n");
             Console.WriteLine("  1. Binom Calculator  — choose your path");
             Console.WriteLine("  2. Permutation Forge — generate permutations");
             Console.WriteLine("  3. Gray Code Lab     — binary puzzles");
-            Console.Write("  Choice: ");
-            string choice = Console.ReadLine()?.Trim() ?? "0";
+        }
 
+        private static string GetUserChoice()
+        {
+            Console.Write("  Choice: ");
+            return Console.ReadLine()?.Trim() ?? "0";
+        }
+
+        private static void RouteChoice(string choice)
+        {
             switch (choice)
             {
                 case "1": BinomCalculator(); break;
@@ -35,146 +48,194 @@ namespace AlgoArena
 
         private static void BinomCalculator()
         {
-            Console.WriteLine();
-            Console.WriteLine("  ═══ Binom Calculator ═══");
+            Console.WriteLine("\n  ═══ Binom Calculator ═══");
+            if (!GetNK(out int n, out int k)) return;
+
+            Console.WriteLine($"\n  C({n},{k}) = {Binom.Run(n, k, Mod)}");
+            ExecuteCombinatoricsLogic(n, k);
+        }
+
+        private static bool GetNK(out int n, out int k)
+        {
+            n = 10; k = 5;
             Console.Write("  Enter n: ");
-            string nStr = Console.ReadLine()?.Trim() ?? "10";
+            if (!int.TryParse(Console.ReadLine(), out n)) { Console.WriteLine("Invalid n."); return false; }
             Console.Write("  Enter k: ");
-            string kStr = Console.ReadLine()?.Trim() ?? "5";
+            if (!int.TryParse(Console.ReadLine(), out k)) { Console.WriteLine("Invalid k."); return false; }
+            return true;
+        }
 
-            if (!int.TryParse(nStr, out int n)) { Console.WriteLine("Invalid n."); return; }
-            if (!int.TryParse(kStr, out int k)) { Console.WriteLine("Invalid k."); return; }
-
-            Console.WriteLine();
-            Console.WriteLine($"  C({n},{k}) = {Binom.Run(n, k, 1000000007)}");
-
+        private static void ExecuteCombinatoricsLogic(int n, int k)
+        {
             long* fact = (long*)Marshal.AllocHGlobal((n + 1) * sizeof(long));
             long* invFact = (long*)Marshal.AllocHGlobal((n + 1) * sizeof(long));
-            long* inv = (long*)Marshal.AllocHGlobal((n + 1) * sizeof(long));
             try
             {
-                Factorial.Run(fact, invFact, n, 1000000007);
-                Console.WriteLine($"  Catalan(5) = {Catalan.Run(5, 1000000007)}");
-                Console.WriteLine($"  Stirling2(5,3) = {StirlingSecond.Run(5, 3, 1000000007)}");
-                Console.WriteLine($"  Bell(5) = {BellNumbers.Run(5, 1000000007)}");
-                Console.WriteLine($"  Derangements(5) = {Derangements.Run(5, 1000000007)}");
-
-                long* all = stackalloc long[n + 1];
-                for (int i = 0; i <= n; i++) all[i] = i;
-                IAFahim.Math.Transform.SubsetZeta.Run(all, 1);
-                Console.WriteLine();
-                Console.WriteLine($"  Subset sum ζ(C(0..{n},0..k)): {all[0]}");
-                Console.WriteLine($"  Subset count: {all[n]}");
-
-                Console.WriteLine();
-                Console.WriteLine($"  Number of subsets: {1L << n}");
-                Console.WriteLine($"  Number of subsets of size ≤ {k}: {SumBinom(n, k)}");
+                Factorial.Run(fact, invFact, n, Mod);
+                DisplaySpecialNumbers();
+                DisplaySubsetMetrics(n, k);
             }
             finally
             {
                 Marshal.FreeHGlobal((nint)fact);
                 Marshal.FreeHGlobal((nint)invFact);
-                Marshal.FreeHGlobal((nint)inv);
             }
+        }
+
+        private static void DisplaySpecialNumbers()
+        {
+            Console.WriteLine($"  Catalan(5) = {Catalan.Run(5, Mod)}");
+            Console.WriteLine($"  Stirling2(5,3) = {StirlingSecond.Run(5, 3, Mod)}");
+            Console.WriteLine($"  Bell(5) = {BellNumbers.Run(5, Mod)}");
+            Console.WriteLine($"  Derangements(5) = {Derangements.Run(5, Mod)}");
+        }
+
+        private static void DisplaySubsetMetrics(int n, int k)
+        {
+            long* all = stackalloc long[n + 1];
+            for (int i = 0; i <= n; i++) all[i] = i;
+            SubsetZeta.Run(all, 1);
+
+            Console.WriteLine($"\n  Subset sum ζ(C(0..{n},0..k)): {all[0]}");
+            Console.WriteLine($"  Subset count: {all[n]}");
+            Console.WriteLine($"  Total subsets: {1L << n}");
+            Console.WriteLine($"  Subsets of size ≤ {k}: {SumBinom(n, k)}");
         }
 
         private static long SumBinom(int n, int k)
         {
             long sum = 0;
             for (int i = 0; i <= k && i <= n; i++)
-                sum += Binom.Run(n, i, 1000000007);
+                sum += Binom.Run(n, i, Mod);
             return sum;
         }
 
         private static void PermutationForge()
         {
-            Console.WriteLine();
-            Console.WriteLine("  ═══ Permutation Forge ═══");
-            Console.Write("  Enter numbers (space-separated): ");
-            string input = Console.ReadLine()?.Trim() ?? "1 2 3 4";
-            string[] parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            int n = parts.Length;
+            Console.WriteLine("\n  ═══ Permutation Forge ═══");
+            int[] values = GetPermutationInput();
+            int n = values.Length;
 
             int* arr = (int*)Marshal.AllocHGlobal(n * sizeof(int));
             try
             {
-                for (int i = 0; i < n; i++) arr[i] = int.Parse(parts[i]);
-
-                Console.WriteLine();
-                Console.WriteLine($"  Original: {input}");
-                Console.WriteLine($"  Next permutation: ");
-                bool hasNext = NextPermutation.Run(arr, n);
-                Console.Write("  ");
-                for (int i = 0; i < n; i++) Console.Write($"{arr[i]} ");
-                Console.WriteLine();
-
-                if (n <= 8)
-                {
-                    int total = 1;
-                    for (int i = 2; i <= n; i++) total *= i;
-                    Console.WriteLine();
-                    Console.WriteLine($"  Total permutations: {total}");
-                    Console.Write("  First 10 permutations: ");
-
-                    for (int i = 0; i < n; i++) arr[i] = int.Parse(parts[i]);
-                    int count = 0;
-                    do
-                    {
-                        Console.Write("(");
-                        for (int i = 0; i < n; i++) Console.Write(arr[i]);
-                        Console.Write(") ");
-                        count++;
-                        if (count >= 10) break;
-                    } while (NextPermutation.Run(arr, n));
-                    Console.WriteLine();
-                }
-
-                int* gray = (int*)Marshal.AllocHGlobal(n * sizeof(int));
-                GrayCode.Generate(gray, n);
-                Console.WriteLine();
-                Console.WriteLine($"  Gray code (n={n}):");
-                for (int i = 0; i < (1 << n) && i < 16; i++)
-                    Console.WriteLine($"    {Convert.ToString(i, 2).PadLeft(n, '0')} → {Convert.ToString(gray[i], 2).PadLeft(n, '0')}");
-                Marshal.FreeHGlobal((nint)gray);
+                InitializeBuffer(values, arr);
+                ExecutePermutationSteps(arr, n, values);
+                ExecuteGrayGeneration(n);
             }
             finally { Marshal.FreeHGlobal((nint)arr); }
         }
 
+        private static int[] GetPermutationInput()
+        {
+            Console.Write("  Enter numbers (space-separated): ");
+            string input = Console.ReadLine()?.Trim() ?? "1 2 3 4";
+            string[] parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            int[] result = new int[parts.Length];
+            for (int i = 0; i < parts.Length; i++) int.TryParse(parts[i], out result[i]);
+            return result;
+        }
+
+        private static void InitializeBuffer(int[] source, int* buffer)
+        {
+            for (int i = 0; i < source.Length; i++) buffer[i] = source[i];
+        }
+
+        private static void ExecutePermutationSteps(int* arr, int n, int[] originalValues)
+        {
+            Console.WriteLine("\n  Next permutation: ");
+            NextPermutation.Run(arr, n);
+            PrintArray(arr, n);
+
+            if (n <= 8) DisplayFirstTenPermutations(originalValues, n);
+        }
+
+        private static void PrintArray(int* arr, int n)
+        {
+            Console.Write("  ");
+            for (int i = 0; i < n; i++) Console.Write($"{arr[i]} ");
+            Console.WriteLine();
+        }
+
+        private static void DisplayFirstTenPermutations(int[] initial, int n)
+        {
+            int* arr = (int*)Marshal.AllocHGlobal(n * sizeof(int));
+            try
+            {
+                InitializeBuffer(initial, arr);
+                Console.WriteLine("\n  First 10 permutations: ");
+                int count = 0;
+                do
+                {
+                    Console.Write("(");
+                    for (int i = 0; i < n; i++) Console.Write(arr[i]);
+                    Console.Write(") ");
+                    count++;
+                } while (count < 10 && NextPermutation.Run(arr, n));
+                Console.WriteLine();
+            }
+            finally { Marshal.FreeHGlobal((nint)arr); }
+        }
+
+        private static void ExecuteGrayGeneration(int n)
+        {
+            int* gray = (int*)Marshal.AllocHGlobal((1 << n) * sizeof(int));
+            try
+            {
+                GrayCode.Generate(gray, n);
+                Console.WriteLine($"\n  Gray code sequence (n={n}, first 16):");
+                int limit = Math.Min(1 << n, 16);
+                for (int i = 0; i < limit; i++)
+                    Console.WriteLine($"    {Convert.ToString(i, 2).PadLeft(n, '0')} → {Convert.ToString(gray[i], 2).PadLeft(n, '0')}");
+            }
+            finally { Marshal.FreeHGlobal((nint)gray); }
+        }
+
         private static void GrayCodeLab()
         {
-            Console.WriteLine();
-            Console.WriteLine("  ═══ Gray Code Lab ═══");
-            Console.Write("  Enter number to convert: ");
-            string input = Console.ReadLine()?.Trim() ?? "13";
-            if (!int.TryParse(input, out int num)) { Console.WriteLine("Invalid number."); return; }
+            Console.WriteLine("\n  ═══ Gray Code Lab ═══");
+            Console.Write("  Enter number: ");
+            if (!int.TryParse(Console.ReadLine(), out int num)) return;
 
-            Console.WriteLine();
-            Console.WriteLine($"  Binary: {Convert.ToString(num, 2)}");
+            DisplayGrayConversions(num);
+            ExecuteGraySequence(4);
+            ExecuteBasisLogic(num);
+        }
+
+        private static void DisplayGrayConversions(int num)
+        {
             int gray = GrayCode.ToGray(num);
-            Console.WriteLine($"  Gray:   {Convert.ToString(gray, 2)}");
             int back = GrayCode.FromGray(gray);
-            Console.WriteLine($"  Binary again: {Convert.ToString(back, 2)}");
-            Console.WriteLine($"  Match: {(num == back ? "✅" : "❌")}");
+            Console.WriteLine($"\n  Binary: {Convert.ToString(num, 2)}");
+            Console.WriteLine($"  Gray:   {Convert.ToString(gray, 2)}");
+            Console.WriteLine($"  Match:  {(num == back ? "✅" : "❌")}");
+        }
 
-            Console.WriteLine();
-            Console.WriteLine("  Gray code sequence for 4 bits:");
-            for (int i = 0; i < 16; i++)
+        private static void ExecuteGraySequence(int bits)
+        {
+            Console.WriteLine($"\n  Gray code sequence for {bits} bits:");
+            for (int i = 0; i < (1 << bits); i++)
             {
                 int g = GrayCode.ToGray(i);
-                Console.WriteLine($"    {Convert.ToString(i, 2).PadLeft(4, '0')} → {Convert.ToString(g, 2).PadLeft(4, '0')}");
+                Console.WriteLine($"    {Convert.ToString(i, 2).PadLeft(bits, '0')} → {Convert.ToString(g, 2).PadLeft(bits, '0')}");
             }
+        }
 
+        private static void ExecuteBasisLogic(int num)
+        {
             long* basis = (long*)Marshal.AllocHGlobal(64 * sizeof(long));
             int* basisSize = (int*)Marshal.AllocHGlobal(sizeof(int));
             *basisSize = 0;
             try
             {
-                IAFahim.Math.Transform.XorBasisInsert.Run(basis, basisSize, num);
-                long maxXor = IAFahim.Math.Transform.XorBasisMax.Run(basis);
-                Console.WriteLine();
-                Console.WriteLine($"  Max XOR from basis (num={num}): {maxXor}");
+                XorBasisInsert.Run(basis, basisSize, num);
+                Console.WriteLine($"\n  Max XOR from basis: {XorBasisMax.Run(basis)}");
             }
-            finally { Marshal.FreeHGlobal((nint)basis); Marshal.FreeHGlobal((nint)basisSize); }
+            finally
+            {
+                Marshal.FreeHGlobal((nint)basis);
+                Marshal.FreeHGlobal((nint)basisSize);
+            }
         }
     }
 }

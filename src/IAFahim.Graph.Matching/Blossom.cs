@@ -82,6 +82,12 @@ namespace IAFahim.Graph.Matching
         private static int GetLca(int n, int* base_, int* parent, int* match, int* inPath, int u, int v)
         {
             for (int i = 0; i < n; i++) inPath[i] = 0;
+            u = FindBase(base_, parent, match, u, inPath);
+            return FindLca(base_, parent, match, v, inPath);
+        }
+
+        private static int FindBase(int* base_, int* parent, int* match, int u, int* inPath)
+        {
             while (true)
             {
                 u = base_[u];
@@ -89,6 +95,11 @@ namespace IAFahim.Graph.Matching
                 if (match[u] == -1) break;
                 u = base_[parent[match[u]]];
             }
+            return u;
+        }
+
+        private static int FindLca(int* base_, int* parent, int* match, int v, int* inPath)
+        {
             while (true)
             {
                 v = base_[v];
@@ -103,36 +114,23 @@ namespace IAFahim.Graph.Matching
             {
                 parent[u] = v;
                 int mv = match[u];
-                if (color[mv] == 1)
-                {
-                    color[mv] = 0;
-                    q[qt++] = mv;
-                }
-                int oldBaseU = base_[u];
-                int oldBaseMv = base_[mv];
-                for (int i = 0; i < n; i++)
-                {
-                    if (base_[i] == oldBaseU || base_[i] == oldBaseMv)
-                    {
-                        base_[i] = lca;
-                    }
-                }
+                if (color[mv] == 1) { color[mv] = 0; q[qt++] = mv; }
+                
+                UpdateBases(n, base_, base_[u], base_[mv], lca);
                 v = mv;
                 u = parent[v];
             }
         }
 
-        private static bool FindAugmentingPath(int n, int* head, int* to, int* next, int* match, int* parent, int* base_, int* color, int* q, int* inPath, int s)
+        private static void UpdateBases(int n, int* base_, int oldU, int oldMv, int lca)
         {
             for (int i = 0; i < n; i++)
-            {
-                color[i] = -1;
-                parent[i] = -1;
-                base_[i] = i;
-            }
-            int qh = 0, qt = 0;
-            color[s] = 0;
-            q[qt++] = s;
+                if (base_[i] == oldU || base_[i] == oldMv) base_[i] = lca;
+        }
+
+        private static bool FindAugmentingPath(int n, int* head, int* to, int* next, int* match, int* parent, int* base_, int* color, int* q, int* inPath, int s)
+        {
+            InitializeSearch(n, s, color, parent, base_, q, out int qh, out int qt);
             while (qh < qt)
             {
                 int u = q[qh++];
@@ -140,56 +138,59 @@ namespace IAFahim.Graph.Matching
                 {
                     int v = to[e];
                     if (base_[u] == base_[v] || match[u] == v) continue;
-                    if (color[v] == -1)
-                    {
-                        if (match[v] == -1)
-                        {
-                            parent[v] = u;
-                            int cur = v;
-                            while (cur != -1)
-                            {
-                                int pNode = parent[cur];
-                                int nextMatched = match[pNode];
-                                match[cur] = pNode;
-                                match[pNode] = cur;
-                                cur = nextMatched;
-                            }
-                            return true;
-                        }
-                        color[v] = 1;
-                        parent[v] = u;
-                        int mv = match[v];
-                        color[mv] = 0;
-                        parent[mv] = v;
-                        q[qt++] = mv;
-                    }
-                    else if (color[v] == 0)
-                    {
-                        int lca = GetLca(n, base_, parent, match, inPath, u, v);
-                        Contract(n, base_, parent, match, color, q, ref qt, u, v, lca);
-                        Contract(n, base_, parent, match, color, q, ref qt, v, u, lca);
-                    }
+                    if (ProcessNeighbor(n, head, to, next, match, parent, base_, color, q, ref qt, inPath, u, v)) return true;
                 }
             }
             return false;
         }
 
+        private static void InitializeSearch(int n, int s, int* color, int* parent, int* base_, int* q, out int qh, out int qt)
+        {
+            for (int i = 0; i < n; i++) { color[i] = -1; parent[i] = -1; base_[i] = i; }
+            qh = 0; qt = 0;
+            color[s] = 0; q[qt++] = s;
+        }
+
+        private static bool ProcessNeighbor(int n, int* head, int* to, int* next, int* match, int* parent, int* base_, int* color, int* q, ref int qt, int* inPath, int u, int v)
+        {
+            if (color[v] == -1)
+            {
+                if (match[v] == -1) { AugmentPath(match, parent, u, v); return true; }
+                color[v] = 1; parent[v] = u;
+                int mv = match[v];
+                color[mv] = 0; parent[mv] = v;
+                q[qt++] = mv;
+            }
+            else if (color[v] == 0)
+            {
+                int lca = GetLca(n, base_, parent, match, inPath, u, v);
+                Contract(n, base_, parent, match, color, q, ref qt, u, v, lca);
+                Contract(n, base_, parent, match, color, q, ref qt, v, u, lca);
+            }
+            return false;
+        }
+
+        private static void AugmentPath(int* match, int* parent, int u, int v)
+        {
+            parent[v] = u;
+            int cur = v;
+            while (cur != -1)
+            {
+                int pNode = parent[cur];
+                int nextMatched = match[pNode];
+                match[cur] = pNode;
+                match[pNode] = cur;
+                cur = nextMatched;
+            }
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Run(int n, int* head, int* to, int* next, int* match, int* base_, int* p, int* v, int* blossom, int* scratch)
         {
-            for (int i = 0; i < n; i++)
-            {
-                match[i] = -1;
-            }
+            for (int i = 0; i < n; i++) match[i] = -1;
             int result = 0;
             for (int s = 0; s < n; s++)
-            {
-                if (match[s] != -1) continue;
-                if (FindAugmentingPath(n, head, to, next, match, p, base_, v, scratch, blossom, s))
-                {
-                    result++;
-                }
-            }
+                if (match[s] == -1 && FindAugmentingPath(n, head, to, next, match, p, base_, v, scratch, blossom, s)) result++;
             return result;
         }
 
@@ -201,19 +202,6 @@ namespace IAFahim.Graph.Matching
         }
     }
 
-    public static unsafe class EdmondsMatching
-    {
-        public static int Run(int n, int* head, int* to, int* next, int* match)
-        {
-            for (int i = 0; i < n; i++) match[i] = -1;
-            int* base_ = stackalloc int[n];
-            int* p = stackalloc int[n];
-            int* v = stackalloc int[n];
-            int* blossom = stackalloc int[n];
-            return BlossomGeneral.Run(n, head, to, next, match, base_, p, v, blossom);
-        }
-    }
-
     public static unsafe class WeightedBlossom
     {
         public static long Run(int n, long* w, int* match)
@@ -221,44 +209,50 @@ namespace IAFahim.Graph.Matching
             for (int i = 0; i < n; i++) match[i] = -1;
             long* potentials = stackalloc long[n];
             for (int i = 0; i < n; i++) potentials[i] = 0;
+
+            for (int i = 0; i < n; i++)
+            {
+                if (match[i] == -1) min_cost_augment(n, i, w, potentials, match);
+            }
+            return CalculateTotalWeight(n, w, match);
+        }
+
+        private static void min_cost_augment(int n, int i, long* w, long* potentials, int* match)
+        {
+            long* dist = stackalloc long[n];
+            int* parent = stackalloc int[n];
+            for (int j = 0; j < n; j++) { dist[j] = long.MaxValue; parent[j] = -1; }
+            dist[i] = 0;
+            MinHeap pq = new MinHeap(n);
+            try
+            {
+                pq.PushOrUpdate(i, 0);
+                while (pq.Size > 0)
+                {
+                    int u = pq.Pop(out long d);
+                    if (d != dist[u]) continue;
+                    RelaxEdges(n, u, i, w, potentials, dist, parent, &pq);
+                }
+            }
+            finally { pq.Dispose(); }
+            for (int j = 0; j < n; j++) if (dist[j] != long.MaxValue) potentials[j] += dist[j];
+        }
+
+        private static void RelaxEdges(int n, int u, int i, long* w, long* potentials, long* dist, int* parent, MinHeap* pq)
+        {
+            for (int j = 0; j < n; j++)
+            {
+                if (i == j) continue;
+                long ndist = dist[u] + w[u * n + j] - potentials[u] - potentials[j];
+                if (ndist < dist[j]) { dist[j] = ndist; parent[j] = u; pq->PushOrUpdate(j, ndist); }
+            }
+        }
+
+        private static long CalculateTotalWeight(int n, long* w, int* match)
+        {
             long result = 0;
             for (int i = 0; i < n; i++)
-            {
-                if (match[i] != -1) continue;
-                long* dist = stackalloc long[n];
-                for (int j = 0; j < n; j++) dist[j] = long.MaxValue;
-                int* parent = stackalloc int[n];
-                for (int j = 0; j < n; j++) parent[j] = -1;
-                dist[i] = 0;
-                var pq = new MinHeap(n);
-                try
-                {
-                    pq.PushOrUpdate(i, 0);
-                    while (pq.Size > 0)
-                    {
-                        int u = pq.Pop(out long d);
-                        if (d != dist[u]) continue;
-                        for (int j = 0; j < n; j++)
-                        {
-                            if (i == j) continue;
-                            long ndist = d + w[u * n + j] - potentials[u] - potentials[j];
-                            if (ndist < dist[j])
-                            {
-                                dist[j] = ndist;
-                                parent[j] = u;
-                                pq.PushOrUpdate(j, ndist);
-                            }
-                        }
-                    }
-                }
-                finally { pq.Dispose(); }
-                for (int j = 0; j < n; j++) potentials[j] += dist[j];
-            }
-            for (int i = 0; i < n; i++)
-            {
-                if (match[i] != -1)
-                    result += w[i * n + match[i]];
-            }
+                if (match[i] != -1) result += w[i * n + match[i]];
             return result;
         }
     }

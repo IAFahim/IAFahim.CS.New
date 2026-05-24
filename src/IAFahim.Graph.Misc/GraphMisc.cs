@@ -12,12 +12,10 @@ namespace IAFahim.Graph.Misc
                 int u = order[i];
                 for (int e = head[u]; e != 0; e = next[e])
                 {
-                    int v = to[e];
-                    if (dp[u] + 1 > dp[v]) dp[v] = dp[u] + 1;
+                    int v = to[e]; if (dp[u] + 1 > dp[v]) dp[v] = dp[u] + 1;
                 }
             }
-            long max = 0;
-            for (int i = 0; i < n; i++) if (dp[i] > max) max = dp[i];
+            long max = 0; for (int i = 0; i < n; i++) if (dp[i] > max) max = dp[i];
             return max;
         }
     }
@@ -26,20 +24,13 @@ namespace IAFahim.Graph.Misc
     {
         public static long Run(int n, long* dp, int* next, long* values)
         {
-            long* visited = stackalloc long[n];
-            for (int i = 0; i < n; i++) visited[i] = 0;
+            long* visited = stackalloc long[n]; for (int i = 0; i < n; i++) visited[i] = 0;
             long maxSum = 0;
             for (int start = 0; start < n; start++)
             {
                 if (visited[start] != 0) continue;
-                int cur = start;
-                long sum = 0;
-                while (visited[cur] == 0)
-                {
-                    visited[cur] = 1;
-                    sum += values[cur];
-                    cur = next[cur];
-                }
+                int cur = start; long sum = 0;
+                while (visited[cur] == 0) { visited[cur] = 1; sum += values[cur]; cur = next[cur]; }
                 if (sum > maxSum) maxSum = sum;
             }
             return maxSum;
@@ -50,32 +41,17 @@ namespace IAFahim.Graph.Misc
     {
         public static long Run(int n, int* sccId, long* sccSum, int* sccEdges, int* sccNext, int* sccHead, int sccCount)
         {
-            long* dp = stackalloc long[sccCount];
-            int* topoOrder = stackalloc int[sccCount];
-            int* queue = stackalloc int[sccCount];
-            int* inDeg = stackalloc int[sccCount];
+            long* dp = stackalloc long[sccCount]; int* inDeg = stackalloc int[sccCount];
             for (int i = 0; i < sccCount; i++) { dp[i] = sccSum[i]; inDeg[i] = 0; }
-            for (int u = 0; u < sccCount; u++)
-                for (int e = sccHead[u]; e != 0; e = sccNext[e])
-                    inDeg[sccEdges[e]]++;
-            int front = 0, rear = 0;
-            for (int i = 0; i < sccCount; i++)
-                if (inDeg[i] == 0) queue[rear++] = i;
-            while (front < rear)
-            {
-                int u = queue[front++];
-                for (int e = sccHead[u]; e != 0; e = sccNext[e])
-                {
-                    int v = sccEdges[e];
-                    if (dp[u] + sccSum[v] > dp[v]) dp[v] = dp[u] + sccSum[v];
-                    inDeg[v]--;
-                    if (inDeg[v] == 0) queue[rear++] = v;
-                }
-            }
-            long max = 0;
-            for (int i = 0; i < sccCount; i++) if (dp[i] > max) max = dp[i];
+            ComputeInDegrees(sccCount, sccHead, sccNext, sccEdges, inDeg);
+            int* q = stackalloc int[sccCount]; int qh = 0, qt = 0;
+            for (int i = 0; i < sccCount; i++) if (inDeg[i] == 0) q[qt++] = i;
+            while (qh < qt) ProcessScc(q[qh++], sccHead, sccNext, sccEdges, sccSum, dp, inDeg, q, ref qt);
+            long max = 0; for (int i = 0; i < sccCount; i++) if (dp[i] > max) max = dp[i];
             return max;
         }
+        private static void ComputeInDegrees(int cnt, int* head, int* next, int* edges, int* inDeg) { for (int u = 0; u < cnt; u++) for (int e = head[u]; e != 0; e = next[e]) inDeg[edges[e]]++; }
+        private static void ProcessScc(int u, int* head, int* next, int* edges, long* sum, long* dp, int* inDeg, int* q, ref int qt) { for (int e = head[u]; e != 0; e = next[e]) { int v = edges[e]; if (dp[u] + sum[v] > dp[v]) dp[v] = dp[u] + sum[v]; if (--inDeg[v] == 0) q[qt++] = v; } }
     }
 
     public static unsafe class DagReachability
@@ -84,13 +60,10 @@ namespace IAFahim.Graph.Misc
         {
             for (int i = n - 1; i >= 0; i--)
             {
-                int u = order[i];
-                bitsets[u * bitsetSize + (u >> 6)] |= 1L << (u & 63);
+                int u = order[i]; bitsets[u * bitsetSize + (u >> 6)] |= 1L << (u & 63);
                 for (int e = head[u]; e != 0; e = next[e])
                 {
-                    int v = to[e];
-                    for (int j = 0; j < bitsetSize; j++)
-                        bitsets[u * bitsetSize + j] |= bitsets[v * bitsetSize + j];
+                    int v = to[e]; for (int j = 0; j < bitsetSize; j++) bitsets[u * bitsetSize + j] |= bitsets[v * bitsetSize + j];
                 }
             }
         }
@@ -100,14 +73,10 @@ namespace IAFahim.Graph.Misc
     {
         public static void Run(int n, int* adj, int* closure)
         {
-            for (int i = 0; i < n; i++)
-                for (int j = 0; j < n; j++)
-                    closure[i * n + j] = adj[i * n + j];
+            for (int i = 0; i < n * n; i++) closure[i] = adj[i];
             for (int k = 0; k < n; k++)
                 for (int i = 0; i < n; i++)
-                    for (int j = 0; j < n; j++)
-                        if (closure[i * n + k] != 0 && closure[k * n + j] != 0)
-                            closure[i * n + j] = 1;
+                    for (int j = 0; j < n; j++) if (closure[i * n + k] != 0 && closure[k * n + j] != 0) closure[i * n + j] = 1;
         }
     }
 
@@ -115,20 +84,13 @@ namespace IAFahim.Graph.Misc
     {
         public static void Run(int n, long* adj, long* closure, int wordsPerRow)
         {
-            for (int i = 0; i < n * wordsPerRow; i++) closure[i] = adj[i];
+            Buffer.MemoryCopy(adj, closure, n * wordsPerRow * sizeof(long), n * wordsPerRow * sizeof(long));
             for (int k = 0; k < n; k++)
             {
-                long kMask = 1L << (k & 63);
-                int kW = k >> 6;
-                for (int i = 0; i < n; i++)
-                {
-                    if ((closure[i * wordsPerRow + kW] & kMask) != 0)
-                    {
-                        for (int j = 0; j < wordsPerRow; j++)
-                            closure[i * wordsPerRow + j] |= closure[k * wordsPerRow + j];
-                    }
-                }
+                long kMask = 1L << (k & 63); int kW = k >> 6;
+                for (int i = 0; i < n; i++) if ((closure[i * wordsPerRow + kW] & kMask) != 0) PerformBitwiseOr(i, k, wordsPerRow, closure);
             }
         }
+        private static void PerformBitwiseOr(int i, int k, int words, long* cls) { for (int j = 0; j < words; j++) cls[i * words + j] |= cls[k * words + j]; }
     }
 }

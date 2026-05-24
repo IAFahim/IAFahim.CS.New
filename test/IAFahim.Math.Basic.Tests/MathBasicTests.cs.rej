@@ -1,0 +1,202 @@
+--- test/IAFahim.Math.Basic.Tests/MathBasicTests.cs
++++ test/IAFahim.Math.Basic.Tests/MathBasicTests.cs
+@@ -1,148 +1,148 @@ namespace IAFahim.Math.Basic.Tests
+ {
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class CeilDivTests
+     {
+-        [Fact]
++        [Test]
+         public void Positive_Normal()
+         {
+-            Assert.Equal(4, IAFahim.Math.Basic.CeilDiv.Run(7, 2));
++            Assert.AreEqual(4, IAFahim.Math.Basic.CeilDiv.Run(7, 2));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void ExactDivision()
+         {
+-            Assert.Equal(4, IAFahim.Math.Basic.CeilDiv.Run(8, 2));
++            Assert.AreEqual(4, IAFahim.Math.Basic.CeilDiv.Run(8, 2));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void One()
+         {
+-            Assert.Equal(1, IAFahim.Math.Basic.CeilDiv.Run(1, 5));
++            Assert.AreEqual(1, IAFahim.Math.Basic.CeilDiv.Run(1, 5));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Large()
+         {
+-            Assert.Equal(1000001, IAFahim.Math.Basic.CeilDiv.Run(10000001, 10));
++            Assert.AreEqual(1000001, IAFahim.Math.Basic.CeilDiv.Run(10000001, 10));
+         }
+     }
+ 
+     public sealed unsafe class FloorDivTests
+     {
+-        [Fact]
++        [Test]
+         public void Positive_Normal()
+         {
+-            Assert.Equal(3, IAFahim.Math.Basic.FloorDiv.Run(7, 2));
++            Assert.AreEqual(3, IAFahim.Math.Basic.FloorDiv.Run(7, 2));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void ExactDivision()
+         {
+-            Assert.Equal(4, IAFahim.Math.Basic.FloorDiv.Run(8, 2));
++            Assert.AreEqual(4, IAFahim.Math.Basic.FloorDiv.Run(8, 2));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void NegativeNumerator()
+         {
+-            Assert.Equal(-4, IAFahim.Math.Basic.FloorDiv.Run(-7, 2));
++            Assert.AreEqual(-4, IAFahim.Math.Basic.FloorDiv.Run(-7, 2));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void NegativeDenominator()
+         {
+-            Assert.Equal(-4, IAFahim.Math.Basic.FloorDiv.Run(7, -2));
++            Assert.AreEqual(-4, IAFahim.Math.Basic.FloorDiv.Run(7, -2));
+         }
+     }
+ 
+     public sealed unsafe class AbsIntTests
+     {
+-        [Fact]
++        [Test]
+         public void Positive()
+         {
+-            Assert.Equal(42, IAFahim.Math.Basic.AbsInt.Run(42));
++            Assert.AreEqual(42, IAFahim.Math.Basic.AbsInt.Run(42));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Negative()
+         {
+-            Assert.Equal(42, IAFahim.Math.Basic.AbsInt.Run(-42));
++            Assert.AreEqual(42, IAFahim.Math.Basic.AbsInt.Run(-42));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Zero()
+         {
+-            Assert.Equal(0, IAFahim.Math.Basic.AbsInt.Run(0));
++            Assert.AreEqual(0, IAFahim.Math.Basic.AbsInt.Run(0));
+         }
+     }
+ 
+     public sealed unsafe class AbsInt64Tests
+     {
+-        [Fact]
++        [Test]
+         public void Positive()
+         {
+-            Assert.Equal(42L, IAFahim.Math.Basic.AbsInt64.Run(42));
++            Assert.AreEqual(42L, IAFahim.Math.Basic.AbsInt64.Run(42));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Negative()
+         {
+-            Assert.Equal(42L, IAFahim.Math.Basic.AbsInt64.Run(-42));
++            Assert.AreEqual(42L, IAFahim.Math.Basic.AbsInt64.Run(-42));
+         }
+ 
+-        [Fact]
++        [Test]
+         public void Zero()
+         {
+-            Assert.Equal(0L, IAFahim.Math.Basic.AbsInt64.Run(0));
++            Assert.AreEqual(0L, IAFahim.Math.Basic.AbsInt64.Run(0));
+         }
+     }
+ 
+     public sealed unsafe class MinIntTests
+     {
+-        [Fact]
+-        public void FirstIsMin() { Assert.Equal(1, IAFahim.Math.Basic.MinInt.Run(1, 5)); }
++        [Test]
++        public void FirstIsMin() { Assert.AreEqual(1, IAFahim.Math.Basic.MinInt.Run(1, 5)); }
+ 
+-        [Fact]
+-        public void SecondIsMin() { Assert.Equal(2, IAFahim.Math.Basic.MinInt.Run(5, 2)); }
++        [Test]
++        public void SecondIsMin() { Assert.AreEqual(2, IAFahim.Math.Basic.MinInt.Run(5, 2)); }
+ 
+-        [Fact]
+-        public void Equal() { Assert.Equal(5, IAFahim.Math.Basic.MinInt.Run(5, 5)); }
++        [Test]
++        public void Equal() { Assert.AreEqual(5, IAFahim.Math.Basic.MinInt.Run(5, 5)); }
+     }
+ 
+     public sealed unsafe class MaxIntTests
+     {
+-        [Fact]
+-        public void FirstIsMax() { Assert.Equal(5, IAFahim.Math.Basic.MaxInt.Run(5, 2)); }
++        [Test]
++        public void FirstIsMax() { Assert.AreEqual(5, IAFahim.Math.Basic.MaxInt.Run(5, 2)); }
+ 
+-        [Fact]
+-        public void SecondIsMax() { Assert.Equal(5, IAFahim.Math.Basic.MaxInt.Run(2, 5)); }
++        [Test]
++        public void SecondIsMax() { Assert.AreEqual(5, IAFahim.Math.Basic.MaxInt.Run(2, 5)); }
+ 
+-        [Fact]
+-        public void Equal() { Assert.Equal(5, IAFahim.Math.Basic.MaxInt.Run(5, 5)); }
++        [Test]
++        public void Equal() { Assert.AreEqual(5, IAFahim.Math.Basic.MaxInt.Run(5, 5)); }
+     }
+ 
+     public sealed unsafe class MinInt64Tests
+     {
+-        [Fact]
+-        public void FirstIsMin() { Assert.Equal(1L, IAFahim.Math.Basic.MinInt64.Run(1, 5)); }
++        [Test]
++        public void FirstIsMin() { Assert.AreEqual(1L, IAFahim.Math.Basic.MinInt64.Run(1, 5)); }
+     }
+ 
+     public sealed unsafe class MaxInt64Tests
+     {
+-        [Fact]
+-        public void FirstIsMax() { Assert.Equal(5L, IAFahim.Math.Basic.MaxInt64.Run(5, 2)); }
++        [Test]
++        public void FirstIsMax() { Assert.AreEqual(5L, IAFahim.Math.Basic.MaxInt64.Run(5, 2)); }
+     }
+ 
+     public sealed unsafe class ClampTests
+     {
+-        [Fact]
+-        public void InRange() { Assert.Equal(5, IAFahim.Math.Basic.Clamp.Run(5, 0, 10)); }
++        [Test]
++        public void InRange() { Assert.AreEqual(5, IAFahim.Math.Basic.Clamp.Run(5, 0, 10)); }
+ 
+-        [Fact]
+-        public void BelowRange() { Assert.Equal(0, IAFahim.Math.Basic.Clamp.Run(-5, 0, 10)); }
++        [Test]
++        public void BelowRange() { Assert.AreEqual(0, IAFahim.Math.Basic.Clamp.Run(-5, 0, 10)); }
+ 
+-        [Fact]
+-        public void AboveRange() { Assert.Equal(10, IAFahim.Math.Basic.Clamp.Run(15, 0, 10)); }
++        [Test]
++        public void AboveRange() { Assert.AreEqual(10, IAFahim.Math.Basic.Clamp.Run(15, 0, 10)); }
+     }
+ 
+ 

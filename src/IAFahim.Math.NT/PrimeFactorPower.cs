@@ -42,4 +42,21 @@ namespace IAFahim.Math.NT
             return count;
         }
     }
+
+    public static unsafe class PrimeFactorPowerSum
+    {
+        public static long Run(long n, delegate* managed<long, int, long> f)
+        {
+            long sum = 0;
+            for (long p = 2; p * p <= n; p++)
+            {
+                if (n % p != 0) continue;
+                int e = 0;
+                while (n % p == 0) { n /= p; e++; }
+                sum += f(p, e);
+            }
+            if (n > 1) sum += f(n, 1);
+            return sum;
+        }
+    }
 }

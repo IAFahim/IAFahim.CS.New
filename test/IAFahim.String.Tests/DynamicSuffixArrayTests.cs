@@ -3,11 +3,11 @@ namespace IAFahim.String.Tests
     using IAFahim.String.SuffixArray;
     using System;
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class DynamicSuffixArrayTests
     {
-        [Fact]
+        [Test]
         public void DynamicSuffixArray_Empty_NoOp()
         {
             DynamicStringNode* root = null;
@@ -16,10 +16,10 @@ namespace IAFahim.String.Tests
             for (int i = 1; i < 10; i++) powers[i] = powers[i - 1] * DynamicSuffixArray.BASE;
 
             ulong h = DynamicSuffixArray.GetSubstringHash(ref root, 0, 0, powers);
-            Assert.Equal(0ul, h);
+            Assert.AreEqual(0ul, h);
         }
 
-        [Fact]
+        [Test]
         public void DynamicSuffixArray_InsertAndCompare()
         {
             const int N = 5; // "ababa"
@@ -54,11 +54,11 @@ namespace IAFahim.String.Tests
                 // Substring hashes:
                 ulong h1 = DynamicSuffixArray.GetSubstringHash(ref root, 0, 2, powers); // "aba"
                 ulong h2 = DynamicSuffixArray.GetSubstringHash(ref root, 2, 4, powers); // "aba"
-                Assert.Equal(h1, h2);
+                Assert.AreEqual(h1, h2);
 
                 // Lcp
                 int lcp = DynamicSuffixArray.Lcp(ref root, 0, 2, powers);
-                Assert.Equal(3, lcp);
+                Assert.AreEqual(3, lcp);
 
                 // Compare: "ababa" (i=0) vs "aba" (i=2)
                 // "ababa" > "aba", but wait, they are compared character by character.
@@ -66,10 +66,10 @@ namespace IAFahim.String.Tests
                 // "ababa" vs "aba": "ababa" is longer, so it's >. But CompareSuffix logic:
                 // If j + lcp == n, return 1.
                 int cmp = DynamicSuffixArray.CompareSuffix(ref root, 0, 2, powers);
-                Assert.Equal(1, cmp); // 0 > 2
+                Assert.AreEqual(1, cmp); // 0 > 2
 
                 int cmp2 = DynamicSuffixArray.CompareSuffix(ref root, 1, 3, powers); // "baba" vs "ba"
-                Assert.Equal(1, cmp2);
+                Assert.AreEqual(1, cmp2);
             }
             finally
             {

@@ -2,123 +2,83 @@ namespace IAFahim.Geometry.Hull
 {
     using System;
     using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
 
     public static unsafe class HalfSpaceIntersection
     {
-        public struct HalfPlane
-        {
-            public double Nx, Ny, D, Angle;
-            public int Id;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void Intersect(HalfPlane a, HalfPlane b, out double x, out double y)
-        {
-            double det = a.Nx * b.Ny - a.Ny * b.Nx;
-            x = (a.D * b.Ny - b.D * a.Ny) / det;
-            y = (a.Nx * b.D - b.Nx * a.D) / det;
-        }
+        public struct HalfPlane { public double Nx, Ny, D, Angle; public int Id; }
 
         public static int Run(double* nx, double* ny, double* d, int m, double* outX, double* outY, int* outSize, HalfPlane* scratchPlanes, int* scratchQ)
         {
             if (m == 0) { *outSize = 0; return 0; }
-            HalfPlane* planes = scratchPlanes;
-            int* q = scratchQ;
-
-            for (int i = 0; i < m; i++)
-            {
-                planes[i].Nx = nx[i];
-                planes[i].Ny = ny[i];
-                planes[i].D = d[i];
-                planes[i].Angle = Math.Atan2(ny[i], nx[i]);
-                planes[i].Id = i;
-            }
-            
-            // Add bounding box
-            int total = m;
-            double B = 1e9;
-            planes[total++] = new HalfPlane { Nx = -1, Ny = 0, D = B, Angle = Math.Atan2(0, -1), Id = -1 };
-            planes[total++] = new HalfPlane { Nx = 1, Ny = 0, D = B, Angle = Math.Atan2(0, 1), Id = -1 };
-            planes[total++] = new HalfPlane { Nx = 0, Ny = -1, D = B, Angle = Math.Atan2(-1, 0), Id = -1 };
-            planes[total++] = new HalfPlane { Nx = 0, Ny = 1, D = B, Angle = Math.Atan2(1, 0), Id = -1 };
-
-            // Sort by angle
-            for (int i = 0; i < total - 1; i++)
-            for (int j = i + 1; j < total; j++)
-            {
-                if (planes[i].Angle > planes[j].Angle)
-                {
-                    HalfPlane tmp = planes[i]; planes[i] = planes[j]; planes[j] = tmp;
-                }
-            }
-
-            int k = 0;
-            for (int i = 1; i < total; i++)
-            {
-                if (Math.Abs(planes[i].Angle - planes[k].Angle) > 1e-9)
-                {
-                    planes[++k] = planes[i];
-                }
-                else
-                {
-                    // keep the more restrictive one
-                    if (planes[i].Nx * 0 + planes[i].Ny * 0 - planes[i].D < planes[k].Nx * 0 + planes[k].Ny * 0 - planes[k].D) // wait, not correct check
-                    {
-                        // we need to keep the one that is further in the normal direction.
-                        // normal is (Nx, Ny). D is the offset.
-                        // Eq: Nx * x + Ny * y <= D. Smaller D is more restrictive!
-                        if (planes[i].D < planes[k].D) planes[k] = planes[i];
-                    }
-                }
-            }
-            total = k + 1;
+            int total = InitializePlanes(nx, ny, d, m, scratchPlanes);
+            SortPlanesByAngle(scratchPlanes, total);
+            total = UniquePlanes(scratchPlanes, total);
 
             int head = 0, tail = 0;
-            q[tail++] = 0;
-            q[tail++] = 1;
+            if (total < 2) { *outSize = 0; return 0; }
+            scratchQ[tail++] = 0; scratchQ[tail++] = 1;
 
             for (int i = 2; i < total; i++)
             {
-                while (head + 1 < tail)
-                {
-                    Intersect(planes[q[tail - 2]], planes[q[tail - 1]], out double px, out double py);
-                    if (planes[i].Nx * px + planes[i].Ny * py > planes[i].D + 1e-9) tail--;
-                    else break;
-                }
-                while (head + 1 < tail)
-                {
-                    Intersect(planes[q[head]], planes[q[head + 1]], out double px, out double py);
-                    if (planes[i].Nx * px + planes[i].Ny * py > planes[i].D + 1e-9) head++;
-                    else break;
-                }
-                q[tail++] = i;
+                while (head + 1 < tail && IsOutside(scratchPlanes[i], scratchPlanes[scratchQ[tail - 2]], scratchPlanes[scratchQ[tail - 1]])) tail--;
+                while (head + 1 < tail && IsOutside(scratchPlanes[i], scratchPlanes[scratchQ[head]], scratchPlanes[scratchQ[head + 1]])) head++;
+                scratchQ[tail++] = i;
             }
 
-            while (head + 1 < tail)
-            {
-                Intersect(planes[q[tail - 2]], planes[q[tail - 1]], out double px, out double py);
-                if (planes[q[head]].Nx * px + planes[q[head]].Ny * py > planes[q[head]].D + 1e-9) tail--;
-                else break;
-            }
+            while (head + 1 < tail && IsOutside(scratchPlanes[scratchQ[head]], scratchPlanes[scratchQ[tail - 2]], scratchPlanes[scratchQ[tail - 1]])) tail--;
 
-            if (tail - head < 3)
-            {
-                *outSize = 0;
-                return 0;
-            }
+            if (tail - head < 3) { *outSize = 0; return 0; }
+            return ExtractVertices(scratchPlanes, scratchQ, head, tail, outX, outY, outSize);
+        }
 
-            int outCount = 0;
-            for (int i = head; i < tail; i++)
+        private static int InitializePlanes(double* nx, double* ny, double* d, int m, HalfPlane* planes)
+        {
+            for (int i = 0; i < m; i++) { planes[i] = new HalfPlane { Nx = nx[i], Ny = ny[i], D = d[i], Angle = Math.Atan2(ny[i], nx[i]), Id = i }; }
+            double B = 1e9;
+            planes[m + 0] = new HalfPlane { Nx = -1, Ny = 0, D = B, Angle = Math.Atan2(0, -1), Id = -1 };
+            planes[m + 1] = new HalfPlane { Nx = 1, Ny = 0, D = B, Angle = Math.Atan2(0, 1), Id = -1 };
+            planes[m + 2] = new HalfPlane { Nx = 0, Ny = -1, D = B, Angle = Math.Atan2(-1, 0), Id = -1 };
+            planes[m + 3] = new HalfPlane { Nx = 0, Ny = 1, D = B, Angle = Math.Atan2(1, 0), Id = -1 };
+            return m + 4;
+        }
+
+        private static void SortPlanesByAngle(HalfPlane* planes, int count)
+        {
+            for (int i = 0; i < count - 1; i++)
+                for (int j = i + 1; j < count; j++)
+                    if (planes[i].Angle > planes[j].Angle) { HalfPlane t = planes[i]; planes[i] = planes[j]; planes[j] = t; }
+        }
+
+        private static int UniquePlanes(HalfPlane* planes, int count)
+        {
+            int k = 0;
+            for (int i = 1; i < count; i++)
+                if (Math.Abs(planes[i].Angle - planes[k].Angle) > 1e-9) planes[++k] = planes[i];
+                else if (planes[i].D < planes[k].D) planes[k] = planes[i];
+            return k + 1;
+        }
+
+        private static bool IsOutside(HalfPlane p, HalfPlane a, HalfPlane b)
+        {
+            Intersect(a, b, out double x, out double y);
+            return p.Nx * x + p.Ny * y > p.D + 1e-9;
+        }
+
+        private static void Intersect(HalfPlane a, HalfPlane b, out double x, out double y)
+        {
+            double det = a.Nx * b.Ny - a.Ny * b.Nx;
+            x = (a.D * b.Ny - b.D * a.Ny) / det; y = (a.Nx * b.D - b.Nx * a.D) / det;
+        }
+
+        private static int ExtractVertices(HalfPlane* planes, int* q, int h, int t, double* outX, double* outY, int* outSize)
+        {
+            int cnt = 0;
+            for (int i = h; i < t; i++)
             {
-                int next = (i + 1 == tail) ? head : i + 1;
-                Intersect(planes[q[i]], planes[q[next]], out double px, out double py);
-                outX[outCount] = px;
-                outY[outCount] = py;
-                outCount++;
+                int next = (i + 1 == t) ? h : i + 1;
+                Intersect(planes[q[i]], planes[q[next]], out outX[cnt], out outY[cnt]); cnt++;
             }
-            *outSize = outCount;
-            return outCount;
+            *outSize = cnt; return cnt;
         }
     }
 }

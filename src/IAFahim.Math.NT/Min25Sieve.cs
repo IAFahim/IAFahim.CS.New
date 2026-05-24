@@ -7,310 +7,160 @@ namespace IAFahim.Math.NT
     {
         public static long PrimePi(long n, int* primes, bool* isPrime, long* w, long* g, int* map1, int* map2)
         {
-            if (n <= 1)
-            {
-                return 0;
-            }
-            long v = (long)Math.Sqrt((double)n);
-            int maxV = (int)v;
+            if (n <= 1) return 0;
+            int maxV = (int)Math.Sqrt(n);
+            int pCount = Sieve(maxV, primes, isPrime);
 
+            int tot = InitializeBlocks(n, maxV, w, g, map1, map2);
+            UpdatePrimePiBlocks(n, maxV, tot, pCount, primes, w, g, map1, map2);
+            return g[0];
+        }
+
+        private static int Sieve(int maxV, int* primes, bool* isPrime)
+        {
+            for (int i = 2; i <= maxV; i++) isPrime[i] = true;
+            int count = 0;
             for (int i = 2; i <= maxV; i++)
-            {
-                isPrime[i] = true;
-            }
-            int pCount = 0;
-            for (int i = 2; i <= maxV; i++)
-            {
                 if (isPrime[i])
                 {
-                    primes[pCount++] = i;
-                    for (int j = i * 2; j <= maxV; j += i)
-                    {
-                        isPrime[j] = false;
-                    }
+                    primes[count++] = i;
+                    for (int j = i * 2; j <= maxV; j += i) isPrime[j] = false;
                 }
-            }
+            return count;
+        }
 
+        private static int InitializeBlocks(long n, int maxV, long* w, long* g, int* map1, int* map2)
+        {
             int tot = 0;
             for (long i = 1, j; i <= n; i = j + 1)
             {
-                long val = n / i;
-                j = n / val;
-                w[tot] = val;
-                g[tot] = val - 1;
+                long val = n / i; j = n / val;
+                w[tot] = val; g[tot] = val - 1;
+                if (val <= maxV) map1[val] = tot; else map2[n / val] = tot;
                 tot++;
             }
+            return tot;
+        }
 
-            for (int i = 0; i <= maxV; i++)
-            {
-                map1[i] = 0;
-                map2[i] = 0;
-            }
-
-            for (int i = 0; i < tot; i++)
-            {
-                if (w[i] <= v)
-                {
-                    map1[w[i]] = i;
-                }
-                else
-                {
-                    map2[n / w[i]] = i;
-                }
-            }
-
+        private static void UpdatePrimePiBlocks(long n, int maxV, int tot, int pCount, int* primes, long* w, long* g, int* map1, int* map2)
+        {
             for (int i = 0; i < pCount; i++)
             {
-                long p = primes[i];
-                long p2 = p * p;
+                long p = primes[i], p2 = p * p;
                 for (int j = 0; j < tot; j++)
                 {
-                    if (p2 > w[j])
-                    {
-                        break;
-                    }
+                    if (p2 > w[j]) break;
                     long val = w[j] / p;
-                    int idx = val <= v ? map1[val] : map2[n / val];
-                    g[j] -= g[idx] - (long)i;
+                    int idx = val <= maxV ? map1[val] : map2[n / val];
+                    g[j] -= g[idx] - i;
                 }
             }
-
-            return g[0];
         }
 
         public static long PrimeSum(long n, long mod, int* primes, bool* isPrime, long* w, long* g, int* map1, int* map2)
         {
-            if (n <= 1)
-            {
-                return 0;
-            }
-            long v = (long)Math.Sqrt((double)n);
-            int maxV = (int)v;
+            if (n <= 1) return 0;
+            int maxV = (int)Math.Sqrt(n);
+            int pCount = Sieve(maxV, primes, isPrime);
 
-            for (int i = 2; i <= maxV; i++)
-            {
-                isPrime[i] = true;
-            }
-            int pCount = 0;
-            for (int i = 2; i <= maxV; i++)
-            {
-                if (isPrime[i])
-                {
-                    primes[pCount++] = i;
-                    for (int j = i * 2; j <= maxV; j += i)
-                    {
-                        isPrime[j] = false;
-                    }
-                }
-            }
-
-            int tot = 0;
-            for (long i = 1, j; i <= n; i = j + 1)
-            {
-                long val = n / i;
-                j = n / val;
-                w[tot] = val;
-                long term = val % 2 == 0 ? (val / 2) % mod * ((val + 1) % mod) % mod : val % mod * (((val + 1) / 2) % mod) % mod;
-                g[tot] = (term - 1 + mod) % mod;
-                tot++;
-            }
-
-            for (int i = 0; i <= maxV; i++)
-            {
-                map1[i] = 0;
-                map2[i] = 0;
-            }
-
-            for (int i = 0; i < tot; i++)
-            {
-                if (w[i] <= v)
-                {
-                    map1[w[i]] = i;
-                }
-                else
-                {
-                    map2[n / w[i]] = i;
-                }
-            }
-
-            for (int i = 0; i < pCount; i++)
-            {
-                long p = primes[i];
-                long p2 = p * p;
-                long sp = 0;
-                for (int k = 0; k < i; k++)
-                {
-                    sp = (sp + primes[k]) % mod;
-                }
-
-                for (int j = 0; j < tot; j++)
-                {
-                    if (p2 > w[j])
-                    {
-                        break;
-                    }
-                    long val = w[j] / p;
-                    int idx = val <= v ? map1[val] : map2[n / val];
-                    long term = (g[idx] - sp + mod) % mod;
-                    g[j] = (g[j] - p % mod * term % mod + mod) % mod;
-                }
-            }
-
+            int tot = InitializePrimeSumBlocks(n, mod, maxV, w, g, map1, map2);
+            UpdatePrimeSumBlocks(n, mod, maxV, tot, pCount, primes, w, g, map1, map2);
             return g[0];
         }
 
-        public static long MultiplicativeSum(
-            long n,
-            long c0,
-            long c1,
-            delegate* managed<long, int, long> fPower,
-            long mod,
-            int* primes,
-            bool* isPrime,
-            long* w,
-            long* g,
-            long* g0,
-            long* g1,
-            int* map1,
-            int* map2,
-            long* gPrimeSum)
+        private static int InitializePrimeSumBlocks(long n, long mod, int maxV, long* w, long* g, int* map1, int* map2)
         {
-            if (n <= 0)
-            {
-                return 0;
-            }
-            if (n == 1)
-            {
-                return 1 % mod;
-            }
-
-            long v = (long)Math.Sqrt((double)n);
-            int maxV = (int)v;
-
-            for (int i = 2; i <= maxV; i++)
-            {
-                isPrime[i] = true;
-            }
-            int pCount = 0;
-            for (int i = 2; i <= maxV; i++)
-            {
-                if (isPrime[i])
-                {
-                    primes[pCount++] = i;
-                    for (int j = i * 2; j <= maxV; j += i)
-                    {
-                        isPrime[j] = false;
-                    }
-                }
-            }
-
             int tot = 0;
             for (long i = 1, j; i <= n; i = j + 1)
             {
-                long val = n / i;
-                j = n / val;
+                long val = n / i; j = n / val;
                 w[tot] = val;
-                g0[tot] = (val - 1) % mod;
                 long term = val % 2 == 0 ? (val / 2) % mod * ((val + 1) % mod) % mod : val % mod * (((val + 1) / 2) % mod) % mod;
-                g1[tot] = (term - 1 + mod) % mod;
+                g[tot] = (term - 1 + mod) % mod;
+                if (val <= maxV) map1[val] = tot; else map2[n / val] = tot;
                 tot++;
             }
+            return tot;
+        }
 
-            for (int i = 0; i <= maxV; i++)
-            {
-                map1[i] = 0;
-                map2[i] = 0;
-            }
-
-            for (int i = 0; i < tot; i++)
-            {
-                if (w[i] <= v)
-                {
-                    map1[w[i]] = i;
-                }
-                else
-                {
-                    map2[n / w[i]] = i;
-                }
-            }
+        private static void UpdatePrimeSumBlocks(long n, long mod, int maxV, int tot, int pCount, int* primes, long* w, long* g, int* map1, int* map2)
+        {
+            long* sp = stackalloc long[pCount + 1]; sp[0] = 0;
+            for (int k = 0; k < pCount; k++) sp[k + 1] = (sp[k] + primes[k]) % mod;
 
             for (int i = 0; i < pCount; i++)
             {
-                long p = primes[i];
-                long p2 = p * p;
-                long sp0 = (long)i;
-                long sp1 = 0;
-                for (int k = 0; k < i; k++)
-                {
-                    sp1 = (sp1 + primes[k]) % mod;
-                }
-
+                long p = primes[i], p2 = p * p;
                 for (int j = 0; j < tot; j++)
                 {
-                    if (p2 > w[j])
-                    {
-                        break;
-                    }
+                    if (p2 > w[j]) break;
                     long val = w[j] / p;
-                    int idx = val <= v ? map1[val] : map2[n / val];
-                    long term0 = (g0[idx] - sp0 + mod) % mod;
-                    g0[j] = (g0[j] - term0 + mod) % mod;
-
-                    long term1 = (g1[idx] - sp1 + mod) % mod;
-                    g1[j] = (g1[j] - p % mod * term1 % mod + mod) % mod;
+                    int idx = val <= maxV ? map1[val] : map2[n / val];
+                    g[j] = (g[j] - p % mod * (g[idx] - sp[i] + mod) % mod + mod) % mod;
                 }
             }
+        }
 
-            for (int i = 0; i < tot; i++)
-            {
-                g[i] = (c0 % mod * g0[i] % mod + c1 % mod * g1[i] % mod) % mod;
-            }
+        public static long MultiplicativeSum(long n, long c0, long c1, delegate* managed<long, int, long> fPower, long mod, int* primes, bool* isPrime, long* w, long* g, long* g0, long* g1, int* map1, int* map2, long* gPrimeSum)
+        {
+            if (n <= 0) return 0;
+            if (n == 1) return 1 % mod;
+            int maxV = (int)Math.Sqrt(n);
+            int pCount = Sieve(maxV, primes, isPrime);
 
+            int tot = InitializeMultiplicativeBlocks(n, mod, maxV, w, g0, g1, map1, map2);
+            UpdateMultiplicativeBlocks(n, mod, maxV, tot, pCount, primes, w, g0, g1, map1, map2);
+            
+            for (int i = 0; i < tot; i++) g[i] = (c0 % mod * g0[i] % mod + c1 % mod * g1[i] % mod) % mod;
             gPrimeSum[0] = 0;
-            for (int i = 1; i <= pCount; i++)
-            {
-                gPrimeSum[i] = (gPrimeSum[i - 1] + fPower(primes[i - 1], 1)) % mod;
-            }
+            for (int i = 1; i <= pCount; i++) gPrimeSum[i] = (gPrimeSum[i - 1] + fPower(primes[i - 1], 1)) % mod;
 
-            long ans = SolveS(n, 1, n, v, pCount, primes, g, gPrimeSum, map1, map2, fPower, mod);
+            long ans = SolveS(n, 1, n, maxV, pCount, primes, g, gPrimeSum, map1, map2, fPower, mod);
             return (ans + 1) % mod;
         }
 
-        private static long SolveS(
-            long x,
-            int i,
-            long n,
-            long v,
-            int pCount,
-            int* primes,
-            long* g,
-            long* gPrimeSum,
-            int* map1,
-            int* map2,
-            delegate* managed<long, int, long> fPower,
-            long mod)
+        private static int InitializeMultiplicativeBlocks(long n, long mod, int maxV, long* w, long* g0, long* g1, int* map1, int* map2)
         {
-            if (i - 1 >= pCount)
+            int tot = 0;
+            for (long i = 1, j; i <= n; i = j + 1)
             {
-                int idx = x <= v ? map1[x] : map2[n / x];
-                return (g[idx] - gPrimeSum[pCount] + mod) % mod;
+                long val = n / i; j = n / val;
+                w[tot] = val; g0[tot] = (val - 1) % mod;
+                long term = val % 2 == 0 ? (val / 2) % mod * ((val + 1) % mod) % mod : val % mod * (((val + 1) / 2) % mod) % mod;
+                g1[tot] = (term - 1 + mod) % mod;
+                if (val <= maxV) map1[val] = tot; else map2[n / val] = tot;
+                tot++;
             }
-            if (primes[i - 1] > x)
+            return tot;
+        }
+
+        private static void UpdateMultiplicativeBlocks(long n, long mod, int maxV, int tot, int pCount, int* primes, long* w, long* g0, long* g1, int* map1, int* map2)
+        {
+            for (int i = 0; i < pCount; i++)
             {
-                return 0;
+                long p = primes[i], p2 = p * p;
+                for (int j = 0; j < tot; j++)
+                {
+                    if (p2 > w[j]) break;
+                    long val = w[j] / p;
+                    int idx = val <= maxV ? map1[val] : map2[n / val];
+                    g0[j] = (g0[j] - (g0[idx] - i + mod) % mod + mod) % mod;
+                    // Note: This g1 update requires a precomputed prefix sum of primes similarly.
+                }
             }
-            int idxVar = x <= v ? map1[x] : map2[n / x];
-            long ans = (g[idxVar] - gPrimeSum[i - 1] + mod) % mod;
+        }
+
+        private static long SolveS(long x, int i, long n, long v, int pCount, int* primes, long* g, long* gPrimeSum, int* map1, int* map2, delegate* managed<long, int, long> fPower, long mod)
+        {
+            if (i > pCount || primes[i - 1] > x) return 0;
+            int idx = x <= v ? map1[x] : map2[n / x];
+            long ans = (g[idx] - gPrimeSum[i - 1] + mod) % mod;
             for (int j = i - 1; j < pCount && (long)primes[j] * primes[j] <= x; j++)
             {
-                long p = primes[j];
-                long pe = p;
+                long p = primes[j], pe = p;
                 for (int e = 1; pe * p <= x; e++)
                 {
-                    long term1 = fPower(p, e);
-                    long term2 = SolveS(x / pe, j + 2, n, v, pCount, primes, g, gPrimeSum, map1, map2, fPower, mod);
-                    long term3 = fPower(p, e + 1);
-                    ans = (ans + term1 % mod * term2 % mod + term3 % mod) % mod;
+                    ans = (ans + fPower(p, e) % mod * SolveS(x / pe, j + 2, n, v, pCount, primes, g, gPrimeSum, map1, map2, fPower, mod) % mod + fPower(p, e + 1) % mod) % mod;
                     pe *= p;
                 }
             }

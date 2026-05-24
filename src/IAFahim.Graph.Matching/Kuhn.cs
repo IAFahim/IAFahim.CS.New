@@ -76,10 +76,7 @@ namespace IAFahim.Graph.Matching
             while (Bfs(nLeft, head, to, next, pairU, pairV, dist))
             {
                 for (int u = 0; u < nLeft; u++)
-                {
-                    if (pairU[u] == -1 && Dfs(u, head, to, next, pairU, pairV, dist))
-                        result++;
-                }
+                    if (pairU[u] == -1 && Dfs(u, head, to, next, pairU, pairV, dist)) result++;
             }
             return result;
         }
@@ -88,34 +85,34 @@ namespace IAFahim.Graph.Matching
         {
             int* q = stackalloc int[nLeft];
             int qh = 0, qt = 0;
-            for (int u = 0; u < nLeft; u++)
-            {
-                if (pairU[u] == -1)
-                {
-                    dist[u] = 0;
-                    q[qt++] = u;
-                }
-                else
-                {
-                    dist[u] = -1;
-                }
-            }
+            InitializeBfs(nLeft, pairU, dist, q, ref qt);
             bool found = false;
             while (qh < qt)
             {
                 int u = q[qh++];
-                for (int e = head[u]; e != 0; e = next[e])
-                {
-                    int v = to[e];
-                    int pu = pairV[v];
-                    if (pu != -1 && dist[pu] == -1)
-                    {
-                        dist[pu] = dist[u] + 1;
-                        q[qt++] = pu;
-                    }
-                    if (pu == -1)
-                        found = true;
-                }
+                if (ProcessBfsQueue(u, head, to, next, pairV, dist, q, ref qt)) found = true;
+            }
+            return found;
+        }
+
+        private static void InitializeBfs(int nLeft, int* pairU, int* dist, int* q, ref int qt)
+        {
+            for (int u = 0; u < nLeft; u++)
+            {
+                if (pairU[u] == -1) { dist[u] = 0; q[qt++] = u; }
+                else dist[u] = -1;
+            }
+        }
+
+        private static bool ProcessBfsQueue(int u, int* head, int* to, int* next, int* pairV, int* dist, int* q, ref int qt)
+        {
+            bool found = false;
+            for (int e = head[u]; e != 0; e = next[e])
+            {
+                int v = to[e];
+                int pu = pairV[v];
+                if (pu != -1 && dist[pu] == -1) { dist[pu] = dist[u] + 1; q[qt++] = pu; }
+                if (pu == -1) found = true;
             }
             return found;
         }
@@ -128,9 +125,7 @@ namespace IAFahim.Graph.Matching
                 int pu = pairV[v];
                 if (pu == -1 || (dist[pu] == dist[u] + 1 && Dfs(pu, head, to, next, pairU, pairV, dist)))
                 {
-                    pairU[u] = v;
-                    pairV[v] = u;
-                    return true;
+                    pairU[u] = v; pairV[v] = u; return true;
                 }
             }
             dist[u] = -1;

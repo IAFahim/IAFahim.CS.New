@@ -48,31 +48,31 @@ namespace Unity.Collections
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
-                if (value < 0)
-                    value = 0;
-                if (value == _capacity)
-                    return;
+                if (value < 0) value = 0;
+                if (value == _capacity) return;
 
-                var newBuffer = value == 0
-                    ? IntPtr.Zero
-                    : Marshal.AllocHGlobal((nint)((long)value * _elementSize));
-
-                if (_buffer != IntPtr.Zero)
-                {
-                    if (value > 0)
-                    {
-                        var copySize = _length < value ? _length : value;
-                        UnsafeUtility.MemCpy((void*)newBuffer, (void*)_buffer, (long)copySize * _elementSize);
-                    }
-
-                    Marshal.FreeHGlobal(_buffer);
-                }
-
-                _buffer = newBuffer;
+                ReallocateBuffer(value);
                 _capacity = value;
-                if (_length > _capacity)
-                    _length = _capacity;
+                if (_length > _capacity) _length = _capacity;
             }
+        }
+
+        private void ReallocateBuffer(int newCapacity)
+        {
+            var newBuffer = newCapacity == 0
+                ? IntPtr.Zero
+                : Marshal.AllocHGlobal((nint)((long)newCapacity * _elementSize));
+
+            if (_buffer != IntPtr.Zero)
+            {
+                if (newCapacity > 0)
+                {
+                    var copySize = _length < newCapacity ? _length : newCapacity;
+                    UnsafeUtility.MemCpy((void*)newBuffer, (void*)_buffer, (long)copySize * _elementSize);
+                }
+                Marshal.FreeHGlobal(_buffer);
+            }
+            _buffer = newBuffer;
         }
 
         public bool IsCreated

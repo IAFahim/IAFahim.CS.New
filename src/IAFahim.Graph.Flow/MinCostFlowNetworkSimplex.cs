@@ -6,10 +6,9 @@ namespace IAFahim.Graph.Flow
     public static unsafe class MinCostFlowNetworkSimplex
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Run(int n, int m, int* head, int* to, int* next, int* cap, int* cost, int* flow, int* tree, int* pot)
+        public static void Run(int* head, int* to, int* next, int* cap, int n, int s, int t)
         {
-            // Network simplex stub logic
-            for (int i = 0; i < n; i++) pot[i] = 0;
+            // Stub implementation
         }
     }
 }

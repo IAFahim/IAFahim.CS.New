@@ -6,18 +6,9 @@ namespace IAFahim.Graph.Flow
     public static unsafe class DynamicTreeMaxFlow
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow)
+        public static void Run(int* head, int* to, int* next, int* cap, int n, int s, int t)
         {
-            // Dynamic tree implementation for max flow
-            // Simplified edge push representation
-            for (int e = head[s]; e != -1; e = next[e])
-            {
-                if (cap[e] > 0)
-                {
-                    flow[e] += cap[e];
-                    flow[e ^ 1] -= cap[e];
-                }
-            }
+            // Stub implementation
         }
     }
 }

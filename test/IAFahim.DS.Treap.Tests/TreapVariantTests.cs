@@ -1,7 +1,7 @@
 namespace IAFahim.DS.Treap.Tests
 {
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class TreapVariantTests
     {
@@ -20,15 +20,15 @@ namespace IAFahim.DS.Treap.Tests
             return n;
         }
 
-        [Fact]
+        [Test]
         public void TreapImplicit_EmptyRange_NoOp()
         {
             TreapImplicitNode* root = null;
             long sum = TreapImplicit.QueryRange(ref root, 0, 0);
-            Assert.Equal(0L, sum);
+            Assert.AreEqual(0L, sum);
         }
 
-        [Fact]
+        [Test]
         public void TreapImplicit_RangeAdd_And_Sum()
         {
             TreapImplicitNode* root = null;
@@ -43,7 +43,7 @@ namespace IAFahim.DS.Treap.Tests
             {
                 TreapImplicit.AddRange(ref root, 0, 1, 10);
                 long sum = TreapImplicit.QueryRange(ref root, 0, 2);
-                Assert.Equal(26L, sum);
+                Assert.AreEqual(26L, sum);
             }
             finally
             {
@@ -53,7 +53,7 @@ namespace IAFahim.DS.Treap.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void TreapImplicit_Reverse()
         {
             TreapImplicitNode* root = null;
@@ -68,7 +68,7 @@ namespace IAFahim.DS.Treap.Tests
             {
                 TreapImplicit.ReverseRange(ref root, 0, 2);
                 long total = TreapImplicit.QueryRange(ref root, 0, 2);
-                Assert.Equal(6L, total);
+                Assert.AreEqual(6L, total);
             }
             finally
             {
@@ -91,7 +91,7 @@ namespace IAFahim.DS.Treap.Tests
             return n;
         }
 
-        [Fact]
+        [Test]
         public void TreapRangeReverse_Basic()
         {
             TreapRevNode* root = null;
@@ -105,7 +105,7 @@ namespace IAFahim.DS.Treap.Tests
             try
             {
                 TreapRangeReverse.Reverse(ref root, 0, 2);
-                Assert.Equal(3, root->Size);
+                Assert.AreEqual(3, root->Size);
             }
             finally
             {
@@ -115,7 +115,7 @@ namespace IAFahim.DS.Treap.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void TreapRangeRotate_Basic()
         {
             TreapRevNode* root = null;
@@ -131,7 +131,7 @@ namespace IAFahim.DS.Treap.Tests
             try
             {
                 TreapRangeRotate.Rotate(ref root, 0, 3, 2);
-                Assert.Equal(4, root->Size);
+                Assert.AreEqual(4, root->Size);
             }
             finally
             {
@@ -156,7 +156,7 @@ namespace IAFahim.DS.Treap.Tests
             return n;
         }
 
-        [Fact]
+        [Test]
         public void TreapRangeMin_Basic()
         {
             TreapMinNode* root = null;
@@ -170,7 +170,7 @@ namespace IAFahim.DS.Treap.Tests
             try
             {
                 long m = TreapRangeMin.QueryMin(ref root, 0, 2);
-                Assert.Equal(3L, m);
+                Assert.AreEqual(3L, m);
             }
             finally
             {
@@ -193,7 +193,7 @@ namespace IAFahim.DS.Treap.Tests
             return n;
         }
 
-        [Fact]
+        [Test]
         public void TreapRangeSum_Basic()
         {
             TreapSumNode* root = null;
@@ -208,7 +208,7 @@ namespace IAFahim.DS.Treap.Tests
             {
                 TreapRangeSum.AddRange(ref root, 1, 2, 10);
                 long s = TreapRangeSum.QuerySum(ref root, 0, 2);
-                Assert.Equal(26L, s);
+                Assert.AreEqual(26L, s);
             }
             finally
             {
@@ -233,7 +233,7 @@ namespace IAFahim.DS.Treap.Tests
             return n;
         }
 
-        [Fact]
+        [Test]
         public void TreapAffineRange_Basic()
         {
             TreapAffineNode* root = null;
@@ -248,7 +248,7 @@ namespace IAFahim.DS.Treap.Tests
             {
                 TreapAffineRange.AffineRange(ref root, 0, 2, 2, 1);
                 long s = TreapAffineRange.QuerySum(ref root, 0, 2);
-                Assert.Equal(15L, s);
+                Assert.AreEqual(15L, s);
             }
             finally
             {

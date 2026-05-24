@@ -1,11 +1,11 @@
 namespace IAFahim.Graph.SCC.Tests
 {
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class TarjanSccTests
     {
-        [Fact]
+        [Test]
         public void TarjanScc_Basic()
         {
             const int N = 4;
@@ -36,10 +36,10 @@ namespace IAFahim.Graph.SCC.Tests
             
             TarjanScc.Find(N, head, next, to, tin, low, stack, inStack, sccId, ref sccCount);
             
-            Assert.Equal(2, sccCount);
-            Assert.Equal(sccId[0], sccId[1]);
-            Assert.Equal(sccId[1], sccId[2]);
-            Assert.NotEqual(sccId[0], sccId[3]);
+            Assert.AreEqual(2, sccCount);
+            Assert.AreEqual(sccId[0], sccId[1]);
+            Assert.AreEqual(sccId[1], sccId[2]);
+            Assert.AreNotEqual(sccId[0], sccId[3]);
         }
     }
 }

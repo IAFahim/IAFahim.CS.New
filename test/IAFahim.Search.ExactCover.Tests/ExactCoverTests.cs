@@ -2,7 +2,7 @@ namespace IAFahim.Search.ExactCover.Tests
 {
     using System;
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
     using IAFahim.Search;
 
     public sealed unsafe class ExactCoverTests
@@ -43,7 +43,7 @@ namespace IAFahim.Search.ExactCover.Tests
             return true;
         }
 
-        [Fact]
+        [Test]
         public void SolveDlx_SimpleMatrix_FindsSolution()
         {
             const int Rows = 4;
@@ -67,8 +67,8 @@ namespace IAFahim.Search.ExactCover.Tests
                 int* RowIdx = stackalloc int[maxNodes];
                 int* colSize = stackalloc int[Cols + 1];
                 bool solved = ExactCover.SolveDlx(matrix, Rows, Cols, solution, &solutionSize, L, R, U, D, C, RowIdx, colSize);
-                Assert.True(solved);
-                Assert.Equal(2, solutionSize);
+                Assert.IsTrue(solved);
+                Assert.AreEqual(2, solutionSize);
 
                 bool hasRow0 = false;
                 bool hasRow2 = false;
@@ -81,7 +81,7 @@ namespace IAFahim.Search.ExactCover.Tests
                     if (solution[i] == 1) hasRow1 = true;
                     if (solution[i] == 3) hasRow3 = true;
                 }
-                Assert.True((hasRow0 && hasRow2) || (hasRow1 && hasRow3));
+                Assert.IsTrue((hasRow0 && hasRow2) || (hasRow1 && hasRow3));
             }
             finally
             {
@@ -90,7 +90,7 @@ namespace IAFahim.Search.ExactCover.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void SolveSudokuDlx_SimpleSudoku_FindsSolution()
         {
             int* sudoku = (int*)Marshal.AllocHGlobal(81 * sizeof(int));
@@ -124,8 +124,8 @@ namespace IAFahim.Search.ExactCover.Tests
                 try
                 {
                     bool solved = ExactCover.SolveSudokuDlx(sudoku, L, R_dlx, U, D, C, RowIdx, colSize);
-                    Assert.True(solved);
-                    Assert.True(IsValidSudoku(sudoku));
+                    Assert.IsTrue(solved);
+                    Assert.IsTrue(IsValidSudoku(sudoku));
                 }
                 finally
                 {
@@ -144,7 +144,7 @@ namespace IAFahim.Search.ExactCover.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void SudokuBitmaskSolve_SimpleSudoku_FindsSolution()
         {
             int* sudoku = (int*)Marshal.AllocHGlobal(81 * sizeof(int));
@@ -168,8 +168,8 @@ namespace IAFahim.Search.ExactCover.Tests
                 }
 
                 bool solved = ExactCover.SudokuBitmaskSolve(sudoku);
-                Assert.True(solved);
-                Assert.True(IsValidSudoku(sudoku));
+                Assert.IsTrue(solved);
+                Assert.IsTrue(IsValidSudoku(sudoku));
             }
             finally
             {
@@ -177,7 +177,7 @@ namespace IAFahim.Search.ExactCover.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void KillerSudokuSolve_SimpleKillerSudoku_FindsSolution()
         {
             int* sudoku = (int*)Marshal.AllocHGlobal(81 * sizeof(int));
@@ -196,8 +196,8 @@ namespace IAFahim.Search.ExactCover.Tests
                 }
 
                 bool solved = ExactCover.KillerSudokuSolve(sudoku, cageSums, cageIds, 9);
-                Assert.True(solved);
-                Assert.True(IsValidSudoku(sudoku));
+                Assert.IsTrue(solved);
+                Assert.IsTrue(IsValidSudoku(sudoku));
             }
             finally
             {
@@ -207,7 +207,7 @@ namespace IAFahim.Search.ExactCover.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void KenKenSolve_SimpleKenKen_FindsSolution()
         {
             const int N = 3;
@@ -241,7 +241,7 @@ namespace IAFahim.Search.ExactCover.Tests
                 }
 
                 bool solved = ExactCover.KenKenSolve(grid, N, cageTargets, cageOps, cageIds, 4);
-                Assert.True(solved);
+                Assert.IsTrue(solved);
 
                 for (int r = 0; r < N; r++)
                 {
@@ -251,10 +251,10 @@ namespace IAFahim.Search.ExactCover.Tests
                     {
                         int valRow = grid[r * N + c];
                         int valCol = grid[c * N + r];
-                        Assert.True(valRow >= 1 && valRow <= N);
-                        Assert.True(valCol >= 1 && valCol <= N);
-                        Assert.False(rowSeen[valRow]);
-                        Assert.False(colSeen[valCol]);
+                        Assert.IsTrue(valRow >= 1 && valRow <= N);
+                        Assert.IsTrue(valCol >= 1 && valCol <= N);
+                        Assert.IsFalse(rowSeen[valRow]);
+                        Assert.IsFalse(colSeen[valCol]);
                         rowSeen[valRow] = true;
                         colSeen[valCol] = true;
                     }
@@ -269,7 +269,7 @@ namespace IAFahim.Search.ExactCover.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void SolvePolyominoTiling_SimpleTiling_FindsSolution()
         {
             const int W = 2;
@@ -312,11 +312,11 @@ namespace IAFahim.Search.ExactCover.Tests
                 int* colSize = stackalloc int[dlxCols + 1];
 
                 bool solved = ExactCover.SolvePolyominoTiling(W, H, 2, 2, variantPieceId, variantOffsets, variantLengths, variantX, variantY, grid, placementVariant, placementR, placementC, dlxMatrix, L, R_dlx, U, D, C, RowIdx, colSize);
-                Assert.True(solved);
-                Assert.Equal(0, grid[0]);
-                Assert.Equal(0, grid[1]);
-                Assert.Equal(1, grid[2]);
-                Assert.Equal(1, grid[3]);
+                Assert.IsTrue(solved);
+                Assert.AreEqual(0, grid[0]);
+                Assert.AreEqual(0, grid[1]);
+                Assert.AreEqual(1, grid[2]);
+                Assert.AreEqual(1, grid[3]);
             }
             finally
             {
@@ -329,26 +329,26 @@ namespace IAFahim.Search.ExactCover.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void NQueens_CountAndSymmetry_Correct()
         {
             int* solution = (int*)Marshal.AllocHGlobal(4 * sizeof(int));
             try
             {
                 bool solved = ExactCover.NQueensBitmask(4, solution);
-                Assert.True(solved);
+                Assert.IsTrue(solved);
 
-                int count4 = ExactCover.NQueensCount(4);
-                Assert.Equal(2, count4);
+                int count4 = (int)ExactCover.NQueensCount(4);
+                Assert.AreEqual(2, count4);
 
-                int count8 = ExactCover.NQueensCount(8);
-                Assert.Equal(92, count8);
+                int count8 = (int)ExactCover.NQueensCount(8);
+                Assert.AreEqual(92, count8);
 
-                int symCount4 = ExactCover.NQueensSymmetry(4);
-                Assert.Equal(1, symCount4);
+                int symCount4 = (int)ExactCover.NQueensSymmetry(4);
+                Assert.AreEqual(1, symCount4);
 
-                int symCount8 = ExactCover.NQueensSymmetry(8);
-                Assert.Equal(12, symCount8);
+                int symCount8 = (int)ExactCover.NQueensSymmetry(8);
+                Assert.AreEqual(12, symCount8);
             }
             finally
             {
@@ -356,7 +356,7 @@ namespace IAFahim.Search.ExactCover.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void MagicSquareSolve_Size3_FindsSolution()
         {
             const int N = 3;
@@ -365,7 +365,7 @@ namespace IAFahim.Search.ExactCover.Tests
             {
                 for (int i = 0; i < N * N; i++) grid[i] = 0;
                 bool solved = ExactCover.MagicSquareSolve(N, grid);
-                Assert.True(solved);
+                Assert.IsTrue(solved);
 
                 int target = N * (N * N + 1) / 2;
                 for (int r = 0; r < N; r++)
@@ -377,8 +377,8 @@ namespace IAFahim.Search.ExactCover.Tests
                         rowSum += grid[r * N + c];
                         colSum += grid[c * N + r];
                     }
-                    Assert.Equal(target, rowSum);
-                    Assert.Equal(target, colSum);
+                    Assert.AreEqual(target, rowSum);
+                    Assert.AreEqual(target, colSum);
                 }
             }
             finally
@@ -387,7 +387,7 @@ namespace IAFahim.Search.ExactCover.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void CryptarithmSolve_SendMoreMoney_FindsSolution()
         {
             const int NumLetters = 8;
@@ -427,15 +427,15 @@ namespace IAFahim.Search.ExactCover.Tests
                 }
 
                 bool solved = ExactCover.CryptarithmSolve(NumLetters, NumWords, wordLengths, wordLetters, wordOffsets, TargetLength, targetLetters, isLeading, resultDigits);
-                Assert.True(solved);
-                Assert.Equal(9, resultDigits[0]); // S = 9
-                Assert.Equal(5, resultDigits[1]); // E = 5
-                Assert.Equal(6, resultDigits[2]); // N = 6
-                Assert.Equal(7, resultDigits[3]); // D = 7
-                Assert.Equal(1, resultDigits[4]); // M = 1
-                Assert.Equal(0, resultDigits[5]); // O = 0
-                Assert.Equal(8, resultDigits[6]); // R = 8
-                Assert.Equal(2, resultDigits[7]); // Y = 2
+                Assert.IsTrue(solved);
+                Assert.AreEqual(9, resultDigits[0]); // S = 9
+                Assert.AreEqual(5, resultDigits[1]); // E = 5
+                Assert.AreEqual(6, resultDigits[2]); // N = 6
+                Assert.AreEqual(7, resultDigits[3]); // D = 7
+                Assert.AreEqual(1, resultDigits[4]); // M = 1
+                Assert.AreEqual(0, resultDigits[5]); // O = 0
+                Assert.AreEqual(8, resultDigits[6]); // R = 8
+                Assert.AreEqual(2, resultDigits[7]); // Y = 2
             }
             finally
             {
@@ -448,7 +448,7 @@ namespace IAFahim.Search.ExactCover.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void ConstraintPropagationAndAc3_SimpleCsp_FindsSolution()
         {
             const int NumVars = 2;
@@ -478,13 +478,13 @@ namespace IAFahim.Search.ExactCover.Tests
                 }
 
                 bool ac3Result = ExactCover.ArcConsistencyAc3(NumVars, domainSizes, domains, MaxDomain, NumConstraints, constVar1, constVar2, relations);
-                Assert.True(ac3Result);
-                Assert.False(domains[0 * MaxDomain + 2]);
-                Assert.False(domains[1 * MaxDomain + 0]);
+                Assert.IsTrue(ac3Result);
+                Assert.IsFalse(domains[0 * MaxDomain + 2]);
+                Assert.IsFalse(domains[1 * MaxDomain + 0]);
 
                 bool cspResult = ExactCover.ConstraintPropagationSolve(NumVars, domainSizes, domains, MaxDomain, NumConstraints, constVar1, constVar2, relations, assignment);
-                Assert.True(cspResult);
-                Assert.True(assignment[0] < assignment[1]);
+                Assert.IsTrue(cspResult);
+                Assert.IsTrue(assignment[0] < assignment[1]);
             }
             finally
             {

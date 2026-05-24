@@ -2,17 +2,17 @@ namespace IAFahim.String.SuffixAutomaton.Tests
 {
     using System;
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class SuffixAutomatonTests
     {
-        [Fact]
+        [Test]
         public void Build_Empty_NoCrash()
         {
             SuffixAutomaton.Build(null, 0);
         }
 
-        [Fact]
+        [Test]
         public void Build_SingleChar_Builds()
         {
             int* ptr = (int*)Marshal.AllocHGlobal(sizeof(int));
@@ -21,7 +21,7 @@ namespace IAFahim.String.SuffixAutomaton.Tests
             Marshal.FreeHGlobal((nint)ptr);
         }
 
-        [Fact]
+        [Test]
         public void Build_MultipleChars_Builds()
         {
             int len = 5;

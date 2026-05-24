@@ -1,11 +1,11 @@
 namespace IAFahim.DS.Fenwick.Tests
 {
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class PersistentFenwickTests
     {
-        [Fact]
+        [Test]
         public void PersistentFenwick_EmptyInput_NoOp()
         {
             int* lc = stackalloc int[100];
@@ -15,10 +15,10 @@ namespace IAFahim.DS.Fenwick.Tests
             for (int i = 0; i < 100; i++) { lc[i] = rc[i] = sum[i] = 0; }
 
             int q = PersistentFenwickQuery.Run(lc, rc, sum, 0, 0, 9, 0, 9);
-            Assert.Equal(0, q);
+            Assert.AreEqual(0, q);
         }
 
-        [Fact]
+        [Test]
         public void PersistentFenwick_UpdateAndQuery()
         {
             const int maxNodes = 300;
@@ -37,11 +37,11 @@ namespace IAFahim.DS.Fenwick.Tests
                 int q1 = PersistentFenwickQuery.Run(lc, rc, sum, root1, 0, 9, 3, 3);
                 int q2 = PersistentFenwickQuery.Run(lc, rc, sum, root2, 0, 9, 3, 7);
 
-                Assert.Equal(1, q1);
-                Assert.Equal(2, q2);
+                Assert.AreEqual(1, q1);
+                Assert.AreEqual(2, q2);
 
                 int q1old = PersistentFenwickQuery.Run(lc, rc, sum, root1, 0, 9, 7, 7);
-                Assert.Equal(0, q1old);
+                Assert.AreEqual(0, q1old);
             }
             finally
             {

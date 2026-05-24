@@ -14,19 +14,21 @@ namespace IAFahim.Optimization.Exact
         private static void Search(int n, bool* adj, int* used, int v, int* best, int cur, int depth, int* tmp)
         {
             if (v == n) { if (cur > *best) *best = cur; return; }
-            bool canUse = true;
-            for (int u = 0; u < n; u++)
-                if (adj[v * n + u] && used[u] != 0) { canUse = false; break; }
-            int* currentTmp = tmp + depth * n;
-            int sz = 0;
-            for (int i = v + 1; i < n; i++) currentTmp[sz++] = i;
-            if (canUse)
+
+            if (CanIncludeNode(n, adj, used, v))
             {
                 used[v] = 1;
                 Search(n, adj, used, v + 1, best, cur + 1, depth + 1, tmp);
                 used[v] = 0;
             }
             Search(n, adj, used, v + 1, best, cur, depth + 1, tmp);
+        }
+
+        private static bool CanIncludeNode(int n, bool* adj, int* used, int v)
+        {
+            for (int u = 0; u < n; u++)
+                if (adj[v * n + u] && used[u] != 0) return false;
+            return true;
         }
     }
 }

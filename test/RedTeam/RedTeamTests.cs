@@ -2,11 +2,11 @@ namespace IAFahim.RedTeam
 {
     using System;
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class SortRedTeam
     {
-        [Fact]
+        [Test]
         public void InsertionSort_NegativeNumbers()
         {
             int len = 10;
@@ -17,10 +17,10 @@ namespace IAFahim.RedTeam
             IAFahim.Sort.Insertion.Insertion.Run(ptr, len);
 
             for (int i = 0; i < len - 1; i++)
-                Assert.True(ptr[i] <= ptr[i + 1], $"Not sorted at {i}: {ptr[i]} > {ptr[i + 1]}");
+                Assert.IsTrue(ptr[i] <= ptr[i + 1], $"Not sorted at {i}: {ptr[i]} > {ptr[i + 1]}");
         }
 
-        [Fact]
+        [Test]
         public void InsertionSort_IntMinIntMax()
         {
             int len = 4;
@@ -32,13 +32,13 @@ namespace IAFahim.RedTeam
 
             IAFahim.Sort.Insertion.Insertion.Run(ptr, len);
 
-            Assert.Equal(int.MinValue, ptr[0]);
-            Assert.Equal(0, ptr[1]);
-            Assert.Equal(42, ptr[2]);
-            Assert.Equal(int.MaxValue, ptr[3]);
+            Assert.AreEqual(int.MinValue, ptr[0]);
+            Assert.AreEqual(0, ptr[1]);
+            Assert.AreEqual(42, ptr[2]);
+            Assert.AreEqual(int.MaxValue, ptr[3]);
         }
 
-        [Fact]
+        [Test]
         public void MergeSorted_OneEmptyArray()
         {
             int* a = stackalloc int[3] { 1, 2, 3 };
@@ -47,12 +47,12 @@ namespace IAFahim.RedTeam
 
             IAFahim.Sort.Merge.MergeSorted.Run(a, 3, b, 0, dst);
 
-            Assert.Equal(1, dst[0]);
-            Assert.Equal(2, dst[1]);
-            Assert.Equal(3, dst[2]);
+            Assert.AreEqual(1, dst[0]);
+            Assert.AreEqual(2, dst[1]);
+            Assert.AreEqual(3, dst[2]);
         }
 
-        [Fact]
+        [Test]
         public void MergeSorted_LargeValues()
         {
             int* a = stackalloc int[2] { int.MaxValue - 2, int.MaxValue };
@@ -61,26 +61,26 @@ namespace IAFahim.RedTeam
 
             IAFahim.Sort.Merge.MergeSorted.Run(a, 2, b, 2, dst);
 
-            Assert.Equal(int.MinValue, dst[0]);
-            Assert.Equal(int.MinValue + 2, dst[1]);
-            Assert.Equal(int.MaxValue - 2, dst[2]);
-            Assert.Equal(int.MaxValue, dst[3]);
+            Assert.AreEqual(int.MinValue, dst[0]);
+            Assert.AreEqual(int.MinValue + 2, dst[1]);
+            Assert.AreEqual(int.MaxValue - 2, dst[2]);
+            Assert.AreEqual(int.MaxValue, dst[3]);
         }
 
-        [Fact]
+        [Test]
         public void Partition_InvalidPivotIndex()
         {
             int len = 5;
             int* ptr = stackalloc int[5] { 3, 1, 4, 1, 5 };
 
             int result = IAFahim.Sort.Partition.Partition.Run(ptr, len, -1);
-            Assert.Equal(-1, result);
+            Assert.AreEqual(-1, result);
 
             result = IAFahim.Sort.Partition.Partition.Run(ptr, len, len);
-            Assert.Equal(-1, result);
+            Assert.AreEqual(-1, result);
         }
 
-        [Fact]
+        [Test]
         public void SortInts_WithDuplicates()
         {
             int len = 10;
@@ -91,13 +91,13 @@ namespace IAFahim.RedTeam
             IAFahim.Sort.Specialized.SortInts.Run(ptr, len);
 
             for (int i = 0; i < len - 1; i++)
-                Assert.True(ptr[i] <= ptr[i + 1], $"Not sorted at {i}: {ptr[i]} > {ptr[i + 1]}");
+                Assert.IsTrue(ptr[i] <= ptr[i + 1], $"Not sorted at {i}: {ptr[i]} > {ptr[i + 1]}");
         }
     }
 
     public sealed unsafe class SearchRedTeam
     {
-        [Fact]
+        [Test]
         public void BinarySearch_EdgeCases()
         {
             int len = 5;
@@ -105,21 +105,21 @@ namespace IAFahim.RedTeam
 
             int idx;
             bool found = IAFahim.Search.Specialized.BinarySearch.TryFind(ptr, len, 1, out idx);
-            Assert.True(found);
-            Assert.Equal(0, idx);
+            Assert.IsTrue(found);
+            Assert.AreEqual(0, idx);
 
             found = IAFahim.Search.Specialized.BinarySearch.TryFind(ptr, len, 5, out idx);
-            Assert.True(found);
-            Assert.Equal(4, idx);
+            Assert.IsTrue(found);
+            Assert.AreEqual(4, idx);
 
             found = IAFahim.Search.Specialized.BinarySearch.TryFind(ptr, len, 0, out idx);
-            Assert.False(found);
+            Assert.IsFalse(found);
 
             found = IAFahim.Search.Specialized.BinarySearch.TryFind(ptr, len, 6, out idx);
-            Assert.False(found);
+            Assert.IsFalse(found);
         }
 
-        [Fact]
+        [Test]
         public void LowerBound_AllElementsSame()
         {
             int len = 100;
@@ -127,16 +127,16 @@ namespace IAFahim.RedTeam
             for (int i = 0; i < len; i++) ptr[i] = 42;
 
             int pos = IAFahim.Search.Specialized.LowerBound.Run(ptr, len, 42);
-            Assert.Equal(0, pos);
+            Assert.AreEqual(0, pos);
 
             pos = IAFahim.Search.Specialized.LowerBound.Run(ptr, len, 0);
-            Assert.Equal(0, pos);
+            Assert.AreEqual(0, pos);
 
             pos = IAFahim.Search.Specialized.LowerBound.Run(ptr, len, 100);
-            Assert.Equal(len, pos);
+            Assert.AreEqual(len, pos);
         }
 
-        [Fact]
+        [Test]
         public void UpperBound_AllElementsSame()
         {
             int len = 100;
@@ -144,56 +144,56 @@ namespace IAFahim.RedTeam
             for (int i = 0; i < len; i++) ptr[i] = 42;
 
             int pos = IAFahim.Search.Specialized.UpperBound.Run(ptr, len, 42);
-            Assert.Equal(len, pos);
+            Assert.AreEqual(len, pos);
 
             pos = IAFahim.Search.Specialized.UpperBound.Run(ptr, len, 0);
-            Assert.Equal(0, pos);
+            Assert.AreEqual(0, pos);
 
             pos = IAFahim.Search.Specialized.UpperBound.Run(ptr, len, 100);
-            Assert.Equal(len, pos);
+            Assert.AreEqual(len, pos);
         }
 
-        [Fact]
+        [Test]
         public void TernarySearch_SingleElement()
         {
             int len = 1;
             int* ptr = stackalloc int[1] { 42 };
 
             int result = IAFahim.Search.Specialized.TernarySearch.Run(ptr, len, 42);
-            Assert.Equal(0, result);
+            Assert.AreEqual(0, result);
 
             result = IAFahim.Search.Specialized.TernarySearch.Run(ptr, len, 0);
-            Assert.True(result < 0);
+            Assert.IsTrue(result < 0);
         }
     }
 
     public sealed unsafe class RangeRedTeam
     {
-        [Fact]
+        [Test]
         public void RangeMex_AllConsecutiveFromZero()
         {
             int len = 5;
             int* a = stackalloc int[5] { 0, 1, 2, 3, 4 };
             int result = IAFahim.Search.Range.RangeMex.Run(len, a, 0, len - 1);
-            Assert.Equal(5, result);
+            Assert.AreEqual(5, result);
         }
 
-        [Fact]
+        [Test]
         public void RangeMex_NegativeNumbers()
         {
             int len = 5;
             int* a = stackalloc int[5] { -5, -1, 0, 1, 2 };
             int result = IAFahim.Search.Range.RangeMex.Run(len, a, 0, len - 1);
-            Assert.Equal(3, result);
+            Assert.AreEqual(3, result);
         }
 
-        [Fact]
+        [Test]
         public void RangeMex_EmptyRange()
         {
             int len = 5;
             int* a = stackalloc int[5] { 0, 1, 2, 3, 4 };
             int result = IAFahim.Search.Range.RangeMex.Run(len, a, 3, 2);
-            Assert.Equal(0, result);
+            Assert.AreEqual(0, result);
         }
     }
 }

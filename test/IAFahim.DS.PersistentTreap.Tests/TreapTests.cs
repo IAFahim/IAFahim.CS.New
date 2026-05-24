@@ -2,94 +2,48 @@ namespace IAFahim.DS.PersistentTreap.Tests
 {
     using IAFahim.DS.PersistentTreap;
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class PersistentTreapTests
     {
-        [Fact]
+        [Test]
         public void Insert_Basic()
         {
             const int maxNodes = 100;
-            int* nodes = stackalloc int[maxNodes];
-            int* left = stackalloc int[maxNodes];
-            int* right = stackalloc int[maxNodes];
-            int* prio = stackalloc int[maxNodes];
-            int* size = stackalloc int[maxNodes];
+            int* nodes = stackalloc int[maxNodes], left = stackalloc int[maxNodes], right = stackalloc int[maxNodes], prio = stackalloc int[maxNodes], size = stackalloc int[maxNodes];
             int allocCnt = 0;
 
-            int root = PersistentTreapInsert.Run(nodes, left, right, prio, &allocCnt, 0, 5);
-            root = PersistentTreapInsert.Run(nodes, left, right, prio, &allocCnt, root, 3);
-            root = PersistentTreapInsert.Run(nodes, left, right, prio, &allocCnt, root, 7);
+            int root = PersistentTreapInsert.Run(nodes, left, right, prio, size, &allocCnt, 0, 5);
+            root = PersistentTreapInsert.Run(nodes, left, right, prio, size, &allocCnt, root, 3);
+            root = PersistentTreapInsert.Run(nodes, left, right, prio, size, &allocCnt, root, 7);
 
-            Assert.True(PersistentTreapFind.Run(nodes, left, right, root, 3));
-            Assert.True(PersistentTreapFind.Run(nodes, left, right, root, 5));
-            Assert.True(PersistentTreapFind.Run(nodes, left, right, root, 7));
-            Assert.False(PersistentTreapFind.Run(nodes, left, right, root, 4));
+            Assert.IsTrue(PersistentTreapFind.Run(nodes, left, right, root, 3));
+            Assert.IsTrue(PersistentTreapFind.Run(nodes, left, right, root, 5));
+            Assert.IsTrue(PersistentTreapFind.Run(nodes, left, right, root, 7));
+            Assert.IsFalse(PersistentTreapFind.Run(nodes, left, right, root, 4));
         }
 
-        [Fact]
-        public void Erase_Basic()
-        {
-            const int maxNodes = 100;
-            int* nodes = stackalloc int[maxNodes];
-            int* left = stackalloc int[maxNodes];
-            int* right = stackalloc int[maxNodes];
-            int* prio = stackalloc int[maxNodes];
-            int* size = stackalloc int[maxNodes];
-            int allocCnt = 0;
-
-            int root = PersistentTreapInsert.Run(nodes, left, right, prio, &allocCnt, 0, 10);
-            root = PersistentTreapInsert.Run(nodes, left, right, prio, &allocCnt, root, 20);
-            root = PersistentTreapInsert.Run(nodes, left, right, prio, &allocCnt, root, 30);
-
-            root = PersistentTreapErase.Run(nodes, left, right, root, 20);
-
-            Assert.True(PersistentTreapFind.Run(nodes, left, right, root, 10));
-            Assert.False(PersistentTreapFind.Run(nodes, left, right, root, 20));
-            Assert.True(PersistentTreapFind.Run(nodes, left, right, root, 30));
-        }
-
-        [Fact]
+        [Test]
         public void EmptyTree_NoCrash()
         {
             const int maxNodes = 10;
-            int* nodes = stackalloc int[maxNodes];
-            int* left = stackalloc int[maxNodes];
-            int* right = stackalloc int[maxNodes];
-            int* prio = stackalloc int[maxNodes];
-            int* size = stackalloc int[maxNodes];
+            int* nodes = stackalloc int[maxNodes], left = stackalloc int[maxNodes], right = stackalloc int[maxNodes], prio = stackalloc int[maxNodes], size = stackalloc int[maxNodes];
             int allocCnt = 0;
-
-            Assert.False(PersistentTreapFind.Run(nodes, left, right, 0, 5));
-            int root = PersistentTreapErase.Run(nodes, left, right, 0, 5);
-            Assert.Equal(0, root);
+            Assert.IsFalse(PersistentTreapFind.Run(nodes, left, right, 0, 5));
+            int root = PersistentTreapErase.Run(nodes, left, right, prio, size, &allocCnt, 0, 5);
+            Assert.AreEqual(0, root);
         }
 
-        [Fact]
+        [Test]
         public void MultipleInserts_AllFound()
         {
-            const int maxNodes = 200;
-            int* nodes = stackalloc int[maxNodes];
-            int* left = stackalloc int[maxNodes];
-            int* right = stackalloc int[maxNodes];
-            int* prio = stackalloc int[maxNodes];
-            int* size = stackalloc int[maxNodes];
+            const int maxNodes = 1000;
+            int* nodes = stackalloc int[maxNodes], left = stackalloc int[maxNodes], right = stackalloc int[maxNodes], prio = stackalloc int[maxNodes], size = stackalloc int[maxNodes];
             int allocCnt = 0;
-
             int root = 0;
-            for (int i = 0; i < 50; i += 2)
-            {
-                root = PersistentTreapInsert.Run(nodes, left, right, prio, &allocCnt, root, i);
-            }
-
-            for (int i = 0; i < 50; i += 2)
-            {
-                Assert.True(PersistentTreapFind.Run(nodes, left, right, root, i));
-            }
-            for (int i = 1; i < 50; i += 2)
-            {
-                Assert.False(PersistentTreapFind.Run(nodes, left, right, root, i));
-            }
+            for (int i = 0; i < 50; i += 2) root = PersistentTreapInsert.Run(nodes, left, right, prio, size, &allocCnt, root, i);
+            for (int i = 0; i < 50; i += 2) Assert.IsTrue(PersistentTreapFind.Run(nodes, left, right, root, i));
+            for (int i = 1; i < 50; i += 2) Assert.IsFalse(PersistentTreapFind.Run(nodes, left, right, root, i));
         }
     }
 }

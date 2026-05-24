@@ -13,39 +13,38 @@ namespace IAFahim.Optimization.Exact
             dp[(1 << 0) * n + 0] = 0;
             for (int mask = 1; mask < size; mask++)
             {
-                for (int last = 0; last < n; last++)
-                {
-                    int bit = 1 << last;
-                    if ((mask & bit) == 0) continue;
-                    if (dp[mask * n + last] >= inf) continue;
-                    for (int u = 0; u < n; u++)
-                    {
-                        if ((mask & (1 << u)) != 0) continue;
-                        long wlu = w[last * n + u];
-                        if (wlu >= inf) continue;
-                        int newMask = mask | (1 << u);
-                        long current = dp[mask * n + last];
-                        if (current != inf && wlu != inf)
-                        {
-                            long cand = current + wlu;
-                            if (cand < dp[newMask * n + u]) dp[newMask * n + u] = cand;
-                        }
-                    }
-                }
+                ProcessCycleMask(n, w, inf, dp, mask);
             }
+            return FindMinBestCycle(n, w, inf, dp, size - 1);
+        }
+
+        private static void ProcessCycleMask(int n, long* w, long inf, long* dp, int mask)
+        {
+            for (int last = 0; last < n; last++)
+            {
+                if ((mask & (1 << last)) == 0 || dp[mask * n + last] >= inf) continue;
+                TryExtendPath(n, w, inf, dp, mask, last);
+            }
+        }
+
+        private static void TryExtendPath(int n, long* w, long inf, long* dp, int mask, int last)
+        {
+            for (int u = 0; u < n; u++)
+            {
+                if ((mask & (1 << u)) != 0 || w[last * n + u] >= inf) continue;
+                long cand = dp[mask * n + last] + w[last * n + u];
+                if (cand < dp[(mask | (1 << u)) * n + u]) dp[(mask | (1 << u)) * n + u] = cand;
+            }
+        }
+
+        private static long FindMinBestCycle(int n, long* w, long inf, long* dp, int fullMask)
+        {
             long best = inf;
-            int full = size - 1;
             for (int last = 1; last < n; last++)
             {
-                if (dp[full * n + last] >= inf) continue;
-                long wln = w[last * n + 0];
-                if (wln >= inf) continue;
-                long current = dp[full * n + last];
-                if (current != inf && wln != inf)
-                {
-                    long cand = current + wln;
-                    if (cand < best) best = cand;
-                }
+                if (dp[fullMask * n + last] >= inf || w[last * n + 0] >= inf) continue;
+                long cand = dp[fullMask * n + last] + w[last * n + 0];
+                if (cand < best) best = cand;
             }
             return best;
         }

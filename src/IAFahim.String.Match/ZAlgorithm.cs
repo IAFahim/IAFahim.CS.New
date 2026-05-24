@@ -13,31 +13,32 @@ using System.Runtime.InteropServices;
             int l = 0, r = 0;
             for (int i = 1; i < len; i++)
             {
-                if (i <= r)
-                {
-                    int remaining = r - i + 1;
-                    if (zPtr[i - l] < remaining)
-                        zPtr[i] = zPtr[i - l];
-                    else
-                    {
-                        zPtr[i] = remaining;
-                        while (i + zPtr[i] < len && ptr[zPtr[i]] == ptr[i + zPtr[i]])
-                            zPtr[i]++;
-                        zPtr[i] = Math.Min(zPtr[i], remaining);
-                    }
-                }
-                else
-                {
-                    zPtr[i] = 0;
-                    while (i + zPtr[i] < len && ptr[zPtr[i]] == ptr[i + zPtr[i]])
-                        zPtr[i]++;
-                }
-                if (i + zPtr[i] - 1 > r)
-                {
-                    l = i;
-                    r = i + zPtr[i] - 1;
-                }
+                if (i <= r) UpdateZMatch(ptr, len, zPtr, i, l, r);
+                else InitializeZMatch(ptr, len, zPtr, i);
+                
+                if (i + zPtr[i] - 1 > r) { l = i; r = i + zPtr[i] - 1; }
             }
+        }
+
+        private static void UpdateZMatch(byte* ptr, int len, int* zPtr, int i, int l, int r)
+        {
+            int rem = r - i + 1;
+            if (zPtr[i - l] < rem) zPtr[i] = zPtr[i - l];
+            else
+            {
+                zPtr[i] = rem;
+                while (i + zPtr[i] < len && ptr[zPtr[i]] == ptr[i + zPtr[i]]) zPtr[i]++;
+                zPtr[i] = Math.Min(zPtr[i], rem + (len - i - rem)); // Simplified boundary
+                // Re-calculating actual extension
+                zPtr[i] = rem;
+                while (i + zPtr[i] < len && ptr[zPtr[i]] == ptr[i + zPtr[i]]) zPtr[i]++;
+            }
+        }
+
+        private static void InitializeZMatch(byte* ptr, int len, int* zPtr, int i)
+        {
+            zPtr[i] = 0;
+            while (i + zPtr[i] < len && ptr[zPtr[i]] == ptr[i + zPtr[i]]) zPtr[i]++;
         }
     }
 }

@@ -1,25 +1,25 @@
 namespace IAFahim.DS.Grid.Tests
 {
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class ShuffleTests
     {
-        [Fact]
+        [Test]
         public void EmptyInput_NoOp()
         {
             int* ptr = stackalloc int[0];
             Grid.Shuffle.Run(ptr, 0, 42);
         }
 
-        [Fact]
+        [Test]
         public void SingleElement_Unchanged()
         {
             int val = 42;
             Grid.Shuffle.Run(&val, 1, 123);
-            Assert.Equal(42, val);
+            Assert.AreEqual(42, val);
         }
 
-        [Fact]
+        [Test]
         public void SameSeed_SameResult()
         {
             const int N = 16;
@@ -33,10 +33,10 @@ namespace IAFahim.DS.Grid.Tests
             Grid.Shuffle.Run(ptr1, N, 42);
             Grid.Shuffle.Run(ptr2, N, 42);
             for (int i = 0; i < N; i++)
-                Assert.Equal(ptr1[i], ptr2[i]);
+                Assert.AreEqual(ptr1[i], ptr2[i]);
         }
 
-        [Fact]
+        [Test]
         public void SameInput_DifferentSeeds_DifferentResults()
         {
             const int N = 32;
@@ -58,10 +58,10 @@ namespace IAFahim.DS.Grid.Tests
                     break;
                 }
             }
-            Assert.False(allSame);
+            Assert.IsFalse(allSame);
         }
 
-        [Fact]
+        [Test]
         public void PreservesAllElements()
         {
             const int N = 64;
@@ -73,7 +73,7 @@ namespace IAFahim.DS.Grid.Tests
             for (int i = 0; i < N; i++)
                 found[ptr[i]]++;
             for (int i = 0; i < N; i++)
-                Assert.Equal(1, found[i]);
+                Assert.AreEqual(1, found[i]);
         }
     }
 }

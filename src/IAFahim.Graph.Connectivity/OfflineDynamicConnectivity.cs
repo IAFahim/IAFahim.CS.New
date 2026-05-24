@@ -12,7 +12,6 @@ namespace IAFahim.Graph.Connectivity
 
     public static unsafe class OfflineDynamicConnectivity
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Solve(
             int l, int r,
             EdgeInterval* edges, int edgeCount,
@@ -26,37 +25,40 @@ namespace IAFahim.Graph.Connectivity
             int activeEdges = 0;
             int* activeIndices = stackalloc int[edgeCount];
 
-            for (int i = 0; i < edgeCount; i++)
-            {
-                if (edges[i].StartTime <= l && edges[i].EndTime >= r)
-                {
-                    OfflineDynamicMst.Union(parent, size, edges[i].U, edges[i].V, history, ref historyCount);
-                }
-                else if (edges[i].StartTime <= r && edges[i].EndTime >= l)
-                {
-                    activeIndices[activeEdges++] = i;
-                }
-            }
+            ProcessIntervalEdges(l, r, edges, edgeCount, parent, size, history, ref historyCount, activeIndices, ref activeEdges);
 
             if (l == r)
             {
-                if (queriesType != null && queriesType[l] == 2)
-                {
-                    answers[l] = OfflineDynamicMst.Find(parent, queriesU[l]) == OfflineDynamicMst.Find(parent, queriesV[l]) ? 1 : 0;
-                }
+                ProcessQuery(l, answers, queriesType, queriesU, queriesV, parent);
             }
             else
             {
                 int mid = l + (r - l) / 2;
                 EdgeInterval* nextEdges = stackalloc EdgeInterval[activeEdges];
-                for (int i = 0; i < activeEdges; i++)
-                    nextEdges[i] = edges[activeIndices[i]];
+                for (int i = 0; i < activeEdges; i++) nextEdges[i] = edges[activeIndices[i]];
 
                 Solve(l, mid, nextEdges, activeEdges, parent, size, history, ref historyCount, answers, queriesType, queriesU, queriesV);
                 Solve(mid + 1, r, nextEdges, activeEdges, parent, size, history, ref historyCount, answers, queriesType, queriesU, queriesV);
             }
 
             OfflineDynamicMst.Rollback(parent, size, history, ref historyCount, initialHistory);
+        }
+
+        private static void ProcessIntervalEdges(int l, int r, EdgeInterval* edges, int edgeCount, int* parent, int* size, RollbackOp* history, ref int historyCount, int* activeIndices, ref int activeEdges)
+        {
+            for (int i = 0; i < edgeCount; i++)
+            {
+                if (edges[i].StartTime <= l && edges[i].EndTime >= r)
+                    OfflineDynamicMst.Union(parent, size, edges[i].U, edges[i].V, history, ref historyCount);
+                else if (edges[i].StartTime <= r && edges[i].EndTime >= l)
+                    activeIndices[activeEdges++] = i;
+            }
+        }
+
+        private static void ProcessQuery(int l, int* answers, int* queriesType, int* queriesU, int* queriesV, int* parent)
+        {
+            if (queriesType != null && queriesType[l] == 2)
+                answers[l] = (OfflineDynamicMst.Find(parent, queriesU[l]) == OfflineDynamicMst.Find(parent, queriesV[l])) ? 1 : 0;
         }
     }
 }

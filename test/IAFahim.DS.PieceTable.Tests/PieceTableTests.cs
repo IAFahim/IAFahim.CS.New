@@ -1,11 +1,11 @@
 namespace IAFahim.DS.PieceTable.Tests
 {
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class PieceTableTests
     {
-        [Fact]
+        [Test]
         public void PieceTableInsert_Basic()
         {
             const int OrigCap = 32;
@@ -32,8 +32,8 @@ namespace IAFahim.DS.PieceTable.Tests
                 for (int i = 0; i < 5; i++) data[i] = (byte)('A' + i);
                 PieceTableInsert.Run(ref s, 0, data, 5, pieces, ref pieceCount);
 
-                Assert.Equal(5, s.AddedLen);
-                Assert.True(pieceCount >= 1);
+                Assert.AreEqual(5, s.AddedLen);
+                Assert.IsTrue(pieceCount >= 1);
             }
             finally
             {
@@ -43,7 +43,7 @@ namespace IAFahim.DS.PieceTable.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void PieceTableDelete_Basic()
         {
             const int AddCap = 64;

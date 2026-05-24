@@ -1,11 +1,11 @@
 namespace IAFahim.DS.Trie.Tests
 {
     using IAFahim.DS.Trie;
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class TrieTests
     {
-        [Fact]
+        [Test]
         public void InsertAndFind_Basic()
         {
             const int maxNodes = 64;
@@ -21,12 +21,12 @@ namespace IAFahim.DS.Trie.Tests
             TrieInsert.Run(trie, root, word1, 3);
             TrieInsert.Run(trie, root, word2, 2);
 
-            Assert.True(TrieFind.Run(trie, root, word1, 3));
-            Assert.True(TrieFind.Run(trie, root, word2, 2));
-            Assert.False(TrieFind.Run(trie, root, miss, 2));
+            Assert.IsTrue(TrieFind.Run(trie, root, word1, 3));
+            Assert.IsTrue(TrieFind.Run(trie, root, word2, 2));
+            Assert.IsFalse(TrieFind.Run(trie, root, miss, 2));
         }
 
-        [Fact]
+        [Test]
         public void Delete_RemovesWord()
         {
             const int maxNodes = 64;
@@ -37,12 +37,12 @@ namespace IAFahim.DS.Trie.Tests
 
             byte* word = stackalloc byte[2] { (byte)'a', (byte)'b' };
             TrieInsert.Run(trie, root, word, 2);
-            Assert.True(TrieFind.Run(trie, root, word, 2));
-            Assert.True(TrieDelete.Run(trie, root, word, 2));
-            Assert.False(TrieFind.Run(trie, root, word, 2));
+            Assert.IsTrue(TrieFind.Run(trie, root, word, 2));
+            Assert.IsTrue(TrieDelete.Run(trie, root, word, 2));
+            Assert.IsFalse(TrieFind.Run(trie, root, word, 2));
         }
 
-        [Fact]
+        [Test]
         public void BinaryTrie_MaxMinXor_Smoke()
         {
             const int maxNodes = 64;
@@ -56,12 +56,12 @@ namespace IAFahim.DS.Trie.Tests
 
             int maxXor = BinaryTrieMaxXor.Run(trie, root, 1, 1);
             int minXor = BinaryTrieMinXor.Run(trie, root, 1, 1);
-            Assert.True(maxXor >= 0);
-            Assert.True(minXor >= 0);
+            Assert.IsTrue(maxXor >= 0);
+            Assert.IsTrue(minXor >= 0);
 
             BinaryTrieErase.Run(trie, root, 0, 1);
             int maxXorAfter = BinaryTrieMaxXor.Run(trie, root, 1, 1);
-            Assert.True(maxXorAfter >= 0);
+            Assert.IsTrue(maxXorAfter >= 0);
         }
     }
 }

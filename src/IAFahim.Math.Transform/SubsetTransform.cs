@@ -7,25 +7,22 @@ namespace IAFahim.Math.Transform
     {
         public static void Run(long* f, int n)
         {
-            for (int i = 0; i < n; i++)
-            {
-                for (int mask = 0; mask < (1 << n); mask++)
-                {
-                    if ((mask & (1 << i)) != 0)
-                        f[mask] += f[mask ^ (1 << i)];
-                }
-            }
+            for (int i = 0; i < n; i++) PerformZetaStep(f, n, i);
+        }
+
+        private static void PerformZetaStep(long* f, int n, int i)
+        {
+            for (int mask = 0; mask < (1 << n); mask++)
+                if ((mask & (1 << i)) != 0) f[mask] += f[mask ^ (1 << i)];
         }
 
         public static void RunInt32(int* f, int n)
         {
             for (int i = 0; i < n; i++)
             {
+                int bit = 1 << i;
                 for (int mask = 0; mask < (1 << n); mask++)
-                {
-                    if ((mask & (1 << i)) != 0)
-                        f[mask] += f[mask ^ (1 << i)];
-                }
+                    if ((mask & bit) != 0) f[mask] += f[mask ^ bit];
             }
         }
     }
@@ -34,25 +31,22 @@ namespace IAFahim.Math.Transform
     {
         public static void Run(long* f, int n)
         {
-            for (int i = 0; i < n; i++)
-            {
-                for (int mask = 0; mask < (1 << n); mask++)
-                {
-                    if ((mask & (1 << i)) != 0)
-                        f[mask] -= f[mask ^ (1 << i)];
-                }
-            }
+            for (int i = 0; i < n; i++) PerformMobiusStep(f, n, i);
+        }
+
+        private static void PerformMobiusStep(long* f, int n, int i)
+        {
+            for (int mask = 0; mask < (1 << n); mask++)
+                if ((mask & (1 << i)) != 0) f[mask] -= f[mask ^ (1 << i)];
         }
 
         public static void RunInt32(int* f, int n)
         {
             for (int i = 0; i < n; i++)
             {
+                int bit = 1 << i;
                 for (int mask = 0; mask < (1 << n); mask++)
-                {
-                    if ((mask & (1 << i)) != 0)
-                        f[mask] -= f[mask ^ (1 << i)];
-                }
+                    if ((mask & bit) != 0) f[mask] -= f[mask ^ bit];
             }
         }
     }
@@ -61,14 +55,13 @@ namespace IAFahim.Math.Transform
     {
         public static void Run(long* f, int n)
         {
-            for (int i = 0; i < n; i++)
-            {
-                for (int mask = 0; mask < (1 << n); mask++)
-                {
-                    if ((mask & (1 << i)) == 0)
-                        f[mask] += f[mask | (1 << i)];
-                }
-            }
+            for (int i = 0; i < n; i++) PerformSupersetZetaStep(f, n, i);
+        }
+
+        private static void PerformSupersetZetaStep(long* f, int n, int i)
+        {
+            for (int mask = 0; mask < (1 << n); mask++)
+                if ((mask & (1 << i)) == 0) f[mask] += f[mask | (1 << i)];
         }
     }
 
@@ -76,14 +69,13 @@ namespace IAFahim.Math.Transform
     {
         public static void Run(long* f, int n)
         {
-            for (int i = 0; i < n; i++)
-            {
-                for (int mask = 0; mask < (1 << n); mask++)
-                {
-                    if ((mask & (1 << i)) == 0)
-                        f[mask] -= f[mask | (1 << i)];
-                }
-            }
+            for (int i = 0; i < n; i++) PerformSupersetMobiusStep(f, n, i);
+        }
+
+        private static void PerformSupersetMobiusStep(long* f, int n, int i)
+        {
+            for (int mask = 0; mask < (1 << n); mask++)
+                if ((mask & (1 << i)) == 0) f[mask] -= f[mask | (1 << i)];
         }
     }
 

@@ -1,13 +1,13 @@
 namespace IAFahim.Math.Polynomial.Fps.Tests
 {
     using System;
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class FormalPowerSeriesInverseTests
     {
         private const long Mod = 1000000007;
 
-        [Fact]
+        [Test]
         public void Inverse_MultipliesToOne()
         {
             const int N = 4;
@@ -16,10 +16,10 @@ namespace IAFahim.Math.Polynomial.Fps.Tests
             int len = FormalPowerSeriesInverse.Run(N, a, inv, Mod);
             long* prod = stackalloc long[2 * N];
             FpsTestHelper.Mul(N, a, N, inv, prod, Mod);
-            Assert.Equal(N, len);
-            Assert.Equal(1, FpsTestHelper.ModNorm(prod[0], Mod));
+            Assert.AreEqual(N, len);
+            Assert.AreEqual(1, FpsTestHelper.ModNorm(prod[0], Mod));
             for (int i = 1; i < N; i++)
-                Assert.Equal(0, FpsTestHelper.ModNorm(prod[i], Mod));
+                Assert.AreEqual(0, FpsTestHelper.ModNorm(prod[i], Mod));
         }
     }
 
@@ -27,7 +27,7 @@ namespace IAFahim.Math.Polynomial.Fps.Tests
     {
         private const long Mod = 1000000007;
 
-        [Fact]
+        [Test]
         public void ExpThenLog_RoundTrips()
         {
             const int N = 4;
@@ -37,7 +37,7 @@ namespace IAFahim.Math.Polynomial.Fps.Tests
             long* log = stackalloc long[N];
             FormalPowerSeriesLog.Run(N, exp, log, Mod);
             for (int i = 0; i < N; i++)
-                Assert.Equal(FpsTestHelper.ModNorm(a[i], Mod), FpsTestHelper.ModNorm(log[i], Mod));
+                Assert.AreEqual(FpsTestHelper.ModNorm(a[i], Mod), FpsTestHelper.ModNorm(log[i], Mod));
         }
     }
 
@@ -45,7 +45,7 @@ namespace IAFahim.Math.Polynomial.Fps.Tests
     {
         private const long Mod = 1000000007;
 
-        [Fact]
+        [Test]
         public void PowerMatchesNaive()
         {
             const int N = 5;
@@ -62,7 +62,7 @@ namespace IAFahim.Math.Polynomial.Fps.Tests
                 for (int i = 0; i < N; i++) expected[i] = FpsTestHelper.ModNorm(tmp[i], Mod);
             }
             for (int i = 0; i < N; i++)
-                Assert.Equal(FpsTestHelper.ModNorm(expected[i], Mod), FpsTestHelper.ModNorm(actual[i], Mod));
+                Assert.AreEqual(FpsTestHelper.ModNorm(expected[i], Mod), FpsTestHelper.ModNorm(actual[i], Mod));
         }
     }
 
@@ -70,7 +70,7 @@ namespace IAFahim.Math.Polynomial.Fps.Tests
     {
         private const long Mod = 1000000007;
 
-        [Fact]
+        [Test]
         public void SqrtSquaredMatchesOriginal()
         {
             const int N = 4;
@@ -81,9 +81,9 @@ namespace IAFahim.Math.Polynomial.Fps.Tests
             for (int i = 0; i < N; i++) a[i] = square[i];
             long* res = stackalloc long[N];
             int len = FormalPowerSeriesSqrt.Run(N, a, res, Mod);
-            Assert.Equal(N, len);
+            Assert.AreEqual(N, len);
             for (int i = 0; i < N; i++)
-                Assert.Equal(FpsTestHelper.ModNorm(basePoly[i], Mod), FpsTestHelper.ModNorm(res[i], Mod));
+                Assert.AreEqual(FpsTestHelper.ModNorm(basePoly[i], Mod), FpsTestHelper.ModNorm(res[i], Mod));
         }
     }
 

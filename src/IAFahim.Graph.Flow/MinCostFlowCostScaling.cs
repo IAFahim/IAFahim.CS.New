@@ -6,14 +6,9 @@ namespace IAFahim.Graph.Flow
     public static unsafe class MinCostFlowCostScaling
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Run(int n, int maxCost, int* head, int* to, int* next, int* cap, int* cost, int* flow, int* pot)
+        public static void Run(int* head, int* to, int* next, int* cap, int n, int s, int t)
         {
-            int epsilon = maxCost * n; // Just outline scaling phase
-            while (epsilon > 0)
-            {
-                // Push-relabel for cost scaling
-                epsilon /= 2;
-            }
+            // Stub implementation
         }
     }
 }

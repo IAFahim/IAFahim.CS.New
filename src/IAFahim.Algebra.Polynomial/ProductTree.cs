@@ -23,35 +23,40 @@ namespace IAFahim.Algebra.Polynomial
             {
                 int nextStart = nodeCount;
                 int nextSize = 0;
-                for (int i = 0; i < levelSize; i += 2)
-                {
-                    if (i + 1 < levelSize)
-                    {
-                        offsets[nodeCount] = writeOff;
-                        int sa = sizes[levelStart + i], sb = sizes[levelStart + i + 1];
-                        int sr = sa + sb - 1;
-                        sizes[nodeCount] = sr;
-                        ToomCook.Multiply(
-                            tree + offsets[levelStart + i],
-                            tree + offsets[levelStart + i + 1],
-                            tree + writeOff,
-                            Math.Max(sa, sb), MOD);
-                        writeOff += sr;
-                        nodeCount++;
-                        nextSize++;
-                    }
-                    else
-                    {
-                        offsets[nodeCount] = offsets[levelStart + i];
-                        sizes[nodeCount] = sizes[levelStart + i];
-                        nodeCount++;
-                        nextSize++;
-                    }
-                }
+                BuildLevel(tree, offsets, sizes, levelStart, levelSize, ref nodeCount, ref writeOff, ref nextSize, MOD);
                 levelStart = nextStart;
                 levelSize = nextSize;
             }
             return nodeCount;
+        }
+
+        private static void BuildLevel(long* tree, int* offsets, int* sizes, int levelStart, int levelSize, ref int nodeCount, ref int writeOff, ref int nextSize, int MOD)
+        {
+            for (int i = 0; i < levelSize; i += 2)
+            {
+                if (i + 1 < levelSize)
+                {
+                    offsets[nodeCount] = writeOff;
+                    int sa = sizes[levelStart + i], sb = sizes[levelStart + i + 1];
+                    int sr = sa + sb - 1;
+                    sizes[nodeCount] = sr;
+                    ToomCook.Multiply(
+                        tree + offsets[levelStart + i],
+                        tree + offsets[levelStart + i + 1],
+                        tree + writeOff,
+                        Math.Max(sa, sb), MOD);
+                    writeOff += sr;
+                    nodeCount++;
+                    nextSize++;
+                }
+                else
+                {
+                    offsets[nodeCount] = offsets[levelStart + i];
+                    sizes[nodeCount] = sizes[levelStart + i];
+                    nodeCount++;
+                    nextSize++;
+                }
+            }
         }
     }
 }

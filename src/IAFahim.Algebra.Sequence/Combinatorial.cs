@@ -17,11 +17,21 @@ namespace IAFahim.Algebra.Sequence
             dp[0] = 1;
             for (int i = 2; i <= n; i++)
             {
-                for (int j = 0; j <= Math.Min(k, i - 1); j++)
-                    ndp[j] = ((long)(j + 1) % MOD * dp[j] % MOD + (j > 0 ? (long)(i - j) % MOD * dp[j - 1] % MOD : 0)) % MOD;
-                for (int j = 0; j <= k + 1; j++) { long t = dp[j]; dp[j] = ndp[j]; ndp[j] = t; }
+                UpdateEulerianRow(i, k, dp, ndp, MOD);
+                SwapPointers(&dp, &ndp);
             }
             return dp[k];
+        }
+
+        private static void UpdateEulerianRow(int i, int k, long* dp, long* ndp, int MOD)
+        {
+            for (int j = 0; j <= Math.Min(k, i - 1); j++)
+                ndp[j] = ((long)(j + 1) % MOD * dp[j] % MOD + (j > 0 ? (long)(i - j) % MOD * dp[j - 1] % MOD : 0)) % MOD;
+        }
+
+        private static void SwapPointers(long** a, long** b)
+        {
+            long* t = *a; *a = *b; *b = t;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -52,15 +62,21 @@ namespace IAFahim.Algebra.Sequence
             for (int i = 0; i < len; i++)
             for (int j = 0; j < shape[i]; j++)
             {
-                int hook = shape[i] - j;
-                for (int ii = i + 1; ii < len; ii++)
-                {
-                    if (shape[ii] > j) hook++;
-                    else break;
-                }
+                int hook = CalculateHook(shape, len, i, j);
                 result = result * ModPow(hook, MOD - 2, MOD) % MOD;
             }
             return result;
+        }
+
+        private static int CalculateHook(int* shape, int len, int i, int j)
+        {
+            int hook = shape[i] - j;
+            for (int ii = i + 1; ii < len; ii++)
+            {
+                if (shape[ii] > j) hook++;
+                else break;
+            }
+            return hook;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

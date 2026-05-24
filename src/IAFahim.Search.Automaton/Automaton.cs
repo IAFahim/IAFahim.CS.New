@@ -7,38 +7,35 @@ namespace IAFahim.Search.Automaton
     {
         public static void Run(int n, long* a, long* result, long exp, long mod)
         {
-            for (int i = 0; i < n; i++)
-                for (int j = 0; j < n; j++)
-                    result[i * n + j] = (i == j) ? 1 : 0;
+            InitializeIdentity(n, result);
             long* temp = stackalloc long[n * n];
-            for (int i = 0; i < n * n; i++) temp[i] = a[i];
+            Buffer.MemoryCopy(a, temp, n * n * sizeof(long), n * n * sizeof(long));
+            
             while (exp > 0)
             {
-                if ((exp & 1) == 1)
-                {
-                    long* res2 = stackalloc long[n * n];
-                    for (int i = 0; i < n; i++)
-                        for (int j = 0; j < n; j++)
-                        {
-                            long sum = 0;
-                            for (int k = 0; k < n; k++)
-                                sum = (sum + result[i * n + k] * temp[k * n + j]) % mod;
-                            res2[i * n + j] = sum;
-                        }
-                    for (int i = 0; i < n * n; i++) result[i] = res2[i];
-                }
-                long* temp2 = stackalloc long[n * n];
-                for (int i = 0; i < n; i++)
-                    for (int j = 0; j < n; j++)
-                    {
-                        long sum = 0;
-                        for (int k = 0; k < n; k++)
-                            sum = (sum + temp[i * n + k] * temp[k * n + j]) % mod;
-                        temp2[i * n + j] = sum;
-                    }
-                for (int i = 0; i < n * n; i++) temp[i] = temp2[i];
+                if ((exp & 1) == 1) MultiplyMatrices(n, result, temp, mod);
+                if (exp > 1) MultiplyMatrices(n, temp, temp, mod);
                 exp >>= 1;
             }
+        }
+
+        private static void InitializeIdentity(int n, long* res)
+        {
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < n; j++) res[i * n + j] = (i == j) ? 1 : 0;
+        }
+
+        private static void MultiplyMatrices(int n, long* a, long* b, long mod)
+        {
+            long* tmp = stackalloc long[n * n];
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < n; j++)
+                {
+                    long sum = 0;
+                    for (int k = 0; k < n; k++) sum = (sum + a[i * n + k] * b[k * n + j]) % mod;
+                    tmp[i * n + j] = sum;
+                }
+            Buffer.MemoryCopy(tmp, a, n * n * sizeof(long), n * n * sizeof(long));
         }
     }
 
@@ -48,70 +45,41 @@ namespace IAFahim.Search.Automaton
         {
             int front = 0, rear = 0;
             int* queue = stackalloc int[n];
-            for (int i = 0; i < alphabetSize; i++)
-            {
-                int next = transitions[i];
-                if (next != 0)
-                {
-                    failure[next] = 0;
-                    queue[rear++] = next;
-                }
-            }
+            InitializeRootTransitions(alphabetSize, transitions, failure, queue, ref rear);
+            
             while (front < rear)
             {
                 int state = queue[front++];
                 for (int i = 0; i < alphabetSize; i++)
-                {
-                    int next = transitions[state * alphabetSize + i];
-                    if (next != 0)
-                    {
-                        int f = failure[state];
-                        while (f != 0 && transitions[f * alphabetSize + i] == 0)
-                            f = failure[f];
-                        failure[next] = transitions[f * alphabetSize + i];
-                        output[next] |= output[failure[next]];
-                        queue[rear++] = next;
-                    }
-                    else
-                    {
-                        transitions[state * alphabetSize + i] = transitions[failure[state] * alphabetSize + i];
-                    }
-                }
+                    ProcessTransition(state, i, alphabetSize, transitions, failure, output, queue, ref rear);
             }
             return rear;
         }
-    }
 
-    public static unsafe class DfaTransition
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Run(int state, int symbol, int* transitions, int alphabetSize)
+        private static void InitializeRootTransitions(int alphabetSize, int* transitions, int* failure, int* queue, ref int rear)
         {
-            return transitions[state * alphabetSize + symbol];
-        }
-    }
-
-    public static unsafe class NfaClosure
-    {
-        public static int Run(int n, int* transitions, int startState, long* visited, int* result)
-        {
-            int* stack = stackalloc int[n];
-            int top = 0;
-            stack[top++] = startState;
-            int count = 0;
-            while (top > 0)
+            for (int i = 0; i < alphabetSize; i++)
             {
-                int state = stack[--top];
-                if ((visited[state >> 6] & (1L << (state & 63))) != 0) continue;
-                visited[state >> 6] |= 1L << (state & 63);
-                result[count++] = state;
-                for (int i = 0; i < n; i++)
-                {
-                    if (transitions[state * n + i] != 0 && (visited[i >> 6] & (1L << (i & 63))) == 0)
-                        stack[top++] = i;
-                }
+                int next = transitions[i];
+                if (next != 0) { failure[next] = 0; queue[rear++] = next; }
             }
-            return count;
+        }
+
+        private static void ProcessTransition(int state, int i, int alphabetSize, int* trans, int* fail, int* output, int* queue, ref int rear)
+        {
+            int next = trans[state * alphabetSize + i];
+            if (next != 0)
+            {
+                int f = fail[state];
+                while (f != 0 && trans[f * alphabetSize + i] == 0) f = fail[f];
+                fail[next] = trans[f * alphabetSize + i];
+                output[next] |= output[fail[next]];
+                queue[rear++] = next;
+            }
+            else
+            {
+                trans[state * alphabetSize + i] = trans[fail[state] * alphabetSize + i];
+            }
         }
     }
 }

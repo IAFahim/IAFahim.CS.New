@@ -19,10 +19,7 @@ namespace IAFahim.Graph.TreeQueries
                 {
                     DfsCentroid(v, u, head, to, next, size, maxChild);
                     size[u] += size[v];
-                    if (size[v] > maxChild[u])
-                    {
-                        maxChild[u] = size[v];
-                    }
+                    if (size[v] > maxChild[u]) maxChild[u] = size[v];
                 }
             }
         }
@@ -39,13 +36,16 @@ namespace IAFahim.Graph.TreeQueries
             centroidCount = 0;
             for (int i = 0; i < n; i++)
             {
-                int rem = n - size[i];
-                int maxComp = maxChild[i] > rem ? maxChild[i] : rem;
-                if (maxComp <= n / 2)
-                {
+                if (IsCentroid(i, n, size, maxChild))
                     centroids[centroidCount++] = i;
-                }
             }
+        }
+
+        private static bool IsCentroid(int i, int n, int* size, int* maxChild)
+        {
+            int rem = n - size[i];
+            int maxComp = maxChild[i] > rem ? maxChild[i] : rem;
+            return maxComp <= n / 2;
         }
 
         private static void DfsWeight(
@@ -79,25 +79,20 @@ namespace IAFahim.Graph.TreeQueries
             int curr = 0;
             while (true)
             {
-                int nextNode = -1;
-                for (int e = head[curr]; e != 0; e = next[e])
-                {
-                    int v = to[e];
-                    if (v != parent[curr])
-                    {
-                        if (subtreeWeight[v] > totalWeight / 2)
-                        {
-                            nextNode = v;
-                            break;
-                        }
-                    }
-                }
-                if (nextNode == -1)
-                {
-                    return curr;
-                }
+                int nextNode = FindNextWeightedMedian(curr, parent, head, to, next, subtreeWeight, totalWeight);
+                if (nextNode == -1) return curr;
                 curr = nextNode;
             }
+        }
+
+        private static int FindNextWeightedMedian(int curr, int* parent, int* head, int* to, int* next, long* subtreeWeight, long totalWeight)
+        {
+            for (int e = head[curr]; e != 0; e = next[e])
+            {
+                int v = to[e];
+                if (v != parent[curr] && subtreeWeight[v] > totalWeight / 2) return v;
+            }
+            return -1;
         }
     }
 }

@@ -3,64 +3,33 @@ namespace IAFahim.Combinatorics.Generation;
 using System;
 using System.Runtime.CompilerServices;
 
-public static unsafe class SetPartitions
+public unsafe struct IntegerPartitionEnumerator
 {
-    public struct IntegerPartitionState
-    {
-        public int N;
-        public int K;
-        public bool First;
-    }
+    private int _n, _k;
+    private bool _first;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void InitIntegerPartition(int n, IntegerPartitionState* state)
-    {
-        state->N = n;
-        state->K = 0;
-        state->First = true;
-    }
+    public IntegerPartitionEnumerator(int n) { _n = n; _k = 0; _first = true; }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool NextIntegerPartition(IntegerPartitionState* state, int* p, out int length)
+    public bool MoveNext(int* p, out int length)
     {
-        if (state->First)
+        if (_first)
         {
-            p[0] = state->N;
-            state->K = 0;
-            state->First = false;
-            length = 1;
-            return true;
+            p[0] = _n; _k = 0; _first = false;
+            length = 1; return true;
         }
-
         int remVal = 0;
-        while (state->K >= 0 && p[state->K] == 1)
-        {
-            remVal += p[state->K];
-            state->K--;
-        }
-
-        if (state->K < 0)
-        {
-            length = 0;
-            return false;
-        }
-
-        p[state->K]--;
-        remVal++;
-
-        while (remVal > p[state->K])
-        {
-            p[state->K + 1] = p[state->K];
-            remVal -= p[state->K];
-            state->K++;
-        }
-
-        p[state->K + 1] = remVal;
-        state->K++;
-        length = state->K + 1;
+        while (_k >= 0 && p[_k] == 1) { remVal += p[_k]; _k--; }
+        if (_k < 0) { length = 0; return false; }
+        p[_k]--; remVal++;
+        while (remVal > p[_k]) { p[_k + 1] = p[_k]; remVal -= p[_k]; _k++; }
+        p[_k + 1] = remVal; _k++;
+        length = _k + 1;
         return true;
     }
+}
 
+public static unsafe class SetPartitions
+{
     public struct SetPartitionState
     {
         public int N;
@@ -79,27 +48,40 @@ public static unsafe class SetPartitions
     {
         if (state->First == 1)
         {
-            for (int x = 0; x < state->N; x++) kappa[x] = 0;
-            for (int x = 0; x < state->N; x++) m[x] = 0;
+            InitializeSetPartition(state, kappa, m);
             state->First = 0;
             return true;
         }
 
-        int i = state->N - 1;
-        while (i > 0 && kappa[i] == m[i - 1] + 1) i--;
-
+        int i = FindSetPartitionSplit(state, kappa, m);
         if (i == 0) return false;
 
         kappa[i]++;
         m[i] = Math.Max(m[i], kappa[i]);
 
+        FillSetPartitionSuffix(state, kappa, m, i);
+        return true;
+    }
+
+    private static void InitializeSetPartition(SetPartitionState* state, int* kappa, int* m)
+    {
+        for (int x = 0; x < state->N; x++) { kappa[x] = 0; m[x] = 0; }
+    }
+
+    private static int FindSetPartitionSplit(SetPartitionState* state, int* kappa, int* m)
+    {
+        int i = state->N - 1;
+        while (i > 0 && kappa[i] == m[i - 1] + 1) i--;
+        return i;
+    }
+
+    private static void FillSetPartitionSuffix(SetPartitionState* state, int* kappa, int* m, int i)
+    {
         for (int j = i + 1; j < state->N; j++)
         {
             kappa[j] = 0;
             m[j] = m[i];
         }
-
-        return true;
     }
 
     public struct CompositionState
@@ -120,38 +102,43 @@ public static unsafe class SetPartitions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool NextComposition(CompositionState* state, int* comp)
     {
-        int n = state->N;
-        int k = state->K;
-
         if (state->First)
         {
-            for (int x = 0; x < k; x++) comp[x] = 0;
-            comp[0] = n;
+            InitializeComposition(state, comp);
             state->First = false;
             return true;
         }
 
-        int i = k - 2;
-        while (i >= 0 && comp[i] == 0) i--;
-
+        int i = FindCompositionSplit(state, comp);
         if (i < 0) return false;
 
         comp[i]--;
-        
-        int sum = 0;
-        for (int j = 0; j <= i; j++) sum += comp[j];
-
-        comp[i + 1] = n - sum;
-
-        for (int j = i + 2; j < k; j++) comp[j] = 0;
-
+        FillCompositionSuffix(state, comp, i);
         return true;
     }
 
-    public static long RankIntegerPartition(int* partition, int len, int n)
+    private static void InitializeComposition(CompositionState* state, int* comp)
     {
-        return 0;
+        for (int x = 0; x < state->K; x++) comp[x] = 0;
+        comp[0] = state->N;
     }
+
+    private static int FindCompositionSplit(CompositionState* state, int* comp)
+    {
+        int i = state->K - 2;
+        while (i >= 0 && comp[i] == 0) i--;
+        return i;
+    }
+
+    private static void FillCompositionSuffix(CompositionState* state, int* comp, int i)
+    {
+        int sum = 0;
+        for (int j = 0; j <= i; j++) sum += comp[j];
+        comp[i + 1] = state->N - sum;
+        for (int j = i + 2; j < state->K; j++) comp[j] = 0;
+    }
+
+    public static long RankIntegerPartition(int* partition, int len, int n) => 0;
 
     public static bool UnrankIntegerPartition(long rank, int n, int* outPart, out int outLen)
     {
@@ -159,10 +146,7 @@ public static unsafe class SetPartitions
         return false;
     }
 
-    public static long RankSetPartition(int* partition, int n)
-    {
-        return 0;
-    }
+    public static long RankSetPartition(int* partition, int n) => 0;
 
     public static bool UnrankSetPartition(long rank, int n, int* outKappa)
     {
@@ -170,10 +154,7 @@ public static unsafe class SetPartitions
         return true;
     }
 
-    public static long RankComposition(int* composition, int k)
-    {
-        return 0;
-    }
+    public static long RankComposition(int* composition, int k) => 0;
 
     public static bool UnrankComposition(long rank, int n, int k, int* outComp)
     {

@@ -3,11 +3,11 @@ namespace IAFahim.String.Tests
     using IAFahim.String.Pattern;
     using System;
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class AhoPersistentTests
     {
-        [Fact]
+        [Test]
         public void AhoPersistent_BuildAndQuery()
         {
             int maxNodes = 1000;
@@ -57,7 +57,7 @@ namespace IAFahim.String.Tests
                 
                 // Matches in "ushers" from dictionary {"he", "she", "his", "hers"}:
                 // "she", "he", "hers" => 3 matches
-                Assert.Equal(3L, matches);
+                Assert.AreEqual(3L, matches);
             }
             finally
             {

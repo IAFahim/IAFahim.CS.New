@@ -11,10 +11,16 @@ namespace IAFahim.Algebra.Sequence
             result[0] = 1;
             for (int i = 1; i <= n; i++)
             {
-                for (int j = i; j >= 1; j--)
-                    result[j] = (result[j - 1] + (MOD - (long)(i - 1) % MOD) % MOD * result[j]) % MOD;
+                UpdateFirstRow(i, MOD, result);
                 result[0] = 0;
             }
+        }
+
+        private static void UpdateFirstRow(int i, int MOD, long* result)
+        {
+            long factor = (MOD - (long)(i - 1) % MOD) % MOD;
+            for (int j = i; j >= 1; j--)
+                result[j] = (result[j - 1] + factor * result[j]) % MOD;
         }
 
         public static void SecondRow(int n, int MOD, long* result)
@@ -23,10 +29,15 @@ namespace IAFahim.Algebra.Sequence
             result[0] = 1;
             for (int i = 1; i <= n; i++)
             {
-                for (int j = i; j >= 1; j--)
-                    result[j] = (result[j - 1] + (long)j * result[j]) % MOD;
+                UpdateSecondRow(i, MOD, result);
                 result[0] = 0;
             }
+        }
+
+        private static void UpdateSecondRow(int i, int MOD, long* result)
+        {
+            for (int j = i; j >= 1; j--)
+                result[j] = (result[j - 1] + (long)j * result[j]) % MOD;
         }
 
         public static long First(int n, int k, int MOD)

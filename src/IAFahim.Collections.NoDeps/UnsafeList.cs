@@ -48,31 +48,31 @@ namespace Unity.Collections.LowLevel.Unsafe
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
-                if (value < 0)
-                    value = 0;
-                if (value == _capacity)
-                    return;
+                if (value < 0) value = 0;
+                if (value == _capacity) return;
 
-                var newBuffer = value == 0
-                    ? IntPtr.Zero
-                    : Marshal.AllocHGlobal((nint)((long)value * _elementSize));
-
-                if (_buffer != IntPtr.Zero)
-                {
-                    if (value > 0)
-                    {
-                        var copySize = _length < value ? _length : value;
-                        UnsafeUtility.MemCpy((void*)newBuffer, (void*)_buffer, (long)copySize * _elementSize);
-                    }
-
-                    Marshal.FreeHGlobal(_buffer);
-                }
-
-                _buffer = newBuffer;
+                ReallocateBuffer(value);
                 _capacity = value;
-                if (_length > _capacity)
-                    _length = _capacity;
+                if (_length > _capacity) _length = _capacity;
             }
+        }
+
+        private void ReallocateBuffer(int newCapacity)
+        {
+            var newBuffer = newCapacity == 0
+                ? IntPtr.Zero
+                : Marshal.AllocHGlobal((nint)((long)newCapacity * _elementSize));
+
+            if (_buffer != IntPtr.Zero)
+            {
+                if (newCapacity > 0)
+                {
+                    var copySize = _length < newCapacity ? _length : newCapacity;
+                    UnsafeUtility.MemCpy((void*)newBuffer, (void*)_buffer, (long)copySize * _elementSize);
+                }
+                Marshal.FreeHGlobal(_buffer);
+            }
+            _buffer = newBuffer;
         }
 
         public bool IsCreated
@@ -124,17 +124,21 @@ namespace Unity.Collections.LowLevel.Unsafe
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ResizeCapacity(int newCapacity)
         {
+            Capacity = CalculateNewCapacity(newCapacity);
+        }
+
+        private int CalculateNewCapacity(int needed)
+        {
             var cap = 4;
-            while (cap < newCapacity)
-                cap <<= 1;
-            Capacity = cap;
+            while (cap < needed) cap <<= 1;
+            return cap;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Add(in T item)
         {
             if (_length >= _capacity)
-                ResizeCapacity(_capacity < 4 ? 8 : _capacity << 1);
+                ResizeCapacity(_length + 1);
 
             var byteOffset = _buffer + _length * _elementSize;
             System.Runtime.CompilerServices.Unsafe.Write<T>((void*)byteOffset, item);
@@ -144,17 +148,11 @@ namespace Unity.Collections.LowLevel.Unsafe
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AddRange(T* ptr, int count)
         {
-            if (count <= 0)
-                return;
+            if (count <= 0) return;
 
             var needed = _length + count;
             if (needed > _capacity)
-            {
-                var cap = _capacity < 4 ? 8 : _capacity;
-                while (cap < needed)
-                    cap <<= 1;
-                Capacity = cap;
-            }
+                Capacity = CalculateNewCapacity(needed);
 
             var dst = (byte*)_buffer + _length * _elementSize;
             UnsafeUtility.MemCpy(dst, ptr, (long)count * _elementSize);

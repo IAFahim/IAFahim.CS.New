@@ -2,58 +2,58 @@ namespace IAFahim.Search.Specialized.Tests
 {
     using System;
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class BinarySearchTests
     {
-        [Fact]
+        [Test]
         public void EmptyInput_NotFound()
         {
             int index;
             bool found = IAFahim.Search.Specialized.BinarySearch.TryFind(null, 0, 5, out index);
-            Assert.False(found);
-            Assert.Equal(0, index);
+            Assert.IsFalse(found);
+            Assert.AreEqual(0, index);
         }
 
-        [Fact]
+        [Test]
         public void SingleElement_Found()
         {
             int* ptr = stackalloc int[] { 5 };
             int index;
             bool found = IAFahim.Search.Specialized.BinarySearch.TryFind(ptr, 1, 5, out index);
-            Assert.True(found);
-            Assert.Equal(0, index);
+            Assert.IsTrue(found);
+            Assert.AreEqual(0, index);
         }
 
-        [Fact]
+        [Test]
         public void SingleElement_NotFound()
         {
             int* ptr = stackalloc int[] { 3 };
             int index;
             bool found = IAFahim.Search.Specialized.BinarySearch.TryFind(ptr, 1, 5, out index);
-            Assert.False(found);
+            Assert.IsFalse(found);
         }
 
-        [Fact]
+        [Test]
         public void MultipleElements_Found()
         {
             int* ptr = stackalloc int[] { 1, 3, 5, 7, 9 };
             int index;
             bool found = IAFahim.Search.Specialized.BinarySearch.TryFind(ptr, 5, 7, out index);
-            Assert.True(found);
-            Assert.Equal(3, index);
+            Assert.IsTrue(found);
+            Assert.AreEqual(3, index);
         }
 
-        [Fact]
+        [Test]
         public void MultipleElements_NotFound()
         {
             int* ptr = stackalloc int[] { 1, 3, 5, 7, 9 };
             int index;
             bool found = IAFahim.Search.Specialized.BinarySearch.TryFind(ptr, 5, 4, out index);
-            Assert.False(found);
+            Assert.IsFalse(found);
         }
 
-        [Fact]
+        [Test]
         public void LargeN_FoundCorrectly()
         {
             const int N = 1024;
@@ -62,12 +62,12 @@ namespace IAFahim.Search.Specialized.Tests
                 ptr[i] = i * 2;
             int index;
             bool found = IAFahim.Search.Specialized.BinarySearch.TryFind(ptr, N, 500, out index);
-            Assert.True(found);
-            Assert.Equal(250, index);
+            Assert.IsTrue(found);
+            Assert.AreEqual(250, index);
             Marshal.FreeHGlobal((nint)ptr);
         }
 
-        [Fact]
+        [Test]
         public void LargeN_NotFound()
         {
             const int N = 1024;
@@ -76,7 +76,7 @@ namespace IAFahim.Search.Specialized.Tests
                 ptr[i] = i * 2;
             int index;
             bool found = IAFahim.Search.Specialized.BinarySearch.TryFind(ptr, N, 501, out index);
-            Assert.False(found);
+            Assert.IsFalse(found);
             Marshal.FreeHGlobal((nint)ptr);
         }
     }

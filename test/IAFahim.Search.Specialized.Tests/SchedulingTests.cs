@@ -2,12 +2,12 @@ namespace IAFahim.Search.Specialized.Tests
 {
     using System;
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
     using IAFahim.Search;
 
     public sealed unsafe class SchedulingTests
     {
-        [Fact]
+        [Test]
         public void RoundRobinSchedule_EvenTeams_CorrectPairs()
         {
             const int N = 4;
@@ -23,12 +23,12 @@ namespace IAFahim.Search.Specialized.Tests
                     int t1 = schedule[i * 2];
                     int t2 = schedule[i * 2 + 1];
 
-                    Assert.NotEqual(t1, t2);
-                    Assert.True(t1 >= 0 && t1 < N);
-                    Assert.True(t2 >= 0 && t2 < N);
+                    Assert.AreNotEqual(t1, t2);
+                    Assert.IsTrue(t1 >= 0 && t1 < N);
+                    Assert.IsTrue(t2 >= 0 && t2 < N);
 
-                    Assert.False(played[t1, t2]);
-                    Assert.False(played[t2, t1]);
+                    Assert.IsFalse(played[t1, t2]);
+                    Assert.IsFalse(played[t2, t1]);
 
                     played[t1, t2] = true;
                     played[t2, t1] = true;
@@ -40,7 +40,7 @@ namespace IAFahim.Search.Specialized.Tests
                     {
                         if (i != j)
                         {
-                            Assert.True(played[i, j]);
+                            Assert.IsTrue(played[i, j]);
                         }
                     }
                 }
@@ -51,7 +51,7 @@ namespace IAFahim.Search.Specialized.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void RoundRobinSchedule_OddTeams_CorrectPairsWithByes()
         {
             const int N = 3;
@@ -71,23 +71,23 @@ namespace IAFahim.Search.Specialized.Tests
                     int t1 = schedule[i * 2];
                     int t2 = schedule[i * 2 + 1];
 
-                    Assert.NotEqual(t1, t2);
+                    Assert.AreNotEqual(t1, t2);
 
                     if (t1 == -1)
                     {
-                        Assert.True(t2 >= 0 && t2 < N);
+                        Assert.IsTrue(t2 >= 0 && t2 < N);
                         byeCount[t2]++;
                     }
                     else if (t2 == -1)
                     {
-                        Assert.True(t1 >= 0 && t1 < N);
+                        Assert.IsTrue(t1 >= 0 && t1 < N);
                         byeCount[t1]++;
                     }
                     else
                     {
-                        Assert.True(t1 >= 0 && t1 < N);
-                        Assert.True(t2 >= 0 && t2 < N);
-                        Assert.False(played[t1, t2]);
+                        Assert.IsTrue(t1 >= 0 && t1 < N);
+                        Assert.IsTrue(t2 >= 0 && t2 < N);
+                        Assert.IsFalse(played[t1, t2]);
                         played[t1, t2] = true;
                         played[t2, t1] = true;
                     }
@@ -95,12 +95,12 @@ namespace IAFahim.Search.Specialized.Tests
 
                 for (int i = 0; i < N; i++)
                 {
-                    Assert.Equal(1, byeCount[i]);
+                    Assert.AreEqual(1, byeCount[i]);
                     for (int j = 0; j < N; j++)
                     {
                         if (i != j)
                         {
-                            Assert.True(played[i, j]);
+                            Assert.IsTrue(played[i, j]);
                         }
                     }
                 }
@@ -111,7 +111,7 @@ namespace IAFahim.Search.Specialized.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public void LatinSquareGenerate_ValidSquare()
         {
             const int N = 4;
@@ -129,11 +129,11 @@ namespace IAFahim.Search.Specialized.Tests
                         int valRow = grid[r * N + c];
                         int valCol = grid[c * N + r];
 
-                        Assert.True(valRow >= 1 && valRow <= N);
-                        Assert.True(valCol >= 1 && valCol <= N);
+                        Assert.IsTrue(valRow >= 1 && valRow <= N);
+                        Assert.IsTrue(valCol >= 1 && valCol <= N);
 
-                        Assert.False(rowSeen[valRow]);
-                        Assert.False(colSeen[valCol]);
+                        Assert.IsFalse(rowSeen[valRow]);
+                        Assert.IsFalse(colSeen[valCol]);
 
                         rowSeen[valRow] = true;
                         colSeen[valCol] = true;

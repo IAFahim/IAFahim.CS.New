@@ -3,58 +3,19 @@ namespace IAFahim.Linear.Matrix
     using System;
     using System.Runtime.CompilerServices;
 
-    public static unsafe class MatrixNew
-    {
-        public static void Run(int n, int m, long* a, long val)
-        {
-            for (int i = 0; i < n; i++)
-                for (int j = 0; j < m; j++)
-                    a[i * m + j] = val;
-        }
-    }
-
-    public static unsafe class MatrixIdentity
-    {
-        public static void Run(int n, long* a)
-        {
-            for (int i = 0; i < n; i++)
-                for (int j = 0; j < n; j++)
-                    a[i * n + j] = (i == j) ? 1 : 0;
-        }
-    }
-
-    public static unsafe class MatrixAdd
-    {
-        public static void Run(int n, int m, long* a, long* b, long* c)
-        {
-            for (int i = 0; i < n; i++)
-                for (int j = 0; j < m; j++)
-                    c[i * m + j] = a[i * m + j] + b[i * m + j];
-        }
-    }
-
-    public static unsafe class MatrixSub
-    {
-        public static void Run(int n, int m, long* a, long* b, long* c)
-        {
-            for (int i = 0; i < n; i++)
-                for (int j = 0; j < m; j++)
-                    c[i * m + j] = a[i * m + j] - b[i * m + j];
-        }
-    }
-
     public static unsafe class MatrixMul
     {
         public static void Run(int n, int m, int p, long* a, long* b, long* c)
         {
             for (int i = 0; i < n; i++)
-                for (int j = 0; j < p; j++)
-                {
-                    long sum = 0;
-                    for (int k = 0; k < m; k++)
-                        sum += a[i * m + k] * b[k * p + j];
-                    c[i * p + j] = sum;
-                }
+                for (int j = 0; j < p; j++) c[i * p + j] = ComputeDotProduct(i, j, m, p, a, b);
+        }
+
+        private static long ComputeDotProduct(int i, int j, int m, int p, long* a, long* b)
+        {
+            long sum = 0;
+            for (int k = 0; k < m; k++) sum += a[i * m + k] * b[k * p + j];
+            return sum;
         }
     }
 
@@ -62,54 +23,29 @@ namespace IAFahim.Linear.Matrix
     {
         public static void Run(int n, long* a, long* result, long exp)
         {
+            InitializeIdentity(n, result);
             long* temp = stackalloc long[n * n];
-            long* res2 = stackalloc long[n * n];
-            long* temp2 = stackalloc long[n * n];
-            for (int i = 0; i < n; i++)
-                for (int j = 0; j < n; j++)
-                    result[i * n + j] = (i == j) ? 1 : 0;
-            for (int i = 0; i < n; i++)
-                for (int j = 0; j < n; j++)
-                    temp[i * n + j] = a[i * n + j];
+            Buffer.MemoryCopy(a, temp, n * n * sizeof(long), n * n * sizeof(long));
+            
             while (exp > 0)
             {
-                if ((exp & 1) == 1)
-                {
-                    for (int i = 0; i < n; i++)
-                        for (int j = 0; j < n; j++)
-                        {
-                            long sum = 0;
-                            for (int k = 0; k < n; k++)
-                                sum += result[i * n + k] * temp[k * n + j];
-                            res2[i * n + j] = sum;
-                        }
-                    for (int i = 0; i < n * n; i++) result[i] = res2[i];
-                }
-                for (int i = 0; i < n; i++)
-                    for (int j = 0; j < n; j++)
-                    {
-                        long sum = 0;
-                        for (int k = 0; k < n; k++)
-                            sum += temp[i * n + k] * temp[k * n + j];
-                        temp2[i * n + j] = sum;
-                    }
-                for (int i = 0; i < n * n; i++) temp[i] = temp2[i];
+                if ((exp & 1) == 1) MultiplyInto(n, result, temp);
+                if (exp > 1) MultiplyInto(n, temp, temp);
                 exp >>= 1;
             }
         }
-    }
 
-    public static unsafe class MatrixVecMul
-    {
-        public static void Run(int n, int m, long* mat, long* vec, long* res)
+        private static void InitializeIdentity(int n, long* res)
         {
             for (int i = 0; i < n; i++)
-            {
-                long sum = 0;
-                for (int j = 0; j < m; j++)
-                    sum += mat[i * m + j] * vec[j];
-                res[i] = sum;
-            }
+                for (int j = 0; j < n; j++) res[i * n + j] = (i == j) ? 1 : 0;
+        }
+
+        private static void MultiplyInto(int n, long* a, long* b)
+        {
+            long* res = stackalloc long[n * n];
+            MatrixMul.Run(n, n, n, a, b, res);
+            Buffer.MemoryCopy(res, a, n * n * sizeof(long), n * n * sizeof(long));
         }
     }
 
@@ -117,106 +53,44 @@ namespace IAFahim.Linear.Matrix
     {
         public static int Run(int n, int m, long* a, long* b, long* x)
         {
-            for (int col = 0, row = 0; col < m && row < n; col++, row++)
+            for (int i = 0; i < Math.Min(n, m); i++)
             {
-                int sel = row;
-                for (int i = row; i < n; i++)
-                    if (Math.Abs(a[i * m + col]) > Math.Abs(a[sel * m + col]))
-                        sel = i;
-                if (a[sel * m + col] == 0) continue;
-                for (int j = 0; j < m; j++)
-                {
-                    long tmp = a[sel * m + j];
-                    a[sel * m + j] = a[row * m + j];
-                    a[row * m + j] = tmp;
-                }
-                long tb = b[sel]; b[sel] = b[row]; b[row] = tb;
-                long div = a[row * m + col];
-                for (int j = 0; j < m; j++) a[row * m + j] /= div;
-                b[row] /= div;
-                for (int i = 0; i < n; i++)
-                {
-                    if (i != row)
-                    {
-                        long factor = a[i * m + col];
-                        for (int j = 0; j < m; j++) a[i * m + j] -= factor * a[row * m + j];
-                        b[i] -= factor * b[row];
-                    }
-                }
+                int sel = FindPivot(n, m, i, a);
+                if (a[sel * m + i] == 0) continue;
+                SwapRows(n, m, i, sel, a, b);
+                Eliminate(n, m, i, a, b);
             }
             for (int i = 0; i < n; i++) x[i] = b[i];
             return n;
         }
-    }
 
-    public static unsafe class GaussJordan
-    {
-        public static int Run(int n, int m, long* a, long* b, long* x)
+        private static int FindPivot(int n, int m, int i, long* a)
         {
-            for (int col = 0, row = 0; col < m && row < n; col++, row++)
-            {
-                int sel = row;
-                for (int i = row; i < n; i++)
-                    if (Math.Abs(a[i * m + col]) > Math.Abs(a[sel * m + col]))
-                        sel = i;
-                if (a[sel * m + col] == 0) continue;
-                for (int j = 0; j < m; j++)
-                {
-                    long tmp = a[sel * m + j];
-                    a[sel * m + j] = a[row * m + j];
-                    a[row * m + j] = tmp;
-                }
-                long tb = b[sel]; b[sel] = b[row]; b[row] = tb;
-                long div = a[row * m + col];
-                for (int j = 0; j < m; j++) a[row * m + j] /= div;
-                b[row] /= div;
-                for (int i = 0; i < n; i++)
-                {
-                    if (i != row)
-                    {
-                        long factor = a[i * m + col];
-                        for (int j = 0; j < m; j++) a[i * m + j] -= factor * a[row * m + j];
-                        b[i] -= factor * b[row];
-                    }
-                }
-            }
-            for (int i = 0; i < n; i++) x[i] = b[i];
-            return n;
+            int sel = i;
+            for (int k = i + 1; k < n; k++)
+                if (Math.Abs(a[k * m + i]) > Math.Abs(a[sel * m + i])) sel = k;
+            return sel;
         }
-    }
 
-    public static unsafe class MatrixRank
-    {
-        public static int Run(int n, int m, long* a)
+        private static void SwapRows(int n, int m, int r1, int r2, long* a, long* b)
         {
-            int rank = 0;
-            bool* used = stackalloc bool[n];
-            for (int i = 0; i < n; i++) used[i] = false;
-            for (int col = 0; col < m; col++)
+            if (r1 == r2) return;
+            for (int j = 0; j < m; j++) { long t = a[r1 * m + j]; a[r1 * m + j] = a[r2 * m + j]; a[r2 * m + j] = t; }
+            long tb = b[r1]; b[r1] = b[r2]; b[r2] = tb;
+        }
+
+        private static void Eliminate(int n, int m, int row, long* a, long* b)
+        {
+            long div = a[row * m + row];
+            for (int j = row; j < m; j++) a[row * m + j] /= div;
+            b[row] /= div;
+            for (int i = 0; i < n; i++)
             {
-                int sel = -1;
-                for (int i = 0; i < n; i++)
-                {
-                    if (!used[i] && a[i * m + col] != 0)
-                    {
-                        sel = i;
-                        break;
-                    }
-                }
-                if (sel == -1) continue;
-                used[sel] = true;
-                rank++;
-                for (int j = col; j < m; j++) a[sel * m + j] /= a[sel * m + col];
-                for (int i = 0; i < n; i++)
-                {
-                    if (i != sel && a[i * m + col] != 0)
-                    {
-                        long factor = a[i * m + col];
-                        for (int j = col; j < m; j++) a[i * m + j] -= factor * a[sel * m + j];
-                    }
-                }
+                if (i == row) continue;
+                long factor = a[i * m + row];
+                for (int j = row; j < m; j++) a[i * m + j] -= factor * a[row * m + j];
+                b[i] -= factor * b[row];
             }
-            return rank;
         }
     }
 
@@ -224,47 +98,36 @@ namespace IAFahim.Linear.Matrix
     {
         public static long Run(int n, long* a)
         {
-            if (n == 0)
-            {
-                return 1;
-            }
-            long sign = 1;
-            long prevPivot = 1;
+            if (n == 0) return 1;
+            long sign = 1, prevPivot = 1;
             for (int k = 0; k < n; k++)
             {
-                int pivotRow = k;
-                for (int i = k + 1; i < n; i++)
-                {
-                    if (Math.Abs(a[i * n + k]) > Math.Abs(a[pivotRow * n + k]))
-                    {
-                        pivotRow = i;
-                    }
-                }
-                if (a[pivotRow * n + k] == 0)
-                {
-                    return 0;
-                }
-                if (pivotRow != k)
-                {
-                    sign = -sign;
-                    for (int j = 0; j < n; j++)
-                    {
-                        long tmp = a[k * n + j];
-                        a[k * n + j] = a[pivotRow * n + j];
-                        a[pivotRow * n + j] = tmp;
-                    }
-                }
+                int pr = FindPivot(n, k, a);
+                if (a[pr * n + k] == 0) return 0;
+                if (pr != k) { sign = -sign; SwapRows(n, k, pr, a); }
                 long pivot = a[k * n + k];
-                for (int i = k + 1; i < n; i++)
-                {
-                    for (int j = k + 1; j < n; j++)
-                    {
-                        a[i * n + j] = (a[i * n + j] * pivot - a[i * n + k] * a[k * n + j]) / prevPivot;
-                    }
-                }
+                PerformElimination(n, k, pivot, prevPivot, a);
                 prevPivot = pivot;
             }
             return a[(n - 1) * n + (n - 1)] * sign;
+        }
+
+        private static int FindPivot(int n, int k, long* a)
+        {
+            int pr = k;
+            for (int i = k + 1; i < n; i++) if (Math.Abs(a[i * n + k]) > Math.Abs(a[pr * n + k])) pr = i;
+            return pr;
+        }
+
+        private static void SwapRows(int n, int r1, int r2, long* a)
+        {
+            for (int j = 0; j < n; j++) { long t = a[r1 * n + j]; a[r1 * n + j] = a[r2 * n + j]; a[r2 * n + j] = t; }
+        }
+
+        private static void PerformElimination(int n, int k, long pivot, long prevPivot, long* a)
+        {
+            for (int i = k + 1; i < n; i++)
+                for (int j = k + 1; j < n; j++) a[i * n + j] = (a[i * n + j] * pivot - a[i * n + k] * a[k * n + j]) / prevPivot;
         }
     }
 
@@ -273,75 +136,56 @@ namespace IAFahim.Linear.Matrix
         public static bool Run(int n, long* a, long* inv)
         {
             long* aug = stackalloc long[n * n * 2];
+            InitializeAugmented(n, a, aug);
+            for (int i = 0; i < n; i++)
+            {
+                int sel = FindPivot(n, i, aug);
+                if (aug[sel * 2 * n + i] == 0) return false;
+                SwapRowsAug(n, i, sel, aug);
+                EliminateAug(n, i, aug);
+            }
+            ExtractInverse(n, aug, inv);
+            return true;
+        }
+
+        private static void InitializeAugmented(int n, long* a, long* aug)
+        {
             for (int i = 0; i < n; i++)
             {
                 for (int j = 0; j < n; j++) aug[i * 2 * n + j] = a[i * n + j];
                 for (int j = 0; j < n; j++) aug[i * 2 * n + n + j] = (i == j) ? 1 : 0;
             }
-            for (int i = 0; i < n; i++)
-            {
-                int sel = i;
-                for (int j = i; j < n; j++)
-                    if (Math.Abs(aug[j * 2 * n + i]) > Math.Abs(aug[sel * 2 * n + i])) sel = j;
-                if (aug[sel * 2 * n + i] == 0) return false;
-                if (sel != i)
-                {
-                    for (int j = 0; j < 2 * n; j++)
-                    {
-                        long tmp = aug[i * 2 * n + j];
-                        aug[i * 2 * n + j] = aug[sel * 2 * n + j];
-                        aug[sel * 2 * n + j] = tmp;
-                    }
-                }
-                long div = aug[i * 2 * n + i];
-                for (int j = 0; j < 2 * n; j++) aug[i * 2 * n + j] /= div;
-                for (int k = 0; k < n; k++)
-                {
-                    if (k == i) continue;
-                    long factor = aug[k * 2 * n + i];
-                    for (int j = 0; j < 2 * n; j++) aug[k * 2 * n + j] -= factor * aug[i * 2 * n + j];
-                }
-            }
-            for (int i = 0; i < n; i++)
-                for (int j = 0; j < n; j++)
-                    inv[i * n + j] = aug[i * 2 * n + n + j];
-            return true;
         }
-    }
 
-    public static unsafe class LinearSystemSolve
-    {
-        public static int Run(int n, int m, long* a, long* b, long* x)
+        private static int FindPivot(int n, int i, long* aug)
         {
-            for (int col = 0, row = 0; col < m && row < n; col++, row++)
+            int sel = i;
+            for (int j = i + 1; j < n; j++) if (Math.Abs(aug[j * 2 * n + i]) > Math.Abs(aug[sel * 2 * n + i])) sel = j;
+            return sel;
+        }
+
+        private static void SwapRowsAug(int n, int r1, int r2, long* aug)
+        {
+            if (r1 == r2) return;
+            for (int j = 0; j < 2 * n; j++) { long t = aug[r1 * 2 * n + j]; aug[r1 * 2 * n + j] = aug[r2 * 2 * n + j]; aug[r2 * 2 * n + j] = t; }
+        }
+
+        private static void EliminateAug(int n, int row, long* aug)
+        {
+            long div = aug[row * 2 * n + row];
+            for (int j = 0; j < 2 * n; j++) aug[row * 2 * n + j] /= div;
+            for (int k = 0; k < n; k++)
             {
-                int sel = row;
-                for (int i = row; i < n; i++)
-                    if (Math.Abs(a[i * m + col]) > Math.Abs(a[sel * m + col]))
-                        sel = i;
-                if (a[sel * m + col] == 0) continue;
-                for (int j = 0; j < m; j++)
-                {
-                    long tmp = a[sel * m + j];
-                    a[sel * m + j] = a[row * m + j];
-                    a[row * m + j] = tmp;
-                }
-                long tb = b[sel]; b[sel] = b[row]; b[row] = tb;
-                long div = a[row * m + col];
-                for (int j = 0; j < m; j++) a[row * m + j] /= div;
-                b[row] /= div;
-                for (int i = 0; i < n; i++)
-                {
-                    if (i != row)
-                    {
-                        long factor = a[i * m + col];
-                        for (int j = 0; j < m; j++) a[i * m + j] -= factor * a[row * m + j];
-                        b[i] -= factor * b[row];
-                    }
-                }
+                if (k == row) continue;
+                long factor = aug[k * 2 * n + row];
+                for (int j = 0; j < 2 * n; j++) aug[k * 2 * n + j] -= factor * aug[row * 2 * n + j];
             }
-            for (int i = 0; i < n; i++) x[i] = b[i];
-            return n;
+        }
+
+        private static void ExtractInverse(int n, long* aug, long* inv)
+        {
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < n; j++) inv[i * n + j] = aug[i * 2 * n + n + j];
         }
     }
 }

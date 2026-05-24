@@ -3,80 +3,58 @@ namespace IAFahim.DS.PersistentDsu
     using System;
     using System.Runtime.CompilerServices;
 
-    public static unsafe class PersistentDsuNode
+    public static unsafe class PersistentDsu
     {
-        public static int NewNode(int* parent, int* size, int* leftChild, int* rightChild, int* allocCnt)
+        public static int Build(int l, int r, int* parent, int* size, int* allocCnt, int* lc, int* rc)
         {
-            int idx = ++(*allocCnt);
-            parent[idx] = idx;
-            size[idx] = 1;
-            leftChild[idx] = 0;
-            rightChild[idx] = 0;
-            return idx;
-        }
-    }
-
-    public static unsafe class PersistentDsuInit
-    {
-        public static void Run(int* parent, int n)
-        {
-            for (int i = 0; i < n; i++) parent[i] = i;
+            int node = ++(*allocCnt);
+            if (l == r) { parent[node] = l; size[node] = 1; return node; }
+            int mid = (l + r) >> 1;
+            lc[node] = Build(l, mid, parent, size, allocCnt, lc, rc);
+            rc[node] = Build(mid + 1, r, parent, size, allocCnt, lc, rc);
+            return node;
         }
 
-        public static int NewRoot(int* parent, int* size, int* leftChild, int* rightChild, int* prevRoot, int* allocCnt)
+        public static int Update(int root, int l, int r, int idx, int val, int s, int* parent, int* size, int* allocCnt, int* lc, int* rc)
         {
-            int root = ++(*allocCnt);
-            parent[root] = prevRoot != null && *prevRoot != 0 ? parent[*prevRoot] : root;
-            size[root] = prevRoot != null && *prevRoot != 0 ? size[*prevRoot] : 1;
-            leftChild[root] = *prevRoot;
-            rightChild[root] = 0;
-            return root;
+            int node = ++(*allocCnt);
+            lc[node] = lc[root]; rc[node] = rc[root];
+            if (l == r) { parent[node] = val; size[node] = s; return node; }
+            int mid = (l + r) >> 1;
+            if (idx <= mid) lc[node] = Update(lc[root], l, mid, idx, val, s, parent, size, allocCnt, lc, rc);
+            else rc[node] = Update(rc[root], mid + 1, r, idx, val, s, parent, size, allocCnt, lc, rc);
+            return node;
         }
-    }
 
-    public static unsafe class PersistentDsuFind
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Run(int* parent, int* leftChild, int* rightChild, int root, int x)
+        public static int Query(int root, int l, int r, int idx, int* parent, int* lc, int* rc, out int s, int* size)
         {
-            while (parent[root] != root && parent[root] != 0)
+            if (l == r) { s = size[root]; return parent[root]; }
+            int mid = (l + r) >> 1;
+            if (idx <= mid) return Query(lc[root], l, mid, idx, parent, lc, rc, out s, size);
+            return Query(rc[root], mid + 1, r, idx, parent, lc, rc, out s, size);
+        }
+
+        public static int Find(int root, int n, int x, int* parent, int* lc, int* rc, int* size, out int s)
+        {
+            while (true)
             {
-                if (leftChild[root] != 0 && x < root) root = leftChild[root];
-                else if (rightChild[root] != 0) root = rightChild[root];
-                else break;
+                int p = Query(root, 0, n - 1, x, parent, lc, rc, out s, size);
+                if (p == x) return x;
+                x = p;
             }
-            return parent[root] == root ? root : x;
         }
-    }
 
-    public static unsafe class PersistentDsuUnion
-    {
-        public static int Run(int* parent, int* size, int* leftChild, int* rightChild,
-            int* prevRoot, int a, int b, int* allocCnt)
+        public static int Union(int root, int n, int a, int b, int* parent, int* size, int* allocCnt, int* lc, int* rc)
         {
-            int ra = PersistentDsuFind.Run(parent, leftChild, rightChild, *prevRoot, a);
-            int rb = PersistentDsuFind.Run(parent, leftChild, rightChild, *prevRoot, b);
-            if (ra == rb) return *prevRoot;
-            int newRoot = ++(*allocCnt);
-            parent[newRoot] = newRoot;
-            size[newRoot] = size[ra] + size[rb];
-            leftChild[newRoot] = *prevRoot;
-            rightChild[newRoot] = 0;
-            if (size[ra] > size[rb])
-            {
-                parent[ra] = rb;
-                size[rb] = size[ra] + size[rb];
-                leftChild[newRoot] = ra;
-                rightChild[newRoot] = rb;
-            }
-            else
-            {
-                parent[rb] = ra;
-                size[ra] = size[ra] + size[rb];
-                leftChild[newRoot] = rb;
-                rightChild[newRoot] = ra;
-            }
-            return newRoot;
+            int ra = Find(root, n, a, parent, lc, rc, size, out int sa);
+            int rb = Find(root, n, b, parent, lc, rc, size, out int sb);
+            if (ra == rb) return root;
+            if (sa < sb) { Swap(ref ra, ref rb); Swap(ref sa, ref sb); }
+            int nextRoot = Update(root, 0, n - 1, rb, ra, sb, parent, size, allocCnt, lc, rc);
+            if (sa == sb) nextRoot = Update(nextRoot, 0, n - 1, ra, ra, sa + 1, parent, size, allocCnt, lc, rc);
+            return nextRoot;
         }
+
+        private static void Swap(ref int a, ref int b) { int t = a; a = b; b = t; }
     }
 }

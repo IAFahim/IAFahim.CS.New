@@ -1,0 +1,84 @@
+--- test/IAFahim.DS.Grid.Tests/FillSliceTests.cs
++++ test/IAFahim.DS.Grid.Tests/FillSliceTests.cs
+@@ -1,63 +1,63 @@ namespace IAFahim.DS.Grid.Tests
+ {
+-    using Xunit;
++    using NUnit.Framework;
+ 
+     public sealed unsafe class FillSliceTests
+     {
+-        [Fact]
++        [Test]
+         public void EmptyInput_NoOp()
+         {
+             int* ptr = stackalloc int[0];
+             IAFahim.DS.Grid.FillSlice.Run(ptr, 0, 0, 0, 42);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void SingleElement_FillsCorrectly()
+         {
+             int* ptr = stackalloc int[] { 0, 0, 0 };
+             IAFahim.DS.Grid.FillSlice.Run(ptr, 3, 1, 2, 99);
+-            Assert.Equal(0, ptr[0]);
+-            Assert.Equal(99, ptr[1]);
+-            Assert.Equal(0, ptr[2]);
++            Assert.AreEqual(0, ptr[0]);
++            Assert.AreEqual(99, ptr[1]);
++            Assert.AreEqual(0, ptr[2]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void FullRange_FillsAll()
+         {
+             int* ptr = stackalloc int[] { 1, 2, 3, 4 };
+             IAFahim.DS.Grid.FillSlice.Run(ptr, 4, 0, 4, 7);
+             for (int i = 0; i < 4; i++)
+-                Assert.Equal(7, ptr[i]);
++                Assert.AreEqual(7, ptr[i]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void PartialRange_FillsCorrectRange()
+         {
+             int* ptr = stackalloc int[] { 1, 2, 3, 4, 5 };
+             IAFahim.DS.Grid.FillSlice.Run(ptr, 5, 1, 4, 8);
+-            Assert.Equal(1, ptr[0]);
+-            Assert.Equal(8, ptr[1]);
+-            Assert.Equal(8, ptr[2]);
+-            Assert.Equal(8, ptr[3]);
+-            Assert.Equal(5, ptr[4]);
++            Assert.AreEqual(1, ptr[0]);
++            Assert.AreEqual(8, ptr[1]);
++            Assert.AreEqual(8, ptr[2]);
++            Assert.AreEqual(8, ptr[3]);
++            Assert.AreEqual(5, ptr[4]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void StartBeyondLength_NoOp()
+         {
+             int* ptr = stackalloc int[] { 1, 2, 3 };
+             IAFahim.DS.Grid.FillSlice.Run(ptr, 3, 5, 8, 42);
+             for (int i = 0; i < 3; i++)
+-                Assert.Equal(i + 1, ptr[i]);
++                Assert.AreEqual(i + 1, ptr[i]);
+         }
+ 
+-        [Fact]
++        [Test]
+         public void StartEqualsEnd_NoOp()
+         {
+             int* ptr = stackalloc int[] { 1, 2, 3 };
+             IAFahim.DS.Grid.FillSlice.Run(ptr, 3, 2, 2, 42);
+             for (int i = 0; i < 3; i++)
+-                Assert.Equal(i + 1, ptr[i]);
++                Assert.AreEqual(i + 1, ptr[i]);
+         }
+     }
+ 
+ 

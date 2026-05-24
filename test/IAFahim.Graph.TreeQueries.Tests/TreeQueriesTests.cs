@@ -1,7 +1,7 @@
 namespace IAFahim.Graph.TreeQueries.Tests
 {
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
     using IAFahim.Graph.TreeQueries;
 
     public sealed unsafe class TreeQueriesTests
@@ -17,7 +17,7 @@ namespace IAFahim.Graph.TreeQueries.Tests
             head[v] = edgeCount++;
         }
 
-        [Fact]
+        [Test]
         public void Centroid_Basic()
         {
             const int N = 5;
@@ -39,8 +39,8 @@ namespace IAFahim.Graph.TreeQueries.Tests
             TreeCentroid.AllCentroids(N, head, to, next, centroids, ref centroidCount);
 
             // The centroid is node 1 (size of components if 1 is removed: 0: 1, 2: 1, 3: 2. Max size is 2 <= 5/2 = 2).
-            Assert.Equal(1, centroidCount);
-            Assert.Equal(1, centroids[0]);
+            Assert.AreEqual(1, centroidCount);
+            Assert.AreEqual(1, centroids[0]);
 
             long* weights = stackalloc long[N];
             weights[0] = 1;
@@ -50,10 +50,10 @@ namespace IAFahim.Graph.TreeQueries.Tests
             weights[4] = 1;
 
             int median = TreeCentroid.WeightedMedian(N, head, to, next, weights);
-            Assert.Equal(2, median); // node 2 has 10/14 weight, so it is the weighted median
+            Assert.AreEqual(2, median); // node 2 has 10/14 weight, so it is the weighted median
         }
 
-        [Fact]
+        [Test]
         public void TreeHashing_Basic()
         {
             // Create two isomorphic trees
@@ -79,17 +79,17 @@ namespace IAFahim.Graph.TreeQueries.Tests
 
             ulong hash1 = TreeHashing.CanonicalHash(N1, head1, to1, next1);
             ulong hash2 = TreeHashing.CanonicalHash(N2, head2, to2, next2);
-            Assert.Equal(hash1, hash2);
+            Assert.AreEqual(hash1, hash2);
 
             // Automorphism count of 3-node line (0-1-2) rooted at centroid 1:
             // Centroid is 1. Children of 1 are 0 and 2. Both are subtrees of size 1 (same hash).
             // Auto count is Auto(0) * Auto(2) * 2! = 2.
             long autos = TreeHashing.AutomorphismCount(N1, head1, to1, next1, 1000000007);
-            Assert.Equal(2, autos);
+            Assert.AreEqual(2, autos);
 
             // Tree edit distance: Line (0-1-2) to Line (0-1-2) should be 0.
             int dist = TreeHashing.TreeEditDistance(N1, head1, to1, next1, N2, head2, to2, next2);
-            Assert.Equal(0, dist);
+            Assert.AreEqual(0, dist);
 
             // Embedding check: Tree 1 embeds into a larger tree
             // Tree 3: 0-1, 1-2, 1-3 (star-like)
@@ -104,10 +104,10 @@ namespace IAFahim.Graph.TreeQueries.Tests
             AddEdge(head3, to3, next3, ref ec3, 1, 3);
 
             // Line (N1=3) embeds into star (N3=4) (0-1-2 is a path of size 3 in both)
-            Assert.True(TreeHashing.EmbeddingCheck(N1, head1, to1, next1, N3, head3, to3, next3));
+            Assert.IsTrue(TreeHashing.EmbeddingCheck(N1, head1, to1, next1, N3, head3, to3, next3));
         }
 
-        [Fact]
+        [Test]
         public void TreeDp_Basic()
         {
             const int N = 5;
@@ -125,19 +125,19 @@ namespace IAFahim.Graph.TreeQueries.Tests
             AddEdge(head, to, next, ref edgeCount, 3, 4);
 
             int minCover = TreeDp.MinVertexCover(N, head, to, next);
-            Assert.Equal(2, minCover); // cover is {1, 3}
+            Assert.AreEqual(2, minCover); // cover is {1, 3}
 
             int maxInd = TreeDp.MaxIndependentSet(N, head, to, next);
-            Assert.Equal(3, maxInd); // independent set is {0, 2, 4}
+            Assert.AreEqual(3, maxInd); // independent set is {0, 2, 4}
 
             int minDom = TreeDp.DominatingSet(N, head, to, next);
-            Assert.Equal(2, minDom); // dominating set is {1, 3}
+            Assert.AreEqual(2, minDom); // dominating set is {1, 3}
 
             long* edgeWeights = stackalloc long[2 * N];
             for (int i = 0; i < 2 * N; i++) edgeWeights[i] = 1;
 
             long maxMatching = TreeDp.MatchingDp(N, head, to, next, edgeWeights);
-            Assert.Equal(2, maxMatching); // matching is {0-1, 3-4}
+            Assert.AreEqual(2, maxMatching); // matching is {0-1, 3-4}
 
             byte* isTerminal = stackalloc byte[N];
             for (int i = 0; i < N; i++) isTerminal[i] = 0;
@@ -145,7 +145,7 @@ namespace IAFahim.Graph.TreeQueries.Tests
             isTerminal[4] = 1;
 
             long steinerCost = TreeDp.SteinerTree(N, head, to, next, edgeWeights, isTerminal, 2);
-            Assert.Equal(3, steinerCost); // edges in Steiner tree: 2-1, 1-3, 3-4 (total 3 edges, cost 3)
+            Assert.AreEqual(3, steinerCost); // edges in Steiner tree: 2-1, 1-3, 3-4 (total 3 edges, cost 3)
         }
     }
 }
