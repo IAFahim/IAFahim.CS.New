@@ -1,8 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <PackageReference Include="UnityMathematics.NoDeps" Version="1.3.2" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\src\IAFahim.Geometry.Hull\IAFahim.Geometry.Hull.csproj" />
     <ProjectReference Include="..\..\src\IAFahim.Geometry.Intersect\IAFahim.Geometry.Intersect.csproj" />
     <ProjectReference Include="..\..\src\IAFahim.Geometry.Voronoi\IAFahim.Geometry.Voronoi.csproj" />
     <ProjectReference Include="..\..\src\IAFahim.Geometry.Spatial\IAFahim.Geometry.Spatial.csproj" />
+    <ProjectReference Include="..\..\src\IAFahim.Geometry.Curve\IAFahim.Geometry.Curve.csproj" />
+    <ProjectReference Include="..\..\src\IAFahim.Geometry.Frame\IAFahim.Geometry.Frame.csproj" />
+    <ProjectReference Include="..\..\src\IAFahim.Geometry.Triangulation\IAFahim.Geometry.Triangulation.csproj" />
+    <ProjectReference Include="..\..\src\IAFahim.Math.Noise\IAFahim.Math.Noise.csproj" />
+    <ProjectReference Include="..\..\src\IAFahim.Geometry.Bvh\IAFahim.Geometry.Bvh.csproj" />
+    <ProjectReference Include="..\..\src\IAFahim.Geometry.Mesh\IAFahim.Geometry.Mesh.csproj" />
   </ItemGroup>
 </Project>

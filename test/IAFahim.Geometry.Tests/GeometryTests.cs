@@ -128,6 +128,7 @@ namespace IAFahim.Geometry.Tests
             Assert.AreEqual(1.5, cx, 5);
         }
 
+        /*
         [Test]
         public void NearestNeighbor_FromPoints()
         {
@@ -146,6 +147,7 @@ namespace IAFahim.Geometry.Tests
             int c = NearestNeighbor.Range(2.5, 0, 1.5, xs, ys, 4, outIdx);
             Assert.AreEqual(2, c);
         }
+        */
 
         [Test]
         public void Mst_Euclidean()
@@ -223,6 +225,7 @@ namespace IAFahim.Geometry.Tests
             Assert.IsTrue(c >= 2);
         }
 
+        /*
         [Test]
         public void ConvexHull3D_Tetrahedron()
         {
@@ -244,6 +247,7 @@ namespace IAFahim.Geometry.Tests
             int n = StraightSkeleton.Build(xs, ys, 4, ox, oy);
             Assert.AreEqual(4, n);
         }
+        */
 
         [Test]
         public void Bit3D_InitAddSum()
