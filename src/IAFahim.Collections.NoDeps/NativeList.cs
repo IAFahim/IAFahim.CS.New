@@ -8,96 +8,153 @@ namespace Unity.Collections
     [StructLayout(LayoutKind.Sequential)]
     public unsafe struct NativeList<T> : IDisposable where T : unmanaged
     {
-        private IntPtr _buffer;
-        private int _length;
-        private int _capacity;
-        private Allocator _allocator;
+        [StructLayout(LayoutKind.Sequential)]
+        private struct ListState
+        {
+            public IntPtr Buffer;
+            public int Length;
+            public int Capacity;
+            public Allocator Allocator;
+        }
 
-        private static readonly int _elementSize = UnsafeUtility.SizeOf<T>();
+        private ListState* state;
+
+        private static readonly int ElementSize = UnsafeUtility.SizeOf<T>();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public NativeList(int initialCapacity, Allocator allocator)
         {
-            this = default;
-            _capacity = initialCapacity;
-            _allocator = allocator;
-            long byteCount = (long)initialCapacity * _elementSize;
-            _buffer = Marshal.AllocHGlobal((nint)byteCount);
-            UnsafeUtility.MemClear((void*)_buffer, byteCount);
+            this.state = (ListState*)Marshal.AllocHGlobal((IntPtr)sizeof(ListState));
+            this.state->Capacity = initialCapacity;
+            this.state->Length = 0;
+            this.state->Allocator = allocator;
+            long byteCount = (long)initialCapacity * ElementSize;
+            this.state->Buffer = initialCapacity > 0 ? Marshal.AllocHGlobal((IntPtr)byteCount) : IntPtr.Zero;
+            if (initialCapacity > 0)
+            {
+                UnsafeUtility.MemClear((void*)this.state->Buffer, byteCount);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public NativeList(Allocator allocator) : this(16, allocator)
+        {
         }
 
         public int Length
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => _length;
+            readonly get => this.state != null ? this.state->Length : 0;
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
-                if (value < 0)
-                    value = 0;
-                if (value > _capacity)
-                    ResizeCapacity(value);
-                _length = value;
+                if (this.state == null)
+                {
+                    return;
+                }
+                int val = value < 0 ? 0 : value;
+                if (val > this.state->Capacity)
+                {
+                    this.ResizeCapacity(val);
+                }
+                this.state->Length = val;
             }
         }
 
         public int Capacity
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => _capacity;
+            readonly get => this.state != null ? this.state->Capacity : 0;
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
-                if (value < 0) value = 0;
-                if (value == _capacity) return;
-
-                ReallocateBuffer(value);
-                _capacity = value;
-                if (_length > _capacity) _length = _capacity;
+                if (this.state == null)
+                {
+                    return;
+                }
+                int val = value < 0 ? 0 : value;
+                if (val == this.state->Capacity)
+                {
+                    return;
+                }
+                this.ReallocateBuffer(val);
+                this.state->Capacity = val;
+                if (this.state->Length > this.state->Capacity)
+                {
+                    this.state->Length = this.state->Capacity;
+                }
             }
         }
 
-        private void ReallocateBuffer(int newCapacity)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private readonly void ReallocateBuffer(int newCapacity)
         {
-            var newBuffer = newCapacity == 0
+            IntPtr newBuffer = newCapacity == 0
                 ? IntPtr.Zero
-                : Marshal.AllocHGlobal((nint)((long)newCapacity * _elementSize));
+                : Marshal.AllocHGlobal((IntPtr)((long)newCapacity * ElementSize));
 
-            if (_buffer != IntPtr.Zero)
+            if (this.state->Buffer != IntPtr.Zero)
             {
                 if (newCapacity > 0)
                 {
-                    var copySize = _length < newCapacity ? _length : newCapacity;
-                    UnsafeUtility.MemCpy((void*)newBuffer, (void*)_buffer, (long)copySize * _elementSize);
+                    int copySize = this.state->Length < newCapacity ? this.state->Length : newCapacity;
+                    UnsafeUtility.MemCpy((void*)newBuffer, (void*)this.state->Buffer, (long)copySize * ElementSize);
                 }
-                Marshal.FreeHGlobal(_buffer);
+                Marshal.FreeHGlobal(this.state->Buffer);
             }
-            _buffer = newBuffer;
+            this.state->Buffer = newBuffer;
         }
 
-        public bool IsCreated
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ResizeCapacity(int newCapacity)
+        {
+            if (newCapacity <= this.state->Capacity)
+            {
+                return;
+            }
+
+            int cap = this.state->Capacity < 4 ? 4 : this.state->Capacity;
+            while (cap < newCapacity && cap > 0)
+            {
+                int nextCap = cap << 1;
+                if (nextCap < 0)
+                {
+                    cap = newCapacity;
+                    break;
+                }
+                cap = nextCap;
+            }
+            if (cap < newCapacity)
+            {
+                cap = newCapacity;
+            }
+            this.Capacity = cap;
+        }
+
+        public readonly bool IsCreated
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => _buffer != IntPtr.Zero;
+            get => this.state != null;
         }
 
-        public T* GetUnsafePtr()
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly T* GetUnsafePtr()
         {
-            return (T*)_buffer;
+            return this.state != null ? (T*)this.state->Buffer : null;
         }
 
         public T this[int index]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
+            readonly get
             {
-                var byteOffset = _buffer + index * _elementSize;
+                IntPtr byteOffset = this.state->Buffer + index * ElementSize;
                 return System.Runtime.CompilerServices.Unsafe.Read<T>((void*)byteOffset);
             }
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
-                var byteOffset = _buffer + index * _elementSize;
+                IntPtr byteOffset = this.state->Buffer + index * ElementSize;
                 System.Runtime.CompilerServices.Unsafe.Write<T>((void*)byteOffset, value);
             }
         }
@@ -105,87 +162,78 @@ namespace Unity.Collections
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()
         {
-            if (_buffer != IntPtr.Zero)
+            if (this.state != null)
             {
-                Marshal.FreeHGlobal(_buffer);
-                _buffer = IntPtr.Zero;
-            }
-
-            this = default;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Clear()
-        {
-            _length = 0;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ResizeCapacity(int newCapacity)
-        {
-            if (newCapacity <= _capacity)
-                return;
-
-            int cap = _capacity < 4 ? 4 : _capacity;
-            while (cap < newCapacity && cap > 0)
-            {
-                int nextCap = cap << 1;
-                if (nextCap < 0) // Overflow
+                if (this.state->Buffer != IntPtr.Zero)
                 {
-                    cap = newCapacity;
-                    break;
+                    Marshal.FreeHGlobal(this.state->Buffer);
                 }
-                cap = nextCap;
+                Marshal.FreeHGlobal((IntPtr)this.state);
+                this.state = null;
             }
-            if (cap < newCapacity) cap = newCapacity;
-            Capacity = cap;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly void Clear()
+        {
+            if (this.state != null)
+            {
+                this.state->Length = 0;
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Add(in T item)
         {
-            if (_length >= _capacity)
-                ResizeCapacity(_capacity < 4 ? 8 : _capacity << 1);
+            if (this.state->Length >= this.state->Capacity)
+            {
+                this.ResizeCapacity(this.state->Capacity < 4 ? 8 : this.state->Capacity << 1);
+            }
 
-            var byteOffset = _buffer + _length * _elementSize;
+            IntPtr byteOffset = this.state->Buffer + this.state->Length * ElementSize;
             System.Runtime.CompilerServices.Unsafe.Write<T>((void*)byteOffset, item);
-            _length++;
+            this.state->Length++;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void RemoveAt(int index)
+        public readonly void RemoveAt(int index)
         {
-            if (index < 0 || index >= _length)
+            if (index < 0 || index >= this.state->Length)
+            {
                 return;
+            }
 
-            _length--;
-            if (index == _length)
+            this.state->Length--;
+            if (index == this.state->Length)
+            {
                 return;
+            }
 
-            var byteIndex = _buffer + index * _elementSize;
-            var byteCount = (_length - index) * _elementSize;
-            var src = (byte*)_buffer + (index + 1) * _elementSize;
-            var dst = (byte*)_buffer + index * _elementSize;
+            long byteCount = (long)(this.state->Length - index) * ElementSize;
+            byte* src = (byte*)this.state->Buffer + (index + 1) * ElementSize;
+            byte* dst = (byte*)this.state->Buffer + index * ElementSize;
             UnsafeUtility.MemCpy(dst, src, byteCount);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void RemoveRange(int index, int count)
+        public readonly void RemoveRange(int index, int count)
         {
-            if (index < 0 || count < 0 || index >= _length)
+            if (index < 0 || count < 0 || index >= this.state->Length)
+            {
                 return;
+            }
 
-            if (count > _length - index)
-                count = _length - index;
+            int cnt = count > this.state->Length - index ? this.state->Length - index : count;
 
-            _length -= count;
-            if (index == _length || count == 0)
+            this.state->Length -= cnt;
+            if (index == this.state->Length || cnt == 0)
+            {
                 return;
+            }
 
-            var byteIndex = _buffer + index * _elementSize;
-            var byteCount = (_length - index) * _elementSize;
-            var src = (byte*)_buffer + (index + count) * _elementSize;
-            var dst = (byte*)_buffer + index * _elementSize;
+            long byteCount = (long)(this.state->Length - index) * ElementSize;
+            byte* src = (byte*)this.state->Buffer + (index + cnt) * ElementSize;
+            byte* dst = (byte*)this.state->Buffer + index * ElementSize;
             UnsafeUtility.MemCpy(dst, src, byteCount);
         }
 
@@ -193,18 +241,22 @@ namespace Unity.Collections
         public void Resize(int length, NativeArrayOptions options)
         {
             if (length < 0)
-                length = 0;
+            {
+                return;
+            }
 
-            if (length > _capacity)
-                Capacity = length;
+            if (length > this.state->Capacity)
+            {
+                this.Capacity = length;
+            }
 
-            var oldLength = _length;
-            _length = length;
+            int oldLength = this.state->Length;
+            this.state->Length = length;
 
             if (options == NativeArrayOptions.ClearMemory && length > oldLength)
             {
-                var startByte = _buffer + oldLength * _elementSize;
-                var clearByteCount = (long)(length - oldLength) * _elementSize;
+                IntPtr startByte = this.state->Buffer + oldLength * ElementSize;
+                long clearByteCount = (long)(length - oldLength) * ElementSize;
                 UnsafeUtility.MemClear((byte*)startByte, clearByteCount);
             }
         }
@@ -213,12 +265,60 @@ namespace Unity.Collections
         public void ResizeUninitialized(int length)
         {
             if (length < 0)
-                length = 0;
+            {
+                return;
+            }
 
-            if (length > _capacity)
-                Capacity = length;
+            if (length > this.state->Capacity)
+            {
+                this.Capacity = length;
+            }
 
-            _length = length;
+            this.state->Length = length;
+        }
+
+        public struct Enumerator : System.Collections.Generic.IEnumerator<T>
+        {
+            private readonly NativeList<T> list;
+            private int index;
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            internal Enumerator(NativeList<T> list)
+            {
+                this.list = list;
+                this.index = -1;
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public bool MoveNext()
+            {
+                this.index++;
+                return this.index < this.list.Length;
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void Reset()
+            {
+                this.index = -1;
+            }
+
+            public readonly T Current
+            {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                get => this.list[this.index];
+            }
+
+            readonly object System.Collections.IEnumerator.Current => this.Current;
+
+            public readonly void Dispose()
+            {
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly Enumerator GetEnumerator()
+        {
+            return new Enumerator(this);
         }
     }
 }

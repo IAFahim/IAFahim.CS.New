@@ -4,19 +4,19 @@ namespace Unity.Collections
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
-    public struct AllocatorHandle
-    {
-        public int Value;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator AllocatorHandle(Allocator allocator)
-        {
-            return new AllocatorHandle { Value = (int)allocator };
-        }
-    }
-
     public static unsafe class AllocatorManager
     {
+        public struct AllocatorHandle
+        {
+            public int Value;
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public static implicit operator AllocatorHandle(Allocator allocator)
+            {
+                return new AllocatorHandle { Value = (int)allocator };
+            }
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void* Allocate(AllocatorHandle allocator, long sizeInBytes, int alignInBytes)
         {
@@ -26,6 +26,13 @@ namespace Unity.Collections
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Allocate(AllocatorHandle allocator, void* ptr, long sizeInBytes, int alignInBytes)
         {
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static T* Allocate<T>(AllocatorHandle allocator, int items = 1) where T : unmanaged
+        {
+            long byteCount = (long)items * sizeof(T);
+            return (T*)Marshal.AllocHGlobal((nint)byteCount);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
