@@ -13,5 +13,7 @@
     <ProjectReference Include="..\..\src\IAFahim.Math.Noise\IAFahim.Math.Noise.csproj" />
     <ProjectReference Include="..\..\src\IAFahim.Geometry.Bvh\IAFahim.Geometry.Bvh.csproj" />
     <ProjectReference Include="..\..\src\IAFahim.Geometry.Mesh\IAFahim.Geometry.Mesh.csproj" />
+    <ProjectReference Include="..\..\src\IAFahim.DS.SpatialMap\IAFahim.DS.SpatialMap.csproj" />
+    <ProjectReference Include="..\..\src\IAFahim.Collections.NoDeps\IAFahim.Collections.NoDeps.csproj" />
   </ItemGroup>
 </Project>

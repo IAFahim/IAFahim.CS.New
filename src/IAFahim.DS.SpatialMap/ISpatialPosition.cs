@@ -1,0 +1,14 @@
+namespace IAFahim.DS.SpatialMap
+{
+    using Unity.Mathematics;
+
+    public interface ISpatialPosition
+    {
+        float2 Position { get; }
+    }
+
+    public interface ISpatialPosition3
+    {
+        float3 Position { get; }
+    }
+}
