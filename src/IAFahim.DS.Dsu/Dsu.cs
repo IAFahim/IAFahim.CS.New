@@ -17,14 +17,15 @@ namespace IAFahim.DS.Dsu
 
     public static unsafe class DsuFind
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Run(int* parent, int x)
         {
-            int root = x;
-            while (parent[root] != root)
+            while (parent[x] != x)
             {
-                root = parent[root];
+                parent[x] = parent[parent[x]];
+                x = parent[x];
             }
-            return root;
+            return x;
         }
 
         public static int RunPathCompression(int* parent, int x)
