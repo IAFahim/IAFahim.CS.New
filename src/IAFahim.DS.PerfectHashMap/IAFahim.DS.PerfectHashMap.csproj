@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\IAFahim.Collections.NoDeps\IAFahim.Collections.NoDeps.csproj" PrivateAssets="All" />
+  </ItemGroup>
+</Project>

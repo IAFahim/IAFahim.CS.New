@@ -1,0 +1,46 @@
+name: Run Benchmarks
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'bench/results/**'
+      - 'README.md'
+      - 'TODO/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Run all benchmarks
+        run: python3 run_all_benchmarks.py
+
+      - name: Commit and Push Benchmark Results
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add bench/results/
+          if git diff --staged --quiet; then
+            echo "No changes in benchmark results."
+          else
+            git commit -m "chore: update benchmark results [skip ci]"
+            git push
+          fi

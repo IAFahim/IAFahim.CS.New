@@ -1,5 +1,6 @@
 namespace IAFahim.DS.Sparse.Bench
 {
+    using System;
     using IAFahim.DS.Sparse;
     using System.Runtime.InteropServices;
     using BenchmarkDotNet.Attributes;
@@ -35,7 +36,7 @@ namespace IAFahim.DS.Sparse.Bench
         {
             int logN = 1;
             while ((1 << logN) <= N) logN++;
-            SparseTableBuild.RunInt32(_arr, _st, null, N);
+            IAFahim.DS.Sparse.SparseTableBuild.RunInt32(_arr, _st, null, N);
         }
 
         [GlobalCleanup]

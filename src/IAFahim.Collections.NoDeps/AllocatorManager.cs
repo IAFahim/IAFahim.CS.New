@@ -10,6 +10,14 @@ namespace Unity.Collections
         {
             public int Value;
 
+            public readonly AllocatorHandle Handle => this;
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public static implicit operator Allocator(AllocatorHandle handle)
+            {
+                return (Allocator)handle.Value;
+            }
+
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static implicit operator AllocatorHandle(Allocator allocator)
             {
@@ -21,6 +29,13 @@ namespace Unity.Collections
         public static void* Allocate(AllocatorHandle allocator, long sizeInBytes, int alignInBytes)
         {
             return (void*)Marshal.AllocHGlobal((nint)sizeInBytes);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void* Allocate(AllocatorHandle allocator, int itemSizeInBytes, int alignmentInBytes, int items)
+        {
+            long byteCount = (long)itemSizeInBytes * items;
+            return (void*)Marshal.AllocHGlobal((nint)byteCount);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

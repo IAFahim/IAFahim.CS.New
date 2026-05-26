@@ -1,5 +1,6 @@
 namespace IAFahim.DS.Trie.Bench
 {
+    using System;
     using IAFahim.DS.Trie;
     using System.Runtime.InteropServices;
     using BenchmarkDotNet.Attributes;
@@ -32,7 +33,7 @@ namespace IAFahim.DS.Trie.Bench
             for (int i = 0; i < N; i++)
             {
                 word[0] = (byte)('a' + (rng.Next() % 26));
-                TrieInsert.Run(trie, root, word, 1);
+                IAFahim.DS.Trie.TrieInsert.Run(trie, root, word, 1);
             }
             Marshal.FreeHGlobal((nint)trie);
         }

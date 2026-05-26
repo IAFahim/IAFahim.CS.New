@@ -19,14 +19,14 @@ namespace IAFahim.Math.Combinatorics.Bench
         public void Binom()
         {
             for (int i = 0; i < N; i++)
-                Binom.Run(i, i / 2);
+                IAFahim.Math.Combinatorics.Binom.Run(i, i / 2, 1000000007L);
         }
 
         [Benchmark]
         public void Factorial()
         {
             for (int i = 0; i < N; i++)
-                Factorial.Run(i % 20);
+                IAFahim.Math.Combinatorics.Factorial.Run(i % 20, 1000000007L);
         }
     }
 }

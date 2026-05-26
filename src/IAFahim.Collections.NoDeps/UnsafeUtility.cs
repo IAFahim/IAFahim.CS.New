@@ -60,5 +60,43 @@ namespace Unity.Collections.LowLevel.Unsafe
             public T Data;
 #pragma warning restore CS0649
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void WriteArrayElement<T>(void* destination, int index, T value) where T : unmanaged
+        {
+            ((T*)destination)[index] = value;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static T ReadArrayElement<T>(void* source, int index) where T : unmanaged
+        {
+            return ((T*)source)[index];
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void MemCpyReplicate(void* destination, void* source, int size, int count)
+        {
+            byte* dest = (byte*)destination;
+            byte* src = (byte*)source;
+            for (int i = 0; i < count; i++)
+            {
+                for (int j = 0; j < size; j++)
+                {
+                    dest[i * size + j] = src[j];
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsNativeContainerType<T>() where T : unmanaged
+        {
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ref T ArrayElementAsRef<T>(void* ptr, int index) where T : unmanaged
+        {
+            return ref ((T*)ptr)[index];
+        }
     }
 }

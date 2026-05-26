@@ -1,5 +1,6 @@
 namespace IAFahim.DS.Dsu.Bench
 {
+    using System;
     using IAFahim.DS.Dsu;
     using System.Runtime.InteropServices;
     using BenchmarkDotNet.Attributes;
@@ -31,27 +32,27 @@ namespace IAFahim.DS.Dsu.Bench
             Random rng = new Random(42);
             for (int i = 0; i < N; i++) _unionU[i] = rng.Next(N);
             for (int i = 0; i < N; i++) _unionV[i] = rng.Next(N);
-            DsuInit.Run(N, _parent, _size);
+            IAFahim.DS.Dsu.DsuInit.Run(_parent, _size, N);
         }
 
         [IterationSetup]
         public void ResetDsu()
         {
-            DsuInit.Run(N, _parent, _size);
+            IAFahim.DS.Dsu.DsuInit.Run(_parent, _size, N);
         }
 
         [Benchmark(Baseline = true)]
         public void DsuUnion()
         {
             for (int i = 0; i < N; i++)
-                DsuUnion.Run(_unionU[i], _unionV[i], _parent, _size);
+                IAFahim.DS.Dsu.DsuUnion.Run(_parent, _size, _unionU[i], _unionV[i]);
         }
 
         [Benchmark]
         public void DsuFind()
         {
             for (int i = 0; i < N; i++)
-                DsuFind.Run(i, _parent);
+                IAFahim.DS.Dsu.DsuFind.Run(_parent, i);
         }
 
         [GlobalCleanup]

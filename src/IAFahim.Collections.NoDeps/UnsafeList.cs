@@ -26,6 +26,16 @@ namespace Unity.Collections.LowLevel.Unsafe
             UnsafeUtility.MemClear((void*)_buffer, byteCount);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public UnsafeList(T* ptr, int capacity, Allocator allocator)
+        {
+            this = default;
+            _buffer = (IntPtr)ptr;
+            _capacity = capacity;
+            _length = 0;
+            _allocator = allocator;
+        }
+
         public int Length
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -195,7 +205,26 @@ namespace Unity.Collections.LowLevel.Unsafe
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Resize(int length, Unity.Collections.NativeArrayOptions options)
+        public static UnsafeList<T>* Create(int capacity, Allocator allocator)
+        {
+            var list = (UnsafeList<T>*)Marshal.AllocHGlobal(sizeof(UnsafeList<T>));
+            *list = new UnsafeList<T>(capacity, allocator);
+            return list;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Destroy(UnsafeList<T>* list)
+        {
+            if (list != null)
+            {
+                list->Dispose();
+                Marshal.FreeHGlobal((IntPtr)list);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Resize(int length, Unity.Collections.NativeArrayOptions options = Unity.Collections.NativeArrayOptions.ClearMemory)
+
         {
             if (length < 0)
                 length = 0;

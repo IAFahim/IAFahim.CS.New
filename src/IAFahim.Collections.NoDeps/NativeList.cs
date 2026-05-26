@@ -316,6 +316,20 @@ namespace Unity.Collections
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly NativeArray<T> AsArray()
+        {
+            return this.state != null
+                ? new NativeArray<T>((void*)this.state->Buffer, this.state->Length, Allocator.None)
+                : default;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly NativeArray<T> AsDeferredJobArray()
+        {
+            return this.AsArray();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly Enumerator GetEnumerator()
         {
             return new Enumerator(this);

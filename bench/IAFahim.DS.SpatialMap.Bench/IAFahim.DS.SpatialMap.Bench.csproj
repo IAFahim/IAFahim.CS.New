@@ -5,5 +5,7 @@
   <ItemGroup>
     <ProjectReference Include="../../src/IAFahim.DS.SpatialMap/IAFahim.DS.SpatialMap.csproj" />
     <ProjectReference Include="../../src/IAFahim.Collections.NoDeps/IAFahim.Collections.NoDeps.csproj" />
+    <ProjectReference Include="../../src/IAFahim.DS.PerfectHashMap/IAFahim.DS.PerfectHashMap.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Memory.Allocators/IAFahim.Memory.Allocators.csproj" />
   </ItemGroup>
 </Project>

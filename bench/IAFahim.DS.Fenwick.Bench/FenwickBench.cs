@@ -1,5 +1,6 @@
 namespace IAFahim.DS.Fenwick.Bench
 {
+    using System;
     using IAFahim.DS.Fenwick;
     using System.Runtime.InteropServices;
     using BenchmarkDotNet.Attributes;
@@ -22,7 +23,7 @@ namespace IAFahim.DS.Fenwick.Bench
         [GlobalSetup]
         public void Setup()
         {
-            _bit = (int*)Marshal.AllocHGlobal(N * sizeof(int));
+            _bit = (int*)Marshal.AllocHGlobal((N + 1) * sizeof(int));
             _updates = (int*)Marshal.AllocHGlobal(N * sizeof(int));
             Random rng = new Random(42);
             for (int i = 0; i < N; i++) _updates[i] = rng.Next(N);
@@ -31,21 +32,21 @@ namespace IAFahim.DS.Fenwick.Bench
         [IterationSetup]
         public void Reset()
         {
-            for (int i = 0; i < N; i++) _bit[i] = 0;
+            for (int i = 0; i <= N; i++) _bit[i] = 0;
         }
 
         [Benchmark(Baseline = true)]
         public void FenwickAdd()
         {
             for (int i = 0; i < N; i++)
-                FenwickAdd.Run(_bit, _updates[i], 1);
+                IAFahim.DS.Fenwick.FenwickAdd.Run(_bit, N, _updates[i], 1);
         }
 
         [Benchmark]
         public void FenwickSum()
         {
-            for (int i = 1; i <= N; i++)
-                FenwickSum.Run(_bit, i);
+            for (int i = 0; i < N; i++)
+                IAFahim.DS.Fenwick.FenwickSum.Run(_bit, i);
         }
 
         [GlobalCleanup]

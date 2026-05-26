@@ -55,9 +55,23 @@ namespace Unity.Collections
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public NativeArray(void* buffer, int length, Allocator allocator)
+        {
+            this._buffer = (IntPtr)buffer;
+            this._length = length;
+            this._allocator = allocator;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly void* GetUnsafeReadOnlyPtr() => (void*)_buffer;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly void* GetUnsafePtr() => (void*)_buffer;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()
         {
-            if (_buffer != IntPtr.Zero)
+            if (_buffer != IntPtr.Zero && _allocator != Allocator.None)
             {
                 Marshal.FreeHGlobal(_buffer);
                 _buffer = IntPtr.Zero;

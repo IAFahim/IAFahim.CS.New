@@ -1,5 +1,6 @@
 namespace IAFahim.Graph.Bench
 {
+    using System;
     using IAFahim.Graph;
     using System.Runtime.InteropServices;
     using BenchmarkDotNet.Attributes;
@@ -19,7 +20,8 @@ namespace IAFahim.Graph.Bench
         private int* _head;
         private int* _to;
         private int* _next;
-        private long* _dist;
+        private int* _dist;
+        private int* _parent;
         private int _m;
 
         [GlobalSetup]
@@ -29,20 +31,21 @@ namespace IAFahim.Graph.Bench
             _head = (int*)Marshal.AllocHGlobal(N * sizeof(int));
             _to = (int*)Marshal.AllocHGlobal(_m * sizeof(int));
             _next = (int*)Marshal.AllocHGlobal(_m * sizeof(int));
-            _dist = (long*)Marshal.AllocHGlobal(N * sizeof(long));
+            _dist = (int*)Marshal.AllocHGlobal(N * sizeof(int));
+            _parent = (int*)Marshal.AllocHGlobal(N * sizeof(int));
             for (int i = 0; i < N; i++) _head[i] = 0;
-            Random rng = new Random(42);
+            int edgeId = 1;
+            int edgeCount = _m;
             for (int i = 0; i < N - 1; i++)
-                AddEdge.Run(N, _head, _to, _next, i, i + 1);
-            for (int i = 0; i < N; i++)
-                _dist[i] = -1;
+            {
+                AddEdge.Run(_head, _to, _next, &edgeId, i, i + 1, &edgeCount);
+            }
         }
 
         [Benchmark(Baseline = true)]
         public void Bfs()
         {
-            for (int i = 0; i < N; i++) _dist[i] = -1;
-            Bfs.Run(0, N, _head, _to, _next, _dist);
+            IAFahim.Graph.Bfs.Run(N, 0, _head, _to, _next, _dist, _parent);
         }
 
         [GlobalCleanup]
@@ -52,6 +55,7 @@ namespace IAFahim.Graph.Bench
             Marshal.FreeHGlobal((nint)_to);
             Marshal.FreeHGlobal((nint)_next);
             Marshal.FreeHGlobal((nint)_dist);
+            Marshal.FreeHGlobal((nint)_parent);
         }
     }
 }

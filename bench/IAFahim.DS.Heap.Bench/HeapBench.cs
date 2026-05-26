@@ -1,5 +1,6 @@
 namespace IAFahim.DS.Heap.Bench
 {
+    using System;
     using IAFahim.DS.Heap;
     using System.Runtime.InteropServices;
     using BenchmarkDotNet.Attributes;
@@ -28,7 +29,7 @@ namespace IAFahim.DS.Heap.Bench
             int len = 0;
             Random rng = new Random(42);
             for (int i = 0; i < N; i++)
-                HeapPush.Run(heap, &len, rng.Next());
+                IAFahim.DS.Heap.HeapPush.Run(heap, len++, rng.Next());
         }
 
         [Benchmark]
@@ -37,9 +38,9 @@ namespace IAFahim.DS.Heap.Bench
             int* heap = stackalloc int[N];
             int len = 0;
             Random rng = new Random(42);
-            for (int i = 0; i < N; i++) HeapPush.Run(heap, &len, rng.Next());
+            for (int i = 0; i < N; i++) IAFahim.DS.Heap.HeapPush.Run(heap, len++, rng.Next());
             for (int i = 0; i < N; i++)
-                HeapPop.Run(heap, &len);
+                IAFahim.DS.Heap.HeapPop.Run(heap, len--);
         }
 
         [GlobalCleanup]

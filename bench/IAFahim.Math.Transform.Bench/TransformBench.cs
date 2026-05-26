@@ -1,5 +1,6 @@
 namespace IAFahim.Math.Transform.Bench
 {
+    using System;
     using IAFahim.Math.Transform;
     using System.Runtime.InteropServices;
     using BenchmarkDotNet.Attributes;
@@ -33,7 +34,7 @@ namespace IAFahim.Math.Transform.Bench
         {
             long* tmp = (long*)Marshal.AllocHGlobal(N * sizeof(long));
             for (int i = 0; i < N; i++) tmp[i] = _f[i];
-            WalshHadamardXor.Run(tmp, N, 1);
+            IAFahim.Math.Transform.WalshHadamardXor.Forward(tmp, N);
             Marshal.FreeHGlobal((nint)tmp);
         }
 
@@ -42,7 +43,9 @@ namespace IAFahim.Math.Transform.Bench
         {
             long* tmp = (long*)Marshal.AllocHGlobal(N * sizeof(long));
             for (int i = 0; i < N; i++) tmp[i] = _f[i];
-            SubsetZeta.Run(tmp, N);
+            int logN = 0;
+            while ((1 << logN) < N) logN++;
+            IAFahim.Math.Transform.SubsetZeta.Run(tmp, logN);
             Marshal.FreeHGlobal((nint)tmp);
         }
 

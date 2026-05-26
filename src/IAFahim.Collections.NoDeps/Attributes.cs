@@ -7,6 +7,12 @@ namespace Unity.Collections.LowLevel.Unsafe
 
     [AttributeUsage(AttributeTargets.Struct)]
     public sealed class NativeContainerAttribute : Attribute { }
+
+    [AttributeUsage(AttributeTargets.Field)]
+    public sealed class NativeSetThreadIndexAttribute : Attribute { }
+
+    [AttributeUsage(AttributeTargets.Struct)]
+    public sealed class NativeContainerIsAtomicWriteOnlyAttribute : Attribute { }
 }
 
 namespace Unity.Collections
@@ -26,6 +32,9 @@ namespace Unity.Burst
 
     [AttributeUsage(AttributeTargets.Struct | AttributeTargets.Class | AttributeTargets.Method)]
     public sealed class BurstCompileAttribute : Attribute { }
+
+    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Parameter | AttributeTargets.Struct)]
+    public sealed class NoAliasAttribute : Attribute { }
 }
 
 namespace Unity.Jobs

@@ -15,5 +15,8 @@
     <ProjectReference Include="..\..\src\IAFahim.Geometry.Mesh\IAFahim.Geometry.Mesh.csproj" />
     <ProjectReference Include="..\..\src\IAFahim.DS.SpatialMap\IAFahim.DS.SpatialMap.csproj" />
     <ProjectReference Include="..\..\src\IAFahim.Collections.NoDeps\IAFahim.Collections.NoDeps.csproj" />
+    <ProjectReference Include="..\..\src\IAFahim.DS.PerfectHashMap\IAFahim.DS.PerfectHashMap.csproj" />
+    <ProjectReference Include="..\..\src\IAFahim.Memory.Allocators\IAFahim.Memory.Allocators.csproj" />
+    <ProjectReference Include="..\..\src\IAFahim.DS.FixedCollections\IAFahim.DS.FixedCollections.csproj" />
   </ItemGroup>
 </Project>

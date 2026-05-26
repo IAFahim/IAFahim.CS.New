@@ -1,5 +1,6 @@
 namespace IAFahim.String.Bench
 {
+    using System;
     using IAFahim.String;
     using System.Runtime.InteropServices;
     using BenchmarkDotNet.Attributes;
@@ -30,7 +31,7 @@ namespace IAFahim.String.Bench
         public void ZAlgorithm()
         {
             int* z = (int*)Marshal.AllocHGlobal(N * sizeof(int));
-            ZAlgorithm.Run(_s, N, z);
+            IAFahim.String.ZAlgorithm.Run(_s, N, z);
             Marshal.FreeHGlobal((nint)z);
         }
 
@@ -38,7 +39,7 @@ namespace IAFahim.String.Bench
         public void ManacherOdd()
         {
             int* d = (int*)Marshal.AllocHGlobal(N * sizeof(int));
-            ManacherOdd.Run(_s, N, d);
+            IAFahim.String.ManacherOdd.Run(_s, N, d);
             Marshal.FreeHGlobal((nint)d);
         }
 
