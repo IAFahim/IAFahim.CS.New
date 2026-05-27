@@ -46,7 +46,7 @@ namespace IAFahim.Math.Sdf.Tests
         [Test]
         public void Capsule_Inside_ReturnsNegative()
         {
-            float d = SdfPrimitive.Capsule(new float3(0, 0.5f, 0), new float3(0, 0, 1), new float3(0, 0, 2), 0.5f);
+            float d = SdfPrimitive.Capsule(new float3(0, 0.2f, 1.5f), new float3(0, 0, 1), new float3(0, 0, 2), 0.5f);
             Assert.IsTrue(d < 0.0f);
         }
 
@@ -55,7 +55,7 @@ namespace IAFahim.Math.Sdf.Tests
         {
             float d = SdfPrimitive.Torus(float3.zero, 1.0f, 0.3f);
             Assert.IsTrue(d > 0.0f);
-            float dOuter = SdfPrimitive.Torus(new float3(2, 0, 0), 1.0f, 0.3f);
+            float dOuter = SdfPrimitive.Torus(new float3(3, 0, 0), 1.0f, 0.3f);
             Assert.IsTrue(dOuter > 0.0f);
             Assert.IsTrue(dOuter > d);
         }
@@ -98,9 +98,9 @@ namespace IAFahim.Math.Sdf.Tests
         [Test]
         public void SmoothUnion_SmoothsBlend()
         {
-            float d1 = 0.0f, d2 = 1.0f;
+            float d1 = 0.1f, d2 = 0.2f;
             float result = SdfBoolean.SmoothUnion(d1, d2, 0.5f);
-            Assert.IsTrue(result >= d2 && result <= d1);
+            Assert.IsTrue(result < d1 && result < d2);
         }
     }
 

@@ -19,9 +19,8 @@ namespace IAFahim.Math.Quaternion.Tests
         {
             quaternion q = QuaternionOps.FromAxisAngle(new float3(0, 1, 0), math.PI * 0.5f);
             float3 rotated = QuaternionOps.RotateVector(q, new float3(1, 0, 0));
-            float expected = (float)Math.Cos(Math.PI * 0.25);
-            Assert.IsTrue(math.abs(rotated.x - expected) < 0.01f);
-            Assert.IsTrue(math.abs(rotated.z - expected) < 0.01f);
+            Assert.IsTrue(math.abs(rotated.x) < 0.01f);
+            Assert.IsTrue(math.abs(rotated.z - (-1.0f)) < 0.01f);
         }
 
         [Test]
@@ -38,7 +37,7 @@ namespace IAFahim.Math.Quaternion.Tests
         [Test]
         public void Dot_SameQuat_ReturnsOne()
         {
-            quaternion q = new quaternion(1, 2, 3, 4);
+            quaternion q = math.normalize(new quaternion(1, 2, 3, 4));
             float d = QuaternionOps.Dot(q, q);
             Assert.IsTrue(math.abs(d - 1.0f) < 1e-6f);
         }
