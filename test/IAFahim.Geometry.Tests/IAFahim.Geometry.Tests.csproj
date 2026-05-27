@@ -18,5 +18,6 @@
     <ProjectReference Include="..\..\src\IAFahim.DS.PerfectHashMap\IAFahim.DS.PerfectHashMap.csproj" />
     <ProjectReference Include="..\..\src\IAFahim.Memory.Allocators\IAFahim.Memory.Allocators.csproj" />
     <ProjectReference Include="..\..\src\IAFahim.DS.FixedCollections\IAFahim.DS.FixedCollections.csproj" />
+    <ProjectReference Include="..\..\src\IAFahim.Geometry.Azimuth\IAFahim.Geometry.Azimuth.csproj" />
   </ItemGroup>
 </Project>

@@ -10,9 +10,12 @@ def main():
     artifacts_results_dir = os.path.join("BenchmarkDotNet.Artifacts", "results")
 
     # Clear previous artifacts to ensure fresh results
+    if os.path.exists("BenchmarkDotNet.Artifacts"):
+        shutil.rmtree("BenchmarkDotNet.Artifacts")
     for root, dirs, files in os.walk(bench_dir):
         if "BenchmarkDotNet.Artifacts" in dirs:
             shutil.rmtree(os.path.join(root, "BenchmarkDotNet.Artifacts"))
+
 
     # Find all benchmark projects
     projects = []
@@ -33,7 +36,7 @@ def main():
     for i, p in enumerate(projects, 1):
         print(f"[{i}/{len(projects)}] Running benchmark for: {p}")
         # Run under Dry job to ensure speed (<1-2 seconds per bench)
-        cmd = ["dotnet", "run", "-c", "Release", "--project", p, "--", "--job", "Dry"]
+        cmd = ["dotnet", "run", "-c", "Release", "--project", p, "--", "--job", "Dry", "--filter", "*"]
         res = subprocess.run(cmd, capture_output=True, text=True)
         if res.returncode != 0:
             print(f"X {p} FAILED")
@@ -47,6 +50,13 @@ def main():
     # Collect and copy all reports to bench/results
     os.makedirs(results_dir, exist_ok=True)
     copied_count = 0
+    root_artifacts = os.path.join("BenchmarkDotNet.Artifacts", "results")
+    if os.path.exists(root_artifacts):
+        for f in os.listdir(root_artifacts):
+            src_path = os.path.join(root_artifacts, f)
+            if os.path.isfile(src_path):
+                shutil.copy2(src_path, os.path.join(results_dir, f))
+                copied_count += 1
     for root, dirs, files in os.walk(bench_dir):
         if "BenchmarkDotNet.Artifacts" in root and root.endswith("results"):
             for f in files:
