@@ -45,7 +45,7 @@ namespace IAFahim.DS.Splay
             {
                 SplayRangeReverse.Splay(root, left);
                 SplayRangeReverse.Splay(root, right);
-                mid = right->Left;
+                mid = right->Left != null ? right->Left->Right : null;
             }
 
             return mid != null ? mid->Sum : 0;

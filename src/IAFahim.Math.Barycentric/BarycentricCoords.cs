@@ -64,17 +64,61 @@ namespace IAFahim.Math.Barycentric
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float3 ProjectOntoTriangle(float3 a, float3 b, float3 c, float3 p)
         {
-            float3 bary = Compute(a, b, c, p);
-            bary.x = math.max(0.0f, bary.x);
-            bary.y = math.max(0.0f, bary.y);
-            bary.z = math.max(0.0f, bary.z);
-            float sum = bary.x + bary.y + bary.z;
-            if (sum > Epsilon)
+            const float Zero = 0.0f;
+            const float One = 1.0f;
+
+            float3 ab = b - a;
+            float3 ac = c - a;
+            float3 ap = p - a;
+
+            float d1 = math.dot(ab, ap);
+            float d2 = math.dot(ac, ap);
+            if (d1 <= Zero && d2 <= Zero)
             {
-                bary /= sum;
+                return a;
             }
 
-            return Interpolate(a, b, c, bary);
+            float3 bp = p - b;
+            float d3 = math.dot(ab, bp);
+            float d4 = math.dot(ac, bp);
+            if (d3 >= Zero && d4 <= d3)
+            {
+                return b;
+            }
+
+            float vc = d1 * d4 - d3 * d2;
+            if (vc <= Zero && d1 >= Zero && d3 <= Zero)
+            {
+                float v = d1 / (d1 - d3);
+                return a + v * ab;
+            }
+
+            float3 cp = p - c;
+            float d5 = math.dot(ab, cp);
+            float d6 = math.dot(ac, cp);
+            if (d6 >= Zero && d5 <= d6)
+            {
+                return c;
+            }
+
+            float vb = d5 * d2 - d1 * d6;
+            if (vb <= Zero && d2 >= Zero && d6 <= Zero)
+            {
+                float w = d2 / (d2 - d6);
+                return a + w * ac;
+            }
+
+            float va = d3 * d6 - d5 * d4;
+            if (va <= Zero && (d4 - d3) >= Zero && (d5 - d6) >= Zero)
+            {
+                float w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+                return b + w * (c - b);
+            }
+
+            float denom = One / (va + vb + vc);
+            float nv = vb * denom;
+            float nw = vc * denom;
+            return a + nv * ab + nw * ac;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

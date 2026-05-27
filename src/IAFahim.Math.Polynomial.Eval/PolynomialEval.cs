@@ -26,21 +26,46 @@ namespace IAFahim.Math.Polynomial.Eval
     {
         public static int Run(int n, long* a, long c, long d, long* res, long mod)
         {
-            long* g = stackalloc long[n]; long* h = stackalloc long[n];
-            long pow = 1; for (int i = 0; i < n; i++) { g[i] = a[i] * pow % mod; pow = pow * c % mod; }
-            pow = 1; for (int i = 0; i < n; i++) { h[i] = FastPow(pow, (long)i, mod); pow = pow * d % mod; }
-            long* prod = stackalloc long[2 * n];
-            int prodLen = PolynomialMulMod(n, g, n, h, prod, mod);
-            for (int i = 0; i < prodLen; i++) res[i] = prod[i];
-            return prodLen;
+            int convLen = 2 * n - 1;
+            long* g = stackalloc long[convLen];
+            long* h = stackalloc long[convLen];
+            for (int i = 0; i < convLen; i++) { g[i] = 0; h[i] = 0; }
+
+            long invD = FastPow(d, mod - 2, mod);
+            long cPow = 1;
+            for (int i = 0; i < n; i++)
+            {
+                long binomial_i_2 = (long)i * (i - 1) / 2;
+                long dPow = FastPow(d, binomial_i_2, mod);
+                g[i] = a[i] * cPow % mod * dPow % mod;
+                cPow = cPow * c % mod;
+
+                long invDPow = FastPow(invD, binomial_i_2, mod);
+                h[n - 1 + i] = invDPow;
+                if (n - 1 - i >= 0)
+                    h[n - 1 - i] = FastPow(invD, (long)i * (i - 1) / 2, mod);
+            }
+
+            long* prod = stackalloc long[convLen];
+            for (int i = 0; i < convLen; i++) prod[i] = 0;
+            NaiveConvolve(g, n, h, convLen, prod, convLen, mod);
+
+            for (int k = 0; k < n; k++)
+            {
+                long binomial_k_2 = (long)k * (k - 1) / 2;
+                long invDPow = FastPow(invD, binomial_k_2, mod);
+                res[k] = prod[n - 1 + k] * invDPow % mod;
+            }
+            return n;
         }
 
-        private static int PolynomialMulMod(int n, long* a, int m, long* b, long* res, long mod)
+        private static void NaiveConvolve(long* a, int an, long* b, int bn, long* res, int resLen, long mod)
         {
-            for (int i = 0; i < n + m - 1; i++) res[i] = 0;
-            for (int i = 0; i < n; i++)
-                for (int j = 0; j < m; j++) res[i + j] = (res[i + j] + a[i] * b[j]) % mod;
-            return n + m - 1;
+            for (int i = 0; i < resLen; i++) res[i] = 0;
+            for (int i = 0; i < an; i++)
+                for (int j = 0; j < bn; j++)
+                    if (i + j < resLen)
+                        res[i + j] = (res[i + j] + a[i] * b[j]) % mod;
         }
 
         private static long FastPow(long a, long e, long mod)

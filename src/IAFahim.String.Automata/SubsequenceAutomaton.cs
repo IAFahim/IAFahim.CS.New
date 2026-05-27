@@ -9,26 +9,25 @@ namespace IAFahim.String.Automata
         public static void Build(byte* text, int len, int* next, int sigma)
         {
             int* last = stackalloc int[sigma];
-            for (int c = 0; c < sigma; c++) last[c] = len;
-            for (int i = len; i >= 0; i--)
+            for (int c = 0; c < sigma; c++) last[c] = 0;
+            for (int i = len; i >= 1; i--)
             {
                 for (int c = 0; c < sigma; c++)
-                    next[i * sigma + c] = last[c];
-                if (i > 0)
-                    last[text[i - 1]] = i - 1;
+                    next[(i - 1) * sigma + c] = last[c];
+                last[text[i - 1]] = i;
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool Contains(int* next, byte* pattern, int patLen, int sigma)
         {
-            int state = 0;
-            for (int i = 0; i < patLen; i++)
+            int state = next[0 * sigma + pattern[0]];
+            for (int i = 1; i < patLen; i++)
             {
+                if (state == 0) return false;
                 state = next[state * sigma + pattern[i]];
-                if (state == -1) return false;
             }
-            return true;
+            return state != 0;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -42,12 +41,12 @@ namespace IAFahim.String.Automata
                 for (int c = 0; c < sigma; c++)
                 {
                     int nxt = next[i * sigma + c];
-                    if (nxt != -1)
-                        dp[nxt + 1] = (dp[nxt + 1] + dp[i]) % MOD;
+                    if (nxt != 0)
+                        dp[nxt] = (dp[nxt] + dp[i]) % MOD;
                 }
             }
             long total = 0;
-            for (int i = 0; i <= len; i++)
+            for (int i = 1; i <= len; i++)
                 total = (total + dp[i]) % MOD;
             return total;
         }

@@ -260,7 +260,22 @@ namespace IAFahim.Graph.Flow
     {
         public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow)
         {
-            for (int i = 0; i < n * 2; i++) flow[i] = 0; // Simplified flow size
+            int maxEdge = 0;
+            for (int i = 0; i < n; i++)
+            {
+                for (int e = head[i]; e != 0; e = next[e])
+                {
+                    if (e > maxEdge)
+                    {
+                        maxEdge = e;
+                    }
+                }
+            }
+            int limit = maxEdge | 1;
+            for (int i = 0; i <= limit; i++)
+            {
+                flow[i] = 0;
+            }
             long totalFlow = 0;
             int* parent = stackalloc int[n];
             int* q = stackalloc int[n];

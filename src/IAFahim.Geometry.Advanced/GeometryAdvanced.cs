@@ -41,9 +41,19 @@ namespace IAFahim.Geometry.Advanced
             long* q1 = stackalloc long[n2], q2 = stackalloc long[n2]; for (int k = 0; k < n2; k++) { q1[k] = x2[(k + 1) % n2] - x2[k]; q2[k] = y2[(k + 1) % n2] - y2[k]; }
             long* resX = stackalloc long[n1 + n2], resY = stackalloc long[n1 + n2];
             int m = 0, i = 0, j = 0;
-            while (i < n1 && j < n2) { if (p1[i] * q2[j] - p2[i] * q1[j] <= 0) { resX[m] = x1[0] + x2[0] + (i > 0 ? p1[i - 1] : 0) + (j > 0 ? q1[j - 1] : 0); resY[m++] = y1[0] + y2[0] + (i > 0 ? p2[i - 1] : 0) + (j > 0 ? q2[j - 1] : 0); i++; } else { resX[m] = x1[0] + x2[0] + (i > 0 ? p1[i - 1] : 0) + (j > 0 ? q1[j - 1] : 0); resY[m++] = y1[0] + y2[0] + (i > 0 ? p2[i - 1] : 0) + (j > 0 ? q2[j - 1] : 0); j++; } }
-            while (i < n1) { resX[m] = x1[0] + x2[0] + (i > 0 ? p1[i - 1] : 0) + (j > 0 ? q1[j - 1] : 0); resY[m++] = y1[0] + y2[0] + (i > 0 ? p2[i - 1] : 0) + (j > 0 ? q2[j - 1] : 0); i++; }
-            while (j < n2) { resX[m] = x1[0] + x2[0] + (i > 0 ? p1[i - 1] : 0) + (j > 0 ? q1[j - 1] : 0); resY[m++] = y1[0] + y2[0] + (i > 0 ? p2[i - 1] : 0) + (j > 0 ? q2[j - 1] : 0); j++; }
+            long curX = x1[0] + x2[0];
+            long curY = y1[0] + y2[0];
+            while (i < n1 && j < n2)
+            {
+                resX[m] = curX; resY[m++] = curY;
+                long cross = p1[i] * q2[j] - p2[i] * q1[j];
+                curX += p1[i];
+                curY += p2[i];
+                if (cross <= 0) { i++; }
+                else { curX += q1[j] - p1[i]; curY += q2[j] - p2[i]; j++; }
+            }
+            while (i < n1) { resX[m] = curX; resY[m++] = curY; curX += p1[i]; curY += p2[i]; i++; }
+            while (j < n2) { resX[m] = curX; resY[m++] = curY; curX += q1[j]; curY += q2[j]; j++; }
             for (int k = 0; k < m; k++) { rx[k] = resX[k]; ry[k] = resY[k]; }
             return m;
         }

@@ -99,11 +99,15 @@ namespace IAFahim.DS.SegmentTree.Tests
         [Test]
         public void DualSegment_Basic()
         {
-            const int n = 5;
+            int n = 8;
             int* seg = stackalloc int[n + 1];
             for (int i = 0; i <= n; i++) seg[i] = 0;
-            DualSegmentApply.RangeAddInt32(seg, 1, 10);
-            Assert.AreEqual(10, seg[1]);
+            DualSegmentApply.AddInt32(seg, n, 1, 10);
+            DualSegmentApply.AddInt32(seg, n, 3, 10);
+            Assert.AreEqual(0, DualSegmentGet.PrefixSumInt32(seg, n, 0));
+            Assert.AreEqual(10, DualSegmentGet.PrefixSumInt32(seg, n, 1));
+            Assert.AreEqual(10, DualSegmentGet.PrefixSumInt32(seg, n, 2));
+            Assert.AreEqual(20, DualSegmentGet.PrefixSumInt32(seg, n, 3));
         }
     }
 }

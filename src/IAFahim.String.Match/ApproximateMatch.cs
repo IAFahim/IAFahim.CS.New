@@ -22,14 +22,14 @@ using System.Runtime.InteropServices;
             for (int pos = 0; pos < n; pos++)
             {
                 UpdateLandauVishkinDp(text, pattern, pos, m, k, curr, prev);
-                if (curr[k] <= k) results[(*count)++] = pos - k;
+                if (curr[m - 1] <= k) results[(*count)++] = Math.Max(0, pos - m + 1);
                 SwapBuffers(ref curr, ref prev);
             }
         }
 
         private static void UpdateLandauVishkinDp(byte* text, byte* pattern, int pos, int m, int k, int* curr, int* prev)
         {
-            for (int d = 0; d <= k; d++)
+            for (int d = 0; d < m; d++)
             {
                 if (pos < d || m < d) curr[d] = Math.Min(pos, d);
                 else

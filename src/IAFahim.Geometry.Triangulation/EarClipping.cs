@@ -35,7 +35,7 @@ namespace IAFahim.Geometry.Triangulation
                 totalVertices += holeCounts[h];
             }
 
-            int maxMergedSize = totalVertices + 2 * holeCount;
+            int maxMergedSize = totalVertices + 2 * holeCount + 1;
             int* mergedIndices = stackalloc int[maxMergedSize];
             int mergedCount = outerCount;
 
@@ -86,10 +86,8 @@ namespace IAFahim.Geometry.Triangulation
             if (bestOuter != -1 && bestHole != -1)
             {
                 int outerIdx = mergedIndices[bestOuter];
-                int holeIdx = holeStart + bestHole;
 
                 int insertPos = bestOuter + 1;
-                int shiftCount = *mergedCount - insertPos;
 
                 for (int k = *mergedCount - 1; k >= insertPos; k--)
                 {
@@ -97,13 +95,13 @@ namespace IAFahim.Geometry.Triangulation
                 }
 
                 mergedIndices[insertPos] = outerIdx;
-                mergedIndices[insertPos + 1] = holeIdx;
-
                 for (int k = 0; k < holeSize; k++)
                 {
                     int idx = holeStart + (bestHole + k) % holeSize;
-                    mergedIndices[insertPos + 2 + k] = idx;
+                    mergedIndices[insertPos + 1 + k] = idx;
                 }
+
+                mergedIndices[insertPos + 1 + holeSize] = outerIdx;
 
                 *mergedCount += holeSize + 2;
             }

@@ -275,9 +275,124 @@ namespace IAFahim.Graph
     {
         public static int Run(int n, int src, int dst, int k, int* head, int* to, int* next, long* dist, long* pathCosts, long* work)
         {
-            int count = 0;
+            int maxK = 64;
+            int* pathNodes = stackalloc int[maxK * n];
+            int* pathLens = stackalloc int[maxK];
+            long* pathCostsArr = stackalloc long[maxK];
+            int found = 0;
+
             long* distTo = stackalloc long[n];
-            for (int i = 0; i < n; i++) distTo[i] = long.MaxValue;
+            int* prev = stackalloc int[n];
+            int* spurPath = stackalloc int[n];
+            int* combinedPath = stackalloc int[n];
+
+            long shortestCost = Dijkstra(n, src, dst, head, to, next, dist, distTo, prev, (int*)0, (int*)0, 0);
+            if (shortestCost == long.MaxValue) return 0;
+
+            pathLens[0] = ReconstructPath(prev, src, dst, pathNodes, n);
+            pathCostsArr[0] = shortestCost;
+            pathCosts[0] = shortestCost;
+            found = 1;
+
+            bool* blockedU = stackalloc bool[n];
+            bool* blockedV = stackalloc bool[n];
+            int* blockedUList = stackalloc int[n];
+            int* blockedVList = stackalloc int[n];
+
+            for (int ki = 1; ki < k && found < maxK; ki++)
+            {
+                int bestSpurCostIdx = -1;
+                long bestSpurCost = long.MaxValue;
+                int bestSpurLen = 0;
+
+                int prevLen = pathLens[0];
+
+                for (int spurIdx = 0; spurIdx < prevLen && spurIdx < n; spurIdx++)
+                {
+                    int spurNode = pathNodes[spurIdx];
+                    long rootCost = 0;
+                    for (int r = 0; r < spurIdx; r++)
+                        rootCost += distTo[pathNodes[r + 1]] - distTo[pathNodes[r]];
+                    if (spurIdx > 0 && distTo[pathNodes[spurIdx]] != long.MaxValue)
+                        rootCost = distTo[pathNodes[spurIdx]] - distTo[src];
+
+                    int blockCount = 0;
+                    for (int b = 0; b < n; b++) { blockedU[b] = false; blockedV[b] = false; }
+
+                    for (int p = 0; p < found; p++)
+                    {
+                        if (pathLens[p] > spurIdx)
+                        {
+                            bool match = true;
+                            for (int r = 0; r < spurIdx && match; r++)
+                            {
+                                if (pathNodes[p * n + r] != pathNodes[r])
+                                    match = false;
+                            }
+                            if (match && pathLens[p] > spurIdx)
+                            {
+                                int u = pathNodes[p * n + spurIdx];
+                                int v = pathNodes[p * n + spurIdx + 1];
+                                blockedU[u] = true;
+                                blockedV[v] = true;
+                                blockedUList[blockCount] = u;
+                                blockedVList[blockCount] = v;
+                                blockCount++;
+                            }
+                        }
+                    }
+
+                    long spurCost = Dijkstra(n, spurNode, dst, head, to, next, dist, distTo, prev, blockedUList, blockedVList, blockCount);
+                    if (spurCost == long.MaxValue) continue;
+
+                    long totalCost = rootCost + spurCost;
+                    if (totalCost < bestSpurCost)
+                    {
+                        bestSpurCost = totalCost;
+                        bestSpurCostIdx = spurIdx;
+                        int spurLen = ReconstructPath(prev, spurNode, dst, spurPath, n);
+                        bestSpurLen = spurIdx + spurLen;
+                        for (int r = 0; r < spurIdx; r++)
+                            combinedPath[r] = pathNodes[r];
+                        for (int r = 0; r < spurLen; r++)
+                            combinedPath[spurIdx + r] = spurPath[r];
+                    }
+                }
+
+                if (bestSpurCostIdx == -1) break;
+
+                bool isDuplicate = false;
+                for (int p = 0; p < found; p++)
+                {
+                    if (pathCostsArr[p] == bestSpurCost && pathLens[p] == bestSpurLen)
+                    {
+                        bool same = true;
+                        for (int r = 0; r < bestSpurLen && same; r++)
+                        {
+                            if (pathNodes[p * n + r] != combinedPath[r])
+                                same = false;
+                        }
+                        if (same) { isDuplicate = true; break; }
+                    }
+                }
+
+                if (!isDuplicate)
+                {
+                    for (int r = 0; r < bestSpurLen; r++)
+                        pathNodes[found * n + r] = combinedPath[r];
+                    pathLens[found] = bestSpurLen;
+                    pathCostsArr[found] = bestSpurCost;
+                    pathCosts[found] = bestSpurCost;
+                    found++;
+                }
+            }
+
+            return found;
+        }
+
+        private static long Dijkstra(int n, int src, int dst, int* head, int* to, int* next, long* dist, long* distTo, int* prev, int* blockedU, int* blockedV, int blockCount)
+        {
+            for (int i = 0; i < n; i++) { distTo[i] = long.MaxValue; prev[i] = -1; }
             distTo[src] = 0;
             var pq = new RemMinHeap(n);
             try
@@ -287,22 +402,48 @@ namespace IAFahim.Graph
                 {
                     int u = pq.Pop(out long currentD);
                     if (currentD > distTo[u]) continue;
+                    if (u == dst) break;
                     for (int e = head[u]; e != 0; e = next[e])
                     {
                         int v = to[e];
+                        bool isBlocked = false;
+                        for (int b = 0; b < blockCount; b++)
+                        {
+                            if (blockedU[b] == u && blockedV[b] == v)
+                            {
+                                isBlocked = true;
+                                break;
+                            }
+                        }
+                        if (isBlocked) continue;
                         long nd = currentD + dist[e];
                         if (nd < distTo[v])
                         {
                             distTo[v] = nd;
+                            prev[v] = u;
                             pq.PushOrUpdate(v, nd);
                         }
                     }
                 }
             }
             finally { pq.Dispose(); }
-            if (distTo[dst] == long.MaxValue) return 0;
-            pathCosts[count++] = distTo[dst];
-            return count;
+            return distTo[dst];
+        }
+
+        private static int ReconstructPath(int* prev, int src, int dst, int* path, int n)
+        {
+            int* temp = stackalloc int[n];
+            int len = 0;
+            int cur = dst;
+            while (cur != -1 && len < n)
+            {
+                temp[len++] = cur;
+                if (cur == src) break;
+                cur = prev[cur];
+            }
+            for (int i = 0; i < len; i++)
+                path[i] = temp[len - 1 - i];
+            return len;
         }
     }
 

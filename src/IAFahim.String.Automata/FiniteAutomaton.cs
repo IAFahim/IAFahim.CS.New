@@ -28,64 +28,79 @@ namespace IAFahim.String.Automata
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void BuildDfa(int** nfaTrans, bool* nfaAccept, int nfaStates, int sigma, int* stateMap, int* queue, Dfa* dfa)
+        public static void BuildDfa(int** nfaTrans, bool* nfaAccept, int nfaStates, int sigma, int* stateMap, Dfa* dfa)
         {
+            int maxDfaStates = 1 << nfaStates;
+            if (nfaStates >= 31) maxDfaStates = int.MaxValue;
+            long queueBytes = (long)maxDfaStates * sizeof(int);
+            long tempBytes = (long)maxDfaStates * sizeof(int);
+            int* queue = (int*)Marshal.AllocHGlobal((nint)queueBytes);
+            int* tempNext = (int*)Marshal.AllocHGlobal((nint)tempBytes);
+            
+            for (int i = 0; i < maxDfaStates; i++) { stateMap[i] = -1; }
             int stateCount = 1;
-            for (int i = 0; i < (1 << nfaStates); i++) stateMap[i] = -1;
-
             stateMap[1] = 0;
             int head = 0, tail = 0;
             queue[tail++] = 1;
-            while (head < tail)
+
+            try
             {
-                int subset = queue[head++];
-                for (int c = 0; c < sigma; c++)
+                while (head < tail)
                 {
-                    int next = 0;
+                    int subset = queue[head++];
+                    for (int c = 0; c < sigma; c++)
+                    {
+                        int next = 0;
+                        for (int s = 0; s < nfaStates; s++)
+                        {
+                            if ((subset & (1 << s)) != 0 && nfaTrans[s][c] >= 0)
+                                next |= (1 << nfaTrans[s][c]);
+                        }
+                        if (stateMap[next] == -1)
+                        {
+                            stateMap[next] = stateCount++;
+                            queue[tail++] = next;
+                        }
+                    }
+                }
+
+                dfa->StateCount = stateCount;
+                dfa->AlphabetSize = sigma;
+
+                for (int i = 0; i < stateCount; i++)
+                {
+                    for (int c = 0; c < sigma; c++) dfa->Transitions[i][c] = 0;
+                    dfa->IsAccept[i] = false;
+                }
+
+                for (int mask = 0; mask < maxDfaStates; mask++)
+                {
+                    if (stateMap[mask] == -1) continue;
+                    int dfaState = stateMap[mask];
+                    for (int c = 0; c < sigma; c++)
+                    {
+                        int next = 0;
+                        for (int s = 0; s < nfaStates; s++)
+                        {
+                            if ((mask & (1 << s)) != 0 && nfaTrans[s][c] >= 0)
+                                next |= (1 << nfaTrans[s][c]);
+                        }
+                        dfa->Transitions[dfaState][c] = stateMap[next];
+                    }
                     for (int s = 0; s < nfaStates; s++)
                     {
-                        if ((subset & (1 << s)) != 0 && nfaTrans[s][c] >= 0)
-                            next |= (1 << nfaTrans[s][c]);
-                    }
-                    if (stateMap[next] == -1)
-                    {
-                        stateMap[next] = stateCount++;
-                        queue[tail++] = next;
+                        if ((mask & (1 << s)) != 0 && nfaAccept[s])
+                        {
+                            dfa->IsAccept[dfaState] = true;
+                            break;
+                        }
                     }
                 }
             }
-
-            dfa->StateCount = stateCount;
-            dfa->AlphabetSize = sigma;
-
-            for (int i = 0; i < stateCount; i++)
+            finally
             {
-                for (int c = 0; c < sigma; c++) dfa->Transitions[i][c] = 0;
-                dfa->IsAccept[i] = false;
-            }
-
-            for (int mask = 0; mask < (1 << nfaStates); mask++)
-            {
-                if (stateMap[mask] == -1) continue;
-                int dfaState = stateMap[mask];
-                for (int c = 0; c < sigma; c++)
-                {
-                    int next = 0;
-                    for (int s = 0; s < nfaStates; s++)
-                    {
-                        if ((mask & (1 << s)) != 0 && nfaTrans[s][c] >= 0)
-                            next |= (1 << nfaTrans[s][c]);
-                    }
-                    dfa->Transitions[dfaState][c] = stateMap[next];
-                }
-                for (int s = 0; s < nfaStates; s++)
-                {
-                    if ((mask & (1 << s)) != 0 && nfaAccept[s])
-                    {
-                        dfa->IsAccept[dfaState] = true;
-                        break;
-                    }
-                }
+                Marshal.FreeHGlobal((nint)queue);
+                Marshal.FreeHGlobal((nint)tempNext);
             }
         }
 

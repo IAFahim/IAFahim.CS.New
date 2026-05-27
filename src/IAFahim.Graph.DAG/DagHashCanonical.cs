@@ -11,12 +11,34 @@ namespace IAFahim.Graph.DAG
             for (int i = n - 1; i >= 0; i--)
             {
                 int u = topoOrder[i];
-                ulong h = 14695981039346656037UL; // FNV offset basis
+                int childCount = 0;
+                for (int e = head[u]; e != 0; e = next[e]) childCount++;
+                
+                ulong* childHashes = stackalloc ulong[childCount];
+                int idx = 0;
                 for (int e = head[u]; e != 0; e = next[e])
                 {
                     int v = to[e];
-                    h ^= hashes[v];
-                    h *= 1099511628211UL; // FNV prime
+                    childHashes[idx++] = hashes[v];
+                }
+                
+                for (int c = 1; c < childCount; c++)
+                {
+                    ulong key = childHashes[c];
+                    int d = c - 1;
+                    while (d >= 0 && childHashes[d] > key)
+                    {
+                        childHashes[d + 1] = childHashes[d];
+                        d--;
+                    }
+                    childHashes[d + 1] = key;
+                }
+                
+                ulong h = 14695981039346656037UL;
+                for (int c = 0; c < childCount; c++)
+                {
+                    h ^= childHashes[c];
+                    h *= 1099511628211UL;
                 }
                 hashes[u] = h;
             }

@@ -21,6 +21,7 @@ namespace IAFahim.DS.RollbackSeg.Bench
         private long* _lazy;
         private int* _histNode;
         private long* _histVal;
+        private byte* _histType;
         private int _top;
         private int _checkpoint;
 
@@ -31,6 +32,7 @@ namespace IAFahim.DS.RollbackSeg.Bench
             _lazy = (long*)Marshal.AllocHGlobal((N * 4 + 100) * sizeof(long));
             _histNode = (int*)Marshal.AllocHGlobal(100000 * sizeof(int));
             _histVal = (long*)Marshal.AllocHGlobal(100000 * sizeof(long));
+            _histType = (byte*)Marshal.AllocHGlobal(100000 * sizeof(byte));
             _top = 0;
         }
 
@@ -53,7 +55,7 @@ namespace IAFahim.DS.RollbackSeg.Bench
                 int l = rng.Next(N / 4);
                 int r = l + rng.Next(N / 4);
                 int top = _top;
-                RollbackSegUpdate.RangeAddInt64(_tree, _lazy, _histNode, _histVal, &top, 1, 0, N - 1, l, r, 1);
+                RollbackSegUpdate.RangeAddInt64(_tree, _lazy, _histNode, _histVal, _histType, &top, 1, 0, N - 1, l, r, 1);
                 _top = top;
                 _checkpoint = RollbackSegRollback.GetCheckpoint(&top);
             }
@@ -81,6 +83,7 @@ namespace IAFahim.DS.RollbackSeg.Bench
             Marshal.FreeHGlobal((nint)_lazy);
             Marshal.FreeHGlobal((nint)_histNode);
             Marshal.FreeHGlobal((nint)_histVal);
+            Marshal.FreeHGlobal((nint)_histType);
         }
     }
 }

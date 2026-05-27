@@ -10,6 +10,8 @@ namespace IAFahim.Math.Spline
         private const float One = 1.0f;
         private const float Two = 2.0f;
         private const float Three = 3.0f;
+        private const float Four = 4.0f;
+        private const float Six = 6.0f;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float3 Evaluate(float3 p0, float3 m0, float3 p1, float3 m1, float t)
@@ -30,10 +32,10 @@ namespace IAFahim.Math.Spline
         {
             float tt = t * t;
 
-            float dh00 = Three * tt - Two * Three * t + Two * Two;
-            float dh10 = (Three * tt - Two * Two * t + One);
-            float dh01 = (-Three * tt + Two * Three * t);
-            float dh11 = (Three * tt - Two * t);
+            float dh00 = Six * tt - Six * t;
+            float dh10 = Three * tt - Four * t + One;
+            float dh01 = -Six * tt + Six * t;
+            float dh11 = Three * tt - Two * t;
 
             return dh00 * p0 + dh10 * m0 + dh01 * p1 + dh11 * m1;
         }

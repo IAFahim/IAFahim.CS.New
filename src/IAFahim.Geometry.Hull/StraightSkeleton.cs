@@ -27,18 +27,23 @@ namespace IAFahim.Geometry.Hull
             double dxij = nodes[j].Dx - nodes[i].Dx;
             double dyij = nodes[j].Dy - nodes[i].Dy;
             
-            if (Math.Abs(dxij) > Math.Abs(dyij))
-            {
-                if (Math.Abs(dxij) < 1e-12) return double.MaxValue;
-                double t = -xij / dxij;
-                return t > 1e-9 ? t : double.MaxValue;
-            }
-            else
+            if (Math.Abs(dxij) < 1e-12 && Math.Abs(dyij) < 1e-12) return double.MaxValue;
+            if (Math.Abs(dxij) < 1e-12)
             {
                 if (Math.Abs(dyij) < 1e-12) return double.MaxValue;
                 double t = -yij / dyij;
+                if (Math.Abs(xij + dxij * t) > 1e-9) return double.MaxValue;
                 return t > 1e-9 ? t : double.MaxValue;
             }
+            double tX = -xij / dxij;
+            if (Math.Abs(dyij) < 1e-12)
+            {
+                if (Math.Abs(yij + dyij * tX) > 1e-9) return double.MaxValue;
+                return tX > 1e-9 ? tX : double.MaxValue;
+            }
+            double tY = -yij / dyij;
+            if (Math.Abs(tX - tY) > 1e-9) return double.MaxValue;
+            return tX > 1e-9 ? tX : double.MaxValue;
         }
 
         public static int Build(double* xs, double* ys, int n, double* outX, double* outY, Node* scratchNodes)

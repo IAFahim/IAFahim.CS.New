@@ -33,15 +33,16 @@ namespace IAFahim.Search.MeetInMiddle
                 }
                 rightSums[mask] = sum;
             }
+
+            SortLongs(rightSums, rightCount);
+
             int count = 0;
             for (int i = 0; i < leftCount; i++)
             {
                 long rem = target - leftSums[i];
-                for (int j = 0; j < rightCount; j++)
-                {
-                    if (leftSums[i] + rightSums[j] == target)
-                        count++;
-                }
+                int lo = LowerBoundLong(rightSums, rightCount, rem);
+                int hi = UpperBoundLong(rightSums, rightCount, rem);
+                count += hi - lo;
             }
             return count;
         }
@@ -74,16 +75,59 @@ namespace IAFahim.Search.MeetInMiddle
                 }
                 rightSums[mask] = sum;
             }
+
+            SortLongs(rightSums, rightCount);
+
             for (int i = 0; i < leftCount; i++)
             {
                 long rem = target - leftSums[i];
-                for (int j = 0; j < rightCount; j++)
-                {
-                    if (leftSums[i] + rightSums[j] == target)
-                        return true;
-                }
+                int idx = LowerBoundLong(rightSums, rightCount, rem);
+                if (idx < rightCount && rightSums[idx] == rem)
+                    return true;
             }
             return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void SortLongs(long* arr, int len)
+        {
+            for (int i = 1; i < len; i++)
+            {
+                long key = arr[i];
+                int j = i - 1;
+                while (j >= 0 && arr[j] > key)
+                {
+                    arr[j + 1] = arr[j];
+                    j--;
+                }
+                arr[j + 1] = key;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int LowerBoundLong(long* arr, int len, long val)
+        {
+            int lo = 0, hi = len;
+            while (lo < hi)
+            {
+                int mid = (lo + hi) >> 1;
+                if (arr[mid] < val) lo = mid + 1;
+                else hi = mid;
+            }
+            return lo;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int UpperBoundLong(long* arr, int len, long val)
+        {
+            int lo = 0, hi = len;
+            while (lo < hi)
+            {
+                int mid = (lo + hi) >> 1;
+                if (arr[mid] <= val) lo = mid + 1;
+                else hi = mid;
+            }
+            return lo;
         }
     }
 }

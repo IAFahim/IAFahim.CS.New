@@ -118,21 +118,19 @@ namespace IAFahim.Math.SphericalHarmonics
 
         public static void ConvolveWithCosineKernelL2(float* irradianceCoeffs, float* radianceCoeffs)
         {
-            float c0 = 0.28209479f;
-            float c1 = 0.48860251f;
-            float c2 = Pi * 0.25f;
-            float c3 = Pi / 3.0f;
-            float c4 = Pi * 0.25f;
+            float a0 = Pi;
+            float a1 = (2.0f * Pi) / 3.0f;
+            float a2 = Pi * 0.25f;
 
-            irradianceCoeffs[0] = c0 * radianceCoeffs[0] * c2;
-            irradianceCoeffs[1] = c1 * radianceCoeffs[1] * c3;
-            irradianceCoeffs[2] = c1 * radianceCoeffs[2] * c3;
-            irradianceCoeffs[3] = c1 * radianceCoeffs[3] * c3;
-            irradianceCoeffs[4] = 0.25f * radianceCoeffs[4] * c4;
-            irradianceCoeffs[5] = 0.25f * radianceCoeffs[5] * c4;
-            irradianceCoeffs[6] = 0.25f * radianceCoeffs[6] * c4;
-            irradianceCoeffs[7] = 0.25f * radianceCoeffs[7] * c4;
-            irradianceCoeffs[8] = 0.25f * radianceCoeffs[8] * c4;
+            irradianceCoeffs[0] = radianceCoeffs[0] * a0;
+            irradianceCoeffs[1] = radianceCoeffs[1] * a1;
+            irradianceCoeffs[2] = radianceCoeffs[2] * a1;
+            irradianceCoeffs[3] = radianceCoeffs[3] * a1;
+            irradianceCoeffs[4] = radianceCoeffs[4] * a2;
+            irradianceCoeffs[5] = radianceCoeffs[5] * a2;
+            irradianceCoeffs[6] = radianceCoeffs[6] * a2;
+            irradianceCoeffs[7] = radianceCoeffs[7] * a2;
+            irradianceCoeffs[8] = radianceCoeffs[8] * a2;
         }
     }
 }

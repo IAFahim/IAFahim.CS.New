@@ -50,7 +50,7 @@ namespace IAFahim.Math.Combinatorics
             {
                 long p = primes[i];
                 long start = ((low + p - 1) / p) * p;
-                if (start == p) start = p * 2;
+                if (start < p * 2) start = p * 2;
                 for (long j = start; j <= high; j += p) isPrime[j - low] = false;
             }
             for (long i = low; i <= high; i++) if (isPrime[i - low]) result[count++] = (int)i;

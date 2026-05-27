@@ -26,22 +26,25 @@ namespace IAFahim.DS.RollbackSeg
 
     public static unsafe class RollbackSegUpdate
     {
-        public static void RangeAddInt64(long* tree, long* lazy, int* histNode, long* histVal, int* top, int node, int l, int r, int ql, int qr, long val)
+        public static void RangeAddInt64(long* tree, long* lazy, int* histNode, long* histVal, byte* histType, int* top, int node, int l, int r, int ql, int qr, long val)
         {
             if (qr < l || ql > r) return;
             if (ql <= l && r <= qr)
             {
                 histNode[*top] = node;
                 histVal[*top] = tree[node];
+                histType[*top] = 0;
                 (*top)++;
                 tree[node] += val * (r - l + 1);
                 if (l != r)
                 {
                     histNode[*top] = node * 2;
                     histVal[*top] = lazy[node * 2];
+                    histType[*top] = 1;
                     (*top)++;
                     histNode[*top] = node * 2 + 1;
                     histVal[*top] = lazy[node * 2 + 1];
+                    histType[*top] = 1;
                     (*top)++;
                     lazy[node * 2] += val;
                     lazy[node * 2 + 1] += val;
@@ -49,29 +52,32 @@ namespace IAFahim.DS.RollbackSeg
                 return;
             }
             int mid = (l + r) >> 1;
-            RangeAddInt64(tree, lazy, histNode, histVal, top, node * 2, l, mid, ql, qr, val);
-            RangeAddInt64(tree, lazy, histNode, histVal, top, node * 2 + 1, mid + 1, r, ql, qr, val);
+            RangeAddInt64(tree, lazy, histNode, histVal, histType, top, node * 2, l, mid, ql, qr, val);
+            RangeAddInt64(tree, lazy, histNode, histVal, histType, top, node * 2 + 1, mid + 1, r, ql, qr, val);
             histNode[*top] = node;
             histVal[*top] = tree[node];
+            histType[*top] = 0;
             (*top)++;
             tree[node] = tree[node * 2] + tree[node * 2 + 1];
         }
 
-        public static void PointSetInt64(long* tree, int* histNode, long* histVal, int* top, int node, int l, int r, int idx, long val)
+        public static void PointSetInt64(long* tree, int* histNode, long* histVal, byte* histType, int* top, int node, int l, int r, int idx, long val)
         {
             if (l == r)
             {
                 histNode[*top] = node;
                 histVal[*top] = tree[node];
+                histType[*top] = 0;
                 (*top)++;
                 tree[node] = val;
                 return;
             }
             int mid = (l + r) >> 1;
-            if (idx <= mid) PointSetInt64(tree, histNode, histVal, top, node * 2, l, mid, idx, val);
-            else PointSetInt64(tree, histNode, histVal, top, node * 2 + 1, mid + 1, r, idx, val);
+            if (idx <= mid) PointSetInt64(tree, histNode, histVal, histType, top, node * 2, l, mid, idx, val);
+            else PointSetInt64(tree, histNode, histVal, histType, top, node * 2 + 1, mid + 1, r, idx, val);
             histNode[*top] = node;
             histVal[*top] = tree[node];
+            histType[*top] = 0;
             (*top)++;
             tree[node] = tree[node * 2] + tree[node * 2 + 1];
         }
@@ -100,22 +106,26 @@ namespace IAFahim.DS.RollbackSeg
 
     public static unsafe class RollbackSegRollback
     {
-        public static void Run(long* tree, long* lazy, int* histNode, long* histVal, int* top, int checkpoint)
+        public static void Run(long* tree, long* lazy, int* histNode, long* histVal, byte* histType, int* top, int checkpoint)
         {
             while (*top > checkpoint)
             {
                 long val = histVal[--(*top)];
                 int node = histNode[--(*top)];
-                tree[node] = val;
+                byte type = histType[--(*top)];
+                if (type == 0) tree[node] = val;
+                else lazy[node] = val;
             }
         }
 
-        public static void UndoLast(long* tree, int* histNode, long* histVal, int* top)
+        public static void UndoLast(long* tree, long* lazy, int* histNode, long* histVal, byte* histType, int* top)
         {
             if (*top < 1) return;
             long val = histVal[--(*top)];
-            int node = histNode[--(*top)];
-            tree[node] = val;
+                int node = histNode[--(*top)];
+                byte type = histType[--(*top)];
+                if (type == 0) tree[node] = val;
+                else lazy[node] = val;
         }
 
         public static int GetCheckpoint(int* top) => *top;

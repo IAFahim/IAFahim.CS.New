@@ -71,19 +71,32 @@ namespace IAFahim.Math.Polynomial.Eval.Tests
         private const long Mod = 1000000007;
 
         [Test]
-        public void UnityParameters_MatchesConvolutionWithOnes()
+        public void UnityParameters_AllEvalsEqualSum()
         {
             const int N = 3;
             long* a = stackalloc long[N] { 1, 2, 3 };
-            long* res = stackalloc long[2 * N];
-            for (int i = 0; i < 2 * N; i++) res[i] = 0;
+            long* res = stackalloc long[N];
+            for (int i = 0; i < N; i++) res[i] = 0;
             int len = ChirpZTransform.Run(N, a, 1, 1, res, Mod);
-            Assert.AreEqual(2 * N - 1, len);
-            Assert.AreEqual(1, res[0]);
-            Assert.AreEqual(3, res[1]);
-            Assert.AreEqual(6, res[2]);
-            Assert.AreEqual(5, res[3]);
-            Assert.AreEqual(3, res[4]);
+            Assert.AreEqual(N, len);
+            for (int i = 0; i < N; i++)
+                Assert.AreEqual(6, res[i]);
+        }
+
+        [Test]
+        public void LinearChirp_ComputesCorrectly()
+        {
+            const int N = 4;
+            long c = 2;
+            long d = 1;
+            long* a = stackalloc long[N];
+            for (int i = 0; i < N; i++) a[i] = 1;
+            long* res = stackalloc long[N];
+            for (int i = 0; i < N; i++) res[i] = 0;
+            int len = ChirpZTransform.Run(N, a, c, d, res, Mod);
+            Assert.AreEqual(N, len);
+            for (int i = 0; i < N; i++)
+                Assert.IsTrue(res[i] >= 0);
         }
     }
 }

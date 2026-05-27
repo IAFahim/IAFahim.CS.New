@@ -19,10 +19,10 @@ namespace IAFahim.Physics.Xpbd
 
             float volume = math.dot(math.cross(d1, d2), d3) * OneSixth;
 
-            float3 grad0 = math.cross(d2, d3) * OneSixth;
-            float3 grad1 = math.cross(d3, d1) * OneSixth;
-            float3 grad2 = math.cross(d1, d2) * OneSixth;
-            float3 grad3 = math.cross(*p2 - *p1, *p0 - *p1) * OneSixth;
+            float3 grad1 = math.cross(d2, d3) * OneSixth;
+            float3 grad2 = math.cross(d3, d1) * OneSixth;
+            float3 grad3 = math.cross(d1, d2) * OneSixth;
+            float3 grad0 = -(grad1 + grad2 + grad3);
 
             float c = volume - restVolume;
 

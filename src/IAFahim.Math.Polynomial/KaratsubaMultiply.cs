@@ -30,6 +30,8 @@ namespace IAFahim.Math.Polynomial
 
             PrepareSums(n0, n1, m0, m1, sALen, sBLen, a0, a1, b0, b1, sA, sB);
             
+            int midLen = sALen + sBLen - 1;
+            for (int i = 0; i < midLen; i++) midRes[i] = 0;
             Multiply(sA, sALen, sB, sBLen, midRes, innerTmp);
             
             long* loRes = tmp + sALen + sBLen + (sALen + sBLen - 1); // Reuse tmp

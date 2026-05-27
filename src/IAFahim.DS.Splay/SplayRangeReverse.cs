@@ -129,9 +129,6 @@ namespace IAFahim.DS.Splay
             SplayRevNode* right = r < n - 1 ? Kth(*root, r + 1) : null;
 
             SplayRevNode* mid;
-            if (left != null) { Splay(root, left); }
-            if (right != null) { Splay(root, right); }
-
             if (left == null && right == null) { mid = *root; }
             else if (left == null) { Splay(root, right); mid = (*root)->Left; }
             else if (right == null) { Splay(root, left); mid = (*root)->Right; }
@@ -139,7 +136,7 @@ namespace IAFahim.DS.Splay
             {
                 Splay(root, left);
                 Splay(root, right);
-                mid = right->Left;
+                mid = right->Left != null ? right->Left->Right : null;
             }
 
             if (mid != null) mid->Rev = !mid->Rev;

@@ -1,8 +1,8 @@
 namespace IAFahim.String.Match
 {
-using System.Runtime.InteropServices;
     using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     public static unsafe class AhoCorasick
     {
@@ -11,6 +11,7 @@ using System.Runtime.InteropServices;
             public int Next0;
             public int Link;
             public int Out;
+            public int ExitLink;
         }
 
         public static void Build(State* st, ref int size, int sigma)
@@ -19,6 +20,7 @@ using System.Runtime.InteropServices;
             st[0].Next0 = -1;
             st[0].Link = 0;
             st[0].Out = -1;
+            st[0].ExitLink = -1;
         }
 
         public static void AddPattern(State* st, ref int size, int sigma, int* pattern, int len, int patternId)
@@ -45,36 +47,26 @@ using System.Runtime.InteropServices;
 
         private static void InitializeState(State* st, int idx)
         {
-            st[idx].Next0 = -1; st[idx].Link = 0; st[idx].Out = -1;
+            st[idx].Next0 = -1; st[idx].Link = 0; st[idx].Out = -1; st[idx].ExitLink = -1;
         }
 
         public static void BuildLinks(State* st, int size, int sigma, int* queue)
         {
             int qh = 0, qt = 0;
-            InitializeLinkQueue(st, sigma, queue, ref qt);
+            queue[qt++] = 0;
             while (qh < qt)
             {
                 int v = queue[qh++];
-                UpdateChildLinks(st, v, sigma, queue, ref qt);
-            }
-        }
-
-        private static void InitializeLinkQueue(State* st, int sigma, int* queue, ref int qt)
-        {
-            queue[qt++] = 0;
-        }
-
-        private static void UpdateChildLinks(State* st, int v, int sigma, int* queue, ref int qt)
-        {
-            for (int c = 0; c < sigma; c++)
-            {
-                int u = GetNext(st, v, c);
-                if (u == -1) continue;
-                int link = st[v].Link;
-                while (link != 0 && GetNext(st, link, c) == -1) link = st[link].Link;
-                st[u].Link = (v == 0 || GetNext(st, v, c) == u) ? 0 : GetNext(st, link, c);
-                if (st[st[u].Link].Out != -1) st[u].Out = st[st[u].Link].Out;
-                queue[qt++] = u;
+                for (int c = 0; c < sigma; c++)
+                {
+                    int u = GetNext(st, v, c);
+                    if (u == -1) continue;
+                    int link = st[v].Link;
+                    while (link != 0 && GetNext(st, link, c) == -1) link = st[link].Link;
+                    st[u].Link = (v == 0) ? 0 : (GetNext(st, link, c) != -1 ? GetNext(st, link, c) : 0);
+                    st[u].ExitLink = st[st[u].Link].Out != -1 ? st[u].Link : st[st[u].Link].ExitLink;
+                    queue[qt++] = u;
+                }
             }
         }
 
@@ -85,6 +77,12 @@ using System.Runtime.InteropServices;
             {
                 v = Transition(st, v, text[i]);
                 if (st[v].Out != -1) matches[matchCount++] = st[v].Out;
+                int exit = st[v].ExitLink;
+                while (exit != -1)
+                {
+                    if (st[exit].Out != -1) matches[matchCount++] = st[exit].Out;
+                    exit = st[exit].ExitLink;
+                }
             }
             return matchCount;
         }

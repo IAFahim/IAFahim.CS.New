@@ -54,6 +54,7 @@ namespace IAFahim.DS.SegmentTree
                     hasLazy[node * 2] = true;
                     hasLazy[node * 2 + 1] = true;
                 }
+                hasLazy[node] = false;
                 return;
             }
             PushSetInt32(tree, lazy, hasLazy, node, l, r);

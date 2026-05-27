@@ -5,37 +5,89 @@ namespace IAFahim.DS.SegmentTree
 
     public static unsafe class DualSegmentApply
     {
-        public static void RangeAddInt64(long* bit, int idx, long val)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void RangeAddInt64(long* bit, int n, int l, int r, long val)
         {
-            bit[idx] += val;
+            AddInt64(bit, n, l, val);
+            AddInt64(bit, n, r + 1, -val);
         }
 
-        public static void RangeAddInt32(int* bit, int idx, int val)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void AddInt64(long* bit, int n, int idx, long val)
         {
-            bit[idx] += val;
+            if (idx < 0 || idx > n) return;
+            idx++;
+            while (idx <= n)
+            {
+                bit[idx] += val;
+                idx += idx & -idx;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void RangeAddInt32(int* bit, int n, int l, int r, int val)
+        {
+            AddInt32(bit, n, l, val);
+            AddInt32(bit, n, r + 1, -val);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void AddInt32(int* bit, int n, int idx, int val)
+        {
+            if (idx < 0 || idx > n) return;
+            idx++;
+            while (idx <= n)
+            {
+                bit[idx] += val;
+                idx += idx & -idx;
+            }
         }
     }
 
     public static unsafe class DualSegmentGet
     {
-        public static long RangeSumInt64(long* bit, int l, int r)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static long RangeSumInt64(long* bit, int n, int l, int r)
         {
-            long res = 0;
-            for (int i = r; i >= l; i--)
-            {
-                res += bit[i];
-            }
-            return res;
+            if (l > r) return 0;
+            long sumR = PrefixSumInt64(bit, n, r);
+            long sumL = (l > 0) ? PrefixSumInt64(bit, n, l - 1) : 0;
+            return sumR - sumL;
         }
 
-        public static int RangeSumInt32(int* bit, int l, int r)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static long PrefixSumInt64(long* bit, int n, int idx)
         {
-            int res = 0;
-            for (int i = r; i >= l; i--)
+            long sum = 0;
+            idx++;
+            while (idx > 0)
             {
-                res += bit[i];
+                sum += bit[idx];
+                idx -= idx & -idx;
             }
-            return res;
+            return sum;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int RangeSumInt32(int* bit, int n, int l, int r)
+        {
+            if (l > r) return 0;
+            int sumR = PrefixSumInt32(bit, n, r);
+            int sumL = (l > 0) ? PrefixSumInt32(bit, n, l - 1) : 0;
+            return sumR - sumL;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int PrefixSumInt32(int* bit, int n, int idx)
+        {
+            int sum = 0;
+            idx++;
+            while (idx > 0)
+            {
+                sum += bit[idx];
+                idx -= idx & -idx;
+            }
+            return sum;
         }
     }
 }
