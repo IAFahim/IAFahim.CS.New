@@ -21,7 +21,7 @@ namespace IAFahim.DS.PieceTable.Bench
         private byte* _added;
         private PieceTableState* _state;
         private Piece* _pieces;
-        private fixed byte _insertBuf[256];
+        private byte* _insertBuf;
 
         [GlobalSetup]
         public void Setup()
@@ -30,6 +30,7 @@ namespace IAFahim.DS.PieceTable.Bench
             _added = (byte*)Marshal.AllocHGlobal(N * sizeof(byte));
             _state = (PieceTableState*)Marshal.AllocHGlobal(sizeof(PieceTableState));
             _pieces = (Piece*)Marshal.AllocHGlobal(N * sizeof(Piece));
+            _insertBuf = (byte*)Marshal.AllocHGlobal(256 * sizeof(byte));
 
             _state->Original = _original;
             _state->OriginalLen = N;
@@ -59,11 +60,7 @@ namespace IAFahim.DS.PieceTable.Bench
             _state->Head->Length = N;
             _state->Head->Next = null;
             _pieceCount = 1;
-        }
 
-        [IterationSetup]
-        public void SetupInsertData()
-        {
             for (int i = 0; i < 64; i++)
                 _insertBuf[i] = (byte)((i * 13) & 0xFF);
         }
@@ -71,12 +68,9 @@ namespace IAFahim.DS.PieceTable.Bench
         [Benchmark(Baseline = true)]
         public void PieceTableInsert()
         {
-            fixed (byte* d = _insertBuf)
+            for (int i = 0; i < 16; i++)
             {
-                for (int i = 0; i < 16; i++)
-                {
-                    PieceTableInsert.Run(ref *_state, i * 16, d, 16, _pieces, ref _pieceCount);
-                }
+                global::IAFahim.DS.PieceTable.PieceTableInsert.Run(ref *_state, i * 16, _insertBuf, 16, _pieces, ref _pieceCount);
             }
         }
 
@@ -84,7 +78,7 @@ namespace IAFahim.DS.PieceTable.Bench
         public void PieceTableDelete()
         {
             for (int i = 0; i < 8; i++)
-                PieceTableDelete.Run(ref *_state, i * 32, 16, _pieces, ref _pieceCount);
+                global::IAFahim.DS.PieceTable.PieceTableDelete.Run(ref *_state, i * 32, 16, _pieces, ref _pieceCount);
         }
 
         [GlobalCleanup]
@@ -94,6 +88,7 @@ namespace IAFahim.DS.PieceTable.Bench
             Marshal.FreeHGlobal((nint)_added);
             Marshal.FreeHGlobal((nint)_state);
             Marshal.FreeHGlobal((nint)_pieces);
+            Marshal.FreeHGlobal((nint)_insertBuf);
         }
     }
 }

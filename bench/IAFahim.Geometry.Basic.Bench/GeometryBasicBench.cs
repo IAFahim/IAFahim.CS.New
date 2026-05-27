@@ -33,20 +33,20 @@ namespace IAFahim.Geometry.Basic.Bench
         public void PointDot()
         {
             for (int i = 0; i < N - 1; i++)
-                PointDot.Run(_x[i], _y[i], _x[i + 1], _y[i + 1]);
+                global::IAFahim.Geometry.Basic.PointDot.Run(_x[i], _y[i], _x[i + 1], _y[i + 1]);
         }
 
         [Benchmark]
         public void PointCross()
         {
             for (int i = 0; i < N - 1; i++)
-                PointCross.Run(_x[i], _y[i], _x[i + 1], _y[i + 1]);
+                global::IAFahim.Geometry.Basic.PointCross.Run(_x[i], _y[i], _x[i + 1], _y[i + 1]);
         }
 
         [Benchmark]
         public void PolygonArea()
         {
-            PolygonArea.Run(N, _x, _y);
+            global::IAFahim.Geometry.Basic.PolygonArea.Run(N, _x, _y);
         }
 
         [GlobalCleanup]

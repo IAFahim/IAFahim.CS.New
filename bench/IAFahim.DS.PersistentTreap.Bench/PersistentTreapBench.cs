@@ -55,7 +55,7 @@ namespace IAFahim.DS.PersistentTreap.Bench
             for (int i = 0; i < N; i++)
             {
                 int val = rng.Next(N * 2);
-                root = PersistentTreapInsert.Run(_nodes, _left, _right, _prio, _size, _allocCnt, root, val);
+                root = global::IAFahim.DS.PersistentTreap.PersistentTreapInsert.Run(_nodes, _left, _right, _prio, _size, _allocCnt, root, val);
             }
             _root = root;
         }
@@ -64,7 +64,7 @@ namespace IAFahim.DS.PersistentTreap.Bench
         public void PersistentTreapFind()
         {
             for (int i = 0; i < N; i++)
-                PersistentTreapFind.Run(_nodes, _left, _right, _root, i * 2);
+                global::IAFahim.DS.PersistentTreap.PersistentTreapFind.Run(_nodes, _left, _right, _root, i * 2);
         }
 
         [GlobalCleanup]

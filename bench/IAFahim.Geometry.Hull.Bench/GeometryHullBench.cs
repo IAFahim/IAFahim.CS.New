@@ -53,7 +53,11 @@ namespace IAFahim.Geometry.Hull.Bench
         [Benchmark]
         public void ConvexHull3D_Basic()
         {
-            ConvexHull3D.Run(N, _xs, _ys, _zs, null);
+            int maxFaces = 4 * N;
+            ConvexHull3D.Face* outFaces = stackalloc ConvexHull3D.Face[maxFaces];
+            ConvexHull3D.Face* scratchFaces = stackalloc ConvexHull3D.Face[maxFaces];
+            int* scratchHead = stackalloc int[maxFaces];
+            ConvexHull3D.Build(_xs, _ys, _zs, N, outFaces, scratchFaces, scratchHead);
         }
 
         [GlobalCleanup]

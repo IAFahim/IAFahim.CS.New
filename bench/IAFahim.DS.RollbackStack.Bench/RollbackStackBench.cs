@@ -42,12 +42,15 @@ namespace IAFahim.DS.RollbackStack.Bench
         public void UnionWithSnapshot()
         {
             Random rng = new Random(42);
-            for (int i = 0; i < N; i++)
+            fixed (int* pHistSize = &_histSize)
             {
-                int snap = UndoableUnionFind.Snapshot(_parent, _size, _history, _histSize);
-                UndoableUnionFind.Union(_parent, _size, _history, &_histSize, rng.Next(N), rng.Next(N));
-                if (i % 10 == 0)
-                    UndoableUnionFind.Rollback(_parent, _size, _history, snap, &_histSize);
+                for (int i = 0; i < N; i++)
+                {
+                    int snap = UndoableUnionFind.Snapshot(_parent, _size, _history, *pHistSize);
+                    UndoableUnionFind.Union(_parent, _size, _history, pHistSize, rng.Next(N), rng.Next(N));
+                    if (i % 10 == 0)
+                        UndoableUnionFind.Rollback(_parent, _size, _history, snap, pHistSize);
+                }
             }
         }
 

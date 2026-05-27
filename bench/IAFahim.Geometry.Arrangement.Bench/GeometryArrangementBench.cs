@@ -39,13 +39,13 @@ namespace IAFahim.Geometry.Arrangement.Bench
         [Benchmark(Baseline = true)]
         public void PointLocationBuild()
         {
-            PointLocationBuild.Run(_xs, _ys, N, _grid, 32);
+            global::IAFahim.Geometry.Arrangement.PointLocationBuild.Run(_xs, _ys, N, _grid, 32);
         }
 
         [Benchmark]
         public void VerticalDecomposition()
         {
-            VerticalDecomposition.Run(_xs, _ys, N, _outX, _outY);
+            global::IAFahim.Geometry.Arrangement.VerticalDecomposition.Run(_xs, _ys, N, _outX, _outY);
         }
 
         [GlobalCleanup]

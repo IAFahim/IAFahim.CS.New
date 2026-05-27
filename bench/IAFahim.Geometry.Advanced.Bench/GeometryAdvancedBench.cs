@@ -32,20 +32,20 @@ namespace IAFahim.Geometry.Advanced.Bench
         [Benchmark(Baseline = true)]
         public void ConvexDiameter()
         {
-            long result = ConvexDiameter.Run(N, _x, _y);
+            long result = global::IAFahim.Geometry.Advanced.ConvexDiameter.Run(N, _x, _y);
         }
 
         [Benchmark]
         public void RotatingCalipers()
         {
             long* res = stackalloc long[2];
-            RotatingCalipers.Run(N, _x, _y, res);
+            global::IAFahim.Geometry.Advanced.RotatingCalipers.Run(N, _x, _y, res);
         }
 
         [Benchmark]
         public void ClosestPair()
         {
-            long result = ClosestPair.Run(N, _x, _y);
+            long result = global::IAFahim.Geometry.Advanced.ClosestPair.Run(N, _x, _y);
         }
 
         [GlobalCleanup]

@@ -64,9 +64,11 @@ namespace IAFahim.DS.Splay.Bench
                 node->Sum = node->Key;
                 node->Rev = false;
                 node->Parent = null;
-                node->Left = null;
+                node->Left = root;
+                if (root != null) root->Parent = node;
                 node->Right = null;
-                root = RopeShared.Merge(root, node);
+                SplayRangeReverse.Update(node);
+                root = node;
             }
             for (int i = 0; i < 10; i++)
             {

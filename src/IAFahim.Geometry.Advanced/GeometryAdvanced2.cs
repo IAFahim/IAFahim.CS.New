@@ -3,6 +3,21 @@ namespace IAFahim.Geometry.Advanced
     using System;
     using System.Runtime.CompilerServices;
 
+    public static unsafe class Circumcenter
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Run(long ax, long ay, long bx, long by, long cx, long cy, long* ox, long* oy)
+        {
+            long d = 2 * (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by));
+            if (d == 0) return;
+            long a2 = ax * ax + ay * ay;
+            long b2 = bx * bx + by * by;
+            long c2 = cx * cx + cy * cy;
+            *ox = (a2 * (by - cy) + b2 * (cy - ay) + c2 * (ay - by)) / d;
+            *oy = (a2 * (cx - bx) + b2 * (ax - cx) + c2 * (bx - ax)) / d;
+        }
+    }
+
     public static unsafe class MinimumEnclosingCircle
     {
         public static void Run(int n, long* x, long* y, long* cx, long* cy, long* r)

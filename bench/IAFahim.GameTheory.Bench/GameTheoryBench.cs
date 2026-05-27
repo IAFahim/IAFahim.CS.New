@@ -40,13 +40,13 @@ namespace IAFahim.GameTheory.Bench
         [Benchmark]
         public void GrundyDAG()
         {
-            GrundyDAG.Run(N, _to, _grundy, _indeg, _queue);
+            global::IAFahim.GameTheory.GrundyDAG.Run(N, _to, _grundy, _indeg, _queue);
         }
 
         [Benchmark(Baseline = true)]
         public void NimSum()
         {
-            NimSum.Run(N, _piles);
+            global::IAFahim.GameTheory.NimSum.Run(N, _piles);
         }
 
         [GlobalCleanup]
