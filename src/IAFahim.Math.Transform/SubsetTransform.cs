@@ -7,22 +7,34 @@ namespace IAFahim.Math.Transform
     {
         public static void Run(long* f, int n)
         {
-            for (int i = 0; i < n; i++) PerformZetaStep(f, n, i);
-        }
-
-        private static void PerformZetaStep(long* f, int n, int i)
-        {
-            for (int mask = 0; mask < (1 << n); mask++)
-                if ((mask & (1 << i)) != 0) f[mask] += f[mask ^ (1 << i)];
+            int size = 1 << n;
+            // ⚡ Bolt: Restructured into a branchless butterfly loop for cache locality
+            // and to avoid heavy branch misprediction overhead on inner loop bitwise checks.
+            for (int len = 1; len < size; len <<= 1)
+            {
+                for (int i = 0; i < size; i += len << 1)
+                {
+                    for (int j = 0; j < len; j++)
+                    {
+                        f[i + j + len] += f[i + j];
+                    }
+                }
+            }
         }
 
         public static void RunInt32(int* f, int n)
         {
-            for (int i = 0; i < n; i++)
+            int size = 1 << n;
+            // ⚡ Bolt: Branchless butterfly loop for Fast Zeta
+            for (int len = 1; len < size; len <<= 1)
             {
-                int bit = 1 << i;
-                for (int mask = 0; mask < (1 << n); mask++)
-                    if ((mask & bit) != 0) f[mask] += f[mask ^ bit];
+                for (int i = 0; i < size; i += len << 1)
+                {
+                    for (int j = 0; j < len; j++)
+                    {
+                        f[i + j + len] += f[i + j];
+                    }
+                }
             }
         }
     }
@@ -31,22 +43,33 @@ namespace IAFahim.Math.Transform
     {
         public static void Run(long* f, int n)
         {
-            for (int i = 0; i < n; i++) PerformMobiusStep(f, n, i);
-        }
-
-        private static void PerformMobiusStep(long* f, int n, int i)
-        {
-            for (int mask = 0; mask < (1 << n); mask++)
-                if ((mask & (1 << i)) != 0) f[mask] -= f[mask ^ (1 << i)];
+            int size = 1 << n;
+            // ⚡ Bolt: Branchless butterfly loop for Fast Mobius
+            for (int len = 1; len < size; len <<= 1)
+            {
+                for (int i = 0; i < size; i += len << 1)
+                {
+                    for (int j = 0; j < len; j++)
+                    {
+                        f[i + j + len] -= f[i + j];
+                    }
+                }
+            }
         }
 
         public static void RunInt32(int* f, int n)
         {
-            for (int i = 0; i < n; i++)
+            int size = 1 << n;
+            // ⚡ Bolt: Branchless butterfly loop for Fast Mobius
+            for (int len = 1; len < size; len <<= 1)
             {
-                int bit = 1 << i;
-                for (int mask = 0; mask < (1 << n); mask++)
-                    if ((mask & bit) != 0) f[mask] -= f[mask ^ bit];
+                for (int i = 0; i < size; i += len << 1)
+                {
+                    for (int j = 0; j < len; j++)
+                    {
+                        f[i + j + len] -= f[i + j];
+                    }
+                }
             }
         }
     }
@@ -55,13 +78,18 @@ namespace IAFahim.Math.Transform
     {
         public static void Run(long* f, int n)
         {
-            for (int i = 0; i < n; i++) PerformSupersetZetaStep(f, n, i);
-        }
-
-        private static void PerformSupersetZetaStep(long* f, int n, int i)
-        {
-            for (int mask = 0; mask < (1 << n); mask++)
-                if ((mask & (1 << i)) == 0) f[mask] += f[mask | (1 << i)];
+            int size = 1 << n;
+            // ⚡ Bolt: Branchless butterfly loop for Superset Zeta
+            for (int len = 1; len < size; len <<= 1)
+            {
+                for (int i = 0; i < size; i += len << 1)
+                {
+                    for (int j = 0; j < len; j++)
+                    {
+                        f[i + j] += f[i + j + len];
+                    }
+                }
+            }
         }
     }
 
@@ -69,13 +97,18 @@ namespace IAFahim.Math.Transform
     {
         public static void Run(long* f, int n)
         {
-            for (int i = 0; i < n; i++) PerformSupersetMobiusStep(f, n, i);
-        }
-
-        private static void PerformSupersetMobiusStep(long* f, int n, int i)
-        {
-            for (int mask = 0; mask < (1 << n); mask++)
-                if ((mask & (1 << i)) == 0) f[mask] -= f[mask | (1 << i)];
+            int size = 1 << n;
+            // ⚡ Bolt: Branchless butterfly loop for Superset Mobius
+            for (int len = 1; len < size; len <<= 1)
+            {
+                for (int i = 0; i < size; i += len << 1)
+                {
+                    for (int j = 0; j < len; j++)
+                    {
+                        f[i + j] -= f[i + j + len];
+                    }
+                }
+            }
         }
     }
 
@@ -84,25 +117,28 @@ namespace IAFahim.Math.Transform
         public static void Run(long* a, long* b, long* c, int n)
         {
             int size = 1 << n;
-            for (int i = 0; i < n; i++)
+            // ⚡ Bolt: Branchless butterfly loops for Subset Convolution (Zeta -> Pointwise -> Mobius)
+            for (int len = 1; len < size; len <<= 1)
             {
-                for (int mask = 0; mask < size; mask++)
+                for (int i = 0; i < size; i += len << 1)
                 {
-                    if ((mask & (1 << i)) == 0)
+                    for (int j = 0; j < len; j++)
                     {
-                        a[mask | (1 << i)] += a[mask];
-                        b[mask | (1 << i)] += b[mask];
+                        a[i + j + len] += a[i + j];
+                        b[i + j + len] += b[i + j];
                     }
                 }
             }
             for (int mask = 0; mask < size; mask++)
                 c[mask] = a[mask] * b[mask] % 1000000007L;
-            for (int i = 0; i < n; i++)
+            for (int len = 1; len < size; len <<= 1)
             {
-                for (int mask = 0; mask < size; mask++)
+                for (int i = 0; i < size; i += len << 1)
                 {
-                    if ((mask & (1 << i)) != 0)
-                        c[mask] = (c[mask] - c[mask ^ (1 << i)] + 1000000007L) % 1000000007L;
+                    for (int j = 0; j < len; j++)
+                    {
+                        c[i + j + len] = (c[i + j + len] - c[i + j] + 1000000007L) % 1000000007L;
+                    }
                 }
             }
         }
