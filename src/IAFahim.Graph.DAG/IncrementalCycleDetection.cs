@@ -19,7 +19,7 @@ namespace IAFahim.Graph.DAG
         {
             if (curr == target) return true;
             visited[curr] = runId;
-            for (int e = head[curr]; e != -1; e = next[e])
+            for (int e = head[curr]; e != 0; e = next[e])
             {
                 int v = to[e];
                 if (visited[v] != runId)

@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.DS.GapBuffer/IAFahim.DS.GapBuffer.csproj" />
+  </ItemGroup>
+</Project>

@@ -360,14 +360,14 @@ namespace IAFahim.Collections.NoDeps.Tests
         [Test]
         public void AllocatorHandle_ImplicitConversion()
         {
-            var handle = (AllocatorHandle)Allocator.Persistent;
+            var handle = (AllocatorManager.AllocatorHandle)Allocator.Persistent;
             Assert.AreEqual((int)Allocator.Persistent, handle.Value);
         }
 
         [Test]
         public void AllocateWithHandle_Allocates()
         {
-            var handle = (AllocatorHandle)Allocator.Persistent;
+            var handle = (AllocatorManager.AllocatorHandle)Allocator.Persistent;
             var ptr = AllocatorManager.Allocate(handle, 64, 8);
             Assert.IsTrue(ptr != null);
             AllocatorManager.Free(handle, ptr);
@@ -376,7 +376,7 @@ namespace IAFahim.Collections.NoDeps.Tests
         [Test]
         public void AllocateResizeHint_NoOp()
         {
-            var handle = (AllocatorHandle)Allocator.Persistent;
+            var handle = (AllocatorManager.AllocatorHandle)Allocator.Persistent;
             IntPtr mem = Marshal.AllocHGlobal(128);
             AllocatorManager.Allocate(handle, (void*)mem, 128, 8);
             Marshal.FreeHGlobal(mem);

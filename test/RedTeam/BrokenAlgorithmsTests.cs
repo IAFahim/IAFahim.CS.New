@@ -278,7 +278,13 @@ namespace IAFahim.RedTeam
             next[edgeId] = head[3];
             head[3] = edgeId++;
 
-            int matchingSize = IAFahim.Graph.Matching.EdmondsMatching.Run(n, head, to, next, match);
+            int* base_ = stackalloc int[n];
+            int* p = stackalloc int[n];
+            int* v = stackalloc int[n];
+            int* blossom = stackalloc int[n];
+            int* scratch = stackalloc int[n];
+
+            int matchingSize = IAFahim.Graph.Matching.BlossomGeneral.Run(n, head, to, next, match, base_, p, v, blossom, scratch);
             Assert.AreEqual(2, matchingSize);
             Assert.AreEqual(2, match[3]);
             Assert.AreEqual(3, match[2]);
@@ -291,11 +297,24 @@ namespace IAFahim.RedTeam
         {
             const int n = 4;
             const int m = 4;
+            // Converting edge list to adjacency list as BlossomGeneral expects it.
+            int* head = stackalloc int[n];
+            int* to = stackalloc int[m * 2 + 1];
+            int* next = stackalloc int[m * 2 + 1];
+            int edgeId = 1;
             int* eu = stackalloc int[m] { 0, 1, 2, 2 };
             int* ev = stackalloc int[m] { 1, 2, 0, 3 };
+            for(int i=0; i<m; i++){
+                to[edgeId] = ev[i]; next[edgeId] = head[eu[i]]; head[eu[i]] = edgeId++;
+                to[edgeId] = eu[i]; next[edgeId] = head[ev[i]]; head[ev[i]] = edgeId++;
+            }
             int* match = stackalloc int[n];
+            int* base_ = stackalloc int[n];
+            int* p = stackalloc int[n];
+            int* v = stackalloc int[n];
+            int* blossom = stackalloc int[n];
 
-            int matchingSize = IAFahim.Graph.GeneralMatchingBlossom.Run(n, m, eu, ev, match);
+            int matchingSize = IAFahim.Graph.Matching.BlossomGeneral.Run(n, head, to, next, match, base_, p, v, blossom);
             Assert.AreEqual(2, matchingSize);
             Assert.AreEqual(2, match[3]);
             Assert.AreEqual(3, match[2]);

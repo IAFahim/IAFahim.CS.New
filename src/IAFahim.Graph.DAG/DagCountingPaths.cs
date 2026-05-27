@@ -12,7 +12,7 @@ namespace IAFahim.Graph.DAG
             for (int i = n - 1; i >= 0; i--)
             {
                 int u = topoOrder[i];
-                for (int e = head[u]; e != -1; e = next[e])
+                for (int e = head[u]; e != 0; e = next[e])
                 {
                     int v = to[e];
                     long add = pathCount[v];

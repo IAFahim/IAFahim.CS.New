@@ -6,7 +6,7 @@ namespace IAFahim.Graph.Tests
 
     public sealed unsafe class TwoSatTests
     {
-        [Ignore("Broken by AI")]
+        
         [Test]
         public void AddClause_Basic_AddsTwoImplications()
         {
@@ -21,7 +21,7 @@ namespace IAFahim.Graph.Tests
             Assert.AreEqual(2, *edgeCount);
         }
 
-        [Ignore("Broken by AI")]
+        
         [Test]
         public void AddClause_SameVarDifferentPolarity_BidirectionalImplication()
         {
@@ -36,7 +36,7 @@ namespace IAFahim.Graph.Tests
             Assert.AreEqual(2, *edgeCount);
         }
 
-        [Ignore("Broken by AI")]
+        
         [Test]
         public void AddClause_BothNegative_BothImplicationsPointUpward()
         {
@@ -51,7 +51,7 @@ namespace IAFahim.Graph.Tests
             Assert.AreEqual(2, *edgeCount);
         }
 
-        [Ignore("Broken by AI")]
+        
         [Test]
         public void AddClause_BothPositive_BothImplicationsPointDownward()
         {
@@ -66,7 +66,7 @@ namespace IAFahim.Graph.Tests
             Assert.AreEqual(2, *edgeCount);
         }
 
-        [Ignore("Broken by AI")]
+        
         [Test]
         public void Solve_TrivialTrue_Satisfiable()
         {
@@ -83,7 +83,7 @@ namespace IAFahim.Graph.Tests
             Assert.IsTrue(assignment[0] == 0 || assignment[0] == 1);
         }
 
-        [Ignore("Broken by AI")]
+        
         [Test]
         public void Solve_XOrNotX_Unsatisfiable()
         {
@@ -100,7 +100,7 @@ namespace IAFahim.Graph.Tests
             Assert.IsFalse(result);
         }
 
-        [Ignore("Broken by AI")]
+        
         [Test]
         public void Solve_TwoVariablesOr_AlwaysSatisfiable()
         {
@@ -116,7 +116,7 @@ namespace IAFahim.Graph.Tests
             Assert.IsTrue(result);
         }
 
-        [Ignore("Broken by AI")]
+        
         [Test]
         public void Solve_ThreeVariablesContradiction_Unsatisfiable()
         {
@@ -137,7 +137,7 @@ namespace IAFahim.Graph.Tests
             Assert.IsFalse(result);
         }
 
-        [Ignore("Broken by AI")]
+        
         [Test]
         public void Solve_FiveClausesAllSatisfiable_Satisfiable()
         {
@@ -157,7 +157,7 @@ namespace IAFahim.Graph.Tests
             Assert.IsTrue(result);
         }
 
-        [Ignore("Broken by AI")]
+        
         [Test]
         public void Solve_ImplicationChain_AssignmentPropagates()
         {
@@ -174,7 +174,7 @@ namespace IAFahim.Graph.Tests
             Assert.IsTrue(result);
         }
 
-        [Ignore("Broken by AI")]
+        
         [Test]
         public void Solve_NoClauses_TriviallySatisfiable()
         {
@@ -189,7 +189,7 @@ namespace IAFahim.Graph.Tests
             Assert.IsTrue(result);
         }
 
-        [Ignore("Broken by AI")]
+        
         [Test]
         public void Solve_LargeFormula_ConsistentAssignment()
         {
@@ -211,7 +211,7 @@ namespace IAFahim.Graph.Tests
             Assert.IsTrue(result);
         }
 
-        [Ignore("Broken by AI")]
+        
         [Test]
         public void Solve_EdgeCaseSingleVariableSelfImplication_Satisfiable()
         {

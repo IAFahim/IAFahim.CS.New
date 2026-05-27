@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.Math.Transform.AnyMod/IAFahim.Math.Transform.AnyMod.csproj" />
+  </ItemGroup>
+</Project>

@@ -14,7 +14,7 @@ namespace IAFahim.Graph.DAG
                 if (k <= 1) break;
                 k--;
                 int nextNode = -1;
-                for (int e = head[u]; e != -1; e = next[e])
+                for (int e = head[u]; e != 0; e = next[e])
                 {
                     int v = to[e];
                     if (k <= pathCount[v])

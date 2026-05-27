@@ -20,7 +20,7 @@ namespace IAFahim.Graph.DAG
                     currentOrder[count] = i;
                     indegree[i] = -1;
 
-                    for (int e = head[i]; e != -1; e = next[e])
+                    for (int e = head[i]; e != 0; e = next[e])
                     {
                         indegree[to[e]]--;
                     }
@@ -28,7 +28,7 @@ namespace IAFahim.Graph.DAG
                     Run(head, next, to, indegree, n, currentOrder, count + 1, totalFound);
 
                     indegree[i] = 0;
-                    for (int e = head[i]; e != -1; e = next[e])
+                    for (int e = head[i]; e != 0; e = next[e])
                     {
                         indegree[to[e]]++;
                     }

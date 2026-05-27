@@ -101,22 +101,26 @@ namespace IAFahim.Graph.Tests
         {
             const int n = 4;
             int* head = stackalloc int[n];
-            int* to = stackalloc int[6];
-            int* next = stackalloc int[6];
+            int* to = stackalloc int[12];
+            int* next = stackalloc int[12];
             for (int i = 0; i < n; i++) head[i] = 0;
             int edgeId = 1;
-            int edgeCount = 4;
+            int edgeCount = 8;
             AddEdge.Run(head, to, next, &edgeId, 0, 1, &edgeCount);
+            AddEdge.Run(head, to, next, &edgeId, 1, 0, &edgeCount);
             AddEdge.Run(head, to, next, &edgeId, 1, 2, &edgeCount);
+            AddEdge.Run(head, to, next, &edgeId, 2, 1, &edgeCount);
             AddEdge.Run(head, to, next, &edgeId, 2, 0, &edgeCount);
+            AddEdge.Run(head, to, next, &edgeId, 0, 2, &edgeCount);
             AddEdge.Run(head, to, next, &edgeId, 2, 3, &edgeCount);
+            AddEdge.Run(head, to, next, &edgeId, 3, 2, &edgeCount);
             int* bu = stackalloc int[n];
             int* bv = stackalloc int[n];
-            int count = Bridges.Run(n, head, to, next, bu, bv);
+            int count = GraphBridgeAdapter.Run(n, head, to, next, bu, bv);
             Assert.IsTrue(count >= 0);
         }
 
-        [Ignore("Moved to IAFahim.Graph.Bridges")]
+        
         [Test]
         public void ArticulationPoints_Linear()
         {
@@ -130,7 +134,7 @@ namespace IAFahim.Graph.Tests
             AddEdge.Run(head, to, next, &edgeId, 0, 1, &edgeCount);
             AddEdge.Run(head, to, next, &edgeId, 1, 2, &edgeCount);
             bool* isArt = stackalloc bool[n];
-            int count = ArticulationPoints.Run(n, 0, head, to, next, isArt);
+            int count = GraphArticulationPointAdapter.Run(n, 0, head, to, next, isArt);
             Assert.IsTrue(count >= 0);
         }
 

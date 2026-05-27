@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.Combinatorics.Generation/IAFahim.Combinatorics.Generation.csproj" />
+  </ItemGroup>
+</Project>

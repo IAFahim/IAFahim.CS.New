@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.String.Grammar/IAFahim.String.Grammar.csproj" />
+  </ItemGroup>
+</Project>

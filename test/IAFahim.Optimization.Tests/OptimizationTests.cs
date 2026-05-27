@@ -96,7 +96,8 @@ namespace IAFahim.Optimization.Tests
             w[0] = 1; w[1] = 2; w[2] = 3; w[3] = 4;
             long* v = stackalloc long[4];
             v[0] = 10; v[1] = 20; v[2] = 30; v[3] = 40;
-            long result = IAFahim.Optimization.Knapsack.MeetInMiddle.Run(w, v, 4, 5);
+            long* left = stackalloc long[1 << (4 / 2) * 2];
+            long result = IAFahim.Optimization.Knapsack.MeetInMiddle.Run(w, v, 4, 5, left);
             Assert.AreEqual(50, result);
         }
 
@@ -131,7 +132,8 @@ namespace IAFahim.Optimization.Tests
             xs[0] = 0; ys[0] = 0;
             xs[1] = 1; ys[1] = 0;
             xs[2] = 0.5; ys[2] = 1;
-            MinEnclosingBall.Circle c = IAFahim.Optimization.Geometric.MinEnclosingBall.Welzl(xs, ys, 3);
+            int* p = stackalloc int[3];
+            MinEnclosingBall.Circle c = IAFahim.Optimization.Geometric.MinEnclosingBall.Welzl(xs, ys, 3, p);
             Assert.IsTrue(c.R > 0);
             Assert.IsTrue(c.R < 2);
         }
@@ -217,7 +219,8 @@ namespace IAFahim.Optimization.Tests
             reward[0] = 1; reward[1] = 0; reward[2] = 0; reward[3] = 1;
             double* v = stackalloc double[2];
             v[0] = 0; v[1] = 0;
-            IAFahim.Optimization.Games.Mdp.ValueIteration(n, m, trans, reward, 0.9, v, 100);
+            double* newV = stackalloc double[2];
+            IAFahim.Optimization.Games.Mdp.ValueIteration(n, m, trans, reward, 0.9, v, newV, 100);
             Assert.IsTrue(v[0] > 0);
             Assert.IsTrue(v[1] > 0);
         }
@@ -253,10 +256,5 @@ namespace IAFahim.Optimization.Tests
             int r = IAFahim.Optimization.Matroid.LinearMatroid.Rank(n, m, a, basis);
             Assert.AreEqual(3, r);
         }
-    }
-}
-   }
-}
- }
     }
 }

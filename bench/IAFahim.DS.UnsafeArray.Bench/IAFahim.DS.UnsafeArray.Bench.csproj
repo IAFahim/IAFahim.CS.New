@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.DS.UnsafeArray/IAFahim.DS.UnsafeArray.csproj" />
+  </ItemGroup>
+</Project>

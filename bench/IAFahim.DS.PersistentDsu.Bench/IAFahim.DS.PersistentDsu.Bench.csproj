@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.DS.PersistentDsu/IAFahim.DS.PersistentDsu.csproj" />
+  </ItemGroup>
+</Project>

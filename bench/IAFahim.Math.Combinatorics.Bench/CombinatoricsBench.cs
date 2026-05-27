@@ -1,3 +1,4 @@
+using System;
 namespace IAFahim.Math.Combinatorics.Bench
 {
     using IAFahim.Math.Combinatorics;

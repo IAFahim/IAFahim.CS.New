@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.Math.Transform.Fft/IAFahim.Math.Transform.Fft.csproj" />
+  </ItemGroup>
+</Project>

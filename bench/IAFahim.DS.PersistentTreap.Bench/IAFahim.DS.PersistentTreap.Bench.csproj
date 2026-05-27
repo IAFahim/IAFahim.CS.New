@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.DS.PersistentTreap/IAFahim.DS.PersistentTreap.csproj" />
+  </ItemGroup>
+</Project>

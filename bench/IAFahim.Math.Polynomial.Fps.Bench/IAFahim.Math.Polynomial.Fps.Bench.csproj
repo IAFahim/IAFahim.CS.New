@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.Math.Polynomial.Fps/IAFahim.Math.Polynomial.Fps.csproj" />
+  </ItemGroup>
+</Project>

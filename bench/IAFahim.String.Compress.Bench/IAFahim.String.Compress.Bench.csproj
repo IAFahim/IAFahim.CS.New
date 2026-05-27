@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.String.Compress/IAFahim.String.Compress.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.Linear.Matrix/IAFahim.Linear.Matrix.csproj" />
+  </ItemGroup>
+</Project>

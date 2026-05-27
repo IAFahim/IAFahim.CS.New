@@ -12,7 +12,7 @@ namespace IAFahim.Graph.Bridges
             tin[u] = low[u] = ++timer;
             int children = 0;
             
-            for (int e = head[u]; e != -1; e = next[e])
+            for (int e = head[u]; e != 0; e = next[e])
             {
                 int v = to[e];
                 if (v == p) continue;

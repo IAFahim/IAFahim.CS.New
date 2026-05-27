@@ -12,7 +12,7 @@ namespace IAFahim.Graph.DAG
             {
                 int u = topoOrder[i];
                 ulong h = 14695981039346656037UL; // FNV offset basis
-                for (int e = head[u]; e != -1; e = next[e])
+                for (int e = head[u]; e != 0; e = next[e])
                 {
                     int v = to[e];
                     h ^= hashes[v];

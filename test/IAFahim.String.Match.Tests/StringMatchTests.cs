@@ -156,7 +156,9 @@ namespace IAFahim.String.Match.Tests
             byte[] b = new byte[] { 98, 98, 97 };
             fixed (byte* pa = a, pb = b)
             {
-                Assert.IsTrue(PatternMatch.Abelian(pa, 3, pb, 3));
+                int* cntA = stackalloc int[256];
+                int* cntB = stackalloc int[256];
+                Assert.IsTrue(PatternMatch.Abelian(pa, 3, pb, 3, cntA, cntB));
             }
         }
 
@@ -167,7 +169,9 @@ namespace IAFahim.String.Match.Tests
             byte[] b = new byte[] { 98, 97, 97 };
             fixed (byte* pa = a, pb = b)
             {
-                Assert.IsFalse(PatternMatch.Abelian(pa, 3, pb, 3));
+                int* cntA = stackalloc int[256];
+                int* cntB = stackalloc int[256];
+                Assert.IsFalse(PatternMatch.Abelian(pa, 3, pb, 3, cntA, cntB));
             }
         }
 
@@ -207,6 +211,4 @@ namespace IAFahim.String.Match.Tests
             }
         }
     }
-}
-}
 }

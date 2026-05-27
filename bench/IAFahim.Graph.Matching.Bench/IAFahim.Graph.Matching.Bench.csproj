@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.Graph.Matching/IAFahim.Graph.Matching.csproj" />
+  </ItemGroup>
+</Project>

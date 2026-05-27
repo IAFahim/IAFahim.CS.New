@@ -14,7 +14,7 @@ namespace IAFahim.Graph.SCC
             stack[stackCount++] = u;
             inStack[u] = 1;
 
-            for (int e = head[u]; e != -1; e = next[e])
+            for (int e = head[u]; e != 0; e = next[e])
             {
                 int v = to[e];
                 if (tin[v] == 0)

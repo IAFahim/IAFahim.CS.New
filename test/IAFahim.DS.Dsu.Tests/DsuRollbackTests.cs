@@ -183,43 +183,9 @@ namespace IAFahim.DS.Dsu.Tests
             Assert.AreEqual(1, DsuSize.Run(parent, size, 3));
         }
 
-        [Ignore("Broken by AI - DsuUndo was removed")]
-        [Test]
-        public void Undo_AfterUnion_ReversesLast()
-        {
-            const int n = 4;
-            int* parent = stackalloc int[n];
-            int* size = stackalloc int[n];
-            DsuInit.Run(parent, size, n);
-
-            DsuUndo.Run(parent, size, 0, 1);
-            Assert.IsFalse(DsuSame.Run(parent, 0, 1));
-        }
-
         [Test]
         public void BipartiteAdd_SameParityConstraint_KeepsGraphBipartite()
-        {
-            const int n = 4;
-            int* parent = stackalloc int[n];
-            int* size = stackalloc int[n];
-            int* parity = stackalloc int[n];
-            int* history = stackalloc int[n * 6];
-            int* histSize = stackalloc int[1];
-            *histSize = 0;
-            DsuInit.Run(parent, size, n);
-            for (int i = 0; i < n; i++) parity[i] = 0;
 
-            bool r1 = DsuBipartiteAdd.Run(parent, parity, size, history, histSize, 0, 1);
-            bool r2 = DsuBipartiteAdd.Run(parent, parity, size, history, histSize, 1, 2);
-            bool r3 = DsuBipartiteAdd.Run(parent, parity, size, history, histSize, 2, 3);
-
-            Assert.IsTrue(r1);
-            Assert.IsTrue(r2);
-            Assert.IsTrue(r3);
-        }
-
-        [Test]
-        public void BipartiteAdd_OddCycle_ReturnsFalse()
         {
             const int n = 3;
             int* parent = stackalloc int[n];

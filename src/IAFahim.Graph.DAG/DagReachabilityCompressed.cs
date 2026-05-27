@@ -13,7 +13,7 @@ namespace IAFahim.Graph.DAG
                 int offset = u * ulongsPerNode;
                 bitsets[offset + (u >> 6)] |= (1UL << (u & 63));
 
-                for (int e = head[u]; e != -1; e = next[e])
+                for (int e = head[u]; e != 0; e = next[e])
                 {
                     int v = to[e];
                     int vOffset = v * ulongsPerNode;

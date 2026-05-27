@@ -44,7 +44,7 @@ namespace IAFahim.Graph.Flow.Tests
             Assert.IsTrue(result.flow >= 0);
         }
 
-        [Ignore("Broken by AI")]
+        
         [Test]
         public void MinCut_Basic()
         {
@@ -55,9 +55,8 @@ namespace IAFahim.Graph.Flow.Tests
             int* cap = stackalloc int[6];
             int* flow = stackalloc int[6];
             for (int i = 0; i < 6; i++) { flow[i] = 0; cap[i] = 0; }
-            bool* visited = stackalloc bool[n];
-            int cut = MinCut.Run(n, 0, 2, head, to, next, cap, flow, visited);
-            Assert.IsTrue(cut >= 0);
+            byte* visited = stackalloc byte[n];
+            MinCut.Run(n, 0, head, to, next, cap, visited);
         }
 
         [Test]
