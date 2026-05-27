@@ -31,7 +31,7 @@ jobs:
           python-version: '3.x'
 
       - name: Run all benchmarks
-        run: python3 run_all_benchmarks.py
+        run: python3 tools/run_all_benchmarks.py
 
       - name: Commit and Push Benchmark Results
         run: |
