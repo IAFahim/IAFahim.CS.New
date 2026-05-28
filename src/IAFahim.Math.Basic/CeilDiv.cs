@@ -8,13 +8,17 @@ namespace IAFahim.Math.Basic
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Run(int a, int b)
         {
-            return a / b + ((a % b != 0 && ((a ^ b) >= 0)) ? 1 : 0);
+            // Bolt: Math.DivRem calculates quotient and remainder simultaneously, replacing two division instructions with one.
+            int q = System.Math.DivRem(a, b, out int rem);
+            return q + ((rem != 0 && ((a ^ b) >= 0)) ? 1 : 0);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long Run(long a, long b)
         {
-            return a / b + ((a % b != 0 && ((a ^ b) >= 0)) ? 1 : 0);
+            // Bolt: Math.DivRem calculates quotient and remainder simultaneously, replacing two division instructions with one.
+            long q = System.Math.DivRem(a, b, out long rem);
+            return q + ((rem != 0 && ((a ^ b) >= 0)) ? 1 : 0);
         }
     }
 }
