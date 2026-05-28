@@ -19,6 +19,10 @@ using System.Runtime.InteropServices;
         {
             int n = textLen, m = patLen;
             *count = 0;
+            for (int d = 0; d < m; d++)
+            {
+                prev[d] = d + 1;
+            }
             for (int pos = 0; pos < n; pos++)
             {
                 UpdateLandauVishkinDp(text, pattern, pos, m, k, curr, prev);
@@ -29,16 +33,14 @@ using System.Runtime.InteropServices;
 
         private static void UpdateLandauVishkinDp(byte* text, byte* pattern, int pos, int m, int k, int* curr, int* prev)
         {
-            for (int d = 0; d < m; d++)
+            curr[0] = (text[pos] == pattern[0]) ? 0 : 1;
+            for (int d = 1; d < m; d++)
             {
-                if (pos < d || m < d) curr[d] = Math.Min(pos, d);
-                else
-                {
-                    if (text[pos - d] != pattern[d])
-                        curr[d] = 1 + Math.Min(prev[d], Math.Min(d > 0 ? curr[d - 1] : int.MaxValue, d > 0 ? prev[d - 1] : int.MaxValue));
-                    else
-                        curr[d] = prev[d];
-                }
+                int cost = (text[pos] == pattern[d]) ? 0 : 1;
+                int replace = prev[d - 1] + cost;
+                int delete = prev[d] + 1;
+                int insert = curr[d - 1] + 1;
+                curr[d] = Math.Min(replace, Math.Min(delete, insert));
             }
         }
 

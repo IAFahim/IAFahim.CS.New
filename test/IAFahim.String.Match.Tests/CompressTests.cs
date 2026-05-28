@@ -34,5 +34,31 @@ namespace IAFahim.String.Match.Tests
                 Assert.IsTrue(count <= 6);
             }
         }
+
+        [Test]
+        public void Arithmetic_EncodeDecode_Correct()
+        {
+            byte[] input = new byte[] { (byte)'h', (byte)'e', (byte)'l', (byte)'l', (byte)'o' };
+            long* output = stackalloc long[1000];
+            int outLen = 0;
+            long precision = 1L << 32;
+            
+            fixed (byte* inPtr = input)
+            {
+                Arithmetic.Encode(inPtr, 5, output, &outLen, precision);
+            }
+            
+            byte* decoded = stackalloc byte[10];
+            int decodedLen = 0;
+            
+            Arithmetic.Decode(output, outLen, decoded, &decodedLen, precision);
+            
+            Assert.AreEqual(5, decodedLen);
+            Assert.AreEqual((byte)'h', decoded[0]);
+            Assert.AreEqual((byte)'e', decoded[1]);
+            Assert.AreEqual((byte)'l', decoded[2]);
+            Assert.AreEqual((byte)'l', decoded[3]);
+            Assert.AreEqual((byte)'o', decoded[4]);
+        }
     }
 }

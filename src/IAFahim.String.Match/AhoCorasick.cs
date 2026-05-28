@@ -8,19 +8,16 @@ namespace IAFahim.String.Match
     {
         public struct State
         {
-            public int Next0;
             public int Link;
             public int Out;
             public int ExitLink;
+            public fixed int Next[256];
         }
 
         public static void Build(State* st, ref int size, int sigma)
         {
             size = 1;
-            st[0].Next0 = -1;
-            st[0].Link = 0;
-            st[0].Out = -1;
-            st[0].ExitLink = -1;
+            InitializeState(st, 0, sigma);
         }
 
         public static void AddPattern(State* st, ref int size, int sigma, int* pattern, int len, int patternId)
@@ -28,26 +25,32 @@ namespace IAFahim.String.Match
             int v = 0;
             for (int i = 0; i < len; i++)
             {
-                v = GetOrAddNextState(st, ref size, v, pattern[i]);
+                v = GetOrAddNextState(st, ref size, v, pattern[i], sigma);
             }
             st[v].Out = patternId;
         }
 
-        private static int GetOrAddNextState(State* st, ref int size, int v, int c)
+        private static int GetOrAddNextState(State* st, ref int size, int v, int c, int sigma)
         {
             int next = GetNext(st, v, c);
             if (next == -1)
             {
                 next = size++;
                 SetNext(st, v, c, next);
-                InitializeState(st, next);
+                InitializeState(st, next, sigma);
             }
             return next;
         }
 
-        private static void InitializeState(State* st, int idx)
+        private static void InitializeState(State* st, int idx, int sigma)
         {
-            st[idx].Next0 = -1; st[idx].Link = 0; st[idx].Out = -1; st[idx].ExitLink = -1;
+            st[idx].Link = 0;
+            st[idx].Out = -1;
+            st[idx].ExitLink = -1;
+            for (int i = 0; i < sigma; i++)
+            {
+                st[idx].Next[i] = -1;
+            }
         }
 
         public static void BuildLinks(State* st, int size, int sigma, int* queue)
@@ -96,15 +99,13 @@ namespace IAFahim.String.Match
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int GetNext(State* st, int v, int c)
         {
-            var ptr = ((IntPtr)st + v * sizeof(State) + sizeof(int));
-            return ((int*)ptr)[c];
+            return st[v].Next[c];
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void SetNext(State* st, int v, int c, int next)
         {
-            var ptr = ((IntPtr)st + v * sizeof(State) + sizeof(int));
-            ((int*)ptr)[c] = next;
+            st[v].Next[c] = next;
         }
     }
 }

@@ -210,5 +210,53 @@ namespace IAFahim.String.Match.Tests
                 Assert.IsTrue(count > 0);
             }
         }
+
+        [Test]
+        public void ApproximateMatch_LandauVishkin()
+        {
+            byte[] text = new byte[] { (byte)'a', (byte)'b', (byte)'c', (byte)'d', (byte)'e' };
+            byte[] pattern = new byte[] { (byte)'b', (byte)'x', (byte)'d' };
+            int* results = stackalloc int[5];
+            int count = 0;
+            int* curr = stackalloc int[4];
+            int* prev = stackalloc int[4];
+            for (int i = 0; i < 4; i++) curr[i] = prev[i] = 0;
+            fixed (byte* pt = text, pp = pattern)
+            {
+                ApproximateMatch.LandauVishkin(pt, 5, pp, 3, 1, results, &count, curr, prev);
+            }
+            Assert.AreEqual(1, count);
+            Assert.AreEqual(1, results[0]);
+        }
+
+        [Test]
+        public void AhoCorasick_BuildAndSearch()
+        {
+            const int sigma = 256;
+            AhoCorasick.State* st = stackalloc AhoCorasick.State[100];
+            int size = 0;
+            AhoCorasick.Build(st, ref size, sigma);
+            
+            int* pat1 = stackalloc int[2] { (int)'h', (int)'e' };
+            AhoCorasick.AddPattern(st, ref size, sigma, pat1, 2, 1);
+            
+            int* pat2 = stackalloc int[3] { (int)'s', (int)'h', (int)'e' };
+            AhoCorasick.AddPattern(st, ref size, sigma, pat2, 3, 2);
+            
+            int* queue = stackalloc int[100];
+            AhoCorasick.BuildLinks(st, size, sigma, queue);
+            
+            byte[] text = new byte[] { (byte)'s', (byte)'h', (byte)'e' };
+            int* matches = stackalloc int[10];
+            int matchCount = 0;
+            fixed (byte* pt = text)
+            {
+                matchCount = AhoCorasick.Search(st, sigma, pt, 3, matches);
+            }
+            
+            Assert.AreEqual(2, matchCount);
+            Assert.AreEqual(2, matches[0]);
+            Assert.AreEqual(1, matches[1]);
+        }
     }
 }
