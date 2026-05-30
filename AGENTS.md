@@ -214,7 +214,7 @@ namespace IAFahim.DS
 
 ## Phase 2: Test
 
-Framework: xUnit. Projects in `test/`. Target `net8.0`.
+Framework: NUnit. Projects in `test/`. Target `net10.0`.
 
 ### Checklist Per Public Method
 
@@ -232,17 +232,17 @@ Framework: xUnit. Projects in `test/`. Target `net8.0`.
 namespace IAFahim.Sort.Tests
 {
     using System.Runtime.InteropServices;
-    using Xunit;
+    using NUnit.Framework;
 
     public sealed unsafe class InsertionTests
     {
-        [Fact]
+        [Test]
         public void EmptyInput_NoOp()
         {
             Insertion.Run<int>(null, 0);
         }
 
-        [Fact]
+        [Test]
         public void Reversed_Sorts()
         {
             const int N = 64;
@@ -255,7 +255,7 @@ namespace IAFahim.Sort.Tests
                 Insertion.Run(ptr, N);
 
                 for (int i = 0; i < N; i++)
-                    Assert.Equal(i + 1, ptr[i]);
+                    Assert.AreEqual(i + 1, ptr[i]);
             }
             finally
             {
@@ -366,7 +366,7 @@ IAFahim.CS/
 │   ├── IAFahim.Sort.Insertion/            ← algorithm
 │   └── ...
 ├── test/
-│   ├── Directory.Build.props              ← net8.0, xUnit
+│   ├── Directory.Build.props              ← net10.0, NUnit
 │   └── ...
 ├── bench/
 │   ├── Directory.Build.props              ← net8.0, BenchmarkDotNet

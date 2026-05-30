@@ -6,25 +6,29 @@ namespace IAFahim.Algebra.GraphPoly
     public static unsafe class Reliability
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int Find(int* parent, int i)
+        {
+            while (parent[i] != i)
+            {
+                parent[i] = parent[parent[i]];
+                i = parent[i];
+            }
+            return i;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool IsConnected(int n, int edges, int* from, int* to, int mask, int* parent)
         {
             for (int i = 0; i < n; i++) parent[i] = i;
             for (int e = 0; e < edges; e++)
             {
                 if ((mask & (1 << e)) == 0) continue;
-                int u = from[e], v = to[e];
-                while (parent[u] != u) u = parent[u];
-                while (parent[v] != v) v = parent[v];
+                int u = Find(parent, from[e]), v = Find(parent, to[e]);
                 if (u != v) parent[u] = v;
             }
-            for (int i = 0; i < n; i++)
-            {
-                int r = i;
-                while (parent[r] != r) r = parent[r];
-                parent[i] = r;
-            }
+            int root = Find(parent, 0);
             for (int i = 1; i < n; i++)
-                if (parent[i] != parent[0]) return false;
+                if (Find(parent, i) != root) return false;
             return true;
         }
 
@@ -51,11 +55,11 @@ namespace IAFahim.Algebra.GraphPoly
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static long CalculateProbability(int totalEdges, int edgeCount, long p, int MOD)
         {
-            long pk = 1L;
-            for (int i = 0; i < edgeCount; i++) pk = (pk * p) % (long)MOD;
-            long qk = 1L;
             long q = (1L - p + (long)MOD) % (long)MOD;
-            for (int i = 0; i < totalEdges - edgeCount; i++) qk = (qk * q) % (long)MOD;
+            long pk = 1L;
+            for (int i = 0; i < edgeCount; i++) pk = (pk * q) % (long)MOD;
+            long qk = 1L;
+            for (int i = 0; i < totalEdges - edgeCount; i++) qk = (qk * p) % (long)MOD;
             return (pk * qk) % (long)MOD;
         }
     }

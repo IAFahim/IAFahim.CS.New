@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\IAFahim.Algebra.GraphPoly\IAFahim.Algebra.GraphPoly.csproj" />
+  </ItemGroup>
+</Project>
