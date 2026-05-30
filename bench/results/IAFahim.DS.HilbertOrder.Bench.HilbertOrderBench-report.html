@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>IAFahim.DS.HilbertOrder.Bench.HilbertOrderBench-20260530-103057</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.14.0, Ubuntu 24.04.4 LTS (Noble Numbat)
+Intel Xeon Platinum 8370C CPU 2.80GHz, 1 CPU, 4 logical and 2 physical cores
+.NET SDK 10.0.300
+  [Host] : .NET 10.0.8 (10.0.826.23019), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  Dry    : .NET 10.0.8 (10.0.826.23019), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+</code></pre>
+<pre><code>Job=Dry  IterationCount=1  LaunchCount=1  
+RunStrategy=ColdStart  UnrollFactor=1  WarmupCount=1  
+</code></pre>
+
+<table>
+<thead><tr><th>Method      </th><th>LogN</th><th>Rot</th><th>Mean</th><th>Error</th><th>Ratio</th><th>Allocated</th><th>Alloc Ratio</th>
+</tr>
+</thead><tbody><tr><td>HilbertOrderRun</td><td>10</td><td>0</td><td>671.4 &mu;s</td><td>NA</td><td>1.00</td><td>-</td><td>NA</td>
+</tr><tr><td>HilbertOrderEncode</td><td>10</td><td>0</td><td>646.4 &mu;s</td><td>NA</td><td>0.96</td><td>-</td><td>NA</td>
+</tr><tr><td>BlockOrderEncode</td><td>10</td><td>0</td><td>496.9 &mu;s</td><td>NA</td><td>0.74</td><td>-</td><td>NA</td>
+</tr><tr><td>HilbertOrderRun</td><td>10</td><td>1</td><td>665.4 &mu;s</td><td>NA</td><td>1.00</td><td>-</td><td>NA</td>
+</tr><tr><td>HilbertOrderEncode</td><td>10</td><td>1</td><td>686.2 &mu;s</td><td>NA</td><td>1.03</td><td>-</td><td>NA</td>
+</tr><tr><td>BlockOrderEncode</td><td>10</td><td>1</td><td>514.3 &mu;s</td><td>NA</td><td>0.77</td><td>-</td><td>NA</td>
+</tr><tr><td>HilbertOrderRun</td><td>10</td><td>2</td><td>612.2 &mu;s</td><td>NA</td><td>1.00</td><td>-</td><td>NA</td>
+</tr><tr><td>HilbertOrderEncode</td><td>10</td><td>2</td><td>666.3 &mu;s</td><td>NA</td><td>1.09</td><td>-</td><td>NA</td>
+</tr><tr><td>BlockOrderEncode</td><td>10</td><td>2</td><td>523.8 &mu;s</td><td>NA</td><td>0.86</td><td>-</td><td>NA</td>
+</tr><tr><td>HilbertOrderRun</td><td>10</td><td>3</td><td>645.5 &mu;s</td><td>NA</td><td>1.00</td><td>-</td><td>NA</td>
+</tr><tr><td>HilbertOrderEncode</td><td>10</td><td>3</td><td>668.0 &mu;s</td><td>NA</td><td>1.03</td><td>-</td><td>NA</td>
+</tr><tr><td>BlockOrderEncode</td><td>10</td><td>3</td><td>692.4 &mu;s</td><td>NA</td><td>1.07</td><td>-</td><td>NA</td>
+</tr><tr><td>HilbertOrderRun</td><td>16</td><td>0</td><td>584.0 &mu;s</td><td>NA</td><td>1.00</td><td>-</td><td>NA</td>
+</tr><tr><td>HilbertOrderEncode</td><td>16</td><td>0</td><td>641.3 &mu;s</td><td>NA</td><td>1.10</td><td>-</td><td>NA</td>
+</tr><tr><td>BlockOrderEncode</td><td>16</td><td>0</td><td>454.8 &mu;s</td><td>NA</td><td>0.78</td><td>-</td><td>NA</td>
+</tr><tr><td>HilbertOrderRun</td><td>16</td><td>1</td><td>645.9 &mu;s</td><td>NA</td><td>1.00</td><td>-</td><td>NA</td>
+</tr><tr><td>HilbertOrderEncode</td><td>16</td><td>1</td><td>660.0 &mu;s</td><td>NA</td><td>1.02</td><td>-</td><td>NA</td>
+</tr><tr><td>BlockOrderEncode</td><td>16</td><td>1</td><td>491.0 &mu;s</td><td>NA</td><td>0.76</td><td>-</td><td>NA</td>
+</tr><tr><td>HilbertOrderRun</td><td>16</td><td>2</td><td>724.3 &mu;s</td><td>NA</td><td>1.00</td><td>-</td><td>NA</td>
+</tr><tr><td>HilbertOrderEncode</td><td>16</td><td>2</td><td>610.9 &mu;s</td><td>NA</td><td>0.84</td><td>-</td><td>NA</td>
+</tr><tr><td>BlockOrderEncode</td><td>16</td><td>2</td><td>465.8 &mu;s</td><td>NA</td><td>0.64</td><td>-</td><td>NA</td>
+</tr><tr><td>HilbertOrderRun</td><td>16</td><td>3</td><td>688.7 &mu;s</td><td>NA</td><td>1.00</td><td>-</td><td>NA</td>
+</tr><tr><td>HilbertOrderEncode</td><td>16</td><td>3</td><td>624.3 &mu;s</td><td>NA</td><td>0.91</td><td>-</td><td>NA</td>
+</tr><tr><td>BlockOrderEncode</td><td>16</td><td>3</td><td>523.1 &mu;s</td><td>NA</td><td>0.76</td><td>-</td><td>NA</td>
+</tr><tr><td>HilbertOrderRun</td><td>20</td><td>0</td><td>624.1 &mu;s</td><td>NA</td><td>1.00</td><td>-</td><td>NA</td>
+</tr><tr><td>HilbertOrderEncode</td><td>20</td><td>0</td><td>614.6 &mu;s</td><td>NA</td><td>0.98</td><td>-</td><td>NA</td>
+</tr><tr><td>BlockOrderEncode</td><td>20</td><td>0</td><td>476.2 &mu;s</td><td>NA</td><td>0.76</td><td>-</td><td>NA</td>
+</tr><tr><td>HilbertOrderRun</td><td>20</td><td>1</td><td>620.7 &mu;s</td><td>NA</td><td>1.00</td><td>-</td><td>NA</td>
+</tr><tr><td>HilbertOrderEncode</td><td>20</td><td>1</td><td>631.0 &mu;s</td><td>NA</td><td>1.02</td><td>-</td><td>NA</td>
+</tr><tr><td>BlockOrderEncode</td><td>20</td><td>1</td><td>554.5 &mu;s</td><td>NA</td><td>0.89</td><td>-</td><td>NA</td>
+</tr><tr><td>HilbertOrderRun</td><td>20</td><td>2</td><td>683.0 &mu;s</td><td>NA</td><td>1.00</td><td>-</td><td>NA</td>
+</tr><tr><td>HilbertOrderEncode</td><td>20</td><td>2</td><td>652.2 &mu;s</td><td>NA</td><td>0.95</td><td>-</td><td>NA</td>
+</tr><tr><td>BlockOrderEncode</td><td>20</td><td>2</td><td>525.4 &mu;s</td><td>NA</td><td>0.77</td><td>-</td><td>NA</td>
+</tr><tr><td>HilbertOrderRun</td><td>20</td><td>3</td><td>722.6 &mu;s</td><td>NA</td><td>1.00</td><td>-</td><td>NA</td>
+</tr><tr><td>HilbertOrderEncode</td><td>20</td><td>3</td><td>607.1 &mu;s</td><td>NA</td><td>0.84</td><td>-</td><td>NA</td>
+</tr><tr><td>BlockOrderEncode</td><td>20</td><td>3</td><td>523.6 &mu;s</td><td>NA</td><td>0.72</td><td>-</td><td>NA</td>
+</tr></tbody></table>
+</body>
+</html>

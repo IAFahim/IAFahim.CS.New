@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>IAFahim.Sort.Specialized.Bench.SortBench-20260530-103015</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.14.0, Ubuntu 24.04.4 LTS (Noble Numbat)
+Intel Xeon Platinum 8370C CPU 2.80GHz, 1 CPU, 4 logical and 2 physical cores
+.NET SDK 10.0.300
+  [Host] : .NET 10.0.8 (10.0.826.23019), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  Dry    : .NET 10.0.8 (10.0.826.23019), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+</code></pre>
+<pre><code>Job=Dry  IterationCount=1  LaunchCount=1  
+RunStrategy=ColdStart  UnrollFactor=1  WarmupCount=1  
+</code></pre>
+
+<table>
+<thead><tr><th>Method    </th><th>N</th><th>Mean</th><th>Error</th><th>Ratio</th><th>Allocated</th><th>Alloc Ratio</th>
+</tr>
+</thead><tbody><tr><td>SpanSort</td><td>64</td><td>572.1 &mu;s</td><td>NA</td><td>1.00</td><td>-</td><td>NA</td>
+</tr><tr><td>SortInts_Bench</td><td>64</td><td>614.5 &mu;s</td><td>NA</td><td>1.07</td><td>-</td><td>NA</td>
+</tr><tr><td>SortInt64s_Bench</td><td>64</td><td>573.9 &mu;s</td><td>NA</td><td>1.00</td><td>-</td><td>NA</td>
+</tr><tr><td>SpanSort</td><td>256</td><td>534.8 &mu;s</td><td>NA</td><td>1.00</td><td>-</td><td>NA</td>
+</tr><tr><td>SortInts_Bench</td><td>256</td><td>902.5 &mu;s</td><td>NA</td><td>1.69</td><td>-</td><td>NA</td>
+</tr><tr><td>SortInt64s_Bench</td><td>256</td><td>1,068.1 &mu;s</td><td>NA</td><td>2.00</td><td>-</td><td>NA</td>
+</tr><tr><td>SpanSort</td><td>1024</td><td>606.3 &mu;s</td><td>NA</td><td>1.00</td><td>-</td><td>NA</td>
+</tr><tr><td>SortInts_Bench</td><td>1024</td><td>1,188.0 &mu;s</td><td>NA</td><td>1.96</td><td>-</td><td>NA</td>
+</tr><tr><td>SortInt64s_Bench</td><td>1024</td><td>1,100.9 &mu;s</td><td>NA</td><td>1.82</td><td>-</td><td>NA</td>
+</tr></tbody></table>
+</body>
+</html>
