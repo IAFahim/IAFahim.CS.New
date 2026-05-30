@@ -15,9 +15,9 @@ namespace IAFahim.Algebra.GraphPoly
             for (int i = 0; i < n; i++)
             for (int j = 0; j < m; j++)
             {
-                int bit = i * m + j;
-                if ((mask & (1 << bit)) == 0) continue;
-                if (blocked[i * m + j] || rowUsed[i] || colUsed[j]) return false;
+                long bit = (long)i * (long)m + (long)j;
+                if ((mask & (1 << (int)bit)) == 0) continue;
+                if (blocked[bit] || rowUsed[i] || colUsed[j]) return false;
                 rowUsed[i] = true;
                 colUsed[j] = true;
                 count++;
@@ -26,9 +26,9 @@ namespace IAFahim.Algebra.GraphPoly
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static long Polynomial(int n, int m, bool* blocked, long x, int MOD)
+        public static long Run(int n, int m, bool* blocked, long x, int MOD)
         {
-            long result = 0;
+            long result = 0L;
             int size = 1 << (n * m);
             bool* rowUsed = stackalloc bool[n];
             bool* colUsed = stackalloc bool[m];
@@ -36,9 +36,9 @@ namespace IAFahim.Algebra.GraphPoly
             {
                 if (IsValidPlacement(n, m, blocked, mask, rowUsed, colUsed, out int count))
                 {
-                    long xPow = 1;
-                    for (int p = 0; p < count; p++) xPow = xPow * x % MOD;
-                    result = (result + xPow) % MOD;
+                    long xPow = 1L;
+                    for (int p = 0; p < count; p++) xPow = (xPow * x) % (long)MOD;
+                    result = (result + xPow) % (long)MOD;
                 }
             }
             return result;

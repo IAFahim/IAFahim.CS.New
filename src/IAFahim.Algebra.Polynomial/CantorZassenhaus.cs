@@ -6,7 +6,7 @@ namespace IAFahim.Algebra.Polynomial
     public static unsafe class CantorZassenhaus
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Factor(long* poly, int n, int MOD, long* outF, int* outL)
+        public static int Run(long* poly, int n, int MOD, long* outF, int* outL)
         {
             for (int i = 0; i < n; i++) outF[i] = poly[i];
             outL[0] = n;

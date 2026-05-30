@@ -14,43 +14,142 @@ namespace IAFahim.Algebra.GraphPoly
                 for (int j = i + 1; j < n; j++)
                 {
                     if ((mask & (1 << j)) == 0) continue;
-                    if (adj[i * n + j]) return false;
+                    long index = (long)i * (long)n + (long)j;
+                    if (adj[index]) return false;
                 }
             }
             return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int PopCount(int mask)
+        {
+            int bits = 0;
+            while (mask > 0)
+            {
+                if ((mask & 1) != 0) bits++;
+                mask >>= 1;
+            }
+            return bits;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static long ModPow(long b, long e, long mod)
+        {
+            long r = 1L;
+            b %= mod;
+            if (b < 0L) b += mod;
+            while (e > 0L)
+            {
+                if ((e & 1L) != 0L) r = (r * b) % mod;
+                b = (b * b) % mod;
+                e /= 2L;
+            }
+            return r;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Subset(int n, bool* adj, int MOD, long* coeffs)
         {
             int size = 1 << n;
-            long* indep = stackalloc long[n + 1];
-            for (int i = 0; i <= n; i++) indep[i] = 0;
+            long* F = stackalloc long[size];
             for (int mask = 0; mask < size; mask++)
             {
-                if (IsIndependentSet(n, adj, mask))
+                F[mask] = IsIndependentSet(n, adj, mask) ? 1L : 0L;
+            }
+
+            for (int i = 0; i < n; i++)
+            {
+                int bit = 1 << i;
+                for (int mask = 0; mask < size; mask++)
                 {
-                    int bits = 0;
-                    int m = mask;
-                    while (m > 0) { if ((m & 1) != 0) bits++; m >>= 1; }
-                    indep[bits]++;
+                    if ((mask & bit) != 0)
+                    {
+                        F[mask] = (F[mask] + F[mask ^ bit]) % MOD;
+                    }
                 }
             }
-            CalculateCoefficients(n, MOD, coeffs, indep);
-        }
 
-        private static void CalculateCoefficients(int n, int MOD, long* coeffs, long* indep)
-        {
+            long* y = stackalloc long[n + 1];
             for (int k = 0; k <= n; k++)
             {
-                long c = 0;
-                for (int i = k; i <= n; i++)
+                long sum = 0L;
+                for (int mask = 0; mask < size; mask++)
                 {
-                    long stir = Stirling1(i, k, MOD);
-                    long sign = ((i - k) % 2 == 0) ? 1 : MOD - 1;
-                    c = (c + indep[i] * stir % MOD * sign) % MOD;
+                    long term = ModPow(F[mask], (long)k, MOD);
+                    int pop = PopCount(mask);
+                    if ((n - pop) % 2 != 0)
+                    {
+                        sum = (sum - term + MOD) % MOD;
+                    }
+                    else
+                    {
+                        sum = (sum + term) % MOD;
+                    }
                 }
-                coeffs[k] = c;
+                y[k] = sum;
+            }
+
+            Interpolate(n, y, MOD, coeffs);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void Interpolate(int n, long* y, int MOD, long* coeffs)
+        {
+            for (int i = 0; i <= n; i++) coeffs[i] = 0L;
+
+            long* poly = stackalloc long[n + 2];
+            poly[0] = 1L;
+            for (int i = 1; i <= n + 1; i++) poly[i] = 0L;
+            int polyLen = 1;
+
+            for (int i = 0; i <= n; i++)
+            {
+                long* nextPoly = stackalloc long[polyLen + 1];
+                for (int j = 0; j <= polyLen; j++) nextPoly[j] = 0L;
+
+                for (int j = 0; j < polyLen; j++)
+                {
+                    nextPoly[j + 1] = (nextPoly[j + 1] + poly[j]) % MOD;
+                    long sub = (poly[j] * i) % MOD;
+                    nextPoly[j] = (nextPoly[j] - sub + MOD) % MOD;
+                }
+                polyLen++;
+                for (int j = 0; j < polyLen; j++) poly[j] = nextPoly[j];
+            }
+
+            long* temp = stackalloc long[polyLen];
+            long* q = stackalloc long[polyLen];
+            long* r = stackalloc long[polyLen];
+
+            for (int i = 0; i <= n; i++)
+            {
+                long den = 1L;
+                for (int j = 0; j <= n; j++)
+                {
+                    if (i != j)
+                    {
+                        long diff = (i - j + MOD) % MOD;
+                        den = (den * diff) % MOD;
+                    }
+                }
+
+                long invDen = ModPow(den, MOD - 2, MOD);
+                long factor = (y[i] * invDen) % MOD;
+
+                long root = (long)i % MOD;
+                long lastQ = 0L;
+                for (int j = polyLen - 1; j > 0; j--)
+                {
+                    q[j - 1] = (poly[j] + lastQ * root) % MOD;
+                    lastQ = q[j - 1];
+                }
+
+                for (int j = 0; j < polyLen - 1; j++)
+                {
+                    long add = (q[j] * factor) % MOD;
+                    coeffs[j] = (coeffs[j] + add) % MOD;
+                }
             }
         }
 
@@ -59,50 +158,25 @@ namespace IAFahim.Algebra.GraphPoly
         {
             long* coeffs = stackalloc long[n + 1];
             Subset(n, adj, MOD, coeffs);
+
             for (int k = 1; k <= n; k++)
             {
-                if (EvaluatePolynomial(n, coeffs, k, MOD) > 0) return k;
+                long val = 0L;
+                long xPow = 1L;
+                for (int i = 0; i <= n; i++)
+                {
+                    val = (val + coeffs[i] * xPow) % MOD;
+                    xPow = (xPow * (long)k) % MOD;
+                }
+                if (val > 0L) return k;
             }
             return n;
-        }
-
-        private static long EvaluatePolynomial(int n, long* coeffs, int x, int MOD)
-        {
-            long val = 0;
-            long xPow = 1;
-            for (int i = 0; i <= n; i++)
-            {
-                val = (val + coeffs[i] * xPow) % MOD;
-                xPow = xPow * x % MOD;
-            }
-            return val;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void DeletionContraction(int n, bool* adj, int edges, int* from, int* to, int MOD, long* coeffs)
         {
             Subset(n, adj, MOD, coeffs);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static long Stirling1(int n, int k, int MOD)
-        {
-            if (n == 0 && k == 0) return 1;
-            if (n == 0 || k == 0) return 0;
-            long* row = stackalloc long[n + 1];
-            for (int i = 0; i <= n; i++) row[i] = 0;
-            row[0] = 1;
-            for (int i = 1; i <= n; i++)
-                UpdateStirlingRow(i, row, MOD);
-            return row[k];
-        }
-
-        private static void UpdateStirlingRow(int i, long* row, int MOD)
-        {
-            long factor = (MOD - (long)(i - 1) % MOD) % MOD;
-            for (int j = i; j >= 1; j--)
-                row[j] = (row[j - 1] + factor * row[j]) % MOD;
-            row[0] = 0;
         }
     }
 }

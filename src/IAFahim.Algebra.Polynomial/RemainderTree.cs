@@ -5,6 +5,7 @@ namespace IAFahim.Algebra.Polynomial
 
     public static unsafe class RemainderTree
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Build(long* poly, int polyLen, long* values, int n, int MOD, long* remainders, int* remLens)
         {
             for (int i = 0; i < n; i++)

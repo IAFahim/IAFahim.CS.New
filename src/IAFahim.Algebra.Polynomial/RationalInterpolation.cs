@@ -5,6 +5,7 @@ namespace IAFahim.Algebra.Polynomial
 
     public static unsafe class RationalInterpolation
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Run(long* xs, long* ys, int n, long MOD, long* num, long* den)
         {
             if (n == 0) return 0;
@@ -18,6 +19,7 @@ namespace IAFahim.Algebra.Polynomial
             return degNum + 1;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ThieleInterpolation(long* x, long* y, int n, long* res, out int degNum, out int degDen, long MOD)
         {
             degDen = n / 2;

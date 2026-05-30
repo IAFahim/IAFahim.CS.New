@@ -18,33 +18,37 @@ namespace IAFahim.Algebra.GraphPoly
             return comps;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long Subset(int n, int edges, int* from, int* to, long x, long y, int MOD)
         {
-            long result = 0; int size = 1 << edges;
+            long result = 0L; int size = 1 << edges;
             int* parent = stackalloc int[n];
             for (int mask = 0; mask < size; mask++)
             {
                 int comps = CountComponents(n, edges, from, to, mask, parent);
                 int edgeCount = PopCount(mask);
-                result = (result + CalculateTerm(n, edges, comps, edgeCount, x, y, MOD)) % MOD;
+                result = (result + CalculateTerm(n, edges, comps, edgeCount, x, y, MOD)) % (long)MOD;
             }
             return result;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int PopCount(int m) { int c = 0; while (m > 0) { m &= (m - 1); c++; } return c; }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static long CalculateTerm(int n, int totalE, int comps, int eCount, long x, long y, int MOD)
         {
             int rank = n - comps, internalE = eCount - rank;
-            long xPow = ModPow(x, internalE, MOD), yPow = ModPow(y, totalE - eCount - rank + internalE, MOD);
-            return xPow * yPow % MOD;
+            long xPow = ModPow(x, (long)internalE, (long)MOD);
+            long yPow = ModPow(y, (long)(totalE - eCount - rank + internalE), (long)MOD);
+            return (xPow * yPow) % (long)MOD;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static long ModPow(long b, long e, long mod)
         {
-            long r = 1; b %= mod; if (b < 0) b += mod;
-            while (e > 0) { if ((e & 1) != 0) r = r * b % mod; b = b * b % mod; e >>= 1; }
+            long r = 1L; b %= mod; if (b < 0L) b += mod;
+            while (e > 0L) { if ((e & 1L) != 0L) r = (r * b) % mod; b = (b * b) % mod; e >>= 1; }
             return r;
         }
     }

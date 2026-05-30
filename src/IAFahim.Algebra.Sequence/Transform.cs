@@ -14,15 +14,16 @@ namespace IAFahim.Algebra.Sequence
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static long ComputeBinomialTerm(long* a, int n2, int MOD)
         {
-            long sum = 0;
-            long comb = 1;
+            long sum = 0L;
+            long comb = 1L;
             for (int k = 0; k <= n2; k++)
             {
-                sum = (sum + comb * a[k]) % MOD;
+                sum = (sum + comb * a[k]) % (long)MOD;
                 if (k < n2)
-                    comb = comb * (n2 - k) % MOD * Combinatorial.ModPow(k + 1, MOD - 2, MOD) % MOD;
+                    comb = (comb * (long)(n2 - k)) % (long)MOD * Combinatorial.ModPow((long)(k + 1), (long)MOD - 2L, (long)MOD) % (long)MOD;
             }
             return sum;
         }
@@ -36,16 +37,17 @@ namespace IAFahim.Algebra.Sequence
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static long ComputeInverseBinomialTerm(long* a, int n2, int MOD)
         {
-            long sum = 0;
-            long comb = 1;
+            long sum = 0L;
+            long comb = 1L;
             for (int k = 0; k <= n2; k++)
             {
-                long sign = (k % 2 == 0) ? 1 : MOD - 1;
-                sum = (sum + sign * comb % MOD * a[k]) % MOD;
+                long sign = (k % 2 == 0) ? 1L : (long)MOD - 1L;
+                sum = (sum + (sign * comb) % (long)MOD * a[k]) % (long)MOD;
                 if (k < n2)
-                    comb = comb * (n2 - k) % MOD * Combinatorial.ModPow(k + 1, MOD - 2, MOD) % MOD;
+                    comb = (comb * (long)(n2 - k)) % (long)MOD * Combinatorial.ModPow((long)(k + 1), (long)MOD - 2L, (long)MOD) % (long)MOD;
             }
             return sum;
         }
@@ -54,15 +56,15 @@ namespace IAFahim.Algebra.Sequence
         public static long SetPartition(int n, int MOD)
         {
             long* bell = stackalloc long[n + 1];
-            bell[0] = 1;
+            bell[0] = 1L;
             for (int i = 1; i <= n; i++)
             {
-                bell[i] = 0;
-                long binom = 1;
+                bell[i] = 0L;
+                long binom = 1L;
                 for (int k = 0; k < i; k++)
                 {
-                    bell[i] = (bell[i] + binom * bell[k]) % MOD;
-                    binom = binom * (i - 1 - k) % MOD * Combinatorial.ModPow(k + 1, MOD - 2, MOD) % MOD;
+                    bell[i] = (bell[i] + binom * bell[k]) % (long)MOD;
+                    binom = (binom * (long)(i - 1 - k)) % (long)MOD * Combinatorial.ModPow((long)(k + 1), (long)MOD - 2L, (long)MOD) % (long)MOD;
                 }
             }
             return bell[n];
@@ -71,9 +73,9 @@ namespace IAFahim.Algebra.Sequence
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long CayleyCount(int n, int MOD)
         {
-            if (n <= 1) return 1;
-            if (n == 2) return 1;
-            return Combinatorial.ModPow(n, n - 2, MOD);
+            if (n <= 1) return 1L;
+            if (n == 2) return 1L;
+            return Combinatorial.ModPow((long)n, (long)(n - 2), (long)MOD);
         }
     }
 }

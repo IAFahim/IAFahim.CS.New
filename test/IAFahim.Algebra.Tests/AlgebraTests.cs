@@ -14,9 +14,9 @@ namespace IAFahim.Algebra.Tests
         public void ToomCook_Multiply()
         {
             long* a = stackalloc long[4] { 1, 2, 3, 0 };
-            long* b = stackalloc long[4] { 4, 5, 0, 0 };
+            long* b = stackalloc long[2] { 4, 5 };
             long* r = stackalloc long[8];
-            ToomCook.Multiply(a, b, r, 4, MOD);
+            ToomCook.Multiply(a, 4, b, 2, r, MOD);
             Assert.AreEqual(4, r[0]);
             Assert.AreEqual(13, r[1]);
             Assert.AreEqual(22, r[2]);

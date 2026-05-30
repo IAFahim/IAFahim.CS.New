@@ -8,12 +8,12 @@ namespace IAFahim.Algebra.Polynomial
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long MultiEval(long* poly, int n, long x, int MOD)
         {
-            long val = 0;
-            long xPow = 1;
+            long val = 0L;
+            long xPow = 1L;
             for (int i = 0; i < n; i++)
             {
-                val = (val + poly[i] * xPow) % MOD;
-                xPow = xPow * x % MOD;
+                val = (val + poly[i] * xPow) % (long)MOD;
+                xPow = (xPow * x) % (long)MOD;
             }
             return val;
         }

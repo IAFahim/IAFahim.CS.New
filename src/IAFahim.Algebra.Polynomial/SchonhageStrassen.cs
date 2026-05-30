@@ -8,7 +8,7 @@ namespace IAFahim.Algebra.Polynomial
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Multiply(long* a, long* b, long* result, int n, int MOD)
         {
-            ToomCook.Multiply(a, b, result, n, MOD);
+            ToomCook.Multiply(a, n, b, n, result, MOD);
         }
     }
 }

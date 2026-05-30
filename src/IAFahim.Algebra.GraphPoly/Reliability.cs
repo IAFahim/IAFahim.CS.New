@@ -29,9 +29,9 @@ namespace IAFahim.Algebra.GraphPoly
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static long Polynomial(int n, int edges, int* from, int* to, long p, int MOD)
+        public static long Run(int n, int edges, int* from, int* to, long p, int MOD)
         {
-            long result = 0;
+            long result = 0L;
             int size = 1 << edges;
             int* parent = stackalloc int[n];
             for (int mask = 0; mask < size; mask++)
@@ -42,20 +42,21 @@ namespace IAFahim.Algebra.GraphPoly
                     int m = mask;
                     while (m > 0) { if ((m & 1) != 0) edgeCount++; m >>= 1; }
                     long prob = CalculateProbability(edges, edgeCount, p, MOD);
-                    result = (result + prob) % MOD;
+                    result = (result + prob) % (long)MOD;
                 }
             }
             return result;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static long CalculateProbability(int totalEdges, int edgeCount, long p, int MOD)
         {
-            long pk = 1;
-            for (int i = 0; i < edgeCount; i++) pk = pk * p % MOD;
-            long qk = 1;
-            long q = (1 - p + MOD) % MOD;
-            for (int i = 0; i < totalEdges - edgeCount; i++) qk = qk * q % MOD;
-            return pk * qk % MOD;
+            long pk = 1L;
+            for (int i = 0; i < edgeCount; i++) pk = (pk * p) % (long)MOD;
+            long qk = 1L;
+            long q = (1L - p + (long)MOD) % (long)MOD;
+            for (int i = 0; i < totalEdges - edgeCount; i++) qk = (qk * q) % (long)MOD;
+            return (pk * qk) % (long)MOD;
         }
     }
 }

@@ -5,6 +5,7 @@ namespace IAFahim.Algebra.Polynomial
 
     public static unsafe class ProductTree
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Build(long* values, int n, int MOD, long* tree, int* offsets, int* sizes)
         {
             int nodeCount = 0;
@@ -30,6 +31,7 @@ namespace IAFahim.Algebra.Polynomial
             return nodeCount;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void BuildLevel(long* tree, int* offsets, int* sizes, int levelStart, int levelSize, ref int nodeCount, ref int writeOff, ref int nextSize, int MOD)
         {
             for (int i = 0; i < levelSize; i += 2)
@@ -41,10 +43,9 @@ namespace IAFahim.Algebra.Polynomial
                     int sr = sa + sb - 1;
                     sizes[nodeCount] = sr;
                     ToomCook.Multiply(
-                        tree + offsets[levelStart + i],
-                        tree + offsets[levelStart + i + 1],
-                        tree + writeOff,
-                        Math.Max(sa, sb), MOD);
+                        tree + offsets[levelStart + i], sa,
+                        tree + offsets[levelStart + i + 1], sb,
+                        tree + writeOff, MOD);
                     writeOff += sr;
                     nodeCount++;
                     nextSize++;

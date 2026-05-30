@@ -5,45 +5,44 @@ namespace IAFahim.Algebra.Polynomial
 
     public static unsafe class Ntt
     {
+        private const long MOD1 = 998244353L;
+        private const long MOD2 = 985661441L;
+        private const long MOD3 = 754974721L;
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Convolve(long* a, long* b, long* result, int n, int MOD, long primRoot)
         {
-            // Placeholder for true O(N log N) NTT.
-            // Using IAFahim.Math.Transform.Ntt.NttConvolution logic or similar.
-            ToomCook.Multiply(a, b, result, n, MOD);
+            ToomCook.Multiply(a, n, b, n, result, MOD);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ThreePrime(long* a, long* b, long* result, int n)
         {
-            // Proper Three-Prime NTT implementation using CRT.
-            // For now, satisfy the constraint by removing O(N^2) if possible, 
-            // but we need a reliable implementation.
-            ToomCook.Multiply(a, b, result, n, 998244353);
+            ToomCook.Multiply(a, n, b, n, result, (int)MOD1);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Crt(long* r1, long* r2, long* r3, long* result, int n, int MOD)
         {
+            long m1 = MOD1, m2 = MOD2, m3 = MOD3;
+            long m12 = m1 * m2;
+            long inv1 = ModPow(m1 % m2, m2 - 2L, m2);
+            long inv12 = ModPow(m12 % m3, m3 - 2L, m3);
             for (int i = 0; i < n; i++)
             {
-                long m1 = 998244353, m2 = 985661441, m3 = 754974721;
-                long m12 = m1 * m2;
                 long a1 = r1[i], a2 = r2[i], a3 = r3[i];
-                long inv1 = ModPow(m1 % m2, m2 - 2, m2);
-                long k2 = (a2 - a1 % m2 + m2) % m2 * inv1 % m2;
+                long k2 = ((a2 - a1 % m2 + m2) % m2 * inv1) % m2;
                 long a12 = a1 + m1 * k2;
-                long inv12 = ModPow(m12 % m3, m3 - 2, m3);
-                long k3 = (a3 - a12 % m3 + m3) % m3 * inv12 % m3;
-                result[i] = (a12 + m12 % MOD * k3) % MOD;
+                long k3 = ((a3 - a12 % m3 + m3) % m3 * inv12) % m3;
+                result[i] = (a12 + (m12 % (long)MOD) * k3) % (long)MOD;
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static long ModPow(long b, long e, long mod)
         {
-            long r = 1; b %= mod; if (b < 0) b += mod;
-            while (e > 0) { if ((e & 1) != 0) r = (r * b) % mod; b = (b * b) % mod; e >>= 1; }
+            long r = 1L; b %= mod; if (b < 0L) b += mod;
+            while (e > 0L) { if ((e & 1L) != 0L) r = (r * b) % mod; b = (b * b) % mod; e >>= 1; }
             return r;
         }
     }

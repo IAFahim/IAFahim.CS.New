@@ -14,7 +14,8 @@ namespace IAFahim.Algebra.GraphPoly
                 for (int j = i + 1; j < n; j++)
                 {
                     if ((mask & (1 << j)) == 0) continue;
-                    if (adj[i * n + j]) return false;
+                    long index = (long)i * (long)n + (long)j;
+                    if (adj[index]) return false;
                 }
             }
             return true;
@@ -31,16 +32,16 @@ namespace IAFahim.Algebra.GraphPoly
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long Polynomial(int n, bool* adj, long x, int MOD)
         {
-            long result = 0;
+            long result = 0L;
             int size = 1 << n;
             for (int mask = 0; mask < size; mask++)
             {
                 if (IsIndependentSet(n, adj, mask))
                 {
                     int bits = PopCount(mask);
-                    long xPow = 1;
-                    for (int p = 0; p < bits; p++) xPow = xPow * x % MOD;
-                    result = (result + xPow) % MOD;
+                    long xPow = 1L;
+                    for (int p = 0; p < bits; p++) xPow = (xPow * x) % (long)MOD;
+                    result = (result + xPow) % (long)MOD;
                 }
             }
             return result;
