@@ -5,10 +5,21 @@ namespace IAFahim.Graph.Flow
 
     public static unsafe class HopcroftKarpDfs
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Run(int* head, int* to, int* next, int* cap, int n, int s, int t)
+        public static bool Run(int u, int nLeft, int nRight, int* head, int* to, int* next, int* pairU, int* pairV, int* dist, int* it)
         {
-            // Stub implementation
+            if (u == -1) return true;
+            for (int e = it[u]; e != 0; e = next[e])
+            {
+                it[u] = e;
+                int v = to[e];
+                int pu = pairV[v];
+                if (pu != -1 && (dist[pu] != dist[u] + 1 || !Run(pu, nLeft, nRight, head, to, next, pairU, pairV, dist, it)))
+                    continue;
+                pairU[u] = v; pairV[v] = u;
+                return true;
+            }
+            dist[u] = int.MaxValue;
+            return false;
         }
     }
 }

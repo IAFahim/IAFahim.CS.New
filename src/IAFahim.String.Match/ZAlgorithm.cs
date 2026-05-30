@@ -1,6 +1,5 @@
 namespace IAFahim.String.Match
 {
-using System.Runtime.InteropServices;
     using System;
     using System.Runtime.CompilerServices;
 
@@ -9,36 +8,57 @@ using System.Runtime.InteropServices;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Run(byte* ptr, int len, int* zPtr)
         {
+            if (len <= 0) return;
             zPtr[0] = len;
             int l = 0, r = 0;
             for (int i = 1; i < len; i++)
             {
-                if (i <= r) UpdateZMatch(ptr, len, zPtr, i, l, r);
-                else InitializeZMatch(ptr, len, zPtr, i);
-                
-                if (i + zPtr[i] - 1 > r) { l = i; r = i + zPtr[i] - 1; }
+                if (i <= r)
+                {
+                    int k = i - l;
+                    int rem = r - i + 1;
+                    zPtr[i] = zPtr[k] < rem ? zPtr[k] : rem;
+                }
+                else
+                {
+                    zPtr[i] = 0;
+                }
+                while (i + zPtr[i] < len && ptr[zPtr[i]] == ptr[i + zPtr[i]])
+                    zPtr[i]++;
+                if (i + zPtr[i] - 1 > r)
+                {
+                    l = i;
+                    r = i + zPtr[i] - 1;
+                }
             }
         }
 
-        private static void UpdateZMatch(byte* ptr, int len, int* zPtr, int i, int l, int r)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Run(int* ptr, int len, int* zPtr)
         {
-            int rem = r - i + 1;
-            if (zPtr[i - l] < rem) zPtr[i] = zPtr[i - l];
-            else
+            if (len <= 0) return;
+            zPtr[0] = len;
+            int l = 0, r = 0;
+            for (int i = 1; i < len; i++)
             {
-                zPtr[i] = rem;
-                while (i + zPtr[i] < len && ptr[zPtr[i]] == ptr[i + zPtr[i]]) zPtr[i]++;
-                zPtr[i] = Math.Min(zPtr[i], rem + (len - i - rem)); // Simplified boundary
-                // Re-calculating actual extension
-                zPtr[i] = rem;
-                while (i + zPtr[i] < len && ptr[zPtr[i]] == ptr[i + zPtr[i]]) zPtr[i]++;
+                if (i <= r)
+                {
+                    int k = i - l;
+                    int rem = r - i + 1;
+                    zPtr[i] = zPtr[k] < rem ? zPtr[k] : rem;
+                }
+                else
+                {
+                    zPtr[i] = 0;
+                }
+                while (i + zPtr[i] < len && ptr[zPtr[i]] == ptr[i + zPtr[i]])
+                    zPtr[i]++;
+                if (i + zPtr[i] - 1 > r)
+                {
+                    l = i;
+                    r = i + zPtr[i] - 1;
+                }
             }
-        }
-
-        private static void InitializeZMatch(byte* ptr, int len, int* zPtr, int i)
-        {
-            zPtr[i] = 0;
-            while (i + zPtr[i] < len && ptr[zPtr[i]] == ptr[i + zPtr[i]]) zPtr[i]++;
         }
     }
 }

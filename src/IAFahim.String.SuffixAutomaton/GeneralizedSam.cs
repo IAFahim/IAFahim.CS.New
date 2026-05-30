@@ -1,14 +1,12 @@
 namespace IAFahim.String.SuffixAutomaton
 {
     using System;
-    using System.Runtime.InteropServices;
+    using System.Runtime.CompilerServices;
 
     public static unsafe class GeneralizedSam
     {
-        public static void Build(byte** strings, int* lengths, int count, int sigma, int* intText, SuffixAutomaton.State* st, ref int stSize, ref int stLast)
+        public static void Build(byte** strings, int* lengths, int count, int sigma, int* intText, SuffixAutomaton.State* st, SuffixAutomaton.Edge* e, ref int stSize, ref int stLast, ref int edgeCount)
         {
-            int totalLen = 0;
-            for (int i = 0; i < count; i++) totalLen += lengths[i];
             int pos = 0;
             for (int i = 0; i < count; i++)
             {
@@ -17,7 +15,7 @@ namespace IAFahim.String.SuffixAutomaton
                 if (i < count - 1)
                     intText[pos++] = sigma + i;
             }
-            SuffixAutomaton.Build(intText, pos, st, ref stSize, ref stLast);
+            SuffixAutomaton.Build(intText, pos, st, e, ref stSize, ref stLast, ref edgeCount);
         }
     }
 }

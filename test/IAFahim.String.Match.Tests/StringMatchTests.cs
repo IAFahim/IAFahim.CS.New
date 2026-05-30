@@ -10,7 +10,7 @@ namespace IAFahim.String.Match.Tests
         public void ZAlgorithm_Empty_NoCrash()
         {
             int* z = stackalloc int[1];
-            ZAlgorithm.Run(null, 0, z);
+            ZAlgorithm.Run((byte*)null, 0, z);
         }
 
         [Test]
