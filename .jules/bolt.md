@@ -1,0 +1,3 @@
+## 2024-06-01 - Sparse Table Build Loop Invariant Explicit Optimization
+**Learning:** In unmanaged loop-heavy code (like `SparseTableBuild` in `IAFahim.DS.Sparse`), explicit loop hoisting (e.g. `n - (1 << j)`) provides a small, measurable performance improvement over relying completely on the RyuJIT compiler for loop invariant extraction. This reduces the time per iteration across the N*log(N) operation.
+**Action:** Be mindful of manually extracting expressions that rely on variables only updated in the outer loops (e.g. `1 << j` when `j` is the outer loop variable) in critical O(NlogN) or O(N^2) inner loops within performance critical algorithms.
