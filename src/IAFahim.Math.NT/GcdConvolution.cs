@@ -14,8 +14,9 @@ namespace IAFahim.Math.NT
         public static void Inverse(long* f, int n, int* mu)
         {
             for (int d = 1; d <= n; d++)
-                for (int j = 2 * d; j <= n; j += d)
-                    f[d] -= mu[j / d] * f[j];
+                // k tracks j / d to avoid expensive division in the inner loop
+                for (int j = 2 * d, k = 2; j <= n; j += d, k++)
+                    f[d] -= mu[k] * f[j];
         }
 
         public static void Run(long* a, long* b, long* result, int n, int* mu)
