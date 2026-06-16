@@ -21,10 +21,12 @@ namespace IAFahim.DS.Splay
         public static void Update(SplayRevNode* x)
         {
             if (x == null) return;
-            int l = x->Left != null ? x->Left->Size : 0;
-            int r = x->Right != null ? x->Right->Size : 0;
-            long ls = x->Left != null ? x->Left->Sum : 0;
-            long rs = x->Right != null ? x->Right->Sum : 0;
+            SplayRevNode* xl = x->Left;
+            SplayRevNode* xr = x->Right;
+            int l = xl != null ? xl->Size : 0;
+            int r = xr != null ? xr->Size : 0;
+            long ls = xl != null ? xl->Sum : 0;
+            long rs = xr != null ? xr->Sum : 0;
             x->Size = l + r + 1;
             x->Sum = ls + rs + x->Key;
         }
@@ -54,13 +56,13 @@ namespace IAFahim.DS.Splay
 
         private static void Rotate(SplayRevNode** root, SplayRevNode* x)
         {
-            if (x == null || x->Parent == null)
-            {
-                return;
-            }
             SplayRevNode* p = x->Parent;
             SplayRevNode* g = p->Parent;
             bool left = p->Left == x;
+            // After one rotation x's subtree equals p's old subtree, so x's
+            // aggregates are p's pre-rotation aggregates. Capture them now.
+            int oldPSize = p->Size;
+            long oldPSum = p->Sum;
 
             if (left)
             {
@@ -87,7 +89,8 @@ namespace IAFahim.DS.Splay
             else *root = x;
 
             Update(p);
-            Update(x);
+            x->Size = oldPSize;
+            x->Sum = oldPSum;
         }
 
         public static void Splay(SplayRevNode** root, SplayRevNode* x)
@@ -98,6 +101,25 @@ namespace IAFahim.DS.Splay
                 SplayRevNode* p = x->Parent;
                 SplayRevNode* g = p->Parent;
                 if (!IsRoot(p))
+                {
+                    bool zig = (g->Left == p) == (p->Left == x);
+                    if (zig) Rotate(root, p);
+                    else Rotate(root, x);
+                }
+                Rotate(root, x);
+            }
+        }
+
+        // Splays x up until x->Parent == stop, leaving x as a child of stop.
+        // Lazy tags along the path from stop down to x are flushed first.
+        private static void SplayUnder(SplayRevNode** root, SplayRevNode* x, SplayRevNode* stop)
+        {
+            PushAll(x);
+            while (x->Parent != stop)
+            {
+                SplayRevNode* p = x->Parent;
+                SplayRevNode* g = p->Parent;
+                if (g != stop)
                 {
                     bool zig = (g->Left == p) == (p->Left == x);
                     if (zig) Rotate(root, p);
@@ -135,8 +157,8 @@ namespace IAFahim.DS.Splay
             else
             {
                 Splay(root, left);
-                Splay(root, right);
-                mid = right->Left != null ? right->Left->Right : null;
+                SplayUnder(root, right, left);
+                mid = right->Left;
             }
 
             if (mid != null) mid->Rev = !mid->Rev;

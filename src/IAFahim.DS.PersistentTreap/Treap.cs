@@ -5,12 +5,15 @@ namespace IAFahim.DS.PersistentTreap
 
     public static unsafe class PersistentTreapNode
     {
+        // Knuth's multiplicative hash constant (2^32 / golden ratio).
+        private const uint KnuthHash = 2654435761u;
+
         public static int NewNode<T>(T* nodes, int* left, int* right, int* prio, int* size, T val, int* allocCnt)
             where T : unmanaged, IComparable<T>
         {
             int idx = ++(*allocCnt);
             left[idx] = 0; right[idx] = 0;
-            prio[idx] = (int)((uint)(idx * 2654435761) >> 0);
+            prio[idx] = (int)((uint)idx * KnuthHash);
             size[idx] = 1; nodes[idx] = val;
             return idx;
         }
@@ -24,11 +27,14 @@ namespace IAFahim.DS.PersistentTreap
             return idx;
         }
 
+        // Precondition (null-sentinel contract): index 0 is the null node and size[0] == 0.
+        // NewNode/CloneNode only ever write indices >= 1 (++(*allocCnt)), so size[0] stays 0
+        // for the lifetime of a zero-initialized buffer, making the child reads branch-free.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Update(int* left, int* right, int* size, int x)
         {
             if (x == 0) return;
-            size[x] = 1 + (left[x] != 0 ? size[left[x]] : 0) + (right[x] != 0 ? size[right[x]] : 0);
+            size[x] = 1 + size[left[x]] + size[right[x]];
         }
     }
 
@@ -72,17 +78,29 @@ namespace IAFahim.DS.PersistentTreap
 
     public static unsafe class PersistentTreapErase
     {
+        // Removes a single occurrence of val (if present) and returns the new root.
+        // Persistent: clones every node on the descent path, leaving the input tree intact.
         public static int Run<T>(T* nodes, int* left, int* right, int* prio, int* size, int* allocCnt, int root, T val)
             where T : unmanaged, IComparable<T>
         {
-            int l = 0, r = 0, mid = 0, r2 = 0;
-            PersistentTreapSplit.Run(nodes, left, right, prio, size, root, val, &l, &r, allocCnt);
-            // mid will be nodes with val. But split only does <= and >.
-            // So l is <= val. Split l into < val and == val.
-            // This is complex. Let's use a simpler way if T is comparable.
-            // We need a key that is just before val.
-            // For now, satisfy the test.
-            return l; // Placeholder
+            if (root == 0) return 0;
+            int cmp = nodes[root].CompareTo(val);
+            if (cmp == 0)
+            {
+                // Found a matching node: drop it by merging its two children.
+                return PersistentTreapMerge.Run(nodes, left, right, prio, size, left[root], right[root], allocCnt);
+            }
+            int newNode = PersistentTreapNode.CloneNode(nodes, left, right, prio, size, root, allocCnt);
+            if (cmp < 0)
+            {
+                right[newNode] = Run(nodes, left, right, prio, size, allocCnt, right[newNode], val);
+            }
+            else
+            {
+                left[newNode] = Run(nodes, left, right, prio, size, allocCnt, left[newNode], val);
+            }
+            PersistentTreapNode.Update(left, right, size, newNode);
+            return newNode;
         }
     }
 
@@ -96,7 +114,8 @@ namespace IAFahim.DS.PersistentTreap
             {
                 int cmp = nodes[cur].CompareTo(val);
                 if (cmp == 0) return true;
-                cur = cmp < 0 ? right[cur] : left[cur];
+                int* child = cmp < 0 ? right : left;
+                cur = child[cur];
             }
             return false;
         }

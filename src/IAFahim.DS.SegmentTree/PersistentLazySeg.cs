@@ -8,11 +8,22 @@ namespace IAFahim.DS.SegmentTree
             int* leftChild, int* rightChild, long* sumArr, long* lazyArr, int* cntArr, int* allocCount)
         {
             int node = ++(*allocCount);
-            leftChild[node] = prev != 0 ? leftChild[prev] : 0;
-            rightChild[node] = prev != 0 ? rightChild[prev] : 0;
-            sumArr[node] = prev != 0 ? sumArr[prev] : 0;
-            lazyArr[node] = prev != 0 ? lazyArr[prev] : 0;
-            cntArr[node] = prev != 0 ? cntArr[prev] : 0;
+            if (prev != 0)
+            {
+                leftChild[node] = leftChild[prev];
+                rightChild[node] = rightChild[prev];
+                sumArr[node] = sumArr[prev];
+                lazyArr[node] = lazyArr[prev];
+                cntArr[node] = cntArr[prev];
+            }
+            else
+            {
+                leftChild[node] = 0;
+                rightChild[node] = 0;
+                sumArr[node] = 0;
+                lazyArr[node] = 0;
+                cntArr[node] = 0;
+            }
 
             if (ql <= lo && hi <= qr)
             {
@@ -29,7 +40,7 @@ namespace IAFahim.DS.SegmentTree
                 rightChild[node] = Run(rightChild[node], mid + 1, hi, ql, qr, val,
                     leftChild, rightChild, sumArr, lazyArr, cntArr, allocCount);
 
-            sumArr[node] = sumArr[leftChild[node]] + sumArr[rightChild[node]];
+            sumArr[node] = sumArr[leftChild[node]] + sumArr[rightChild[node]] + lazyArr[node] * cntArr[node];
             return node;
         }
     }
@@ -40,12 +51,12 @@ namespace IAFahim.DS.SegmentTree
             int* leftChild, int* rightChild, long* sumArr, long* lazyArr, int* cntArr)
         {
             if (node == 0 || qr < lo || hi < ql) return 0;
-            long lazy = inherited + (node != 0 ? lazyArr[node] : 0);
             if (ql <= lo && hi <= qr)
             {
                 int cnt = cntArr[node];
-                return sumArr[node] + lazy * cnt;
+                return sumArr[node] + inherited * cnt;
             }
+            long lazy = inherited + lazyArr[node];
             int mid = lo + ((hi - lo) >> 1);
             return Run(leftChild[node], lo, mid, ql, qr, lazy, leftChild, rightChild, sumArr, lazyArr, cntArr) +
                    Run(rightChild[node], mid + 1, hi, ql, qr, lazy, leftChild, rightChild, sumArr, lazyArr, cntArr);

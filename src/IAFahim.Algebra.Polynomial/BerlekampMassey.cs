@@ -44,7 +44,7 @@ namespace IAFahim.Algebra.Polynomial
                     L = i + 1 - L;
                     CopyArray(tmp, b, n);
                     b_val = d;
-                    m = 0;
+                    m = 1;
                 }
                 else
                 {
@@ -100,7 +100,8 @@ namespace IAFahim.Algebra.Polynomial
                 int idx = j + m;
                 if (idx <= n)
                 {
-                    c[idx] = (c[idx] - (factor * b[j]) % (long)MOD + (long)MOD) % (long)MOD;
+                    long t = c[idx] - (factor * b[j]) % (long)MOD;
+                    c[idx] = t + ((t >> 63) & (long)MOD);
                 }
             }
         }

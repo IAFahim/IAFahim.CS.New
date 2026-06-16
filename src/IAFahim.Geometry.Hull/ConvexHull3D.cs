@@ -40,10 +40,16 @@ namespace IAFahim.Geometry.Hull
             int* head = scratchHead;
             for (int i = 0; i < n; i++) head[i] = -1;
 
+            // outFaces is only written by CollectRemainingFaces at the very end, so during the
+            // incremental build its storage is free to use as a transient per-round list of the
+            // faces made visible by the current point. sizeof(Face) > sizeof(int), so it always
+            // holds at least faceCount indices.
+            int* visible = (int*)outFaces;
+
             for (int i = 0; i < n; i++)
             {
                 if (i == p0 || i == p1 || i == p2 || i == p3) continue;
-                if (ProcessPoint(i, xs, ys, zs, faces, ref faceCount, head))
+                if (ProcessPoint(i, xs, ys, zs, faces, ref faceCount, head, visible))
                 {
                     FixNeighbors(faces, faceCount, head);
                 }
@@ -59,11 +65,14 @@ namespace IAFahim.Geometry.Hull
                 if (Math.Abs(xs[i] - xs[0]) > 1e-9 || Math.Abs(ys[i] - ys[0]) > 1e-9 || Math.Abs(zs[i] - zs[0]) > 1e-9) { p1 = i; break; }
             if (p1 == -1) return false;
 
+            double dx1 = xs[p1] - xs[p0], dy1 = ys[p1] - ys[p0], dz1 = zs[p1] - zs[p0];
             for (int i = p1 + 1; i < n; i++)
             {
-                double dx1 = xs[p1] - xs[p0], dy1 = ys[p1] - ys[p0], dz1 = zs[p1] - zs[p0];
                 double dx2 = xs[i] - xs[p0], dy2 = ys[i] - ys[p0], dz2 = zs[i] - zs[p0];
-                if ((dy1 * dz2 - dz1 * dy2) * (dy1 * dz2 - dz1 * dy2) + (dz1 * dx2 - dx1 * dz2) * (dz1 * dx2 - dx1 * dz2) + (dx1 * dy2 - dy1 * dx2) * (dx1 * dy2 - dy1 * dx2) > 1e-15)
+                double cx = dy1 * dz2 - dz1 * dy2;
+                double cy = dz1 * dx2 - dx1 * dz2;
+                double cz = dx1 * dy2 - dy1 * dx2;
+                if (cx * cx + cy * cy + cz * cz > 1e-15)
                 { p2 = i; break; }
             }
             if (p2 == -1) return false;
@@ -76,24 +85,34 @@ namespace IAFahim.Geometry.Hull
         private static int InitializeTetrahedronFaces(Face* faces, int p0, int p1, int p2, int p3, double* xs, double* ys, double* zs)
         {
             if (Volume(xs, ys, zs, p0, p1, p2, p3) < 0) { int t = p1; p1 = p2; p2 = t; }
-            faces[0] = new Face { A = p0, B = p1, C = p2, F0 = 1, F1 = 2, F2 = 3 };
-            faces[1] = new Face { A = p0, B = p2, C = p3, F0 = 0, F1 = 3, F2 = 2 };
+            // Neighbor slots follow the SetNeighbor convention: F0 = edge (B,C),
+            // F1 = edge (C,A), F2 = edge (A,B). The face indices below are independent
+            // of the p1/p2 swap above because they reference faces, not vertices.
+            faces[0] = new Face { A = p0, B = p1, C = p2, F0 = 3, F1 = 1, F2 = 2 };
+            faces[1] = new Face { A = p0, B = p2, C = p3, F0 = 3, F1 = 2, F2 = 0 };
             faces[2] = new Face { A = p0, B = p3, C = p1, F0 = 3, F1 = 0, F2 = 1 };
-            faces[3] = new Face { A = p1, B = p3, C = p2, F0 = 2, F1 = 1, F2 = 0 };
+            faces[3] = new Face { A = p1, B = p3, C = p2, F0 = 1, F1 = 0, F2 = 2 };
             return 4;
         }
 
-        private static bool ProcessPoint(int p, double* xs, double* ys, double* zs, Face* faces, ref int faceCount, int* head)
+        private static bool ProcessPoint(int p, double* xs, double* ys, double* zs, Face* faces, ref int faceCount, int* head, int* visible)
         {
+            int firstNew = faceCount;
             int visCount = 0;
-            for (int f = 0; f < faceCount; f++)
-                if (!faces[f].Deleted && Volume(xs, ys, zs, faces[f].A, faces[f].B, faces[f].C, p) < -1e-9) { faces[f].Deleted = true; visCount++; }
+            for (int f = 0; f < firstNew; f++)
+                if (!faces[f].Deleted && Volume(xs, ys, zs, faces[f].A, faces[f].B, faces[f].C, p) < -1e-9)
+                {
+                    faces[f].Deleted = true;
+                    visible[visCount++] = f;
+                }
             if (visCount == 0) return false;
 
-            int firstNew = faceCount;
-            for (int f = 0; f < firstNew; f++)
+            // Build the horizon only from faces made visible by THIS point. Faces deleted in
+            // earlier rounds remain flagged Deleted but must not be revisited, otherwise their
+            // stale edges would spawn duplicate/unstitched faces.
+            for (int k = 0; k < visCount; k++)
             {
-                if (!faces[f].Deleted) continue;
+                int f = visible[k];
                 TryCreateNewFace(faces, f, faces[f].B, faces[f].C, faces[f].F0, p, ref faceCount, head);
                 TryCreateNewFace(faces, f, faces[f].C, faces[f].A, faces[f].F1, p, ref faceCount, head);
                 TryCreateNewFace(faces, f, faces[f].A, faces[f].B, faces[f].F2, p, ref faceCount, head);
@@ -106,10 +125,15 @@ namespace IAFahim.Geometry.Hull
             if (!faces[neighbor].Deleted)
             {
                 int newF = faceCount++;
-                faces[newF] = new Face { A = v, B = u, C = p };
+                // The deleted face's forward edge is (u,v); the new face keeps that edge in the
+                // same outward orientation as (A,B) = (u,v), with the new apex p as C.
+                faces[newF] = new Face { A = u, B = v, C = p };
+                // Surviving horizon face carries this shared edge reversed as (v,u); link it back.
                 SetNeighbor(faces, neighbor, v, u, newF);
-                SetNeighbor(faces, newF, u, v, neighbor);
-                head[u] = newF;
+                // On the new face the shared horizon edge is (A,B) = (u,v) -> slot F2.
+                faces[newF].F2 = neighbor;
+                // Index this new face by its B vertex for sibling stitching in FixNeighbors.
+                head[v] = newF;
             }
         }
 
@@ -117,14 +141,15 @@ namespace IAFahim.Geometry.Hull
         {
             for (int f = 0; f < faceCount; f++)
             {
-                if (faces[f].Deleted || head[faces[f].B] == -1) continue;
+                // A genuine new face of this round is the unique face indexed by its own B vertex.
+                if (faces[f].Deleted || head[faces[f].B] != f) continue;
                 int nextF = head[faces[f].A];
                 if (nextF != -1)
                 {
-                    SetNeighbor(faces, f, faces[f].C, faces[f].A, nextF); // Error in previous logic? Let's check: B is u, A is v.
-                    // Actually, let's keep it simple as in original if it worked, but extracted.
-                    // Re-checking original logic: u = faces[f].B; v = faces[f].A; nextF = head[v];
-                    // SetNeighbor(faces, f, i, v, nextF); // i is p
+                    // f shares directed edge (p, A) with the sibling new face nextF: that is f's
+                    // (C,A) edge -> slot F1, and the sibling's (B,C) edge -> slot F0.
+                    SetNeighbor(faces, f, faces[f].C, faces[f].A, nextF);
+                    SetNeighbor(faces, nextF, faces[nextF].B, faces[nextF].C, f);
                 }
             }
             // Reset head

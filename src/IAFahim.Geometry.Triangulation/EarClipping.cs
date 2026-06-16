@@ -73,7 +73,7 @@ namespace IAFahim.Geometry.Triangulation
                     float distSq = math.distancesq(oPt, hPt);
                     if (distSq < minDistSq)
                     {
-                        if (IsValidBridge(vertices, mergedIndices, *mergedCount, holeStart, holeSize, oPt, hPt))
+                        if (IsValidBridge(vertices, mergedIndices, *mergedCount, holeStart, holeSize, oIdx, hIdx, oPt, hPt))
                         {
                             minDistSq = distSq;
                             bestOuter = i;
@@ -95,10 +95,16 @@ namespace IAFahim.Geometry.Triangulation
                 }
 
                 mergedIndices[insertPos] = outerIdx;
+                int holeWrap = bestHole;
                 for (int k = 0; k < holeSize; k++)
                 {
-                    int idx = holeStart + (bestHole + k) % holeSize;
+                    int idx = holeStart + holeWrap;
                     mergedIndices[insertPos + 1 + k] = idx;
+                    holeWrap++;
+                    if (holeWrap == holeSize)
+                    {
+                        holeWrap = 0;
+                    }
                 }
 
                 mergedIndices[insertPos + 1 + holeSize] = outerIdx;
@@ -108,19 +114,36 @@ namespace IAFahim.Geometry.Triangulation
         }
 
         private static bool IsValidBridge(
-            float2* vertices, 
-            int* mergedIndices, 
-            int mergedCount, 
-            int holeStart, 
-            int holeSize, 
-            float2 oPt, 
+            float2* vertices,
+            int* mergedIndices,
+            int mergedCount,
+            int holeStart,
+            int holeSize,
+            int outerIdx,
+            int holeIdx,
+            float2 oPt,
             float2 hPt)
         {
             for (int i = 0; i < mergedCount; i++)
             {
-                int next = (i + 1) % mergedCount;
-                float2 a = vertices[mergedIndices[i]];
-                float2 b = vertices[mergedIndices[next]];
+                int next = i + 1;
+                if (next == mergedCount)
+                {
+                    next = 0;
+                }
+
+                int aIdx = mergedIndices[i];
+                int bIdx = mergedIndices[next];
+
+                // Skip polygon edges incident to the bridge's outer endpoint: the
+                // bridge shares that vertex, so a touch there is not a real crossing.
+                if (aIdx == outerIdx || bIdx == outerIdx)
+                {
+                    continue;
+                }
+
+                float2 a = vertices[aIdx];
+                float2 b = vertices[bIdx];
 
                 if (LineSegmentsIntersect(oPt, hPt, a, b))
                 {
@@ -130,9 +153,23 @@ namespace IAFahim.Geometry.Triangulation
 
             for (int j = 0; j < holeSize; j++)
             {
-                int next = (j + 1) % holeSize;
-                float2 a = vertices[holeStart + j];
-                float2 b = vertices[holeStart + next];
+                int next = j + 1;
+                if (next == holeSize)
+                {
+                    next = 0;
+                }
+
+                int aIdx = holeStart + j;
+                int bIdx = holeStart + next;
+
+                // Skip hole edges incident to the bridge's hole endpoint.
+                if (aIdx == holeIdx || bIdx == holeIdx)
+                {
+                    continue;
+                }
+
+                float2 a = vertices[aIdx];
+                float2 b = vertices[bIdx];
 
                 if (LineSegmentsIntersect(oPt, hPt, a, b))
                 {
@@ -209,8 +246,17 @@ namespace IAFahim.Geometry.Triangulation
 
                 for (int i = 0; i < activeCount; i++)
                 {
-                    int prev = (i - 1 + activeCount) % activeCount;
-                    int next = (i + 1) % activeCount;
+                    int prev = i - 1;
+                    if (prev < 0)
+                    {
+                        prev = activeCount - 1;
+                    }
+
+                    int next = i + 1;
+                    if (next == activeCount)
+                    {
+                        next = 0;
+                    }
 
                     int prevIdx = activeIndices[prev];
                     int currIdx = activeIndices[i];
@@ -300,7 +346,12 @@ namespace IAFahim.Geometry.Triangulation
             float area = Zero;
             for (int i = 0; i < count; i++)
             {
-                int next = (i + 1) % count;
+                int next = i + 1;
+                if (next == count)
+                {
+                    next = 0;
+                }
+
                 float2 currPt = vertices[indices[i]];
                 float2 nextPt = vertices[indices[next]];
                 area += (nextPt.x - currPt.x) * (nextPt.y + currPt.y);

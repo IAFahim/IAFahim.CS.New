@@ -69,25 +69,17 @@ namespace Unity.Collections
             this.state->Allocator = allocator;
 
             int bucketCount = capacity < MinBucketCount ? MinBucketCount : capacity * 2;
-            int powerOf2 = 1;
-            while (powerOf2 < bucketCount)
-            {
-                powerOf2 <<= 1;
-            }
-            this.state->BucketCount = powerOf2;
+            this.state->BucketCount = NextPow2(bucketCount);
 
             this.state->Keys = capacity > 0 ? (T*)Marshal.AllocHGlobal((IntPtr)((long)capacity * sizeof(T))) : null;
             this.state->Next = capacity > 0 ? (int*)Marshal.AllocHGlobal((IntPtr)((long)capacity * sizeof(int))) : null;
             this.state->Buckets = (int*)Marshal.AllocHGlobal((IntPtr)((long)this.state->BucketCount * sizeof(int)));
 
-            for (int i = 0; i < capacity; i++)
+            if (capacity > 0)
             {
-                this.state->Next[i] = EmptyBucket;
+                UnsafeUtility.MemSet(this.state->Next, 0xFF, (long)capacity * sizeof(int));
             }
-            for (int i = 0; i < this.state->BucketCount; i++)
-            {
-                this.state->Buckets[i] = EmptyBucket;
-            }
+            UnsafeUtility.MemSet(this.state->Buckets, 0xFF, (long)this.state->BucketCount * sizeof(int));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -98,19 +90,25 @@ namespace Unity.Collections
                 return false;
             }
 
-            if (this.Contains(item))
+            uint hash = Hash(item);
+            int bucket = (int)(hash & (uint)(this.state->BucketCount - 1));
+
+            int scan = this.state->Buckets[bucket];
+            while (scan != EmptyBucket)
             {
-                return false;
+                if (this.state->Keys[scan].Equals(item))
+                {
+                    return false;
+                }
+                scan = this.state->Next[scan];
             }
 
             if (this.state->Length >= this.state->Capacity)
             {
                 int newCap = this.state->Capacity < 4 ? 8 : this.state->Capacity * 2;
                 this.Reallocate(newCap);
+                bucket = (int)(hash & (uint)(this.state->BucketCount - 1));
             }
-
-            uint hash = Hash(item);
-            int bucket = (int)(hash & (uint)(this.state->BucketCount - 1));
 
             int entryIdx = this.state->Length;
             this.state->Keys[entryIdx] = item;
@@ -218,10 +216,7 @@ namespace Unity.Collections
                 return;
             }
             this.state->Length = 0;
-            for (int i = 0; i < this.state->BucketCount; i++)
-            {
-                this.state->Buckets[i] = EmptyBucket;
-            }
+            UnsafeUtility.MemSet(this.state->Buckets, 0xFF, (long)this.state->BucketCount * sizeof(int));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -278,15 +273,16 @@ namespace Unity.Collections
             T* newKeys = newCapacity > 0 ? (T*)Marshal.AllocHGlobal((IntPtr)((long)newCapacity * sizeof(T))) : null;
             int* newNext = newCapacity > 0 ? (int*)Marshal.AllocHGlobal((IntPtr)((long)newCapacity * sizeof(int))) : null;
 
-            if (this.state->Length > 0)
+            int copyCount = this.state->Length < newCapacity ? this.state->Length : newCapacity;
+            if (copyCount > 0)
             {
-                UnsafeUtility.MemCpy(newKeys, this.state->Keys, (long)this.state->Length * sizeof(T));
-                UnsafeUtility.MemCpy(newNext, this.state->Next, (long)this.state->Length * sizeof(int));
+                UnsafeUtility.MemCpy(newKeys, this.state->Keys, (long)copyCount * sizeof(T));
+                UnsafeUtility.MemCpy(newNext, this.state->Next, (long)copyCount * sizeof(int));
             }
 
-            for (int i = this.state->Length; i < newCapacity; i++)
+            if (copyCount < newCapacity)
             {
-                newNext[i] = EmptyBucket;
+                UnsafeUtility.MemSet(newNext + copyCount, 0xFF, (long)(newCapacity - copyCount) * sizeof(int));
             }
 
             if (this.state->Keys != null)
@@ -301,13 +297,10 @@ namespace Unity.Collections
             this.state->Keys = newKeys;
             this.state->Next = newNext;
             this.state->Capacity = newCapacity;
+            this.state->Length = copyCount;
 
             int newBucketCount = newCapacity < MinBucketCount ? MinBucketCount : newCapacity * 2;
-            int powerOf2 = 1;
-            while (powerOf2 < newBucketCount)
-            {
-                powerOf2 <<= 1;
-            }
+            int powerOf2 = NextPow2(newBucketCount);
 
             if (powerOf2 != this.state->BucketCount)
             {
@@ -316,10 +309,7 @@ namespace Unity.Collections
                 this.state->BucketCount = powerOf2;
             }
 
-            for (int i = 0; i < this.state->BucketCount; i++)
-            {
-                this.state->Buckets[i] = EmptyBucket;
-            }
+            UnsafeUtility.MemSet(this.state->Buckets, 0xFF, (long)this.state->BucketCount * sizeof(int));
 
             for (int i = 0; i < this.state->Length; i++)
             {
@@ -333,14 +323,25 @@ namespace Unity.Collections
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static uint Hash(T key)
         {
-            int h = key.GetHashCode();
+            uint u = (uint)key.GetHashCode();
             uint hash = FnvOffsetBasis;
-            byte* ptr = (byte*)&h;
-            for (int i = 0; i < sizeof(int); i++)
-            {
-                hash = (hash ^ ptr[i]) * FnvPrime;
-            }
+            hash = (hash ^ (u & 0xFFu)) * FnvPrime;
+            hash = (hash ^ ((u >> 8) & 0xFFu)) * FnvPrime;
+            hash = (hash ^ ((u >> 16) & 0xFFu)) * FnvPrime;
+            hash = (hash ^ (u >> 24)) * FnvPrime;
             return hash;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int NextPow2(int bucketCount)
+        {
+            uint v = (uint)(bucketCount - 1);
+            v |= v >> 1;
+            v |= v >> 2;
+            v |= v >> 4;
+            v |= v >> 8;
+            v |= v >> 16;
+            return (int)(v + 1u);
         }
 
         public struct Enumerator : System.Collections.Generic.IEnumerator<T>
@@ -348,14 +349,12 @@ namespace Unity.Collections
             private readonly NativeHashSet<T> set;
             private int bucketIndex;
             private int entryIndex;
-            private T current;
 
             internal Enumerator(NativeHashSet<T> set)
             {
                 this.set = set;
                 this.bucketIndex = -1;
                 this.entryIndex = -1;
-                this.current = default;
             }
 
             public bool MoveNext()
@@ -370,7 +369,6 @@ namespace Unity.Collections
                     this.entryIndex = this.set.state->Next[this.entryIndex];
                     if (this.entryIndex != EmptyBucket)
                     {
-                        this.current = this.set.state->Keys[this.entryIndex];
                         return true;
                     }
                 }
@@ -387,7 +385,6 @@ namespace Unity.Collections
                     if (firstEntry != EmptyBucket)
                     {
                         this.entryIndex = firstEntry;
-                        this.current = this.set.state->Keys[this.entryIndex];
                         return true;
                     }
                 }
@@ -397,10 +394,9 @@ namespace Unity.Collections
             {
                 this.bucketIndex = -1;
                 this.entryIndex = -1;
-                this.current = default;
             }
 
-            public readonly T Current => this.current;
+            public readonly T Current => this.set.state->Keys[this.entryIndex];
             readonly object System.Collections.IEnumerator.Current => this.Current;
 
             public readonly void Dispose()

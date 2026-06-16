@@ -1,5 +1,6 @@
 namespace IAFahim.DS.GapBuffer
 {
+    using System;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
@@ -18,10 +19,10 @@ namespace IAFahim.DS.GapBuffer
         public static void Run(ref GapBufferState s, int pos, byte* data, int len)
         {
             MoveGap(ref s, pos);
-            for (int i = 0; i < len && s.GapStart < s.GapEnd; i++)
-            {
-                s.Buffer[s.GapStart++] = data[i];
-            }
+            int gapSpace = s.GapEnd - s.GapStart;
+            int n = len < gapSpace ? len : gapSpace;
+            Buffer.MemoryCopy(data, s.Buffer + s.GapStart, n, n);
+            s.GapStart += n;
         }
 
         private static void MoveGap(ref GapBufferState s, int pos)
@@ -31,16 +32,14 @@ namespace IAFahim.DS.GapBuffer
             if (pos < s.GapStart)
             {
                 int shift = s.GapStart - pos;
-                for (int i = gapLen - 1; i >= 0; i--)
-                    s.Buffer[pos + gapLen + i] = s.Buffer[pos + i];
+                Buffer.MemoryCopy(s.Buffer + pos, s.Buffer + s.GapEnd - shift, shift, shift);
                 s.GapStart = pos;
                 s.GapEnd = pos + gapLen;
             }
             else
             {
-                int newPos = pos - s.GapStart;
-                for (int i = 0; i < newPos; i++)
-                    s.Buffer[s.GapStart + i] = s.Buffer[s.GapEnd + i];
+                int shift = pos - s.GapStart;
+                Buffer.MemoryCopy(s.Buffer + s.GapEnd, s.Buffer + s.GapStart, shift, shift);
                 s.GapStart = pos;
                 s.GapEnd = pos + gapLen;
             }
@@ -63,16 +62,15 @@ namespace IAFahim.DS.GapBuffer
             int gapLen = s.GapEnd - s.GapStart;
             if (pos < s.GapStart)
             {
-                for (int i = 0; i < gapLen; i++)
-                    s.Buffer[pos + gapLen + (gapLen - 1 - i)] = s.Buffer[pos + (gapLen - 1 - i)];
+                int shift = s.GapStart - pos;
+                Buffer.MemoryCopy(s.Buffer + pos, s.Buffer + s.GapEnd - shift, shift, shift);
                 s.GapStart = pos;
                 s.GapEnd = pos + gapLen;
             }
             else
             {
                 int shift = pos - s.GapStart;
-                for (int i = 0; i < shift; i++)
-                    s.Buffer[s.GapStart + i] = s.Buffer[s.GapEnd + i];
+                Buffer.MemoryCopy(s.Buffer + s.GapEnd, s.Buffer + s.GapStart, shift, shift);
                 s.GapStart = pos;
                 s.GapEnd = pos + gapLen;
             }

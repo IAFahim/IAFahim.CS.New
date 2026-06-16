@@ -77,10 +77,13 @@ namespace BovineLabs.Core.Collections
             var newNext = newData + nextOffset;
             var newBuckets = newData + bucketOffset;
 
-            UnsafeUtility.MemCpy(newData, data->Values, data->KeyCapacity * UnsafeUtility.SizeOf<TValue>());
-            UnsafeUtility.MemCpy(newKeys, data->Keys, data->KeyCapacity * UnsafeUtility.SizeOf<int>());
-            UnsafeUtility.MemCpy(newNext, data->Next, data->KeyCapacity * UnsafeUtility.SizeOf<int>());
-            UnsafeUtility.MemCpy(newBuckets, data->Buckets, data->BucketCapacity * UnsafeUtility.SizeOf<int>());
+            int sizeOfTValue = UnsafeUtility.SizeOf<TValue>();
+            int sizeOfInt = UnsafeUtility.SizeOf<int>();
+
+            UnsafeUtility.MemCpy(newData, data->Values, data->KeyCapacity * sizeOfTValue);
+            UnsafeUtility.MemCpy(newKeys, data->Keys, data->KeyCapacity * sizeOfInt);
+            UnsafeUtility.MemCpy(newNext, data->Next, data->KeyCapacity * sizeOfInt);
+            UnsafeUtility.MemCpy(newBuckets, data->Buckets, data->BucketCapacity * sizeOfInt);
 
             for (var emptyNext = data->KeyCapacity; emptyNext < newCapacity; ++emptyNext)
             {

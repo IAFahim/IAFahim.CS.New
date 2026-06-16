@@ -12,7 +12,7 @@ namespace IAFahim.DP.General
             for (int j = 0; j < m; j++)
             {
                 UpdateProfileDpMasks(m, j, a + i * m, dp, tmp);
-                CopyDp(m, dp, tmp);
+                long* swap = dp; dp = tmp; tmp = swap;
             }
             return dp[0];
         }
@@ -28,25 +28,18 @@ namespace IAFahim.DP.General
         {
             int bit = 1 << j;
             int maskCount = 1 << m;
+            long addV = rowA[j];
             for (int mask = 0; mask < maskCount; mask++) tmp[mask] = dp[mask];
-            for (int mask = 0; mask < maskCount; mask++)
+            for (int mask = bit; mask < maskCount; mask = (mask + 1) | bit)
             {
-                if ((mask & bit) != 0)
+                long cur = dp[mask];
+                if (cur != long.MinValue)
                 {
                     int nmask = mask ^ bit;
-                    if (dp[mask] != long.MinValue)
-                    {
-                        long cand = dp[mask] + rowA[j];
-                        if (cand > tmp[nmask]) tmp[nmask] = cand;
-                    }
+                    long cand = cur + addV;
+                    if (cand > tmp[nmask]) tmp[nmask] = cand;
                 }
             }
-        }
-
-        private static void CopyDp(int m, long* dp, long* tmp)
-        {
-            int maskCount = 1 << m;
-            for (int mask = 0; mask < maskCount; mask++) dp[mask] = tmp[mask];
         }
     }
 
@@ -59,7 +52,7 @@ namespace IAFahim.DP.General
             for (int j = 0; j < m; j++)
             {
                 UpdateBrokenProfileDpMasks(m, j, a + i * m, dp, tmp);
-                CopyDp(m, dp, tmp);
+                long* swap = dp; dp = tmp; tmp = swap;
             }
             return dp[0];
         }
@@ -75,25 +68,18 @@ namespace IAFahim.DP.General
         {
             int bit = 1 << j;
             int maskCount = 1 << m;
+            long addV = rowA[j];
             for (int mask = 0; mask < maskCount; mask++) tmp[mask] = dp[mask];
-            for (int mask = 0; mask < maskCount; mask++)
+            for (int mask = bit; mask < maskCount; mask = (mask + 1) | bit)
             {
-                if ((mask & bit) != 0)
+                long cur = dp[mask];
+                if (cur != long.MinValue)
                 {
                     int nmask = mask ^ bit;
-                    if (dp[mask] != long.MinValue)
-                    {
-                        long cand = dp[mask] + rowA[j];
-                        if (cand > tmp[nmask]) tmp[nmask] = cand;
-                    }
+                    long cand = cur + addV;
+                    if (cand > tmp[nmask]) tmp[nmask] = cand;
                 }
             }
-        }
-
-        private static void CopyDp(int m, long* dp, long* tmp)
-        {
-            int maskCount = 1 << m;
-            for (int mask = 0; mask < maskCount; mask++) dp[mask] = tmp[mask];
         }
     }
 
@@ -116,10 +102,15 @@ namespace IAFahim.DP.General
 
         private static void ProcessTreeKnapsackChild(int u, int vNode, long valV, int weightV, int size, int subSize, long* dp, int cap)
         {
-            for (int i = Math.Min(size, cap) - 1; i >= 0; i--)
+            long val2 = dp[vNode * cap + subSize] + valV;
+            long* dpU = dp + u * cap;
+            int start = Math.Min(size, cap) - 1;
+            int limit = cap - weightV - 1;
+            if (limit < start) start = limit;
+            for (int i = start; i >= 0; i--)
             {
-                long val2 = dp[vNode * cap + subSize] + valV;
-                if (i + weightV < cap) dp[u * cap + i + weightV] = Math.Max(dp[u * cap + i + weightV], val2);
+                long* slot = dpU + i + weightV;
+                if (val2 > *slot) *slot = val2;
             }
         }
     }
@@ -128,7 +119,7 @@ namespace IAFahim.DP.General
     {
         public static long Run(int n, int* a, long* dp, long* tmp)
         {
-            for (int i = 0; i < n; i++) dp[i] = 0;
+            for (int i = 0; i < n; i++) dp[i * n + i] = 0;
             for (int len = 2; len <= n; len++)
             {
                 for (int i = 0; i + len <= n; i++)
@@ -143,15 +134,18 @@ namespace IAFahim.DP.General
         private static long FindBestIntervalSplit(int i, int j, int n, long* dp)
         {
             long best = long.MaxValue;
+            long* rowI = dp + i * n;
+            long* rowK = dp + (i + 1) * n + j;
             for (int k = i; k < j; k++)
             {
-                long d1 = dp[i * n + k];
-                long d2 = dp[(k + 1) * n + j];
+                long d1 = rowI[k];
+                long d2 = *rowK;
                 if (d1 != long.MaxValue && d2 != long.MaxValue)
                 {
                     long cand = d1 + d2 + 1;
                     if (cand < best) best = cand;
                 }
+                rowK += n;
             }
             return best;
         }
@@ -163,12 +157,18 @@ namespace IAFahim.DP.General
         {
             for (int i = 0; i < n + m; i++) c[i] = INF;
             for (int i = 0; i < n; i++)
-            for (int j = 0; j < m; j++)
             {
-                if (a[i] != INF && b[j] != INF)
+                long ai = a[i];
+                if (ai == INF) continue;
+                long* cBase = c + i;
+                for (int j = 0; j < m; j++)
                 {
-                    long val = a[i] + b[j];
-                    if (val < c[i + j]) c[i + j] = val;
+                    long bj = b[j];
+                    if (bj != INF)
+                    {
+                        long val = ai + bj;
+                        if (val < cBase[j]) cBase[j] = val;
+                    }
                 }
             }
         }
@@ -193,16 +193,20 @@ namespace IAFahim.DP.General
         private static long FindBestQuadrangleSplit(int i, int j, int n, long* dp, int* opt)
         {
             long best = long.MaxValue;
-            int bestK = -1;
-            int start = opt[i], end = (i + 1 < n) ? opt[i + 1] : j;
+            int bestK = i;
+            int start = opt[i], end = (i + 1 < n) ? opt[i + 1] : j - 1;
+            if (end > j - 1) end = j - 1;
+            long* rowI = dp + i * n;
+            long* rowK = dp + (start + 1) * n + j;
             for (int k = start; k <= end; k++)
             {
-                long d1 = dp[i * n + k], d2 = dp[k * n + j];
+                long d1 = rowI[k], d2 = *rowK;
                 if (d1 != long.MaxValue && d2 != long.MaxValue)
                 {
                     long val = d1 + d2 + 1;
                     if (val < best) { best = val; bestK = k; }
                 }
+                rowK += n;
             }
             opt[i] = bestK;
             return best;

@@ -9,14 +9,14 @@ namespace IAFahim.Graph.Bridges
                                int* tin, int* low, ref int timer,
                                byte* isArticulation, int* bridgesU, int* bridgesV, ref int bridgeCount)
         {
-            tin[u] = low[u] = ++timer;
+            int tu = tin[u] = low[u] = ++timer;
             int children = 0;
-            
-            for (int e = head[u]; e != 0; e = next[e])
+
+            for (int e = head[u]; e != -1; e = next[e])
             {
                 int v = to[e];
                 if (v == p) continue;
-                
+
                 if (tin[v] != 0)
                 {
                     if (tin[v] < low[u]) low[u] = tin[v];
@@ -25,17 +25,21 @@ namespace IAFahim.Graph.Bridges
                 {
                     children++;
                     Dfs(v, u, head, next, to, tin, low, ref timer, isArticulation, bridgesU, bridgesV, ref bridgeCount);
-                    if (low[v] < low[u]) low[u] = low[v];
-                    
-                    if (low[v] > tin[u])
+                    int lv = low[v];
+                    if (lv < low[u]) low[u] = lv;
+
+                    if (lv >= tu)
                     {
-                        bridgesU[bridgeCount] = u;
-                        bridgesV[bridgeCount] = v;
-                        bridgeCount++;
-                    }
-                    if (low[v] >= tin[u] && p != -1)
-                    {
-                        isArticulation[u] = 1;
+                        if (lv > tu)
+                        {
+                            bridgesU[bridgeCount] = u;
+                            bridgesV[bridgeCount] = v;
+                            bridgeCount++;
+                        }
+                        if (p != -1)
+                        {
+                            isArticulation[u] = 1;
+                        }
                     }
                 }
             }
@@ -52,9 +56,12 @@ namespace IAFahim.Graph.Bridges
                                 byte* isArticulation, int* bridgesU, int* bridgesV, ref int bridgeCount)
         {
             int timer = 0;
-            for (int i = 0; i < n; i++) tin[i] = 0;
-            for (int i = 0; i < n; i++) low[i] = 0;
-            for (int i = 0; i < n; i++) isArticulation[i] = 0;
+            for (int i = 0; i < n; i++)
+            {
+                tin[i] = 0;
+                low[i] = 0;
+                isArticulation[i] = 0;
+            }
             
             for (int i = 0; i < n; i++)
             {

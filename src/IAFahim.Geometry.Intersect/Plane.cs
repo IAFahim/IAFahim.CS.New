@@ -5,10 +5,18 @@ namespace IAFahim.Geometry.Intersect
 
     public static unsafe class Plane
     {
+        // Signed distance for a possibly non-unit normal (n is not assumed normalized).
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double PointPlaneDistance(double px, double py, double pz, double nx, double ny, double nz, double d)
         {
             return (px * nx + py * ny + pz * nz + d) / Math.Sqrt(nx * nx + ny * ny + nz * nz);
+        }
+
+        // Signed distance when the caller guarantees (nx,ny,nz) is unit length; skips the sqrt.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static double PointPlaneDistanceNormalized(double px, double py, double pz, double nx, double ny, double nz, double d)
+        {
+            return px * nx + py * ny + pz * nz + d;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -34,14 +42,27 @@ namespace IAFahim.Geometry.Intersect
         public static bool PlaneIntersection(double n1x, double n1y, double n1z, double d1, double n2x, double n2y, double n2z, double d2,
                                              double* lpx, double* lpy, double* lpz, double* ldx, double* ldy, double* ldz)
         {
-            *ldx = n1y * n2z - n1z * n2y; *ldy = n1z * n2x - n1x * n2z; *ldz = n1x * n2y - n1y * n2x;
-            double dirSq = *ldx * *ldx + *ldy * *ldy + *ldz * *ldz;
+            double dx = n1y * n2z - n1z * n2y;
+            double dy = n1z * n2x - n1x * n2z;
+            double dz = n1x * n2y - n1y * n2x;
+            *ldx = dx; *ldy = dy; *ldz = dz;
+            double dirSq = dx * dx + dy * dy + dz * dz;
             if (dirSq < 1e-24) return false;
-            if (Math.Abs(*ldx) >= Math.Abs(*ldy) && Math.Abs(*ldx) >= Math.Abs(*ldz)) SolvePoint(lpx, lpy, lpz, 0, n1y, n1z, d1, n2y, n2z, d2, *ldx);
-            else if (Math.Abs(*ldy) >= Math.Abs(*ldx) && Math.Abs(*ldy) >= Math.Abs(*ldz)) SolvePoint(lpy, lpx, lpz, 1, n1z, n1x, d1, n2z, n2x, d2, *ldy);
-            else SolvePoint(lpz, lpx, lpy, 2, n1x, n1y, d1, n2x, n2y, d2, *ldz);
+            double ax = Math.Abs(dx);
+            double ay = Math.Abs(dy);
+            double az = Math.Abs(dz);
+            if (ax >= ay && ax >= az) SolvePoint(lpx, lpy, lpz, n1y, n1z, d1, n2y, n2z, d2, dx);
+            else if (ay >= ax && ay >= az) SolvePoint(lpy, lpz, lpx, n1z, n1x, d1, n2z, n2x, d2, dy);
+            else SolvePoint(lpz, lpx, lpy, n1x, n1y, d1, n2x, n2y, d2, dz);
             return true;
         }
-        private static void SolvePoint(double* pFixed, double* p1, double* p2, int axis, double a1, double b1, double d1, double a2, double b2, double d2, double det) { *pFixed = 0; *p1 = (-d1 * b2 + d2 * b1) / det; *p2 = (-a1 * d2 + a2 * d1) / det; }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void SolvePoint(double* pFixed, double* p1, double* p2, double a1, double b1, double d1, double a2, double b2, double d2, double det)
+        {
+            *pFixed = 0.0;
+            *p1 = (-d1 * b2 + d2 * b1) / det;
+            *p2 = (-a1 * d2 + a2 * d1) / det;
+        }
     }
 }

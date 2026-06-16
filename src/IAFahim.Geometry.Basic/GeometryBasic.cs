@@ -98,9 +98,7 @@ namespace IAFahim.Geometry.Basic
         public static int Run(long ax, long ay, long bx, long by, long cx, long cy)
         {
             long cross = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
-            if (cross > 0) return 1;
-            if (cross < 0) return -1;
-            return 0;
+            return (cross > 0 ? 1 : 0) - (cross < 0 ? 1 : 0);
         }
     }
 
@@ -109,10 +107,7 @@ namespace IAFahim.Geometry.Basic
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Run(long ax, long ay, long bx, long by, long cx, long cy)
         {
-            long cross = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
-            if (cross > 0) return 1;
-            if (cross < 0) return -1;
-            return 0;
+            return Orientation.Run(ax, ay, bx, by, cx, cy);
         }
     }
 
@@ -247,11 +242,10 @@ namespace IAFahim.Geometry.Basic
         public static long Run(int n, long* x, long* y)
         {
             long area = 0;
-            for (int i = 0; i < n; i++)
+            for (int i = 0, j = n - 1; i < n; j = i++)
             {
-                int j = (i + 1) % n;
-                area += x[i] * y[j];
-                area -= x[j] * y[i];
+                area += x[j] * y[i];
+                area -= x[i] * y[j];
             }
             if (area < 0) area = -area;
             return area;
@@ -264,16 +258,21 @@ namespace IAFahim.Geometry.Basic
         public static void Run(int n, long* x, long* y, long* cx, long* cy)
         {
             long area = 0;
-            cx[0] = 0;
-            cy[0] = 0;
+            long sumCx = 0;
+            long sumCy = 0;
+            int j = n > 1 ? 1 : 0;
             for (int i = 0; i < n; i++)
             {
-                int j = (i + 1) % n;
-                long cross = x[i] * y[j] - x[j] * y[i];
+                long xi = x[i], yi = y[i], xj = x[j], yj = y[j];
+                long cross = xi * yj - xj * yi;
                 area += cross;
-                cx[0] += (x[i] + x[j]) * cross;
-                cy[0] += (y[i] + y[j]) * cross;
+                sumCx += (xi + xj) * cross;
+                sumCy += (yi + yj) * cross;
+                j++;
+                if (j == n) j = 0;
             }
+            cx[0] = sumCx;
+            cy[0] = sumCy;
             if (area != 0)
             {
                 cx[0] = cx[0] * 3 / area;
@@ -293,9 +292,15 @@ namespace IAFahim.Geometry.Basic
                 long xi = x[i], yi = y[i], xj = x[j], yj = y[j];
                 if ((yi > py) != (yj > py))
                 {
-                    long dy = yj - yi;
-                    long rhs = xi * dy + (xj - xi) * (py - yi);
-                    if (px * dy < rhs) inside = !inside;
+                    // Normalize the edge so it is directed upward (dy > 0). The
+                    // crossing parity is independent of edge direction, but the
+                    // cross-multiplied comparison px < xLo + (xHi-xLo)*(py-yLo)/dy
+                    // is only equivalence-preserving when dy is positive.
+                    long xLo, yLo, xHi, yHi;
+                    if (yi < yj) { xLo = xi; yLo = yi; xHi = xj; yHi = yj; }
+                    else { xLo = xj; yLo = yj; xHi = xi; yHi = yi; }
+                    long dy = yHi - yLo;
+                    if ((px - xLo) * dy < (xHi - xLo) * (py - yLo)) inside = !inside;
                 }
             }
             return inside ? 1 : 0;

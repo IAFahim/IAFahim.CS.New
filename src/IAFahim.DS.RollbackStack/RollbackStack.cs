@@ -1,6 +1,5 @@
 namespace IAFahim.DS.RollbackStack
 {
-    using System;
     using System.Runtime.CompilerServices;
 
     public static unsafe class RollbackStack
@@ -81,26 +80,34 @@ namespace IAFahim.DS.RollbackStack
         {
             while (*currentHistSize > targetHistSize)
             {
-                *currentHistSize -= 3;
-                int node = history[*currentHistSize + 2];
-                parity[node] = history[*currentHistSize + 1];
-                parent[node] = history[*currentHistSize];
+                *currentHistSize -= 2;
+                int loser = history[*currentHistSize];
+                parity[loser] = history[*currentHistSize + 1];
+                parent[loser] = loser;
             }
         }
 
+        // Compression-free walk to the root. Path compression is NOT used because
+        // it mutates parent/parity irreversibly without being recorded in history,
+        // which would corrupt Rollback.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Find(int* parent, int* parity, int x)
         {
-            int root = x;
+            while (parent[x] != x) x = parent[x];
+            return x;
+        }
+
+        // Accumulated parity of x relative to its root (compression-free).
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int ParityToRoot(int* parent, int* parity, int x)
+        {
             int acc = 0;
-            while (parent[root] != root)
+            while (parent[x] != x)
             {
-                acc ^= parity[root];
-                root = parent[root];
+                acc ^= parity[x];
+                x = parent[x];
             }
-            parity[x] ^= acc;
-            parent[x] = root;
-            return root;
+            return acc & 1;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -108,41 +115,33 @@ namespace IAFahim.DS.RollbackStack
         {
             int ra = Find(parent, parity, a);
             int rb = Find(parent, parity, b);
+            int pa = ParityToRoot(parent, parity, a);
+            int pb = ParityToRoot(parent, parity, b);
             if (ra == rb)
             {
-                return ((parity[a] ^ parity[b]) & 1) == 0;
+                return ((pa ^ pb) & 1) == 0;
             }
-            int pa = parent[a];
-            int pb = parent[b];
-            history[(*histSize)++] = pa;
-            history[(*histSize)++] = parity[pa];
-            history[(*histSize)++] = pb;
-            if (parity[a] == parity[b])
+            // Edge (a, b) requires opposite colors: parity(a) ^ parity(b) == 1.
+            // Attach the larger-indexed root (loser) under the smaller-indexed root,
+            // choosing the loser's stored parity so the relation holds across roots.
+            // newParity is direction-independent: pa ^ pb ^ 1.
+            int newParity = pa ^ pb ^ 1;
+            int loser;
+            int winner;
+            if (ra > rb)
             {
-                if (pa > pb)
-                {
-                    parent[pa] = pb;
-                    parity[pa] = 1;
-                }
-                else
-                {
-                    parent[pb] = pa;
-                    parity[pb] = 1;
-                }
+                loser = ra;
+                winner = rb;
             }
             else
             {
-                if (pa > pb)
-                {
-                    parent[pa] = pb;
-                    parity[pa] = 0;
-                }
-                else
-                {
-                    parent[pb] = pa;
-                    parity[pb] = 0;
-                }
+                loser = rb;
+                winner = ra;
             }
+            history[(*histSize)++] = loser;
+            history[(*histSize)++] = parity[loser];
+            parent[loser] = winner;
+            parity[loser] = newParity;
             return true;
         }
     }
@@ -160,13 +159,13 @@ namespace IAFahim.DS.RollbackStack
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool Less<T>(T* ptr, int* priority, int a, int b)
-            where T : unmanaged, IComparable<T>
+            where T : unmanaged
         {
             return priority[a] < priority[b];
         }
 
         public static void HeapifyDown<T>(T* ptr, int* priority, int* heapIdx, int* history, int* histSize, int n, int i)
-            where T : unmanaged, IComparable<T>
+            where T : unmanaged
         {
             while (true)
             {
@@ -191,7 +190,7 @@ namespace IAFahim.DS.RollbackStack
         }
 
         public static void HeapifyUp<T>(T* ptr, int* priority, int* heapIdx, int* history, int* histSize, int i)
-            where T : unmanaged, IComparable<T>
+            where T : unmanaged
         {
             while (i > 0)
             {
@@ -211,20 +210,35 @@ namespace IAFahim.DS.RollbackStack
             }
         }
 
+        // Snapshot captures the history length (the undo marker). Rollback unwinds
+        // exactly the swaps recorded since this point, so this MUST return the
+        // history length, not the heap size.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Snapshot(int* heapSize)
+        public static int Snapshot(int* histSize)
         {
-            return *heapSize;
+            return *histSize;
         }
 
-        public static void Rollback<T>(T* ptr, int* priority, int* heapIdx, int* history, int targetSize, int* currentHistSize, int* heapSize)
-            where T : unmanaged, IComparable<T>
+        // Undo every swap recorded after targetHistSize by replaying it in reverse,
+        // restoring both the heap slots (ptr) and the id->slot mapping (heapIdx).
+        // This is O(K) in the number of swaps since the snapshot and reproduces the
+        // exact pre-snapshot layout. heapSize is reset to the caller-supplied
+        // targetHeapSize captured at snapshot time.
+        public static void Rollback<T>(T* ptr, int* priority, int* heapIdx, int* history, int targetHistSize, int* currentHistSize, int* heapSize, int targetHeapSize)
+            where T : unmanaged
         {
-            *heapSize = targetSize;
-            for (int i = (targetSize - 1) >> 1; i >= 0; i--)
+            while (*currentHistSize > targetHistSize)
             {
-                HeapifyDown(ptr, priority, heapIdx, history, currentHistSize, targetSize, i);
+                *currentHistSize -= 4;
+                int i = history[*currentHistSize];
+                int other = history[*currentHistSize + 1];
+                heapIdx[i] = history[*currentHistSize + 2];
+                heapIdx[other] = history[*currentHistSize + 3];
+                T tmp = ptr[i];
+                ptr[i] = ptr[other];
+                ptr[other] = tmp;
             }
+            *heapSize = targetHeapSize;
         }
     }
 }

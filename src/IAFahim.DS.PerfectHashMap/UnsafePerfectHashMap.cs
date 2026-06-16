@@ -20,32 +20,43 @@ namespace IAFahim.DS.PerfectHashMap
         internal TValue* Values;
 
         internal int Size;
+        internal int Mask;
         internal TValue NullValue;
 
         private readonly AllocatorManager.AllocatorHandle allocator;
 
         public UnsafePerfectHashMap(NativeArray<TKey> keys, NativeArray<TValue> values, TValue nullValue, AllocatorManager.AllocatorHandle allocator)
         {
-            NativeHashSet<int> uniqueSet = new NativeHashSet<int>(keys.Length, Allocator.Temp);
-            AssertCollisionFree(keys, uniqueSet);
+            int keyCount = keys.Length;
+            NativeHashSet<int> uniqueSet = new NativeHashSet<int>(keyCount, Allocator.Temp);
+            NativeArray<int> hashes = new NativeArray<int>(keyCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+            for (int i = 0; i < keyCount; i++)
+            {
+                hashes[i] = keys[i].GetHashCode();
+            }
 
-            int size = FindSize(keys, uniqueSet);
+            AssertCollisionFree(hashes, uniqueSet);
+
+            int size = FindSize(hashes, uniqueSet);
             int valueOffset;
             long totalSize = CalculateDataSize(size, out valueOffset);
 
             void* ptr = Unmanaged.Allocate(totalSize, JobsUtility.CacheLineSize, allocator);
             this.allocator = allocator;
             this.Size = size;
+            this.Mask = size - 1;
             this.NullValue = nullValue;
             this.Keys = (TKey*)ptr;
             this.Values = (TValue*)((byte*)ptr + valueOffset);
 
             UnsafeUtility.MemCpyReplicate(this.Values, &nullValue, sizeof(TValue), size);
 
-            for (int i = 0; i < keys.Length; i++)
+            int mask = size - 1;
+            for (int i = 0; i < keyCount; i++)
             {
-                int index = IndexFor(keys[i], size);
-                this.Keys[index] = keys[i];
+                TKey key = keys[i];
+                int index = hashes[i] & mask;
+                this.Keys[index] = key;
                 this.Values[index] = values[i];
             }
         }
@@ -119,8 +130,8 @@ namespace IAFahim.DS.PerfectHashMap
 
         public bool TryGetValue(TKey key, out TValue item)
         {
-            int index;
-            if (!this.TryGetIndex(key, out index))
+            int index = key.GetHashCode() & this.Mask;
+            if (Hint.Unlikely(!this.Keys[index].Equals(key)))
             {
                 item = default;
                 return false;
@@ -130,17 +141,11 @@ namespace IAFahim.DS.PerfectHashMap
             return !item.Equals(this.NullValue);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int IndexFor(TKey key, int size)
-        {
-            return key.GetHashCode() & (size - 1);
-        }
-
-        private static int FindSize(NativeArray<TKey> keys, NativeHashSet<int> unique)
+        private static int FindSize(NativeArray<int> hashes, NativeHashSet<int> unique)
         {
             int size = 1;
 
-            while (HasCollisions(size, keys, unique))
+            while (HasCollisions(size, hashes, unique))
             {
                 size <<= 1;
             }
@@ -148,14 +153,15 @@ namespace IAFahim.DS.PerfectHashMap
             return size;
         }
 
-        private static bool HasCollisions(int size, NativeArray<TKey> keys, NativeHashSet<int> usedIndexes)
+        private static bool HasCollisions(int size, NativeArray<int> hashes, NativeHashSet<int> usedIndexes)
         {
             usedIndexes.Clear();
 
-            for (int i = 0; i < keys.Length; i++)
+            int mask = size - 1;
+            int count = hashes.Length;
+            for (int i = 0; i < count; i++)
             {
-                TKey key = keys[i];
-                int index = IndexFor(key, size);
+                int index = hashes[i] & mask;
 
                 if (!usedIndexes.Add(index))
                 {
@@ -173,9 +179,12 @@ namespace IAFahim.DS.PerfectHashMap
 
             long keysSize = sizeOfTKey * count;
             long valuesSize = sizeOfTValue * count;
-            long totalSize = valuesSize + keysSize;
 
-            outValueOffset = (int)keysSize;
+            long valueAlign = UnsafeUtility.AlignOf<TValue>();
+            long valueOffset = (keysSize + (valueAlign - 1)) & ~(valueAlign - 1);
+            long totalSize = valueOffset + valuesSize;
+
+            outValueOffset = (int)valueOffset;
 
             return totalSize;
         }
@@ -183,24 +192,17 @@ namespace IAFahim.DS.PerfectHashMap
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool TryGetIndex(TKey key, out int index)
         {
-            index = this.IndexFor(key);
-            return index >= 0 && index < this.Size;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private int IndexFor(TKey key)
-        {
-            return IndexFor(key, this.Size);
+            index = key.GetHashCode() & this.Mask;
+            return this.Keys[index].Equals(key) && !this.Values[index].Equals(this.NullValue);
         }
 
         [Conditional("ENABLE_UNITY_COLLECTIONS_CHECKS")]
         [Conditional("UNITY_DOTS_DEBUG")]
-        private static void AssertCollisionFree(NativeArray<TKey> keys, NativeHashSet<int> unique)
+        private static void AssertCollisionFree(NativeArray<int> hashes, NativeHashSet<int> unique)
         {
-            for (int i = 0; i < keys.Length; i++)
+            for (int i = 0; i < hashes.Length; i++)
             {
-                TKey key = keys[i];
-                if (!unique.Add(key.GetHashCode()))
+                if (!unique.Add(hashes[i]))
                 {
                     throw new ArgumentException("HashCode collision.");
                 }

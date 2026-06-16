@@ -15,12 +15,12 @@ namespace IAFahim.Geometry.Spatial
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Nearest(Node* nodes, int root, double qx, double qy)
+        public static int Nearest(Node* nodes, int n, double qx, double qy)
         {
-            if (root < 0) return -1;
-            int best = root;
+            if (n <= 0) return -1;
+            int best = -1;
             double bd = double.MaxValue;
-            for (int i = 0; i < root + 1 && i < 1024; i++)
+            for (int i = 0; i < n; i++)
             {
                 double dx = nodes[i].X - qx, dy = nodes[i].Y - qy;
                 double d = dx * dx + dy * dy;

@@ -15,12 +15,17 @@ namespace IAFahim.DS.Mo
 
     public static unsafe class MoWithUpdates
     {
-        public static void Run(int n, int* arr, int qCount, Query3D* queries, int uCount, Update* updates, int* ans, int blockSize)
+        // Unchecked: the CALLER guarantees valid input (non-null buffers, valid lengths) BY DESIGN.
+        // freq is a caller-owned, pre-zeroed frequency table whose length must exceed the maximum
+        // value present in arr and in updates' OldVal/NewVal (i.e. freqLen > max value). The caller
+        // owns and reuses this buffer, matching the rest of the library's convention (see MoAlgorithm).
+        // arr is used as scratch by the time-travel loop; on return arr is restored to its original
+        // state (curT rewound to 0), so Run is idempotent across repeated calls on the same buffers.
+        public static void Run(int n, int* arr, int qCount, Query3D* queries, int uCount, Update* updates, int* ans, int blockSize, int* freq)
         {
             SortQueries(queries, qCount, blockSize);
 
             int curL = 0, curR = -1, curT = 0;
-            int* freq = stackalloc int[1000001]; // Assuming max value
             int curAns = 0;
 
             for (int i = 0; i < qCount; i++)
@@ -30,31 +35,60 @@ namespace IAFahim.DS.Mo
                 UpdateRange(ref curL, ref curR, q.L, q.R, arr, freq, ref curAns);
                 ans[q.Id] = curAns;
             }
+
+            // Restore arr to its original state by rewinding the update timeline back to 0.
+            // curL > curR after this is not required; reverts touch arr unconditionally outside [curL,curR].
+            while (curT > 0) { curT--; RevertUpdate(updates[curT], curL, curR, arr, freq, ref curAns); }
         }
 
         private static void SortQueries(Query3D* queries, int q, int b)
         {
-            // Simple insertion sort for small q, or QuickSort for large q.
-            // Using a simple lambda-based comparison for brevity in refactor.
-            for (int i = 0; i < q; i++)
+            if (q <= 1) return;
+            QuickSort(queries, 0, q - 1, b);
+        }
+
+        // Iterative quicksort with tail-recursion elimination on the larger partition to bound
+        // recursion depth to O(log q). Mirrors MoAlgorithm.MoSort.QuickSort.
+        private static void QuickSort(Query3D* queries, int left, int right, int blk)
+        {
+            while (left < right)
             {
-                for (int j = i + 1; j < q; j++)
+                int pivotIdx = left + ((right - left) >> 1);
+                Query3D pivot = queries[pivotIdx];
+                int i = left, j = right;
+                while (i <= j)
                 {
-                    if (CompareQueries(queries[i], queries[j], b) > 0)
+                    while (Less(queries[i], pivot, blk)) i++;
+                    while (Less(pivot, queries[j], blk)) j--;
+                    if (i <= j)
                     {
                         Query3D t = queries[i]; queries[i] = queries[j]; queries[j] = t;
+                        i++; j--;
                     }
+                }
+                // Recurse into the smaller side, loop on the larger side (bounded stack depth).
+                if (j - left < right - i)
+                {
+                    QuickSort(queries, left, j, blk);
+                    left = i;
+                }
+                else
+                {
+                    QuickSort(queries, i, right, blk);
+                    right = j;
                 }
             }
         }
 
-        private static int CompareQueries(Query3D a, Query3D b, int blk)
+        // Total order: L-block, then R-block, then T. Returns true iff a sorts strictly before b.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool Less(Query3D a, Query3D b, int blk)
         {
             int al = a.L / blk, bl = b.L / blk;
-            if (al != bl) return al.CompareTo(bl);
+            if (al != bl) return al < bl;
             int ar = a.R / blk, br = b.R / blk;
-            if (ar != br) return ar.CompareTo(br);
-            return a.T.CompareTo(b.T);
+            if (ar != br) return ar < br;
+            return a.T < b.T;
         }
 
         private static void UpdateT(ref int curT, int targetT, int curL, int curR, int* arr, Update* updates, int* freq, ref int curAns)

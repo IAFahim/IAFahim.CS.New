@@ -9,18 +9,22 @@ namespace IAFahim.DS.RollbackSeg
         {
             if (l == r) { tree[node] = arr[l]; return; }
             int mid = (l + r) >> 1;
-            RunInt32(arr, tree, node * 2, l, mid);
-            RunInt32(arr, tree, node * 2 + 1, mid + 1, r);
-            tree[node] = tree[node * 2] + tree[node * 2 + 1];
+            int c = node * 2;
+            int c1 = c + 1;
+            RunInt32(arr, tree, c, l, mid);
+            RunInt32(arr, tree, c1, mid + 1, r);
+            tree[node] = tree[c] + tree[c1];
         }
 
         public static void RunInt64(long* arr, long* tree, int node, int l, int r)
         {
             if (l == r) { tree[node] = arr[l]; return; }
             int mid = (l + r) >> 1;
-            RunInt64(arr, tree, node * 2, l, mid);
-            RunInt64(arr, tree, node * 2 + 1, mid + 1, r);
-            tree[node] = tree[node * 2] + tree[node * 2 + 1];
+            int c = node * 2;
+            int c1 = c + 1;
+            RunInt64(arr, tree, c, l, mid);
+            RunInt64(arr, tree, c1, mid + 1, r);
+            tree[node] = tree[c] + tree[c1];
         }
     }
 
@@ -29,57 +33,66 @@ namespace IAFahim.DS.RollbackSeg
         public static void RangeAddInt64(long* tree, long* lazy, int* histNode, long* histVal, byte* histType, int* top, int node, int l, int r, int ql, int qr, long val)
         {
             if (qr < l || ql > r) return;
+            int c = node * 2;
+            int c1 = c + 1;
             if (ql <= l && r <= qr)
             {
-                histNode[*top] = node;
-                histVal[*top] = tree[node];
-                histType[*top] = 0;
-                (*top)++;
+                int t = *top;
+                histNode[t] = node;
+                histVal[t] = tree[node];
+                histType[t] = 0;
+                t++;
                 tree[node] += val * (r - l + 1);
                 if (l != r)
                 {
-                    histNode[*top] = node * 2;
-                    histVal[*top] = lazy[node * 2];
-                    histType[*top] = 1;
-                    (*top)++;
-                    histNode[*top] = node * 2 + 1;
-                    histVal[*top] = lazy[node * 2 + 1];
-                    histType[*top] = 1;
-                    (*top)++;
-                    lazy[node * 2] += val;
-                    lazy[node * 2 + 1] += val;
+                    histNode[t] = c;
+                    histVal[t] = lazy[c];
+                    histType[t] = 1;
+                    t++;
+                    histNode[t] = c1;
+                    histVal[t] = lazy[c1];
+                    histType[t] = 1;
+                    t++;
+                    lazy[c] += val;
+                    lazy[c1] += val;
                 }
+                *top = t;
                 return;
             }
             int mid = (l + r) >> 1;
-            RangeAddInt64(tree, lazy, histNode, histVal, histType, top, node * 2, l, mid, ql, qr, val);
-            RangeAddInt64(tree, lazy, histNode, histVal, histType, top, node * 2 + 1, mid + 1, r, ql, qr, val);
-            histNode[*top] = node;
-            histVal[*top] = tree[node];
-            histType[*top] = 0;
-            (*top)++;
-            tree[node] = tree[node * 2] + tree[node * 2 + 1];
+            RangeAddInt64(tree, lazy, histNode, histVal, histType, top, c, l, mid, ql, qr, val);
+            RangeAddInt64(tree, lazy, histNode, histVal, histType, top, c1, mid + 1, r, ql, qr, val);
+            int tt = *top;
+            histNode[tt] = node;
+            histVal[tt] = tree[node];
+            histType[tt] = 0;
+            *top = tt + 1;
+            tree[node] = tree[c] + lazy[c] * (mid - l + 1) + tree[c1] + lazy[c1] * (r - mid);
         }
 
         public static void PointSetInt64(long* tree, int* histNode, long* histVal, byte* histType, int* top, int node, int l, int r, int idx, long val)
         {
             if (l == r)
             {
-                histNode[*top] = node;
-                histVal[*top] = tree[node];
-                histType[*top] = 0;
-                (*top)++;
+                int tl = *top;
+                histNode[tl] = node;
+                histVal[tl] = tree[node];
+                histType[tl] = 0;
+                *top = tl + 1;
                 tree[node] = val;
                 return;
             }
             int mid = (l + r) >> 1;
-            if (idx <= mid) PointSetInt64(tree, histNode, histVal, histType, top, node * 2, l, mid, idx, val);
-            else PointSetInt64(tree, histNode, histVal, histType, top, node * 2 + 1, mid + 1, r, idx, val);
-            histNode[*top] = node;
-            histVal[*top] = tree[node];
-            histType[*top] = 0;
-            (*top)++;
-            tree[node] = tree[node * 2] + tree[node * 2 + 1];
+            int c = node * 2;
+            int c1 = c + 1;
+            if (idx <= mid) PointSetInt64(tree, histNode, histVal, histType, top, c, l, mid, idx, val);
+            else PointSetInt64(tree, histNode, histVal, histType, top, c1, mid + 1, r, idx, val);
+            int t = *top;
+            histNode[t] = node;
+            histVal[t] = tree[node];
+            histType[t] = 0;
+            *top = t + 1;
+            tree[node] = tree[c] + tree[c1];
         }
     }
 
@@ -90,17 +103,19 @@ namespace IAFahim.DS.RollbackSeg
             if (qr < l || ql > r) return 0;
             if (ql <= l && r <= qr) return tree[node];
             int mid = (l + r) >> 1;
+            int c = node * 2;
+            int c1 = c + 1;
             if (l != r)
             {
                 long val = lazy[node];
-                tree[node * 2] += val * (mid - l + 1);
-                tree[node * 2 + 1] += val * (r - mid);
-                lazy[node * 2] += val;
-                lazy[node * 2 + 1] += val;
+                tree[c] += val * (mid - l + 1);
+                tree[c1] += val * (r - mid);
+                lazy[c] += val;
+                lazy[c1] += val;
                 lazy[node] = 0;
             }
-            return RangeSumInt64(tree, lazy, node * 2, l, mid, ql, qr) +
-                   RangeSumInt64(tree, lazy, node * 2 + 1, mid + 1, r, ql, qr);
+            return RangeSumInt64(tree, lazy, c, l, mid, ql, qr) +
+                   RangeSumInt64(tree, lazy, c1, mid + 1, r, ql, qr);
         }
     }
 
@@ -110,9 +125,10 @@ namespace IAFahim.DS.RollbackSeg
         {
             while (*top > checkpoint)
             {
-                long val = histVal[--(*top)];
-                int node = histNode[--(*top)];
-                byte type = histType[--(*top)];
+                int t = --(*top);
+                long val = histVal[t];
+                int node = histNode[t];
+                byte type = histType[t];
                 if (type == 0) tree[node] = val;
                 else lazy[node] = val;
             }
@@ -121,11 +137,12 @@ namespace IAFahim.DS.RollbackSeg
         public static void UndoLast(long* tree, long* lazy, int* histNode, long* histVal, byte* histType, int* top)
         {
             if (*top < 1) return;
-            long val = histVal[--(*top)];
-                int node = histNode[--(*top)];
-                byte type = histType[--(*top)];
-                if (type == 0) tree[node] = val;
-                else lazy[node] = val;
+            int t = --(*top);
+            long val = histVal[t];
+            int node = histNode[t];
+            byte type = histType[t];
+            if (type == 0) tree[node] = val;
+            else lazy[node] = val;
         }
 
         public static int GetCheckpoint(int* top) => *top;
@@ -136,25 +153,28 @@ namespace IAFahim.DS.RollbackSeg
         public static void Run(long* seg, int* left, int* right, long m, long b, int node, long xl, long xr)
         {
             long mid = (xl + xr) >> 1;
-            bool leftBetter = m * xl + b < m * xl + b;
-            long curMid = seg[node * 2 + 0] * mid + seg[node * 2 + 1];
+            int idx2 = node * 2;
+            int idx2b = idx2 + 1;
+            long curMid = seg[idx2] * mid + seg[idx2b];
             long newMid = m * mid + b;
             if (newMid < curMid)
             {
-                long oldM = seg[node * 2 + 0];
-                long oldB = seg[node * 2 + 1];
-                seg[node * 2 + 0] = m;
-                seg[node * 2 + 1] = b;
+                long oldM = seg[idx2];
+                long oldB = seg[idx2b];
+                seg[idx2] = m;
+                seg[idx2b] = b;
                 m = oldM;
                 b = oldB;
             }
             if (xr - xl <= 1) return;
-            if (m * xl + b < seg[node * 2 + 0] * xl + seg[node * 2 + 1])
+            long sm = seg[idx2];
+            long sb = seg[idx2b];
+            if (m * xl + b < sm * xl + sb)
             {
                 if (left[node] == 0) { left[node] = (int)++seg[0]; }
                 Run(seg, left, right, m, b, left[node], xl, mid);
             }
-            else if (m * xr + b < seg[node * 2 + 0] * xr + seg[node * 2 + 1])
+            else if (m * xr + b < sm * xr + sb)
             {
                 if (right[node] == 0) { int next = (int)++seg[0]; right[node] = next; }
                 Run(seg, left, right, m, b, right[node], mid, xr);
@@ -166,7 +186,8 @@ namespace IAFahim.DS.RollbackSeg
     {
         public static long Run(long* seg, int* left, int* right, int node, long xl, long xr, long x)
         {
-            long res = seg[node * 2 + 0] * x + seg[node * 2 + 1];
+            int b2 = node * 2;
+            long res = seg[b2] * x + seg[b2 + 1];
             if (xr - xl <= 1) return res;
             long mid = (xl + xr) >> 1;
             if (x < mid)
@@ -191,9 +212,11 @@ namespace IAFahim.DS.RollbackSeg
             int mid = (lo + hi) >> 1;
             int bestK = l;
             long best = long.MaxValue;
-            for (int i = l; i <= Math.Min(r, mid - 1); i++)
+            int hiBound = r < mid - 1 ? r : mid - 1;
+            long bm = b[mid];
+            for (int i = l; i <= hiBound; i++)
             {
-                long val = dp[i] + a[i] * b[mid] + c[i];
+                long val = dp[i] + a[i] * bm + c[i];
                 if (val < best) { best = val; bestK = i; }
             }
             dp[mid] = best;
@@ -225,8 +248,7 @@ namespace IAFahim.DS.RollbackSeg
         {
             int count = 0;
             for (int i = 0; i < n; i++)
-                if (starts[i] <= point && point <= ends[i])
-                    count++;
+                count += (starts[i] <= point & point <= ends[i]) ? 1 : 0;
             return count;
         }
     }
@@ -237,8 +259,7 @@ namespace IAFahim.DS.RollbackSeg
         {
             int count = 0;
             for (int i = 0; i < n; i++)
-                if (x1[i] <= px && px <= x2[i] && y1[i] <= py && py <= y2[i])
-                    count++;
+                count += (x1[i] <= px & px <= x2[i] & y1[i] <= py & py <= y2[i]) ? 1 : 0;
             return count;
         }
     }

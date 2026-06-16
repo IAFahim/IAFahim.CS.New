@@ -20,21 +20,38 @@ namespace IAFahim.Algebra.GraphPoly
         private static bool IsConnected(int n, int edges, int* from, int* to, int mask, int* parent)
         {
             for (int i = 0; i < n; i++) parent[i] = i;
+            int components = n;
             for (int e = 0; e < edges; e++)
             {
                 if ((mask & (1 << e)) == 0) continue;
                 int u = Find(parent, from[e]), v = Find(parent, to[e]);
-                if (u != v) parent[u] = v;
+                if (u != v)
+                {
+                    parent[u] = v;
+                    components--;
+                }
             }
-            int root = Find(parent, 0);
-            for (int i = 1; i < n; i++)
-                if (Find(parent, i) != root) return false;
-            return true;
+            return components == 1;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long Run(int n, int edges, int* from, int* to, long p, int MOD)
         {
+            long mod = (long)MOD;
+            long q = (1L - p + mod) % mod;
+
+            // Probability of a subgraph depends only on its present-edge count:
+            // present edges contribute p, absent edges contribute q=(1-p).
+            // Precompute pPow[i]=p^i and qPow[i]=q^i for i in [0,edges].
+            long* pPow = stackalloc long[edges + 1];
+            long* qPow = stackalloc long[edges + 1];
+            pPow[0] = 1L;
+            qPow[0] = 1L;
+            for (int i = 1; i <= edges; i++)
+            {
+                pPow[i] = (pPow[i - 1] * p) % mod;
+                qPow[i] = (qPow[i - 1] * q) % mod;
+            }
+
             long result = 0L;
             int size = 1 << edges;
             int* parent = stackalloc int[n];
@@ -44,23 +61,12 @@ namespace IAFahim.Algebra.GraphPoly
                 {
                     int edgeCount = 0;
                     int m = mask;
-                    while (m > 0) { if ((m & 1) != 0) edgeCount++; m >>= 1; }
-                    long prob = CalculateProbability(edges, edgeCount, p, MOD);
-                    result = (result + prob) % (long)MOD;
+                    while (m > 0) { m &= m - 1; edgeCount++; }
+                    long prob = (pPow[edgeCount] * qPow[edges - edgeCount]) % mod;
+                    result = (result + prob) % mod;
                 }
             }
             return result;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static long CalculateProbability(int totalEdges, int edgeCount, long p, int MOD)
-        {
-            long q = (1L - p + (long)MOD) % (long)MOD;
-            long pk = 1L;
-            for (int i = 0; i < edgeCount; i++) pk = (pk * q) % (long)MOD;
-            long qk = 1L;
-            for (int i = 0; i < totalEdges - edgeCount; i++) qk = (qk * p) % (long)MOD;
-            return (pk * qk) % (long)MOD;
         }
     }
 }

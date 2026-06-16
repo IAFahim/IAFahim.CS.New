@@ -17,10 +17,12 @@ namespace IAFahim.DP.Optimization
 
         private static void InitializeDp(int n, long* dp, long* opt)
         {
-            for (int i = 0; i < n * n; i++) { dp[i] = 0; opt[i] = -1; }
+            int total = n * n;
+            for (int i = 0; i < total; i++) { dp[i] = 0; opt[i] = -1; }
             for (int i = 0; i < n; i++) opt[i * n + i] = i;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ComputeRow(int n, int len, long* dp, long* a, long* opt)
         {
             for (int i = 0; i + len <= n; i++)
@@ -30,41 +32,60 @@ namespace IAFahim.DP.Optimization
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static long FindBestSplit(int i, int j, int n, int len, long* dp, long* a, long* opt)
         {
             long best = long.MaxValue;
             int bestK = -1;
-            int start = (int)opt[i * n + j - 1];
+            int rowI = i * n;
+            int start = (int)opt[rowI + j - 1];
             int end = (int)opt[(i + 1) * n + j];
             if (start == -1) start = i;
             if (end == -1) end = j - 1;
 
-            for (int k = start; k <= end && k < j; k++)
+            long cost = a[j + 1] - a[i]; // Cost(i, j) = a[j+1]-a[i], invariant over k
+            int kp1Row = (start + 1) * n;
+            for (int k = start; k <= end && k < j; k++, kp1Row += n)
             {
-                long val = dp[i * n + k] + dp[(k + 1) * n + j] + (a[j + 1] - a[i]); // Cost(i, j) = a[j+1]-a[i]
+                long val = dp[rowI + k] + dp[kp1Row + j];
                 if (val < best) { best = val; bestK = k; }
             }
-            opt[i * n + j] = bestK;
-            return best;
+            opt[rowI + j] = bestK;
+            return bestK == -1 ? best : best + cost;
         }
     }
 
     public static unsafe class LiChaoAddLine
     {
+        // Inserts the line y = m*x + b over the integer coordinate domain [x1, x2].
+        // Precondition (unchecked): x1 <= x2. The recursion is driven solely by the
+        // coordinate domain (a single, consistent subdivision); the index bounds l, r
+        // are accepted for API compatibility but are not used for routing.
+        // Storage for node N lives in seg[N*2] (slope) and seg[N*2+1] (intercept);
+        // children are nodes N*2+1 (left, [x1, midX]) and N*2+2 (right, [midX+1, x2]).
         public static void Run(long* seg, long m, long b, int node, int l, int r, long x1, long x2)
         {
-            int mid = (l + r) >> 1;
-            long midX = x1 + (x2 - x1) / 2;
+            long midX = x1 + ((x2 - x1) >> 1); // x2 >= x1 invariant => >>1 == /2
             long curMidM = seg[node * 2 + 0], curMidB = seg[node * 2 + 1];
-            
-            bool betterAtMid = (m * midX + b < curMidM * midX + curMidB);
-            if (betterAtMid) { Swap(ref m, ref curMidM); Swap(ref b, ref curMidB); seg[node * 2 + 0] = curMidM; seg[node * 2 + 1] = curMidB; }
-            
-            if (r - l == 1) return;
-            if (m * x1 + b < curMidM * x1 + curMidB) Run(seg, m, b, node * 2 + 1, l, mid, x1, midX);
-            else Run(seg, m, b, node * 2 + 2, mid, r, midX, x2);
-        }
 
-        private static void Swap(ref long x, ref long y) { long t = x; x = y; y = t; }
+            // Keep the line that is better at the midpoint stored at this node;
+            // continue descending with the displaced line. After this block,
+            // (curMidM, curMidB) is the line now stored at the node and
+            // (m, b) is the displaced line that descends.
+            if (m * midX + b < curMidM * midX + curMidB)
+            {
+                long displacedM = curMidM, displacedB = curMidB;
+                curMidM = m;
+                curMidB = b;
+                seg[node * 2 + 0] = curMidM;
+                seg[node * 2 + 1] = curMidB;
+                m = displacedM;
+                b = displacedB;
+            }
+
+            if (x1 == x2) return;
+            if (m * x1 + b < curMidM * x1 + curMidB) Run(seg, m, b, node * 2 + 1, l, r, x1, midX);
+            else Run(seg, m, b, node * 2 + 2, l, r, midX + 1, x2);
+        }
     }
 }
