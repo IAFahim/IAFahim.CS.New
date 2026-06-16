@@ -8,25 +8,26 @@ namespace IAFahim.Graph.Flow
         public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, int* flow)
         {
             long totalCost = 0;
-            for (int i = 0; i < n * 2; i++) flow[i] = 0;
+            int twoN = n << 1;
+            for (int i = 0; i < twoN; i++) flow[i] = 0;
             long* dist = stackalloc long[n];
             int* parent = stackalloc int[n];
             int* parentEdge = stackalloc int[n];
             long* pot = stackalloc long[n];
             for (int i = 0; i < n; i++) pot[i] = 0;
+            long* pqDist = stackalloc long[n];
+            int* pqV = stackalloc int[n];
+            int* pqPos = stackalloc int[n];
             while (true)
             {
-                for (int i = 0; i < n; i++) { dist[i] = long.MaxValue; parent[i] = -1; }
+                for (int i = 0; i < n; i++) { dist[i] = long.MaxValue; parent[i] = -1; pqPos[i] = -1; }
                 dist[s] = 0;
-                long* pqDist = stackalloc long[n];
-                int* pqV = stackalloc int[n];
-                int* pqPos = stackalloc int[n];
                 int pqSize = 0;
-                for (int i = 0; i < n; i++) pqPos[i] = -1;
                 PushHeap(pqV, pqDist, pqPos, &pqSize, s, 0);
                 while (pqSize > 0)
                 {
                     int u = PopMin(pqV, pqDist, pqPos, &pqSize);
+                    if (u == t) break;
                     for (int e = head[u]; e != 0; e = next[e])
                     {
                         if (cap[e] - flow[e] <= 0) continue;
@@ -50,10 +51,16 @@ namespace IAFahim.Graph.Flow
             return totalCost;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void PushHeap(int* pqV, long* pqDist, int* pqPos, int* pqSize, int v, long d)
         {
-            int i = (*pqSize)++;
-            pqV[i] = v; pqDist[i] = d; pqPos[v] = i;
+            int i = pqPos[v];
+            if (i == -1)
+            {
+                i = (*pqSize)++;
+                pqV[i] = v; pqPos[v] = i;
+            }
+            pqDist[i] = d;
             while (i > 0)
             {
                 int p = (i - 1) >> 1;
@@ -65,6 +72,7 @@ namespace IAFahim.Graph.Flow
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int PopMin(int* pqV, long* pqDist, int* pqPos, int* pqSize)
         {
             int minV = pqV[0];
@@ -78,7 +86,7 @@ namespace IAFahim.Graph.Flow
                 int i = 0;
                 while (true)
                 {
-                    int l = i * 2 + 1, r = i * 2 + 2, smallest = i;
+                    int l = (i << 1) + 1, r = (i << 1) + 2, smallest = i;
                     if (l < *pqSize && pqDist[l] < pqDist[smallest]) smallest = l;
                     if (r < *pqSize && pqDist[r] < pqDist[smallest]) smallest = r;
                     if (smallest == i) break;

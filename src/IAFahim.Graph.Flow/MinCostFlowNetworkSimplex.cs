@@ -24,37 +24,51 @@ namespace IAFahim.Graph.Flow
                     }
                 if (!updated) break;
             }
+
+            long* dist = stackalloc long[n];
+            int* parent = stackalloc int[n];
+            int* parentEdge = stackalloc int[n];
+            int qcap = n + 1;
+            int* q = stackalloc int[qcap];
+            byte* inQueue = stackalloc byte[n];
+
             while (true)
             {
-                int* d = stackalloc int[n];
-                int* p = stackalloc int[n];
-                int* eid = stackalloc int[n];
-                for (int i = 0; i < n; i++) { d[i] = 0; p[i] = -1; eid[i] = 0; }
+                for (int i = 0; i < n; i++) { dist[i] = long.MaxValue; parent[i] = -1; inQueue[i] = 0; }
                 int qh = 0, qt = 0;
-                int* q = stackalloc int[n];
-                d[s] = 1; q[qt++] = s;
-                while (qh < qt)
+                dist[s] = 0;
+                q[qt++] = s; inQueue[s] = 1;
+                while (qh != qt)
                 {
                     int uu = q[qh++];
+                    if (qh == qcap) qh = 0;
+                    inQueue[uu] = 0;
+                    long du = dist[uu];
                     for (int e = head[uu]; e != 0; e = next[e])
                     {
                         if (cap[e] - flow[e] <= 0) continue;
                         int vv = to[e];
-                        if (d[vv] == 0) { d[vv] = 1; p[vv] = uu; eid[vv] = e; q[qt++] = vv; }
-                    }
-                    for (int e = head[uu]; e != 0; e = next[e])
-                    {
-                        if (flow[e] <= 0) continue;
-                        int vv = to[e];
-                        if (d[vv] == 0) { d[vv] = 1; p[vv] = uu; eid[vv] = e; q[qt++] = vv; }
+                        long nd = du + cost[e] + pi[uu] - pi[vv];
+                        if (nd < dist[vv])
+                        {
+                            dist[vv] = nd;
+                            parent[vv] = uu;
+                            parentEdge[vv] = e;
+                            if (inQueue[vv] == 0)
+                            {
+                                inQueue[vv] = 1;
+                                q[qt++] = vv;
+                                if (qt == qcap) qt = 0;
+                            }
+                        }
                     }
                 }
-                if (d[t] == 0) break;
+                if (dist[t] == long.MaxValue) break;
+                for (int i = 0; i < n; i++) if (dist[i] < long.MaxValue) pi[i] += dist[i];
+
                 int add = int.MaxValue;
-                int vt = t;
-                while (vt != s) { int e = eid[vt]; add = Math.Min(add, cap[e] - flow[e]); vt = p[vt]; }
-                vt = t;
-                while (vt != s) { int e = eid[vt]; flow[e] += add; flow[e ^ 1] -= add; totalCost += (long)cost[e] * add; vt = p[vt]; }
+                for (int vt = t; vt != s; vt = parent[vt]) { int e = parentEdge[vt]; if (cap[e] - flow[e] < add) add = cap[e] - flow[e]; }
+                for (int vt = t; vt != s; vt = parent[vt]) { int e = parentEdge[vt]; flow[e] += add; flow[e ^ 1] -= add; totalCost += (long)cost[e] * add; }
             }
             return totalCost;
         }

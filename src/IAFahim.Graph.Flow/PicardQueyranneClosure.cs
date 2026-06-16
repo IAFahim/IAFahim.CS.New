@@ -7,14 +7,22 @@ namespace IAFahim.Graph.Flow
     {
         public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, int* flow, int* nodeWeight)
         {
+            int nn = n + 2;
+            int maxEdges = n * 6;
+            // Buffers are hoisted out of the i-loop: stackalloc inside a loop is not
+            // freed per iteration, so allocating here once keeps stack usage O(maxEdges)
+            // instead of O(n * maxEdges).
+            int* newHead = stackalloc int[nn];
+            int* newTo = stackalloc int[maxEdges];
+            int* newNext = stackalloc int[maxEdges];
+            int* newCap = stackalloc int[maxEdges];
             long minCut = long.MaxValue;
             for (int i = 0; i < n; i++)
             {
-                int nn = n + 2, edgeId = 1;
-                int* newHead = stackalloc int[nn];
-                int* newTo = stackalloc int[n * 6];
-                int* newNext = stackalloc int[n * 6];
-                int* newCap = stackalloc int[n * 6];
+                // Edge ids must start at 2 so the reverse-edge XOR pairing (e ^ 1) in
+                // DinicDfs maps (2,3),(4,5),... and never aliases the head[] sentinel
+                // slot 0. Reset per iteration since the network is rebuilt each pass.
+                int edgeId = 2;
                 for (int j = 0; j < nn; j++) newHead[j] = 0;
                 MinCostFlowAddEdge.Run(newHead, newTo, newNext, null, newCap, &edgeId, i, t, 0, int.MaxValue);
                 for (int j = 0; j < n; j++)
@@ -25,6 +33,10 @@ namespace IAFahim.Graph.Flow
                 for (int u = 0; u < n; u++)
                     for (int e = head[u]; e != 0; e = next[e])
                         MinCostFlowAddEdge.Run(newHead, newTo, newNext, null, newCap, &edgeId, u, to[e], 0, int.MaxValue);
+                // DinicMaxFlow does not zero flow on entry; clear the slots this iteration
+                // uses so stale residual flow from a previous (differently-built) network
+                // cannot leak in and corrupt the max-flow / cut value.
+                for (int e = 0; e < edgeId; e++) flow[e] = 0;
                 long cutVal = DinicMaxFlow.Run(nn, s, i, newHead, newTo, newNext, newCap, flow);
                 if (cutVal < minCut) minCut = cutVal;
             }

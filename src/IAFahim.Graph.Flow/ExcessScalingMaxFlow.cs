@@ -31,13 +31,14 @@ namespace IAFahim.Graph.Flow
                 while (qh < qt)
                 {
                     int u = q[qh++];
+                    int lu1 = level[u] + 1;
                     for (int e = head[u]; e != 0; e = next[e])
                     {
                         int v = to[e];
                         int rcap = cap[e] - flow[e];
                         if (rcap >= sf && level[v] == -1)
                         {
-                            level[v] = level[u] + 1;
+                            level[v] = lu1;
                             q[qt++] = v;
                         }
                     }
@@ -48,11 +49,12 @@ namespace IAFahim.Graph.Flow
                 while (qh < qt && excess[s] > 0)
                 {
                     int u = q[qh++];
+                    int lu1 = level[u] + 1;
                     for (int e = head[u]; e != 0; e = next[e])
                     {
                         int v = to[e];
                         int rcap = cap[e] - flow[e];
-                        if (rcap >= sf && level[v] == level[u] + 1)
+                        if (rcap >= sf && level[v] == lu1)
                         {
                             int pushed = Math.Min(excess[u], rcap);
                             excess[v] += pushed; excess[u] -= pushed;
@@ -64,10 +66,9 @@ namespace IAFahim.Graph.Flow
                 if (excess[s] == 0) scalingFactor = sf;
                 else scalingFactor >>= 1;
             }
-            for (int u = 0; u < n; u++)
-                for (int e = head[u]; e != 0; e = next[e])
-                    totalFlow += flow[e];
-            return totalFlow / 2;
+            for (int e = head[s]; e != 0; e = next[e])
+                totalFlow += flow[e];
+            return totalFlow;
         }
     }
 }

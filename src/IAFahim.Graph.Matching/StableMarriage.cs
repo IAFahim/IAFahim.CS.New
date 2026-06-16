@@ -12,8 +12,8 @@ namespace IAFahim.Graph.Matching
             int* manNext = scratch;
             int* womanRank = scratch + n;
             InitializeRanks(n, womanPref, manNext, womanRank);
-            
-            int* stack = scratch + n * 3;
+
+            int* stack = scratch + n + n * n;
             int top = 0;
             for (int i = 0; i < n; i++) stack[top++] = i;
             while (top > 0)
@@ -43,7 +43,8 @@ namespace IAFahim.Graph.Matching
             else
             {
                 int m2 = womanMatch[w];
-                if (womanRank[w * n + m] < womanRank[w * n + m2])
+                int* wRow = womanRank + w * n;
+                if (wRow[m] < wRow[m2])
                 {
                     manMatch[m2] = -1; manMatch[m] = w; womanMatch[w] = m;
                     stack[top++] = m2;
@@ -74,7 +75,11 @@ namespace IAFahim.Graph.Matching
                 int w2 = manPref[m * n + i];
                 if (w2 == w) break;
                 int m2 = womanMatch[w2];
-                if (m2 != -1 && womanRank[w2 * n + m] < womanRank[w2 * n + m2]) return false;
+                if (m2 != -1)
+                {
+                    int* w2Row = womanRank + w2 * n;
+                    if (w2Row[m] < w2Row[m2]) return false;
+                }
             }
             return true;
         }
@@ -104,7 +109,7 @@ namespace IAFahim.Graph.Matching
                     womanRank[w * n + mID] = r;
                 }
             }
-            int* stack = scratch + n * 3;
+            int* stack = scratch + n + n * n;
             int top = 0;
             for (int i = 0; i < n; i++) stack[top++] = i;
             *histSize = 0;
@@ -123,7 +128,8 @@ namespace IAFahim.Graph.Matching
                 else
                 {
                     int m2 = womanMatch[w];
-                    if (womanRank[w * n + m] < womanRank[w * n + m2])
+                    int* wRow = womanRank + w * n;
+                    if (wRow[m] < wRow[m2])
                     {
                         manMatch[m2] = -1;
                         manMatch[m] = w;

@@ -3,80 +3,6 @@ namespace IAFahim.Graph.Matching
     using System;
     using System.Runtime.CompilerServices;
 
-    internal unsafe struct MinHeap
-    {
-        public long* Dist;
-        public int* V;
-        public int* Pos;
-        public int Size;
-
-        public MinHeap(int n)
-        {
-            Dist = (long*)System.Runtime.InteropServices.Marshal.AllocHGlobal(n * sizeof(long));
-            V = (int*)System.Runtime.InteropServices.Marshal.AllocHGlobal(n * sizeof(int));
-            Pos = (int*)System.Runtime.InteropServices.Marshal.AllocHGlobal(n * sizeof(int));
-            for (int i = 0; i < n; i++) Pos[i] = -1;
-            Size = 0;
-        }
-
-        public void Dispose()
-        {
-            System.Runtime.InteropServices.Marshal.FreeHGlobal((nint)Dist);
-            System.Runtime.InteropServices.Marshal.FreeHGlobal((nint)V);
-            System.Runtime.InteropServices.Marshal.FreeHGlobal((nint)Pos);
-        }
-
-        public void PushOrUpdate(int v, long d)
-        {
-            int idx = Pos[v];
-            if (idx == -1)
-            {
-                idx = Size++;
-                V[idx] = v;
-            }
-            Dist[idx] = d;
-            while (idx > 0)
-            {
-                int p = (idx - 1) / 2;
-                if (Dist[p] <= Dist[idx]) break;
-                long tmpD = Dist[p]; Dist[p] = Dist[idx]; Dist[idx] = tmpD;
-                int tmpV = V[p]; V[p] = V[idx]; V[idx] = tmpV;
-                Pos[V[p]] = p;
-                Pos[V[idx]] = idx;
-                idx = p;
-            }
-        }
-
-        public int Pop(out long d)
-        {
-            int u = V[0];
-            d = Dist[0];
-            Pos[u] = -1;
-            Size--;
-            if (Size > 0)
-            {
-                Dist[0] = Dist[Size];
-                V[0] = V[Size];
-                Pos[V[0]] = 0;
-                int idx = 0;
-                while (idx * 2 + 1 < Size)
-                {
-                    int left = idx * 2 + 1;
-                    int right = idx * 2 + 2;
-                    int smallest = left;
-                    if (right < Size && Dist[right] < Dist[left]) smallest = right;
-                    if (Dist[idx] <= Dist[smallest]) break;
-                    long tmpD = Dist[idx]; Dist[idx] = Dist[smallest]; Dist[smallest] = tmpD;
-                    int tmpV = V[idx]; V[idx] = V[smallest]; V[smallest] = tmpV;
-                    Pos[V[idx]] = idx;
-                    Pos[V[smallest]] = smallest;
-                    idx = smallest;
-                }
-            }
-            return u;
-        }
-    }
-
     public static unsafe class BlossomGeneral
     {
         private static int GetLca(int n, int* base_, int* parent, int* match, int* inPath, int u, int v)
@@ -204,55 +130,111 @@ namespace IAFahim.Graph.Matching
 
     public static unsafe class WeightedBlossom
     {
+        // Minimum-cost perfect assignment via successive shortest paths (Jonker-Volgenant).
+        // Treats the n*n row-major matrix w as a complete bipartite graph between n rows
+        // and n columns; produces a permutation in match[] (match[row] = assigned column)
+        // minimizing the total weight sum over w[row*n + match[row]].
+        // Caller guarantees n >= 0, w points to n*n valid longs, match points to n valid ints.
+        private const long Infinity = long.MaxValue;
+        private const int None = -1;
+        // Dummy column index used as the alternating-tree root sentinel; lives one past the
+        // real columns, so internal buffers are sized n + 1.
+        private const int DummyOffset = 1;
+
         public static long Run(int n, long* w, int* match)
         {
-            for (int i = 0; i < n; i++) match[i] = -1;
-            long* potentials = stackalloc long[n];
-            for (int i = 0; i < n; i++) potentials[i] = 0;
+            for (int row = 0; row < n; row++) match[row] = None;
+            if (n == 0) return 0;
 
-            for (int i = 0; i < n; i++)
-            {
-                if (match[i] == -1) min_cost_augment(n, i, w, potentials, match);
-            }
-            return CalculateTotalWeight(n, w, match);
+            int size = n + DummyOffset;
+            long* u = stackalloc long[size];
+            long* v = stackalloc long[size];
+            long* minv = stackalloc long[size];
+            int* way = stackalloc int[size];
+            int* used = stackalloc int[size];
+            // colRow[col] = row currently matched to column col (col in 1..n); colRow[0] is
+            // the dummy slot holding the row being inserted. 0 means "unmatched".
+            int* colRow = stackalloc int[size];
+            for (int j = 0; j < size; j++) { u[j] = 0; v[j] = 0; colRow[j] = 0; }
+
+            for (int row = 1; row <= n; row++)
+                AssignRow(n, row, w, u, v, minv, way, used, colRow);
+
+            return Finalize(n, w, colRow, match);
         }
 
-        private static void min_cost_augment(int n, int i, long* w, long* potentials, int* match)
+        // Inserts one row into the assignment, finding the cheapest augmenting alternating
+        // path from this row to an unmatched column and flipping the matching along it.
+        private static void AssignRow(int n, int row, long* w, long* u, long* v, long* minv, int* way, int* used, int* colRow)
         {
-            long* dist = stackalloc long[n];
-            int* parent = stackalloc int[n];
-            for (int j = 0; j < n; j++) { dist[j] = long.MaxValue; parent[j] = -1; }
-            dist[i] = 0;
-            MinHeap pq = new MinHeap(n);
-            try
+            int size = n + DummyOffset;
+            colRow[0] = row;
+            int j0 = 0;
+            for (int j = 0; j < size; j++) { minv[j] = Infinity; used[j] = 0; way[j] = 0; }
+
+            do
             {
-                pq.PushOrUpdate(i, 0);
-                while (pq.Size > 0)
-                {
-                    int u = pq.Pop(out long d);
-                    if (d != dist[u]) continue;
-                    RelaxEdges(n, u, i, w, potentials, dist, parent, &pq);
-                }
-            }
-            finally { pq.Dispose(); }
-            for (int j = 0; j < n; j++) if (dist[j] != long.MaxValue) potentials[j] += dist[j];
+                used[j0] = 1;
+                int i0 = colRow[j0];
+                long delta = Infinity;
+                int j1 = None;
+                ScanColumns(n, i0, j0, w, u, v, minv, way, used, ref delta, ref j1);
+                ApplyDelta(n, delta, u, v, minv, colRow, used);
+                j0 = j1;
+            } while (colRow[j0] != 0);
+
+            BacktrackPath(way, colRow, j0);
         }
 
-        private static void RelaxEdges(int n, int u, int i, long* w, long* potentials, long* dist, int* parent, MinHeap* pq)
+        // Relaxes every still-unused real column against the freshly added row i0, recording
+        // the best predecessor and the global minimum reduced cost (delta) and its column.
+        private static void ScanColumns(int n, int i0, int j0, long* w, long* u, long* v, long* minv, int* way, int* used, ref long delta, ref int j1)
         {
-            for (int j = 0; j < n; j++)
+            long* wRow = w + (long)(i0 - 1) * n;
+            long uRow = u[i0];
+            for (int j = 1; j <= n; j++)
             {
-                if (i == j) continue;
-                long ndist = dist[u] + w[u * n + j] - potentials[u] - potentials[j];
-                if (ndist < dist[j]) { dist[j] = ndist; parent[j] = u; pq->PushOrUpdate(j, ndist); }
+                if (used[j] != 0) continue;
+                long cur = wRow[j - 1] - uRow - v[j];
+                if (cur < minv[j]) { minv[j] = cur; way[j] = j0; }
+                if (minv[j] < delta) { delta = minv[j]; j1 = j; }
             }
         }
 
-        private static long CalculateTotalWeight(int n, long* w, int* match)
+        // Shifts the dual potentials by delta so the chosen column's reduced cost reaches 0,
+        // keeping all reduced costs non-negative (the SSSP/Dijkstra invariant).
+        private static void ApplyDelta(int n, long delta, long* u, long* v, long* minv, int* colRow, int* used)
+        {
+            for (int j = 0; j <= n; j++)
+            {
+                if (used[j] != 0) { u[colRow[j]] += delta; v[j] -= delta; }
+                else minv[j] -= delta;
+            }
+        }
+
+        // Walks the recorded predecessors back to the root, flipping matched columns to
+        // their new rows along the augmenting alternating path.
+        private static void BacktrackPath(int* way, int* colRow, int j0)
+        {
+            do
+            {
+                int j1 = way[j0];
+                colRow[j0] = colRow[j1];
+                j0 = j1;
+            } while (j0 != 0);
+        }
+
+        // Translates the internal column->row matching into the public row->column match[]
+        // and accumulates the optimal total weight.
+        private static long Finalize(int n, long* w, int* colRow, int* match)
         {
             long result = 0;
-            for (int i = 0; i < n; i++)
-                if (match[i] != -1) result += w[i * n + match[i]];
+            for (int col = 1; col <= n; col++)
+            {
+                int row = colRow[col] - 1;
+                match[row] = col - 1;
+                result += w[(long)row * n + (col - 1)];
+            }
             return result;
         }
     }

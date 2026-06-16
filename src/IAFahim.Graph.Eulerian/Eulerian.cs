@@ -13,7 +13,7 @@ namespace IAFahim.Graph.Eulerian
                 for (int e = head[u]; e != 0; e = next[e])
                     deg[u]++;
             int oddCount = 0;
-            for (int i = 0; i < n; i++) if (deg[i] % 2 == 1) oddCount++;
+            for (int i = 0; i < n; i++) if ((deg[i] & 1) != 0) oddCount++;
             if (oddCount != 0 && oddCount != 2) return 0;
 
             int* stack = stackalloc int[n];
@@ -21,26 +21,33 @@ namespace IAFahim.Graph.Eulerian
             for (int i = 0; i < n; i++) curHead[i] = head[i];
             int top = 0;
             stack[top++] = start;
-            int* edgeUsed = stackalloc int[n * 4];
-            int ec = 0;
+            int edgeCap = n * 4;
+            int* edgeUsed = stackalloc int[edgeCap];
+            for (int i = 0; i < edgeCap; i++) edgeUsed[i] = 0;
+            int pathLen = 0;
             while (top > 0)
             {
                 int u = stack[top - 1];
                 bool pushed = false;
                 for (int e = curHead[u]; e != 0; e = next[e])
                 {
-                    if (ec > 0 && edgeUsed[e] != 0) continue;
+                    if (edgeUsed[e] != 0) { curHead[u] = next[e]; continue; }
                     int v = to[e];
                     edgeUsed[e] = 1; edgeUsed[e ^ 1] = 1;
                     curHead[u] = next[e];
                     stack[top++] = v;
                     pushed = true;
-                    ec++;
                     break;
                 }
-                if (!pushed) { top--; path[n - 1 - top] = u; }
+                if (!pushed) { top--; path[pathLen++] = u; }
             }
-            return n;
+            for (int i = 0, j = pathLen - 1; i < j; i++, j--)
+            {
+                int tmp = path[i];
+                path[i] = path[j];
+                path[j] = tmp;
+            }
+            return pathLen;
         }
     }
 
@@ -66,12 +73,10 @@ namespace IAFahim.Graph.Eulerian
             for (int i = 0; i < n; i++) curHead[i] = head[i];
             int top = 0;
             stack[top++] = startNode;
-            int* edgeUsed = stackalloc int[n * 4];
-            for (int i = 0; i < n * 4; i++) edgeUsed[i] = 0;
+            int edgeCap = n * 4;
+            int* edgeUsed = stackalloc int[edgeCap];
+            for (int i = 0; i < edgeCap; i++) edgeUsed[i] = 0;
             int pathLen = 0;
-            int m = 0;
-            for (int u = 0; u < n; u++)
-                for (int e = head[u]; e != 0; e = next[e]) m++;
 
             while (top > 0)
             {
@@ -79,7 +84,7 @@ namespace IAFahim.Graph.Eulerian
                 bool pushed = false;
                 for (int e = curHead[u]; e != 0; e = next[e])
                 {
-                    if (edgeUsed[e] != 0) continue;
+                    if (edgeUsed[e] != 0) { curHead[u] = next[e]; continue; }
                     edgeUsed[e] = 1;
                     curHead[u] = next[e];
                     stack[top++] = to[e];
@@ -87,6 +92,12 @@ namespace IAFahim.Graph.Eulerian
                     break;
                 }
                 if (!pushed) { top--; path[pathLen++] = u; }
+            }
+            for (int i = 0, j = pathLen - 1; i < j; i++, j--)
+            {
+                int tmp = path[i];
+                path[i] = path[j];
+                path[j] = tmp;
             }
             return pathLen;
         }

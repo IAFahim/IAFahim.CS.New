@@ -14,11 +14,11 @@ namespace IAFahim.Graph.Flow
             int* newCap = stackalloc int[n * 8];
             int* newFlow = stackalloc int[n * 8];
             for (int i = 0; i < nn; i++) newHead[i] = 0;
-            int edgeId = 1;
+            int edgeId = 2;
 
             for (int i = 0; i < n; i++)
             {
-                int inV = i * 2, outV = i * 2 + 1;
+                int inV = i << 1, outV = (i << 1) | 1;
                 int vc = i == s || i == t ? int.MaxValue : vCap[i];
                 MinCostFlowAddEdge.Run(newHead, newTo, newNext, null, newCap, &edgeId, inV, outV, 0, vc);
             }

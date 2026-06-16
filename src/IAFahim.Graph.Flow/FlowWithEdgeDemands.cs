@@ -7,7 +7,7 @@ namespace IAFahim.Graph.Flow
     {
         public static bool Run(int n, int s, int t, int* head, int* to, int* next, int* lower, int* upper, int* flow, int* result)
         {
-            int nn = n + 2, ss = n, tt = n + 1, edgeId = 1;
+            int nn = n + 2, ss = n, tt = n + 1, edgeId = 2;
             int* newHead = stackalloc int[nn];
             int* newTo = stackalloc int[n * 4 + 10];
             int* newNext = stackalloc int[n * 4 + 10];
@@ -33,8 +33,6 @@ namespace IAFahim.Graph.Flow
             }
             MinCostFlowAddEdge.Run(newHead, newTo, newNext, null, newCap, &edgeId, t, s, 0, int.MaxValue);
             DinicMaxFlow.Run(nn, ss, tt, newHead, newTo, newNext, newCap, newFlow);
-            long sumPos = 0, sumNeg = 0;
-            for (int i = 0; i < n; i++) { if (b[i] > 0) sumPos += b[i]; else sumNeg -= b[i]; }
             for (int u = 0; u < n; u++)
                 for (int e = head[u]; e != 0; e = next[e]) flow[e] = newFlow[e] + lower[e];
             *result = flow[head[s]];

@@ -12,69 +12,54 @@ namespace IAFahim.Graph.Flow
             long* dist = stackalloc long[n];
             int* parent = stackalloc int[n];
             int* parentEdge = stackalloc int[n];
-            int* excess = stackalloc int[n];
             long* potential = stackalloc long[n];
-            for (int i = 0; i < n; i++) { excess[i] = 0; potential[i] = 0; }
-            excess[s] = int.MaxValue;
-            int* q = stackalloc int[n];
+            int* q = stackalloc int[n + 1];
+            byte* inq = stackalloc byte[n];
+            int* cnt = stackalloc int[n];
+            for (int i = 0; i < n; i++) potential[i] = 0;
+
             while (true)
             {
-                int qh = 0, qt = 0;
-                for (int i = 0; i < n; i++) dist[i] = long.MaxValue;
+                for (int i = 0; i < n; i++) { dist[i] = long.MaxValue; parent[i] = -1; inq[i] = 0; cnt[i] = 0; }
                 dist[s] = 0;
-                q[qt++] = s;
-                while (qh < qt)
+                int qh = 0, qt = 0;
+                q[qt++] = s; inq[s] = 1; cnt[s] = 1;
+                while (qh != qt)
                 {
-                    int u = q[qh++];
+                    int u = q[qh++]; if (qh > n) qh = 0; inq[u] = 0;
+                    long pu = potential[u];
+                    long du = dist[u];
                     for (int e = head[u]; e != 0; e = next[e])
                     {
                         if (cap[e] - flow[e] <= 0) continue;
                         int v = to[e];
-                        long rcost = cost[e] + potential[u] - potential[v];
-                        if (rcost < 0 && dist[v] > dist[u] + rcost)
+                        long nd = du + cost[e] + pu - potential[v];
+                        if (nd < dist[v])
                         {
-                            dist[v] = dist[u] + rcost;
-                            q[qt++] = v;
+                            dist[v] = nd; parent[v] = u; parentEdge[v] = e;
+                            if (inq[v] == 0)
+                            {
+                                q[qt++] = v; if (qt > n) qt = 0; inq[v] = 1;
+                                if (++cnt[v] > n) { qh = qt; break; }
+                            }
                         }
                     }
                 }
+                if (dist[t] == long.MaxValue) break;
                 for (int i = 0; i < n; i++) if (dist[i] < long.MaxValue) potential[i] += dist[i];
-                int* bucket = stackalloc int[n];
-                int bhead = 0, btail = 0;
-                for (int i = 0; i < n; i++) bucket[i] = -1;
-                bucket[s] = 0;
-                int* inBucket = stackalloc int[n];
-                for (int i = 0; i < n; i++) inBucket[i] = 0;
-                inBucket[s] = 1; btail++;
-                while (bhead < btail)
+                int add = int.MaxValue;
+                for (int v = t; v != s; v = parent[v])
                 {
-                    int u = bucket[bhead++];
-                    if (bhead >= n) bhead = 0;
-                    inBucket[u] = 0;
-                    for (int e = head[u]; e != 0; e = next[e])
-                    {
-                        if (cap[e] - flow[e] <= 0) continue;
-                        int v = to[e];
-                        long rcost = cost[e] + potential[u] - potential[v];
-                        if (rcost < 0)
-                        {
-                            int push = Math.Min(excess[u], cap[e] - flow[e]);
-                            flow[e] += push; flow[e ^ 1] -= push;
-                            totalCost += (long)cost[e] * push;
-                            excess[v] += push; excess[u] -= push;
-                            if (excess[v] > 0 && inBucket[v] == 0) { bucket[btail++] = v; if (btail >= n) btail = 0; inBucket[v] = 1; }
-                        }
-                    }
+                    int e = parentEdge[v];
+                    int res = cap[e] - flow[e];
+                    if (res < add) add = res;
                 }
-                if (excess[t] > 0) continue;
-                bool any = false;
-                for (int u = 0; u < n; u++)
-                    if (excess[u] > 0)
-                    {
-                        any = true;
-                        break;
-                    }
-                if (!any) break;
+                for (int v = t; v != s; v = parent[v])
+                {
+                    int e = parentEdge[v];
+                    flow[e] += add; flow[e ^ 1] -= add;
+                    totalCost += (long)cost[e] * add;
+                }
             }
             return totalCost;
         }
