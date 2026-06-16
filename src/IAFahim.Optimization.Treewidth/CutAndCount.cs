@@ -23,7 +23,7 @@ namespace IAFahim.Optimization.Treewidth
                     }
                 }
             }
-            return 1;
+            return cut == 0 ? conn : 0;
         }
     }
 }

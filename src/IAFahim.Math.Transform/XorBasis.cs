@@ -70,23 +70,36 @@ namespace IAFahim.Math.Transform
         public static long Run(long* basis, int k, int size)
         {
             long* vec = stackalloc long[64];
+            int* pivot = stackalloc int[64];
             int cnt = 0;
             for (int i = 0; i < 64; i++)
             {
-                if (basis[i] != 0) vec[cnt++] = basis[i];
-            }
-            for (int i = 0; i < cnt; i++)
-            {
-                for (int j = i + 1; j < cnt; j++)
+                if (basis[i] != 0)
                 {
-                    if ((vec[j] >> (63 - i) & 1) != 0 && (vec[i] >> (63 - i) & 1) != 0)
-                        vec[j] ^= vec[i];
+                    vec[cnt] = basis[i];
+                    pivot[cnt] = i;
+                    cnt++;
                 }
             }
-            long result = 0;
-            for (int i = cnt - 1; i >= 0; i--)
+            // vec is collected with strictly increasing pivot, so each vec[i]'s highest
+            // set bit is pivot[i] and the rows are already in row-echelon form.
+            // Back-substitute to reduced echelon: clear every lower pivot bit from each
+            // row using the (already reduced) rows below it, so each pivot bit pivot[i]
+            // ends up set in exactly one row, vec[i]. Processing i ascending is safe
+            // because vec[j] for j < i is fully canonical when used as the eliminator.
+            for (int i = 1; i < cnt; i++)
             {
-                if ((k & (1 << (cnt - 1 - i))) != 0)
+                for (int j = i - 1; j >= 0; j--)
+                {
+                    if (((vec[i] >> pivot[j]) & 1L) != 0)
+                        vec[i] ^= vec[j];
+                }
+            }
+            // k-th smallest: bit i of k selects the i-th smallest pivot vector (vec[i]).
+            long result = 0;
+            for (int i = 0; i < cnt; i++)
+            {
+                if ((k & (1 << i)) != 0)
                     result ^= vec[i];
             }
             return result;

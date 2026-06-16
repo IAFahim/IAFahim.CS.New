@@ -6,43 +6,60 @@ namespace IAFahim.Optimization.Exact
     {
         public static long Run(int n, int m, int* from, int* to, long* w, bool* terminals, long inf, long* dp)
         {
-            for (int i = 0; i < (1 << m) * n; i++) dp[i] = inf;
+            int full = 1 << m;
+            int dpLen = full * n;
+            for (int i = 0; i < dpLen; i++) dp[i] = inf;
             for (int v = 0; v < n; v++)
             {
                 if (terminals[v]) dp[1 * n + v] = 0;
             }
-            for (int mask = 1; mask < (1 << m); mask++)
+            for (int mask = 1; mask < full; mask++)
             {
                 if ((mask & (mask - 1)) == 0) continue;
                 for (int v = 0; v < n; v++)
                 {
                     long best = inf;
-                    int sub = mask;
-                    while ((sub = (sub - 1) & mask) > 0)
+                    int sub = (mask - 1) & mask;
+                    while (sub > 0)
                     {
-                        if (sub == mask) { sub = (sub - 1) & mask; continue; }
                         int other = mask ^ sub;
-                        long cand = dp[sub * n + v] + dp[other * n + v];
-                        if (cand < best) best = cand;
-                        if (sub == 0) break;
+                        if (sub < other)
+                        {
+                            long cand = dp[sub * n + v] + dp[other * n + v];
+                            if (cand < best) best = cand;
+                        }
+                        sub = (sub - 1) & mask;
                     }
                     dp[mask * n + v] = best;
                 }
                 for (int i = 0; i < n; i++)
-                for (int j = 0; j < n; j++)
-                for (int k = 0; k < n; k++)
                 {
                     long d1 = dp[mask * n + i];
-                    long w1 = w[i * n + j];
-                    long w2 = w[j * n + k];
-                    if (d1 != inf && w1 != inf && w2 != inf)
+                    if (d1 == inf) continue;
+                    for (int j = 0; j < n; j++)
                     {
-                        long cand = d1 + w1 + w2;
-                        if (cand < dp[mask * n + k]) dp[mask * n + k] = cand;
+                        long w1 = w[i * n + j];
+                        if (w1 == inf) continue;
+                        for (int k = 0; k < n; k++)
+                        {
+                            long w2 = w[j * n + k];
+                            if (w2 != inf)
+                            {
+                                long cand = d1 + w1 + w2;
+                                if (cand < dp[mask * n + k]) dp[mask * n + k] = cand;
+                            }
+                        }
                     }
                 }
             }
-            return dp[((1 << m) - 1) * n];
+            int fullMask = full - 1;
+            long ans = inf;
+            for (int v = 0; v < n; v++)
+            {
+                long candAns = dp[fullMask * n + v];
+                if (candAns < ans) ans = candAns;
+            }
+            return ans;
         }
     }
 }

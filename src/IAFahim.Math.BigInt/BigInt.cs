@@ -5,26 +5,35 @@ namespace IAFahim.Math.BigInt
 
     public static unsafe class BigIntAdd
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Run(int n, int* a, int m, int* b, int* res)
         {
             int maxLen = Math.Max(n, m);
-            int* temp = stackalloc int[maxLen + 1];
             int carry = 0, ptr = 0;
+            // Accumulate least-significant digit first directly into res.
             for (int i = 0; i < maxLen || carry > 0; i++)
             {
                 int valA = i < n ? a[n - 1 - i] : 0;
                 int valB = i < m ? b[m - 1 - i] : 0;
                 int sum = valA + valB + carry;
-                temp[ptr++] = sum % 10;
-                carry = sum / 10;
+                // sum is in [0, 19] (two base-10 digits plus carry <= 1), so carry is exactly (sum >= 10).
+                carry = sum >= 10 ? 1 : 0;
+                res[ptr++] = sum - 10 * carry;
             }
-            for (int i = 0; i < ptr; i++) res[i] = temp[ptr - 1 - i];
+            // Reverse in place to restore most-significant-first layout.
+            for (int lo = 0, hi = ptr - 1; lo < hi; lo++, hi--)
+            {
+                int t = res[lo];
+                res[lo] = res[hi];
+                res[hi] = t;
+            }
             return ptr;
         }
     }
 
     public static unsafe class BigIntSub
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Run(int n, int* a, int m, int* b, int* res)
         {
             int len = n; int* temp = stackalloc int[len]; int borrow = 0;
@@ -47,12 +56,25 @@ namespace IAFahim.Math.BigInt
         public static int Run(int n, int* a, int m, int* b, int* res)
         {
             int len = n + m;
-            int* temp = stackalloc int[len]; for (int i = 0; i < len; i++) temp[i] = 0;
-            for (int i = 0; i < n; i++) for (int j = 0; j < m; j++) temp[i + j] += a[n - 1 - i] * b[m - 1 - j];
-            int carry = 0; for (int i = 0; i < len; i++) { int sum = temp[i] + carry; temp[i] = sum % 10; carry = sum / 10; }
+            // long accumulators: the schoolbook accumulation never wraps regardless of operand size.
+            long* temp = stackalloc long[len]; for (int i = 0; i < len; i++) temp[i] = 0;
+            for (int i = 0; i < n; i++)
+            {
+                long ai = a[n - 1 - i];
+                long* tbase = temp + i;
+                for (int j = 0; j < m; j++) tbase[j] += ai * b[m - 1 - j];
+            }
+            long carry = 0;
+            for (int i = 0; i < len; i++)
+            {
+                long sum = temp[i] + carry;
+                long q = sum / 10;
+                temp[i] = sum - q * 10;
+                carry = q;
+            }
             int actualLen = len - 1; while (actualLen > 0 && temp[actualLen] == 0) actualLen--;
             int finalLen = actualLen + 1;
-            for (int i = 0; i < finalLen; i++) res[i] = temp[finalLen - 1 - i];
+            for (int i = 0; i < finalLen; i++) res[i] = (int)temp[finalLen - 1 - i];
             return finalLen;
         }
     }
@@ -62,8 +84,12 @@ namespace IAFahim.Math.BigInt
         public static int Run(int n, int* a, int e, int* res)
         {
             if (e == 0) { res[0] = 1; return 1; }
-            int curLen = n; int* cur = stackalloc int[1000]; for (int i = 0; i < n; i++) cur[i] = a[i];
-            int* temp = stackalloc int[1000], ans = stackalloc int[1000]; ans[0] = 1; int ansLen = 1;
+            // a < 10^n  =>  a^e < 10^(n*e), so the result has at most n*e decimal digits.
+            // Size all scratch from this bound instead of a fixed magic cap.
+            int maxDigits = n * e + 1;
+            int prodCap = 2 * maxDigits;
+            int curLen = n; int* cur = stackalloc int[maxDigits]; for (int i = 0; i < n; i++) cur[i] = a[i];
+            int* temp = stackalloc int[prodCap], ans = stackalloc int[maxDigits]; ans[0] = 1; int ansLen = 1;
             while (e > 0)
             {
                 if ((e & 1) == 1) { ansLen = BigIntMul.Run(ansLen, ans, curLen, cur, temp); for (int i = 0; i < ansLen; i++) ans[i] = temp[i]; }
@@ -76,10 +102,11 @@ namespace IAFahim.Math.BigInt
 
     public static unsafe class BigIntDiv
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Run(int n, int* a, int divisor, int* res)
         {
             long rem = 0; int len = 0;
-            for (int i = 0; i < n; i++) { rem = rem * 10 + a[i]; res[len++] = (int)(rem / divisor); rem %= divisor; }
+            for (int i = 0; i < n; i++) { rem = rem * 10 + a[i]; long q = rem / divisor; res[len++] = (int)q; rem -= q * divisor; }
             int start = 0; while (start < len - 1 && res[start] == 0) start++;
             if (start > 0) { for (int i = 0; i < len - start; i++) res[i] = res[start + i]; len -= start; }
             return len;
@@ -88,6 +115,7 @@ namespace IAFahim.Math.BigInt
 
     public static unsafe class BigIntMod
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Run(int n, int* a, int mod) { long rem = 0; for (int i = 0; i < n; i++) rem = (rem * 10 + a[i]) % mod; return (int)rem; }
     }
 }

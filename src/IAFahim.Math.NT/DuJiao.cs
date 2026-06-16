@@ -14,9 +14,11 @@ namespace IAFahim.Math.NT
             long memoSize = n / b + 2;
             InitializeMemo(memoSize, memoized);
 
+            SievePhi((int)b, preSumLarge);
             return GetPhi(n, n, b, preSumLarge, memo, memoized);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static long CalculateBlockSize(long n)
         {
             long b = (long)Math.Pow(n, 2.0 / 3.0);
@@ -37,6 +39,7 @@ namespace IAFahim.Math.NT
             long memoSize = n / b + 2;
             InitializeMemo(memoSize, memoized);
 
+            SieveMobius((int)b, preSumLarge);
             return GetMobius(n, n, b, preSumLarge, memo, memoized);
         }
 
@@ -62,9 +65,12 @@ namespace IAFahim.Math.NT
 
         private static void UpdatePhiSieve(int i, int limit, int* primes, int pCount, int* phi, bool* isPrime)
         {
-            for (int j = 0; j < pCount && (long)i * primes[j] <= limit; j++)
+            for (int j = 0; j < pCount; j++)
             {
-                int p = primes[j], ip = i * p;
+                int p = primes[j];
+                long ipL = (long)i * p;
+                if (ipL > limit) break;
+                int ip = (int)ipL;
                 isPrime[ip] = false;
                 if (i % p == 0) { phi[ip] = phi[i] * p; break; }
                 phi[ip] = phi[i] * (p - 1);
@@ -92,9 +98,12 @@ namespace IAFahim.Math.NT
 
         private static void UpdateMobiusSieve(int i, int limit, int* primes, int pCount, int* mu, bool* isPrime)
         {
-            for (int j = 0; j < pCount && (long)i * primes[j] <= limit; j++)
+            for (int j = 0; j < pCount; j++)
             {
-                int p = primes[j], ip = i * p;
+                int p = primes[j];
+                long ipL = (long)i * p;
+                if (ipL > limit) break;
+                int ip = (int)ipL;
                 isPrime[ip] = false;
                 if (i % p == 0) { mu[ip] = 0; break; }
                 mu[ip] = -mu[i];
@@ -120,7 +129,8 @@ namespace IAFahim.Math.NT
             memo[idx] = ans; memoized[idx] = true; return ans;
         }
 
-        private static long CalculateArithmeticSum(long x) => x % 2 == 0 ? (x / 2) * (x + 1) : x * ((x + 1) / 2);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static long CalculateArithmeticSum(long x) => (x & 1) == 0 ? (x >> 1) * (x + 1) : x * ((x + 1) >> 1);
 
         private static long GetMobius(long x, long n, long b, long* preSum, long* memo, bool* memoized)
         {

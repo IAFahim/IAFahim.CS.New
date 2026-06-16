@@ -48,8 +48,11 @@ namespace IAFahim.Math.Polynomial
         {
             for (int i = 0; i < n + m - 1; i++) res[i] = 0;
             for (int i = 0; i < n; i++)
+            {
+                long ai = a[i] % mod;
                 for (int j = 0; j < m; j++)
-                    res[i + j] = (res[i + j] + a[i] % mod * (b[j] % mod)) % mod;
+                    res[i + j] = (res[i + j] + ai * (b[j] % mod)) % mod;
+            }
             return n + m - 1;
         }
     }
@@ -87,15 +90,16 @@ namespace IAFahim.Math.Polynomial
                 return n;
             }
             long* q = stackalloc long[n];
+            for (int i = 0; i < n; i++) q[i] = a[i];
             for (int i = n - 1; i >= m - 1; i--)
             {
-                if (a[i] == 0) continue;
-                long coef = a[i] / b[m - 1];
+                if (q[i] == 0) continue;
+                long coef = q[i] / b[m - 1];
                 for (int j = m - 1; j >= 0; j--)
-                    a[i - m + 1 + j] -= coef * b[j];
+                    q[i - m + 1 + j] -= coef * b[j];
             }
             int len = m - 1;
-            for (int i = 0; i < len; i++) r[i] = a[i];
+            for (int i = 0; i < len; i++) r[i] = q[i];
             return len;
         }
     }
@@ -149,8 +153,9 @@ namespace IAFahim.Math.Polynomial
         public static int Run(int n, long* a, long* res, long mod)
         {
             res[0] = ModInverse(a[0], mod);
-            long* tmp = stackalloc long[n * 6];
-            for (int i = 0; i < n * 6; i++) tmp[i] = 0;
+            int sz = 1;
+            while (sz < n) sz <<= 1;
+            long* tmp = stackalloc long[sz * 6];
             int m = 1;
             while (m < n)
             {
@@ -262,7 +267,8 @@ namespace IAFahim.Math.Polynomial
                 {
                     long* buf = stackalloc long[n * 2];
                     len = PolynomialMul.Run(len, res, n, temp, buf);
-                    for (int i = 0; i < len && i < n; i++) res[i] = buf[i] % mod;
+                    if (len > n) len = n;
+                    for (int i = 0; i < len; i++) res[i] = buf[i] % mod;
                 }
                 long* sqr = stackalloc long[n * 2];
                 int sqrLen = PolynomialMul.Run(n, temp, n, temp, sqr);
