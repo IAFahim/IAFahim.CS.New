@@ -1,55 +1,79 @@
 namespace IAFahim.String.Palindrome
 {
-    using System;
+    using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
     public static unsafe class DynamicPalindromicTree
     {
+        private const int Alphabet = 256;
+        private const int NoEdge = -1;
+
         private static int _last;
         private static int _size;
         private static PalindromicTree.Node* _node;
+        private static int* _next;
         private static byte* _s;
         private static int _pos;
 
         public static void Init(int maxLen)
         {
-            _node = (PalindromicTree.Node*)Marshal.AllocHGlobal(sizeof(PalindromicTree.Node) * (maxLen + 3));
+            int nodeCount = maxLen + 3;
+            _node = (PalindromicTree.Node*)Marshal.AllocHGlobal(sizeof(PalindromicTree.Node) * nodeCount);
+            _next = (int*)Marshal.AllocHGlobal(sizeof(int) * nodeCount * Alphabet);
             _s = (byte*)Marshal.AllocHGlobal(maxLen);
+            int transitionCount = nodeCount * Alphabet;
+            for (int i = 0; i < transitionCount; i++)
+                _next[i] = NoEdge;
             _size = 2;
             _last = 1;
             _pos = 0;
             _node[0].Len = -1;
             _node[0].Link = 0;
-            _node[0].Next0 = -1;
+            _node[0].Next0 = NoEdge;
             _node[0].Occ = 0;
             _node[1].Len = 0;
             _node[1].Link = 0;
-            _node[1].Next0 = -1;
+            _node[1].Next0 = NoEdge;
             _node[1].Occ = 0;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int GetNext(int v, int c)
+        {
+            return _next[v * Alphabet + c];
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void SetNext(int v, int c, int next)
+        {
+            _next[v * Alphabet + c] = next;
         }
 
         public static int Add(byte c)
         {
             _s[_pos] = c;
+            int posM1 = _pos - 1;
             int cur = _last;
             while (true)
             {
                 int checkLen = _node[cur].Len;
-                if (_pos - 1 - checkLen >= 0 && _s[_pos - 1 - checkLen] == c)
+                if (posM1 - checkLen >= 0 && _s[posM1 - checkLen] == c)
                     break;
-                cur = (int)_node[cur].Link;
+                cur = _node[cur].Link;
             }
-            if (((int*)((IntPtr)_node + cur * sizeof(PalindromicTree.Node) + sizeof(int)))[c] != -1)
+
+            int existing = GetNext(cur, c);
+            if (existing != NoEdge)
             {
-                int next = ((int*)((IntPtr)_node + cur * sizeof(PalindromicTree.Node) + sizeof(int)))[c];
-                _node[next].Occ++;
-                _last = next;
+                _node[existing].Occ++;
+                _last = existing;
                 _pos++;
                 return _size - 2;
             }
+
             int state = _size++;
             _node[state].Len = _node[cur].Len + 2;
-            _node[state].Next0 = -1;
+            _node[state].Next0 = NoEdge;
             _node[state].Occ = 1;
             if (_node[state].Len == 1)
             {
@@ -57,17 +81,17 @@ namespace IAFahim.String.Palindrome
             }
             else
             {
-                int link = (int)_node[cur].Link;
+                int link = _node[cur].Link;
                 while (true)
                 {
                     int checkLen = _node[link].Len;
-                    if (_pos - 1 - checkLen >= 0 && _s[_pos - 1 - checkLen] == c)
+                    if (posM1 - checkLen >= 0 && _s[posM1 - checkLen] == c)
                         break;
-                    link = (int)_node[link].Link;
+                    link = _node[link].Link;
                 }
-                _node[state].Link = ((int*)((IntPtr)_node + link * sizeof(PalindromicTree.Node) + sizeof(int)))[c];
+                _node[state].Link = GetNext(link, c);
             }
-            ((int*)((IntPtr)_node + cur * sizeof(PalindromicTree.Node) + sizeof(int)))[c] = state;
+            SetNext(cur, c, state);
             _last = state;
             _pos++;
             return _size - 2;

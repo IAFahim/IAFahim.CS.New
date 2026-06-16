@@ -18,14 +18,24 @@ namespace IAFahim.Search.Imos
 
         public static void Build(int height, int width, long* diff, long* res)
         {
-            for (int i = 0; i < height; i++)
+            if (height > 0)
             {
+                long firstRowAcc = 0;
+                for (int j = 0; j < width; j++)
+                {
+                    firstRowAcc += diff[j];
+                    res[j] = firstRowAcc;
+                }
+            }
+            for (int i = 1; i < height; i++)
+            {
+                int rowBase = i * width;
+                int prevBase = rowBase - width;
                 long rowAcc = 0;
                 for (int j = 0; j < width; j++)
                 {
-                    rowAcc += diff[i * width + j];
-                    res[i * width + j] = rowAcc;
-                    if (i > 0) res[i * width + j] += res[(i - 1) * width + j];
+                    rowAcc += diff[rowBase + j];
+                    res[rowBase + j] = rowAcc + res[prevBase + j];
                 }
             }
         }
@@ -43,9 +53,9 @@ namespace IAFahim.Search.Imos
                 long curHeight = (i < n) ? h[i] : 0;
                 while (top > 0 && h[stack[top - 1]] >= curHeight)
                 {
-                    int height = (int)h[stack[--top]];
+                    long height = h[stack[--top]];
                     int width = (top == 0) ? i : i - stack[top - 1] - 1;
-                    long area = (long)height * width;
+                    long area = height * width;
                     if (area > maxArea) maxArea = area;
                 }
                 stack[top++] = i;
@@ -62,6 +72,7 @@ namespace IAFahim.Search.Imos
             long maxArea = 0;
             long* heights = stackalloc long[width];
             for (int i = 0; i < width; i++) heights[i] = 0;
+            int* stack = stackalloc int[width];
             for (int i = 0; i < height; i++)
             {
                 for (int j = 0; j < width; j++)
@@ -71,7 +82,6 @@ namespace IAFahim.Search.Imos
                     else
                         heights[j]++;
                 }
-                int* stack = stackalloc int[width];
                 int top = 0;
                 for (int j = 0; j <= width; j++)
                 {
@@ -100,13 +110,23 @@ namespace IAFahim.Search.Imos
             for (int j = 0; j < width; j++) dp[j] = 0;
             for (int i = 0; i < height; i++)
             {
-                int prev = 0;
-                for (int j = 0; j < width; j++)
+                int rowBase = i * width;
+                int prev = dp[0];
+                if (grid[rowBase] == 1)
+                {
+                    dp[0] = 1;
+                    if (maxSide < 1) maxSide = 1;
+                }
+                else
+                {
+                    dp[0] = 0;
+                }
+                for (int j = 1; j < width; j++)
                 {
                     int temp = dp[j];
-                    if (grid[i * width + j] == 1)
+                    if (grid[rowBase + j] == 1)
                     {
-                        dp[j] = Math.Min(Math.Min(dp[j], dp[j - 1 < 0 ? 0 : j - 1]), prev) + 1;
+                        dp[j] = Math.Min(Math.Min(dp[j], dp[j - 1]), prev) + 1;
                         if (dp[j] > maxSide) maxSide = dp[j];
                     }
                     else
@@ -125,7 +145,7 @@ namespace IAFahim.Search.Imos
     {
         public static int Run(int n, long* xs, long* ys1, long* ys2, long* ys, long* res, long mod)
         {
-            long* events = stackalloc long[n * 2];
+            long* events = stackalloc long[n * 4];
             for (int i = 0; i < n; i++)
             {
                 events[i * 2] = xs[i];
@@ -167,17 +187,7 @@ namespace IAFahim.Search.Imos
                 res[i * 2] = starts[i];
                 res[i * 2 + 1] = ends[i];
             }
-            for (int i = 0; i < n; i++)
-            {
-                for (int j = i + 1; j < n; j++)
-                {
-                    if (res[j * 2] < res[i * 2])
-                    {
-                        long tmp = res[i * 2]; res[i * 2] = res[j * 2]; res[j * 2] = tmp;
-                        tmp = res[i * 2 + 1]; res[i * 2 + 1] = res[j * 2 + 1]; res[j * 2 + 1] = tmp;
-                    }
-                }
-            }
+            HeapSortByStart(res, n);
             int count = 0;
             long curStart = res[0];
             long curEnd = res[1];
@@ -202,6 +212,40 @@ namespace IAFahim.Search.Imos
             res[count * 2 + 1] = curEnd;
             count++;
             return count;
+        }
+
+        private static void HeapSortByStart(long* res, int n)
+        {
+            for (int i = (n >> 1) - 1; i >= 0; i--) SiftDown(res, i, n);
+            for (int end = n - 1; end > 0; end--)
+            {
+                SwapPair(res, 0, end);
+                SiftDown(res, 0, end);
+            }
+        }
+
+        private static void SiftDown(long* res, int root, int count)
+        {
+            while (true)
+            {
+                int child = (root << 1) + 1;
+                if (child >= count) break;
+                if (child + 1 < count && res[(child + 1) * 2] > res[child * 2]) child++;
+                if (res[child * 2] <= res[root * 2]) break;
+                SwapPair(res, root, child);
+                root = child;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void SwapPair(long* res, int a, int b)
+        {
+            long ta = res[a * 2];
+            long tb = res[a * 2 + 1];
+            res[a * 2] = res[b * 2];
+            res[a * 2 + 1] = res[b * 2 + 1];
+            res[b * 2] = ta;
+            res[b * 2 + 1] = tb;
         }
     }
 }

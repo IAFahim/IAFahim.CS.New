@@ -43,14 +43,12 @@ namespace Unity.Collections
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                var byteOffset = _buffer + index * UnsafeUtility.SizeOf<T>();
-                return System.Runtime.CompilerServices.Unsafe.Read<T>((void*)byteOffset);
+                return ((T*)_buffer)[index];
             }
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
-                var byteOffset = _buffer + index * UnsafeUtility.SizeOf<T>();
-                System.Runtime.CompilerServices.Unsafe.Write<T>((void*)byteOffset, value);
+                ((T*)_buffer)[index] = value;
             }
         }
 

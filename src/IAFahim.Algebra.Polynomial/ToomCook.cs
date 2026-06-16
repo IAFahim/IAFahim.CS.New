@@ -10,18 +10,22 @@ namespace IAFahim.Algebra.Polynomial
         {
             int resultLen = lenA + lenB - 1;
             if (resultLen <= 0) return;
-            
+
+            long mod = MOD;
+
             for (int i = 0; i < resultLen; i++)
             {
                 result[i] = 0L;
             }
-            
+
             for (int i = 0; i < lenA; i++)
             {
-                if (a[i] == 0L) continue;
+                long ai = a[i];
+                if (ai == 0L) continue;
                 for (int j = 0; j < lenB; j++)
                 {
-                    result[i + j] = (result[i + j] + a[i] * b[j]) % (long)MOD;
+                    long v = (result[i + j] + ai * b[j]) % mod;
+                    result[i + j] = v < 0L ? v + mod : v;
                 }
             }
         }

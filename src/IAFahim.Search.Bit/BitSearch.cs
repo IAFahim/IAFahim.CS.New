@@ -85,17 +85,17 @@ namespace IAFahim.Search.Bit
     {
         public static int Run(int* arr, int n, int k)
         {
-            int lo = int.MinValue, hi = int.MaxValue;
+            long lo = int.MinValue, hi = int.MaxValue;
             while (lo < hi)
             {
-                int mid = lo + ((hi - lo) >> 1);
+                int mid = (int)((lo + hi) >> 1);
                 int cnt = 0;
                 for (int i = 0; i < n; i++)
-                    if (arr[i] <= mid) cnt++;
+                    cnt += (arr[i] <= mid) ? 1 : 0;
                 if (cnt >= k) hi = mid;
                 else lo = mid + 1;
             }
-            return lo;
+            return (int)lo;
         }
     }
 
@@ -193,11 +193,11 @@ namespace IAFahim.Search.Bit
     {
         public static long Run(int n, int* arr)
         {
-            long* temp = stackalloc long[n];
+            int* temp = stackalloc int[n];
             return MergeSortCount(arr, temp, 0, n - 1);
         }
 
-        private static long MergeSortCount(int* arr, long* temp, int l, int r)
+        private static long MergeSortCount(int* arr, int* temp, int l, int r)
         {
             if (l >= r) return 0;
             int m = (l + r) >> 1;
@@ -211,7 +211,7 @@ namespace IAFahim.Search.Bit
             }
             while (i <= m) temp[k++] = arr[i++];
             while (j <= r) temp[k++] = arr[j++];
-            for (i = l; i <= r; i++) arr[i] = (int)temp[i];
+            for (i = l; i <= r; i++) arr[i] = temp[i];
             return cnt;
         }
     }

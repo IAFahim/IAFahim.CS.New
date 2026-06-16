@@ -24,6 +24,7 @@ using System.Runtime.InteropServices;
             System.Runtime.InteropServices.Marshal.FreeHGlobal((nint)Id);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Push(int id, int freq)
         {
             int idx = Size++;
@@ -31,7 +32,7 @@ using System.Runtime.InteropServices;
             Id[idx] = id;
             while (idx > 0)
             {
-                int p = (idx - 1) / 2;
+                int p = (idx - 1) >> 1;
                 if (Freq[p] <= Freq[idx]) break;
                 int tmpF = Freq[p]; Freq[p] = Freq[idx]; Freq[idx] = tmpF;
                 int tmpI = Id[p]; Id[p] = Id[idx]; Id[idx] = tmpI;
@@ -39,6 +40,7 @@ using System.Runtime.InteropServices;
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int Pop(out int freq)
         {
             int id = Id[0];
@@ -49,16 +51,17 @@ using System.Runtime.InteropServices;
                 Freq[0] = Freq[Size];
                 Id[0] = Id[Size];
                 int idx = 0;
-                while (idx * 2 + 1 < Size)
+                int left = (idx << 1) + 1;
+                while (left < Size)
                 {
-                    int left = idx * 2 + 1;
-                    int right = idx * 2 + 2;
+                    int right = left + 1;
                     int smallest = left;
                     if (right < Size && Freq[right] < Freq[left]) smallest = right;
                     if (Freq[idx] <= Freq[smallest]) break;
                     int tmpF = Freq[idx]; Freq[idx] = Freq[smallest]; Freq[smallest] = tmpF;
                     int tmpI = Id[idx]; Id[idx] = Id[smallest]; Id[smallest] = tmpI;
                     idx = smallest;
+                    left = (idx << 1) + 1;
                 }
             }
             return id;
@@ -81,7 +84,6 @@ using System.Runtime.InteropServices;
             public int Right;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Build(int* freq, int sigma, Code* codes)
         {
             Node* nodes = stackalloc Node[2 * sigma];
@@ -108,20 +110,54 @@ using System.Runtime.InteropServices;
                     pq.Push(parentId, nodes[parentId].Freq);
                 }
                 int rootId = pq.Pop(out _);
-                Traverse(rootId, nodes, 0, 0, codes);
+                Traverse(rootId, nodes, nodeCount, codes);
             }
             finally { pq.Dispose(); }
         }
 
-        private static void Traverse(int id, Node* nodes, int length, long bits, Code* codes)
+        private static void Traverse(int rootId, Node* nodes, int capacity, Code* codes)
         {
-            if (nodes[id].Left == -1 && nodes[id].Right == -1)
+            // Iterative depth-first walk over the Huffman tree.
+            // The tree has at most `capacity` nodes, so an explicit stack of that
+            // size can never overflow (each node is pushed at most once).
+            int* stackId = stackalloc int[capacity];
+            int* stackLength = stackalloc int[capacity];
+            long* stackBits = stackalloc long[capacity];
+            int sp = 0;
+            stackId[sp] = rootId;
+            stackLength[sp] = 0;
+            stackBits[sp] = 0;
+            sp++;
+            while (sp > 0)
             {
-                codes[nodes[id].Symbol] = new Code { Length = length, Bits = bits };
-                return;
+                sp--;
+                int id = stackId[sp];
+                int length = stackLength[sp];
+                long bits = stackBits[sp];
+                int leftChild = nodes[id].Left;
+                int rightChild = nodes[id].Right;
+                if (leftChild == -1 && rightChild == -1)
+                {
+                    codes[nodes[id].Symbol] = new Code { Length = length, Bits = bits };
+                    continue;
+                }
+                // Push right first so left is processed first (LIFO), preserving
+                // left = bits<<1, right = (bits<<1)|1 code assignment order.
+                if (rightChild != -1)
+                {
+                    stackId[sp] = rightChild;
+                    stackLength[sp] = length + 1;
+                    stackBits[sp] = (bits << 1) | 1;
+                    sp++;
+                }
+                if (leftChild != -1)
+                {
+                    stackId[sp] = leftChild;
+                    stackLength[sp] = length + 1;
+                    stackBits[sp] = bits << 1;
+                    sp++;
+                }
             }
-            if (nodes[id].Left != -1) Traverse(nodes[id].Left, nodes, length + 1, bits << 1, codes);
-            if (nodes[id].Right != -1) Traverse(nodes[id].Right, nodes, length + 1, (bits << 1) | 1, codes);
         }
 
         public static void Encode(byte* input, int len, int* output, int* outLen, Code* codes)
@@ -145,20 +181,38 @@ using System.Runtime.InteropServices;
             *outLen = pos;
         }
 
+        private const int SymbolCount = 256;
+
         public static void Decode(int* input, int inLen, Code* codes, byte* output, int* outLen)
         {
-            long buffer = 0;
-            int bits = 0;
-            int ipos = 0;
+            int target = *outLen;
             int opos = 0;
-            while (ipos < inLen && opos < *outLen)
+            long curBits = 0;
+            int curLen = 0;
+            // Read bits MSB-first from each input int (bit 31 down to bit 0),
+            // mirroring Encode's MSB-first packing. Accumulate a prefix and
+            // emit a symbol as soon as the prefix-free code table matches.
+            for (int ipos = 0; ipos < inLen && opos < target; ipos++)
             {
-                while (bits < 32 && ipos < inLen)
+                uint word = (uint)input[ipos];
+                for (int b = 31; b >= 0 && opos < target; b--)
                 {
-                    buffer = (buffer << 32) | ((uint)input[ipos++]);
-                    bits += 32;
+                    int bit = (int)((word >> b) & 1u);
+                    curBits = (curBits << 1) | (uint)bit;
+                    curLen++;
+                    for (int s = 0; s < SymbolCount; s++)
+                    {
+                        if (codes[s].Length == curLen && codes[s].Bits == curBits)
+                        {
+                            output[opos++] = (byte)s;
+                            curBits = 0;
+                            curLen = 0;
+                            break;
+                        }
+                    }
                 }
             }
+            *outLen = opos;
         }
     }
 }
