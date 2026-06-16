@@ -10,22 +10,20 @@ namespace IAFahim.Graph
         public int* Pos;
         public int Size;
 
-        public RemMinHeap(int n)
+        // Construct over caller-provided scratch buffers (each length >= n). This keeps
+        // the heap allocation-free and Burst-compatible: no Marshal/native heap. The
+        // caller owns the lifetime of dist/v/pos (typically stackalloc'd by the
+        // top-level Run). pos is initialized to all -1 ("vertex not in heap").
+        public RemMinHeap(int n, long* dist, int* v, int* pos)
         {
-            Dist = (long*)System.Runtime.InteropServices.Marshal.AllocHGlobal(n * sizeof(long));
-            V = (int*)System.Runtime.InteropServices.Marshal.AllocHGlobal(n * sizeof(int));
-            Pos = (int*)System.Runtime.InteropServices.Marshal.AllocHGlobal(n * sizeof(int));
+            Dist = dist;
+            V = v;
+            Pos = pos;
             for (int i = 0; i < n; i++) Pos[i] = -1;
             Size = 0;
         }
 
-        public void Dispose()
-        {
-            System.Runtime.InteropServices.Marshal.FreeHGlobal((nint)Dist);
-            System.Runtime.InteropServices.Marshal.FreeHGlobal((nint)V);
-            System.Runtime.InteropServices.Marshal.FreeHGlobal((nint)Pos);
-        }
-
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PushOrUpdate(int v, long d)
         {
             int idx = Pos[v];
@@ -47,6 +45,7 @@ namespace IAFahim.Graph
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int Pop(out long d)
         {
             int u = V[0];
@@ -79,10 +78,37 @@ namespace IAFahim.Graph
 
     public static unsafe class ChuLiuEdmonds
     {
+        // Computes the minimum-cost arborescence (directed MST) rooted at `root`.
+        // On success returns the total weight and writes, for every vertex i != root,
+        // result[i] = the SOURCE VERTEX (u[...]) of the original edge chosen as i's
+        // incoming edge in the arborescence. result[root] is left untouched by this
+        // routine (callers initialize it, typically to -1). Returns -1 if no
+        // arborescence exists (some non-root vertex is unreachable). The chosen
+        // source-vertex contract is relied upon by MstVariants.MaximumBranching.
         public static long Run(int n, int root, int* u, int* v, long* w, int m, long* result)
         {
+            // resEdge[i] holds the ORIGINAL edge index selected as i's incoming edge.
+            int* resEdge = stackalloc int[n];
+            for (int i = 0; i < n; i++) resEdge[i] = -1;
+            long total = Solve(n, root, u, v, w, m, resEdge);
+            if (total == NoArborescence) return -1;
+            for (int i = 0; i < n; i++)
+            {
+                if (i == root) continue;
+                result[i] = u[resEdge[i]];
+            }
+            return total;
+        }
+
+        private const long NoArborescence = long.MinValue;
+
+        // Recursive contraction. On success fills resEdge[i] (i != root) with the
+        // ORIGINAL edge index chosen for vertex i and returns the total weight.
+        // Returns NoArborescence if some non-root vertex has no incoming edge.
+        private static long Solve(int n, int root, int* u, int* v, long* w, int m, int* resEdge)
+        {
             if (n <= 1) return 0;
-            long totalWeight = 0;
+
             int* inEdge = stackalloc int[n];
             for (int i = 0; i < n; i++) inEdge[i] = -1;
             for (int i = 0; i < m; i++)
@@ -92,74 +118,98 @@ namespace IAFahim.Graph
             }
             for (int i = 0; i < n; i++)
             {
-                if (i != root && inEdge[i] == -1) return -1;
+                if (i != root && inEdge[i] == -1) return NoArborescence;
             }
-            int* pre = stackalloc int[n];
-            int* id = stackalloc int[n];
-            int* vis = stackalloc int[n];
+
+            long totalWeight = 0;
+            for (int i = 0; i < n; i++)
+                if (i != root) totalWeight += w[inEdge[i]];
+
+            // Detect cycles in the "chosen in-edge" functional graph.
+            int* id = stackalloc int[n];   // contracted super-node id, -1 if unassigned
+            int* vis = stackalloc int[n];  // visit stamp for cycle marking
+            for (int i = 0; i < n; i++) { id[i] = -1; vis[i] = -1; }
+
+            int cycles = 0;
             for (int i = 0; i < n; i++)
             {
-                totalWeight += (inEdge[i] >= 0) ? w[inEdge[i]] : 0;
-                pre[i] = root;
-                id[i] = 0;
-                vis[i] = -1;
-            }
-            int b = 0;
-            for (int i = 0; i < n; i++)
-            {
-                if (i == root) continue;
-                result[i] = u[inEdge[i]];
                 int vtx = i;
-                vis[vtx] = i;
-                while (vis[pre[vtx]] != i && pre[vtx] != root && id[pre[vtx]] == 0)
+                while (vtx != root && vis[vtx] == -1 && id[vtx] == -1)
                 {
-                    vtx = pre[vtx];
                     vis[vtx] = i;
+                    vtx = u[inEdge[vtx]];
                 }
-                if (pre[vtx] != root && id[pre[vtx]] == 0 && vis[pre[vtx]] == i)
+                // A cycle is found only if we returned to a vertex stamped in THIS walk.
+                if (vtx != root && id[vtx] == -1 && vis[vtx] == i)
                 {
-                    id[vtx] = ++b;
-                    int u2 = pre[vtx];
-                    while (u2 != vtx)
+                    int c = cycles++;
+                    int x = vtx;
+                    do
                     {
-                        id[u2] = b;
-                        u2 = pre[u2];
-                    }
+                        id[x] = c;
+                        x = u[inEdge[x]];
+                    } while (x != vtx);
                 }
             }
-            if (b == 0) return totalWeight;
+
+            if (cycles == 0)
+            {
+                // No cycle: every chosen in-edge is final.
+                for (int i = 0; i < n; i++)
+                    if (i != root) resEdge[i] = inEdge[i];
+                return totalWeight;
+            }
+
+            // Assign each non-cycle vertex its own fresh super-node id.
             for (int i = 0; i < n; i++)
-                if (id[i] == 0) id[i] = ++b;
-            int* newU = stackalloc int[m + n];
-            int* newV = stackalloc int[m + n];
-            long* newW = stackalloc long[m + n];
+                if (id[i] == -1) id[i] = cycles++;
+            int newN = cycles;
+
+            // Build the contracted edge set. For each original edge i with endpoints
+            // in different super-nodes, record it and reduce its weight by the cost of
+            // the in-edge currently entering its (cycle) target. Track which original
+            // edge produced each contracted edge so the recursion's choice can be
+            // mapped back.
+            int* newU = stackalloc int[m];
+            int* newV = stackalloc int[m];
+            long* newW = stackalloc long[m];
+            int* origEdge = stackalloc int[m];
             int newM = 0;
             for (int i = 0; i < m; i++)
             {
                 int uu = id[u[i]];
                 int vv = id[v[i]];
-                long ww = w[i];
-                if (uu != vv)
-                {
-                    newU[newM] = uu;
-                    newV[newM] = vv;
-                    newW[newM] = ww - (inEdge[v[i]] >= 0 ? w[inEdge[v[i]]] : 0);
-                    newM++;
-                }
+                if (uu == vv) continue;
+                newU[newM] = uu;
+                newV[newM] = vv;
+                newW[newM] = w[i] - w[inEdge[v[i]]];
+                origEdge[newM] = i;
+                newM++;
             }
-            long subRes = Run(b, id[root], newU, newV, newW, newM, result);
-            for (int i = 1; i < n; i++)
+
+            int* subRes = stackalloc int[newN];
+            for (int i = 0; i < newN; i++) subRes[i] = -1;
+            long sub = Solve(newN, id[root], newU, newV, newW, newM, subRes);
+            if (sub == NoArborescence) return NoArborescence;
+
+            // Expand. For each super-node, the recursion picked a contracted edge
+            // (subRes), which maps back to one original edge. That original edge's
+            // real target vertex is the point where its cycle (if any) is broken:
+            // that vertex takes the entering edge, all other cycle vertices keep
+            // their in-cycle edge.
+            for (int i = 0; i < n; i++)
+                if (i != root) resEdge[i] = inEdge[i];
+
+            for (int sn = 0; sn < newN; sn++)
             {
-                if (id[i] == id[pre[i]] || i == root) continue;
-                int pi = inEdge[i];
-                int uu = u[pi], vv = v[pi];
-                int j = 0;
-                while (j < n && (id[j] != id[vv] || j == vv))
-                    for (int k = j + 1; k < n; k++)
-                        if (id[k] == id[uu]) break;
-                break;
+                if (sn == id[root]) continue;
+                int ce = subRes[sn];          // contracted edge index chosen for super-node sn
+                int oe = origEdge[ce];         // original edge index
+                int target = v[oe];            // real target vertex inside super-node sn
+                resEdge[target] = oe;          // break the cycle (if any) at this vertex
             }
-            return totalWeight + subRes;
+
+            return totalWeight + sub;
         }
     }
 
@@ -245,28 +295,27 @@ namespace IAFahim.Graph
         {
             for (int i = 0; i < n; i++) result[i] = long.MaxValue;
             result[start] = 0;
-            var pq = new RemMinHeap(n);
-            try
+            long* heapDist = stackalloc long[n];
+            int* heapV = stackalloc int[n];
+            int* heapPos = stackalloc int[n];
+            RemMinHeap pq = new RemMinHeap(n, heapDist, heapV, heapPos);
+            pq.PushOrUpdate(start, h[start]);
+            while (pq.Size > 0)
             {
-                pq.PushOrUpdate(start, h[start]);
-                while (pq.Size > 0)
+                int u = pq.Pop(out long currentF);
+                if (u == target) break;
+                for (int e = head[u]; e != 0; e = next[e])
                 {
-                    int u = pq.Pop(out long currentF);
-                    if (u == target) break;
-                    for (int e = head[u]; e != 0; e = next[e])
+                    int v = to[e];
+                    long g = result[u] + dist[e];
+                    long f = g + h[v];
+                    if (g < result[v])
                     {
-                        int v = to[e];
-                        long g = result[u] + dist[e];
-                        long f = g + h[v];
-                        if (g < result[v])
-                        {
-                            result[v] = g;
-                            pq.PushOrUpdate(v, f);
-                        }
+                        result[v] = g;
+                        pq.PushOrUpdate(v, f);
                     }
                 }
             }
-            finally { pq.Dispose(); }
             return result[target];
         }
     }
@@ -394,39 +443,38 @@ namespace IAFahim.Graph
         {
             for (int i = 0; i < n; i++) { distTo[i] = long.MaxValue; prev[i] = -1; }
             distTo[src] = 0;
-            var pq = new RemMinHeap(n);
-            try
+            long* heapDist = stackalloc long[n];
+            int* heapV = stackalloc int[n];
+            int* heapPos = stackalloc int[n];
+            RemMinHeap pq = new RemMinHeap(n, heapDist, heapV, heapPos);
+            pq.PushOrUpdate(src, 0);
+            while (pq.Size > 0)
             {
-                pq.PushOrUpdate(src, 0);
-                while (pq.Size > 0)
+                int u = pq.Pop(out long currentD);
+                if (currentD > distTo[u]) continue;
+                if (u == dst) break;
+                for (int e = head[u]; e != 0; e = next[e])
                 {
-                    int u = pq.Pop(out long currentD);
-                    if (currentD > distTo[u]) continue;
-                    if (u == dst) break;
-                    for (int e = head[u]; e != 0; e = next[e])
+                    int v = to[e];
+                    bool isBlocked = false;
+                    for (int b = 0; b < blockCount; b++)
                     {
-                        int v = to[e];
-                        bool isBlocked = false;
-                        for (int b = 0; b < blockCount; b++)
+                        if (blockedU[b] == u && blockedV[b] == v)
                         {
-                            if (blockedU[b] == u && blockedV[b] == v)
-                            {
-                                isBlocked = true;
-                                break;
-                            }
+                            isBlocked = true;
+                            break;
                         }
-                        if (isBlocked) continue;
-                        long nd = currentD + dist[e];
-                        if (nd < distTo[v])
-                        {
-                            distTo[v] = nd;
-                            prev[v] = u;
-                            pq.PushOrUpdate(v, nd);
-                        }
+                    }
+                    if (isBlocked) continue;
+                    long nd = currentD + dist[e];
+                    if (nd < distTo[v])
+                    {
+                        distTo[v] = nd;
+                        prev[v] = u;
+                        pq.PushOrUpdate(v, nd);
                     }
                 }
             }
-            finally { pq.Dispose(); }
             return distTo[dst];
         }
 
@@ -522,84 +570,163 @@ namespace IAFahim.Graph
 
     public static unsafe class DominatorTree
     {
+        // Lengauer-Tarjan immediate dominators. Edges use the head/to/next adjacency
+        // where edge index 0 is the null sentinel. On return idom[v] is the immediate
+        // dominator (a vertex id) of every vertex v reachable from root, with
+        // idom[root] = -1 and idom[v] = -1 for vertices unreachable from root.
+        //
+        // The scratch buffers parent, semi, ancestor, label, bucket and parentNode
+        // must each have length >= n; their contents on entry are ignored.
+        // Internally semi/idom/ancestor/label/parent operate on DFS preorder numbers
+        // (1..time); arr maps vertex -> dfs number and vertexOf maps dfs number -> vertex.
         public static void Run(int n, int root, int* head, int* to, int* next, int* parent, int* semi, int* idom, int* ancestor, int* label, int* bucket, int* parentNode)
         {
+            // NOTE: idom (output, indexed by vertex) and parentNode (vertex -> DFS
+            // parent vertex) use the caller's buffers (length >= n). All other
+            // Lengauer-Tarjan state is indexed by 1-based DFS number (1..time, where
+            // time can equal n), so it is allocated internally at size n+1 to avoid
+            // an off-by-one overflow of the caller's length-n scratch buffers. The
+            // parent/semi/ancestor/label/bucket parameters are retained for source
+            // compatibility but are no longer read or written.
             for (int i = 0; i < n; i++)
             {
-                semi[i] = i;
                 idom[i] = -1;
-                ancestor[i] = -1;
-                label[i] = i;
-                bucket[i] = -1;
-                parentNode[i] = -1;
+                parentNode[i] = 0;
             }
-            int* vertex = stackalloc int[n];
-            int* arr = stackalloc int[n];
+
+            // DFS preorder. dfsNum is 1-based; index 0 is reserved as "no vertex".
+            int* arr = stackalloc int[n];          // vertex -> dfs number (0 = unvisited)
+            int* vertexOf = stackalloc int[n + 1]; // dfs number -> vertex
+            for (int i = 0; i < n; i++) arr[i] = 0;
+
             int time = 0;
-            void Dfs(int u)
+            Dfs(root, head, to, next, arr, vertexOf, parentNode, ref time);
+
+            // Build a reverse (predecessor) adjacency. The semidominator computation
+            // needs the IN-edges of each vertex, but head/to/next is a forward star
+            // (OUT-edges). Count edges, then fill predecessor linked lists.
+            int edgeCount = 0;
+            for (int x = 0; x < n; x++)
+                for (int e = head[x]; e != 0; e = next[e])
+                    edgeCount++;
+
+            int* predHead = stackalloc int[n];
+            int* predNext = stackalloc int[edgeCount + 1];
+            int* predFrom = stackalloc int[edgeCount + 1];
+            for (int i = 0; i < n; i++) predHead[i] = -1;
+            int pe = 0;
+            for (int x = 0; x < n; x++)
             {
-                arr[u] = ++time;
-                vertex[time] = u;
-                for (int e = head[u]; e != 0; e = next[e])
+                for (int e = head[x]; e != 0; e = next[e])
                 {
-                    int v = to[e];
-                    if (arr[v] == 0)
-                    {
-                        parentNode[v] = u;
-                        Dfs(v);
-                    }
+                    int y = to[e];      // edge x -> y
+                    predFrom[pe] = x;   // record predecessor x of y
+                    predNext[pe] = predHead[y];
+                    predHead[y] = pe;
+                    pe++;
                 }
             }
-            Dfs(root);
-            for (int i = time; i >= 1; i--)
+
+            // Per-dfs-number LT state. Indices 1..time are live.
+            int* semiNum = stackalloc int[n + 1];
+            int* labelNum = stackalloc int[n + 1];
+            int* ancestorNum = stackalloc int[n + 1];
+            int* bucketHead = stackalloc int[n + 1];
+            for (int i = 1; i <= time; i++)
             {
-                int w = vertex[i];
-                for (int e = head[w]; e != 0; e = next[e])
+                semiNum[i] = i;
+                labelNum[i] = i;
+                ancestorNum[i] = 0;
+                bucketHead[i] = 0; // bucket head: linked list over dfs numbers, 0 = empty
+            }
+
+            int* bucketNext = stackalloc int[n + 1];
+            int* idomNum = stackalloc int[n + 1]; // provisional/final idom in DFS-number space
+            for (int i = 0; i <= time; i++) idomNum[i] = 0;
+
+            // Process vertices in reverse preorder, computing semidominators and
+            // draining buckets immediately after each Link.
+            for (int i = time; i >= 2; i--)
+            {
+                int w = vertexOf[i];
+                // semi[i] = min over predecessors p of: dfs(p) if dfs(p) < i else semi[Eval(dfs(p))]
+                for (int e = predHead[w]; e != -1; e = predNext[e])
                 {
-                    int v = to[e];
-                    if (arr[v] == 0) continue;
-                    int u = Eval(v, ancestor, label, semi);
-                    if (semi[u] < semi[w]) semi[w] = semi[u];
+                    int pv = predFrom[e];
+                    int pn = arr[pv];
+                    if (pn == 0) continue; // predecessor not reachable (skip)
+                    int candidate;
+                    if (pn < i) candidate = pn;
+                    else candidate = semiNum[Eval(pn, ancestorNum, labelNum, semiNum)];
+                    if (candidate < semiNum[i]) semiNum[i] = candidate;
                 }
-                if (w > 1) AddToBucket(semi[w], w, bucket);
-                Link(parentNode[w], w, ancestor, semi);
+
+                // Add i to bucket[semi[i]].
+                int s = semiNum[i];
+                bucketNext[i] = bucketHead[s];
+                bucketHead[s] = i;
+
+                int p = arr[parentNode[w]];
+                LinkNode(p, i, ancestorNum);
+
+                // Drain bucket[p]: for each v in bucket[p], idom is provisionally Eval(v).
+                int vNum = bucketHead[p];
+                bucketHead[p] = 0;
+                while (vNum != 0)
+                {
+                    int evalV = Eval(vNum, ancestorNum, labelNum, semiNum);
+                    idomNum[vNum] = (semiNum[evalV] < semiNum[vNum]) ? evalV : p;
+                    vNum = bucketNext[vNum];
+                }
+            }
+
+            // Finalize in DFS-number space (forward preorder), then translate to vertices.
+            for (int i = 2; i <= time; i++)
+            {
+                if (idomNum[i] != semiNum[i]) idomNum[i] = idomNum[idomNum[i]];
             }
             for (int i = 2; i <= time; i++)
             {
-                int w = vertex[i];
-                int u = idom[w];
-                while (u != -1 && bucket[u] != -1)
+                idom[vertexOf[i]] = vertexOf[idomNum[i]];
+            }
+            idom[root] = -1;
+        }
+
+        private static void Dfs(int u, int* head, int* to, int* next, int* arr, int* vertexOf, int* parentNode, ref int time)
+        {
+            arr[u] = ++time;
+            vertexOf[time] = u;
+            for (int e = head[u]; e != 0; e = next[e])
+            {
+                int v = to[e];
+                if (arr[v] == 0)
                 {
-                    Link(idom[u], w, ancestor, label);
-                    u = idom[u];
+                    parentNode[v] = u;
+                    Dfs(v, head, to, next, arr, vertexOf, parentNode, ref time);
                 }
             }
         }
 
+        // All of v, ancestor[], label[], semi[] are indexed by dfs number.
         private static int Eval(int v, int* ancestor, int* label, int* semi)
         {
-            if (ancestor[v] == -1) return label[v];
+            if (ancestor[v] == 0) return label[v];
             Compress(v, ancestor, label, semi);
             return label[v];
         }
 
         private static void Compress(int v, int* ancestor, int* label, int* semi)
         {
-            if (ancestor[ancestor[v]] == -1) return;
+            if (ancestor[ancestor[v]] == 0) return;
             Compress(ancestor[v], ancestor, label, semi);
             if (semi[label[ancestor[v]]] < semi[label[v]])
                 label[v] = label[ancestor[v]];
             ancestor[v] = ancestor[ancestor[v]];
         }
 
-        private static void Link(int v, int w, int* ancestor, int* semi)
+        private static void LinkNode(int v, int w, int* ancestor)
         {
             ancestor[w] = v;
-        }
-
-        private static void AddToBucket(int v, int w, int* bucket)
-        {
-            bucket[v] = w;
         }
     }
 }
