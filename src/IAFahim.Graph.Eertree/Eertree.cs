@@ -6,7 +6,7 @@ namespace IAFahim.Graph.Eertree
     public static unsafe class Eertree
     {
         public struct Node { public int Len; public int Link; public int FirstNext; }
-        public struct Next { public int Char; public int To; public int Next; }
+        public struct Next { public int Char; public int To; public int NextIdx; }
 
         public static void Build(int* s, int len, Node* nodes, Next* next, ref int nodeCount, ref int nextCount, ref int last, ref int cur)
         {
@@ -19,9 +19,10 @@ namespace IAFahim.Graph.Eertree
                 int c = s[i];
                 while (true)
                 {
-                    int curLen = nodes[cur].Len;
+                    Node* p = &nodes[cur];
+                    int curLen = p->Len;
                     if (i - curLen - 1 >= 0 && s[i - curLen - 1] == c) break;
-                    cur = nodes[cur].Link;
+                    cur = p->Link;
                 }
                 int exist = FindTransition(cur, c, nodes, next);
                 if (exist != -1) { cur = exist; continue; }
@@ -30,7 +31,7 @@ namespace IAFahim.Graph.Eertree
                 nodes[newNode].Len = nodes[cur].Len + 2;
                 nodes[newNode].FirstNext = -1;
 
-                NextEdge(newNode, c, newNode, nodes, next, ref nextCount);
+                NextEdge(cur, c, newNode, nodes, next, ref nextCount);
 
                 if (nodes[newNode].Len == 1) { nodes[newNode].Link = 1; }
                 else
@@ -38,9 +39,10 @@ namespace IAFahim.Graph.Eertree
                     int temp = nodes[cur].Link;
                     while (true)
                     {
-                        int tempLen = nodes[temp].Len;
+                        Node* p = &nodes[temp];
+                        int tempLen = p->Len;
                         if (i - tempLen - 1 >= 0 && s[i - tempLen - 1] == c) break;
-                        temp = nodes[temp].Link;
+                        temp = p->Link;
                     }
                     nodes[newNode].Link = FindTransition(temp, c, nodes, next);
                 }
@@ -51,14 +53,18 @@ namespace IAFahim.Graph.Eertree
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int FindTransition(int node, int c, Node* nodes, Next* next)
         {
-            for (int e = nodes[node].FirstNext; e != -1; e = next[e].Next)
+            for (int e = nodes[node].FirstNext; e != -1; e = next[e].NextIdx)
                 if (next[e].Char == c) return next[e].To;
             return -1;
         }
 
         private static void NextEdge(int to, int c, int newNode, Node* nodes, Next* next, ref int nextCount)
         {
-            next[nextCount] = new Next { Char = c, To = newNode, Next = nodes[to].FirstNext };
+            int head = nodes[to].FirstNext;
+            Next* e = &next[nextCount];
+            e->Char = c;
+            e->To = newNode;
+            e->NextIdx = head;
             nodes[to].FirstNext = nextCount++;
         }
     }
