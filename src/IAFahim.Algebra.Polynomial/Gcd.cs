@@ -8,17 +8,19 @@ namespace IAFahim.Algebra.Polynomial
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Run(long* a, int lenA, long* b, int lenB, long* gcd, out int lenGcd, int MOD)
         {
-            long* u = stackalloc long[lenA];
-            long* v = stackalloc long[lenB];
-            
+            int maxLen = Math.Max(lenA, lenB);
+
+            long* u = stackalloc long[maxLen];
+            long* v = stackalloc long[maxLen];
+
             CopyArray(a, u, lenA);
             CopyArray(b, v, lenB);
-            
+
             int lenU = ComputeEffectiveLength(u, lenA);
             int lenV = ComputeEffectiveLength(v, lenB);
 
-            long* q = stackalloc long[Math.Max(lenA, lenB) + 1];
-            long* r = stackalloc long[Math.Max(lenA, lenB) + 1];
+            long* q = stackalloc long[maxLen + 1];
+            long* r = stackalloc long[maxLen + 1];
 
             while (lenV > 0)
             {
@@ -34,10 +36,11 @@ namespace IAFahim.Algebra.Polynomial
 
             if (lenU > 0)
             {
-                long inv = ModInv(u[lenU - 1], (long)MOD);
+                long mod = (long)MOD;
+                long inv = ModInv(u[lenU - 1], mod);
                 for (int i = 0; i < lenU; i++)
                 {
-                    gcd[i] = (u[i] * inv) % (long)MOD;
+                    gcd[i] = (u[i] * inv) % mod;
                 }
             }
             lenGcd = lenU;
@@ -70,15 +73,13 @@ namespace IAFahim.Algebra.Polynomial
             while (b > 0L)
             {
                 long t = a / b;
-                a -= t * b;
-                long tmp = a;
+                long na = a - t * b;
                 a = b;
-                b = tmp;
-                
-                u -= t * v;
-                tmp = u;
+                b = na;
+
+                long nu = u - t * v;
                 u = v;
-                v = tmp;
+                v = nu;
             }
             u %= mod;
             if (u < 0L) u += mod;

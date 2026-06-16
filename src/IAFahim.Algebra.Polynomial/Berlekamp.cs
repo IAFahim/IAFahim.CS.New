@@ -66,39 +66,42 @@ namespace IAFahim.Algebra.Polynomial
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int ReduceQMatrix(long* Q, int n, int MOD)
         {
+            long mod = (long)MOD;
             int rank = 0;
             for (int col = 0; col < n && rank < n; col++)
             {
                 int row = rank;
+                int rowBase = row * n + col;
                 while (row < n)
                 {
-                    long idx = (long)row * (long)n + (long)col;
-                    if (Q[idx] != 0L) break;
+                    if (Q[rowBase] != 0L) break;
                     row++;
+                    rowBase += n;
                 }
                 if (row == n) continue;
 
                 if (row != rank) SwapRows(Q, n, rank, row);
 
-                long rIdx = (long)rank * (long)n + (long)col;
-                long inv = ModInv(Q[rIdx], (long)MOD);
+                int rankBase = rank * n;
+                long inv = ModInv(Q[rankBase + col], mod);
+                long* rankRow = Q + rankBase;
                 for (int j = 0; j < n; j++)
                 {
-                    long jIdx = (long)rank * (long)n + (long)j;
-                    Q[jIdx] = (Q[jIdx] * inv) % (long)MOD;
+                    rankRow[j] = (rankRow[j] * inv) % mod;
                 }
 
                 for (int r = 0; r < n; r++)
                 {
-                    long currIdx = (long)r * (long)n + (long)col;
-                    if (r != rank && Q[currIdx] != 0L)
+                    int rBase = r * n;
+                    if (r != rank && Q[rBase + col] != 0L)
                     {
-                        long factor = Q[currIdx];
+                        long factor = Q[rBase + col];
+                        long* curRow = Q + rBase;
                         for (int j = 0; j < n; j++)
                         {
-                            long rjIdx = (long)r * (long)n + (long)j;
-                            long rankjIdx = (long)rank * (long)n + (long)j;
-                            Q[rjIdx] = (Q[rjIdx] - (factor * Q[rankjIdx]) % (long)MOD + (long)MOD) % (long)MOD;
+                            long t = curRow[j] - (factor * rankRow[j]) % mod;
+                            t += (t >> 63) & mod;
+                            curRow[j] = t;
                         }
                     }
                 }
@@ -110,26 +113,64 @@ namespace IAFahim.Algebra.Polynomial
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void SwapRows(long* Q, int n, int r1, int r2)
         {
+            long* row1 = Q + r1 * n;
+            long* row2 = Q + r2 * n;
             for (int j = 0; j < n; j++)
             {
-                long idx1 = (long)r1 * (long)n + (long)j;
-                long idx2 = (long)r2 * (long)n + (long)j;
-                long tmpVal = Q[idx1];
-                Q[idx1] = Q[idx2];
-                Q[idx2] = tmpVal;
+                long tmpVal = row1[j];
+                row1[j] = row2[j];
+                row2[j] = tmpVal;
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int ExtractBasis(long* poly, long* Q, int n, int rank, int MOD, long* outF, int* outL)
         {
+            // Q is in reduced row-echelon form. Identify the pivot column of each
+            // pivot row and mark every column as pivot or free. The null space of Q
+            // (vectors v with Q v = 0) has dimension n - rank, with one basis vector
+            // per free column.
+            int* pivotColOfRow = stackalloc int[rank];
+            byte* isPivotCol = stackalloc byte[n];
+            for (int c = 0; c < n; c++) isPivotCol[c] = 0;
+
+            long mod = (long)MOD;
+            for (int r = 0; r < rank; r++)
+            {
+                long rowBase = (long)r * (long)n;
+                int pivotCol = -1;
+                for (int c = 0; c < n; c++)
+                {
+                    if (Q[rowBase + c] != 0L)
+                    {
+                        pivotCol = c;
+                        break;
+                    }
+                }
+                pivotColOfRow[r] = pivotCol;
+                if (pivotCol >= 0) isPivotCol[pivotCol] = 1;
+            }
+
             int factorCount = 0;
             long* basis = stackalloc long[n];
-            for (int i = 0; i < n - rank; i++)
+            for (int freeCol = 0; freeCol < n; freeCol++)
             {
+                if (isPivotCol[freeCol] != 0) continue;
+
                 for (int j = 0; j < n; j++) basis[j] = 0L;
-                int basisIdx = rank + i;
-                basis[basisIdx] = 1L;
+                basis[freeCol] = 1L;
+
+                // For each pivot row r with pivot column p: the equation contributes
+                // Q[r][p]*v[p] + Q[r][freeCol]*v[freeCol] = 0 (RREF: Q[r][p] == 1),
+                // so v[p] = -Q[r][freeCol].
+                for (int r = 0; r < rank; r++)
+                {
+                    int pivotCol = pivotColOfRow[r];
+                    if (pivotCol < 0) continue;
+                    long coeff = Q[(long)r * (long)n + (long)freeCol] % mod;
+                    if (coeff != 0L) coeff = mod - coeff;
+                    basis[pivotCol] = coeff;
+                }
 
                 for (int j = 0; j < n; j++) outF[(long)factorCount * (long)n + (long)j] = basis[j];
                 outL[factorCount++] = n;

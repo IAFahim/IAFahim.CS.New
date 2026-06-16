@@ -5,6 +5,7 @@ namespace IAFahim.Search.RangeQueries
 
     public static unsafe class RangeGcdQuery
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long Gcd(long a, long b)
         {
             while (b != 0) { long t = a % b; a = b; b = t; }
@@ -15,19 +16,24 @@ namespace IAFahim.Search.RangeQueries
         {
             long res = arr[l];
             for (int i = l + 1; i <= r; i++)
+            {
+                if (res == 1) return 1;
                 res = Gcd(res, arr[i]);
+            }
             return res;
         }
     }
 
     public static unsafe class RangeLcmQuery
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long Gcd(long a, long b)
         {
             while (b != 0) { long t = a % b; a = b; b = t; }
             return a;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long Lcm(long a, long b)
         {
             if (a == 0 || b == 0) return 0;
@@ -38,7 +44,10 @@ namespace IAFahim.Search.RangeQueries
         {
             long res = arr[l];
             for (int i = l + 1; i <= r; i++)
+            {
+                if (res == 0) return 0;
                 res = Lcm(res, arr[i]);
+            }
             return res;
         }
     }
@@ -109,23 +118,25 @@ namespace IAFahim.Search.RangeQueries
             
             PushMin(tree, lazy, node, l, r);
             int mid = (l + r) >> 1;
-            RunMin(tree, lazy, node * 2, l, mid, ql, qr, val);
-            RunMin(tree, lazy, node * 2 + 1, mid + 1, r, ql, qr, val);
-            tree[node] = Math.Min(tree[node * 2], tree[node * 2 + 1]);
+            int left = node * 2, right = left + 1;
+            RunMin(tree, lazy, left, l, mid, ql, qr, val);
+            RunMin(tree, lazy, right, mid + 1, r, ql, qr, val);
+            tree[node] = Math.Min(tree[left], tree[right]);
         }
 
         private static void ApplyMin(long* tree, long* lazy, int node, int l, int r, long val)
         {
             if (tree[node] <= val) return;
             tree[node] = val;
-            if (l != r) { lazy[node * 2] = Math.Min(lazy[node * 2], val); lazy[node * 2 + 1] = Math.Min(lazy[node * 2 + 1], val); }
+            if (l != r) { int left = node * 2, right = left + 1; lazy[left] = Math.Min(lazy[left], val); lazy[right] = Math.Min(lazy[right], val); }
         }
 
         private static void PushMin(long* tree, long* lazy, int node, int l, int r)
         {
             if (l == r) return;
-            ApplyMin(tree, lazy, node * 2, l, (l + r) >> 1, lazy[node]);
-            ApplyMin(tree, lazy, node * 2 + 1, ((l + r) >> 1) + 1, r, lazy[node]);
+            int mid = (l + r) >> 1, left = node * 2, right = left + 1;
+            ApplyMin(tree, lazy, left, l, mid, lazy[node]);
+            ApplyMin(tree, lazy, right, mid + 1, r, lazy[node]);
         }
 
         public static void RunMax(long* tree, long* lazy, int node, int l, int r, int ql, int qr, long val)
@@ -135,23 +146,25 @@ namespace IAFahim.Search.RangeQueries
             
             PushMax(tree, lazy, node, l, r);
             int mid = (l + r) >> 1;
-            RunMax(tree, lazy, node * 2, l, mid, ql, qr, val);
-            RunMax(tree, lazy, node * 2 + 1, mid + 1, r, ql, qr, val);
-            tree[node] = Math.Max(tree[node * 2], tree[node * 2 + 1]);
+            int left = node * 2, right = left + 1;
+            RunMax(tree, lazy, left, l, mid, ql, qr, val);
+            RunMax(tree, lazy, right, mid + 1, r, ql, qr, val);
+            tree[node] = Math.Max(tree[left], tree[right]);
         }
 
         private static void ApplyMax(long* tree, long* lazy, int node, int l, int r, long val)
         {
             if (tree[node] >= val) return;
             tree[node] = val;
-            if (l != r) { lazy[node * 2] = Math.Max(lazy[node * 2], val); lazy[node * 2 + 1] = Math.Max(lazy[node * 2 + 1], val); }
+            if (l != r) { int left = node * 2, right = left + 1; lazy[left] = Math.Max(lazy[left], val); lazy[right] = Math.Max(lazy[right], val); }
         }
 
         private static void PushMax(long* tree, long* lazy, int node, int l, int r)
         {
             if (l == r) return;
-            ApplyMax(tree, lazy, node * 2, l, (l + r) >> 1, lazy[node]);
-            ApplyMax(tree, lazy, node * 2 + 1, ((l + r) >> 1) + 1, r, lazy[node]);
+            int mid = (l + r) >> 1, left = node * 2, right = left + 1;
+            ApplyMax(tree, lazy, left, l, mid, lazy[node]);
+            ApplyMax(tree, lazy, right, mid + 1, r, lazy[node]);
         }
 
         public static void RunAdd(long* tree, long* lazy, int node, int l, int r, int ql, int qr, long val)
@@ -161,9 +174,10 @@ namespace IAFahim.Search.RangeQueries
             
             PushAdd(tree, lazy, node, l, r);
             int mid = (l + r) >> 1;
-            RunAdd(tree, lazy, node * 2, l, mid, ql, qr, val);
-            RunAdd(tree, lazy, node * 2 + 1, mid + 1, r, ql, qr, val);
-            tree[node] = tree[node * 2] + tree[node * 2 + 1];
+            int left = node * 2, right = left + 1;
+            RunAdd(tree, lazy, left, l, mid, ql, qr, val);
+            RunAdd(tree, lazy, right, mid + 1, r, ql, qr, val);
+            tree[node] = tree[left] + tree[right];
         }
 
         private static void ApplyAdd(long* tree, long* lazy, int node, int l, int r, long val)
@@ -175,9 +189,9 @@ namespace IAFahim.Search.RangeQueries
         private static void PushAdd(long* tree, long* lazy, int node, int l, int r)
         {
             if (l == r || lazy[node] == 0) return;
-            int mid = (l + r) >> 1;
-            ApplyAdd(tree, lazy, node * 2, l, mid, lazy[node]);
-            ApplyAdd(tree, lazy, node * 2 + 1, mid + 1, r, lazy[node]);
+            int mid = (l + r) >> 1, left = node * 2, right = left + 1;
+            ApplyAdd(tree, lazy, left, l, mid, lazy[node]);
+            ApplyAdd(tree, lazy, right, mid + 1, r, lazy[node]);
             lazy[node] = 0;
         }
     }
@@ -191,9 +205,10 @@ namespace IAFahim.Search.RangeQueries
             
             PushAffine(tree, lazyMul, lazyAdd, node, l, r, mod);
             int mid = (l + r) >> 1;
-            Run(tree, lazyMul, lazyAdd, node * 2, l, mid, ql, qr, mul, add, mod);
-            Run(tree, lazyMul, lazyAdd, node * 2 + 1, mid + 1, r, ql, qr, mul, add, mod);
-            tree[node] = (tree[node * 2] + tree[node * 2 + 1]) % mod;
+            int left = node * 2, right = left + 1;
+            Run(tree, lazyMul, lazyAdd, left, l, mid, ql, qr, mul, add, mod);
+            Run(tree, lazyMul, lazyAdd, right, mid + 1, r, ql, qr, mul, add, mod);
+            tree[node] = (tree[left] + tree[right]) % mod;
         }
 
         private static void ApplyAffine(long* tree, long* lazyMul, long* lazyAdd, int node, int l, int r, long mul, long add, long mod)
@@ -201,19 +216,20 @@ namespace IAFahim.Search.RangeQueries
             tree[node] = (tree[node] * mul + add * (r - l + 1)) % mod;
             if (l != r)
             {
-                lazyMul[node * 2] = (lazyMul[node * 2] * mul) % mod;
-                lazyMul[node * 2 + 1] = (lazyMul[node * 2 + 1] * mul) % mod;
-                lazyAdd[node * 2] = (lazyAdd[node * 2] * mul + add) % mod;
-                lazyAdd[node * 2 + 1] = (lazyAdd[node * 2 + 1] * mul + add) % mod;
+                int left = node * 2, right = left + 1;
+                lazyMul[left] = (lazyMul[left] * mul) % mod;
+                lazyMul[right] = (lazyMul[right] * mul) % mod;
+                lazyAdd[left] = (lazyAdd[left] * mul + add) % mod;
+                lazyAdd[right] = (lazyAdd[right] * mul + add) % mod;
             }
         }
 
         private static void PushAffine(long* tree, long* lazyMul, long* lazyAdd, int node, int l, int r, long mod)
         {
             if (l == r || (lazyMul[node] == 1 && lazyAdd[node] == 0)) return;
-            int mid = (l + r) >> 1;
-            ApplyAffine(tree, lazyMul, lazyAdd, node * 2, l, mid, lazyMul[node], lazyAdd[node], mod);
-            ApplyAffine(tree, lazyMul, lazyAdd, node * 2 + 1, mid + 1, r, lazyMul[node], lazyAdd[node], mod);
+            int mid = (l + r) >> 1, left = node * 2, right = left + 1;
+            ApplyAffine(tree, lazyMul, lazyAdd, left, l, mid, lazyMul[node], lazyAdd[node], mod);
+            ApplyAffine(tree, lazyMul, lazyAdd, right, mid + 1, r, lazyMul[node], lazyAdd[node], mod);
             lazyMul[node] = 1; lazyAdd[node] = 0;
         }
     }
@@ -225,8 +241,8 @@ namespace IAFahim.Search.RangeQueries
             if (qr < l || ql > r) return 0;
             if (ql <= l && r <= qr) return tree[node];
             // Note: In a real implementation, a PushDown call would be needed here.
-            int mid = (l + r) >> 1;
-            return (Run(tree, lazyMul, lazyAdd, node * 2, l, mid, ql, qr, mod) + Run(tree, lazyMul, lazyAdd, node * 2 + 1, mid + 1, r, ql, qr, mod)) % mod;
+            int mid = (l + r) >> 1, left = node * 2, right = left + 1;
+            return (Run(tree, lazyMul, lazyAdd, left, l, mid, ql, qr, mod) + Run(tree, lazyMul, lazyAdd, right, mid + 1, r, ql, qr, mod)) % mod;
         }
     }
 
@@ -236,10 +252,10 @@ namespace IAFahim.Search.RangeQueries
         {
             if (qr < l || ql > r) return;
             if (l == r) { tree[node] %= mod; return; }
-            int mid = (l + r) >> 1;
-            Run(tree, node * 2, l, mid, ql, qr, mod);
-            Run(tree, node * 2 + 1, mid + 1, r, ql, qr, mod);
-            tree[node] = Math.Min(tree[node * 2], tree[node * 2 + 1]);
+            int mid = (l + r) >> 1, left = node * 2, right = left + 1;
+            Run(tree, left, l, mid, ql, qr, mod);
+            Run(tree, right, mid + 1, r, ql, qr, mod);
+            tree[node] = Math.Min(tree[left], tree[right]);
         }
     }
 
@@ -251,25 +267,25 @@ namespace IAFahim.Search.RangeQueries
             if (ql <= l && r <= qr) { ApplyAssign(tree, lazy, hasLazy, node, l, r, val); return; }
             
             PushAssign(tree, lazy, hasLazy, node, l, r);
-            int mid = (l + r) >> 1;
-            Run(tree, lazy, hasLazy, node * 2, l, mid, ql, qr, val);
-            Run(tree, lazy, hasLazy, node * 2 + 1, mid + 1, r, ql, qr, val);
-            tree[node] = tree[node * 2] + tree[node * 2 + 1];
+            int mid = (l + r) >> 1, left = node * 2, right = left + 1;
+            Run(tree, lazy, hasLazy, left, l, mid, ql, qr, val);
+            Run(tree, lazy, hasLazy, right, mid + 1, r, ql, qr, val);
+            tree[node] = tree[left] + tree[right];
         }
 
         private static void ApplyAssign(long* tree, long* lazy, bool* hasLazy, int node, int l, int r, long val)
         {
             tree[node] = val * (r - l + 1);
-            if (l != r) { lazy[node * 2] = lazy[node * 2 + 1] = val; hasLazy[node * 2] = hasLazy[node * 2 + 1] = true; }
+            if (l != r) { int left = node * 2, right = left + 1; lazy[left] = lazy[right] = val; hasLazy[left] = hasLazy[right] = true; }
             hasLazy[node] = false;
         }
 
         private static void PushAssign(long* tree, long* lazy, bool* hasLazy, int node, int l, int r)
         {
             if (l == r || !hasLazy[node]) return;
-            int mid = (l + r) >> 1;
-            ApplyAssign(tree, lazy, hasLazy, node * 2, l, mid, lazy[node]);
-            ApplyAssign(tree, lazy, hasLazy, node * 2 + 1, mid + 1, r, lazy[node]);
+            int mid = (l + r) >> 1, left = node * 2, right = left + 1;
+            ApplyAssign(tree, lazy, hasLazy, left, l, mid, lazy[node]);
+            ApplyAssign(tree, lazy, hasLazy, right, mid + 1, r, lazy[node]);
             hasLazy[node] = false;
         }
 
@@ -279,25 +295,25 @@ namespace IAFahim.Search.RangeQueries
             if (ql <= l && r <= qr) { ApplyAssignInt32(tree, lazy, hasLazy, node, l, r, val); return; }
             
             PushAssignInt32(tree, lazy, hasLazy, node, l, r);
-            int mid = (l + r) >> 1;
-            RunSetInt32(tree, lazy, hasLazy, node * 2, l, mid, ql, qr, val);
-            RunSetInt32(tree, lazy, hasLazy, node * 2 + 1, mid + 1, r, ql, qr, val);
-            tree[node] = tree[node * 2] + tree[node * 2 + 1];
+            int mid = (l + r) >> 1, left = node * 2, right = left + 1;
+            RunSetInt32(tree, lazy, hasLazy, left, l, mid, ql, qr, val);
+            RunSetInt32(tree, lazy, hasLazy, right, mid + 1, r, ql, qr, val);
+            tree[node] = tree[left] + tree[right];
         }
 
         private static void ApplyAssignInt32(int* tree, int* lazy, bool* hasLazy, int node, int l, int r, int val)
         {
             tree[node] = val * (r - l + 1);
-            if (l != r) { lazy[node * 2] = lazy[node * 2 + 1] = val; hasLazy[node * 2] = hasLazy[node * 2 + 1] = true; }
+            if (l != r) { int left = node * 2, right = left + 1; lazy[left] = lazy[right] = val; hasLazy[left] = hasLazy[right] = true; }
             hasLazy[node] = false;
         }
 
         private static void PushAssignInt32(int* tree, int* lazy, bool* hasLazy, int node, int l, int r)
         {
             if (l == r || !hasLazy[node]) return;
-            int mid = (l + r) >> 1;
-            ApplyAssignInt32(tree, lazy, hasLazy, node * 2, l, mid, lazy[node]);
-            ApplyAssignInt32(tree, lazy, hasLazy, node * 2 + 1, mid + 1, r, lazy[node]);
+            int mid = (l + r) >> 1, left = node * 2, right = left + 1;
+            ApplyAssignInt32(tree, lazy, hasLazy, left, l, mid, lazy[node]);
+            ApplyAssignInt32(tree, lazy, hasLazy, right, mid + 1, r, lazy[node]);
             hasLazy[node] = false;
         }
     }
@@ -313,17 +329,19 @@ namespace IAFahim.Search.RangeQueries
         {
             public static int Run(int* arr, int start, int len)
             {
+                if (len == 0) return -1;
+                int* p = arr + start;
                 int candidate = 0, count = 0;
                 for (int i = 0; i < len; i++)
                 {
-                    int val = arr[start + i];
+                    int val = p[i];
                     if (count == 0) { candidate = val; count = 1; }
                     else if (val == candidate) count++;
                     else count--;
                 }
                 count = 0;
                 for (int i = 0; i < len; i++)
-                    if (arr[start + i] == candidate) count++;
+                    if (p[i] == candidate) count++;
                 return count > (len >> 1) ? candidate : -1;
             }
         }
@@ -355,10 +373,10 @@ namespace IAFahim.Search.RangeQueries
             return sorted[l + (len >> 1)];
         }
 
-        public static int RunInt64(long* sorted, int n, int l, int r)
+        public static long RunInt64(long* sorted, int n, int l, int r)
         {
             int len = r - l + 1;
-            return (int)sorted[l + (len >> 1)];
+            return sorted[l + (len >> 1)];
         }
     }
 
@@ -380,23 +398,49 @@ namespace IAFahim.Search.RangeQueries
         public static long RunFenwick(int* arr, int n, int l, int r, int* bit)
         {
             int len = r - l + 1;
-            long* compressed = stackalloc long[len];
             int* sorted = stackalloc int[len];
             for (int i = 0; i < len; i++) sorted[i] = arr[l + i];
+
+            // Insertion sort to build the coordinate-compression key set.
             for (int i = 1; i < len; i++)
             {
                 int key = sorted[i], j = i - 1;
                 while (j >= 0 && sorted[j] > key) { sorted[j + 1] = sorted[j]; j--; }
                 sorted[j + 1] = key;
             }
-            long inv = 0;
+
+            // Deduplicate in place; m = number of distinct values, ranks are 1..m.
+            int m = 0;
             for (int i = 0; i < len; i++)
             {
-                int rank = 1;
-                for (int j = 0; j < len; j++)
-                    if (sorted[j] < sorted[i] || (sorted[j] == sorted[i] && j < i)) rank++;
-                for (int j = rank; j <= len; j++) inv += bit[j];
-                for (int j = rank; j <= len; j++) bit[j]++;
+                if (i == 0 || sorted[i] != sorted[m - 1]) { sorted[m] = sorted[i]; m++; }
+            }
+
+            long inv = 0;
+            // Process elements in ORIGINAL order; count already-inserted elements
+            // with a strictly greater rank (equal values are not inversions).
+            for (int i = 0; i < len; i++)
+            {
+                int value = arr[l + i];
+
+                // lower_bound: smallest index whose sorted value >= value (exact, found).
+                int lo = 0, hi = m;
+                while (lo < hi)
+                {
+                    int mid = (lo + hi) >> 1;
+                    if (sorted[mid] < value) lo = mid + 1;
+                    else hi = mid;
+                }
+                int rank = lo + 1; // 1-based rank in [1..m]
+
+                // Count inserted elements with rank > rank: total inserted so far minus
+                // prefix-sum up to and including this rank.
+                long lessOrEqual = 0;
+                for (int j = rank; j > 0; j -= j & -j) lessOrEqual += bit[j];
+                inv += i - lessOrEqual;
+
+                // Point update at rank.
+                for (int j = rank; j <= m; j += j & -j) bit[j]++;
             }
             return inv;
         }

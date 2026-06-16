@@ -19,8 +19,6 @@ namespace Unity.Collections
 
         private ListState* state;
 
-        private static readonly int ElementSize = UnsafeUtility.SizeOf<T>();
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public NativeList(int initialCapacity, Allocator allocator)
         {
@@ -28,7 +26,7 @@ namespace Unity.Collections
             this.state->Capacity = initialCapacity;
             this.state->Length = 0;
             this.state->Allocator = allocator;
-            long byteCount = (long)initialCapacity * ElementSize;
+            long byteCount = (long)initialCapacity * sizeof(T);
             this.state->Buffer = initialCapacity > 0 ? Marshal.AllocHGlobal((IntPtr)byteCount) : IntPtr.Zero;
             if (initialCapacity > 0)
             {
@@ -91,14 +89,14 @@ namespace Unity.Collections
         {
             IntPtr newBuffer = newCapacity == 0
                 ? IntPtr.Zero
-                : Marshal.AllocHGlobal((IntPtr)((long)newCapacity * ElementSize));
+                : Marshal.AllocHGlobal((IntPtr)((long)newCapacity * sizeof(T)));
 
             if (this.state->Buffer != IntPtr.Zero)
             {
                 if (newCapacity > 0)
                 {
                     int copySize = this.state->Length < newCapacity ? this.state->Length : newCapacity;
-                    UnsafeUtility.MemCpy((void*)newBuffer, (void*)this.state->Buffer, (long)copySize * ElementSize);
+                    UnsafeUtility.MemCpy((void*)newBuffer, (void*)this.state->Buffer, (long)copySize * sizeof(T));
                 }
                 Marshal.FreeHGlobal(this.state->Buffer);
             }
@@ -148,14 +146,14 @@ namespace Unity.Collections
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             readonly get
             {
-                IntPtr byteOffset = this.state->Buffer + index * ElementSize;
-                return System.Runtime.CompilerServices.Unsafe.Read<T>((void*)byteOffset);
+                byte* byteOffset = (byte*)this.state->Buffer + (long)index * sizeof(T);
+                return System.Runtime.CompilerServices.Unsafe.Read<T>(byteOffset);
             }
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
-                IntPtr byteOffset = this.state->Buffer + index * ElementSize;
-                System.Runtime.CompilerServices.Unsafe.Write<T>((void*)byteOffset, value);
+                byte* byteOffset = (byte*)this.state->Buffer + (long)index * sizeof(T);
+                System.Runtime.CompilerServices.Unsafe.Write<T>(byteOffset, value);
             }
         }
 
@@ -190,8 +188,8 @@ namespace Unity.Collections
                 this.ResizeCapacity(this.state->Capacity < 4 ? 8 : this.state->Capacity << 1);
             }
 
-            IntPtr byteOffset = this.state->Buffer + this.state->Length * ElementSize;
-            System.Runtime.CompilerServices.Unsafe.Write<T>((void*)byteOffset, item);
+            byte* byteOffset = (byte*)this.state->Buffer + (long)this.state->Length * sizeof(T);
+            System.Runtime.CompilerServices.Unsafe.Write<T>(byteOffset, item);
             this.state->Length++;
         }
 
@@ -209,9 +207,9 @@ namespace Unity.Collections
                 return;
             }
 
-            long byteCount = (long)(this.state->Length - index) * ElementSize;
-            byte* src = (byte*)this.state->Buffer + (index + 1) * ElementSize;
-            byte* dst = (byte*)this.state->Buffer + index * ElementSize;
+            long byteCount = (long)(this.state->Length - index) * sizeof(T);
+            byte* src = (byte*)this.state->Buffer + (long)(index + 1) * sizeof(T);
+            byte* dst = (byte*)this.state->Buffer + (long)index * sizeof(T);
             UnsafeUtility.MemCpy(dst, src, byteCount);
         }
 
@@ -231,9 +229,9 @@ namespace Unity.Collections
                 return;
             }
 
-            long byteCount = (long)(this.state->Length - index) * ElementSize;
-            byte* src = (byte*)this.state->Buffer + (index + cnt) * ElementSize;
-            byte* dst = (byte*)this.state->Buffer + index * ElementSize;
+            long byteCount = (long)(this.state->Length - index) * sizeof(T);
+            byte* src = (byte*)this.state->Buffer + (long)(index + cnt) * sizeof(T);
+            byte* dst = (byte*)this.state->Buffer + (long)index * sizeof(T);
             UnsafeUtility.MemCpy(dst, src, byteCount);
         }
 
@@ -255,9 +253,9 @@ namespace Unity.Collections
 
             if (options == NativeArrayOptions.ClearMemory && length > oldLength)
             {
-                IntPtr startByte = this.state->Buffer + oldLength * ElementSize;
-                long clearByteCount = (long)(length - oldLength) * ElementSize;
-                UnsafeUtility.MemClear((byte*)startByte, clearByteCount);
+                byte* startByte = (byte*)this.state->Buffer + (long)oldLength * sizeof(T);
+                long clearByteCount = (long)(length - oldLength) * sizeof(T);
+                UnsafeUtility.MemClear(startByte, clearByteCount);
             }
         }
 

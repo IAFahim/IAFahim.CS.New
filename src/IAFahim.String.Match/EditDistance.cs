@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
         public static int Hamming(byte* a, byte* b, int len)
         {
             int dist = 0;
-            for (int i = 0; i < len; i++) if (a[i] != b[i]) dist++;
+            for (int i = 0; i < len; i++) dist += a[i] != b[i] ? 1 : 0;
             return dist;
         }
 
@@ -39,9 +39,10 @@ using System.Runtime.InteropServices;
         private static int UpdateLevenshteinRow(int i, int lenB, byte* a, byte* b, int* prev, int* curr)
         {
             curr[0] = i; int min = i;
+            byte ai = a[i - 1];
             for (int j = 1; j <= lenB; j++)
             {
-                int cost = a[i - 1] == b[j - 1] ? 0 : 1;
+                int cost = ai == b[j - 1] ? 0 : 1;
                 curr[j] = Math.Min(Math.Min(prev[j] + 1, curr[j - 1] + 1), prev[j - 1] + cost);
                 if (curr[j] < min) min = curr[j];
             }
@@ -50,34 +51,61 @@ using System.Runtime.InteropServices;
 
         private static void SwapBuffers(ref int* a, ref int* b) { int* t = a; a = b; b = t; }
 
-        public static bool Ukkonen(byte* a, int lenA, byte* b, int lenB, int k, bool* trace)
+        /// <summary>
+        /// Returns true when the Levenshtein edit distance between <paramref name="a"/>
+        /// (length <paramref name="lenA"/>) and <paramref name="b"/> (length
+        /// <paramref name="lenB"/>) is at most <paramref name="k"/>, using a rolling-row
+        /// dynamic program with Ukkonen's whole-row pruning. The caller supplies
+        /// <paramref name="v"/> as scratch of size lenB+1 (one DP row). When
+        /// <paramref name="trace"/> is non-null it must point to a buffer of
+        /// (lenA+1)*(lenB+1) bools and receives dp[i][j] &lt;= k reachability flags indexed
+        /// as trace[i*(lenB+1)+j].
+        /// </summary>
+        public static bool Ukkonen(byte* a, int lenA, byte* b, int lenB, int k, int* v, bool* trace)
         {
-            int m = lenB; int* v = (int*)Marshal.AllocHGlobal(sizeof(int) * (m + 1));
-            try
-            {
-                for (int d = 0; d <= k; d++)
-                {
-                    if (PerformUkkonenIteration(a, b, m, d, k, v, trace)) return true;
-                }
-                return false;
-            }
-            finally { Marshal.FreeHGlobal((nint)v); }
-        }
+            // The edit distance is at least the length difference, so reject early.
+            if (lenA - lenB > k || lenB - lenA > k) return false;
 
-        private static bool PerformUkkonenIteration(byte* a, byte* b, int m, int d, int k, int* v, bool* trace)
-        {
-            for (int i = d; i <= m; i++)
+            int stride = lenB + 1;
+
+            // Row 0: dp[0][j] = j.
+            for (int j = 0; j <= lenB; j++)
             {
-                if (i == d) v[i] = 0;
-                else
-                {
-                    int min = Math.Min(v[i - 1] + 1, v[i] + 1), j = i - 1 - v[i];
-                    while (j >= 0 && d > 0 && a[j] != b[j]) { if (++min > d) break; j--; }
-                    v[i] = min;
-                }
-                if (trace != null) trace[d * (m + 1) + i] = v[i] <= k;
+                v[j] = j;
+                if (trace != null) trace[j] = j <= k;
             }
-            return v[m] <= k;
+
+            for (int i = 1; i <= lenA; i++)
+            {
+                int rowBase = i * stride;
+                int diag = v[0]; // dp[i-1][0] before it is overwritten
+                v[0] = i;        // dp[i][0]
+                if (trace != null) trace[rowBase] = i <= k;
+
+                byte ai = a[i - 1];
+                int rowMin = i;
+                for (int j = 1; j <= lenB; j++)
+                {
+                    int up = v[j];   // dp[i-1][j]
+                    int cost = ai == b[j - 1] ? 0 : 1;
+                    int best = diag + cost;
+                    int delUp = up + 1;
+                    if (delUp < best) best = delUp;
+                    int delLeft = v[j - 1] + 1;
+                    if (delLeft < best) best = delLeft;
+
+                    diag = up;
+                    v[j] = best;
+                    if (best < rowMin) rowMin = best;
+                    if (trace != null) trace[rowBase + j] = best <= k;
+                }
+
+                // Ukkonen pruning: once every cell of a row exceeds k, the minimum of each
+                // following row stays > k, so the final distance is certainly > k.
+                if (rowMin > k) return false;
+            }
+
+            return v[lenB] <= k;
         }
     }
 }

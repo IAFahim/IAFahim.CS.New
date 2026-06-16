@@ -13,15 +13,13 @@ namespace Unity.Collections.LowLevel.Unsafe
         private int _capacity;
         private Allocator _allocator;
 
-        private static readonly int _elementSize = UnsafeUtility.SizeOf<T>();
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public UnsafeList(int initialCapacity, Allocator allocator)
         {
             this = default;
             _capacity = initialCapacity;
             _allocator = allocator;
-            long byteCount = (long)initialCapacity * _elementSize;
+            long byteCount = (long)initialCapacity * sizeof(T);
             _buffer = Marshal.AllocHGlobal((nint)byteCount);
             UnsafeUtility.MemClear((void*)_buffer, byteCount);
         }
@@ -71,14 +69,14 @@ namespace Unity.Collections.LowLevel.Unsafe
         {
             var newBuffer = newCapacity == 0
                 ? IntPtr.Zero
-                : Marshal.AllocHGlobal((nint)((long)newCapacity * _elementSize));
+                : Marshal.AllocHGlobal((nint)((long)newCapacity * sizeof(T)));
 
             if (_buffer != IntPtr.Zero)
             {
                 if (newCapacity > 0)
                 {
                     var copySize = _length < newCapacity ? _length : newCapacity;
-                    UnsafeUtility.MemCpy((void*)newBuffer, (void*)_buffer, (long)copySize * _elementSize);
+                    UnsafeUtility.MemCpy((void*)newBuffer, (void*)_buffer, (long)copySize * sizeof(T));
                 }
                 Marshal.FreeHGlobal(_buffer);
             }
@@ -102,13 +100,13 @@ namespace Unity.Collections.LowLevel.Unsafe
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                var byteOffset = _buffer + index * _elementSize;
+                var byteOffset = _buffer + (nint)index * sizeof(T);
                 return System.Runtime.CompilerServices.Unsafe.Read<T>((void*)byteOffset);
             }
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
-                var byteOffset = _buffer + index * _elementSize;
+                var byteOffset = _buffer + (nint)index * sizeof(T);
                 System.Runtime.CompilerServices.Unsafe.Write<T>((void*)byteOffset, value);
             }
         }
@@ -150,7 +148,7 @@ namespace Unity.Collections.LowLevel.Unsafe
             if (_length >= _capacity)
                 ResizeCapacity(_length + 1);
 
-            var byteOffset = _buffer + _length * _elementSize;
+            var byteOffset = _buffer + (nint)_length * sizeof(T);
             System.Runtime.CompilerServices.Unsafe.Write<T>((void*)byteOffset, item);
             _length++;
         }
@@ -164,8 +162,8 @@ namespace Unity.Collections.LowLevel.Unsafe
             if (needed > _capacity)
                 Capacity = CalculateNewCapacity(needed);
 
-            var dst = (byte*)_buffer + _length * _elementSize;
-            UnsafeUtility.MemCpy(dst, ptr, (long)count * _elementSize);
+            var dst = (byte*)_buffer + (nint)_length * sizeof(T);
+            UnsafeUtility.MemCpy(dst, ptr, (long)count * sizeof(T));
             _length += count;
         }
 
@@ -179,9 +177,9 @@ namespace Unity.Collections.LowLevel.Unsafe
             if (index == _length)
                 return;
 
-            var dst = (byte*)_buffer + index * _elementSize;
-            var src = (byte*)_buffer + (index + 1) * _elementSize;
-            var byteCount = (_length - index) * _elementSize;
+            var dst = (byte*)_buffer + (nint)index * sizeof(T);
+            var src = (byte*)_buffer + (nint)(index + 1) * sizeof(T);
+            var byteCount = (long)(_length - index) * sizeof(T);
             UnsafeUtility.MemCpy(dst, src, byteCount);
         }
 
@@ -198,9 +196,9 @@ namespace Unity.Collections.LowLevel.Unsafe
             if (index == _length || count == 0)
                 return;
 
-            var dst = (byte*)_buffer + index * _elementSize;
-            var src = (byte*)_buffer + (index + count) * _elementSize;
-            var byteCount = (_length - index) * _elementSize;
+            var dst = (byte*)_buffer + (nint)index * sizeof(T);
+            var src = (byte*)_buffer + (nint)(index + count) * sizeof(T);
+            var byteCount = (long)(_length - index) * sizeof(T);
             UnsafeUtility.MemCpy(dst, src, byteCount);
         }
 
@@ -237,8 +235,8 @@ namespace Unity.Collections.LowLevel.Unsafe
 
             if (options == Unity.Collections.NativeArrayOptions.ClearMemory && length > oldLength)
             {
-                var startByte = (byte*)_buffer + oldLength * _elementSize;
-                var clearByteCount = (long)(length - oldLength) * _elementSize;
+                var startByte = (byte*)_buffer + (nint)oldLength * sizeof(T);
+                var clearByteCount = (long)(length - oldLength) * sizeof(T);
                 UnsafeUtility.MemClear(startByte, clearByteCount);
             }
         }
