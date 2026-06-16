@@ -8,25 +8,21 @@ namespace IAFahim.Math.NT
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Run(int x)
         {
-            int count = 0;
-            while (x != 0)
-            {
-                count += x & 1;
-                x >>= 1;
-            }
-            return count;
+            uint v = (uint)x;
+            v = v - ((v >> 1) & 0x55555555u);
+            v = (v & 0x33333333u) + ((v >> 2) & 0x33333333u);
+            v = (v + (v >> 4)) & 0x0F0F0F0Fu;
+            return (int)((v * 0x01010101u) >> 24);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Run(long x)
         {
-            int count = 0;
-            while (x != 0)
-            {
-                count += (int)(x & 1);
-                x >>= 1;
-            }
-            return count;
+            ulong v = (ulong)x;
+            v = v - ((v >> 1) & 0x5555555555555555UL);
+            v = (v & 0x3333333333333333UL) + ((v >> 2) & 0x3333333333333333UL);
+            v = (v + (v >> 4)) & 0x0F0F0F0F0F0F0F0FUL;
+            return (int)((v * 0x0101010101010101UL) >> 56);
         }
     }
 
@@ -35,27 +31,32 @@ namespace IAFahim.Math.NT
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Run(int x)
         {
-            if (x == 0) return 0;
-            int len = 0;
-            while (x != 0)
-            {
-                len++;
-                x >>= 1;
-            }
-            return len;
+            uint v = (uint)x;
+            v |= v >> 1;
+            v |= v >> 2;
+            v |= v >> 4;
+            v |= v >> 8;
+            v |= v >> 16;
+            v = v - ((v >> 1) & 0x55555555u);
+            v = (v & 0x33333333u) + ((v >> 2) & 0x33333333u);
+            v = (v + (v >> 4)) & 0x0F0F0F0Fu;
+            return (int)((v * 0x01010101u) >> 24);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Run(long x)
         {
-            if (x == 0) return 0;
-            int len = 0;
-            while (x != 0)
-            {
-                len++;
-                x >>= 1;
-            }
-            return len;
+            ulong v = (ulong)x;
+            v |= v >> 1;
+            v |= v >> 2;
+            v |= v >> 4;
+            v |= v >> 8;
+            v |= v >> 16;
+            v |= v >> 32;
+            v = v - ((v >> 1) & 0x5555555555555555UL);
+            v = (v & 0x3333333333333333UL) + ((v >> 2) & 0x3333333333333333UL);
+            v = (v + (v >> 4)) & 0x0F0F0F0F0F0F0F0FUL;
+            return (int)((v * 0x0101010101010101UL) >> 56);
         }
     }
 
@@ -168,21 +169,21 @@ namespace IAFahim.Math.NT
         public static int Run(int* src, int* dst, int len, int bits)
         {
             int outIdx = 0;
-            int buffer = 0;
+            ulong buffer = 0;
             int bitCount = 0;
             for (int i = 0; i < len; i++)
             {
-                buffer |= src[i] << bitCount;
+                buffer |= (ulong)(uint)src[i] << bitCount;
                 bitCount += bits;
                 while (bitCount >= 32)
                 {
-                    dst[outIdx++] = (int)(buffer & 0xFFFFFFFFu);
-                    buffer = (int)((uint)buffer >> 32);
+                    dst[outIdx++] = (int)(uint)buffer;
+                    buffer >>= 32;
                     bitCount -= 32;
                 }
             }
             if (bitCount > 0)
-                dst[outIdx++] = (int)(buffer & 0xFFFFFFFFu);
+                dst[outIdx++] = (int)(uint)buffer;
             return outIdx;
         }
     }
@@ -193,16 +194,16 @@ namespace IAFahim.Math.NT
         public static int Run(int* src, int* dst, int srcLen, int bits, int len)
         {
             int outIdx = 0;
-            int buffer = 0;
+            ulong buffer = 0;
             int bitCount = 0;
+            ulong mask = (1UL << bits) - 1UL;
             for (int i = 0; i < srcLen && outIdx < len; i++)
             {
-                buffer |= src[i] << bitCount;
+                buffer |= (ulong)(uint)src[i] << bitCount;
                 bitCount += 32;
                 while (bitCount >= bits && outIdx < len)
                 {
-                    int mask = (1 << bits) - 1;
-                    dst[outIdx++] = buffer & mask;
+                    dst[outIdx++] = (int)(buffer & mask);
                     buffer >>= bits;
                     bitCount -= bits;
                 }

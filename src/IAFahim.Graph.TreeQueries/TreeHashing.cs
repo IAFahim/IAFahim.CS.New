@@ -16,14 +16,40 @@ namespace IAFahim.Graph.TreeQueries
             return x;
         }
 
+        private const int HeapSortThreshold = 32;
+
         private static void SortUlong(ulong* arr, int len)
         {
+            if (len > HeapSortThreshold) { HeapSortUlong(arr, len); return; }
             for (int i = 1; i < len; i++)
             {
                 ulong key = arr[i];
                 int j = i - 1;
                 while (j >= 0 && arr[j] > key) { arr[j + 1] = arr[j]; j--; }
                 arr[j + 1] = key;
+            }
+        }
+
+        private static void HeapSortUlong(ulong* arr, int len)
+        {
+            for (int i = len / 2 - 1; i >= 0; i--) SiftDownUlong(arr, i, len);
+            for (int end = len - 1; end > 0; end--)
+            {
+                ulong tmp = arr[0]; arr[0] = arr[end]; arr[end] = tmp;
+                SiftDownUlong(arr, 0, end);
+            }
+        }
+
+        private static void SiftDownUlong(ulong* arr, int root, int len)
+        {
+            while (true)
+            {
+                int child = 2 * root + 1;
+                if (child >= len) break;
+                if (child + 1 < len && arr[child + 1] > arr[child]) child++;
+                if (arr[root] >= arr[child]) break;
+                ulong tmp = arr[root]; arr[root] = arr[child]; arr[child] = tmp;
+                root = child;
             }
         }
 
@@ -78,7 +104,11 @@ namespace IAFahim.Graph.TreeQueries
             TreeCentroid.AllCentroids(n, head, to, next, centroids, ref centroidCount);
 
             ulong* subHash = stackalloc ulong[n];
-            if (centroidCount == 1) return AutomorphismCountRooted(centroids[0], -1, head, to, next, subHash, mod);
+            if (centroidCount == 1)
+            {
+                CanonicalHashRooted(centroids[0], -1, head, to, next, subHash);
+                return AutomorphismCountRooted(centroids[0], -1, head, to, next, subHash, mod);
+            }
             
             ulong h1 = CanonicalHashRooted(centroids[0], -1, head, to, next, subHash);
             ulong h2 = CanonicalHashRooted(centroids[1], -1, head, to, next, subHash);
@@ -202,10 +232,14 @@ namespace IAFahim.Graph.TreeQueries
 
         private static void IdentifyKeyroots(int n, int* lm, byte* kr)
         {
-            for (int i = 1; i <= n; i++) kr[i] = 1;
-            for (int i = 1; i <= n; i++)
-                for (int j = i + 1; j <= n; j++) if (lm[j] == lm[i]) { kr[i] = 0; break; }
-            kr[n] = 1;
+            byte* seen = stackalloc byte[n + 1];
+            for (int i = 0; i <= n; i++) seen[i] = 0;
+            for (int i = n; i >= 1; i--)
+            {
+                int l = lm[i];
+                if (seen[l] == 0) { kr[i] = 1; seen[l] = 1; }
+                else kr[i] = 0;
+            }
         }
 
         private static void UpdateForestDistances(int i, int j, int n2, int* lm1, int* lm2, int* td, int* fd)

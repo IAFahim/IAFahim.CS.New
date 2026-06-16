@@ -1,21 +1,38 @@
 namespace IAFahim.Optimization.Exact
 {
-    using System;
+    using System.Runtime.CompilerServices;
 
     public static unsafe class MinSetCover
     {
         public static int Run(int m, int** sets, int* setSizes, int* covered, int* best, int* cur)
         {
-            int total = CalculateTotalElements(m, setSizes);
+            int universe = CalculateDistinctElements(m, sets, setSizes, covered);
             *best = m + 1;
             cur[0] = 0;
-            Search(m, sets, setSizes, covered, 0, 0, best, cur, 0, total);
+            Search(m, sets, setSizes, covered, 0, 0, best, cur, 0, universe);
             return *best;
         }
 
-        private static int CalculateTotalElements(int m, int* setSizes)
+        private static int CalculateDistinctElements(int m, int** sets, int* setSizes, int* covered)
         {
-            int total = 0; for (int i = 0; i < m; i++) total += setSizes[i]; return total;
+            int distinct = 0;
+            for (int i = 0; i < m; i++)
+            {
+                int sz = setSizes[i];
+                int* s = sets[i];
+                for (int j = 0; j < sz; j++)
+                {
+                    int elem = s[j];
+                    if (covered[elem] == 0) { covered[elem] = 1; distinct++; }
+                }
+            }
+            for (int i = 0; i < m; i++)
+            {
+                int sz = setSizes[i];
+                int* s = sets[i];
+                for (int j = 0; j < sz; j++) covered[s[j]] = 0;
+            }
+            return distinct;
         }
 
         private static void Search(int m, int** sets, int* setSizes, int* covered, int covCount, int used, int* best, int* cur, int idx, int remain)
@@ -36,21 +53,27 @@ namespace IAFahim.Optimization.Exact
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int CoverSet(int i, int** sets, int* setSizes, int* covered)
         {
             int added = 0;
-            for (int j = 0; j < setSizes[i]; j++)
+            int sz = setSizes[i];
+            int* s = sets[i];
+            for (int j = 0; j < sz; j++)
             {
-                int elem = sets[i][j];
+                int elem = s[j];
                 if (covered[elem] == 0) added++;
                 covered[elem]++;
             }
             return added;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void UncoverSet(int i, int** sets, int* setSizes, int* covered)
         {
-            for (int j = 0; j < setSizes[i]; j++) covered[sets[i][j]]--;
+            int sz = setSizes[i];
+            int* s = sets[i];
+            for (int j = 0; j < sz; j++) covered[s[j]]--;
         }
     }
 }

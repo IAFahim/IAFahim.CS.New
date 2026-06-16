@@ -11,8 +11,10 @@ namespace IAFahim.Physics.Xpbd
             float3* positions, float3* restPositions, float* invMasses,
             int count, float compliance, float dt, float3* deltas)
         {
-            float3 centerOfMass = ComputeCenterOfMass(positions, invMasses, count);
-            float3 restCenter = ComputeCenterOfMass(restPositions, invMasses, count);
+            float3 centerOfMass;
+            float3 restCenter;
+            ComputeCentersOfMass(
+                positions, restPositions, invMasses, count, out centerOfMass, out restCenter);
 
             float3x3 rotation = ComputeOptimalRotation(
                 positions, restPositions, invMasses, count, centerOfMass, restCenter);
@@ -30,26 +32,39 @@ namespace IAFahim.Physics.Xpbd
             }
         }
 
+        // Computes the mass-weighted centers of the live and rest configurations in a single
+        // pass. Both share the same invMasses (hence the same per-particle mass and totalMass),
+        // so fusing the two former passes removes one full stream over the data and N divisions.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float3 ComputeCenterOfMass(float3* positions, float* invMasses, int count)
+        private static void ComputeCentersOfMass(
+            float3* positions, float3* restPositions, float* invMasses, int count,
+            out float3 center, out float3 restCenter)
         {
             float3 com = float3.zero;
+            float3 restCom = float3.zero;
             float totalMass = 0.0f;
 
             for (int i = 0; i < count; i++)
             {
                 float mass = invMasses[i] > 1e-8f ? 1.0f / invMasses[i] : 0.0f;
                 com += positions[i] * mass;
+                restCom += restPositions[i] * mass;
                 totalMass += mass;
             }
 
             if (totalMass > 1e-8f)
             {
-                com /= totalMass;
+                float invTotalMass = 1.0f / totalMass;
+                com *= invTotalMass;
+                restCom *= invTotalMass;
             }
 
-            return com;
+            center = com;
+            restCenter = restCom;
         }
+
+        private const int RotationExtractionIterations = 16;
+        private const float RotationExtractionEpsilon = 1e-9f;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float3x3 ComputeOptimalRotation(
@@ -75,18 +90,46 @@ namespace IAFahim.Physics.Xpbd
                 apq.c2.z += mass * p.z * q.z;
             }
 
-            float3x3 s = new float3x3(
-                apq.c0.x * apq.c0.x + apq.c0.y * apq.c0.y + apq.c0.z * apq.c0.z,
-                apq.c0.x * apq.c1.x + apq.c0.y * apq.c1.y + apq.c0.z * apq.c1.z,
-                apq.c0.x * apq.c2.x + apq.c0.y * apq.c2.y + apq.c0.z * apq.c2.z,
-                apq.c1.x * apq.c0.x + apq.c1.y * apq.c0.y + apq.c1.z * apq.c0.z,
-                apq.c1.x * apq.c1.x + apq.c1.y * apq.c1.y + apq.c1.z * apq.c1.z,
-                apq.c1.x * apq.c2.x + apq.c1.y * apq.c2.y + apq.c1.z * apq.c2.z,
-                apq.c2.x * apq.c0.x + apq.c2.y * apq.c0.y + apq.c2.z * apq.c0.z,
-                apq.c2.x * apq.c1.x + apq.c2.y * apq.c1.y + apq.c2.z * apq.c1.z,
-                apq.c2.x * apq.c2.x + apq.c2.y * apq.c2.y + apq.c2.z * apq.c2.z);
+            return ExtractRotation(apq);
+        }
 
-            return apq;
+        // Extracts the rotational part R of the cross-covariance matrix a (Apq) via the robust
+        // iterative quaternion algorithm of Mueller et al. 2016, "A Robust Method to Extract the
+        // Rotational Part of Deformations". This is the polar factor R = a * (a^T * a)^{-1/2} and,
+        // unlike a direct polar/Higham iteration, stays stable for singular or rank-deficient a.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static float3x3 ExtractRotation(float3x3 a)
+        {
+            quaternion q = quaternion.identity;
+
+            for (int iteration = 0; iteration < RotationExtractionIterations; iteration++)
+            {
+                float3x3 r = new float3x3(q);
+
+                // Columns of r are the rotated basis vectors; columns of a are the targets.
+                float3 numerator =
+                    math.cross(r.c0, a.c0) +
+                    math.cross(r.c1, a.c1) +
+                    math.cross(r.c2, a.c2);
+
+                float denominator = math.abs(
+                    math.dot(r.c0, a.c0) +
+                    math.dot(r.c1, a.c1) +
+                    math.dot(r.c2, a.c2)) + RotationExtractionEpsilon;
+
+                float3 omega = numerator / denominator;
+
+                float angle = math.length(omega);
+                if (angle < RotationExtractionEpsilon)
+                {
+                    break;
+                }
+
+                float3 axis = omega / angle;
+                q = math.normalize(math.mul(quaternion.AxisAngle(axis, angle), q));
+            }
+
+            return new float3x3(q);
         }
     }
 }
