@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>IAFahim.DP.Knapsack.Bench.KnapsackBench-20260616-074432</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.14.0, Ubuntu 24.04.4 LTS (Noble Numbat)
+AMD EPYC 9V74, 1 CPU, 4 logical and 2 physical cores
+.NET SDK 10.0.301
+  [Host] : .NET 10.0.9 (10.0.926.27113), X64 RyuJIT AVX2
+  Dry    : .NET 10.0.9 (10.0.926.27113), X64 RyuJIT AVX2
+</code></pre>
+<pre><code>Job=Dry  IterationCount=1  LaunchCount=1  
+RunStrategy=ColdStart  UnrollFactor=1  WarmupCount=1  
+</code></pre>
+
+<table>
+<thead><tr><th>Method           </th><th>N</th><th>Mean    </th><th>Error</th><th>Ratio</th><th>Allocated</th><th>Alloc Ratio</th>
+</tr>
+</thead><tbody><tr><td>Knapsack01_Bench</td><td>100</td><td>1,785.4 &mu;s</td><td>NA</td><td>1.00</td><td>-</td><td>NA</td>
+</tr><tr><td>KnapsackUnbounded_Bench</td><td>100</td><td>2,118.3 &mu;s</td><td>NA</td><td>1.19</td><td>-</td><td>NA</td>
+</tr><tr><td>KnapsackBounded_Bench</td><td>100</td><td>6,410.9 &mu;s</td><td>NA</td><td>3.59</td><td>-</td><td>NA</td>
+</tr><tr><td>SubsetSum_Bench</td><td>100</td><td>1,317.8 &mu;s</td><td>NA</td><td>0.74</td><td>-</td><td>NA</td>
+</tr><tr><td>BitsetSubsetSum_Bench</td><td>100</td><td>773.5 &mu;s</td><td>NA</td><td>0.43</td><td>-</td><td>NA</td>
+</tr><tr><td>Knapsack01_Bench</td><td>1000</td><td>18,866.1 &mu;s</td><td>NA</td><td>1.00</td><td>-</td><td>NA</td>
+</tr><tr><td>KnapsackUnbounded_Bench</td><td>1000</td><td>10,635.4 &mu;s</td><td>NA</td><td>0.56</td><td>-</td><td>NA</td>
+</tr><tr><td>KnapsackBounded_Bench</td><td>1000</td><td>90,667.6 &mu;s</td><td>NA</td><td>4.81</td><td>-</td><td>NA</td>
+</tr><tr><td>SubsetSum_Bench</td><td>1000</td><td>15,006.5 &mu;s</td><td>NA</td><td>0.80</td><td>-</td><td>NA</td>
+</tr><tr><td>BitsetSubsetSum_Bench</td><td>1000</td><td>1,948.5 &mu;s</td><td>NA</td><td>0.10</td><td>-</td><td>NA</td>
+</tr><tr><td>Knapsack01_Bench</td><td>10000</td><td>834,729.5 &mu;s</td><td>NA</td><td>1.00</td><td>-</td><td>NA</td>
+</tr><tr><td>KnapsackUnbounded_Bench</td><td>10000</td><td>936,474.5 &mu;s</td><td>NA</td><td>1.12</td><td>-</td><td>NA</td>
+</tr><tr><td>KnapsackBounded_Bench</td><td>10000</td><td>9,048,967.1 &mu;s</td><td>NA</td><td>10.84</td><td>-</td><td>NA</td>
+</tr><tr><td>SubsetSum_Bench</td><td>10000</td><td>354,701.1 &mu;s</td><td>NA</td><td>0.42</td><td>-</td><td>NA</td>
+</tr><tr><td>BitsetSubsetSum_Bench</td><td>10000</td><td>81,685.9 &mu;s</td><td>NA</td><td>0.10</td><td>-</td><td>NA</td>
+</tr></tbody></table>
+</body>
+</html>
