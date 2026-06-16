@@ -114,31 +114,9 @@ namespace IAFahim.Graph
     {
         public static void Run(int n, int start, int* head, int* to, int* next, int* weight, long* dist, int* parent)
         {
-            for (int i = 0; i < n; i++) dist[i] = long.MaxValue;
-            for (int i = 0; i < n; i++) parent[i] = -1;
-            dist[start] = 0;
-            var pq = new SpMinHeap(n);
-            try
-            {
-                pq.PushOrUpdate(start, 0);
-                while (pq.Size > 0)
-                {
-                    int u = pq.Pop(out long d);
-                    if (d != dist[u]) continue;
-                    for (int e = head[u]; e != 0; e = next[e])
-                    {
-                        int v = to[e];
-                        long nd = dist[u] + weight[e];
-                        if (nd < dist[v])
-                        {
-                            dist[v] = nd;
-                            parent[v] = u;
-                            pq.PushOrUpdate(v, nd);
-                        }
-                    }
-                }
-            }
-            finally { pq.Dispose(); }
+            // Identical heap-Dijkstra to Dijkstra.Run; forward to the single
+            // implementation to avoid divergence. Public class kept for API stability.
+            Dijkstra.Run(n, start, head, to, next, weight, dist, parent);
         }
     }
 
@@ -285,17 +263,21 @@ namespace IAFahim.Graph
         {
             for (int k = 0; k < n; k++)
             {
+                int knBase = k * n;
                 for (int i = 0; i < n; i++)
                 {
-                    if (dist[i * n + k] == long.MaxValue) continue;
+                    int inBase = i * n;
+                    long dik = dist[inBase + k];
+                    if (dik == long.MaxValue) continue;
                     for (int j = 0; j < n; j++)
                     {
-                        if (dist[k * n + j] == long.MaxValue) continue;
-                        long nd = dist[i * n + k] + dist[k * n + j];
-                        if (nd < dist[i * n + j])
+                        long dkj = dist[knBase + j];
+                        if (dkj == long.MaxValue) continue;
+                        long nd = dik + dkj;
+                        if (nd < dist[inBase + j])
                         {
-                            dist[i * n + j] = nd;
-                            parent[i * n + j] = k;
+                            dist[inBase + j] = nd;
+                            parent[inBase + j] = k;
                         }
                     }
                 }
@@ -340,6 +322,12 @@ namespace IAFahim.Graph
                 }
                 if (!changed) break;
             }
+            for (int i = 0; i < m + n; i++)
+            {
+                long uu = augU[i], vv = augV[i];
+                if (bfDist[uu] != long.MaxValue && bfDist[uu] + augW[i] < bfDist[vv])
+                    return false;
+            }
             for (int i = 0; i < n; i++) h[i] = bfDist[i];
             for (int s = 0; s < n; s++)
             {
@@ -353,11 +341,12 @@ namespace IAFahim.Graph
                     {
                         int u = pq.Pop(out long d);
                         if (d != dist[s * n + u]) continue;
+                        long hu = h[u];
                         for (int i = 0; i < m; i++)
                         {
                             if (eu[i] != u) continue;
                             int v = ev[i];
-                            long nd = d + ew[i] + h[s] - h[v];
+                            long nd = d + ew[i] + hu - h[v];
                             if (nd < dist[s * n + v])
                             {
                                 dist[s * n + v] = nd;
@@ -383,15 +372,27 @@ namespace IAFahim.Graph
         {
             for (int i = 0; i < n; i++) dist[i] = long.MaxValue;
             dist[start] = 0;
-            int* dq = stackalloc int[n];
+            // A 0-1 BFS deque has no in-queue dedup, so a vertex may be enqueued
+            // again on every strict improvement. Distances present in the deque
+            // span at most {d, d+1}, so each vertex holds at most two live entries
+            // (one per distance value): capacity 2*n is a safe upper bound. Stale
+            // entries are skipped via the lazily-stored distance (dqDist).
+            int cap = 2 * n;
+            int* dq = stackalloc int[cap];
+            long* dqDist = stackalloc long[cap];
             int dh = 0, dt = 0, cnt = 0;
-            dq[dt++] = start;
+            dq[dt] = start;
+            dqDist[dt] = 0;
+            dt++;
             cnt++;
             while (cnt > 0)
             {
-                int u = dq[dh++];
-                if (dh >= n) dh = 0;
+                int u = dq[dh];
+                long du = dqDist[dh];
+                dh++;
+                if (dh >= cap) dh = 0;
                 cnt--;
+                if (du != dist[u]) continue;
                 for (int e = head[u]; e != 0; e = next[e])
                 {
                     int v = to[e];
@@ -402,14 +403,17 @@ namespace IAFahim.Graph
                         if (weight[e] == 0)
                         {
                             dh--;
-                            if (dh < 0) dh = n - 1;
+                            if (dh < 0) dh = cap - 1;
                             dq[dh] = v;
+                            dqDist[dh] = nd;
                             cnt++;
                         }
                         else
                         {
-                            dq[dt++] = v;
-                            if (dt >= n) dt = 0;
+                            dq[dt] = v;
+                            dqDist[dt] = nd;
+                            dt++;
+                            if (dt >= cap) dt = 0;
                             cnt++;
                         }
                     }

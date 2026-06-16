@@ -105,28 +105,37 @@ namespace IAFahim.Graph
             bool* visited = stackalloc bool[n];
             for (int i = 0; i < n; i++) visited[i] = false;
             int* stack = stackalloc int[n];
+            int* iter = stackalloc int[n];
             for (int start = 0; start < n; start++)
             {
                 if (visited[start]) continue;
                 int top = 0;
                 stack[top] = start;
+                iter[top] = head[start];
                 parent[start] = -1;
+                visited[start] = true;
                 while (top >= 0)
                 {
-                    int u = stack[top--];
-                    visited[u] = true;
-                    for (int e = head[u]; e != 0; e = next[e])
+                    int u = stack[top];
+                    if (iter[top] == 0)
                     {
-                        int v = to[e];
-                        if (!visited[v])
-                        {
-                            parent[v] = u;
-                            stack[++top] = v;
-                        }
-                        else if (v != parent[u])
-                        {
-                            return true;
-                        }
+                        top--;
+                        continue;
+                    }
+                    int e = iter[top];
+                    iter[top] = next[e];
+                    int v = to[e];
+                    if (!visited[v])
+                    {
+                        visited[v] = true;
+                        parent[v] = u;
+                        top++;
+                        stack[top] = v;
+                        iter[top] = head[v];
+                    }
+                    else if (v != parent[u])
+                    {
+                        return true;
                     }
                 }
             }
