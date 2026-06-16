@@ -445,29 +445,37 @@ namespace IAFahim.Collision.Gjk
             float bestDistSq = float.MaxValue;
             int bestI0 = -1, bestI1 = -1, bestI2 = -1;
 
+            // Signed volume (times six) of the tetrahedron. When this is
+            // near zero the tetrahedron is degenerate (coplanar/sliver) and
+            // the per-face outside tests are unreliable: a flat simplex that
+            // does not actually contain the origin would otherwise report no
+            // face as outside and be falsely classified as enclosing it.
+            float signedVolumeX6 = math.dot(b - a, math.cross(c - a, d - a));
+            bool degenerate = math.abs(signedVolumeX6) < Epsilon;
+
             // Face ABC, outward direction away from D.
-            if (PointOutsideFace(a, b, c, d))
+            if (degenerate || PointOutsideFace(a, b, c, d))
             {
                 EvaluateFace(a, b, c, 0, 1, 2,
                     ref bestDistSq, ref bestI0, ref bestI1, ref bestI2);
             }
 
             // Face ACD, outward direction away from B.
-            if (PointOutsideFace(a, c, d, b))
+            if (degenerate || PointOutsideFace(a, c, d, b))
             {
                 EvaluateFace(a, c, d, 0, 2, 3,
                     ref bestDistSq, ref bestI0, ref bestI1, ref bestI2);
             }
 
             // Face ADB, outward direction away from C.
-            if (PointOutsideFace(a, d, b, c))
+            if (degenerate || PointOutsideFace(a, d, b, c))
             {
                 EvaluateFace(a, d, b, 0, 3, 1,
                     ref bestDistSq, ref bestI0, ref bestI1, ref bestI2);
             }
 
             // Face BDC, outward direction away from A.
-            if (PointOutsideFace(b, d, c, a))
+            if (degenerate || PointOutsideFace(b, d, c, a))
             {
                 EvaluateFace(b, d, c, 1, 3, 2,
                     ref bestDistSq, ref bestI0, ref bestI1, ref bestI2);
@@ -475,7 +483,9 @@ namespace IAFahim.Collision.Gjk
 
             if (bestI0 < 0)
             {
-                // Origin is inside the tetrahedron.
+                // Origin is inside a non-degenerate tetrahedron (every face
+                // reported the origin on its inner side). The closest point
+                // is the origin itself.
                 count = 4;
                 return float3.zero;
             }
