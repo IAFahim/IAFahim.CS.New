@@ -21,7 +21,15 @@ namespace IAFahim.Algebra.Polynomial
             long* qneg = stackalloc long[qLen];
             long* r = stackalloc long[sz * 2];
             long* s = stackalloc long[sz * 2];
+            // Dedicated numerator scratch. The caller's p buffer only has pLen
+            // capacity, but the rebuilt proper-fraction numerator has up to qLen
+            // coefficients, so it would overflow p when pLen < qLen. Write the new
+            // numerator here instead and read it back on the next iteration.
+            long* num = stackalloc long[qLen];
 
+            // Current numerator: starts as the caller's p (length pLen), then lives
+            // in num (length qLen) after the first halving step.
+            long* curNum = p;
             int nLen = pLen;
 
             while (k > 0L)
@@ -30,26 +38,30 @@ namespace IAFahim.Algebra.Polynomial
                     qneg[i] = ((i & 1) == 0) ? q[i] : (mod - q[i]) % mod;
 
                 // U(x) = P(x) * Q(-x), V(x) = Q(x) * Q(-x)
-                ToomCook.Multiply(p, nLen, qneg, qLen, r, MOD);
+                ToomCook.Multiply(curNum, nLen, qneg, qLen, r, MOD);
                 ToomCook.Multiply(q, qLen, qneg, qLen, s, MOD);
 
                 int uLen = nLen + qLen - 1; // valid coefficients written into r
                 int vLen = qLen + qLen - 1; // valid coefficients written into s
 
                 // New numerator = even/odd part of U (parity = k & 1); the proper
-                // fraction guarantees it has at most qLen coefficients.
-                FilterPolynomial(p, qLen, r, (int)(k & 1L), uLen);
-                // New denominator = even part of V; exactly qLen coefficients.
+                // fraction guarantees it has at most qLen coefficients. Multiply has
+                // already fully consumed curNum into r, so writing num is safe even
+                // when curNum == num.
+                FilterPolynomial(num, qLen, r, (int)(k & 1L), uLen);
+                // New denominator = even part of V; exactly qLen coefficients. q has
+                // qLen capacity, so writing qLen coefficients back into q is in bounds.
                 FilterPolynomial(q, qLen, s, 0, vLen);
 
+                curNum = num;
                 nLen = qLen;
                 k >>= 1;
             }
 
-            // [x^0] P/Q = P(0) / Q(0) = p[0] * inv(q[0]) (mod MOD).
-            long num = p[0] % mod;
-            if (num < 0L) num += mod;
-            long result = (num * ModInv(q[0] % mod, mod)) % mod;
+            // [x^0] P/Q = P(0) / Q(0) = curNum[0] * inv(q[0]) (mod MOD).
+            long numerator = curNum[0] % mod;
+            if (numerator < 0L) numerator += mod;
+            long result = (numerator * ModInv(q[0] % mod, mod)) % mod;
             if (result < 0L) result += mod;
             return result;
         }
