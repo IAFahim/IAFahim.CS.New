@@ -12,11 +12,11 @@ RunStrategy=ColdStart  UnrollFactor=1  WarmupCount=1
 ```
 | Method        | N    | Mean       | Error | Ratio | Allocated | Alloc Ratio |
 |-------------- |----- |-----------:|------:|------:|----------:|------------:|
-| **SpanSort**      | **64**   |   **563.7 μs** |    **NA** |  **1.00** |         **-** |          **NA** |
-| InsertionSort | 64   |   622.8 μs |    NA |  1.10 |         - |          NA |
+| **SpanSort**      | **64**   |   **526.3 μs** |    **NA** |  **1.00** |         **-** |          **NA** |
+| InsertionSort | 64   |   609.6 μs |    NA |  1.16 |         - |          NA |
 |               |      |            |       |       |           |             |
-| **SpanSort**      | **256**  |   **542.9 μs** |    **NA** |  **1.00** |         **-** |          **NA** |
-| InsertionSort | 256  | 1,053.9 μs |    NA |  1.94 |         - |          NA |
+| **SpanSort**      | **256**  |   **617.8 μs** |    **NA** |  **1.00** |         **-** |          **NA** |
+| InsertionSort | 256  | 1,041.7 μs |    NA |  1.69 |         - |          NA |
 |               |      |            |       |       |           |             |
-| **SpanSort**      | **1024** |   **595.6 μs** |    **NA** |  **1.00** |         **-** |          **NA** |
-| InsertionSort | 1024 | 1,365.3 μs |    NA |  2.29 |         - |          NA |
+| **SpanSort**      | **1024** |   **584.1 μs** |    **NA** |  **1.00** |         **-** |          **NA** |
+| InsertionSort | 1024 | 1,247.5 μs |    NA |  2.14 |         - |          NA |
