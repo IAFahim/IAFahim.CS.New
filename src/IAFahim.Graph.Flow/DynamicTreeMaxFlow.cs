@@ -1,75 +1,65 @@
 namespace IAFahim.Graph.Flow
 {
-    using System;
-    using System.Runtime.CompilerServices;
-
     public static unsafe class DinicWithLinkCut
     {
         public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow)
         {
             long result = 0;
             int* level = stackalloc int[n];
-            int* parent = stackalloc int[n];
-            int* parentEdge = stackalloc int[n];
-            int* excess = stackalloc int[n];
-            while (BfsLayer(n, s, t, head, to, next, cap, flow, level))
+            int* it = stackalloc int[n];
+            int* q = stackalloc int[n];
+            while (BfsLayer(n, s, t, head, to, next, cap, flow, level, q, it))
             {
-                for (int i = 0; i < n; i++) { parent[i] = -1; parentEdge[i] = 0; excess[i] = 0; }
-                excess[s] = int.MaxValue;
-                int* q = stackalloc int[n];
-                int qh = 0, qt = 0;
-                q[qt++] = s;
-                while (qh < qt)
+                while (true)
                 {
-                    int u = q[qh++];
-                    for (int e = head[u]; e != 0; e = next[e])
-                    {
-                        int v = to[e];
-                        if (cap[e] - flow[e] > 0 && parent[v] == -1 && level[v] == level[u] + 1)
-                        {
-                            parent[v] = u; parentEdge[v] = e;
-                            int add = Math.Min(excess[u], cap[e] - flow[e]);
-                            excess[v] += add; excess[u] -= add;
-                            flow[e] += add; flow[e ^ 1] -= add;
-                            if (excess[v] > 0) q[qt++] = v;
-                        }
-                    }
+                    int pushed = Dfs(s, t, int.MaxValue, to, next, cap, flow, level, it);
+                    if (pushed == 0) break;
+                    result += pushed;
                 }
-                result += Augment(n, s, t, parent, parentEdge, cap, flow);
             }
             return result;
         }
 
-        private static bool BfsLayer(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow, int* level)
+        private static bool BfsLayer(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow, int* level, int* q, int* it)
         {
-            for (int i = 0; i < n; i++) level[i] = -1;
-            int* q = stackalloc int[n];
+            for (int i = 0; i < n; i++) { level[i] = -1; it[i] = head[i]; }
             int qh = 0, qt = 0;
-            level[s] = 0; q[qt++] = s;
+            level[s] = 0;
+            q[qt++] = s;
             while (qh < qt)
             {
                 int u = q[qh++];
+                int lu1 = level[u] + 1;
                 for (int e = head[u]; e != 0; e = next[e])
                 {
-                    if (cap[e] - flow[e] > 0 && level[to[e]] == -1)
+                    int w = to[e];
+                    if (cap[e] - flow[e] > 0 && level[w] == -1)
                     {
-                        level[to[e]] = level[u] + 1; q[qt++] = to[e];
+                        level[w] = lu1;
+                        q[qt++] = w;
                     }
                 }
             }
             return level[t] != -1;
         }
 
-        private static long Augment(int n, int s, int t, int* parent, int* parentEdge, int* cap, int* flow)
+        private static int Dfs(int u, int t, int pushed, int* to, int* next, int* cap, int* flow, int* level, int* it)
         {
-            int v = t;
-            int add = int.MaxValue;
-            while (v != s) { add = Math.Min(add, cap[parentEdge[v]] - flow[parentEdge[v]]); v = parent[v]; }
-            if (add <= 0) return 0;
-            v = t;
-            long cost = 0;
-            while (v != s) { int e = parentEdge[v]; flow[e] += add; flow[e ^ 1] -= add; cost += add; v = parent[v]; }
-            return cost;
+            if (u == t) return pushed;
+            int lu1 = level[u] + 1;
+            for (int e = it[u]; e != 0; e = next[e])
+            {
+                it[u] = e;
+                int v = to[e];
+                int residual = cap[e] - flow[e];
+                if (level[v] != lu1 || residual <= 0) continue;
+                int tr = Dfs(v, t, pushed < residual ? pushed : residual, to, next, cap, flow, level, it);
+                if (tr == 0) continue;
+                flow[e] += tr;
+                flow[e ^ 1] -= tr;
+                return tr;
+            }
+            return 0;
         }
     }
 }

@@ -7,12 +7,15 @@ namespace IAFahim.Graph.Flow
     {
         public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow, int* nodeWeight)
         {
-            int nn = n + 2, edgeId = 1;
+            // Edge ids must start at 2 so the reverse-edge XOR pairing (e ^ 1) maps
+            // (2,3),(4,5),... and never aliases the head[] sentinel slot 0.
+            int nn = n + 2, edgeId = 2;
+            int maxEdges = n * 4 + 2; // +2 for the two unused slots (0,1) skipped by edgeId starting at 2
             int* newHead = stackalloc int[nn];
-            int* newTo = stackalloc int[n * 4];
-            int* newNext = stackalloc int[n * 4];
-            int* newCap = stackalloc int[n * 4];
-            int* newFlow = stackalloc int[n * 4];
+            int* newTo = stackalloc int[maxEdges];
+            int* newNext = stackalloc int[maxEdges];
+            int* newCap = stackalloc int[maxEdges];
+            int* newFlow = stackalloc int[maxEdges];
             for (int i = 0; i < nn; i++) newHead[i] = 0;
             for (int u = 0; u < n; u++)
             {
@@ -32,6 +35,7 @@ namespace IAFahim.Graph.Flow
             while (qh < qt)
             {
                 int u = q[qh++];
+                if (u < n && nodeWeight[u] > 0) maxWeight += nodeWeight[u];
                 for (int e = newHead[u]; e != 0; e = newNext[e])
                 {
                     if (newCap[e] - newFlow[e] > 0 && visited[newTo[e]] == 0)
@@ -40,7 +44,6 @@ namespace IAFahim.Graph.Flow
                     }
                 }
             }
-            for (int u = 0; u < n; u++) if (visited[u] == 1 && nodeWeight[u] > 0) maxWeight += nodeWeight[u];
             return maxWeight;
         }
     }

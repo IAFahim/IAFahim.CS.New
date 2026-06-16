@@ -1,10 +1,7 @@
 namespace IAFahim.Graph.SCC
 {
-    using System.Runtime.CompilerServices;
-
     public static unsafe class TarjanScc
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Dfs(int u, int* head, int* next, int* to,
                                int* tin, int* low, ref int timer,
                                int* stack, ref int stackCount, byte* inStack,
@@ -14,21 +11,23 @@ namespace IAFahim.Graph.SCC
             stack[stackCount++] = u;
             inStack[u] = 1;
 
-            for (int e = head[u]; e != 0; e = next[e])
+            int lowU = low[u];
+            for (int e = head[u]; e != -1; e = next[e])
             {
                 int v = to[e];
                 if (tin[v] == 0)
                 {
                     Dfs(v, head, next, to, tin, low, ref timer, stack, ref stackCount, inStack, sccId, ref sccCount);
-                    if (low[v] < low[u]) low[u] = low[v];
+                    if (low[v] < lowU) lowU = low[v];
                 }
                 else if (inStack[v] != 0)
                 {
-                    if (tin[v] < low[u]) low[u] = tin[v];
+                    if (tin[v] < lowU) lowU = tin[v];
                 }
             }
+            low[u] = lowU;
 
-            if (low[u] == tin[u])
+            if (lowU == tin[u])
             {
                 while (true)
                 {
@@ -41,7 +40,6 @@ namespace IAFahim.Graph.SCC
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Find(int n, int* head, int* next, int* to,
                                 int* tin, int* low, int* stack, byte* inStack, int* sccId, ref int sccCount)
         {

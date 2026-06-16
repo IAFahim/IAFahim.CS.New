@@ -7,7 +7,7 @@ namespace IAFahim.Graph.Flow
     {
         public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow, int* profit, int* prerequisiteHead, int* prerequisiteTo, int* prerequisiteNext, int* reqEdgeId)
         {
-            int nn = n + 2, edgeId = 1;
+            int nn = n + 2, edgeId = 2;
             int* newHead = stackalloc int[nn];
             int* newTo = stackalloc int[n * 6];
             int* newNext = stackalloc int[n * 6];

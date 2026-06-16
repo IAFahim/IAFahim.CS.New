@@ -45,16 +45,39 @@ namespace IAFahim.Graph.Tree
 
     public static unsafe class TreeCentroids
     {
+        private const int BitmaskNodeLimit = 31;
+
+        // Returns the centroid set as a bitmask: bit u is set iff node u is a centroid
+        // of the (possibly pruned) tree component reachable from root. Limited to node
+        // indices in [0, BitmaskNodeLimit]; nodes outside that range are never encoded.
         public static int Run(int n, int root, int* head, int* to, int* next, int* size, bool* removed)
         {
-            int* q = stackalloc int[n]; int qh = 0, qt = 0; q[qt++] = root; int total = 0;
-            while (qh < qt) { int u = q[qh++]; size[u] = 1; total++; for (int e = head[u]; e != 0; e = next[e]) if (!removed[to[e]]) q[qt++] = to[e]; }
+            int* parent = stackalloc int[n];
+            for (int i = 0; i < n; i++) parent[i] = -1;
+            int* q = stackalloc int[n]; int qh = 0, qt = 0;
+            q[qt++] = root; parent[root] = root; int total = 0;
+            while (qh < qt)
+            {
+                int u = q[qh++]; total++;
+                for (int e = head[u]; e != 0; e = next[e])
+                {
+                    int v = to[e];
+                    if (!removed[v] && parent[v] == -1) { parent[v] = u; q[qt++] = v; }
+                }
+            }
+            for (int i = 0; i < qt; i++) size[q[i]] = 1;
+            for (int i = qt - 1; i > 0; i--) { int u = q[i]; size[parent[u]] += size[u]; }
+            int half = total / 2;
             int centroids = 0;
             for (int i = 0; i < qt; i++)
             {
                 int u = q[i]; bool ok = true;
-                for (int e = head[u]; e != 0; e = next[e]) if (!removed[to[e]] && size[to[e]] > total / 2) { ok = false; break; }
-                if (ok && (total - size[u]) <= total / 2) centroids |= (1 << u);
+                for (int e = head[u]; e != 0; e = next[e])
+                {
+                    int v = to[e];
+                    if (!removed[v] && parent[v] == u && size[v] > half) { ok = false; break; }
+                }
+                if (ok && (total - size[u]) <= half && u <= BitmaskNodeLimit) centroids |= (1 << u);
             }
             return centroids;
         }

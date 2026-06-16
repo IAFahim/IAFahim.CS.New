@@ -12,11 +12,11 @@ namespace IAFahim.Graph.Flow
             for (int u = 0; u < n; u++)
                 for (int e = head[u]; e != 0; e = next[e])
                 {
-                    b[u] -= lower[e];
-                    b[to[e]] += lower[e];
-                    upper[e] = upper[e] - lower[e];
+                    int lo = lower[e], v = to[e];
+                    b[u] -= lo;
+                    b[v] += lo;
                 }
-            int ss = n, tt = n + 1, nn = n + 2, edgeId = 1;
+            int ss = n, tt = n + 1, nn = n + 2, edgeId = 2;
             for (int i = 0; i < nn; i++) newHead[i] = 0;
 
             MinCostFlowAddEdge.Run(newHead, newTo, newNext, null, newCap, &edgeId, t, s, 0, int.MaxValue);
@@ -26,8 +26,8 @@ namespace IAFahim.Graph.Flow
                 else if (b[i] < 0) MinCostFlowAddEdge.Run(newHead, newTo, newNext, null, newCap, &edgeId, i, tt, 0, (int)-b[i]);
             }
             long result = DinicMaxFlow.Run(nn, ss, tt, newHead, newTo, newNext, newCap, newFlow);
-            long sumPos = 0, sumNeg = 0;
-            for (int i = 0; i < n; i++) { if (b[i] > 0) sumPos += b[i]; else sumNeg -= b[i]; }
+            long sumPos = 0;
+            for (int i = 0; i < n; i++) if (b[i] > 0) sumPos += b[i];
             if (result < sumPos) return -1;
             long flowVal = 0;
             for (int e = head[s]; e != 0; e = next[e]) flowVal += flow[e] = newFlow[e];

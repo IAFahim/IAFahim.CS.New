@@ -7,18 +7,18 @@ namespace IAFahim.Graph.DynamicTrees
     [StructLayout(LayoutKind.Sequential)]
     public struct LctNode
     {
-        public int Parent;
-        public int Left;
-        public int Right;
-        public byte Rev;
         public long Val;
         public long LazyAdd;
         public long PathMin;
         public long PathMax;
         public long PathSum;
-        public int PathSize;
         public long VirSum;
         public long AllSum;
+        public int Parent;
+        public int Left;
+        public int Right;
+        public int PathSize;
+        public byte Rev;
     }
 
     public static unsafe class LinkCutTree
@@ -60,7 +60,10 @@ namespace IAFahim.Graph.DynamicTrees
             if (l != -1) UpdateFromChild(nodes, u, l);
             if (r != -1) UpdateFromChild(nodes, u, r);
 
-            nodes[u].AllSum = nodes[u].PathSum + nodes[u].VirSum;
+            long allSum = nodes[u].Val + nodes[u].VirSum;
+            if (l != -1) allSum += nodes[l].AllSum;
+            if (r != -1) allSum += nodes[r].AllSum;
+            nodes[u].AllSum = allSum;
         }
 
         private static void UpdateFromChild(LctNode* nodes, int u, int c)
@@ -80,7 +83,7 @@ namespace IAFahim.Graph.DynamicTrees
             nodes[u].PathMax += val;
             nodes[u].PathSum += val * nodes[u].PathSize;
             nodes[u].LazyAdd += val;
-            nodes[u].AllSum = nodes[u].PathSum + nodes[u].VirSum;
+            nodes[u].AllSum += val * nodes[u].PathSize;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -106,7 +109,6 @@ namespace IAFahim.Graph.DynamicTrees
             int t = nodes[u].Left; nodes[u].Left = nodes[u].Right; nodes[u].Right = t;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void PushAll(LctNode* nodes, int u)
         {
             if (!IsRoot(nodes, u)) PushAll(nodes, nodes[u].Parent);
@@ -200,7 +202,6 @@ namespace IAFahim.Graph.DynamicTrees
             MakeRoot(nodes, u);
             if (FindRoot(nodes, v) == u) return;
             Access(nodes, v);
-            Splay(nodes, v);
             nodes[u].Parent = v;
             nodes[v].VirSum += nodes[u].AllSum;
             PushUp(nodes, v);
@@ -211,7 +212,6 @@ namespace IAFahim.Graph.DynamicTrees
         {
             MakeRoot(nodes, u);
             Access(nodes, v);
-            Splay(nodes, v);
             if (nodes[v].Left == u && nodes[u].Right == -1)
             {
                 nodes[v].Left = -1;
@@ -225,7 +225,6 @@ namespace IAFahim.Graph.DynamicTrees
         {
             MakeRoot(nodes, u);
             Access(nodes, v);
-            Splay(nodes, v);
             ApplyAdd(nodes, v, val);
         }
 
@@ -234,7 +233,6 @@ namespace IAFahim.Graph.DynamicTrees
         {
             MakeRoot(nodes, u);
             Access(nodes, v);
-            Splay(nodes, v);
             return nodes[v].PathMin;
         }
 
@@ -243,7 +241,6 @@ namespace IAFahim.Graph.DynamicTrees
         {
             MakeRoot(nodes, u);
             Access(nodes, v);
-            Splay(nodes, v);
             return nodes[v].PathMax;
         }
 
