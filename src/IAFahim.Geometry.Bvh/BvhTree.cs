@@ -101,12 +101,12 @@ namespace IAFahim.Geometry.Bvh
             if (size.z > math.max(size.x, size.y)) axis = 2;
 
             float maxDim = math.max(size.x, math.max(size.y, size.z));
+            int mid = start + count / 2;
+
             if (maxDim > Epsilon)
             {
-                QuickSort(items, start, end, axis);
+                NthElement(items, start, end, mid, axis);
             }
-
-            int mid = start + count / 2;
 
             node->TriangleIndex = -1;
             node->Left = BuildNode(vertices, indices, items, start, mid - 1, outNodes, outNodeCount);
@@ -115,40 +115,56 @@ namespace IAFahim.Geometry.Bvh
             return nodeIdx;
         }
 
-        private static void QuickSort(CentroidSortItem* items, int left, int right, int axis)
+        // Iterative three-way quickselect (Dutch national flag) placing the
+        // nth-smallest element of items[left..right] at position nth and
+        // partitioning around it. No recursion -> no stack overflow; the
+        // equal-range handling makes all-equal input O(n).
+        private static void NthElement(CentroidSortItem* items, int left, int right, int nth, int axis)
         {
-            if (left >= right)
+            while (left < right)
             {
-                return;
+                int mid = left + ((right - left) >> 1);
+                CentroidSortItem pivotValue = MedianOfThree(items[left], items[mid], items[right], axis);
+
+                int lt = left, gt = right, i = left;
+                while (i <= gt)
+                {
+                    int c = CompareAxis(items[i], pivotValue, axis);
+                    if (c < 0) { Swap(ref items[lt], ref items[i]); lt++; i++; }
+                    else if (c > 0) { Swap(ref items[i], ref items[gt]); gt--; }
+                    else i++;
+                }
+
+                if (nth < lt) right = lt - 1;
+                else if (nth > gt) left = gt + 1;
+                else return;
             }
-            int pivot = Partition(items, left, right, axis);
-            QuickSort(items, left, pivot - 1, axis);
-            QuickSort(items, pivot + 1, right, axis);
         }
 
-        private static int Partition(CentroidSortItem* items, int left, int right, int axis)
+        private static int CompareAxis(CentroidSortItem a, CentroidSortItem b, int axis)
         {
-            CentroidSortItem pivotValue = items[right];
-            int i = left - 1;
-            for (int j = left; j < right; j++)
-            {
-                bool less = false;
-                if (axis == 0) less = items[j].Centroid.x < pivotValue.Centroid.x;
-                else if (axis == 1) less = items[j].Centroid.y < pivotValue.Centroid.y;
-                else less = items[j].Centroid.z < pivotValue.Centroid.z;
+            float av = axis == 0 ? a.Centroid.x : (axis == 1 ? a.Centroid.y : a.Centroid.z);
+            float bv = axis == 0 ? b.Centroid.x : (axis == 1 ? b.Centroid.y : b.Centroid.z);
+            if (av < bv) return -1;
+            if (av > bv) return 1;
+            return 0;
+        }
 
-                if (less)
-                {
-                    i++;
-                    CentroidSortItem temp = items[i];
-                    items[i] = items[j];
-                    items[j] = temp;
-                }
-            }
-            CentroidSortItem t1 = items[i + 1];
-            items[i + 1] = items[right];
-            items[right] = t1;
-            return i + 1;
+        private static CentroidSortItem MedianOfThree(CentroidSortItem a, CentroidSortItem b, CentroidSortItem c, int axis)
+        {
+            int ab = CompareAxis(a, b, axis);
+            int bc = CompareAxis(b, c, axis);
+            int ac = CompareAxis(a, c, axis);
+            if (ab <= 0 && bc <= 0) return b;
+            if (ab >= 0 && bc >= 0) return b;
+            if (ac <= 0 && ab >= 0) return a;
+            if (ac >= 0 && ab <= 0) return a;
+            return c;
+        }
+
+        private static void Swap(ref CentroidSortItem a, ref CentroidSortItem b)
+        {
+            CentroidSortItem t = a; a = b; b = t;
         }
 
         public static bool Raycast(
@@ -220,26 +236,40 @@ namespace IAFahim.Geometry.Bvh
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool RayAABBIntersection(float3 origin, float3 direction, float3 boxMin, float3 boxMax)
         {
-            float3 invDir;
-            invDir.x = math.abs(direction.x) > Epsilon ? One / direction.x : (direction.x >= Zero ? 1e6f : -1e6f);
-            invDir.y = math.abs(direction.y) > Epsilon ? One / direction.y : (direction.y >= Zero ? 1e6f : -1e6f);
-            invDir.z = math.abs(direction.z) > Epsilon ? One / direction.z : (direction.z >= Zero ? 1e6f : -1e6f);
+            float tEnter = float.NegativeInfinity;
+            float tExit = float.PositiveInfinity;
 
-            float3 t1 = (boxMin - origin) * invDir;
-            float3 t2 = (boxMax - origin) * invDir;
+            ProcessSlab(origin.x, direction.x, boxMin.x, boxMax.x, ref tEnter, ref tExit);
+            ProcessSlab(origin.y, direction.y, boxMin.y, boxMax.y, ref tEnter, ref tExit);
+            ProcessSlab(origin.z, direction.z, boxMin.z, boxMax.z, ref tEnter, ref tExit);
 
-            float3 tMin = math.min(t1, t2);
-            float3 tMax = math.max(t1, t2);
-
-            float tEnter = math.max(tMin.x, math.max(tMin.y, tMin.z));
-            float tExit = math.min(tMax.x, math.min(tMax.y, tMax.z));
-
-            if (math.isnan(tEnter) || math.isnan(tExit))
-            {
-                return false;
-            }
-
+            if (math.isnan(tEnter) || math.isnan(tExit)) return false;
             return tEnter <= tExit && tExit >= Zero;
+        }
+
+        // Slab test: for a non-parallel ray intersect the two slab planes; for a ray
+        // parallel to the slab (direction ~ 0) the ray hits only if the origin lies
+        // within [min, max] on this axis, otherwise it misses entirely.
+        private static void ProcessSlab(float o, float d, float min, float max, ref float tEnter, ref float tExit)
+        {
+            if (math.abs(d) > Epsilon)
+            {
+                float inv = One / d;
+                float ta = (min - o) * inv;
+                float tb = (max - o) * inv;
+                float tlo = ta < tb ? ta : tb;
+                float thi = ta < tb ? tb : ta;
+                if (tlo > tEnter) tEnter = tlo;
+                if (thi < tExit) tExit = thi;
+            }
+            else
+            {
+                if (o < min || o > max)
+                {
+                    tEnter = float.PositiveInfinity;
+                    tExit = float.NegativeInfinity;
+                }
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

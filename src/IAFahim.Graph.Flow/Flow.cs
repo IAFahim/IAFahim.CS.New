@@ -352,11 +352,10 @@ namespace IAFahim.Graph.Flow
             long flow = 0, minCost = 0;
             long* dist = stackalloc long[n];
             int* parent = stackalloc int[n], parentEdge = stackalloc int[n];
-            MinHeap pq = CreateHeap(n);
 
             while (true)
             {
-                if (!TryFindMinCostPath(n, s, t, head, to, next, cost, cap, dist, parent, parentEdge, &pq)) break;
+                if (!TryFindMinCostPath(n, s, t, head, to, next, cost, cap, dist, parent, parentEdge)) break;
                 int add = FindPathMinCapacity(s, t, parent, parentEdge, cap);
                 minCost += UpdateFlow(s, t, add, parent, parentEdge, cap, cost, out int f);
                 flow += add;
@@ -364,30 +363,35 @@ namespace IAFahim.Graph.Flow
             return (flow, minCost);
         }
 
-        private static MinHeap CreateHeap(int n)
+        // SPFA (Bellman-Ford queue): correct under negative-cost residual edges.
+        // Min-cost-flow residual graphs contain no negative cycles, so this terminates.
+        private static bool TryFindMinCostPath(int n, int s, int t, int* head, int* to, int* next, int* cost, int* cap, long* dist, int* parent, int* parentEdge)
         {
-            long* pqDist = stackalloc long[n];
-            int* pqV = stackalloc int[n];
-            int* pqPos = stackalloc int[n];
-            for (int i = 0; i < n; i++) pqPos[i] = -1;
-            return new MinHeap { Dist = pqDist, V = pqV, Pos = pqPos, Size = 0 };
-        }
-
-        private static bool TryFindMinCostPath(int n, int s, int t, int* head, int* to, int* next, int* cost, int* cap, long* dist, int* parent, int* parentEdge, MinHeap* pq)
-        {
-            for (int i = 0; i < n; i++) dist[i] = long.MaxValue;
-            dist[s] = 0; pq->Size = 0; pq->PushOrUpdate(s, 0);
-            while (pq->Size > 0)
+            for (int i = 0; i < n; i++) { dist[i] = long.MaxValue; parent[i] = -1; }
+            dist[s] = 0;
+            int* q = stackalloc int[n];
+            byte* inq = stackalloc byte[n];
+            for (int i = 0; i < n; i++) inq[i] = 0;
+            int qh = 0, qt = 0;
+            q[qt++] = s; inq[s] = 1;
+            while (qh != qt)
             {
-                int u = pq->Pop(out long d);
-                if (d != dist[u]) continue;
+                int u = q[qh++]; if (qh == n) qh = 0; inq[u] = 0;
+                long du = dist[u];
                 for (int e = head[u]; e != 0; e = next[e])
-                    if (cap[e] > 0 && dist[u] + cost[e] < dist[to[e]])
+                {
+                    if (cap[e] <= 0) continue;
+                    int v = to[e];
+                    long nd = du + cost[e];
+                    if (nd < dist[v])
                     {
-                        dist[to[e]] = dist[u] + cost[e];
-                        parent[to[e]] = u; parentEdge[to[e]] = e;
-                        pq->PushOrUpdate(to[e], dist[to[e]]);
+                        dist[v] = nd; parent[v] = u; parentEdge[v] = e;
+                        if (inq[v] == 0)
+                        {
+                            q[qt++] = v; if (qt == n) qt = 0; inq[v] = 1;
+                        }
                     }
+                }
             }
             return dist[t] != long.MaxValue;
         }
