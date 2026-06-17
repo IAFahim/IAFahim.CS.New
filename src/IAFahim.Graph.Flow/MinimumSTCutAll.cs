@@ -26,9 +26,9 @@ namespace IAFahim.Graph.Flow
             }
             int cnt = 0;
             for (int u = 0; u < n; u++)
-                if (visited[u] == 0)
+                if (visited[u] == 1)
                     for (int e = head[u]; e != 0; e = next[e])
-                        if (visited[to[e]] == 1 && flow[e] > 0) { cutU[cnt] = u; cutV[cnt] = to[e]; cnt++; }
+                        if (visited[to[e]] == 0 && cap[e] > 0 && cap[e] - flow[e] == 0) { cutU[cnt] = u; cutV[cnt] = to[e]; cnt++; }
             *cutCount = cnt;
             return result;
         }

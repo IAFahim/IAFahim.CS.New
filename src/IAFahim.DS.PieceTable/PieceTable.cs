@@ -32,6 +32,7 @@ namespace IAFahim.DS.PieceTable
             int addStart = s.AddedLen;
             for (int i = 0; i < len && s.AddedLen < s.AddedCap; i++)
                 s.Added[s.AddedLen++] = data[i];
+            int copied = s.AddedLen - addStart;
 
             Piece* after = s.Head;
             Piece* prev = null;
@@ -47,7 +48,7 @@ namespace IAFahim.DS.PieceTable
             Piece* newPiece = newPieces + pieceCount++;
             newPiece->BufferIndex = 1;
             newPiece->Start = addStart;
-            newPiece->Length = len;
+            newPiece->Length = copied;
             newPiece->Next = null;
 
             if (after != null && offset < pos)

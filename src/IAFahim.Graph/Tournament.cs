@@ -117,7 +117,7 @@ namespace IAFahim.Graph
             byte* ve = stackalloc byte[m]; for (int i = 0; i < m; i++) ve[i] = 0;
             int* ce = stackalloc int[n]; for (int i = 0; i < n; i++) ce[i] = head[i];
             for (int s = 0; s < n; s++)
-                if (ce[s] != -1) ProcessEulerianCircuit(s, ce, next, to, ve, ou, ov);
+                if (ce[s] != -1) ProcessEulerianCircuit(s, m, ce, next, to, ve, ou, ov);
             return true;
         }
 
@@ -129,9 +129,9 @@ namespace IAFahim.Graph
             return true;
         }
 
-        private static void ProcessEulerianCircuit(int s, int* ce, int* next, int* to, byte* ve, int* ou, int* ov)
+        private static void ProcessEulerianCircuit(int s, int m, int* ce, int* next, int* to, byte* ve, int* ou, int* ov)
         {
-            int* stack = stackalloc int[1024]; // Simplified stack size
+            int* stack = stackalloc int[m + 2];
             int ss = 0; stack[ss++] = s;
             while (ss > 0)
             {

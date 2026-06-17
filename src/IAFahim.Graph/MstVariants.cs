@@ -1236,6 +1236,8 @@ namespace IAFahim.Graph
             }
 
             int minCut = m + 1;
+            int* cutU = stackalloc int[m];
+            int* cutV = stackalloc int[m];
 
             int iterations = Math.Max(5, n * n);
             for (int iter = 0; iter < iterations; iter++)
@@ -1264,8 +1266,6 @@ namespace IAFahim.Graph
                 }
 
                 int cutCount = 0;
-                int* cutU = stackalloc int[m];
-                int* cutV = stackalloc int[m];
                 for (int i = 0; i < m; i++)
                 {
                     int rx = Find(u[i]);

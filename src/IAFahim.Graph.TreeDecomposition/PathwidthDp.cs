@@ -17,13 +17,19 @@ namespace IAFahim.Graph.TreeDecomposition
         {
             long dpSize = 2L * (1L << maxBagSize) * sizeof(long);
             long* dp = (long*)Marshal.AllocHGlobal((nint)dpSize);
+            long reachedSize = 2L * (1L << maxBagSize) * sizeof(byte);
+            byte* reached = (byte*)Marshal.AllocHGlobal((nint)reachedSize);
             try
             {
                 UnsafeUtilityMemClear(dp, dpSize);
+                UnsafeUtilityMemClear(reached, reachedSize);
                 long* curDp = dp;
                 long* nextDp = dp + (1L << maxBagSize);
+                byte* reachedCur = reached;
+                byte* reachedNext = reached + (1L << maxBagSize);
 
                 curDp[0] = 0;
+                reachedCur[0] = 1;
                 
                 for (int i = 0; i < pathLength - 1; i++)
                 {
@@ -31,10 +37,11 @@ namespace IAFahim.Graph.TreeDecomposition
                     int newSize = bagSizes[i + 1];
                     
                     UnsafeUtilityMemClear(nextDp, (1L << maxBagSize) * sizeof(long));
+                    UnsafeUtilityMemClear(reachedNext, (1L << maxBagSize) * sizeof(byte));
                     
                     for (int mask = 0; mask < (1 << oldSize); mask++)
                     {
-                        if (curDp[mask] == 0 && mask != 0) continue;
+                        if (reachedCur[mask] == 0) continue;
                         
                         // We map the old mask to the new mask
                         // Just an illustrative mapping
@@ -51,9 +58,10 @@ namespace IAFahim.Graph.TreeDecomposition
                             }
                         }
                         
-                        if (curDp[mask] > nextDp[newMaskBase])
+                        if (reachedNext[newMaskBase] == 0 || curDp[mask] > nextDp[newMaskBase])
                         {
                             nextDp[newMaskBase] = curDp[mask];
+                            reachedNext[newMaskBase] = 1;
                         }
                     }
                     
@@ -86,14 +94,19 @@ namespace IAFahim.Graph.TreeDecomposition
                                             }
                                         }
                                     }
-                                    if (canAdd)
+                                if (canAdd)
+                                {
+                                    int target = mask | (1 << j);
+                                    if (reachedNext[mask] != 0)
                                     {
                                         long cand = nextDp[mask] + weights[v];
-                                        if (cand > nextDp[mask | (1 << j)])
+                                        if (reachedNext[target] == 0 || cand > nextDp[target])
                                         {
-                                            nextDp[mask | (1 << j)] = cand;
+                                            nextDp[target] = cand;
+                                            reachedNext[target] = 1;
                                         }
                                     }
+                                }
                                 }
                             }
                         }
@@ -102,12 +115,15 @@ namespace IAFahim.Graph.TreeDecomposition
                     long* temp = curDp;
                     curDp = nextDp;
                     nextDp = temp;
+                    byte* tempR = reachedCur;
+                    reachedCur = reachedNext;
+                    reachedNext = tempR;
                 }
                 
                 long ans = 0;
                 for (int mask = 0; mask < (1 << bagSizes[pathLength - 1]); mask++)
                 {
-                    if (curDp[mask] > ans)
+                    if (reachedCur[mask] != 0 && curDp[mask] > ans)
                     {
                         ans = curDp[mask];
                     }
@@ -117,6 +133,7 @@ namespace IAFahim.Graph.TreeDecomposition
             finally
             {
                 Marshal.FreeHGlobal((nint)dp);
+                Marshal.FreeHGlobal((nint)reached);
             }
         }
 

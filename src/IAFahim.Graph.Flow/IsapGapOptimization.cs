@@ -10,7 +10,10 @@ namespace IAFahim.Graph.Flow
             int* level = stackalloc int[n];
             int* it = stackalloc int[n];
             int* cnt = stackalloc int[n];
-            for (int i = 0; i < n; i++) { level[i] = 0; it[i] = head[i]; cnt[i] = 0; flow[i] = 0; }
+            for (int i = 0; i < n; i++) { level[i] = 0; it[i] = head[i]; cnt[i] = 0; }
+            for (int i = 0; i < n; i++)
+                for (int e = head[i]; e != 0; e = next[e])
+                    flow[e] = 0;
             long result = 0;
             BfsLevel2(n, s, t, head, to, next, cap, flow, level, cnt);
             while (level[s] < n)
