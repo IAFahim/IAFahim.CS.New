@@ -26,7 +26,7 @@ namespace IAFahim.GameTheory
 
         private static int FindMex(int seenMask)
         {
-            int mex = 0; while ((seenMask & (1 << mex)) != 0 && mex < 31) mex++;
+            int mex = 0; while (mex < 31 && (seenMask & (1 << mex)) != 0) mex++;
             return mex;
         }
 
@@ -89,10 +89,16 @@ namespace IAFahim.GameTheory
                 long seen = 0;
                 for (int j = 0; j < moveCount; j++)
                 {
-                    int prev = i - moves[j];
-                    if (prev >= 0 && prev < n) seen |= 1L << (int)dp[prev];
+                    int mv = moves[j];
+                    if (mv <= 0) continue;
+                    int prev = i - mv;
+                    if (prev >= 0)
+                    {
+                        long gp = dp[prev];
+                        if (gp >= 0 && gp < 64) seen |= 1L << (int)gp;
+                    }
                 }
-                int g = 0; while ((seen & (1L << g)) != 0) g++;
+                int g = 0; while (g < 64 && (seen & (1L << g)) != 0) g++;
                 dp[i] = g;
             }
             return n;
