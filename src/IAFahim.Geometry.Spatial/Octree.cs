@@ -50,20 +50,31 @@ namespace IAFahim.Geometry.Spatial
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int RangeQuery(Node* nodes, int node, double x1, double y1, double z1, double x2, double y2, double z2, int* outIdx)
+        public static int RangeQuery(Node* nodes, int node, double* xs, double* ys, double* zs, double x1, double y1, double z1, double x2, double y2, double z2, int* outIdx)
         {
             if (node < 0) return 0; Node* n = &nodes[node];
             if (x2 < n->X || x1 > n->X + n->Size || y2 < n->Y || y1 > n->Y + n->Size || z2 < n->Z || z1 > n->Z + n->Size) return 0;
-            if (n->C0 < 0 && n->C1 < 0 && n->C2 < 0 && n->C3 < 0 && n->C4 < 0 && n->C5 < 0 && n->C6 < 0 && n->C7 < 0) { for (int i = 0; i < n->Count; i++) outIdx[i] = n->FirstIndex + i; return n->Count; }
+            if (n->C0 < 0 && n->C1 < 0 && n->C2 < 0 && n->C3 < 0 && n->C4 < 0 && n->C5 < 0 && n->C6 < 0 && n->C7 < 0)
+            {
+                int emitted = 0;
+                for (int i = 0; i < n->Count; i++)
+                {
+                    int pi = n->FirstIndex + i;
+                    double px = xs[pi], py = ys[pi], pz = zs[pi];
+                    if (px >= x1 && px <= x2 && py >= y1 && py <= y2 && pz >= z1 && pz <= z2)
+                        outIdx[emitted++] = pi;
+                }
+                return emitted;
+            }
             int count = 0;
-            if (n->C0 >= 0) count += RangeQuery(nodes, n->C0, x1, y1, z1, x2, y2, z2, outIdx + count);
-            if (n->C1 >= 0) count += RangeQuery(nodes, n->C1, x1, y1, z1, x2, y2, z2, outIdx + count);
-            if (n->C2 >= 0) count += RangeQuery(nodes, n->C2, x1, y1, z1, x2, y2, z2, outIdx + count);
-            if (n->C3 >= 0) count += RangeQuery(nodes, n->C3, x1, y1, z1, x2, y2, z2, outIdx + count);
-            if (n->C4 >= 0) count += RangeQuery(nodes, n->C4, x1, y1, z1, x2, y2, z2, outIdx + count);
-            if (n->C5 >= 0) count += RangeQuery(nodes, n->C5, x1, y1, z1, x2, y2, z2, outIdx + count);
-            if (n->C6 >= 0) count += RangeQuery(nodes, n->C6, x1, y1, z1, x2, y2, z2, outIdx + count);
-            if (n->C7 >= 0) count += RangeQuery(nodes, n->C7, x1, y1, z1, x2, y2, z2, outIdx + count);
+            if (n->C0 >= 0) count += RangeQuery(nodes, n->C0, xs, ys, zs, x1, y1, z1, x2, y2, z2, outIdx + count);
+            if (n->C1 >= 0) count += RangeQuery(nodes, n->C1, xs, ys, zs, x1, y1, z1, x2, y2, z2, outIdx + count);
+            if (n->C2 >= 0) count += RangeQuery(nodes, n->C2, xs, ys, zs, x1, y1, z1, x2, y2, z2, outIdx + count);
+            if (n->C3 >= 0) count += RangeQuery(nodes, n->C3, xs, ys, zs, x1, y1, z1, x2, y2, z2, outIdx + count);
+            if (n->C4 >= 0) count += RangeQuery(nodes, n->C4, xs, ys, zs, x1, y1, z1, x2, y2, z2, outIdx + count);
+            if (n->C5 >= 0) count += RangeQuery(nodes, n->C5, xs, ys, zs, x1, y1, z1, x2, y2, z2, outIdx + count);
+            if (n->C6 >= 0) count += RangeQuery(nodes, n->C6, xs, ys, zs, x1, y1, z1, x2, y2, z2, outIdx + count);
+            if (n->C7 >= 0) count += RangeQuery(nodes, n->C7, xs, ys, zs, x1, y1, z1, x2, y2, z2, outIdx + count);
             return count;
         }
     }

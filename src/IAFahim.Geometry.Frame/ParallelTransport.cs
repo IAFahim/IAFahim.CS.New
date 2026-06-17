@@ -80,7 +80,7 @@ namespace IAFahim.Geometry.Frame
                 float3 uI = nI;
                 float3 tIL = tI;
 
-                if (c1 > Threshold)
+                if (c1 > Threshold * Threshold)
                 {
                     uI = nI - (Two / c1) * math.dot(v1, nI) * v1;
                     tIL = tI - (Two / c1) * math.dot(v1, tI) * v1;

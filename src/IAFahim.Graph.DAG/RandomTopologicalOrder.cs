@@ -29,7 +29,12 @@ namespace IAFahim.Graph.DAG
                 long total = dp[currentMask];
                 // simple LCG for random
                 state = state * 1664525 + 1013904223;
-                long r = (long)((state * (ulong)total) >> 32) + 1;
+                // Lemire-style r in [1, total]. Overflow-safe 32x64 multiply:
+                // floor(state * total / 2^32) via splitting total into hi/lo 32 bits.
+                ulong t = (ulong)total;
+                ulong r0 = (ulong)state * (t >> 32);
+                ulong r1 = ((ulong)state * (t & 0xFFFFFFFFUL)) >> 32;
+                long r = (long)(r0 + r1) + 1;
                 
                 for (int i = n - 1; i >= 0; i--)
                 {
