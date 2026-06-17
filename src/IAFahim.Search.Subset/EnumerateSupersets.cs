@@ -9,15 +9,13 @@ namespace IAFahim.Search.Subset
         public static int Run(int subMask, int maxMask, int* dst)
         {
             int count = 0;
-            int remaining = maxMask ^ subMask;
-            int super = subMask;
+            int free = maxMask & ~subMask;
+            int s = free;
             while (true)
             {
-                dst[count++] = super;
-                if (super == maxMask) break;
-                int add = (maxMask & ~super);
-                int smallest = add & (-add);
-                super = super + smallest;
+                dst[count++] = subMask | s;
+                if (s == 0) break;
+                s = (s - 1) & free;
             }
             return count;
         }

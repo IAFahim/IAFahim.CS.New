@@ -14,9 +14,11 @@ using System.Runtime.CompilerServices;
             {
                 int curJ = _j;
                 int nextJ = _n; while (nextJ > 0 && w[nextJ] == _k - 1) nextJ--;
+                bool emit = curJ == _n;
+                if (emit) { resLen = _n; for (int i = 0; i < _n; i++) res[i] = w[i + 1]; }
                 if (nextJ > 0) { w[nextJ]++; for (int m = nextJ + 1; m <= _n; m++) w[m] = w[m - nextJ]; _j = nextJ; }
                 else _j = 0;
-                if (_n % curJ == 0) { resLen = curJ; for (int i = 0; i < curJ; i++) res[i] = w[i + 1]; return true; }
+                if (emit) return true;
             }
             return false;
         }
