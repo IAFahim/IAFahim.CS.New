@@ -7,8 +7,8 @@ namespace IAFahim.Math.Basic
     {
         public static long Run(long a, long e, long mod)
         {
-            long res = 1 % mod; a %= mod;
-            while (e > 0) { if ((e & 1) == 1) res = res * a % mod; a = a * a % mod; e >>= 1; }
+            long res = 1 % mod; a = NormalizeModulo.Run(a, mod);
+            while (e > 0) { if ((e & 1) == 1) res = SafeMulMod.Run(res, a, mod); a = SafeMulMod.Run(a, a, mod); e >>= 1; }
             return res;
         }
     }
@@ -93,7 +93,8 @@ namespace IAFahim.Math.Basic
             while (b > 0) { if ((b & 1) == 1) res = SafeAdd(res, a, mod); a = SafeAdd(a, a, mod); b >>= 1; }
             return res;
         }
-        private static long SafeAdd(long a, long b, long mod) { long res = a + b; return res >= mod ? res - mod : res; }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static long SafeAdd(long a, long b, long mod) { return a >= mod - b ? a - (mod - b) : a + b; }
     }
 
     public static unsafe class NormalizeModulo { [MethodImpl(MethodImplOptions.AggressiveInlining)] public static long Run(long x, long mod) { x %= mod; return x < 0 ? x + mod : x; } }

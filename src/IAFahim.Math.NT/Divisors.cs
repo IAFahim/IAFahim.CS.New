@@ -9,7 +9,7 @@ namespace IAFahim.Math.NT
         {
             if (n <= 0) return 0;
             int count = 0;
-            for (long i = 1; i * i <= n; i++)
+            for (long i = 1; i <= n / i; i++)
             {
                 if (n % i == 0)
                 {

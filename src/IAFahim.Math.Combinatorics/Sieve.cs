@@ -42,8 +42,8 @@ namespace IAFahim.Math.Combinatorics
             long size = high - low + 1;
             bool* isPrime = stackalloc bool[(int)size];
             for (long i = 0; i < size; i++) isPrime[i] = true;
-            if (low == 0) isPrime[0] = false;
-            if (low == 1) isPrime[Math.Min(0L, size - 1)] = false; // Fixed index
+            if (low <= 0 && high >= 0) isPrime[0 - low] = false;
+            if (low <= 1 && high >= 1) isPrime[1 - low] = false;
             
             long limit = (long)Math.Sqrt(high) + 1;
             for (int i = 0; i < primeCount && primes[i] <= limit; i++)

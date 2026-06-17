@@ -10,6 +10,7 @@ namespace IAFahim.Math.Modular
         {
             long x, y;
             long g = ExtendedGcd.Run(a, mod, out x, out y);
+            if (g < 0) { g = -g; x = -x; }
             if (g != 1) return -1;
             return ModNormalize.Run(x, mod);
         }

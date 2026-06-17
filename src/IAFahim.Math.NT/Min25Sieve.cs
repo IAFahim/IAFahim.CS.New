@@ -24,7 +24,7 @@ namespace IAFahim.Math.NT
                 if (isPrime[i])
                 {
                     primes[count++] = i;
-                    for (int j = i * 2; j <= maxV; j += i) isPrime[j] = false;
+                    for (long j = (long)i + i; j <= maxV; j += i) isPrime[(int)j] = false;
                 }
             return count;
         }
@@ -136,6 +136,9 @@ namespace IAFahim.Math.NT
 
         private static void UpdateMultiplicativeBlocks(long n, long mod, int maxV, int tot, int pCount, int* primes, long* w, long* g0, long* g1, int* map1, int* map2)
         {
+            long* sp = stackalloc long[pCount + 1]; sp[0] = 0;
+            for (int k = 0; k < pCount; k++) sp[k + 1] = (sp[k] + primes[k]) % mod;
+
             for (int i = 0; i < pCount; i++)
             {
                 long p = primes[i], p2 = p * p;
@@ -145,7 +148,7 @@ namespace IAFahim.Math.NT
                     long val = w[j] / p;
                     int idx = val <= maxV ? map1[val] : map2[n / val];
                     g0[j] = (g0[j] - (g0[idx] - i + mod) % mod + mod) % mod;
-                    // Note: This g1 update requires a precomputed prefix sum of primes similarly.
+                    g1[j] = (g1[j] - p % mod * (g1[idx] - sp[i] + mod) % mod + mod) % mod;
                 }
             }
         }
