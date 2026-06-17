@@ -701,6 +701,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IAFahim.String.SuffixAutoma
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IAFahim.String.Parse.Tests", "test\IAFahim.String.Parse.Tests\IAFahim.String.Parse.Tests.csproj", "{19C39CD9-4384-4692-AD79-D406E987D632}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IAFahim.Graph.Matching.Tests", "test\IAFahim.Graph.Matching.Tests\IAFahim.Graph.Matching.Tests.csproj", "{E48B04FC-E7C6-40CB-A3EB-AAB5BD4350FD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -4863,6 +4865,18 @@ Global
 		{19C39CD9-4384-4692-AD79-D406E987D632}.Release|x64.Build.0 = Release|Any CPU
 		{19C39CD9-4384-4692-AD79-D406E987D632}.Release|x86.ActiveCfg = Release|Any CPU
 		{19C39CD9-4384-4692-AD79-D406E987D632}.Release|x86.Build.0 = Release|Any CPU
+		{E48B04FC-E7C6-40CB-A3EB-AAB5BD4350FD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E48B04FC-E7C6-40CB-A3EB-AAB5BD4350FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E48B04FC-E7C6-40CB-A3EB-AAB5BD4350FD}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E48B04FC-E7C6-40CB-A3EB-AAB5BD4350FD}.Debug|x64.Build.0 = Debug|Any CPU
+		{E48B04FC-E7C6-40CB-A3EB-AAB5BD4350FD}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E48B04FC-E7C6-40CB-A3EB-AAB5BD4350FD}.Debug|x86.Build.0 = Debug|Any CPU
+		{E48B04FC-E7C6-40CB-A3EB-AAB5BD4350FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E48B04FC-E7C6-40CB-A3EB-AAB5BD4350FD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E48B04FC-E7C6-40CB-A3EB-AAB5BD4350FD}.Release|x64.ActiveCfg = Release|Any CPU
+		{E48B04FC-E7C6-40CB-A3EB-AAB5BD4350FD}.Release|x64.Build.0 = Release|Any CPU
+		{E48B04FC-E7C6-40CB-A3EB-AAB5BD4350FD}.Release|x86.ActiveCfg = Release|Any CPU
+		{E48B04FC-E7C6-40CB-A3EB-AAB5BD4350FD}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -5214,5 +5228,6 @@ Global
 		{50D2C968-9343-48E9-9EA7-508548D17676} = {760AB15A-8938-8D9B-BEDE-5CE1484B84C3}
 		{663C9E10-4EE0-4C6D-B345-DA1F0DFCED94} = {0C88DD14-F956-CE84-757C-A364CCF449FC}
 		{19C39CD9-4384-4692-AD79-D406E987D632} = {0C88DD14-F956-CE84-757C-A364CCF449FC}
+		{E48B04FC-E7C6-40CB-A3EB-AAB5BD4350FD} = {0C88DD14-F956-CE84-757C-A364CCF449FC}
 	EndGlobalSection
 EndGlobal
