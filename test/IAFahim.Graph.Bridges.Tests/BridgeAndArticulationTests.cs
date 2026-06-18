@@ -11,12 +11,12 @@ namespace IAFahim.Graph.Bridges.Tests
             const int N = 4;
             // 0-1, 1-2, 2-0, 2-3
             int* head = stackalloc int[N];
-            for (int i = 0; i < N; i++) head[i] = -1;
-            
-            int* next = stackalloc int[8];
-            int* to = stackalloc int[8];
-            int e = 0;
-            
+            for (int i = 0; i < N; i++) head[i] = 0;
+
+            int* next = stackalloc int[9];
+            int* to = stackalloc int[9];
+            int e = 1;
+
             void AddEdge(int u, int v)
             {
                 to[e] = v; next[e] = head[u]; head[u] = e++;
