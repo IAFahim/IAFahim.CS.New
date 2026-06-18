@@ -27,14 +27,14 @@ namespace IAFahim.Geometry.Advanced
             {
                 long dx = x[i] - *cx;
                 long dy = y[i] - *cy;
-                if (dx * dx + dy * dy > *r * *r)
+                if (dx * dx + dy * dy > *r)
                 {
                     *cx = x[i]; *cy = y[i]; *r = 0;
                     for (int j = 0; j < i; j++)
                     {
                         long dx2 = x[j] - *cx;
                         long dy2 = y[j] - *cy;
-                        if (dx2 * dx2 + dy2 * dy2 > *r * *r)
+                        if (dx2 * dx2 + dy2 * dy2 > *r)
                         {
                             *cx = (x[i] + x[j]) >> 1;
                             *cy = (y[i] + y[j]) >> 1;
@@ -43,7 +43,7 @@ namespace IAFahim.Geometry.Advanced
                             {
                                 long dx3 = x[k] - *cx;
                                 long dy3 = y[k] - *cy;
-                                if (dx3 * dx3 + dy3 * dy3 > *r * *r)
+                                if (dx3 * dx3 + dy3 * dy3 > *r)
                                 {
                                     Circumcenter.Run(x[i], y[i], x[j], y[j], x[k], y[k], cx, cy);
                                     *r = (*cx - x[i]) * (*cx - x[i]) + (*cy - y[i]) * (*cy - y[i]);
