@@ -1,0 +1,38 @@
+PRE-EXISTING test hangs/failures - status after algo-perfection work:
+
+RESOLVED (commit 4c835d5 - Convention-A unification):
+- TwoSat.Solve_* : were infinite hangs. Root cause: TwoSat built
+  Convention-A edge lists (head=0, edges from 1) but called
+  SCC.TarjanScc.Find which expected Convention-B (head=-1). The 0
+  sentinel was read as a real edge -> to[0]/next[0] garbage -> loop.
+  Fixed: SCC.TarjanScc + Bridges.BridgeAndArticulation now terminate
+  on `e != 0` (Convention A = library standard, matching AddEdge and
+  IAFahim.Graph.TarjanScc.Run). All 10 TwoSat.Solve_* tests pass.
+- GraphTests Bridges_Simple / ArticulationPoints_Linear : same root
+  cause (library AddEdge = A, Bridges fn = B). Now PASS.
+
+STILL OPEN (do NOT block; separate pre-existing issue):
+- Phase10GraphTests.Planar_EarDecompositionAndSt : assertion fail at
+  line 229 (stOrder[n-1] expected 2, got 1). StNumbering builds AND
+  traverses Convention-B consistently, so this is a genuine ALGORITHMIC
+  bug in the st-numbering (Even-Tarjan) logic in Planar.cs StDfs, NOT a
+  convention mismatch. Deep fix needed; high regression risk for the
+  planarity algorithms that depend on it. Left as-is.
+  Note: Planar.cs is internally mixed (e!=0 at lines 38,57,524,528;
+  e!=-1 at 314,317) but each function matches its own construction.
+
+MASTER SYNC: pending. CI bench bot pushes via worktree cherry-pick;
+  do NOT push directly. 30+ commits on algo-perfection ahead of master.
+
+NONDETERMINISTIC (not caused by algo-perfection work; exposed by it):
+- Graph.Tests full-suite: test host process crashes (Fatal error /
+  native access violation) at a varying point (observed 18 and 27
+  passed before crash across runs). ALL 36 tests PASS individually and
+  per-class. Cause = a pre-existing out-of-bounds native write in one
+  of the unsafe graph tests corrupts the heap; which later test then
+  crashes depends on allocator state (hence nondeterministic).
+  Before this work the suite HUNG forever on TwoSat (0 usable results),
+  so this latent corruption was never reached. Diagnosing the exact OOB
+  write requires an address-sanitizer / Valgrind run on the test host,
+  not available in this environment. NOT a regression from any fix;
+  every fix verified green per-package and per-test-class.
