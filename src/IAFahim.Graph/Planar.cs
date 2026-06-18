@@ -270,12 +270,13 @@ namespace IAFahim.Graph
             byte* sign = stackalloc byte[n]; int* nl = stackalloc int[n], pl = stackalloc int[n];
             for (int i = 0; i < n; i++) { sign[i] = 0; nl[i] = pl[i] = -1; }
             nl[s] = t; pl[t] = s;
+            sign[s] = 0; sign[t] = 1;
             for (int i = 0; i < n; i++)
             {
                 int curr = order[i]; if (curr == s || curr == t) continue;
                 int par = p[curr], lvn = order[low[curr] - 1];
-                if (sign[lvn] == 0) { LinkAfter(par, curr, nl, pl); sign[par] = 1; }
-                else { LinkBefore(par, curr, nl, pl); sign[par] = 0; }
+                if (sign[lvn] == 0) { LinkBefore(par, curr, nl, pl); sign[curr] = 0; }
+                else { LinkAfter(par, curr, nl, pl); sign[curr] = 1; }
             }
             return FinalizeStOrder(s, n, nl, stOrder);
         }
