@@ -14,7 +14,9 @@ namespace IAFahim.Optimization.Matroid
             int* cur = stackalloc int[n]; int curSize = 0;
             for (int i = 0; i < n; i++)
             {
-                int e = order[i]; cur[curSize] = e;
+                int e = order[i];
+                if (weight[e] <= 0) break;
+                cur[curSize] = e;
                 if (independent(cur, curSize + 1, e)) { total += weight[e]; curSize++; }
             }
             return total;

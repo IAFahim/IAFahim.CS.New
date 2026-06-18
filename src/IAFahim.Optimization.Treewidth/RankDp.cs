@@ -43,7 +43,8 @@ namespace IAFahim.Optimization.Treewidth
             for (int i = n - 1; i >= 0; i--)
             {
                 long wSum = ComputeEdgeSum(n, i, order, edgeW);
-                if (parent[i] >= 0) dp[parent[i]] += dp[order[i]] + wSum;
+                int p = parent[order[i]];
+                if (p >= 0) dp[p] += dp[order[i]] + wSum;
             }
             return dp[order[0]];
         }
