@@ -219,15 +219,19 @@ namespace IAFahim.String
             while (lo < hi)
             {
                 int mid = (lo + hi) >> 1;
-                bool less = true;
-                int len = Math.Min(patLen, n - sa[mid]);
+                int suffixLen = n - sa[mid];
+                int len = Math.Min(patLen, suffixLen);
+                int cmp = 0;
                 for (int i = 0; i < len; i++)
                 {
-                    if (s[sa[mid] + i] < pattern[i]) break;
-                    if (s[sa[mid] + i] > pattern[i]) { less = false; break; }
+                    if (s[sa[mid] + i] < pattern[i]) { cmp = -1; break; }
+                    if (s[sa[mid] + i] > pattern[i]) { cmp = 1; break; }
                 }
-                if (less && len < patLen && s[sa[mid] + len - 1] == pattern[len - 1]) lo = mid + 1;
-                else if (less) lo = mid + 1;
+                if (cmp == 0 && len < patLen)
+                {
+                    cmp = suffixLen < patLen ? -1 : 0;
+                }
+                if (cmp < 0) lo = mid + 1;
                 else hi = mid;
             }
             return lo;

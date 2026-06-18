@@ -45,7 +45,7 @@ namespace IAFahim.String.Match
                 int left = i, right = i;
                 while (left > 1 && lcp[left - 1] >= h) left--;
                 while (right < n - 1 && lcp[right + 1] >= h) right++;
-                if (h > 0 && (right - left + 1) >= 2)
+                if (h > 0 && (right - left + 1) >= 2 && i == left)
                     runs++;
             }
             return runs;
