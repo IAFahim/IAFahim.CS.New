@@ -11,10 +11,10 @@ namespace IAFahim.String.Grammar
             public int Right;
         }
 
-        public static int Compress(byte* input, int len, Rule* rules, int maxRules, byte* work)
+        public static int Compress(byte* input, int len, Rule* rules, int maxRules, int* work)
         {
             int ruleCount = 0;
-            Buffer.MemoryCopy(input, work, len, len);
+            for (int i = 0; i < len; i++) work[i] = input[i];
             int workLen = len;
             while (ruleCount < maxRules)
             {
@@ -41,9 +41,9 @@ namespace IAFahim.String.Grammar
                     if (bestFreq > 1) break;
                 }
                 if (bestFreq <= 1) break;
-                byte pair0 = work[bestI];
-                byte pair1 = work[bestI + 1];
-                byte newSym = (byte)(254 - ruleCount);
+                int pair0 = work[bestI];
+                int pair1 = work[bestI + 1];
+                int newSym = 256 + ruleCount;
                 int newLen = 0;
                 for (int k = 0; k < workLen; k++)
                 {
