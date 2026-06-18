@@ -100,4 +100,45 @@ namespace IAFahim.Optimization.Offline.Tests
             int* sum = stackalloc int[maxNodes];
         }
     }
+
+    public sealed unsafe class Cdq3DDominanceTests
+    {
+        private static void BitAdd(int* bit, int i, int v)
+        {
+            const int maxZ = 8;
+            for (int x = i; x <= maxZ; x += x & -x) bit[x] += v;
+        }
+
+        private static int BitSum(int* bit, int i)
+        {
+            int s = 0;
+            for (int x = i; x > 0; x -= x & -x) s += bit[x];
+            return s;
+        }
+
+        [Test]
+        public void Process_CountsThreeDDominance()
+        {
+            int* x = stackalloc int[] { 1, 2, 3, 4 };
+            int* y = stackalloc int[] { 2, 3, 1, 4 };
+            int* z = stackalloc int[] { 3, 1, 2, 4 };
+            int n = 4;
+            int* idx = stackalloc int[n];
+            int* tmp = stackalloc int[n];
+            int* count = stackalloc int[n];
+            int* bit = stackalloc int[9];
+            for (int i = 0; i < n; i++) idx[i] = i;
+            for (int i = 0; i < n; i++) count[i] = 0;
+            for (int i = 0; i <= 8; i++) bit[i] = 0;
+
+            Cdq3DDominance.SortByX(x, y, z, idx, tmp, 0, n - 1);
+            Cdq3DDominance.Process(x, y, z, idx, tmp, count, 0, n - 1, bit, 8,
+                &BitAdd, &BitSum);
+
+            Assert.AreEqual(0, count[0]);
+            Assert.AreEqual(0, count[1]);
+            Assert.AreEqual(0, count[2]);
+            Assert.AreEqual(3, count[3]);
+        }
+    }
 }

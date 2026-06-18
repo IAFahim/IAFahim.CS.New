@@ -34,7 +34,8 @@ namespace IAFahim.Optimization.Offline
             for (int i = 0; i < n; i++)
             {
                 int mid = Mid(lo[queryIdx[i]], hi[queryIdx[i]]);
-                buckets[mid + bucketSize[0]++] = queryIdx[i];
+                buckets[mid * n + bucketSize[mid]] = queryIdx[i];
+                bucketSize[mid]++;
             }
         }
     }
@@ -113,15 +114,15 @@ namespace IAFahim.Optimization.Offline
             for (i = l; i <= r; i++) idx[i] = tmp[i];
         }
 
-        public static void Process(int* x, int* y, int* z, int* idx, int l, int r,
+        public static void Process(int* x, int* y, int* z, int* idx, int* tmp, int* count, int l, int r,
             int* bit, int maxZ,
             delegate*<int*, int, int, void> bitAdd,
             delegate*<int*, int, int> bitSum)
         {
-            if (l == r) return;
+            if (l >= r) return;
             int mid = l + ((r - l) >> 1);
-            Process(x, y, z, idx, l, mid, bit, maxZ, bitAdd, bitSum);
-            Process(x, y, z, idx, mid + 1, r, bit, maxZ, bitAdd, bitSum);
+            Process(x, y, z, idx, tmp, count, l, mid, bit, maxZ, bitAdd, bitSum);
+            Process(x, y, z, idx, tmp, count, mid + 1, r, bit, maxZ, bitAdd, bitSum);
             int i = l, j = mid + 1;
             while (j <= r)
             {
@@ -130,12 +131,23 @@ namespace IAFahim.Optimization.Offline
                     bitAdd(bit, z[idx[i]], 1);
                     i++;
                 }
+                count[idx[j]] += bitSum(bit, z[idx[j]]);
                 j++;
             }
             for (int t = l; t < i; t++)
             {
                 bitAdd(bit, z[idx[t]], -1);
             }
+            i = l; j = mid + 1;
+            int k = l;
+            while (i <= mid && j <= r)
+            {
+                if (y[idx[i]] <= y[idx[j]]) tmp[k++] = idx[i++];
+                else tmp[k++] = idx[j++];
+            }
+            while (i <= mid) tmp[k++] = idx[i++];
+            while (j <= r) tmp[k++] = idx[j++];
+            for (int t = l; t <= r; t++) idx[t] = tmp[t];
         }
     }
 
