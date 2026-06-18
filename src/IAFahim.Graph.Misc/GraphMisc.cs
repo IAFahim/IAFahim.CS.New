@@ -24,13 +24,27 @@ namespace IAFahim.Graph.Misc
     {
         public static long Run(int n, long* dp, int* next, long* values)
         {
-            long* visited = stackalloc long[n]; for (int i = 0; i < n; i++) visited[i] = 0;
+            int* inDeg = stackalloc int[n];
+            for (int i = 0; i < n; i++) inDeg[i] = 0;
+            for (int i = 0; i < n; i++) inDeg[next[i]]++;
+            bool* removed = stackalloc bool[n];
+            for (int i = 0; i < n; i++) removed[i] = false;
+            int* queue = stackalloc int[n]; int qh = 0, qt = 0;
+            for (int i = 0; i < n; i++) if (inDeg[i] == 0) queue[qt++] = i;
+            while (qh < qt)
+            {
+                int u = queue[qh++];
+                removed[u] = true;
+                int v = next[u];
+                if (--inDeg[v] == 0) queue[qt++] = v;
+            }
             long maxSum = 0;
+            for (int i = 0; i < n; i++) dp[i] = 0;
             for (int start = 0; start < n; start++)
             {
-                if (visited[start] != 0) continue;
+                if (removed[start] || dp[start] != 0) continue;
                 int cur = start; long sum = 0;
-                while (visited[cur] == 0) { visited[cur] = 1; sum += values[cur]; cur = next[cur]; }
+                while (dp[cur] == 0) { dp[cur] = 1; sum += values[cur]; cur = next[cur]; }
                 if (sum > maxSum) maxSum = sum;
             }
             return maxSum;
