@@ -30,11 +30,11 @@ namespace IAFahim.String.Compress
                         pLen++;
                         phraseIdx = output[phraseIdx].Phrase;
                     }
+                    if (i + pLen >= len) continue;
                     bool match = true;
-                    for (int k = 0; k <= pLen && i + k < len; k++)
+                    for (int k = 0; k < pLen; k++)
                     {
-                        byte expected = k < pLen ? GetByte(output, j, k) : input[i + k];
-                        if (input[i + k] != expected) { match = false; break; }
+                        if (input[i + k] != GetByte(output, j, k)) { match = false; break; }
                     }
                     if (match && pLen + 1 > bestLen)
                     {

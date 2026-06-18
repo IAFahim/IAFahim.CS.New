@@ -38,7 +38,7 @@ namespace IAFahim.Search.Interval
             int count = 0;
             for (int i = 0; i < len; i++)
             {
-                if ((uint)starts[i] <= (uint)point && (uint)point < (uint)ends[i])
+                if (starts[i] <= point && point < ends[i])
                 {
                     count++;
                 }

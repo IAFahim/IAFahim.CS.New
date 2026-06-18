@@ -66,9 +66,14 @@ namespace IAFahim.Physics.Xpbd
                 return;
             }
 
+            float jmag = -(1.0f + restitution) * vn / totalInvMass;
+            float3 impulse = jmag * n;
+            *velA = *velA - impulse * invMassA;
+            *velB = *velB + impulse * invMassB;
+
             float3 vnA = math.dot(*velA, n) * n;
-            float3 vnB = math.dot(*velB, n) * n;
             float3 vtA = *velA - vnA;
+            float3 vnB = math.dot(*velB, n) * n;
             float3 vtB = *velB - vnB;
 
             *velA = vnA + (1.0f - friction) * vtA;
