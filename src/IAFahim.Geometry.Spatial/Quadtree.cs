@@ -80,24 +80,34 @@ namespace IAFahim.Geometry.Spatial
             nodes[first + 3].MinX = midX; nodes[first + 3].MaxX = nodes[u].MaxX;
             nodes[first + 3].MinY = midY; nodes[first + 3].MaxY = nodes[u].MaxY;
 
-            int* c0 = stackalloc int[count]; int n0 = 0;
-            int* c1 = stackalloc int[count]; int n1 = 0;
-            int* c2 = stackalloc int[count]; int n2 = 0;
-            int* c3 = stackalloc int[count]; int n3 = 0;
-
+            int* c0Start = indices;
+            int n0 = 0;
             for (int i = 0; i < count; i++)
             {
                 int p = indices[i];
-                if (xs[p] <= midX && ys[p] <= midY) c0[n0++] = p;
-                else if (xs[p] > midX && ys[p] <= midY) c1[n1++] = p;
-                else if (xs[p] <= midX && ys[p] > midY) c2[n2++] = p;
-                else c3[n3++] = p;
+                if (xs[p] <= midX && ys[p] <= midY) { int t = indices[n0]; indices[n0] = indices[i]; indices[i] = t; n0++; }
             }
+            int* c1Start = indices + n0;
+            int n1 = 0;
+            for (int i = n0; i < count; i++)
+            {
+                int p = indices[i];
+                if (xs[p] > midX && ys[p] <= midY) { int t = c1Start[n1]; c1Start[n1] = indices[i]; indices[i] = t; n1++; }
+            }
+            int* c2Start = c1Start + n1;
+            int n2 = 0;
+            for (int i = n0 + n1; i < count; i++)
+            {
+                int p = indices[i];
+                if (xs[p] <= midX && ys[p] > midY) { int t = c2Start[n2]; c2Start[n2] = indices[i]; indices[i] = t; n2++; }
+            }
+            int* c3Start = c2Start + n2;
+            int n3 = count - n0 - n1 - n2;
 
-            BuildRecursive(xs, ys, nodes, first, c0, n0, ref nodeCount, maxNodes);
-            BuildRecursive(xs, ys, nodes, first + 1, c1, n1, ref nodeCount, maxNodes);
-            BuildRecursive(xs, ys, nodes, first + 2, c2, n2, ref nodeCount, maxNodes);
-            BuildRecursive(xs, ys, nodes, first + 3, c3, n3, ref nodeCount, maxNodes);
+            BuildRecursive(xs, ys, nodes, first, c0Start, n0, ref nodeCount, maxNodes);
+            BuildRecursive(xs, ys, nodes, first + 1, c1Start, n1, ref nodeCount, maxNodes);
+            BuildRecursive(xs, ys, nodes, first + 2, c2Start, n2, ref nodeCount, maxNodes);
+            BuildRecursive(xs, ys, nodes, first + 3, c3Start, n3, ref nodeCount, maxNodes);
         }
     }
 }
