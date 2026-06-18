@@ -6,6 +6,7 @@ namespace IAFahim.Math.Polynomial
     {
         public static void Run(long* a, int n, long c, long mod, long* fact, long* invFact)
         {
+            if (n <= 0) return;
             for (int i = 0; i < n; i++) a[i] = a[i] * fact[i] % mod;
 
             long* b = stackalloc long[n];

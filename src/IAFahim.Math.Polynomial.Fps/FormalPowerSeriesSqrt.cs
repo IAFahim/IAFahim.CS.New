@@ -11,6 +11,15 @@ namespace IAFahim.Math.Polynomial.Fps
             if (n <= 0) return 0;
             long r0 = TonelliShanks(a[0], mod);
             if (r0 < 0) return -1;
+            if (r0 == 0)
+            {
+                for (int i = 0; i < n; i++)
+                {
+                    if (a[i] != 0) return -1;
+                }
+                for (int i = 0; i < n; i++) res[i] = 0;
+                return n;
+            }
             res[0] = r0;
             long inv2Res0 = FpsShared.ModInverse(2 * r0 % mod, mod);
             for (int i = 1; i < n; i++)

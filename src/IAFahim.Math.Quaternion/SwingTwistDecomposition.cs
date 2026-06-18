@@ -46,10 +46,7 @@ namespace IAFahim.Math.Quaternion
         {
             float3 qv = new float3(q.value.x, q.value.y, q.value.z);
             float dot = math.dot(qv, twistAxis);
-            float3 projection = dot * twistAxis;
-
-            float twistLen = math.length(projection);
-            return Two * math.atan2(twistLen, q.value.w);
+            return Two * math.atan2(dot, q.value.w);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
