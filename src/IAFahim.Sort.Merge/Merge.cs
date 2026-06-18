@@ -43,8 +43,8 @@ namespace IAFahim.Sort.Merge
                 int l = 0;
                 while (l < len)
                 {
-                    int m = Math.Min(l + width, len);
-                    int r = Math.Min(l + 2 * width, len);
+                    int m = (int)Math.Min((long)l + width, len);
+                    int r = (int)Math.Min((long)l + 2 * width, len);
                     int segLen = r - l;
                     for (int i = 0; i < segLen; i++) tmp[i] = ptr[l + i];
                     int ia = 0, ib = m - l, ic = l;
@@ -55,7 +55,7 @@ namespace IAFahim.Sort.Merge
                         ptr[ic++] = tmp[ia++];
                     while (ib < bEnd)
                         ptr[ic++] = tmp[ib++];
-                    l += 2 * width;
+                    l = (int)((long)l + 2 * width);
                 }
                 width <<= 1;
             }

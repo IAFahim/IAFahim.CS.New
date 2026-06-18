@@ -29,7 +29,7 @@ namespace IAFahim.Memory.Allocators
             *this.count = countPerSlab;
         }
 
-        public int AllocationCount => (this.countPerSlab * (this.slabs->Length - 1)) + *this.count;
+        public int AllocationCount => (int)((long)this.countPerSlab * (this.slabs->Length - 1)) + *this.count;
 
         public bool IsCreated => this.count != null;
 
@@ -70,7 +70,7 @@ namespace IAFahim.Memory.Allocators
 
         public int Allocated()
         {
-            return this.slabs->Length * this.countPerSlab * UnsafeUtility.SizeOf<T>();
+            return (int)((long)this.slabs->Length * this.countPerSlab * UnsafeUtility.SizeOf<T>());
         }
     }
 }

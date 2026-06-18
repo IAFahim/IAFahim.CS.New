@@ -35,8 +35,12 @@ namespace IAFahim.Memory.Allocators
         public UnsafeList<T> CreateList<T>(int capacity)
             where T : unmanaged
         {
-            int newCapacity = math.max(capacity, 64 / UnsafeUtility.SizeOf<T>());
-            newCapacity = math.ceilpow2(newCapacity);
+            int size = UnsafeUtility.SizeOf<T>();
+            int minFloor = 64 / size;
+            if (minFloor <= 0) minFloor = 1;
+            int newCapacity = math.max(capacity, minFloor);
+            if (newCapacity <= (1 << 30))
+                newCapacity = math.ceilpow2(newCapacity);
 
             T* buffer = this.Create<T>(newCapacity);
 
