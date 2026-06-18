@@ -28,7 +28,6 @@ namespace IAFahim.Search.Range
         {
             int mex = 0;
             long seen = 0;
-            int left = 0;
             for (int right = 0; right < n; right++)
             {
                 int val = a[right];
