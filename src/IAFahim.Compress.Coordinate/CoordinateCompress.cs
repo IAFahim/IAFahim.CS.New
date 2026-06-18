@@ -11,17 +11,7 @@ namespace IAFahim.Compress.Coordinate
             if (len == 0) return 0;
             for (int i = 0; i < len; i++)
                 tmp[i] = src[i];
-            for (int i = 1; i < len; i++)
-            {
-                int key = tmp[i];
-                int j = i - 1;
-                while (j >= 0 && tmp[j] > key)
-                {
-                    tmp[j + 1] = tmp[j];
-                    j--;
-                }
-                tmp[j + 1] = key;
-            }
+            HeapSort(tmp, len);
             dstMap[0] = tmp[0];
             int unique = 1;
             for (int i = 1; i < len; i++)
@@ -30,6 +20,31 @@ namespace IAFahim.Compress.Coordinate
                     dstMap[unique++] = tmp[i];
             }
             return unique;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void HeapSort(int* a, int len)
+        {
+            for (int i = (len >> 1) - 1; i >= 0; i--) SiftDown(a, i, len);
+            for (int end = len - 1; end > 0; end--)
+            {
+                int t = a[0]; a[0] = a[end]; a[end] = t;
+                SiftDown(a, 0, end);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void SiftDown(int* a, int i, int n)
+        {
+            while (true)
+            {
+                int l = 2 * i + 1, r = 2 * i + 2, m = i;
+                if (l < n && a[l] > a[m]) m = l;
+                if (r < n && a[r] > a[m]) m = r;
+                if (m == i) break;
+                int t = a[i]; a[i] = a[m]; a[m] = t;
+                i = m;
+            }
         }
     }
 }
