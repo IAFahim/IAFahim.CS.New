@@ -6,9 +6,9 @@ namespace IAFahim.String.Palindrome
     public static unsafe class OccurrenceCount
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Count(byte* s, int n)
+        public static long Count(byte* s, int n)
         {
-            int count = 0;
+            long count = 0;
             int* odd = stackalloc int[n];
             Manacher.Odd(s, n, odd);
             for (int i = 0; i < n; i++)

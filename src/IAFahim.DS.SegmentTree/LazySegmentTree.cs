@@ -12,7 +12,7 @@ namespace IAFahim.DS.SegmentTree
                 tree[node] = arr[l];
                 return;
             }
-            int mid = (l + r) >> 1;
+            int mid = l + ((r - l) >> 1);
             RunInt32(arr, tree, node * 2, l, mid);
             RunInt32(arr, tree, node * 2 + 1, mid + 1, r);
             tree[node] = tree[node * 2] + tree[node * 2 + 1];
@@ -35,7 +35,7 @@ namespace IAFahim.DS.SegmentTree
                 }
                 return;
             }
-            int mid = (l + r) >> 1;
+            int mid = l + ((r - l) >> 1);
             RangeAddInt32(tree, lazy, node * 2, l, mid, ql, qr, val);
             RangeAddInt32(tree, lazy, node * 2 + 1, mid + 1, r, ql, qr, val);
             tree[node] = tree[node * 2] + tree[node * 2 + 1];
@@ -58,7 +58,7 @@ namespace IAFahim.DS.SegmentTree
                 return;
             }
             PushSetInt32(tree, lazy, hasLazy, node, l, r);
-            int mid = (l + r) >> 1;
+            int mid = l + ((r - l) >> 1);
             RangeSetInt32(tree, lazy, hasLazy, node * 2, l, mid, ql, qr, val);
             RangeSetInt32(tree, lazy, hasLazy, node * 2 + 1, mid + 1, r, ql, qr, val);
             tree[node] = tree[node * 2] + tree[node * 2 + 1];
@@ -68,7 +68,7 @@ namespace IAFahim.DS.SegmentTree
         {
             if (lazy[node] != 0 && l != r)
             {
-                int mid = (l + r) >> 1;
+                int mid = l + ((r - l) >> 1);
                 tree[node * 2] += lazy[node] * (mid - l + 1);
                 tree[node * 2 + 1] += lazy[node] * (r - mid);
                 lazy[node * 2] += lazy[node];
@@ -81,7 +81,7 @@ namespace IAFahim.DS.SegmentTree
         {
             if (hasLazy[node] && l != r)
             {
-                int mid = (l + r) >> 1;
+                int mid = l + ((r - l) >> 1);
                 tree[node * 2] = lazy[node] * (mid - l + 1);
                 tree[node * 2 + 1] = lazy[node] * (r - mid);
                 lazy[node * 2] = lazy[node];
@@ -99,7 +99,7 @@ namespace IAFahim.DS.SegmentTree
         {
             if (lazy[node] != 0 && l != r)
             {
-                int mid = (l + r) >> 1;
+                int mid = l + ((r - l) >> 1);
                 tree[node * 2] += lazy[node] * (mid - l + 1);
                 tree[node * 2 + 1] += lazy[node] * (r - mid);
                 lazy[node * 2] += lazy[node];
@@ -123,7 +123,7 @@ namespace IAFahim.DS.SegmentTree
         {
             if (qr < l || ql > r) return 0;
             if (ql <= l && r <= qr) return tree[node];
-            int mid = (l + r) >> 1;
+            int mid = l + ((r - l) >> 1);
             LazySegmentPush.Run(tree, lazy, node, l, r);
             return RangeSumInt32(tree, lazy, node * 2, l, mid, ql, qr) +
                    RangeSumInt32(tree, lazy, node * 2 + 1, mid + 1, r, ql, qr);
@@ -145,7 +145,7 @@ namespace IAFahim.DS.SegmentTree
                 }
                 return;
             }
-            int mid = (l + r) >> 1;
+            int mid = l + ((r - l) >> 1);
             LazySegmentPush.Run(tree, lazy, node, l, r);
             RangeAddInt32(tree, lazy, node * 2, l, mid, ql, qr, val);
             RangeAddInt32(tree, lazy, node * 2 + 1, mid + 1, r, ql, qr, val);
