@@ -116,10 +116,14 @@ namespace IAFahim.Math.NT.Tests
         [Test]
         public void PrimeFactorPower_TrialDivision()
         {
-            int* outP = stackalloc int[10];
+            long* outP = stackalloc long[10];
             int* outE = stackalloc int[10];
             int cnt = PrimeFactorPower.Run(60L, outP, outE);
             Assert.AreEqual(3, cnt);
+            // 60 = 2^2 * 3 * 5
+            Assert.AreEqual(2L, outP[0]); Assert.AreEqual(2, outE[0]);
+            Assert.AreEqual(3L, outP[1]); Assert.AreEqual(1, outE[1]);
+            Assert.AreEqual(5L, outP[2]); Assert.AreEqual(1, outE[2]);
         }
 
         [Test]

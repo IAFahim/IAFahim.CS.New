@@ -21,7 +21,7 @@ namespace IAFahim.Math.NT
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Run(long n, int* outPrimes, int* outExponents)
+        public static int Run(long n, long* outPrimes, int* outExponents)
         {
             int count = 0;
             for (long p = 2; p * p <= n; p++)
@@ -29,13 +29,13 @@ namespace IAFahim.Math.NT
                 if (n % p != 0) continue;
                 int e = 0;
                 while (n % p == 0) { n /= p; e++; }
-                outPrimes[count] = (int)p;
+                outPrimes[count] = p;
                 outExponents[count] = e;
                 count++;
             }
             if (n > 1)
             {
-                outPrimes[count] = (int)n;
+                outPrimes[count] = n;
                 outExponents[count] = 1;
                 count++;
             }
