@@ -53,20 +53,16 @@ namespace IAFahim.Geometry.Spatial
 
             int mid = count / 2;
             int u = nodeCount++;
-            
+
             nodes[u].PointIndex = indices[mid];
             nodes[u].X = xs[indices[mid]];
             nodes[u].Y = ys[indices[mid]];
             nodes[u].Axis = axis;
 
-            int* leftIndices = stackalloc int[mid];
-            for (int i = 0; i < mid; i++) leftIndices[i] = indices[i];
-            nodes[u].Left = BuildRecursive(xs, ys, nodes, leftIndices, mid, depth + 1, ref nodeCount);
+            nodes[u].Left = BuildRecursive(xs, ys, nodes, indices, mid, depth + 1, ref nodeCount);
 
             int rightCount = count - mid - 1;
-            int* rightIndices = stackalloc int[rightCount];
-            for (int i = 0; i < rightCount; i++) rightIndices[i] = indices[mid + 1 + i];
-            nodes[u].Right = BuildRecursive(xs, ys, nodes, rightIndices, rightCount, depth + 1, ref nodeCount);
+            nodes[u].Right = BuildRecursive(xs, ys, nodes, indices + mid + 1, rightCount, depth + 1, ref nodeCount);
 
             return u;
         }

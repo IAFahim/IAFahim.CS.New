@@ -146,7 +146,8 @@ namespace IAFahim.DS.Heap
         public static void Run(int* src, int* dst, int len, int windowSize)
         {
             if (len == 0 || windowSize == 0) return;
-            int* deque = stackalloc int[len];
+            int cap = (windowSize < len ? windowSize : len) + 1;
+            int* deque = stackalloc int[cap];
             int front = 0, back = 0;
             for (int i = 0; i < len; i++)
             {
