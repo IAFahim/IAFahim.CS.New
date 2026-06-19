@@ -640,19 +640,8 @@ namespace IAFahim.Pathfinding.Recast
                     (ushort)(node->bmax.y - node->bmin.y),
                     (ushort)(node->bmax.z - node->bmin.z));
 
-                // Sort using simple insertion sort
-                if (axis == 0)
-                {
-                    SortItemsX(items + imin, inum);
-                }
-                else if (axis == 1)
-                {
-                    SortItemsY(items + imin, inum);
-                }
-                else
-                {
-                    SortItemsZ(items + imin, inum);
-                }
+                // Sort by the split axis (heapsort, O(n log n) per node)
+                SortItems(items + imin, inum, axis);
 
                 var isplit = imin + (inum / 2);
 
@@ -734,54 +723,26 @@ namespace IAFahim.Pathfinding.Recast
             }
         }
 
-        private static void SortItemsX(BVItem* items, int num)
+        private static void SortItems(BVItem* items, int num, int axis)
         {
-            // Simple insertion sort
-            for (var i = 1; i < num; i++)
+            for (int i = (num >> 1) - 1; i >= 0; i--) SiftDown(items, i, num, axis);
+            for (int end = num - 1; end > 0; end--)
             {
-                var temp = items[i];
-                var j = i - 1;
-                while (j >= 0 && items[j].BMin.x > temp.BMin.x)
-                {
-                    items[j + 1] = items[j];
-                    j--;
-                }
-
-                items[j + 1] = temp;
+                BVItem t = items[0]; items[0] = items[end]; items[end] = t;
+                SiftDown(items, 0, end, axis);
             }
         }
 
-        private static void SortItemsY(BVItem* items, int num)
+        private static void SiftDown(BVItem* a, int i, int n, int axis)
         {
-            // Simple insertion sort
-            for (var i = 1; i < num; i++)
+            while (true)
             {
-                var temp = items[i];
-                var j = i - 1;
-                while (j >= 0 && items[j].BMin.y > temp.BMin.y)
-                {
-                    items[j + 1] = items[j];
-                    j--;
-                }
-
-                items[j + 1] = temp;
-            }
-        }
-
-        private static void SortItemsZ(BVItem* items, int num)
-        {
-            // Simple insertion sort
-            for (var i = 1; i < num; i++)
-            {
-                var temp = items[i];
-                var j = i - 1;
-                while (j >= 0 && items[j].BMin.z > temp.BMin.z)
-                {
-                    items[j + 1] = items[j];
-                    j--;
-                }
-
-                items[j + 1] = temp;
+                int l = 2 * i + 1, r = 2 * i + 2, m = i;
+                if (l < n && a[l].BMin[axis] > a[m].BMin[axis]) m = l;
+                if (r < n && a[r].BMin[axis] > a[m].BMin[axis]) m = r;
+                if (m == i) break;
+                BVItem t = a[i]; a[i] = a[m]; a[m] = t;
+                i = m;
             }
         }
 
