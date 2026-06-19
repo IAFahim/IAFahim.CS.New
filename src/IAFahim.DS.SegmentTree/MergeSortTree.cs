@@ -22,11 +22,25 @@ namespace IAFahim.DS.SegmentTree
 
         public static void Sort(int* a, int n)
         {
-            for (int i = 1; i < n; i++)
+            for (int i = (n >> 1) - 1; i >= 0; i--) SiftDown(a, i, n);
+            for (int end = n - 1; end > 0; end--)
             {
-                int key = a[i], j = i - 1;
-                while (j >= 0 && a[j] > key) { a[j + 1] = a[j]; j--; }
-                a[j + 1] = key;
+                int t = a[0]; a[0] = a[end]; a[end] = t;
+                SiftDown(a, 0, end);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void SiftDown(int* a, int i, int n)
+        {
+            while (true)
+            {
+                int l = 2 * i + 1, r = 2 * i + 2, m = i;
+                if (l < n && a[l] > a[m]) m = l;
+                if (r < n && a[r] > a[m]) m = r;
+                if (m == i) break;
+                int t = a[i]; a[i] = a[m]; a[m] = t;
+                i = m;
             }
         }
     }

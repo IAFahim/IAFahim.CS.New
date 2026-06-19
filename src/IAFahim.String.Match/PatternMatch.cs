@@ -24,21 +24,22 @@ using System.Runtime.InteropServices;
         public static bool Parameterized(byte* a, int lenA, byte* b, int lenB, int* mapA, int* mapB)
         {
             if (lenA != lenB) return false;
+            int* lastA = stackalloc int[256];
+            int* lastB = stackalloc int[256];
+            for (int i = 0; i < 256; i++) { lastA[i] = -1; lastB[i] = -1; }
             int nextId = 1;
             for (int i = 0; i < lenA; i++)
             {
-                int j;
-                for (j = 0; j < i; j++)
-                    if (a[j] == a[i]) break;
-                mapA[i] = j < i ? mapA[j] : nextId++;
+                int prev = lastA[a[i]];
+                mapA[i] = prev >= 0 ? mapA[prev] : nextId++;
+                lastA[a[i]] = i;
             }
             nextId = 1;
             for (int i = 0; i < lenB; i++)
             {
-                int j;
-                for (j = 0; j < i; j++)
-                    if (b[j] == b[i]) break;
-                mapB[i] = j < i ? mapB[j] : nextId++;
+                int prev = lastB[b[i]];
+                mapB[i] = prev >= 0 ? mapB[prev] : nextId++;
+                lastB[b[i]] = i;
             }
             bool match = true;
             for (int i = 0; i < lenA; i++)
