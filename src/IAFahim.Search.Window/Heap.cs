@@ -39,17 +39,18 @@ namespace IAFahim.Search.Window
 
         public static void FixInt32(int* ptr, int i, int len)
         {
-            int smallest = i;
-            int l = Left(i);
-            int r = Right(i);
-            if (l < len && ptr[l] < ptr[smallest]) smallest = l;
-            if (r < len && ptr[r] < ptr[smallest]) smallest = r;
-            if (smallest != i)
+            while (true)
             {
+                int smallest = i;
+                int l = Left(i);
+                int r = Right(i);
+                if (l < len && ptr[l] < ptr[smallest]) smallest = l;
+                if (r < len && ptr[r] < ptr[smallest]) smallest = r;
+                if (smallest == i) break;
                 int tmp = ptr[i];
                 ptr[i] = ptr[smallest];
                 ptr[smallest] = tmp;
-                FixInt32(ptr, smallest, len);
+                i = smallest;
             }
         }
 
