@@ -248,17 +248,13 @@ namespace IAFahim.Pathfinding.Recast
                 root->Base = 1;
 
                 var nStack = 0;
+                var stackHead = 0;
                 stack[nStack++] = (byte)i;
 
-                while (nStack > 0)
+                while (nStack > stackHead)
                 {
-                    // Pop front
-                    var reg = &regs[stack[0]];
-                    nStack--;
-                    for (var j = 0; j < nStack; ++j)
-                    {
-                        stack[j] = stack[j + 1];
-                    }
+                    // Pop front (FIFO via head index; avoids the O(n^2) shift)
+                    var reg = &regs[stack[stackHead++]];
 
                     int nneis = reg->Nneis;
                     for (var j = 0; j < nneis; ++j)
