@@ -217,8 +217,13 @@ namespace IAFahim.Graph.Tests
         {
             const int n = 1, maxEdges = 2;
             int* head = stackalloc int[n * 2];
-            int* to = stackalloc int[maxEdges];
-            int* next = stackalloc int[maxEdges];
+            // Convention-A edge lists are 1-based (edges indexed from 1), so a
+            // buffer of size N only holds edge indices 1..N-1; size +1 to hold
+            // `maxEdges` edges without overrunning to[]/next[]. Under-sizing
+            // here wrote to[2]/next[2] past a size-2 buffer and corrupted the
+            // test-host heap (nondeterministic AV across the whole suite).
+            int* to = stackalloc int[maxEdges + 1];
+            int* next = stackalloc int[maxEdges + 1];
             int* assignment = stackalloc int[n];
             for (int i = 0; i < n * 2; i++) head[i] = 0;
             int edgeCount = 0;
