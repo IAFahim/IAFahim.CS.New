@@ -22,18 +22,30 @@ namespace IAFahim.Math.NT
             return count;
         }
 
-        private static void QuickSort(long* ptr, int left, int right)
+        private static void QuickSort(long* ptr, int leftIn, int rightIn)
         {
-            if (left >= right) return;
-            long pivot = ptr[left + (right - left) / 2];
-            int i = left, j = right;
-            while (i <= j)
+            int left = leftIn, right = rightIn;
+            while (left < right)
             {
-                while (ptr[i] < pivot) i++;
-                while (ptr[j] > pivot) j--;
-                if (i <= j) { long t = ptr[i]; ptr[i] = ptr[j]; ptr[j] = t; i++; j--; }
+                long pivot = ptr[left + (right - left) / 2];
+                int i = left, j = right;
+                while (i <= j)
+                {
+                    while (ptr[i] < pivot) i++;
+                    while (ptr[j] > pivot) j--;
+                    if (i <= j) { long t = ptr[i]; ptr[i] = ptr[j]; ptr[j] = t; i++; j--; }
+                }
+                if (j - left < right - i)
+                {
+                    QuickSort(ptr, left, j);
+                    left = i;
+                }
+                else
+                {
+                    QuickSort(ptr, i, right);
+                    right = j;
+                }
             }
-            QuickSort(ptr, left, j); QuickSort(ptr, i, right);
         }
     }
 }
