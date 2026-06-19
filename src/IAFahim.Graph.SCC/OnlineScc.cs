@@ -11,8 +11,15 @@ namespace IAFahim.Graph.SCC
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Find(int* parent, int i)
         {
-            if (parent[i] == i) return i;
-            return parent[i] = Find(parent, parent[i]);
+            int root = i;
+            while (parent[root] != root) root = parent[root];
+            while (parent[i] != root)
+            {
+                int next = parent[i];
+                parent[i] = root;
+                i = next;
+            }
+            return root;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

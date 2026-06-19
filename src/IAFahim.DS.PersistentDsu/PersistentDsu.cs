@@ -28,10 +28,14 @@ namespace IAFahim.DS.PersistentDsu
 
         public static int Query(int root, int l, int r, int idx, int* parent, int* lc, int* rc, out int s, int* size)
         {
-            if (l == r) { s = size[root]; return parent[root]; }
-            int mid = (l + r) >> 1;
-            if (idx <= mid) return Query(lc[root], l, mid, idx, parent, lc, rc, out s, size);
-            return Query(rc[root], mid + 1, r, idx, parent, lc, rc, out s, size);
+            while (l != r)
+            {
+                int mid = l + ((r - l) >> 1);
+                if (idx <= mid) { root = lc[root]; r = mid; }
+                else { root = rc[root]; l = mid + 1; }
+            }
+            s = size[root];
+            return parent[root];
         }
 
         public static int Find(int root, int n, int x, int* parent, int* lc, int* rc, int* size, out int s)
