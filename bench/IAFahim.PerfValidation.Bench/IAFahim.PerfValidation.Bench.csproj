@@ -3,5 +3,7 @@
     <ProjectReference Include="../../src/IAFahim.Compress.Coordinate/IAFahim.Compress.Coordinate.csproj" />
     <ProjectReference Include="../../src/IAFahim.Search.MeetInMiddle/IAFahim.Search.MeetInMiddle.csproj" />
     <ProjectReference Include="../../src/IAFahim.Math.Combinatorics/IAFahim.Math.Combinatorics.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Sort.Specialized/IAFahim.Sort.Specialized.csproj" />
+    <ProjectReference Include="../../src/IAFahim.String.Match/IAFahim.String.Match.csproj" />
   </ItemGroup>
 </Project>

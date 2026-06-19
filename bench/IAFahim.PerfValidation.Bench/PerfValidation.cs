@@ -132,4 +132,74 @@ namespace IAFahim.PerfValidation.Bench
         public long BellNumbers_BellTriangle() =>
             IAFahim.Math.Combinatorics.BellNumbers.Run(N, Mod);
     }
+
+    [MemoryDiagnoser]
+    public unsafe class SortIntsBench
+    {
+        [Params(256, 4096)]
+        public int N;
+
+        private int* _source;
+        private int* _work;
+
+        [GlobalSetup]
+        public void Setup()
+        {
+            _source = (int*)Marshal.AllocHGlobal(N * sizeof(int));
+            _work = (int*)Marshal.AllocHGlobal(N * sizeof(int));
+            Random rng = new Random(42);
+            for (int i = 0; i < N; i++) _source[i] = rng.Next();
+        }
+
+        [IterationSetup]
+        public void CopySource()
+        {
+            for (int i = 0; i < N; i++) _work[i] = _source[i];
+        }
+
+        [Benchmark]
+        public void SortInts_Heapsort() =>
+            IAFahim.Sort.Specialized.SortInts.Run(_work, N);
+
+        [GlobalCleanup]
+        public void Cleanup()
+        {
+            Marshal.FreeHGlobal((nint)_source);
+            Marshal.FreeHGlobal((nint)_work);
+        }
+    }
+
+    [MemoryDiagnoser]
+    public unsafe class PatternMatchBench
+    {
+        private const int Len = 4096;
+        private byte* _a;
+        private byte* _b;
+        private int* _mapA;
+        private int* _mapB;
+
+        [GlobalSetup]
+        public void Setup()
+        {
+            _a = (byte*)Marshal.AllocHGlobal(Len);
+            _b = (byte*)Marshal.AllocHGlobal(Len);
+            _mapA = (int*)Marshal.AllocHGlobal(Len * sizeof(int));
+            _mapB = (int*)Marshal.AllocHGlobal(Len * sizeof(int));
+            Random rng = new Random(42);
+            for (int i = 0; i < Len; i++) { _a[i] = (byte)rng.Next(26); _b[i] = _a[i]; }
+        }
+
+        [Benchmark]
+        public bool Patternized_LastSeenTable() =>
+            IAFahim.String.Match.PatternMatch.Parameterized(_a, Len, _b, Len, _mapA, _mapB);
+
+        [GlobalCleanup]
+        public void Cleanup()
+        {
+            Marshal.FreeHGlobal((nint)_a);
+            Marshal.FreeHGlobal((nint)_b);
+            Marshal.FreeHGlobal((nint)_mapA);
+            Marshal.FreeHGlobal((nint)_mapB);
+        }
+    }
 }

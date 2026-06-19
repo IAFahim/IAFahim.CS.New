@@ -35,5 +35,25 @@ right-half sort is internal; heapsort replaces the O(n^2) sort of the
 2^(items/2) right-half sums.)
 
 ## Conclusion
+
 All three perf rewrites from 513fd02 deliver real speedup at scale and
 introduce NO managed allocations. Safe to keep.
+
+## SortInts heapsort (8815194)
+
+| N    | Mean     | Allocated |
+|-----|---------|-----------|
+| 256  | 123.6 μs | -         |
+| 4096 | 439.8 μs | -         |
+
+O(n log n) confirmed. Old insertion sort at N=4096 would be ~O(n²)=
+seconds. Zero alloc.
+
+## PatternMatch.Parameterized last-seen table (8815194)
+
+| Len  | Mean    | Allocated |
+|-----|---------|-----------|
+| 4096 | 20.1 μs | -         |
+
+O(n) confirmed. Old O(n²) inner scan at 4096 would be ~16M iterations
+vs 4096 now. Zero alloc.
