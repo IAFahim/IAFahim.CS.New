@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.Compress.Coordinate/IAFahim.Compress.Coordinate.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Search.MeetInMiddle/IAFahim.Search.MeetInMiddle.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Math.Combinatorics/IAFahim.Math.Combinatorics.csproj" />
+  </ItemGroup>
+</Project>
