@@ -330,7 +330,7 @@ namespace IAFahim.RedTeam
             int* womanPref = stackalloc int[n * n] { 1, 0, 0, 1 };
             int* manMatch = stackalloc int[n];
             int* womanMatch = stackalloc int[n];
-            int* scratch = stackalloc int[n + n * n];
+            int* scratch = stackalloc int[n + n * n + n];
 
             IAFahim.Graph.Matching.StableMarriage.Run(n, manPref, womanPref, manMatch, womanMatch, scratch);
             Assert.AreEqual(1, manMatch[0]);

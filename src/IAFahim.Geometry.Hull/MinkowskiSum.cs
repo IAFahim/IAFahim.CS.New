@@ -68,7 +68,7 @@ namespace IAFahim.Geometry.Hull
                     k++;
                 }
             }
-            return k - 1;
+            return k;
         }
 
         public static int Difference(double* ax, double* ay, int an, double* bx, double* by, int bn, double* outX, double* outY)

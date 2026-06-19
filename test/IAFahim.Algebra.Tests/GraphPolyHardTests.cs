@@ -21,7 +21,7 @@ namespace IAFahim.Algebra.Tests
             adj[1 * n + 2] = adj[2 * n + 1] = true;
 
             int chi = Chromatic.NumberDp(n, adj, MOD);
-            Assert.AreEqual(3, chi, "P3 path needs 3 colors");
+            Assert.AreEqual(2, chi, "P3 path is bipartite, needs 2 colors");
         }
 
         [Test]
@@ -79,9 +79,10 @@ namespace IAFahim.Algebra.Tests
             long* coeffs = stackalloc long[n + 1];
             Chromatic.Subset(n, adj, MOD, coeffs);
 
-            long sum = 0L;
-            for (int k = 0; k <= n; k++) sum = (sum + coeffs[k]) % MOD;
-            Assert.AreNotEqual(0, sum, "Coefficients should not all be zero");
+            // The chromatic polynomial is degree n with leading coefficient 1;
+            // sum(coeffs) == P(1) == 0 for any graph with an edge, so check the
+            // leading coefficient is nonzero instead.
+            Assert.AreNotEqual(0, coeffs[n], "Leading coefficient must be nonzero");
         }
 
         [Test]
@@ -127,10 +128,11 @@ namespace IAFahim.Algebra.Tests
         [Test]
         public void Combinatorial_Eulerian_Known()
         {
+            // Eulerian numbers A(4,k) for k=0..3 are 1, 11, 11, 1.
             Assert.AreEqual(11L, Combinatorial.Eulerian(4, 1, MOD));
-            Assert.AreEqual(11L, Combinatorial.Eulerian(4, 3, MOD));
+            Assert.AreEqual(11L, Combinatorial.Eulerian(4, 2, MOD));
             Assert.AreEqual(1L, Combinatorial.Eulerian(4, 0, MOD));
-            Assert.AreEqual(1L, Combinatorial.Eulerian(4, 4, MOD));
+            Assert.AreEqual(1L, Combinatorial.Eulerian(4, 3, MOD));
         }
 
         [Test]
