@@ -53,20 +53,31 @@ namespace IAFahim.DS.Mo
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void QuickSort(int* q, int* l, int* r, int* b, int left, int right)
+        private static void QuickSort(int* q, int* l, int* r, int* b, int leftIn, int rightIn)
         {
-            if (left >= right) return;
-            int pivotIdx = left + ((right - left) >> 1);
-            int pl = l[pivotIdx], pr = r[pivotIdx], pb = b[pivotIdx];
-            int i = left, j = right;
-            while (i <= j)
+            int left = leftIn, right = rightIn;
+            while (left < right)
             {
-                while (Less(l[i], r[i], b[i], pl, pr, pb)) i++;
-                while (Less(pl, pr, pb, l[j], r[j], b[j])) j--;
-                if (i <= j) { Swap(q, l, r, b, i, j); i++; j--; }
+                int pivotIdx = left + ((right - left) >> 1);
+                int pl = l[pivotIdx], pr = r[pivotIdx], pb = b[pivotIdx];
+                int i = left, j = right;
+                while (i <= j)
+                {
+                    while (Less(l[i], r[i], b[i], pl, pr, pb)) i++;
+                    while (Less(pl, pr, pb, l[j], r[j], b[j])) j--;
+                    if (i <= j) { Swap(q, l, r, b, i, j); i++; j--; }
+                }
+                if (j - left < right - i)
+                {
+                    QuickSort(q, l, r, b, left, j);
+                    left = i;
+                }
+                else
+                {
+                    QuickSort(q, l, r, b, i, right);
+                    right = j;
+                }
             }
-            QuickSort(q, l, r, b, left, j);
-            QuickSort(q, l, r, b, i, right);
         }
 
         public static void Run(int* queries, int* l, int* r, int* block, int q, int blockSize)

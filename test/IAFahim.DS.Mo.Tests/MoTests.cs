@@ -21,7 +21,19 @@ namespace IAFahim.DS.Mo.Tests
             l[4] = 3; r[4] = 6;
             for (int i = 0; i < q; i++) { block[i] = l[i] / 2; queries[i] = i; }
             MoSort.Run(queries, l, r, block, q, 2);
-            Assert.IsTrue(l[0] <= l[1]);
+            // Parity-Mo order: blocks ascending; within a block, r
+            // descending for even blocks and ascending for odd blocks.
+            // l is NOT monotonic in Mo order.
+            for (int i = 1; i < q; i++)
+                Assert.IsTrue(block[i] >= block[i - 1], "blocks not ascending");
+            for (int i = 1; i < q; i++)
+            {
+                if (block[i] != block[i - 1]) continue;
+                if ((block[i] & 1) == 0)
+                    Assert.IsTrue(r[i] <= r[i - 1], "even block r not descending");
+                else
+                    Assert.IsTrue(r[i] >= r[i - 1], "odd block r not ascending");
+            }
         }
 
         [Test]
