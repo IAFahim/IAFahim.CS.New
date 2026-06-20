@@ -199,3 +199,42 @@ REMAINING (genuinely out of scope here):
 
 INVARIANTS HELD: no git add -A, no benchmarks, one-project builds,
   every fix build+test gated, lens diagnostics clean (108 files).
+
+## Turn: continuous perf + Graph.Tests crash resolution
+
+### Correctness/crash (MAJOR)
+- `5152934` Graph.Tests nondeterministic suite crash RESOLVED. Root cause was
+  NOT pre-existing heap corruption needing ASan: TwoSat test
+  Solve_EdgeCaseSingleVariableSelfImplication sized to[]/next[] to maxEdges=2,
+  but 1 clause = 2 implication edges, which under Convention-A 1-based edge
+  indexing occupy indices 1 AND 2. Index 2 overran the size-2 buffer ->
+  heap corruption -> delayed AV (18-27 tests in). Fix: size maxEdges+1.
+  Graph.Tests now 36/36 DETERMINISTIC across 5 runs. LAST known failure gone.
+  Full suite: 1217/1217, 0 fail, 0 crash.
+
+### Perf (recursive->iterative, O(n^2)->better, pruning)
+- `5ad3608` PersistentDsu.Query iterative descent; OnlineScc.Find two-pass
+  path compression; PersistentFenwickUpdate iterative; midpoint overflow-safe.
+- `3ea089c` FloorSum + EuclidSum.SumCoPrime tail-recursion -> loop.
+- `00985aa` Recast/Detour 3x FIFO pop-front O(n^2) array-shift -> O(n) head
+  index (Recast.Layers, DtNavMeshQuery.MoveAlongSurface, FindLocalNeighbourhood).
+- `a428011` Detour BV-tree build sort O(n^2) insertion -> O(n log n) heapsort
+  (collapsed SortItemsX/Y/Z into one SortItems(axis)).
+- `KdTree build` heapsort (bubble O(n^2) -> O(n log n)).
+- HalfSpaceIntersection sort O(n^2) bubble -> heapsort.
+- PotentialField 2D/3D convergence check sqrt -> lengthsq.
+- `f277c54` BallTree: build O(n^2)->O(n log n) heapsort + Nearest O(n) full-scan
+  -> O(log n) with ball-bound pruning (R was computed but never used). BIG win.
+- Mst + SecondBestMst Kruskal Find: added two-pass path compression.
+- `5e22f80` + bench: BallTreeBench validates build ~O(n log n), nearest
+  ~1.2us/query at N=8192 (flat per-query => pruning works), zero alloc.
+
+### DSU audit
+All remaining src/ DSU Finds verified: either already iterative w/ compression
+(Tutte, Reliability, IncrementalConnectivity, OfflineDynamicMst) or correctly
+UNCOMPRESSED rollback variants (Mst FindSimple, DsuBipartite, RollbackStack).
+No further DSU work.
+
+### Remaining
+~350 perf-only files (offsets 207-579). Master sync still pending (~50+ commits
+ahead). No known failing/hanging test suites.
