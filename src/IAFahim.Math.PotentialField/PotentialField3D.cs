@@ -88,8 +88,8 @@ namespace IAFahim.Math.PotentialField
 
                 if (attractorCount > 0)
                 {
-                    float distToTarget = math.length(pos - attractors[0]);
-                    if (distToTarget < tolerance)
+                    float distToTargetSq = math.lengthsq(pos - attractors[0]);
+                    if (distToTargetSq < tolerance * tolerance)
                     {
                         break;
                     }
