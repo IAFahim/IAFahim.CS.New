@@ -77,5 +77,35 @@ namespace IAFahim.Algebra.Sequence.Tests
             Assert.AreEqual(0, Combinatorial.Lah(3, 0, MOD));
             Assert.AreEqual(0, Combinatorial.Lah(3, 4, MOD));
         }
+
+        // Gaussian binomial [n choose k]_q.
+        [Test]
+        public void QBinomial_3Choose1_AtQ2_Is7()
+        {
+            // [3 choose 1]_2 = (2^3-1)/(2-1) = 7.
+            Assert.AreEqual(7, Combinatorial.QBinomial(3, 1, 2, MOD));
+        }
+
+        [Test]
+        public void QBinomial_4Choose2_AtQ2_Is35()
+        {
+            // [4 choose 2]_2 = (2^4-1)(2^3-1)/((2^2-1)(2-1)) = 15*7/3 = 35.
+            Assert.AreEqual(35, Combinatorial.QBinomial(4, 2, 2, MOD));
+        }
+
+        [Test]
+        public void QBinomial_AtQ1_EqualsBinomial()
+        {
+            // [n choose k]_1 = C(n,k) by L'Hopital.
+            Assert.AreEqual(6, Combinatorial.QBinomial(4, 2, 1, MOD));
+            Assert.AreEqual(3, Combinatorial.QBinomial(3, 1, 1, MOD));
+            Assert.AreEqual(3, Combinatorial.QBinomial(3, 2, 1, MOD));
+        }
+
+        [Test]
+        public void GaussianBinomial_AliasMatchesQBinomial()
+        {
+            Assert.AreEqual(Combinatorial.QBinomial(4, 2, 2, MOD), Combinatorial.GaussianBinomial(4, 2, 2, MOD));
+        }
     }
 }
