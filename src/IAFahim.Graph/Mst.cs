@@ -104,11 +104,24 @@ namespace IAFahim.Graph
         private static void SortEdges(int m, int* ew, int* idx)
         {
             for (int i = 0; i < m; i++) idx[i] = i;
-            for (int i = 1; i < m; i++)
+            for (int i = (m >> 1) - 1; i >= 0; i--) SiftDownEdge(ew, idx, i, m);
+            for (int end = m - 1; end > 0; end--)
             {
-                int key = ew[idx[i]], ki = idx[i], j = i - 1;
-                while (j >= 0 && ew[idx[j]] > key) { idx[j + 1] = idx[j]; j--; }
-                idx[j + 1] = ki;
+                int t = idx[0]; idx[0] = idx[end]; idx[end] = t;
+                SiftDownEdge(ew, idx, 0, end);
+            }
+        }
+
+        private static void SiftDownEdge(int* ew, int* idx, int i, int n)
+        {
+            while (true)
+            {
+                int l = 2 * i + 1, r = 2 * i + 2, m = i;
+                if (l < n && ew[idx[l]] > ew[idx[m]]) m = l;
+                if (r < n && ew[idx[r]] > ew[idx[m]]) m = r;
+                if (m == i) break;
+                int t = idx[i]; idx[i] = idx[m]; idx[m] = t;
+                i = m;
             }
         }
 
@@ -207,15 +220,28 @@ namespace IAFahim.Graph
             return root;
         }
 
+        private static void SiftDownEdge2(int* ew, int* idx, int i, int n)
+        {
+            while (true)
+            {
+                int l = 2 * i + 1, r = 2 * i + 2, m = i;
+                if (l < n && ew[idx[l]] > ew[idx[m]]) m = l;
+                if (r < n && ew[idx[r]] > ew[idx[m]]) m = r;
+                if (m == i) break;
+                int t = idx[i]; idx[i] = idx[m]; idx[m] = t;
+                i = m;
+            }
+        }
+
         public static long Run(int n, int m, int* eu, int* ev, int* ew)
         {
             int* idx = stackalloc int[m];
             for (int i = 0; i < m; i++) idx[i] = i;
-            for (int i = 1; i < m; i++)
+            for (int i = (m >> 1) - 1; i >= 0; i--) SiftDownEdge2(ew, idx, i, m);
+            for (int end = m - 1; end > 0; end--)
             {
-                int key = ew[idx[i]], ki = idx[i], j = i - 1;
-                while (j >= 0 && ew[idx[j]] > key) { idx[j + 1] = idx[j]; j--; }
-                idx[j + 1] = ki;
+                int t = idx[0]; idx[0] = idx[end]; idx[end] = t;
+                SiftDownEdge2(ew, idx, 0, end);
             }
             long best = 0;
             {
