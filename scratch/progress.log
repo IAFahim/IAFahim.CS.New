@@ -260,3 +260,41 @@ ahead). No known failing/hanging test suites.
   rollback variants.
 
 Full suite: 1217/1217, 0 fail, 0 crash. HEAD ~55 commits ahead of master.
+
+## Turn: more iterative conversions + ConvexHull3D test coverage
+
+### Recursion -> iterative (single-path point-updates, test-covered)
+- PersistentSegmentUpdate.RunInt32: iterative descent + bottom-up sum recompute
+  via small path buffer. Midpoint overflow-safe.
+- DynamicSegmentUpdate.Run: same pattern (in-place, lazy child alloc).
+- PersistentDsu.Update: iterative descent (no bottom-up needed - no aggregate).
+- PersistentTree Build/Query midpoints overflow-safe (Build/Query stay recursive
+  - 2-child, not convertible without explicit stack).
+
+### Sorts (O(n^2) -> O(n log n))
+- Planar.SortNeighborsByAngle: parallel-array heapsort.
+- (earlier this turn: Kruskal edge, Interval SortByStart, Recast contour)
+
+### Test infrastructure (enables future safe work)
+- `a6f542c` ConvexHull3D invariant tests. Build previously had ZERO active tests
+  (the lone test was inside /* */ AND called a stale 5-arg overload). Added 4
+  tests: tetrahedron(4)/octahedron(8)/cube(12)/cube+interior(12, interior
+  excluded), plus a strong enclosing invariant (every input point on/inside every
+  output face; every face = 3 distinct valid indices). Face counts are
+  triangulation-invariant (F=2V-4) so not brittle. Geometry.Tests 69->73.
+  This is the prerequisite for a future O(n^2)->O(n log n) conflict-list rewrite.
+
+### Correctness spot-checks (perf-only files, audit-mislabel lesson)
+- WelzlSphere: CORRECT (s.R=Sqrt stores radius, Contains compares dist^2<=R^2).
+  NOT the MinimumEnclosingCircle class of bug.
+- src allocation byte-sizes: clean (long widening followed), only NoDeps stub hit.
+- Remaining (l+r)>>1 midpoints: int-typed over array indices (low risk, n<1B);
+  long-typed in LiChao/AlienDp over bounded domains (marginal). Left as-is -
+  defensive hardening without test coverage = churn.
+
+### State
+- Full suite: 0 fail, 0 crash across 88 projects (~1218 tests).
+- ~60 commits on algo-perfection ahead of master. Sync pending (CI bench bot).
+- Remaining high-value work is either high-risk rewrites (ConvexHull3D conflict
+  lists, now de-risked by tests) or untested code. Safe perf conversions on
+  test-covered code are largely exhausted.
