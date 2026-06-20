@@ -33,23 +33,8 @@ namespace IAFahim.Geometry.Spatial
 
             int axis = depth % 2;
             
-            // Sort indices based on axis
-            for (int i = 0; i < count - 1; i++)
-            {
-                for (int j = i + 1; j < count; j++)
-                {
-                    bool swap = false;
-                    if (axis == 0 && xs[indices[j]] < xs[indices[i]]) swap = true;
-                    if (axis == 1 && ys[indices[j]] < ys[indices[i]]) swap = true;
-
-                    if (swap)
-                    {
-                        int t = indices[i];
-                        indices[i] = indices[j];
-                        indices[j] = t;
-                    }
-                }
-            }
+            // Sort indices based on axis (heapsort, O(n log n))
+            SortIndicesByAxis(xs, ys, indices, count, axis);
 
             int mid = count / 2;
             int u = nodeCount++;
@@ -65,6 +50,32 @@ namespace IAFahim.Geometry.Spatial
             nodes[u].Right = BuildRecursive(xs, ys, nodes, indices + mid + 1, rightCount, depth + 1, ref nodeCount);
 
             return u;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static double AxisKey(double* xs, double* ys, int idx, int axis) => axis == 0 ? xs[idx] : ys[idx];
+
+        private static void SortIndicesByAxis(double* xs, double* ys, int* indices, int count, int axis)
+        {
+            for (int i = (count >> 1) - 1; i >= 0; i--) SiftDown(xs, ys, indices, i, count, axis);
+            for (int end = count - 1; end > 0; end--)
+            {
+                int t = indices[0]; indices[0] = indices[end]; indices[end] = t;
+                SiftDown(xs, ys, indices, 0, end, axis);
+            }
+        }
+
+        private static void SiftDown(double* xs, double* ys, int* a, int i, int n, int axis)
+        {
+            while (true)
+            {
+                int l = 2 * i + 1, r = 2 * i + 2, m = i;
+                if (l < n && AxisKey(xs, ys, a[l], axis) > AxisKey(xs, ys, a[m], axis)) m = l;
+                if (r < n && AxisKey(xs, ys, a[r], axis) > AxisKey(xs, ys, a[m], axis)) m = r;
+                if (m == i) break;
+                int t = a[i]; a[i] = a[m]; a[m] = t;
+                i = m;
+            }
         }
     }
 }
