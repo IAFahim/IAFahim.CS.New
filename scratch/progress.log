@@ -331,3 +331,42 @@ Full suite: 1217/1217, 0 fail, 0 crash. HEAD ~55 commits ahead of master.
 - Safe high-value perf conversions on test-covered code EXHAUSTED.
 - Remaining work is high-risk rewrites or untested-code changes (violate
   test-gating principle). Master sync pending (CI bench bot).
+
+## Turn: test coverage expansion → found 3 real correctness bugs
+
+### Strategy: add tests for untested algorithms → bugs surface
+
+### Correctness bugs FOUND AND FIXED (all via test invariants)
+1. **Narayana formula** (`Algebra.Sequence/Combinatorial.cs`): computed
+   C(n,k)-C(n,k-1) (difference) instead of C(n,k)*C(n,k-1)/n (product/n).
+   N(4,2) returned 2, should be 6. Caught by Narayana_SumRowEqualsCatalan
+   (sum of N(n,k) must equal Catalan(n)).
+2. **QBinomial exponent** (`Algebra.Sequence/Combinatorial.cs`): numerator
+   used q^{n-1-i} instead of q^{n-i}. [3 choose 1]_2 returned 3, should be 7.
+   [4 choose 2]_2 returned 7, should be 35.
+3. **QBinomial q=1 degenerate**: product formula gives 0/0 at q=1. Added
+   special case [n choose k]_1 = C(n,k) (L'Hopital limit).
+
+### New test projects (13 packages, ~130 tests)
+- WaveletMatrix (7): kth-smallest invariant vs reference sort
+- OrderedSet (7): insert/erase/rank/kth
+- LinkCut (5): connectivity + path-sum (chain/star/cut)
+- Centroid (5): path/star/single/decompose/perfect-binary-tree
+- GameTheory (9): NimSum, GrundyDAG chain/sink/sources, GameDp subtraction
+- Eulerian (5): undirected triangle/square/no-eulerian, directed path/cycle
+- Plane (9): distance, line/segment intersection, plane-plane intersection
+- Sphere (6): line-sphere tangent/miss/hit, sphere-sphere overlap/separated
+- Eertree (6): palindromic tree distinct-palindrome-count invariant
+- Matrix (12): mul non-square, pow Fibonacci, determinant Bareiss
+- SpanningTrees (6): min path cover chain/fork/diamond/long-chain
+- SphericalDistance (6): Haversine same/antipodal/quarter/London-Paris
+- Algebra.Sequence Combinatorial (16): Eulerian/Narayana/Lah/QBinomial/Young
+- Algebra.Sequence Transform (4): Binomial/InverseBinomial/Bell/Cayley
+
+### State
+- Full suite: 1324 tests, 0 fail, 0 crash across ~95 test projects.
+- ~80 commits on algo-perfection ahead of master.
+- Found 3 real bugs through test-first strategy (audit missed all 3).
+- Safe perf conversions + bug fixes EXHAUSTED on test-covered code.
+- ConvexHull3D O(n²)→O(n log n) conflict-list rewrite: tests now lock behavior,
+  deferred (correct algo, ~150 lines risky rewrite).
