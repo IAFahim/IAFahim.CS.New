@@ -872,18 +872,25 @@ namespace IAFahim.Pathfinding.Recast
 
         private static void SortHoles(ContourHole* holes, int nholes)
         {
-            // Simple insertion sort for holes
-            for (var i = 1; i < nholes; i++)
+            // Heapsort (O(n log n)); max-heap by CompareHoles, extract to end => ascending
+            for (var i = (nholes >> 1) - 1; i >= 0; i--) SiftDownHole(holes, i, nholes);
+            for (var end = nholes - 1; end > 0; end--)
             {
-                var key = holes[i];
-                var j = i - 1;
-                while (j >= 0 && CompareHoles(holes[j], key) > 0)
-                {
-                    holes[j + 1] = holes[j];
-                    j--;
-                }
+                var t = holes[0]; holes[0] = holes[end]; holes[end] = t;
+                SiftDownHole(holes, 0, end);
+            }
+        }
 
-                holes[j + 1] = key;
+        private static void SiftDownHole(ContourHole* a, int i, int n)
+        {
+            while (true)
+            {
+                int l = 2 * i + 1, r = 2 * i + 2, m = i;
+                if (l < n && CompareHoles(a[l], a[m]) > 0) m = l;
+                if (r < n && CompareHoles(a[r], a[m]) > 0) m = r;
+                if (m == i) break;
+                var t = a[i]; a[i] = a[m]; a[m] = t;
+                i = m;
             }
         }
 
@@ -921,18 +928,25 @@ namespace IAFahim.Pathfinding.Recast
 
         private static void SortDiagonals(PotentialDiagonal* diags, int ndiags)
         {
-            // Simple insertion sort for diagonals
-            for (var i = 1; i < ndiags; i++)
+            // Heapsort (O(n log n)) ascending by Dist
+            for (var i = (ndiags >> 1) - 1; i >= 0; i--) SiftDownDiag(diags, i, ndiags);
+            for (var end = ndiags - 1; end > 0; end--)
             {
-                var key = diags[i];
-                var j = i - 1;
-                while (j >= 0 && diags[j].Dist > key.Dist)
-                {
-                    diags[j + 1] = diags[j];
-                    j--;
-                }
+                var t = diags[0]; diags[0] = diags[end]; diags[end] = t;
+                SiftDownDiag(diags, 0, end);
+            }
+        }
 
-                diags[j + 1] = key;
+        private static void SiftDownDiag(PotentialDiagonal* a, int i, int n)
+        {
+            while (true)
+            {
+                int l = 2 * i + 1, r = 2 * i + 2, m = i;
+                if (l < n && a[l].Dist > a[m].Dist) m = l;
+                if (r < n && a[r].Dist > a[m].Dist) m = r;
+                if (m == i) break;
+                var t = a[i]; a[i] = a[m]; a[m] = t;
+                i = m;
             }
         }
 
