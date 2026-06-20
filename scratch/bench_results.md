@@ -57,3 +57,15 @@ seconds. Zero alloc.
 
 O(n) confirmed. Old O(n²) inner scan at 4096 would be ~16M iterations
 vs 4096 now. Zero alloc.
+
+## BallTree (spatial) — this session
+| Method | N | Mean | Alloc |
+|---|---|---|---|
+| Build | 1024 | 3.4 ms | - |
+| Build | 8192 | 11.1 ms | - |   (3.2x for 8x data => O(n log n) heapsort build)
+| Nearest_AllQueries (rebuild + N queries) | 1024 | 2.0 ms | - |
+| Nearest_AllQueries (rebuild + N queries) | 8192 | 20.5 ms | - |
+
+Nearest_AllQueries at N=8192 = ~11ms build + ~9.5ms/8192 queries ≈ **1.2 us/query**.
+Pre-pruning (old O(n) scan) would touch all 8192 points per query; pruned
+descent visits O(log n). Per-query cost nearly flat across N => pruning works.

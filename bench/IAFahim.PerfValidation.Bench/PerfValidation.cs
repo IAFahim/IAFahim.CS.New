@@ -202,4 +202,61 @@ namespace IAFahim.PerfValidation.Bench
             Marshal.FreeHGlobal((nint)_mapB);
         }
     }
+
+    [MemoryDiagnoser]
+    public unsafe class BallTreeBench
+    {
+        [Params(1024, 8192)]
+        public int N;
+
+        private double* _xs;
+        private double* _ys;
+        private IAFahim.Geometry.Spatial.BallTree.Node* _nodes;
+        private double* _qx;
+        private double* _qy;
+
+        [GlobalSetup]
+        public void Setup()
+        {
+            _xs = (double*)Marshal.AllocHGlobal(N * sizeof(double));
+            _ys = (double*)Marshal.AllocHGlobal(N * sizeof(double));
+            _qx = (double*)Marshal.AllocHGlobal(N * sizeof(double));
+            _qy = (double*)Marshal.AllocHGlobal(N * sizeof(double));
+            _nodes = (IAFahim.Geometry.Spatial.BallTree.Node*)Marshal.AllocHGlobal(N * 2 * sizeof(IAFahim.Geometry.Spatial.BallTree.Node));
+            Random rng = new Random(42);
+            for (int i = 0; i < N; i++)
+            {
+                _xs[i] = rng.NextDouble() * 1000.0;
+                _ys[i] = rng.NextDouble() * 1000.0;
+                _qx[i] = rng.NextDouble() * 1000.0;
+                _qy[i] = rng.NextDouble() * 1000.0;
+            }
+        }
+
+        [Benchmark]
+        public int BallTree_Build()
+        {
+            return IAFahim.Geometry.Spatial.BallTree.Build(_xs, _ys, N, _nodes);
+        }
+
+        [Benchmark]
+        public int BallTree_Nearest_AllQueries()
+        {
+            IAFahim.Geometry.Spatial.BallTree.Build(_xs, _ys, N, _nodes);
+            int last = 0;
+            for (int i = 0; i < N; i++)
+                last = IAFahim.Geometry.Spatial.BallTree.Nearest(_nodes, 0, _qx[i], _qy[i]);
+            return last;
+        }
+
+        [GlobalCleanup]
+        public void Cleanup()
+        {
+            Marshal.FreeHGlobal((nint)_xs);
+            Marshal.FreeHGlobal((nint)_ys);
+            Marshal.FreeHGlobal((nint)_qx);
+            Marshal.FreeHGlobal((nint)_qy);
+            Marshal.FreeHGlobal((nint)_nodes);
+        }
+    }
 }
