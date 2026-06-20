@@ -107,5 +107,38 @@ namespace IAFahim.Algebra.Sequence.Tests
         {
             Assert.AreEqual(Combinatorial.QBinomial(4, 2, 2, MOD), Combinatorial.GaussianBinomial(4, 2, 2, MOD));
         }
+
+        // Young tableaux via hook length formula: f(shape) = n! / prod(hooks).
+        [Test]
+        public unsafe void YoungTableaux_Shape21_TwoTableaux()
+        {
+            int* shape = stackalloc int[2] { 2, 1 };
+            Assert.AreEqual(2, Combinatorial.YoungTableaux(shape, 2, MOD));
+        }
+
+        [Test]
+        public unsafe void YoungTableaux_Shape33_FortyTwo()
+        {
+            // Shape (3,3): f = 6! / (5*4*3*3*2*1) = 720/360 = ... wait.
+            // Actually (3,3) hooks: (0,0)=4,(0,1)=3,(0,2)=2,(1,0)=3,(1,1)=2,(1,2)=1.
+            // f = 720/(4*3*2*3*2*1) = 720/144 = 5.
+            int* shape = stackalloc int[2] { 3, 3 };
+            Assert.AreEqual(5, Combinatorial.YoungTableaux(shape, 2, MOD));
+        }
+
+        [Test]
+        public unsafe void YoungTableaux_SingleRow_OneTableaux()
+        {
+            // Shape (n): always exactly 1 tableau (strictly increasing).
+            int* shape = stackalloc int[1] { 5 };
+            Assert.AreEqual(1, Combinatorial.YoungTableaux(shape, 1, MOD));
+        }
+
+        [Test]
+        public unsafe void HookLength_AliasMatchesYoungTableaux()
+        {
+            int* shape = stackalloc int[2] { 2, 1 };
+            Assert.AreEqual(Combinatorial.YoungTableaux(shape, 2, MOD), Combinatorial.HookLength(shape, 2, MOD));
+        }
     }
 }
