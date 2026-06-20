@@ -37,7 +37,8 @@ namespace IAFahim.Algebra.Sequence
             if (k <= 0 || k > n) return 0L;
             long c1 = Binom(n, k, MOD);
             long c2 = Binom(n, k - 1, MOD);
-            return (c1 - c2 + MOD) % MOD;
+            long invN = ModPow(n, MOD - 2, MOD);
+            return c1 * c2 % MOD * invN % MOD;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
