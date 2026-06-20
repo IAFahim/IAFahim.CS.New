@@ -238,3 +238,25 @@ No further DSU work.
 ### Remaining
 ~350 perf-only files (offsets 207-579). Master sync still pending (~50+ commits
 ahead). No known failing/hanging test suites.
+
+### Sort-conversion batch (O(n^2) insertion -> O(n log n) heapsort), all test-covered
+- `07dd725` Mst + SecondBestMst Kruskal edge sort O(E^2)->O(E log E). BIG win
+  for dense graphs (Kruskal's dominant cost was the sort).
+- `24b3c72` Search.Interval SortByStart parallel-array heapsort.
+- `54544f3` Recast.Contour SortHoles + SortDiagonals heapsort (contour vertex
+  counts can be large).
+
+### Audited-but-correctly-skipped (this batch)
+- ConvexHull3D: O(n^2) face-scan per point. Conflict-list rewrite -> O(n log n)
+  is high-risk; only a 4-point tetrahedron test exists. DEFERRED (needs more
+  tests first).
+- Tournament.TournamentHamiltonianPath: insertion is the algorithm itself
+  (path construction), not a key-sort. Inherent O(n^2).
+- Recast.Area InsertionSort: only called N=9 (optimal for tiny N).
+- TreeHashing/SpecialStructures: per-node child counts (small N).
+- Divisors/Factorize: ~240 elems max (sub-poly divisor count).
+- Arrangement.SortByX / RangeQueries: untested, stability risk. Skipped.
+- All remaining src/ DSU Finds: already iterative or correctly-uncompressed
+  rollback variants.
+
+Full suite: 1217/1217, 0 fail, 0 crash. HEAD ~55 commits ahead of master.
