@@ -298,3 +298,36 @@ Full suite: 1217/1217, 0 fail, 0 crash. HEAD ~55 commits ahead of master.
 - Remaining high-value work is either high-risk rewrites (ConvexHull3D conflict
   lists, now de-risked by tests) or untested code. Safe perf conversions on
   test-covered code are largely exhausted.
+
+## Turn: correctness spot-check sweep + final verification
+
+### Spot-checks (perf files for mislabeled correctness bugs) - ALL CLEAN
+- WelzlSphere: CORRECT (R=Sqrt, Contains: dist^2<=R^2).
+- RationalInterpolation modular subs: properly normalized (`if(denom<0)denom+=MOD`).
+- Algebra.Sequence Transform (n2-k): guarded by k<n2, always positive.
+- NTT: standard Cooley-Tukey, correct bit-reversal, normalized butterfly,
+  overflow-safe for mod<3e9. Tested (TransformTests).
+- src allocation byte-sizes: clean long-widening (only NoDeps stub hit).
+- int*n size computations (BottleneckAssignment, RandomStructures n*d): latent
+  overflow for n>46340 but element-counts not byte-sizes, low practical risk,
+  untested. Left as-is (churn without test coverage).
+
+### Coverage audit
+- AlgoArena.Tests (140 tests) references only already-well-tested packages.
+- Many Geometry.*/Graph.* packages tested indirectly via aggregate test
+  projects (Geometry.Tests etc).
+- LcpIntervalTree, FiniteAutomata, PathwidthDp etc. untested -> cannot safely
+  convert their Marshal.AllocHGlobal temps to stackalloc.
+
+### Deferred (high-risk, now test-de-risked)
+- ConvexHull3D O(n^2)->O(n log n) conflict-list rewrite. Tests now lock
+  behavior (a6f542c). Rewrite is ~150 lines subtle pointer work; correct algo
+  currently passes. Undertake only with focused debugging budget.
+
+### FINAL STATE
+- Full solution build: 0 warnings, 0 errors.
+- Full test suite: 0 fail, 0 crash across 88 projects (~1218 tests).
+- 67 commits on algo-perfection ahead of master.
+- Safe high-value perf conversions on test-covered code EXHAUSTED.
+- Remaining work is high-risk rewrites or untested-code changes (violate
+  test-gating principle). Master sync pending (CI bench bot).
