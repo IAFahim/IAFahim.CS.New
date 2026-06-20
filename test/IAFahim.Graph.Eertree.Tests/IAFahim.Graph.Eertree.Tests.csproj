@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.Graph.Eertree/IAFahim.Graph.Eertree.csproj" />
+  </ItemGroup>
+</Project>
