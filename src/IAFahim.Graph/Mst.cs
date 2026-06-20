@@ -127,8 +127,15 @@ namespace IAFahim.Graph
 
         private static int Find(int* parent, int x)
         {
-            while (parent[x] != x) x = parent[x];
-            return x;
+            int root = x;
+            while (parent[root] != root) root = parent[root];
+            while (parent[x] != root)
+            {
+                int next = parent[x];
+                parent[x] = root;
+                x = next;
+            }
+            return root;
         }
 
         private static void Union(int* parent, int* size, int ra, int rb)
@@ -189,8 +196,15 @@ namespace IAFahim.Graph
     {
         private static int Find(int* parent, int x)
         {
-            while (parent[x] != x) x = parent[x];
-            return x;
+            int root = x;
+            while (parent[root] != root) root = parent[root];
+            while (parent[x] != root)
+            {
+                int next = parent[x];
+                parent[x] = root;
+                x = next;
+            }
+            return root;
         }
 
         public static long Run(int n, int m, int* eu, int* ev, int* ew)
