@@ -1,0 +1,70 @@
+# CC-Perfection Handoff — resume here
+
+Goal (user, 2026-06-22): reduce cyclomatic complexity AND enforce the full
+AGENTS.md contract (out-param+bool `Try*`, no managed types, no magic numbers,
+small pure one-job functions, no hidden state, no logic dup, AggressiveInlining
+leaves) across every `src/` file. Adversarial critics gate every change. Never
+benchmark. One project build / one test at a time (tests can hang the PC).
+Commit only explicit verified paths — NEVER `git add -A`.
+
+## State (as of master HEAD `cd19b67`)
+- 30 high-CC files refactored + committed: `603252c` (6 seed), `452ee08` (R1, 9),
+  `2dc418f` (R2, 10), `8322607` (R3, 4). All gated by 3 critics + module build/test.
+- Tree is clean. All CC commits are LOCAL (unpushed, ahead of origin/master).
+- `scratch/cc_done.txt` = 30 files already done (skip these).
+- `scratch/cc_worklist.json` = 153 files with a method CC>=10, sorted worst-first.
+- 111 non-Recast high-CC files remain; the whole `IAFahim.Pathfinding.Recast`
+  cohort is DEFERRED (var-laden recastnavigation port — the fixer must be told
+  to use explicit types in new helpers; R1 Recast.Layers was rejected for `var`).
+
+## The machinery
+- `scratch/cc_perfect_workflow.js` — per file: fix (extract AggressiveInlining
+  helpers, lower CC, preserve EXACT semantics) -> 3 parallel adversarial critics
+  (semantics / contract / complexity) -> revise+recheck on any PROBLEM ->
+  returns {accepted, rejected, unchanged, failed}. Args: `{"files":[absPaths]}`.
+- `scratch/buildsweep.sh MODSFILE RESULTFILE` — per-project build, then test if a
+  `test/<Module>.Tests` exists; TIMEOUT reported separately from FAIL.
+
+## Round loop (repeat until cc_worklist exhausted, then broaden to all files)
+1. Pick next ~10 undone files ONE-PER-PROJECT (so a build/test FAIL isolates to
+   one file) from cc_worklist.json minus cc_done.txt, excluding Recast:
+   ```python
+   import json,os
+   done=set(l.strip() for l in open('scratch/cc_done.txt') if l.strip())
+   wl=json.load(open('scratch/cc_worklist.json'))
+   proj=lambda f:f.split('/')[1]
+   undone=[w for w in wl if w['file'] not in done and proj(w['file'])!='IAFahim.Pathfinding.Recast']
+   batch=[];seen=set()
+   for w in undone:
+     if proj(w['file']) in seen: continue
+     seen.add(proj(w['file'])); batch.append(w)
+     if len(batch)>=10: break
+   json.dump({"files":[os.path.abspath(w['file']) for w in batch]}, open('scratch/round_args.json','w'))
+   ```
+2. `Workflow {scriptPath:"scratch/cc_perfect_workflow.js", args:<round_args.json contents>}` (runs in background).
+3. On completion: `git checkout HEAD -- <file>` every rejected/failed file
+   (rate-limited "fixfail" leaves partial edits — always revert them).
+4. Write accepted modules (one per line, e.g. `IAFahim.Graph`) to a mods file;
+   `bash scratch/buildsweep.sh <mods> <result>`. Revert+requeue any FAIL(build/test).
+5. `git add <explicit accepted .cs paths>` (NEVER -A) and commit on master.
+6. Append accepted paths to `scratch/cc_done.txt`; `sort -u` it. Goto 1.
+
+## Next batch is already staged
+`scratch/round_args.json` currently holds round 4 (10 files): ShortestPath,
+ExcessScalingMaxFlow, Bsgs, AttractorSet, RangeTree, VisibilityGraph,
+GrammarCompress, TspMeetInMiddle, Fps, Parsing. Just run step 2 with it.
+
+## Watch out for
+- Transient server rate-limiting kills fix agents mid-round (R3 lost 5). They
+  come back as `failed`; revert any partial edit and requeue next round.
+- 4 of R1's modules and several others have NO test project (PASS(build) only) —
+  they rest on the critic gate. A later phase should add tests for these.
+- After CC files are exhausted, broaden: the ~1000 files with no method CC>4 still
+  need the contract critique (magic numbers, Try*/out, naming). Run them through
+  the same workflow in batches; most will return `unchanged`.
+
+## Background / prior context (memory files, persist across sessions)
+`~/.claude/.../memory/`: `cc-perfection-phase.md` (live state, mirrors this),
+`fix-verification-protocol.md` (2-judge gate), `perfection-goal.md` (perf lens,
+never benchmark), `perfection-execution-state.md` (the completed correctness batch).
+Repo contract: `AGENTS.md`.
