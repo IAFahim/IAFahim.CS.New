@@ -5,11 +5,10 @@ namespace IAFahim.Graph.DAG
     public static unsafe class DagTransitiveReduction
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Run(bool* adjMatrix, int n)
+        public static void Run(bool* adjMatrix, int n, bool* reach)
         {
-            long totalBytes = (long)n * n;
-            bool* reach = stackalloc bool[(int)totalBytes];
-            for (int i = 0; i < n * n; i++)
+            long total = (long)n * n;
+            for (long i = 0; i < total; i++)
                 reach[i] = adjMatrix[i];
 
             for (int k = 0; k < n; k++)

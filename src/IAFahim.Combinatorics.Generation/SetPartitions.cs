@@ -14,9 +14,12 @@ public unsafe struct IntegerPartitionEnumerator
     {
         if (_first)
         {
-            p[0] = _n; _k = 0; _first = false;
+            _first = false;
+            if (_n == 0) { length = 0; return true; }
+            p[0] = _n; _k = 0;
             length = 1; return true;
         }
+        if (_n == 0) { length = 0; return false; }
         int remVal = 0;
         while (_k >= 0 && p[_k] == 1) { remVal += p[_k]; _k--; }
         if (_k < 0) { length = 0; return false; }

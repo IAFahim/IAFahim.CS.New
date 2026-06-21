@@ -29,8 +29,15 @@ namespace IAFahim.DS.Dsu
 
         public static int RunPathCompression(int* parent, int x)
         {
-            if (parent[x] == x) return x;
-            return parent[x] = RunPathCompression(parent, parent[x]);
+            int root = x;
+            while (parent[root] != root) root = parent[root];
+            while (parent[x] != root)
+            {
+                int next = parent[x];
+                parent[x] = root;
+                x = next;
+            }
+            return root;
         }
     }
 
@@ -182,14 +189,24 @@ namespace IAFahim.DS.Dsu
     {
         public static int Run(int* parent, int* parity, int x)
         {
-            if (parent[x] == x)
+            int root = x;
+            int acc = 0;
+            while (parent[root] != root)
             {
-                return x;
+                acc ^= parity[root];
+                root = parent[root];
             }
-            int p = parent[x];
-            int root = DsuParityFind.Run(parent, parity, p);
-            parity[x] ^= parity[p];
-            parent[x] = root;
+            int cur = x;
+            int curParity = 0;
+            while (parent[cur] != root)
+            {
+                int next = parent[cur];
+                int oldPar = parity[cur];
+                parity[cur] = acc ^ curParity;
+                curParity ^= oldPar;
+                parent[cur] = root;
+                cur = next;
+            }
             return root;
         }
     }

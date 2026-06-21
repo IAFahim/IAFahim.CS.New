@@ -40,45 +40,35 @@ namespace IAFahim.Geometry.Hull
             outY[k] = ay[0] + by[0];
             k++;
             
+            int limit = an + bn;
             while (i < an || j < bn)
             {
                 double dx1 = ax[(i + 1) % an] - ax[i % an];
                 double dy1 = ay[(i + 1) % an] - ay[i % an];
                 double dx2 = bx[(j + 1) % bn] - bx[j % bn];
                 double dy2 = by[(j + 1) % bn] - by[j % bn];
-                
+
                 double cross = dx1 * dy2 - dy1 * dx2;
-                
+
+                double stepx, stepy;
                 if (i < an && j < bn)
                 {
-                    if (cross >= 0)
-                    {
-                        outX[k] = outX[k - 1] + dx1;
-                        outY[k] = outY[k - 1] + dy1;
-                        i++;
-                    }
-                    else
-                    {
-                        outX[k] = outX[k - 1] + dx2;
-                        outY[k] = outY[k - 1] + dy2;
-                        j++;
-                    }
+                    if (cross >= 0) { stepx = dx1; stepy = dy1; i++; }
+                    else { stepx = dx2; stepy = dy2; j++; }
                 }
-                else if (i < an)
+                else if (i < an) { stepx = dx1; stepy = dy1; i++; }
+                else { stepx = dx2; stepy = dy2; j++; }
+
+                // The closing edge reproduces the start vertex; do not write that
+                // duplicate (it would overflow a buffer sized to the return value).
+                if (k < limit)
                 {
-                    outX[k] = outX[k - 1] + dx1;
-                    outY[k] = outY[k - 1] + dy1;
-                    i++;
+                    outX[k] = outX[k - 1] + stepx;
+                    outY[k] = outY[k - 1] + stepy;
+                    k++;
                 }
-                else
-                {
-                    outX[k] = outX[k - 1] + dx2;
-                    outY[k] = outY[k - 1] + dy2;
-                    j++;
-                }
-                k++;
             }
-            return k - 1;
+            return k;
         }
 
         public static int Difference(double* ax, double* ay, int an, double* bx, double* by, int bn, double* outX, double* outY)

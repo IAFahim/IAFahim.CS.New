@@ -118,12 +118,18 @@ namespace IAFahim.Math.Combinatorics
         public static long Run(long n, long mod)
         {
             if (n == 0) return 1;
-            long result = 0;
-            for (long k = 0; k <= n; k++)
+            int nn = (int)n;
+            long* prev = stackalloc long[nn + 1];
+            long* cur = stackalloc long[nn + 1];
+            prev[0] = 1;
+            for (int i = 1; i <= nn; i++)
             {
-                result = (result + StirlingSecond.Run(n, k, mod)) % mod;
+                cur[0] = prev[i - 1];
+                for (int j = 1; j <= i; j++)
+                    cur[j] = (cur[j - 1] + prev[j - 1]) % mod;
+                long* tmp = prev; prev = cur; cur = tmp;
             }
-            return result;
+            return prev[0];
         }
     }
 

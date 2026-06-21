@@ -20,7 +20,8 @@ namespace IAFahim.Math.PoissonDisk
                 return 0;
             }
 
-            int gridSize = gridW * gridH * gridD;
+            long gridSizeLong = (long)gridW * gridH * gridD;
+            int gridSize = (int)gridSizeLong;
             int* grid = stackalloc int[gridSize];
             for (int i = 0; i < gridSize; i++)
             {
@@ -158,7 +159,7 @@ namespace IAFahim.Math.PoissonDisk
             state = state * 747796405u + 2891336453u;
             uint result = ((state >> ((int)(state >> 28) + 4)) ^ state) * 277803737u;
             result = (result >> 22) ^ result;
-            return (float)result / 4294967295.0f;
+            return (float)result / 4294967296.0f;
         }
     }
 }

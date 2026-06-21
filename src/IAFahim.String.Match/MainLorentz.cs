@@ -51,7 +51,6 @@ namespace IAFahim.String.Match
                             runs[count].Length = len;
                             count++;
                         }
-                        break;
                     }
                 }
             }

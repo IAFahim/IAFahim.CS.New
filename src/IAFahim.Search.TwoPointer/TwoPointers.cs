@@ -10,15 +10,17 @@ namespace IAFahim.Search.TwoPointer
         {
             int left = 0;
             int right = bLen - 1;
-            int count = 0;
+            long count = 0;
             while (left < aLen && right >= 0)
             {
-                int sum = a[left] + b[right];
+                long sum = (long)a[left] + b[right];
                 if (sum == target)
                 {
-                    count++;
-                    left++;
-                    right--;
+                    int av = a[left], bv = b[right];
+                    long lc = 0, rc = 0;
+                    while (left < aLen && a[left] == av) { left++; lc++; }
+                    while (right >= 0 && b[right] == bv) { right--; rc++; }
+                    count += lc * rc;
                 }
                 else if (sum < target)
                 {
@@ -29,7 +31,7 @@ namespace IAFahim.Search.TwoPointer
                     right--;
                 }
             }
-            return count;
+            return (int)count;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -39,7 +41,7 @@ namespace IAFahim.Search.TwoPointer
             int right = bLen - 1;
             while (left < aLen && right >= 0)
             {
-                int sum = a[left] + b[right];
+                long sum = (long)a[left] + b[right];
                 if (sum == target) return true;
                 if (sum < target) left++;
                 else right--;

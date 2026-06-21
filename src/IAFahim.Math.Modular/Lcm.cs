@@ -9,6 +9,8 @@ namespace IAFahim.Math.Modular
         public static long Run(long a, long b)
         {
             if (a == 0 || b == 0) return 0;
+            if (a < 0) a = -a;
+            if (b < 0) b = -b;
             long g = Gcd.Run(a, b);
             return a / g * b;
         }
@@ -17,6 +19,8 @@ namespace IAFahim.Math.Modular
         public static int Run(int a, int b)
         {
             if (a == 0 || b == 0) return 0;
+            if (a < 0) a = -a;
+            if (b < 0) b = -b;
             int g = Gcd.Run(a, b);
             return a / g * b;
         }

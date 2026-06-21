@@ -35,7 +35,7 @@ namespace IAFahim.Math.NT
                     primes[pCount++] = i;
                     mu[i] = -1;
                 }
-                for (int j = 0; j < pCount && i * primes[j] <= n; j++)
+                for (int j = 0; j < pCount && (long)i * primes[j] <= n; j++)
                 {
                     int p = primes[j];
                     isPrime[i * p] = false;

@@ -10,7 +10,7 @@ namespace IAFahim.Optimization.DivideConquer
         {
             while (hi - lo > 1)
             {
-                long mid = (lo + hi) >> 1;
+                long mid = lo + ((hi - lo) >> 1);
                 long sum = 0;
                 for (int i = 0; i < n; i++)
                 {

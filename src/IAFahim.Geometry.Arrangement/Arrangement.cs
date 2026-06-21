@@ -24,13 +24,22 @@ namespace IAFahim.Geometry.Arrangement
         {
             if (node == 0) return -1;
             int idx = tree[node], axis = depth & 1; long val = axis == 0 ? points[idx * 2] : points[idx * 2 + 1];
-            int child = px < val ? node * 2 : node * 2 + 1, best = idx;
-            long dist = (points[idx * 2] - px) * (points[idx * 2] - px) + (points[idx * 2 + 1] - py) * (points[idx * 2 + 1] - py);
-            int next = QueryKdTree(points, tree, child, depth + 1, px, py);
-            if (next >= 0) { long d = (points[next * 2] - px) * (points[next * 2] - px) + (points[next * 2 + 1] - py) * (points[next * 2 + 1] - py); if (d < dist) { best = next; dist = d; } }
+            int near = (axis == 0 ? px < val : py < val) ? node * 2 : node * 2 + 1;
+            int far = near == node * 2 ? node * 2 + 1 : node * 2;
+            int best = idx;
+            double dist = SqDist(points, idx, px, py);
+            int next = QueryKdTree(points, tree, near, depth + 1, px, py);
+            if (next >= 0) { double d = SqDist(points, next, px, py); if (d < dist) { best = next; dist = d; } }
             long diff = axis == 0 ? px - val : py - val;
-            if (diff * diff <= dist) { int cand = QueryKdTree(points, tree, (axis == 0 ? node * 2 + 1 : node * 2), depth + 1, px, py); if (cand >= 0) { long d = (points[cand * 2] - px) * (points[cand * 2] - px) + (points[cand * 2 + 1] - py) * (points[cand * 2 + 1] - py); if (d < dist) best = cand; } }
+            if ((double)diff * diff <= dist) { int cand = QueryKdTree(points, tree, far, depth + 1, px, py); if (cand >= 0) { double d = SqDist(points, cand, px, py); if (d < dist) best = cand; } }
             return best;
+        }
+
+        private static double SqDist(long* points, int idx, long px, long py)
+        {
+            double dx = (double)points[idx * 2] - px;
+            double dy = (double)points[idx * 2 + 1] - py;
+            return dx * dx + dy * dy;
         }
     }
 

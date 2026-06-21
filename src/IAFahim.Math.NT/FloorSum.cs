@@ -8,22 +8,28 @@ namespace IAFahim.Math.NT
         public static long Run(long n, long m, long a, long b)
         {
             long ans = 0;
-            if (a >= m)
+            while (true)
             {
-                ans += (n - 1) * n * (a / m) / 2;
-                a %= m;
+                if (a >= m)
+                {
+                    ans += (n - 1) * n * (a / m) / 2;
+                    a %= m;
+                }
+                if (b >= m)
+                {
+                    ans += n * (b / m);
+                    b %= m;
+                }
+                long yMax = (a * n + b) / m;
+                long xMax = yMax * m - b;
+                if (yMax == 0) return ans;
+                ans += (n - (xMax + a - 1) / a) * yMax;
+                long nn = yMax;
+                long na = a;
+                long nm = m;
+                long nb = (a - (xMax % a)) % a;
+                n = nn; m = nm; a = na; b = nb;
             }
-            if (b >= m)
-            {
-                ans += n * (b / m);
-                b %= m;
-            }
-            long yMax = (a * n + b) / m;
-            long xMax = yMax * m - b;
-            if (yMax == 0) return ans;
-            ans += (n - (xMax + a - 1) / a) * yMax;
-            ans += Run(yMax, a, m, (a - (xMax % a)) % a);
-            return ans;
         }
     }
 }

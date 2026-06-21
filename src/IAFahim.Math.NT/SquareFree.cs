@@ -17,7 +17,10 @@ namespace IAFahim.Math.NT
             {
                 return 0;
             }
-            int limit = (int)Math.Sqrt((double)n);
+            long limitD = (long)Math.Sqrt((double)n);
+            while (limitD > 0 && limitD * limitD > n) limitD--;
+            while ((limitD + 1) * (limitD + 1) <= n) limitD++;
+            int limit = (int)limitD;
             SieveMobius(limit, mu);
             long ans = 0;
             for (int d = 1; d <= limit; d++)
@@ -41,10 +44,10 @@ namespace IAFahim.Math.NT
             {
                 result[i] = 1;
             }
-            for (int i = 2; i * i <= n; i++)
+            for (long i = 2; i * i <= n; i++)
             {
-                int i2 = i * i;
-                for (int j = i2; j <= n; j += i2)
+                long i2 = i * i;
+                for (long j = i2; j <= n; j += i2)
                 {
                     result[j] = 0;
                 }
@@ -76,7 +79,7 @@ namespace IAFahim.Math.NT
                     primes[pCount++] = i;
                     mu[i] = -1;
                 }
-                for (int j = 0; j < pCount && i * primes[j] <= limit; j++)
+                for (int j = 0; j < pCount && (long)i * primes[j] <= limit; j++)
                 {
                     int p = primes[j];
                     isPrime[i * p] = false;

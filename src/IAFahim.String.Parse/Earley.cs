@@ -1,7 +1,6 @@
 namespace IAFahim.String.Parse
 {
     using System;
-    using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
     public static unsafe class Earley
@@ -15,7 +14,8 @@ namespace IAFahim.String.Parse
 
         public static bool Parse(byte* input, int len, int* rules, int ruleCount, int startRule)
         {
-            int maxStates = len * ruleCount * 4;
+            int maxStates = (len + 1) * ruleCount * 4;
+            if (maxStates < 4) maxStates = 4;
             long byteCount = (long)maxStates * (len + 1) * sizeof(State);
             State* S = (State*)Marshal.AllocHGlobal((nint)byteCount);
             long countsByteCount = (long)(len + 1) * sizeof(int);
@@ -24,53 +24,60 @@ namespace IAFahim.String.Parse
 
             try
             {
-                S[0].Rule = startRule;
-                S[0].Dot = 0;
-                S[0].Origin = 0;
-                counts[0] = 1;
+                AddState(S, counts, maxStates, 0, startRule, 0, 0);
 
                 for (int k = 0; k <= len; k++)
                 {
-                    for (int i = 0; i < counts[k]; i++)
+                    int i = 0;
+                    while (i < counts[k])
                     {
-                        int rule = S[k * maxStates + i].Rule;
-                        int dot = S[k * maxStates + i].Dot;
-                        int origin = S[k * maxStates + i].Origin;
-
+                        int idx = k * maxStates + i;
+                        i++;
+                        int rule = S[idx].Rule;
+                        int dot = S[idx].Dot;
+                        int origin = S[idx].Origin;
                         int symbol = rules[rule * 3 + dot + 1];
-                        if (symbol == -1) continue;
 
-                        if (symbol >= 256)
+                        if (symbol == -1)
+                        {
+                            int lhs = rules[rule * 3];
+                            int originBase = origin * maxStates;
+                            for (int j = 0; j < counts[origin]; j++)
+                            {
+                                State wp = S[originBase + j];
+                                if (rules[wp.Rule * 3 + wp.Dot + 1] == lhs)
+                                    AddState(S, counts, maxStates, k, wp.Rule, wp.Dot + 1, wp.Origin);
+                            }
+                        }
+                        else if (symbol >= 256)
                         {
                             for (int r = 0; r < ruleCount; r++)
                             {
-                                if (rules[r * 3] == symbol && counts[k] < maxStates)
+                                if (rules[r * 3] == symbol)
+                                    AddState(S, counts, maxStates, k, r, 0, k);
+                            }
+                            int kBase = k * maxStates;
+                            for (int j = 0; j < counts[k]; j++)
+                            {
+                                State cp = S[kBase + j];
+                                if (rules[cp.Rule * 3 + cp.Dot + 1] == -1 && rules[cp.Rule * 3] == symbol && cp.Origin == k)
                                 {
-                                    S[k * maxStates + counts[k]].Rule = r;
-                                    S[k * maxStates + counts[k]].Dot = 0;
-                                    S[k * maxStates + counts[k]].Origin = k;
-                                    counts[k]++;
+                                    AddState(S, counts, maxStates, k, rule, dot + 1, origin);
+                                    break;
                                 }
                             }
                         }
                         else if (k < len && input[k] == symbol)
                         {
-                            if (counts[k + 1] < maxStates)
-                            {
-                                S[(k + 1) * maxStates + counts[k + 1]].Rule = rule;
-                                S[(k + 1) * maxStates + counts[k + 1]].Dot = dot + 1;
-                                S[(k + 1) * maxStates + counts[k + 1]].Origin = origin;
-                                counts[k + 1]++;
-                            }
+                            AddState(S, counts, maxStates, k + 1, rule, dot + 1, origin);
                         }
                     }
                 }
 
                 for (int i = 0; i < counts[len]; i++)
                 {
-                    int rule = S[len * maxStates + i].Rule;
-                    int dot = S[len * maxStates + i].Dot;
-                    if (rules[rule * 3 + dot + 1] == -1 && S[len * maxStates + i].Origin == 0)
+                    State sp = S[len * maxStates + i];
+                    if (sp.Rule == startRule && sp.Origin == 0 && rules[sp.Rule * 3 + sp.Dot + 1] == -1)
                         return true;
                 }
                 return false;
@@ -80,6 +87,21 @@ namespace IAFahim.String.Parse
                 Marshal.FreeHGlobal((nint)S);
                 Marshal.FreeHGlobal((nint)counts);
             }
+        }
+
+        private static void AddState(State* S, int* counts, int maxStates, int setIdx, int rule, int dot, int origin)
+        {
+            if (counts[setIdx] >= maxStates) return;
+            int baseIdx = setIdx * maxStates;
+            for (int j = 0; j < counts[setIdx]; j++)
+            {
+                if (S[baseIdx + j].Rule == rule && S[baseIdx + j].Dot == dot && S[baseIdx + j].Origin == origin)
+                    return;
+            }
+            S[baseIdx + counts[setIdx]].Rule = rule;
+            S[baseIdx + counts[setIdx]].Dot = dot;
+            S[baseIdx + counts[setIdx]].Origin = origin;
+            counts[setIdx]++;
         }
     }
 }

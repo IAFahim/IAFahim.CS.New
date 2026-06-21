@@ -14,13 +14,13 @@ namespace IAFahim.Permutation
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int FromGray(int g)
         {
-            int n = g;
+            uint n = (uint)g;
             n ^= n >> 1;
             n ^= n >> 2;
             n ^= n >> 4;
             n ^= n >> 8;
             n ^= n >> 16;
-            return n;
+            return (int)n;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

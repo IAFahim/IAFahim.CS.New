@@ -12,9 +12,13 @@ namespace IAFahim.String.SuffixArray
             while (l <= r)
             {
                 int mid = (l + r) >> 1;
-                int cmp = Compare(text + sa[mid], pattern, Math.Min(patLen, textLen - sa[mid]));
-                if (cmp == 0 && patLen <= textLen - sa[mid])
-                    return sa[mid];
+                int suffixLen = textLen - sa[mid];
+                int cmp = Compare(text + sa[mid], pattern, Math.Min(patLen, suffixLen));
+                if (cmp == 0)
+                {
+                    if (patLen <= suffixLen) return sa[mid];
+                    cmp = -1;
+                }
                 if (cmp < 0) l = mid + 1;
                 else r = mid - 1;
             }

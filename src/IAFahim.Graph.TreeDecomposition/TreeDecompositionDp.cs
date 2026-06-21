@@ -16,6 +16,8 @@ namespace IAFahim.Graph.TreeDecomposition
             long* weights, int* gHead, int* gTo, int* gNext, int n, long* dp)
         {
             int maskSize = 1 << mBS;
+            const long NegInf = long.MinValue / 4;
+            for (long i = 0; i < (long)niceCount * maskSize; i++) dp[i] = NegInf;
             for (int u = niceCount - 1; u >= 0; u--)
             {
                 long* curDp = dp + (long)u * maskSize;

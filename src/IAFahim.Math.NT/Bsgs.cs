@@ -40,18 +40,24 @@ namespace IAFahim.Math.NT
             if (b % g != 0) return -1;
 
             long m = (long)Math.Ceiling(Math.Sqrt(mod));
-            for (int i = 0; i < m; i++)
+            int tableSize = (int)m;
+            for (int i = 0; i < tableSize; i++)
             {
                 scratchKeys[i] = -1;
                 scratchVals[i] = -1;
             }
             long am = 1;
-            for (int i = 0; i < m; i++)
+            for (int i = 0; i < tableSize; i++)
             {
                 long key = am;
-                int pos = (int)(key % m);
-                while (pos < m && scratchKeys[pos] != -1 && scratchKeys[pos] != key) pos++;
-                if (pos < m && scratchKeys[pos] == -1)
+                int pos = (int)(key % tableSize);
+                int probed = 0;
+                while (probed < tableSize && scratchKeys[pos] != -1 && scratchKeys[pos] != key)
+                {
+                    pos = (pos + 1) % tableSize;
+                    probed++;
+                }
+                if (scratchKeys[pos] == -1)
                 {
                     scratchKeys[pos] = key;
                     scratchVals[pos] = i;
@@ -60,13 +66,18 @@ namespace IAFahim.Math.NT
             }
             long factor = ModPow(am, mod - 2, mod);
             long cur = b;
-            for (int i = 0; i < m; i++)
+            for (int i = 0; i < tableSize; i++)
             {
-                int pos = (int)(cur % m);
-                while (pos < m && scratchKeys[pos] != -1 && scratchKeys[pos] != cur) pos++;
-                if (pos < m && scratchKeys[pos] == cur)
+                int pos = (int)(cur % tableSize);
+                int probed = 0;
+                while (probed < tableSize && scratchKeys[pos] != -1 && scratchKeys[pos] != cur)
                 {
-                    long ans = i * m + scratchVals[pos];
+                    pos = (pos + 1) % tableSize;
+                    probed++;
+                }
+                if (scratchKeys[pos] == cur)
+                {
+                    long ans = (long)i * tableSize + scratchVals[pos];
                     if (ans < mod) return ans;
                 }
                 cur = ModMul(cur, factor, mod);

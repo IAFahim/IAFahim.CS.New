@@ -8,29 +8,29 @@ namespace IAFahim.Math.Modular
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long Run(long a, long b)
         {
-            if (a < 0) a = -a;
-            if (b < 0) b = -b;
-            while (b != 0)
+            ulong ua = (ulong)(a < 0 ? -a : a);
+            ulong ub = (ulong)(b < 0 ? -b : b);
+            while (ub != 0)
             {
-                long t = b;
-                b = a % b;
-                a = t;
+                ulong t = ub;
+                ub = ua % ub;
+                ua = t;
             }
-            return a;
+            return (long)ua;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Run(int a, int b)
         {
-            if (a < 0) a = -a;
-            if (b < 0) b = -b;
-            while (b != 0)
+            uint ua = (uint)(a < 0 ? -a : a);
+            uint ub = (uint)(b < 0 ? -b : b);
+            while (ub != 0)
             {
-                int t = b;
-                b = a % b;
-                a = t;
+                uint t = ub;
+                ub = ua % ub;
+                ua = t;
             }
-            return a;
+            return (int)ua;
         }
     }
 }

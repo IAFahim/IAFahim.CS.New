@@ -17,8 +17,9 @@ namespace IAFahim.Optimization.Submodular
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Dependent(int n, double* frac, int* result)
         {
+            double* work = stackalloc double[n];
             double sum = 0;
-            for (int i = 0; i < n; i++) sum += frac[i];
+            for (int i = 0; i < n; i++) { work[i] = frac[i]; sum += frac[i]; }
             int k = (int)Math.Round(sum);
             for (int i = 0; i < n; i++) result[i] = 0;
             Random rng = new Random(42);
@@ -28,8 +29,8 @@ namespace IAFahim.Optimization.Submodular
                 double acc = 0;
                 for (int j = 0; j < n; j++)
                 {
-                    acc += frac[j];
-                    if (r < acc) { result[j]++; sum -= frac[j]; frac[j] = 0; break; }
+                    acc += work[j];
+                    if (r < acc) { result[j]++; sum -= work[j]; work[j] = 0; break; }
                 }
             }
         }

@@ -24,10 +24,18 @@ namespace IAFahim.Math.NT
             return SumCoPrime(n, m / g) * g;
         }
 
-        private static long SumCoPrime(long n, long m)
+        private static long SumCoPrime(long nIn, long mIn)
         {
-            if (m == 0) return 0;
-            return n * (m - 1) - m * (n - 1) + SumCoPrime(m, n % m);
+            long n = nIn, m = mIn;
+            long ans = 0;
+            while (m != 0)
+            {
+                ans += n * (m - 1) - m * (n - 1);
+                long nn = m;
+                long nm = n % m;
+                n = nn; m = nm;
+            }
+            return ans;
         }
     }
 }

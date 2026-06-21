@@ -56,9 +56,10 @@ namespace IAFahim.Math.Transform
                     long sum = 0;
                     for (int j = 0; j <= i; j++)
                     {
-                        long valF = f[(long)j * n + mask];
-                        long valG = g[(long)(i - j) * n + mask];
-                        sum = (sum + valF * valG) % mod;
+                        long valF = f[(long)j * n + mask] % mod;
+                        long valG = g[(long)(i - j) * n + mask] % mod;
+                        long prod = MulMod(valF, valG, mod);
+                        sum = (sum + prod) % mod;
                     }
                     h[(long)i * n + mask] = sum;
                 }
@@ -84,6 +85,26 @@ namespace IAFahim.Math.Transform
                 int pc = PopCount(mask);
                 c[mask] = h[(long)pc * n + mask];
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static long MulMod(long a, long b, long mod)
+        {
+            long result = 0;
+            a %= mod;
+            if (a < 0) a += mod;
+            while (b > 0)
+            {
+                if ((b & 1) != 0)
+                {
+                    result += a;
+                    if (result >= mod) result -= mod;
+                }
+                a <<= 1;
+                if (a >= mod) a -= mod;
+                b >>= 1;
+            }
+            return result;
         }
     }
 }

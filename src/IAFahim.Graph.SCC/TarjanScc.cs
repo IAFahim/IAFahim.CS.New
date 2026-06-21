@@ -12,7 +12,7 @@ namespace IAFahim.Graph.SCC
             inStack[u] = 1;
 
             int lowU = low[u];
-            for (int e = head[u]; e != -1; e = next[e])
+            for (int e = head[u]; e != 0; e = next[e])
             {
                 int v = to[e];
                 if (tin[v] == 0)

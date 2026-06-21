@@ -1,0 +1,15 @@
+ALL previously-known test hangs/failures now RESOLVED:
+
+- TwoSat.Solve_* infinite hang -> RESOLVED (4c835d5, Convention-A unify)
+- GraphTests Bridges/Articulation hang -> RESOLVED (4c835d5)
+- Phase10 Planar st-numbering failure -> RESOLVED (52eb90e)
+- Graph.Tests nondeterministic suite crash -> RESOLVED (this commit:
+  TwoSat test buffer underflow, Convention-A maxEdges+1)
+- Algebra/Geometry/RedTeam pre-existing failures -> RESOLVED (e90b4b1:
+  Minkowski count, chromatic/eulerian test invariants, hashmap default,
+  StableMarriage scratch)
+
+No known failing/hanging test suites remain.
+
+MASTER SYNC: pending. CI bench bot pushes via worktree cherry-pick;
+  do NOT push directly. ~45 commits on algo-perfection ahead of master.

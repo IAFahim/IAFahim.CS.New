@@ -127,7 +127,7 @@ namespace IAFahim.DP.Knapsack
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long Run(int n, long target, long* a, long* bits)
         {
-            int size = (int)((target + 63) >> 6);
+            int size = (int)((target >> 6) + 1);
             for (int i = 0; i < size; i++) bits[i] = 0;
             bits[0] = 1L;
             for (int i = 0; i < n; i++)

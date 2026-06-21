@@ -2574,6 +2574,7 @@ namespace IAFahim.Pathfinding.Recast
             startNode->id = startRef;
             startNode->Flags = DtNodeFlags.DT_NODE_CLOSED;
             stack[nStack++] = startNode;
+            var stackHead = 0;
 
             var bestPos = startPos;
             var bestDist = float.MaxValue;
@@ -2590,14 +2591,8 @@ namespace IAFahim.Pathfinding.Recast
 
             while (nStack > 0)
             {
-                // Pop front
-                var curNode = stack[0];
-                for (var i = 0; i < nStack - 1; ++i)
-                {
-                    stack[i] = stack[i + 1];
-                }
-
-                nStack--;
+                // Pop front (FIFO via head index; avoids O(n^2) shift)
+                var curNode = stack[stackHead++];
 
                 // Get poly and tile
                 var curRef = curNode->id;
@@ -3959,16 +3954,11 @@ namespace IAFahim.Pathfinding.Recast
                 status |= DtStatus.BufferTooSmall;
             }
 
-            while (nstack > 0)
+            var stackHead2 = 0;
+            while (nstack > stackHead2)
             {
-                // Pop front
-                var curNode = stack[0];
-                for (var i = 0; i < nstack - 1; ++i)
-                {
-                    stack[i] = stack[i + 1];
-                }
-
-                nstack--;
+                // Pop front (FIFO via head index; avoids O(n^2) shift)
+                var curNode = stack[stackHead2++];
 
                 // Get poly and tile
                 var curRef = curNode->id;

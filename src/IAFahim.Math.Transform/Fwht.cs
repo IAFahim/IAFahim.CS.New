@@ -15,8 +15,10 @@ namespace IAFahim.Math.Transform
                     {
                         long u = f[i + j];
                         long v = f[i + j + len];
-                        f[i + j] = u + v;
-                        f[i + j + len] = u - v;
+                        long sum = u + v;
+                        long diff = u - v + 1000000007L;
+                        f[i + j] = sum >= 1000000007L ? sum - 1000000007L : sum;
+                        f[i + j + len] = diff >= 1000000007L ? diff - 1000000007L : diff;
                     }
                 }
             }

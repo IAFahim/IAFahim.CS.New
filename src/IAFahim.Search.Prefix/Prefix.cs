@@ -59,21 +59,22 @@ namespace IAFahim.Search.Prefix
         {
             if (l > r || l < 0)
                 return default;
+            int sz = sizeof(T);
+            byte* a = (byte*)(ptr + r);
             if (l == 0)
-                return ptr[r];
-            if (sizeof(T) == 4)
             {
-                int* p = (int*)ptr;
-                int res = p[r] ^ p[l - 1];
-                return *(T*)&res;
+                T result = default;
+                byte* dst = (byte*)&result;
+                for (int k = 0; k < sz; k++) dst[k] = a[k];
+                return result;
             }
-            else if (sizeof(T) == 8)
+            byte* b = (byte*)(ptr + (l - 1));
             {
-                long* p = (long*)ptr;
-                long res = p[r] ^ p[l - 1];
-                return *(T*)&res;
+                T result = default;
+                byte* dst = (byte*)&result;
+                for (int k = 0; k < sz; k++) dst[k] = (byte)(a[k] ^ b[k]);
+                return result;
             }
-            return default;
         }
     }
 

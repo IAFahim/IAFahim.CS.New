@@ -37,7 +37,8 @@ namespace IAFahim.Algebra.Sequence
             if (k <= 0 || k > n) return 0L;
             long c1 = Binom(n, k, MOD);
             long c2 = Binom(n, k - 1, MOD);
-            return (c1 - c2 + MOD) % MOD;
+            long invN = ModPow(n, MOD - 2, MOD);
+            return c1 * c2 % MOD * invN % MOD;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -74,10 +75,12 @@ namespace IAFahim.Algebra.Sequence
         {
             if (k < 0 || k > n) return 0L;
             if (k == 0 || k == n) return 1L;
+            // q == 1 is a singularity (0/0 in the product); by L'Hopital [n choose k]_1 = C(n,k).
+            if (q % MOD == 1) return Binom(n, k, MOD);
             long num = 1L, den = 1L;
             for (int i = 0; i < k; i++)
             {
-                long qi = ModPow(q, n - 1 - i, MOD);
+                long qi = ModPow(q, n - i, MOD);
                 num = (num * ((qi - 1 + MOD) % MOD)) % MOD;
                 long qj = ModPow(q, i + 1, MOD);
                 den = (den * ((qj - 1 + MOD) % MOD)) % MOD;

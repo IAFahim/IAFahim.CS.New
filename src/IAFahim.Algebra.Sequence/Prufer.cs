@@ -8,14 +8,6 @@ namespace IAFahim.Algebra.Sequence
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long Rank(int* seq, int n, int MOD)
         {
-            long r = 0L;
-            long pow = 1L;
-            for (int i = 0; i < n - 2; i++) pow = (pow * (long)n) % (long)MOD;
-            for (int i = 0; i < n - 2; i++)
-            {
-                pow = (i == 0) ? Combinatorial.ModPow((long)n, (long)(n - 3), (long)MOD) : pow / (long)n;
-                r = (r + (long)seq[i] * pow) % (long)MOD;
-            }
             long result = 0L;
             long pn = 1L;
             for (int i = n - 3; i >= 0; i--)

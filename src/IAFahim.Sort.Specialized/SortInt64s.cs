@@ -8,16 +8,25 @@ namespace IAFahim.Sort.Specialized
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Run(long* ptr, int len)
         {
-            for (int i = 1; i < len; i++)
+            for (int i = (len >> 1) - 1; i >= 0; i--) SiftDown(ptr, i, len);
+            for (int end = len - 1; end > 0; end--)
             {
-                long key = ptr[i];
-                int j = i - 1;
-                while (j >= 0 && ptr[j] > key)
-                {
-                    ptr[j + 1] = ptr[j];
-                    j--;
-                }
-                ptr[j + 1] = key;
+                long t = ptr[0]; ptr[0] = ptr[end]; ptr[end] = t;
+                SiftDown(ptr, 0, end);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void SiftDown(long* a, int i, int n)
+        {
+            while (true)
+            {
+                int l = 2 * i + 1, r = 2 * i + 2, m = i;
+                if (l < n && a[l] > a[m]) m = l;
+                if (r < n && a[r] > a[m]) m = r;
+                if (m == i) break;
+                long t = a[i]; a[i] = a[m]; a[m] = t;
+                i = m;
             }
         }
     }

@@ -133,7 +133,7 @@ namespace IAFahim.DS.PerfectHashMap
             int index = key.GetHashCode() & this.Mask;
             if (Hint.Unlikely(!this.Keys[index].Equals(key)))
             {
-                item = default;
+                item = this.NullValue;
                 return false;
             }
 

@@ -243,20 +243,28 @@ namespace IAFahim.DP
 
     public static unsafe class ConvexHullTrickAdd
     {
+        // Lower envelope, MIN query. Lines must be added with strictly decreasing slopes.
         public static void AddLine(long m, long b, long* ms, long* bs, int* sz)
         {
-            ms[*sz] = m;
-            bs[*sz] = b;
-            (*sz)++;
+            while (*sz >= 2 && Redundant(ms, bs, *sz - 2, *sz - 1, m, b)) (*sz)--;
+            ms[*sz] = m; bs[*sz] = b; (*sz)++;
         }
+
+        // Middle line b is redundant when intersection(a,b) >= intersection(b,new).
+        // Denominators (ms[a]-ms[b]) and (ms[b]-m) are positive under decreasing-slope contract.
+        private static bool Redundant(long* ms, long* bs, int a, int b, long m2, long b2)
+            => (bs[b] - bs[a]) * (ms[b] - m2) >= (b2 - bs[b]) * (ms[a] - ms[b]);
 
         public static long Query(long x, long* ms, long* bs, int sz)
         {
+            if (sz <= 0) return long.MaxValue;
             int lo = 0, hi = sz - 1;
             while (lo < hi)
             {
                 int mid = (lo + hi) >> 1;
-                if (Eval(ms, bs, mid, x) <= Eval(ms, bs, mid + 1, x)) hi = mid;
+                long num = bs[mid + 1] - bs[mid];
+                long den = ms[mid] - ms[mid + 1];
+                if (x * den <= num) hi = mid;
                 else lo = mid + 1;
             }
             return Eval(ms, bs, lo, x);
@@ -295,34 +303,19 @@ namespace IAFahim.DP
 
     public static unsafe class Smawk
     {
+        // Column-wise running minimum: dp[j] = min over rows i of mat[i*m+j].
         public static long Run(int n, int m, long* mat, long* dp)
         {
-            for (int j = 0; j < m; j++) dp[j] = mat[j];
+            for (int j = 0; j < m; j++) dp[j] = mat[0 * m + j];
             for (int i = 1; i < n; i++)
             {
-                UpdateSmawkRow(i, n, m, mat, dp);
+                long* row = mat + (long)i * m;
+                for (int j = 0; j < m; j++)
+                    if (row[j] < dp[j]) dp[j] = row[j];
             }
             long ans = long.MaxValue;
             for (int j = 0; j < m; j++) if (dp[j] < ans) ans = dp[j];
             return ans;
-        }
-
-        private static void UpdateSmawkRow(int i, int n, int m, long* mat, long* dp)
-        {
-            int* stack = stackalloc int[m];
-            int sz = 0;
-            for (int j = 0; j < m; j++)
-            {
-                while (sz > 0 && mat[i * m + j] <= mat[i * m + stack[sz - 1]]) sz--;
-                stack[sz++] = j;
-            }
-            for (int k = 0; k < sz; k++)
-            {
-                int j = stack[k];
-                long best = mat[i * m + j];
-                if (i > 1) best += dp[j];
-                dp[j] = best;
-            }
         }
     }
 

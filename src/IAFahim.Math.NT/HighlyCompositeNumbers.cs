@@ -48,18 +48,30 @@ namespace IAFahim.Math.NT
             }
         }
 
-        private static void QuickSort(HighlyCompositeCandidate* ptr, int left, int right)
+        private static void QuickSort(HighlyCompositeCandidate* ptr, int leftIn, int rightIn)
         {
-            if (left >= right) return;
-            long pivot = ptr[left + (right - left) / 2].Value;
-            int i = left, j = right;
-            while (i <= j)
+            int left = leftIn, right = rightIn;
+            while (left < right)
             {
-                while (ptr[i].Value < pivot) i++;
-                while (ptr[j].Value > pivot) j--;
-                if (i <= j) { HighlyCompositeCandidate t = ptr[i]; ptr[i] = ptr[j]; ptr[j] = t; i++; j--; }
+                long pivot = ptr[left + (right - left) / 2].Value;
+                int i = left, j = right;
+                while (i <= j)
+                {
+                    while (ptr[i].Value < pivot) i++;
+                    while (ptr[j].Value > pivot) j--;
+                    if (i <= j) { HighlyCompositeCandidate t = ptr[i]; ptr[i] = ptr[j]; ptr[j] = t; i++; j--; }
+                }
+                if (j - left < right - i)
+                {
+                    QuickSort(ptr, left, j);
+                    left = i;
+                }
+                else
+                {
+                    QuickSort(ptr, i, right);
+                    right = j;
+                }
             }
-            QuickSort(ptr, left, j); QuickSort(ptr, i, right);
         }
     }
 }

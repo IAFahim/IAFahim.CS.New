@@ -44,9 +44,25 @@ namespace IAFahim.Geometry.Hull
 
         private static void SortPlanesByAngle(HalfPlane* planes, int count)
         {
-            for (int i = 0; i < count - 1; i++)
-                for (int j = i + 1; j < count; j++)
-                    if (planes[i].Angle > planes[j].Angle) { HalfPlane t = planes[i]; planes[i] = planes[j]; planes[j] = t; }
+            for (int i = (count >> 1) - 1; i >= 0; i--) SiftDownAngle(planes, i, count);
+            for (int end = count - 1; end > 0; end--)
+            {
+                HalfPlane t = planes[0]; planes[0] = planes[end]; planes[end] = t;
+                SiftDownAngle(planes, 0, end);
+            }
+        }
+
+        private static void SiftDownAngle(HalfPlane* a, int i, int n)
+        {
+            while (true)
+            {
+                int l = 2 * i + 1, r = 2 * i + 2, m = i;
+                if (l < n && a[l].Angle > a[m].Angle) m = l;
+                if (r < n && a[r].Angle > a[m].Angle) m = r;
+                if (m == i) break;
+                HalfPlane t = a[i]; a[i] = a[m]; a[m] = t;
+                i = m;
+            }
         }
 
         private static int UniquePlanes(HalfPlane* planes, int count)

@@ -270,12 +270,13 @@ namespace IAFahim.Graph
             byte* sign = stackalloc byte[n]; int* nl = stackalloc int[n], pl = stackalloc int[n];
             for (int i = 0; i < n; i++) { sign[i] = 0; nl[i] = pl[i] = -1; }
             nl[s] = t; pl[t] = s;
+            sign[s] = 0; sign[t] = 1;
             for (int i = 0; i < n; i++)
             {
                 int curr = order[i]; if (curr == s || curr == t) continue;
                 int par = p[curr], lvn = order[low[curr] - 1];
-                if (sign[lvn] == 0) { LinkAfter(par, curr, nl, pl); sign[par] = 1; }
-                else { LinkBefore(par, curr, nl, pl); sign[par] = 0; }
+                if (sign[lvn] == 0) { LinkBefore(par, curr, nl, pl); sign[curr] = 0; }
+                else { LinkAfter(par, curr, nl, pl); sign[curr] = 1; }
             }
             return FinalizeStOrder(s, n, nl, stOrder);
         }
@@ -352,11 +353,26 @@ namespace IAFahim.Graph
         {
             double* angles = stackalloc double[deg];
             for (int k = 0; k < deg; k++) angles[k] = Math.Atan2(y[nbrs[k]] - y[i], x[nbrs[k]] - x[i]);
-            for (int k = 1; k < deg; k++)
+            for (int k = (deg >> 1) - 1; k >= 0; k--) SiftDownAngleNbr(angles, nbrs, k, deg);
+            for (int end = deg - 1; end > 0; end--)
             {
-                double ka = angles[k]; int kn = nbrs[k], j = k - 1;
-                while (j >= 0 && angles[j] > ka) { angles[j + 1] = angles[j]; nbrs[j + 1] = nbrs[j]; j--; }
-                angles[j + 1] = ka; nbrs[j + 1] = kn;
+                double ta = angles[0]; angles[0] = angles[end]; angles[end] = ta;
+                int tn = nbrs[0]; nbrs[0] = nbrs[end]; nbrs[end] = tn;
+                SiftDownAngleNbr(angles, nbrs, 0, end);
+            }
+        }
+
+        private static void SiftDownAngleNbr(double* angles, int* nbrs, int i, int n)
+        {
+            while (true)
+            {
+                int l = 2 * i + 1, r = 2 * i + 2, m = i;
+                if (l < n && angles[l] > angles[m]) m = l;
+                if (r < n && angles[r] > angles[m]) m = r;
+                if (m == i) break;
+                double ta = angles[i]; angles[i] = angles[m]; angles[m] = ta;
+                int tn = nbrs[i]; nbrs[i] = nbrs[m]; nbrs[m] = tn;
+                i = m;
             }
         }
 

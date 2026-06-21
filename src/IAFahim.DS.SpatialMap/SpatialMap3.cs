@@ -125,7 +125,7 @@ namespace IAFahim.DS.SpatialMap
                     float3 position = this.Positions[entityInQueryIndex].Position;
                     int3 quantized = SpatialMapUtility3.Quantized(position, this.QuantizeStep, this.HalfSize);
 
-                    if (math.any(quantized >= this.QuantizeWidth))
+                    if (math.any(quantized >= this.QuantizeWidth) || math.any(quantized < 0))
                     {
                         continue;
                     }

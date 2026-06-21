@@ -14,9 +14,9 @@ namespace IAFahim.Optimization.Approximation
                 long pow = 1;
                 for (int j = 0; j < n; j++)
                 {
-                    if ((poly[i * n + j] & (1 << j)) != 0)
+                    if (((long)poly[i * n + j] & (1L << j)) != 0)
                     {
-                        long p = points[j] % prime;
+                        long p = ((points[j] % prime) + prime) % prime;
                         pow = (pow * p) % prime;
                     }
                 }
@@ -28,9 +28,9 @@ namespace IAFahim.Optimization.Approximation
                 long pow = 1;
                 for (int j = 0; j < n; j++)
                 {
-                    if ((eval[i * n + j] & (1 << j)) != 0)
+                    if (((long)eval[i * n + j] & (1L << j)) != 0)
                     {
-                        long p = points[j] % prime;
+                        long p = ((points[j] % prime) + prime) % prime;
                         pow = (pow * p) % prime;
                     }
                 }

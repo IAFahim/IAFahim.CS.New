@@ -5,7 +5,7 @@ namespace IAFahim.Optimization.Submodular
 
     public static unsafe class SubmodularGreedy
     {
-        public static int Run(int n, long* gain, int k, int* selected)
+        public static long Run(int n, long* gain, int k, int* selected)
         {
             bool* picked = stackalloc bool[n]; for (int i = 0; i < n; i++) picked[i] = false;
             long total = 0;
@@ -14,7 +14,7 @@ namespace IAFahim.Optimization.Submodular
                 int best = FindBestItem(n, iter, gain, picked);
                 if (best >= 0) { picked[best] = true; selected[iter] = best; total += gain[iter * n + best]; }
             }
-            return (int)total;
+            return total;
         }
 
         private static int FindBestItem(int n, int iter, long* gain, bool* picked)

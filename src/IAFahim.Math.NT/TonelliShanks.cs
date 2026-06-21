@@ -14,7 +14,11 @@ namespace IAFahim.Math.NT
         {
             if (a == 0) return 0;
             if (p == 2) return a;
-            if ((p & 3) == 3) return ModPow(a, (p + 1) >> 2, p);
+            if ((p & 3) == 3)
+            {
+                long r = ModPow(a, (p + 1) >> 2, p);
+                return ModMul(r, r, p) == a ? r : -1;
+            }
             long q = p - 1;
             int s = 0;
             while ((q & 1) == 0)

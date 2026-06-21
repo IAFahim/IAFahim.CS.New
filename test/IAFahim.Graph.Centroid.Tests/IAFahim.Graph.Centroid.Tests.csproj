@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.Graph.Centroid/IAFahim.Graph.Centroid.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Graph/IAFahim.Graph.csproj" />
+  </ItemGroup>
+</Project>

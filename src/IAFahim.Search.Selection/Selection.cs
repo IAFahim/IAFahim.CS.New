@@ -94,9 +94,11 @@ namespace IAFahim.Search.Selection
                 if (a[i] <= maxHeap[0]) { maxHeap[maxSize++] = a[i]; SiftUpMax(maxHeap, maxSize - 1); }
                 else { minHeap[minSize++] = a[i]; SiftUpMin(minHeap, minSize - 1); }
                 RebalanceHeaps(maxHeap, ref maxSize, minHeap, ref minSize);
-                res[i] = (maxSize + minSize) % 2 == 0 ? (maxHeap[0] + minHeap[0]) >> 1 : maxHeap[0];
+                long lo = maxHeap[0], hi = minHeap[0];
+                long evenMedian = lo + (hi - lo) / 2;
+                res[i] = (maxSize + minSize) % 2 == 0 ? evenMedian : maxHeap[0];
             }
-            return res[(n - 1) / 2];
+            return res[n - 1];
         }
 
         private static void RebalanceHeaps(long* maxHeap, ref int maxSize, long* minHeap, ref int minSize)

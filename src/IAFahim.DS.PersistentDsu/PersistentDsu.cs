@@ -15,23 +15,35 @@ namespace IAFahim.DS.PersistentDsu
             return node;
         }
 
-        public static int Update(int root, int l, int r, int idx, int val, int s, int* parent, int* size, int* allocCnt, int* lc, int* rc)
+        public static int Update(int root, int lIn, int rIn, int idx, int val, int s, int* parent, int* size, int* allocCnt, int* lc, int* rc)
         {
-            int node = ++(*allocCnt);
-            lc[node] = lc[root]; rc[node] = rc[root];
-            if (l == r) { parent[node] = val; size[node] = s; return node; }
-            int mid = (l + r) >> 1;
-            if (idx <= mid) lc[node] = Update(lc[root], l, mid, idx, val, s, parent, size, allocCnt, lc, rc);
-            else rc[node] = Update(rc[root], mid + 1, r, idx, val, s, parent, size, allocCnt, lc, rc);
-            return node;
+            int first = ++(*allocCnt);
+            int node = first;
+            int src = root;
+            int l = lIn, r = rIn;
+            while (true)
+            {
+                lc[node] = lc[src];
+                rc[node] = rc[src];
+                if (l == r) { parent[node] = val; size[node] = s; return first; }
+                int mid = l + ((r - l) >> 1);
+                int child = ++(*allocCnt);
+                if (idx <= mid) { lc[node] = child; src = lc[src]; r = mid; }
+                else { rc[node] = child; src = rc[src]; l = mid + 1; }
+                node = child;
+            }
         }
 
         public static int Query(int root, int l, int r, int idx, int* parent, int* lc, int* rc, out int s, int* size)
         {
-            if (l == r) { s = size[root]; return parent[root]; }
-            int mid = (l + r) >> 1;
-            if (idx <= mid) return Query(lc[root], l, mid, idx, parent, lc, rc, out s, size);
-            return Query(rc[root], mid + 1, r, idx, parent, lc, rc, out s, size);
+            while (l != r)
+            {
+                int mid = l + ((r - l) >> 1);
+                if (idx <= mid) { root = lc[root]; r = mid; }
+                else { root = rc[root]; l = mid + 1; }
+            }
+            s = size[root];
+            return parent[root];
         }
 
         public static int Find(int root, int n, int x, int* parent, int* lc, int* rc, int* size, out int s)

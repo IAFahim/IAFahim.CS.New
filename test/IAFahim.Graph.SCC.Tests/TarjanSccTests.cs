@@ -11,12 +11,12 @@ namespace IAFahim.Graph.SCC.Tests
             const int N = 4;
             // 0 -> 1 -> 2 -> 0, and 2 -> 3
             int* head = stackalloc int[N];
-            for (int i = 0; i < N; i++) head[i] = -1;
-            
-            int* next = stackalloc int[4];
-            int* to = stackalloc int[4];
-            int e = 0;
-            
+            for (int i = 0; i < N; i++) head[i] = 0;
+
+            int* next = stackalloc int[5];
+            int* to = stackalloc int[5];
+            int e = 1;
+
             void AddEdge(int u, int v)
             {
                 to[e] = v; next[e] = head[u]; head[u] = e++;

@@ -273,5 +273,103 @@ namespace IAFahim.Geometry.Tests
             int e = VisibilityGraph.Build(ox, oy, 4, from, to, w);
             Assert.IsTrue(e >= 2);
         }
+
+        // ConvexHull3D.Build needs working scratch: scratchFaces grows as faces are
+        // created/deleted during the incremental build (bounded by O(n)), outFaces
+        // collects the survivors, scratchHead is an n-sized adjacency bucket array.
+        private static int BuildHull(double* xs, double* ys, double* zs, int n,
+            ConvexHull3D.Face* scratchFaces, ConvexHull3D.Face* outFaces, int* scratchHead)
+            => ConvexHull3D.Build(xs, ys, zs, n, outFaces, scratchFaces, scratchHead);
+
+        // Strong correctness invariant: every input point must lie on or inside the
+        // hull, i.e. no point is strictly visible from any output face (the build
+        // marks a face visible when Volume(A,B,C,P) < -eps). Also every face must
+        // reference three distinct valid point indices.
+        private static void AssertHullEnclosesAllPoints(double* xs, double* ys, double* zs, int n,
+            ConvexHull3D.Face* faces, int faceCount)
+        {
+            for (int f = 0; f < faceCount; f++)
+            {
+                int a = faces[f].A, b = faces[f].B, c = faces[f].C;
+                Assert.IsTrue(a >= 0 && a < n && b >= 0 && b < n && c >= 0 && c < n);
+                Assert.IsTrue(a != b && b != c && a != c);
+                for (int p = 0; p < n; p++)
+                {
+                    double vol = SignedVolume(xs, ys, zs, a, b, c, p);
+                    Assert.IsTrue(vol >= -1e-9, $"point {p} outside face {f}");
+                }
+            }
+        }
+
+        private static double SignedVolume(double* xs, double* ys, double* zs, int a, int b, int c, int d)
+        {
+            double adx = xs[a] - xs[d], ady = ys[a] - ys[d], adz = zs[a] - zs[d];
+            double bdx = xs[b] - xs[d], bdy = ys[b] - ys[d], bdz = zs[b] - zs[d];
+            double cdx = xs[c] - xs[d], cdy = ys[c] - ys[d], cdz = zs[c] - zs[d];
+            return adx * (bdy * cdz - bdz * cdy) - ady * (bdx * cdz - bdz * cdx) + adz * (bdx * cdy - bdy * cdx);
+        }
+
+        [Test]
+        public void ConvexHull3D_Tetrahedron_FourFaces()
+        {
+            double* xs = stackalloc double[4] { 0, 1, 0, 0 };
+            double* ys = stackalloc double[4] { 0, 0, 1, 0 };
+            double* zs = stackalloc double[4] { 0, 0, 0, 1 };
+            ConvexHull3D.Face* scratch = stackalloc ConvexHull3D.Face[32];
+            ConvexHull3D.Face* outFaces = stackalloc ConvexHull3D.Face[16];
+            int* head = stackalloc int[4];
+            int f = BuildHull(xs, ys, zs, 4, scratch, outFaces, head);
+            Assert.AreEqual(4, f);
+            AssertHullEnclosesAllPoints(xs, ys, zs, 4, outFaces, f);
+        }
+
+        [Test]
+        public void ConvexHull3D_Octahedron_EightFaces()
+        {
+            double* xs = stackalloc double[6] { 1, -1, 0, 0, 0, 0 };
+            double* ys = stackalloc double[6] { 0, 0, 1, -1, 0, 0 };
+            double* zs = stackalloc double[6] { 0, 0, 0, 0, 1, -1 };
+            ConvexHull3D.Face* scratch = stackalloc ConvexHull3D.Face[64];
+            ConvexHull3D.Face* outFaces = stackalloc ConvexHull3D.Face[32];
+            int* head = stackalloc int[6];
+            int f = BuildHull(xs, ys, zs, 6, scratch, outFaces, head);
+            Assert.AreEqual(8, f);
+            AssertHullEnclosesAllPoints(xs, ys, zs, 6, outFaces, f);
+        }
+
+        [Test]
+        public void ConvexHull3D_Cube_TwelveFaces()
+        {
+            double* xs = stackalloc double[8] { 0, 1, 0, 1, 0, 1, 0, 1 };
+            double* ys = stackalloc double[8] { 0, 0, 1, 1, 0, 0, 1, 1 };
+            double* zs = stackalloc double[8] { 0, 0, 0, 0, 1, 1, 1, 1 };
+            ConvexHull3D.Face* scratch = stackalloc ConvexHull3D.Face[128];
+            ConvexHull3D.Face* outFaces = stackalloc ConvexHull3D.Face[64];
+            int* head = stackalloc int[8];
+            int f = BuildHull(xs, ys, zs, 8, scratch, outFaces, head);
+            Assert.AreEqual(12, f);
+            AssertHullEnclosesAllPoints(xs, ys, zs, 8, outFaces, f);
+        }
+
+        [Test]
+        public void ConvexHull3D_InteriorPointDoesNotAppear()
+        {
+            // Cube corners + one interior point. Hull must be the cube (12 faces)
+            // and the interior point (index 8) must not be a hull vertex.
+            double* xs = stackalloc double[9] { 0, 2, 0, 2, 0, 2, 0, 2, 1 };
+            double* ys = stackalloc double[9] { 0, 0, 2, 2, 0, 0, 2, 2, 1 };
+            double* zs = stackalloc double[9] { 0, 0, 0, 0, 2, 2, 2, 2, 1 };
+            ConvexHull3D.Face* scratch = stackalloc ConvexHull3D.Face[128];
+            ConvexHull3D.Face* outFaces = stackalloc ConvexHull3D.Face[64];
+            int* head = stackalloc int[9];
+            int f = BuildHull(xs, ys, zs, 9, scratch, outFaces, head);
+            Assert.AreEqual(12, f);
+            AssertHullEnclosesAllPoints(xs, ys, zs, 9, outFaces, f);
+            for (int i = 0; i < f; i++)
+            {
+                Assert.IsTrue(outFaces[i].A != 8 && outFaces[i].B != 8 && outFaces[i].C != 8,
+                    "interior point must not be a hull vertex");
+            }
+        }
     }
 }

@@ -31,19 +31,35 @@ namespace IAFahim.Search.Suffix
                 return default;
             if (sizeof(T) == 4)
             {
-                int* p = (int*)ptr;
-                int sum = 0;
+                if (typeof(T) == typeof(float))
+                {
+                    float* p = (float*)ptr;
+                    float sum = 0;
+                    for (int i = 0; i < len; i++)
+                        sum += p[i];
+                    return *(T*)&sum;
+                }
+                int* pi = (int*)ptr;
+                int sumi = 0;
                 for (int i = 0; i < len; i++)
-                    sum += p[i];
-                return *(T*)&sum;
+                    sumi += pi[i];
+                return *(T*)&sumi;
             }
             else if (sizeof(T) == 8)
             {
-                long* p = (long*)ptr;
-                long sum = 0;
+                if (typeof(T) == typeof(double))
+                {
+                    double* p = (double*)ptr;
+                    double sum = 0;
+                    for (int i = 0; i < len; i++)
+                        sum += p[i];
+                    return *(T*)&sum;
+                }
+                long* pl = (long*)ptr;
+                long suml = 0;
                 for (int i = 0; i < len; i++)
-                    sum += p[i];
-                return *(T*)&sum;
+                    suml += pl[i];
+                return *(T*)&suml;
             }
             return default;
         }
@@ -61,19 +77,35 @@ namespace IAFahim.Search.Suffix
                 return default;
             if (sizeof(T) == 4)
             {
-                int* p = (int*)ptr;
-                int sum = 0;
+                if (typeof(T) == typeof(float))
+                {
+                    float* p = (float*)ptr;
+                    float sum = 0;
+                    for (int i = l; i <= r; i++)
+                        sum += p[i];
+                    return *(T*)&sum;
+                }
+                int* pi = (int*)ptr;
+                int sumi = 0;
                 for (int i = l; i <= r; i++)
-                    sum += p[i];
-                return *(T*)&sum;
+                    sumi += pi[i];
+                return *(T*)&sumi;
             }
             else if (sizeof(T) == 8)
             {
-                long* p = (long*)ptr;
-                long sum = 0;
+                if (typeof(T) == typeof(double))
+                {
+                    double* p = (double*)ptr;
+                    double sum = 0;
+                    for (int i = l; i <= r; i++)
+                        sum += p[i];
+                    return *(T*)&sum;
+                }
+                long* pl = (long*)ptr;
+                long suml = 0;
                 for (int i = l; i <= r; i++)
-                    sum += p[i];
-                return *(T*)&sum;
+                    suml += pl[i];
+                return *(T*)&suml;
             }
             return default;
         }

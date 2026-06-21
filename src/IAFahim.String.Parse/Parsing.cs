@@ -10,6 +10,7 @@ using System.Runtime.InteropServices;
         public static bool Parse(int* terminals, int* productions, int prodCount, int startVar, byte* input, int len)
         {
             int n = len;
+            if (n <= 0) return false;
             bool*** dp = (bool***)Marshal.AllocHGlobal(sizeof(bool**) * n);
             for (int i = 0; i < n; i++)
             {

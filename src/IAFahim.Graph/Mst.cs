@@ -104,11 +104,24 @@ namespace IAFahim.Graph
         private static void SortEdges(int m, int* ew, int* idx)
         {
             for (int i = 0; i < m; i++) idx[i] = i;
-            for (int i = 1; i < m; i++)
+            for (int i = (m >> 1) - 1; i >= 0; i--) SiftDownEdge(ew, idx, i, m);
+            for (int end = m - 1; end > 0; end--)
             {
-                int key = ew[idx[i]], ki = idx[i], j = i - 1;
-                while (j >= 0 && ew[idx[j]] > key) { idx[j + 1] = idx[j]; j--; }
-                idx[j + 1] = ki;
+                int t = idx[0]; idx[0] = idx[end]; idx[end] = t;
+                SiftDownEdge(ew, idx, 0, end);
+            }
+        }
+
+        private static void SiftDownEdge(int* ew, int* idx, int i, int n)
+        {
+            while (true)
+            {
+                int l = 2 * i + 1, r = 2 * i + 2, m = i;
+                if (l < n && ew[idx[l]] > ew[idx[m]]) m = l;
+                if (r < n && ew[idx[r]] > ew[idx[m]]) m = r;
+                if (m == i) break;
+                int t = idx[i]; idx[i] = idx[m]; idx[m] = t;
+                i = m;
             }
         }
 
@@ -127,8 +140,15 @@ namespace IAFahim.Graph
 
         private static int Find(int* parent, int x)
         {
-            while (parent[x] != x) x = parent[x];
-            return x;
+            int root = x;
+            while (parent[root] != root) root = parent[root];
+            while (parent[x] != root)
+            {
+                int next = parent[x];
+                parent[x] = root;
+                x = next;
+            }
+            return root;
         }
 
         private static void Union(int* parent, int* size, int ra, int rb)
@@ -189,26 +209,45 @@ namespace IAFahim.Graph
     {
         private static int Find(int* parent, int x)
         {
-            while (parent[x] != x) x = parent[x];
-            return x;
+            int root = x;
+            while (parent[root] != root) root = parent[root];
+            while (parent[x] != root)
+            {
+                int next = parent[x];
+                parent[x] = root;
+                x = next;
+            }
+            return root;
+        }
+
+        private static void SiftDownEdge2(int* ew, int* idx, int i, int n)
+        {
+            while (true)
+            {
+                int l = 2 * i + 1, r = 2 * i + 2, m = i;
+                if (l < n && ew[idx[l]] > ew[idx[m]]) m = l;
+                if (r < n && ew[idx[r]] > ew[idx[m]]) m = r;
+                if (m == i) break;
+                int t = idx[i]; idx[i] = idx[m]; idx[m] = t;
+                i = m;
+            }
         }
 
         public static long Run(int n, int m, int* eu, int* ev, int* ew)
         {
+            int* idx = stackalloc int[m];
+            for (int i = 0; i < m; i++) idx[i] = i;
+            for (int i = (m >> 1) - 1; i >= 0; i--) SiftDownEdge2(ew, idx, i, m);
+            for (int end = m - 1; end > 0; end--)
+            {
+                int t = idx[0]; idx[0] = idx[end]; idx[end] = t;
+                SiftDownEdge2(ew, idx, 0, end);
+            }
             long best = 0;
             {
                 int* parent = stackalloc int[n];
                 int* size = stackalloc int[n];
                 for (int i = 0; i < n; i++) { parent[i] = i; size[i] = 1; }
-                int* idx = stackalloc int[m];
-                for (int i = 0; i < m; i++) idx[i] = i;
-                for (int i = 1; i < m; i++)
-                {
-                    int key = ew[i];
-                    int j = i - 1;
-                    while (j >= 0 && ew[idx[j]] > key) { idx[j + 1] = idx[j]; j--; }
-                    idx[j + 1] = i;
-                }
                 int count = 0;
                 for (int i = 0; i < m && count < n - 1; i++)
                 {
@@ -226,12 +265,13 @@ namespace IAFahim.Graph
                 for (int i = 0; i < n; i++) parent[i] = i;
                 int count = 0;
                 long alt = 0;
-                for (int j = 0; j < m; j++)
+                for (int p = 0; p < m; p++)
                 {
-                    if (j == skip) continue;
-                    int pu = Find(parent, eu[j]);
-                    int pv = Find(parent, ev[j]);
-                    if (pu != pv) { parent[pu] = pv; alt += ew[j]; count++; }
+                    int e = idx[p];
+                    if (e == skip) continue;
+                    int pu = Find(parent, eu[e]);
+                    int pv = Find(parent, ev[e]);
+                    if (pu != pv) { parent[pu] = pv; alt += ew[e]; count++; }
                 }
                 if (count == n - 1) second = Math.Min(second, alt);
             }

@@ -8,17 +8,19 @@ namespace IAFahim.Math.Modular
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long Run(long a, long b, out long x, out long y)
         {
-            if (b == 0)
+            long oldR = a, r = b;
+            long oldS = 1, s = 0;
+            long oldT = 0, t = 1;
+            while (r != 0)
             {
-                x = 1;
-                y = 0;
-                return a;
+                long q = oldR / r;
+                long rr = oldR - q * r; oldR = r; r = rr;
+                long ss = oldS - q * s; oldS = s; s = ss;
+                long tt = oldT - q * t; oldT = t; t = tt;
             }
-            long x1, y1;
-            long g = Run(b, a % b, out x1, out y1);
-            x = y1;
-            y = x1 - (a / b) * y1;
-            return g;
+            x = oldS;
+            y = oldT;
+            return oldR;
         }
     }
 }

@@ -36,7 +36,7 @@ namespace IAFahim.Optimization.Exact
         private static bool ShouldStop(ref long timer, int solSize, int candSize, int* best)
         {
             timer++;
-            return timer > 100000000 || solSize + candSize <= *best;
+            return solSize + candSize <= *best;
         }
 
         private static void CopyCandidates(int candSize, int* src, int* dst)

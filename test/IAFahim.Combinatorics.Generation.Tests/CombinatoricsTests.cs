@@ -61,8 +61,12 @@ namespace IAFahim.Combinatorics.Generation.Tests
             int* res = stackalloc int[n];
             LyndonWordEnumerator en = new LyndonWordEnumerator(n, k);
             int count = 0;
-            while (en.MoveNext(w, res, out int resLen)) count++;
-            Assert.AreEqual(6, count);
+            while (en.MoveNext(w, res, out int resLen))
+            {
+                Assert.AreEqual(n, resLen);
+                count++;
+            }
+            Assert.AreEqual(3, count);
         }
 
         [Test]

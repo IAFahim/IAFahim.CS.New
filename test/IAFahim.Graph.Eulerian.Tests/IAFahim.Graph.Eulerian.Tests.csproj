@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.Graph.Eulerian/IAFahim.Graph.Eulerian.csproj" />
+  </ItemGroup>
+</Project>

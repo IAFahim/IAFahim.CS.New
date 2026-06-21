@@ -150,7 +150,7 @@ namespace IAFahim.DS.SpatialMap
             [Conditional("UNITY_DOTS_DEBUG")]
             private void ValidatePosition(float2 position, int2 quantized)
             {
-                if (math.any(quantized >= this.QuantizeWidth))
+                if (math.any(quantized >= this.QuantizeWidth) || math.any(quantized < 0))
                 {
                     var min = new int2(-this.HalfSize);
                     var max = new int2(this.HalfSize - 1);

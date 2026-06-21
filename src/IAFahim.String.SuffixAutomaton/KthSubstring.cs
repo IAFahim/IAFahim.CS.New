@@ -1,66 +1,84 @@
 namespace IAFahim.String.SuffixAutomaton
 {
-using System.Runtime.InteropServices;
     using System;
+    using System.Runtime.CompilerServices;
 
     public static unsafe class KthSubstring
     {
-        public static bool Find(int* stPtr, int stateCount, long k, int* outLen, int* outPtr, long* dp)
+        private const int Sigma = 256;
+
+        public static bool Find(SuffixAutomaton.State* stPtr, SuffixAutomaton.Edge* e, int stateCount, long k, int* outLen, int* outPtr, long* dp)
         {
-            var state = (SuffixAutomaton.State*)stPtr;
-            long sum = 0;
+            *outLen = 0;
+            if (k < 1 || stateCount <= 0) return false;
+
+            for (int i = 0; i < stateCount; i++) dp[i] = -1;
+            if (CountDp(stPtr, e, 0, dp) <= 1) return false;
+
+            int* chars = stackalloc int[Sigma];
+            int* tos = stackalloc int[Sigma];
+
             int v = 0;
+            int len = 0;
+            long rem = k + 1;
             while (true)
             {
-                if (state[v].Len > 0)
+                if (rem == 1) break;
+                rem -= 1;
+                int deg = CollectEdgesDedup(stPtr, e, v, chars, tos);
+                bool advanced = false;
+                for (int i = 0; i < deg; i++)
                 {
-                    for (int c = 0; c < 256; c++)
+                    int w = tos[i];
+                    long cw = dp[w];
+                    if (cw < 0) continue;
+                    if (rem <= cw)
                     {
-                        int next = GetNext(v, c, state);
-                        if (next != -1)
-                        {
-                            long cnt = CountSubstrings(next, state, stateCount, dp);
-                            if (sum + cnt >= k)
-                            {
-                                outPtr[0] = c;
-                                return true;
-                            }
-                            sum += cnt;
-                        }
+                        outPtr[len++] = chars[i];
+                        v = w;
+                        advanced = true;
+                        break;
                     }
+                    rem -= cw;
                 }
-                if (state[v].Link == -1) break;
-                v = state[v].Link;
+                if (!advanced) return false;
             }
-            return false;
+            *outLen = len;
+            return true;
         }
 
-        private static int GetNext(int v, int c, SuffixAutomaton.State* state)
-        {
-            var ptr = ((IntPtr)state + v * sizeof(SuffixAutomaton.State) + sizeof(int));
-            return ((int*)ptr)[c];
-        }
-
-        private static long CountSubstrings(int v, SuffixAutomaton.State* state, int stateCount, long* dp)
-        {
-            for (int i = 0; i < stateCount; i++)
-                dp[i] = -1;
-            long result = Dfs(v, state, dp, stateCount);
-            return result;
-        }
-
-        private static long Dfs(int v, SuffixAutomaton.State* state, long* dp, int stateCount)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static long CountDp(SuffixAutomaton.State* st, SuffixAutomaton.Edge* e, int v, long* dp)
         {
             if (dp[v] != -1) return dp[v];
+            int* chars = stackalloc int[Sigma];
+            int* tos = stackalloc int[Sigma];
+            int deg = CollectEdgesDedup(st, e, v, chars, tos);
             long sum = 1;
-            for (int c = 0; c < 256; c++)
-            {
-                int next = GetNext(v, c, state);
-                if (next != -1)
-                    sum += Dfs(next, state, dp, stateCount);
-            }
+            for (int i = 0; i < deg; i++)
+                sum += CountDp(st, e, tos[i], dp);
             dp[v] = sum;
             return sum;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int CollectEdgesDedup(SuffixAutomaton.State* st, SuffixAutomaton.Edge* e, int v, int* chars, int* tos)
+        {
+            int n = 0;
+            for (int edge = st[v].Head; edge != -1; edge = e[edge].Next)
+            {
+                int c = e[edge].Char;
+                bool dup = false;
+                for (int j = 0; j < n; j++)
+                    if (chars[j] == c) { dup = true; break; }
+                if (dup) continue;
+                int p = n;
+                while (p > 0 && chars[p - 1] > c) { chars[p] = chars[p - 1]; tos[p] = tos[p - 1]; p--; }
+                chars[p] = c;
+                tos[p] = e[edge].To;
+                n++;
+            }
+            return n;
         }
     }
 }
