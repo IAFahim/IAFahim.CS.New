@@ -161,5 +161,32 @@ namespace IAFahim.Math.Combinatorics.Tests
             Assert.AreEqual(2, PermuteCount.Run(2, mod));
             Assert.AreEqual(120, PermuteCount.Run(5, mod));
         }
+
+        [Test]
+        public void LinearCongruence_SolvableSimpleCase()
+        {
+            // 3x ≡ 2 (mod 5): gcd(3,5)=1 divides 2. x = 2 * inv(3,5) = 2*2 = 4. Verify 3*4=12≡2.
+            Assert.IsTrue(LinearCongruence.Run(3, 2, 5, out long x, out long g));
+            Assert.AreEqual(1, g);
+            Assert.AreEqual(4, x);
+        }
+
+        [Test]
+        public void LinearCongruence_NoSolution()
+        {
+            // 4x ≡ 1 (mod 6): gcd(4,6)=2 does not divide 1.
+            Assert.IsFalse(LinearCongruence.Run(4, 1, 6, out _, out long g));
+            Assert.AreEqual(-1, g);
+        }
+
+        [Test]
+        public void LinearCongruence_MultipleSolutions()
+        {
+            // 2x ≡ 4 (mod 6): gcd(2,6)=2 divides 4. Smallest non-neg x: a_=1, b_=2, m_=3. x=inv(1,3)*2=2.
+            // Verify 2*2=4 mod 6 = 4 ✓.
+            Assert.IsTrue(LinearCongruence.Run(2, 4, 6, out long x, out long g));
+            Assert.AreEqual(2, g);
+            Assert.AreEqual(2, x);
+        }
     }
 }
