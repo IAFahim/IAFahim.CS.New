@@ -20,6 +20,7 @@ namespace IAFahim.Math.NT
             {
                 long b3 = b * b * b, maxA = (long)Math.Sqrt((double)(limit / b3));
                 while (maxA > 0 && maxA * maxA * b3 > limit) maxA--;
+                while ((maxA + 1) * (maxA + 1) * b3 <= limit) maxA++;
                 for (long a = 1; a <= maxA; a++) res[count++] = a * a * b3;
             }
             return count;
