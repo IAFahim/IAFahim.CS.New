@@ -248,66 +248,69 @@ namespace IAFahim.String
             {
                 if (!inMst[i])
                 {
-                    int x = u[i];
-                    int y = v[i];
-                    long w = weight[i];
-                    long pathMax = 0;
-                    if (depth[x] < depth[y])
-                    {
-                        int temp = x;
-                        x = y;
-                        y = temp;
-                    }
-                    for (int j = logV - 1; j >= 0; j--)
-                    {
-                        if (depth[x] - (1 << j) >= depth[y])
-                        {
-                            long val = maxEdge[(long)x * logV + j];
-                            if (val > pathMax)
-                            {
-                                pathMax = val;
-                            }
-                            x = up[(long)x * logV + j];
-                        }
-                    }
-                    if (x != y)
-                    {
-                        for (int j = logV - 1; j >= 0; j--)
-                        {
-                            if (up[(long)x * logV + j] != up[(long)y * logV + j])
-                            {
-                                long val1 = maxEdge[(long)x * logV + j];
-                                long val2 = maxEdge[(long)y * logV + j];
-                                if (val1 > pathMax)
-                                {
-                                    pathMax = val1;
-                                }
-                                if (val2 > pathMax)
-                                {
-                                    pathMax = val2;
-                                }
-                                x = up[(long)x * logV + j];
-                                y = up[(long)y * logV + j];
-                            }
-                        }
-                        long finalVal1 = maxEdge[(long)x * logV + 0];
-                        long finalVal2 = maxEdge[(long)y * logV + 0];
-                        if (finalVal1 > pathMax)
-                        {
-                            pathMax = finalVal1;
-                        }
-                        if (finalVal2 > pathMax)
-                        {
-                            pathMax = finalVal2;
-                        }
-                    }
-                    if (pathMax > w)
+                    if (!VerifyNonMstEdge(u[i], v[i], weight[i], logV, depth, up, maxEdge))
                     {
                         return false;
                     }
                 }
             }
             return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool VerifyNonMstEdge(int x, int y, long w, int logV, int* depth, int* up, long* maxEdge)
+        {
+            long pathMax = 0;
+            if (depth[x] < depth[y])
+            {
+                int temp = x;
+                x = y;
+                y = temp;
+            }
+            for (int j = logV - 1; j >= 0; j--)
+            {
+                if (depth[x] - (1 << j) >= depth[y])
+                {
+                    long val = maxEdge[(long)x * logV + j];
+                    if (val > pathMax)
+                    {
+                        pathMax = val;
+                    }
+                    x = up[(long)x * logV + j];
+                }
+            }
+            if (x != y)
+            {
+                for (int j = logV - 1; j >= 0; j--)
+                {
+                    if (up[(long)x * logV + j] != up[(long)y * logV + j])
+                    {
+                        long val1 = maxEdge[(long)x * logV + j];
+                        long val2 = maxEdge[(long)y * logV + j];
+                        if (val1 > pathMax)
+                        {
+                            pathMax = val1;
+                        }
+                        if (val2 > pathMax)
+                        {
+                            pathMax = val2;
+                        }
+                        x = up[(long)x * logV + j];
+                        y = up[(long)y * logV + j];
+                    }
+                }
+                long finalVal1 = maxEdge[(long)x * logV + 0];
+                long finalVal2 = maxEdge[(long)y * logV + 0];
+                if (finalVal1 > pathMax)
+                {
+                    pathMax = finalVal1;
+                }
+                if (finalVal2 > pathMax)
+                {
+                    pathMax = finalVal2;
+                }
+            }
+            return pathMax <= w;
         }
     }
 }

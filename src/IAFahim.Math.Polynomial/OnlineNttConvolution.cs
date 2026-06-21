@@ -60,15 +60,7 @@ namespace IAFahim.Math.Polynomial
                 long w = roots[n / len];
                 for (int i = 0; i < n; i += len)
                 {
-                    long wn = 1;
-                    for (int j = 0; j < half; j++)
-                    {
-                        long u = a[i + j];
-                        long v = a[i + j + half] * wn % mod;
-                        a[i + j] = (u + v) % mod;
-                        a[i + j + half] = (u - v + mod) % mod;
-                        wn = wn * w % mod;
-                    }
+                    PerformButterfly(a, i, half, w, mod);
                 }
             }
         }
@@ -78,6 +70,20 @@ namespace IAFahim.Math.Polynomial
             NttForward(a, n, mod, invRoots);
             long invN = FastPow(n, mod - 2, mod);
             for (int i = 0; i < n; i++) a[i] = a[i] * invN % mod;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void PerformButterfly(long* a, int i, int half, long w, long mod)
+        {
+            long wn = 1;
+            for (int j = 0; j < half; j++)
+            {
+                long u = a[i + j];
+                long v = a[i + j + half] * wn % mod;
+                a[i + j] = (u + v) % mod;
+                a[i + j + half] = (u - v + mod) % mod;
+                wn = wn * w % mod;
+            }
         }
 
         private static long FastPow(long a, long e, long mod)

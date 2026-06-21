@@ -40,36 +40,15 @@ namespace IAFahim.String.Parse
 
                         if (symbol == -1)
                         {
-                            int lhs = rules[rule * 3];
-                            int originBase = origin * maxStates;
-                            for (int j = 0; j < counts[origin]; j++)
-                            {
-                                State wp = S[originBase + j];
-                                if (rules[wp.Rule * 3 + wp.Dot + 1] == lhs)
-                                    AddState(S, counts, maxStates, k, wp.Rule, wp.Dot + 1, wp.Origin);
-                            }
+                            Complete(S, counts, maxStates, k, rules, ruleCount, rule, dot, origin, symbol);
                         }
                         else if (symbol >= 256)
                         {
-                            for (int r = 0; r < ruleCount; r++)
-                            {
-                                if (rules[r * 3] == symbol)
-                                    AddState(S, counts, maxStates, k, r, 0, k);
-                            }
-                            int kBase = k * maxStates;
-                            for (int j = 0; j < counts[k]; j++)
-                            {
-                                State cp = S[kBase + j];
-                                if (rules[cp.Rule * 3 + cp.Dot + 1] == -1 && rules[cp.Rule * 3] == symbol && cp.Origin == k)
-                                {
-                                    AddState(S, counts, maxStates, k, rule, dot + 1, origin);
-                                    break;
-                                }
-                            }
+                            Predict(S, counts, maxStates, k, rules, ruleCount, rule, dot, origin, symbol);
                         }
                         else if (k < len && input[k] == symbol)
                         {
-                            AddState(S, counts, maxStates, k + 1, rule, dot + 1, origin);
+                            Scan(S, counts, maxStates, k, rule, dot, origin);
                         }
                     }
                 }
@@ -102,6 +81,45 @@ namespace IAFahim.String.Parse
             S[baseIdx + counts[setIdx]].Dot = dot;
             S[baseIdx + counts[setIdx]].Origin = origin;
             counts[setIdx]++;
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        private static void Complete(State* S, int* counts, int maxStates, int k, int* rules, int ruleCount, int rule, int dot, int origin, int symbol)
+        {
+            int lhs = rules[rule * 3];
+            int originBase = origin * maxStates;
+            for (int j = 0; j < counts[origin]; j++)
+            {
+                State wp = S[originBase + j];
+                if (rules[wp.Rule * 3 + wp.Dot + 1] == lhs)
+                    AddState(S, counts, maxStates, k, wp.Rule, wp.Dot + 1, wp.Origin);
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        private static void Predict(State* S, int* counts, int maxStates, int k, int* rules, int ruleCount, int rule, int dot, int origin, int symbol)
+        {
+            for (int r = 0; r < ruleCount; r++)
+            {
+                if (rules[r * 3] == symbol)
+                    AddState(S, counts, maxStates, k, r, 0, k);
+            }
+            int kBase = k * maxStates;
+            for (int j = 0; j < counts[k]; j++)
+            {
+                State cp = S[kBase + j];
+                if (rules[cp.Rule * 3 + cp.Dot + 1] == -1 && rules[cp.Rule * 3] == symbol && cp.Origin == k)
+                {
+                    AddState(S, counts, maxStates, k, rule, dot + 1, origin);
+                    break;
+                }
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        private static void Scan(State* S, int* counts, int maxStates, int k, int rule, int dot, int origin)
+        {
+            AddState(S, counts, maxStates, k + 1, rule, dot + 1, origin);
         }
     }
 }

@@ -55,9 +55,9 @@ namespace IAFahim.Math.Polynomial.Fps.Tests
             long* expected = stackalloc long[N];
             expected[0] = 1;
             for (int i = 1; i < N; i++) expected[i] = 0;
+            long* tmp = stackalloc long[2 * N];
             for (int step = 0; step < 3; step++)
             {
-                long* tmp = stackalloc long[2 * N];
                 FpsTestHelper.Mul(N, expected, N, a, tmp, Mod);
                 for (int i = 0; i < N; i++) expected[i] = FpsTestHelper.ModNorm(tmp[i], Mod);
             }

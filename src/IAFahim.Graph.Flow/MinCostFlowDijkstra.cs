@@ -25,20 +25,8 @@ namespace IAFahim.Graph.Flow
                 pqV[pqSize] = s; pqD[pqSize] = 0; pqSize++;
                 while (pqSize > 0)
                 {
-                    int u = pqV[0]; long du = pqD[0];
-                    pqSize--;
-                    pqV[0] = pqV[pqSize]; pqD[0] = pqD[pqSize];
-                    int idx = 0;
-                    while (true)
-                    {
-                        int l = idx * 2 + 1, r = idx * 2 + 2, smallest = idx;
-                        if (l < pqSize && pqD[l] < pqD[smallest]) smallest = l;
-                        if (r < pqSize && pqD[r] < pqD[smallest]) smallest = r;
-                        if (smallest == idx) break;
-                        long td = pqD[idx]; pqD[idx] = pqD[smallest]; pqD[smallest] = td;
-                        int tv = pqV[idx]; pqV[idx] = pqV[smallest]; pqV[smallest] = tv;
-                        idx = smallest;
-                    }
+                    int u; long du;
+                    Pop(pqV, pqD, ref pqSize, out u, out du);
                     if (du != dist[u]) continue;
                     if (u == t) break;
                     for (int e = head[u]; e != 0; e = next[e])
@@ -46,7 +34,7 @@ namespace IAFahim.Graph.Flow
                         if (cap[e] - flow[e] <= 0) continue;
                         int v = to[e];
                         long nd = dist[u] + cost[e] + pot[u] - pot[v];
-                        if (nd < dist[v]) { dist[v] = nd; parent[v] = u; parentEdge[v] = e; pqV[pqSize] = v; pqD[pqSize] = nd; pqSize++; int pidx = pqSize - 1; while (pidx > 0) { int p = (pidx - 1) / 2; if (pqD[p] <= pqD[pidx]) break; long ttd = pqD[pidx]; pqD[pidx] = pqD[p]; pqD[p] = ttd; int ttv = pqV[pidx]; pqV[pidx] = pqV[p]; pqV[p] = ttv; pidx = p; } }
+                        if (nd < dist[v]) { dist[v] = nd; parent[v] = u; parentEdge[v] = e; Push(pqV, pqD, ref pqSize, v, nd); }
                     }
                 }
                 if (dist[t] == long.MaxValue) break;
@@ -56,6 +44,43 @@ namespace IAFahim.Graph.Flow
                 for (int i = 0; i < n; i++) if (dist[i] < long.MaxValue) pot[i] += dist[i];
             }
             return totalCost;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void Push(int* pqV, long* pqD, ref int pqSize, int v, long d)
+        {
+            pqV[pqSize] = v;
+            pqD[pqSize] = d;
+            int pidx = pqSize;
+            pqSize++;
+            while (pidx > 0)
+            {
+                int p = (pidx - 1) / 2;
+                if (pqD[p] <= pqD[pidx]) break;
+                long ttd = pqD[pidx]; pqD[pidx] = pqD[p]; pqD[p] = ttd;
+                int ttv = pqV[pidx]; pqV[pidx] = pqV[p]; pqV[p] = ttv;
+                pidx = p;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void Pop(int* pqV, long* pqD, ref int pqSize, out int u, out long du)
+        {
+            u = pqV[0];
+            du = pqD[0];
+            pqSize--;
+            pqV[0] = pqV[pqSize];
+            pqD[0] = pqD[pqSize];
+            int idx = 0;
+            while (true)
+            {
+                int l = idx * 2 + 1, r = idx * 2 + 2, smallest = idx;
+                if (l < pqSize && pqD[l] < pqD[smallest]) smallest = l;
+                if (r < pqSize && pqD[r] < pqD[smallest]) smallest = r;
+                if (smallest == idx) break;
+                long td = pqD[idx]; pqD[idx] = pqD[smallest]; pqD[smallest] = td;
+                int tv = pqV[idx]; pqV[idx] = pqV[smallest]; pqV[smallest] = tv;
+                idx = smallest;
+            }
         }
     }
 }

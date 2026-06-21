@@ -39,78 +39,8 @@ namespace IAFahim.Graph.TreeDecomposition
                     UnsafeUtilityMemClear(nextDp, (1L << maxBagSize) * sizeof(long));
                     UnsafeUtilityMemClear(reachedNext, (1L << maxBagSize) * sizeof(byte));
                     
-                    for (int mask = 0; mask < (1 << oldSize); mask++)
-                    {
-                        if (reachedCur[mask] == 0) continue;
-                        
-                        // We map the old mask to the new mask
-                        // Just an illustrative mapping
-                        int newMaskBase = 0;
-                        for (int j = 0; j < newSize; j++)
-                        {
-                            int v = bagElements[(i + 1) * maxBagSize + j];
-                            for (int k = 0; k < oldSize; k++)
-                            {
-                                if (bagElements[i * maxBagSize + k] == v && ((mask >> k) & 1) != 0)
-                                {
-                                    newMaskBase |= (1 << j);
-                                }
-                            }
-                        }
-                        
-                        if (reachedNext[newMaskBase] == 0 || curDp[mask] > nextDp[newMaskBase])
-                        {
-                            nextDp[newMaskBase] = curDp[mask];
-                            reachedNext[newMaskBase] = 1;
-                        }
-                    }
-                    
-                    // Now try to introduce new vertices in bag i+1
-                    for (int j = 0; j < newSize; j++)
-                    {
-                        int v = bagElements[(i + 1) * maxBagSize + j];
-                        bool isNew = true;
-                        for (int k = 0; k < oldSize; k++)
-                        {
-                            if (bagElements[i * maxBagSize + k] == v) isNew = false;
-                        }
-                        
-                        if (isNew)
-                        {
-                            for (int mask = (1 << newSize) - 1; mask >= 0; mask--)
-                            {
-                                if (((mask >> j) & 1) == 0)
-                                {
-                                    bool canAdd = true;
-                                    for (int k = 0; k < newSize; k++)
-                                    {
-                                        if (((mask >> k) & 1) != 0)
-                                        {
-                                            int u = bagElements[(i + 1) * maxBagSize + k];
-                                            if (AreAdjacent(u, v, graphHead, graphTo, graphNext))
-                                            {
-                                                canAdd = false;
-                                                break;
-                                            }
-                                        }
-                                    }
-                                if (canAdd)
-                                {
-                                    int target = mask | (1 << j);
-                                    if (reachedNext[mask] != 0)
-                                    {
-                                        long cand = nextDp[mask] + weights[v];
-                                        if (reachedNext[target] == 0 || cand > nextDp[target])
-                                        {
-                                            nextDp[target] = cand;
-                                            reachedNext[target] = 1;
-                                        }
-                                    }
-                                }
-                                }
-                            }
-                        }
-                    }
+                    MapOldToNewMasks(oldSize, newSize, i, maxBagSize, bagElements, curDp, nextDp, reachedCur, reachedNext);
+                    TryIntroduceNewVertices(oldSize, newSize, i, maxBagSize, bagElements, weights, graphHead, graphTo, graphNext, nextDp, reachedNext);
                     
                     long* temp = curDp;
                     curDp = nextDp;
@@ -144,6 +74,86 @@ namespace IAFahim.Graph.TreeDecomposition
                 if (graphTo[e] == v) return true;
             }
             return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void MapOldToNewMasks(
+            int oldSize, int newSize, int i, int maxBagSize,
+            int* bagElements, long* curDp, long* nextDp, byte* reachedCur, byte* reachedNext)
+        {
+            for (int mask = 0; mask < (1 << oldSize); mask++)
+            {
+                if (reachedCur[mask] == 0) continue;
+                int newMaskBase = 0;
+                for (int j = 0; j < newSize; j++)
+                {
+                    int v = bagElements[(i + 1) * maxBagSize + j];
+                    for (int k = 0; k < oldSize; k++)
+                    {
+                        if (bagElements[i * maxBagSize + k] == v && ((mask >> k) & 1) != 0)
+                        {
+                            newMaskBase |= (1 << j);
+                        }
+                    }
+                }
+                if (reachedNext[newMaskBase] == 0 || curDp[mask] > nextDp[newMaskBase])
+                {
+                    nextDp[newMaskBase] = curDp[mask];
+                    reachedNext[newMaskBase] = 1;
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void TryIntroduceNewVertices(
+            int oldSize, int newSize, int i, int maxBagSize,
+            int* bagElements, long* weights, int* graphHead, int* graphTo, int* graphNext,
+            long* nextDp, byte* reachedNext)
+        {
+            for (int j = 0; j < newSize; j++)
+            {
+                int v = bagElements[(i + 1) * maxBagSize + j];
+                bool isNew = true;
+                for (int k = 0; k < oldSize; k++)
+                {
+                    if (bagElements[i * maxBagSize + k] == v) isNew = false;
+                }
+                if (isNew)
+                {
+                    for (int mask = (1 << newSize) - 1; mask >= 0; mask--)
+                    {
+                        if (((mask >> j) & 1) == 0)
+                        {
+                            bool canAdd = true;
+                            for (int k = 0; k < newSize; k++)
+                            {
+                                if (((mask >> k) & 1) != 0)
+                                {
+                                    int u = bagElements[(i + 1) * maxBagSize + k];
+                                    if (AreAdjacent(u, v, graphHead, graphTo, graphNext))
+                                    {
+                                        canAdd = false;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (canAdd)
+                            {
+                                int target = mask | (1 << j);
+                                if (reachedNext[mask] != 0)
+                                {
+                                    long cand = nextDp[mask] + weights[v];
+                                    if (reachedNext[target] == 0 || cand > nextDp[target])
+                                    {
+                                        nextDp[target] = cand;
+                                        reachedNext[target] = 1;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         private static void UnsafeUtilityMemClear(void* ptr, long size)

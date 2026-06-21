@@ -320,12 +320,9 @@ namespace IAFahim.Graph
 
     public static unsafe class HungarianMin
     {
-        public static long Run(int n, long* cost, long* assign)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void InitArrays(int n, long* u, long* v, int* p, int* way)
         {
-            long* u = stackalloc long[n + 1];
-            long* v = stackalloc long[n + 1];
-            int* p = stackalloc int[n + 1];
-            int* way = stackalloc int[n + 1];
             for (int i = 0; i <= n; i++)
             {
                 u[i] = 0;
@@ -333,63 +330,90 @@ namespace IAFahim.Graph
                 p[i] = 0;
                 way[i] = 0;
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void UpdateDistances(int n, int i0, int j0, long* cost, long* u, long* v, long* minv, int* way, bool* used, ref long delta, ref int j1)
+        {
+            for (int j = 1; j <= n; j++)
+            {
+                if (!used[j])
+                {
+                    long cur = cost[(i0 - 1) * n + (j - 1)] - u[i0] - v[j];
+                    if (cur < minv[j])
+                    {
+                        minv[j] = cur;
+                        way[j] = j0;
+                    }
+                    if (minv[j] < delta)
+                    {
+                        delta = minv[j];
+                        j1 = j;
+                    }
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void UpdatePotentials(int n, long delta, long* u, long* v, long* minv, int* p, bool* used)
+        {
+            for (int j = 0; j <= n; j++)
+            {
+                if (used[j])
+                {
+                    u[p[j]] += delta;
+                    v[j] -= delta;
+                }
+                else
+                {
+                    minv[j] -= delta;
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void FindAugmentingPath(int n, int i, long* cost, long* u, long* v, int* p, int* way)
+        {
+            p[0] = i;
+            int j0 = 0;
+            long* minv = stackalloc long[n + 1];
+            for (int j = 0; j <= n; j++)
+            {
+                minv[j] = long.MaxValue;
+            }
+            bool* used = stackalloc bool[n + 1];
+            for (int j = 0; j <= n; j++)
+            {
+                used[j] = false;
+            }
+            do
+            {
+                used[j0] = true;
+                int i0 = p[j0];
+                long delta = long.MaxValue;
+                int j1 = 0;
+                UpdateDistances(n, i0, j0, cost, u, v, minv, way, used, ref delta, ref j1);
+                UpdatePotentials(n, delta, u, v, minv, p, used);
+                j0 = j1;
+            } while (p[j0] != 0);
+            do
+            {
+                int j1 = way[j0];
+                p[j0] = p[j1];
+                j0 = j1;
+            } while (j0 != 0);
+        }
+
+        public static long Run(int n, long* cost, long* assign)
+        {
+            long* u = stackalloc long[n + 1];
+            long* v = stackalloc long[n + 1];
+            int* p = stackalloc int[n + 1];
+            int* way = stackalloc int[n + 1];
+            InitArrays(n, u, v, p, way);
             for (int i = 1; i <= n; i++)
             {
-                p[0] = i;
-                int j0 = 0;
-                long* minv = stackalloc long[n + 1];
-                for (int j = 0; j <= n; j++)
-                {
-                    minv[j] = long.MaxValue;
-                }
-                bool* used = stackalloc bool[n + 1];
-                for (int j = 0; j <= n; j++)
-                {
-                    used[j] = false;
-                }
-                do
-                {
-                    used[j0] = true;
-                    int i0 = p[j0];
-                    long delta = long.MaxValue;
-                    int j1 = 0;
-                    for (int j = 1; j <= n; j++)
-                    {
-                        if (!used[j])
-                        {
-                            long cur = cost[(i0 - 1) * n + (j - 1)] - u[i0] - v[j];
-                            if (cur < minv[j])
-                            {
-                                minv[j] = cur;
-                                way[j] = j0;
-                            }
-                            if (minv[j] < delta)
-                            {
-                                delta = minv[j];
-                                j1 = j;
-                            }
-                        }
-                    }
-                    for (int j = 0; j <= n; j++)
-                    {
-                        if (used[j])
-                        {
-                            u[p[j]] += delta;
-                            v[j] -= delta;
-                        }
-                        else
-                        {
-                            minv[j] -= delta;
-                        }
-                    }
-                    j0 = j1;
-                } while (p[j0] != 0);
-                do
-                {
-                    int j1 = way[j0];
-                    p[j0] = p[j1];
-                    j0 = j1;
-                } while (j0 != 0);
+                FindAugmentingPath(n, i, cost, u, v, p, way);
             }
             for (int j = 1; j <= n; j++)
             {
@@ -493,6 +517,48 @@ namespace IAFahim.Graph
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool ProcessAugmentingPath(int v, int u, int* match, int* parent)
+        {
+            parent[v] = u;
+            int cur = v;
+            while (cur != -1)
+            {
+                int pNode = parent[cur];
+                int nextMatched = match[pNode];
+                match[cur] = pNode;
+                match[pNode] = cur;
+                cur = nextMatched;
+            }
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool ProcessNeighbor(int n, int u, int v, int* base_, int* match, int* parent, int* color, int* q, ref int qt, int* inPath)
+        {
+            if (base_[u] == base_[v] || match[u] == v) return false;
+            if (color[v] == -1)
+            {
+                if (match[v] == -1)
+                {
+                    return ProcessAugmentingPath(v, u, match, parent);
+                }
+                color[v] = 1;
+                parent[v] = u;
+                int mv = match[v];
+                color[mv] = 0;
+                parent[mv] = v;
+                q[qt++] = mv;
+            }
+            else if (color[v] == 0)
+            {
+                int lca = GetLca(n, base_, parent, match, inPath, u, v);
+                Contract(n, base_, parent, match, color, q, ref qt, u, v, lca);
+                Contract(n, base_, parent, match, color, q, ref qt, v, u, lca);
+            }
+            return false;
+        }
+
         private static bool FindAugmentingPath(int n, int* head, int* to, int* next, int* match, int* parent, int* base_, int* color, int* q, int* inPath, int s)
         {
             for (int i = 0; i < n; i++)
@@ -509,36 +575,9 @@ namespace IAFahim.Graph
                 int u = q[qh++];
                 for (int e = head[u]; e != 0; e = next[e])
                 {
-                    int v = to[e];
-                    if (base_[u] == base_[v] || match[u] == v) continue;
-                    if (color[v] == -1)
+                    if (ProcessNeighbor(n, u, to[e], base_, match, parent, color, q, ref qt, inPath))
                     {
-                        if (match[v] == -1)
-                        {
-                            parent[v] = u;
-                            int cur = v;
-                            while (cur != -1)
-                            {
-                                int pNode = parent[cur];
-                                int nextMatched = match[pNode];
-                                match[cur] = pNode;
-                                match[pNode] = cur;
-                                cur = nextMatched;
-                            }
-                            return true;
-                        }
-                        color[v] = 1;
-                        parent[v] = u;
-                        int mv = match[v];
-                        color[mv] = 0;
-                        parent[mv] = v;
-                        q[qt++] = mv;
-                    }
-                    else if (color[v] == 0)
-                    {
-                        int lca = GetLca(n, base_, parent, match, inPath, u, v);
-                        Contract(n, base_, parent, match, color, q, ref qt, u, v, lca);
-                        Contract(n, base_, parent, match, color, q, ref qt, v, u, lca);
+                        return true;
                     }
                 }
             }

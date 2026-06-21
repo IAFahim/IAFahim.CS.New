@@ -216,12 +216,12 @@ namespace IAFahim.Combinatorics.Generation.Tests
         {
             int n = 3;
             byte* a = stackalloc byte[2 * n];
+            byte* b = stackalloc byte[2 * n];
             bool first = true; int count = 0;
             while (CatalanStructures.TryGenerateDyckWord(n, a, ref first))
             {
                 count++;
                 long r = CatalanStructures.RankDyckWord(a, n);
-                byte* b = stackalloc byte[2 * n];
                 CatalanStructures.UnrankDyckWord(r, n, b);
                 for (int i = 0; i < 2 * n; i++) Assert.AreEqual(a[i], b[i]);
             }
