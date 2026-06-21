@@ -396,29 +396,41 @@ namespace IAFahim.Graph
             return false;
         }
 
+        private const double CollinearEpsilon = 1e-9;
+
         private static bool ValidatePlacement(int maxIdx, int m, int* u, int* v, int* x, int* y)
         {
             for (int e = 0; e < m; e++)
-            {
-                int uNode = u[e], vNode = v[e];
-                if (uNode <= maxIdx && vNode <= maxIdx)
-                {
-                    for (int i = 0; i <= maxIdx; i++)
-                        if (i != uNode && i != vNode && Math.Abs(CrossProduct(x[uNode], y[uNode], x[vNode], y[vNode], x[i], y[i])) < 1e-9) return false;
-                }
-            }
+                if (HasCollinearVertexOnEdge(e, maxIdx, u, v, x, y)) return false;
             for (int e1 = 0; e1 < m; e1++)
-            {
-                int u1 = u[e1], v1 = v[e1];
-                if (u1 <= maxIdx && v1 <= maxIdx)
-                    for (int e2 = e1 + 1; e2 < m; e2++)
-                    {
-                        int u2 = u[e2], v2 = v[e2];
-                        if (u2 <= maxIdx && v2 <= maxIdx && u1 != u2 && u1 != v2 && v1 != u2 && v1 != v2)
-                            if (SegmentsIntersect(x[u1], y[u1], x[v1], y[v1], x[u2], y[u2], x[v2], y[v2])) return false;
-                    }
-            }
+                if (HasCrossingWithLaterEdge(e1, maxIdx, m, u, v, x, y)) return false;
             return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool HasCollinearVertexOnEdge(int e, int maxIdx, int* u, int* v, int* x, int* y)
+        {
+            int uNode = u[e], vNode = v[e];
+            if (uNode <= maxIdx && vNode <= maxIdx)
+            {
+                for (int i = 0; i <= maxIdx; i++)
+                    if (i != uNode && i != vNode && Math.Abs(CrossProduct(x[uNode], y[uNode], x[vNode], y[vNode], x[i], y[i])) < CollinearEpsilon) return true;
+            }
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool HasCrossingWithLaterEdge(int e1, int maxIdx, int m, int* u, int* v, int* x, int* y)
+        {
+            int u1 = u[e1], v1 = v[e1];
+            if (u1 <= maxIdx && v1 <= maxIdx)
+                for (int e2 = e1 + 1; e2 < m; e2++)
+                {
+                    int u2 = u[e2], v2 = v[e2];
+                    if (u2 <= maxIdx && v2 <= maxIdx && u1 != u2 && u1 != v2 && v1 != u2 && v1 != v2)
+                        if (SegmentsIntersect(x[u1], y[u1], x[v1], y[v1], x[u2], y[u2], x[v2], y[v2])) return true;
+                }
+            return false;
         }
 
         private static double CrossProduct(double ax, double ay, double bx, double by, double cx, double cy) => (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
@@ -589,24 +601,28 @@ namespace IAFahim.Graph
             int activeM = 0; int* tu = stackalloc int[m], tv = stackalloc int[m];
             for (int i = 0; i < m; i++) if (ea[i] == 1) { tu[activeM] = u[i]; tv[activeM++] = v[i]; }
             int tempM = activeM; byte* nr = stackalloc byte[n]; for (int i = 0; i < n; i++) nr[i] = 0;
-            while (true)
-            {
-                int* deg = stackalloc int[n]; for (int i = 0; i < n; i++) deg[i] = 0;
-                for (int i = 0; i < tempM; i++) { deg[tu[i]]++; deg[tv[i]]++; }
-                int d2n = -1; for (int i = 0; i < n; i++) if (nr[i] == 0 && deg[i] == 2) { d2n = i; break; }
-                if (d2n == -1) break;
-                int n1 = -1, n2 = -1, e1 = -1, e2 = -1;
-                for (int i = 0; i < tempM; i++) if (tu[i] == d2n || tv[i] == d2n)
-                    { if (n1 == -1) { n1 = tu[i] == d2n ? tv[i] : tu[i]; e1 = i; } else { n2 = tu[i] == d2n ? tv[i] : tu[i]; e2 = i; } }
-                if (n1 == -1 || n2 == -1) break;
-                nr[d2n] = 1; tu[e1] = n1; tv[e1] = n2; tu[e2] = tu[tempM - 1]; tv[e2] = tv[tempM - 1]; tempM--;
-            }
+            while (SuppressDegree2Vertex(n, ref tempM, tu, tv, nr)) { }
             int rc = 0; int* rn = stackalloc int[n], degF = stackalloc int[n]; for (int i = 0; i < n; i++) degF[i] = 0;
             for (int i = 0; i < tempM; i++) { degF[tu[i]]++; degF[tv[i]]++; }
             for (int i = 0; i < n; i++) if (degF[i] > 0) rn[rc++] = i;
             if (rc == 5) { for (int i = 0; i < 5; i++) if (degF[rn[i]] != 4) return false; return true; }
             if (rc == 6) { for (int i = 0; i < 6; i++) if (degF[rn[i]] != 3) return false; return IsK33(n, tempM, tu, tv, rn); }
             return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool SuppressDegree2Vertex(int n, ref int tm, int* tu, int* tv, byte* nr)
+        {
+            int* deg = stackalloc int[n]; for (int i = 0; i < n; i++) deg[i] = 0;
+            for (int i = 0; i < tm; i++) { deg[tu[i]]++; deg[tv[i]]++; }
+            int d2n = -1; for (int i = 0; i < n; i++) if (nr[i] == 0 && deg[i] == 2) { d2n = i; break; }
+            if (d2n == -1) return false;
+            int n1 = -1, n2 = -1, e1 = -1, e2 = -1;
+            for (int i = 0; i < tm; i++) if (tu[i] == d2n || tv[i] == d2n)
+                { if (n1 == -1) { n1 = tu[i] == d2n ? tv[i] : tu[i]; e1 = i; } else { n2 = tu[i] == d2n ? tv[i] : tu[i]; e2 = i; } }
+            if (n1 == -1 || n2 == -1) return false;
+            nr[d2n] = 1; tu[e1] = n1; tv[e1] = n2; tu[e2] = tu[tm - 1]; tv[e2] = tv[tm - 1]; tm--;
+            return true;
         }
 
         private static bool IsK33(int n, int m, int* tu, int* tv, int* rn)
@@ -648,18 +664,7 @@ namespace IAFahim.Graph
             int am = 0; int* tu = stackalloc int[m], tv = stackalloc int[m];
             for (int i = 0; i < m; i++) if (ea[i] == 1) { tu[am] = u[i]; tv[am++] = v[i]; }
             int tm = am; byte* nr = stackalloc byte[n]; for (int i = 0; i < n; i++) nr[i] = 0;
-            while (true)
-            {
-                int* deg = stackalloc int[n]; for (int i = 0; i < n; i++) deg[i] = 0;
-                for (int i = 0; i < tm; i++) { deg[tu[i]]++; deg[tv[i]]++; }
-                int d2n = -1; for (int i = 0; i < n; i++) if (nr[i] == 0 && deg[i] == 2) { d2n = i; break; }
-                if (d2n == -1) break;
-                int n1 = -1, n2 = -1, e1 = -1, e2 = -1;
-                for (int i = 0; i < tm; i++) if (tu[i] == d2n || tv[i] == d2n)
-                    { if (n1 == -1) { n1 = tu[i] == d2n ? tv[i] : tu[i]; e1 = i; } else { n2 = tu[i] == d2n ? tv[i] : tu[i]; e2 = i; } }
-                if (n1 == -1 || n2 == -1) break;
-                nr[d2n] = 1; tu[e1] = n1; tv[e1] = n2; tu[e2] = tu[tm - 1]; tv[e2] = tv[tm - 1]; tm--;
-            }
+            while (SuppressDegree2Vertex(n, ref tm, tu, tv, nr)) { }
             int rc = 0; int* rn = stackalloc int[n], degF = stackalloc int[n]; for (int i = 0; i < n; i++) degF[i] = 0;
             for (int i = 0; i < tm; i++) { degF[tu[i]]++; degF[tv[i]]++; }
             for (int i = 0; i < n; i++) if (degF[i] > 0) rn[rc++] = i;
@@ -755,20 +760,25 @@ namespace IAFahim.Graph
         {
             for (int x = 0; x < n; x++)
             for (int y = x + 1; y < n; y++)
+                if (IsSeparationPair(x, y, n, m, u, v, ea)) { *sx = x; *sy = y; return true; }
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsSeparationPair(int x, int y, int n, int m, int* u, int* v, byte* ea)
+        {
+            byte* vis = stackalloc byte[n]; for (int i = 0; i < n; i++) vis[i] = 0;
+            vis[x] = vis[y] = 1;
+            int start = -1;
+            for (int i = 0; i < n; i++) if (i != x && i != y) { for (int e = 0; e < m; e++) if (ea[e] == 1 && (u[e] == i || v[e] == i)) { start = i; break; } if (start != -1) break; }
+            if (start == -1) return false;
+            int* q = stackalloc int[n]; int qh = 0, qt = 0; vis[start] = 1; q[qt++] = start;
+            while (qh < qt)
             {
-                byte* vis = stackalloc byte[n]; for (int i = 0; i < n; i++) vis[i] = 0;
-                vis[x] = vis[y] = 1;
-                int start = -1;
-                for (int i = 0; i < n; i++) if (i != x && i != y) { for (int e = 0; e < m; e++) if (ea[e] == 1 && (u[e] == i || v[e] == i)) { start = i; break; } if (start != -1) break; }
-                if (start == -1) continue;
-                int* q = stackalloc int[n]; int qh = 0, qt = 0; vis[start] = 1; q[qt++] = start;
-                while (qh < qt)
-                {
-                    int cur = q[qh++];
-                    for (int e = 0; e < m; e++) if (ea[e] == 1) { int nbr = u[e] == cur ? v[e] : (v[e] == cur ? u[e] : -1); if (nbr != -1 && vis[nbr] == 0) { vis[nbr] = 1; q[qt++] = nbr; } }
-                }
-                for (int i = 0; i < n; i++) if (i != x && i != y && vis[i] == 0) { for (int e = 0; e < m; e++) if (ea[e] == 1 && (u[e] == i || v[e] == i)) { *sx = x; *sy = y; return true; } }
+                int cur = q[qh++];
+                for (int e = 0; e < m; e++) if (ea[e] == 1) { int nbr = u[e] == cur ? v[e] : (v[e] == cur ? u[e] : -1); if (nbr != -1 && vis[nbr] == 0) { vis[nbr] = 1; q[qt++] = nbr; } }
             }
+            for (int i = 0; i < n; i++) if (i != x && i != y && vis[i] == 0) { for (int e = 0; e < m; e++) if (ea[e] == 1 && (u[e] == i || v[e] == i)) return true; }
             return false;
         }
 

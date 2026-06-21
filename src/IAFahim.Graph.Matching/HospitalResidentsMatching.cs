@@ -43,34 +43,50 @@ namespace IAFahim.Graph.Matching
 
                 if (heldCount[h] < hospitalCapacities[h])
                 {
-                    held[h * numResidents + heldCount[h]++] = r;
-                    matchResident[r] = h;
+                    Accept(held, heldCount, matchResident, h, r, numResidents);
                 }
                 else
                 {
-                    // Find the worst-ranked currently-held resident at hospital h.
-                    int worstSlot = 0;
-                    int worstRank = rankHosp[h * numResidents + held[h * numResidents]];
-                    for (int s = 1; s < heldCount[h]; s++)
-                    {
-                        int rr = rankHosp[h * numResidents + held[h * numResidents + s]];
-                        if (rr > worstRank) { worstRank = rr; worstSlot = s; }
-                    }
-                    int worst = held[h * numResidents + worstSlot];
-                    if (rankHosp[h * numResidents + r] < worstRank)
-                    {
-                        // r is preferred over the worst held -> evict worst, accept r.
-                        matchResident[worst] = -1;
-                        queue[qt++] = worst;
-                        held[h * numResidents + worstSlot] = r;
-                        matchResident[r] = h;
-                    }
-                    else
-                    {
-                        // h rejects r; r will propose again next round.
-                        queue[qt++] = r;
-                    }
+                    Contest(rankHosp, held, matchResident, queue, ref qt, h, r, heldCount[h], numResidents);
                 }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void Accept(int* held, int* heldCount, int* matchResident, int h, int r, int numResidents)
+        {
+            held[h * numResidents + heldCount[h]++] = r;
+            matchResident[r] = h;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int FindWorstSlot(int* rankHosp, int* held, int h, int count, int numResidents)
+        {
+            int worstSlot = 0;
+            int worstRank = rankHosp[h * numResidents + held[h * numResidents]];
+            for (int s = 1; s < count; s++)
+            {
+                int rr = rankHosp[h * numResidents + held[h * numResidents + s]];
+                if (rr > worstRank) { worstRank = rr; worstSlot = s; }
+            }
+            return worstSlot;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void Contest(int* rankHosp, int* held, int* matchResident, int* queue, ref int qt, int h, int r, int count, int numResidents)
+        {
+            int worstSlot = FindWorstSlot(rankHosp, held, h, count, numResidents);
+            int worst = held[h * numResidents + worstSlot];
+            if (rankHosp[h * numResidents + r] < rankHosp[h * numResidents + worst])
+            {
+                matchResident[worst] = -1;
+                queue[qt++] = worst;
+                held[h * numResidents + worstSlot] = r;
+                matchResident[r] = h;
+            }
+            else
+            {
+                queue[qt++] = r;
             }
         }
     }

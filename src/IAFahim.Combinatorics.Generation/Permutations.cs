@@ -21,19 +21,25 @@ using System.Runtime.CompilerServices;
             {
                 if (c[_i] < _i)
                 {
-                    if (_i % 2 == 0) { int t = a[0]; a[0] = a[_i]; a[_i] = t; }
-                    else { int t = a[c[_i]]; a[c[_i]] = a[_i]; a[_i] = t; }
+                    SwapForLevel(a, _i, c[_i]);
                     c[_i]++;
                     _i = 1;
                     return true;
                 }
-                else
-                {
-                    c[_i] = 0;
-                    _i++;
-                }
+                c[_i] = 0;
+                _i++;
             }
             return false;
+        }
+
+        private const int EvenLevelRemainder = 0;
+        private const int EvenLevelModulus = 2;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void SwapForLevel(int* a, int level, int count)
+        {
+            int swapIdx = level % EvenLevelModulus == EvenLevelRemainder ? 0 : count;
+            int t = a[swapIdx]; a[swapIdx] = a[level]; a[level] = t;
         }
     }
 
@@ -53,19 +59,27 @@ using System.Runtime.CompilerServices;
             }
             int mobileIdx = -1, mobileVal = -1;
             for (int i = 0; i < _n; i++)
-            {
-                if (dir[a[i]] == 0 && i > 0 && a[i] > a[i - 1])
-                    if (a[i] > mobileVal) { mobileVal = a[i]; mobileIdx = i; }
-                if (dir[a[i]] == 1 && i < _n - 1 && a[i] > a[i + 1])
-                    if (a[i] > mobileVal) { mobileVal = a[i]; mobileIdx = i; }
-            }
-            if (mobileIdx == -1) return false;
+                Consider(a, dir, _n, i, ref mobileIdx, ref mobileVal);
+            if (mobileIdx == NoMobileIndex) return false;
             int mobileValActual = a[mobileIdx];
-            int swapIdx = dir[mobileValActual] == 1 ? mobileIdx + 1 : mobileIdx - 1;
+            int swapIdx = dir[mobileValActual] == DirRight ? mobileIdx + 1 : mobileIdx - 1;
             int t = a[mobileIdx]; a[mobileIdx] = a[swapIdx]; a[swapIdx] = t;
             for (int i = 0; i < _n; i++)
                 if (a[i] > mobileValActual) dir[a[i]] ^= 1;
             return true;
+        }
+
+        private const int NoMobileIndex = -1;
+        private const byte DirLeft = 0;
+        private const byte DirRight = 1;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void Consider(int* a, byte* dir, int n, int i, ref int mobileIdx, ref int mobileVal)
+        {
+            if (dir[a[i]] == DirLeft && i > 0 && a[i] > a[i - 1])
+                if (a[i] > mobileVal) { mobileVal = a[i]; mobileIdx = i; }
+            if (dir[a[i]] == DirRight && i < n - 1 && a[i] > a[i + 1])
+                if (a[i] > mobileVal) { mobileVal = a[i]; mobileIdx = i; }
         }
     }
 
