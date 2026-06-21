@@ -5,17 +5,6 @@ namespace IAFahim.Graph.DAG
     public static unsafe class MinimumEquivalentDigraph
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ComputeReachability(bool* adjMatrix, int n, bool* reach)
-        {
-            for (int i = 0; i < n * n; i++) reach[i] = adjMatrix[i];
-            for (int k = 0; k < n; k++)
-                for (int i = 0; i < n; i++)
-                    if (reach[i * n + k])
-                        for (int j = 0; j < n; j++)
-                            if (reach[k * n + j]) reach[i * n + j] = true;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool HasAlternatePath(bool* adjMatrix, bool* reach, int n, int i, int j)
         {
             for (int k = 0; k < n; k++)
@@ -30,7 +19,7 @@ namespace IAFahim.Graph.DAG
         public static void Run(bool* adjMatrix, int n)
         {
             bool* reach = stackalloc bool[n * n];
-            ComputeReachability(adjMatrix, n, reach);
+            DagShared.ComputeReachability(adjMatrix, n, reach);
             for (int i = 0; i < n; i++)
             {
                 for (int j = 0; j < n; j++)
