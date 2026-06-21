@@ -370,3 +370,37 @@ Full suite: 1217/1217, 0 fail, 0 crash. HEAD ~55 commits ahead of master.
 - Safe perf conversions + bug fixes EXHAUSTED on test-covered code.
 - ConvexHull3D O(n²)→O(n log n) conflict-list rewrite: tests now lock behavior,
   deferred (correct algo, ~150 lines risky rewrite).
+
+## Turn: Math.NT + Algebra.Sequence bug hunt via test coverage
+
+### Correctness bugs FOUND AND FIXED (6 total)
+1. **BSGS hash overflow** (Math.NT/Bsgs.cs) — MAJOR. Open-addressed hash table
+   sized m=ceil(sqrt(mod)) with m entries (~100% load). Linear probe `pos++`
+   had NO modulo wraparound: keys hashing near table end overflowed past index
+   m, silently dropped. Stress test (mod=101, all 100 targets) caught 9 missed
+   solutions. Fix: wrap `pos=(pos+1)%tableSize` + probed-count guard.
+2. **PrevBit doubling** (Math.NT/BitOps.cs): `HighestBit(x-1) << 1` doubled
+   the result. PrevBit(20)=32 (should be 16). Fix: remove `<< 1`.
+3. **PowerfulNumbers sqrt undershoot** (Math.NT/PowerfulNumbers.cs): maxA via
+   Math.Sqrt could round down for large doubles, missing boundary a-values.
+   Only decrement guard existed. Added increment guard.
+4. **Narayana formula** (Algebra.Sequence/Combinatorial.cs): C(n,k)-C(n,k-1)
+   instead of C(n,k)*C(n,k-1)/n. N(4,2)=2, should be 6.
+5. **QBinomial exponent + q=1** (Algebra.Sequence/Combinatorial.cs): q^{n-1-i}
+   instead of q^{n-i}; q=1 is 0/0 singularity, added [n k]_1=C(n,k) special case.
+6. **Prufer.Rank dead code** (Algebra.Sequence/Prufer.cs): first loop computed
+   r/pow, both discarded. Removed.
+
+### New test coverage (~80 tests)
+- Algebra.Sequence: Combinatorial(16) + Transform(4) + Stirling(7) + Prufer(4)
+  + GeneratingFunction(4) = 35 tests
+- Math.NT: BsgsStress(1) + BitOps(7) + MultiplicativeGen(3) + Min25Sieve(1)
+  = 12 tests
+- Math.Combinatorics: +9 tests (Multiset/Partition/StarsBars/StirlingFirst/
+  PermuteCount/LinearCongruence)
+- Geometry.Azimuth: SphericalDistance(6)
+
+### State
+- Full suite: 1360 tests, 0 fail, 0 crash.
+- Test-first strategy continues to surface real bugs the static audit missed.
+- BSGS was the highest-severity find (silent wrong answers on ~9% of queries).
