@@ -47,37 +47,60 @@ namespace IAFahim.Graph.Tree
     {
         private const int BitmaskNodeLimit = 31;
 
-        // Returns the centroid set as a bitmask: bit u is set iff node u is a centroid
-        // of the (possibly pruned) tree component reachable from root. Limited to node
-        // indices in [0, BitmaskNodeLimit]; nodes outside that range are never encoded.
+        private const int NoParent = -1;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int BfsOrder(int n, int root, int* head, int* to, int* next, bool* removed, int* parent, int* q)
+        {
+            for (int i = 0; i < n; i++) parent[i] = NoParent;
+            int qh = 0, qt = 0;
+            q[qt++] = root;
+            parent[root] = root;
+            int total = 0;
+            while (qh < qt)
+            {
+                int u = q[qh++];
+                total++;
+                for (int e = head[u]; e != 0; e = next[e])
+                {
+                    int v = to[e];
+                    if (!removed[v] && parent[v] == NoParent) { parent[v] = u; q[qt++] = v; }
+                }
+            }
+            return total;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ComputeSubtreeSizes(int* q, int count, int* parent, int* size)
+        {
+            for (int i = 0; i < count; i++) size[q[i]] = 1;
+            for (int i = count - 1; i > 0; i--) { int u = q[i]; size[parent[u]] += size[u]; }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool HeavyChildExceedsHalf(int u, int half, int* head, int* to, int* next, bool* removed, int* parent, int* size)
+        {
+            for (int e = head[u]; e != 0; e = next[e])
+            {
+                int v = to[e];
+                if (!removed[v] && parent[v] == u && size[v] > half) return true;
+            }
+            return false;
+        }
+
         public static int Run(int n, int root, int* head, int* to, int* next, int* size, bool* removed)
         {
             int* parent = stackalloc int[n];
-            for (int i = 0; i < n; i++) parent[i] = -1;
-            int* q = stackalloc int[n]; int qh = 0, qt = 0;
-            q[qt++] = root; parent[root] = root; int total = 0;
-            while (qh < qt)
-            {
-                int u = q[qh++]; total++;
-                for (int e = head[u]; e != 0; e = next[e])
-                {
-                    int v = to[e];
-                    if (!removed[v] && parent[v] == -1) { parent[v] = u; q[qt++] = v; }
-                }
-            }
-            for (int i = 0; i < qt; i++) size[q[i]] = 1;
-            for (int i = qt - 1; i > 0; i--) { int u = q[i]; size[parent[u]] += size[u]; }
-            int half = total / 2;
+            int* q = stackalloc int[n];
+            int count = BfsOrder(n, root, head, to, next, removed, parent, q);
+            ComputeSubtreeSizes(q, count, parent, size);
+            int half = count / 2;
             int centroids = 0;
-            for (int i = 0; i < qt; i++)
+            for (int i = 0; i < count; i++)
             {
-                int u = q[i]; bool ok = true;
-                for (int e = head[u]; e != 0; e = next[e])
-                {
-                    int v = to[e];
-                    if (!removed[v] && parent[v] == u && size[v] > half) { ok = false; break; }
-                }
-                if (ok && (total - size[u]) <= half && u <= BitmaskNodeLimit) centroids |= (1 << u);
+                int u = q[i];
+                if (HeavyChildExceedsHalf(u, half, head, to, next, removed, parent, size)) continue;
+                if ((count - size[u]) <= half && u <= BitmaskNodeLimit) centroids |= (1 << u);
             }
             return centroids;
         }
@@ -85,6 +108,8 @@ namespace IAFahim.Graph.Tree
 
     public static unsafe class RootedTreeHash
     {
+        private const ulong HashMultiplier = 31;
+
         public static void Run(int root, int n, int* head, int* to, int* next, ulong* hash, ulong* dpUp)
         {
             int* order = stackalloc int[n]; int idx = 0;
@@ -98,7 +123,7 @@ namespace IAFahim.Graph.Tree
             for (int i = idx - 1; i >= 0; i--)
             {
                 int u = order[i]; hash[u] = 1;
-                for (int e = head[u]; e != 0; e = next[e]) { int v = to[e]; if (v != parent[u]) hash[u] = hash[u] * 31 + hash[v]; }
+                for (int e = head[u]; e != 0; e = next[e]) { int v = to[e]; if (v != parent[u]) hash[u] = hash[u] * HashMultiplier + hash[v]; }
             }
         }
     }
