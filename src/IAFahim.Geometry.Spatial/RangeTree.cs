@@ -5,11 +5,62 @@ namespace IAFahim.Geometry.Spatial
 
     public static unsafe class RangeTree
     {
+        private const int AxisX = 0;
+
+        private const int AxisY = 1;
+
+        private const int AxisZ = 2;
+
+        private const int AxisCount2D = 2;
+
+        private const int AxisCount3D = 3;
+
         public struct Node
         {
             public double X, Y, Z;
             public int Left, Right;
             public int OriginalIndex;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static double CoordOnAxis(int axis, double* xs, double* ys, double* zs, int* idx, int i)
+        {
+            return axis == AxisX ? xs[idx[i]] : (axis == AxisY ? ys[idx[i]] : zs[idx[i]]);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void PartitionAround(int axis, double* xs, double* ys, double* zs, int* idx, int start, int end, int k)
+        {
+            int l = start, r = end;
+            while (l < r)
+            {
+                double pivot = CoordOnAxis(axis, xs, ys, zs, idx, k);
+                int i = l, j = r;
+                while (i <= j)
+                {
+                    while (CoordOnAxis(axis, xs, ys, zs, idx, i) < pivot) i++;
+                    while (CoordOnAxis(axis, xs, ys, zs, idx, j) > pivot) j--;
+                    if (i <= j)
+                    {
+                        int t = idx[i]; idx[i] = idx[j]; idx[j] = t;
+                        i++; j--;
+                    }
+                }
+                if (j < k) l = i;
+                if (k < i) r = j;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int AllocNode(Node* nodes, ref int nextFree, double* xs, double* ys, double* zs, int* idx, int mid, bool is3D)
+        {
+            int rootIdx = nextFree++;
+            int originalId = idx[mid];
+            nodes[rootIdx].X = xs[originalId];
+            nodes[rootIdx].Y = ys[originalId];
+            if (is3D) nodes[rootIdx].Z = zs[originalId];
+            nodes[rootIdx].OriginalIndex = originalId;
+            return rootIdx;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -26,39 +77,11 @@ namespace IAFahim.Geometry.Spatial
         {
             if (start > end) return -1;
             int mid = start + (end - start) / 2;
-
-            int axis = is3D ? (depth % 3) : (depth % 2);
-
-            int k = mid;
-            int l = start, r = end;
-            while (l < r)
-            {
-                double pivot = axis == 0 ? xs[idx[k]] : (axis == 1 ? ys[idx[k]] : zs[idx[k]]);
-                int i = l, j = r;
-                while (i <= j)
-                {
-                    while ((axis == 0 ? xs[idx[i]] : (axis == 1 ? ys[idx[i]] : zs[idx[i]])) < pivot) i++;
-                    while ((axis == 0 ? xs[idx[j]] : (axis == 1 ? ys[idx[j]] : zs[idx[j]])) > pivot) j--;
-                    if (i <= j)
-                    {
-                        int t = idx[i]; idx[i] = idx[j]; idx[j] = t;
-                        i++; j--;
-                    }
-                }
-                if (j < k) l = i;
-                if (k < i) r = j;
-            }
-
-            int rootIdx = nextFree++;
-            int originalId = idx[mid];
-            nodes[rootIdx].X = xs[originalId];
-            nodes[rootIdx].Y = ys[originalId];
-            if (is3D) nodes[rootIdx].Z = zs[originalId];
-            nodes[rootIdx].OriginalIndex = originalId;
-
+            int axis = is3D ? (depth % AxisCount3D) : (depth % AxisCount2D);
+            PartitionAround(axis, xs, ys, zs, idx, start, end, mid);
+            int rootIdx = AllocNode(nodes, ref nextFree, xs, ys, zs, idx, mid, is3D);
             nodes[rootIdx].Left = BuildRec(xs, ys, zs, idx, start, mid - 1, nodes, ref nextFree, depth + 1, is3D);
             nodes[rootIdx].Right = BuildRec(xs, ys, zs, idx, mid + 1, end, nodes, ref nextFree, depth + 1, is3D);
-
             return rootIdx;
         }
 
@@ -78,7 +101,7 @@ namespace IAFahim.Geometry.Spatial
             bool inRange = n->X >= x1 && n->X <= x2 && n->Y >= y1 && n->Y <= y2;
             if (inRange) outIdx[count++] = n->OriginalIndex;
 
-            int axis = depth % 2;
+            int axis = depth % AxisCount2D;
             double val = axis == 0 ? n->X : n->Y;
             double minV = axis == 0 ? x1 : y1;
             double maxV = axis == 0 ? x2 : y2;
@@ -113,7 +136,7 @@ namespace IAFahim.Geometry.Spatial
             bool inRange = n->X >= x1 && n->X <= x2 && n->Y >= y1 && n->Y <= y2 && n->Z >= z1 && n->Z <= z2;
             if (inRange) outIdx[count++] = n->OriginalIndex;
 
-            int axis = depth % 3;
+            int axis = depth % AxisCount3D;
             double val = axis == 0 ? n->X : (axis == 1 ? n->Y : n->Z);
             double minV = axis == 0 ? x1 : (axis == 1 ? y1 : z1);
             double maxV = axis == 0 ? x2 : (axis == 1 ? y2 : z2);
