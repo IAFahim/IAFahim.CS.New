@@ -5,16 +5,25 @@ namespace IAFahim.Math.NT
 
     public static unsafe class Bsgs
     {
+        private const long EmptySlot = -1;
+
+        private const long NoSolution = -1;
+
+        private const long LogOfIdentity = 0;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static long ModMul(long a, long b, long mod)
         {
             return IAFahim.Math.NT.ModMul.Run(a, b, mod);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static long ModPow(long a, long e, long mod)
         {
             return IAFahim.Math.NT.ModPow.Run(a, e, mod);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static long Gcd(long a, long b)
         {
             if (a < 0) a = -a;
@@ -28,53 +37,62 @@ namespace IAFahim.Math.NT
             return a;
         }
 
-        public static long Run(long a, long b, long mod, long* scratchKeys, long* scratchVals)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static long Normalize(long x, long mod)
         {
-            if (b == 1) return 0;
-            a %= mod;
-            if (a < 0) a += mod;
-            b %= mod;
-            if (b < 0) b += mod;
+            x %= mod;
+            if (x < 0) x += mod;
+            return x;
+        }
 
-            long g = Gcd(a, mod);
-            if (b % g != 0) return -1;
-
-            long m = (long)Math.Ceiling(Math.Sqrt(mod));
-            int tableSize = (int)m;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void InitTable(long* scratchKeys, long* scratchVals, int tableSize)
+        {
             for (int i = 0; i < tableSize; i++)
             {
-                scratchKeys[i] = -1;
-                scratchVals[i] = -1;
+                scratchKeys[i] = EmptySlot;
+                scratchVals[i] = EmptySlot;
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int FindSlot(long* scratchKeys, int tableSize, long key)
+        {
+            int pos = (int)(key % tableSize);
+            int probed = 0;
+            while (probed < tableSize && scratchKeys[pos] != EmptySlot && scratchKeys[pos] != key)
+            {
+                pos = (pos + 1) % tableSize;
+                probed++;
+            }
+            return pos;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static long BuildBabySteps(long a, long mod, int tableSize, long* scratchKeys, long* scratchVals)
+        {
             long am = 1;
             for (int i = 0; i < tableSize; i++)
             {
                 long key = am;
-                int pos = (int)(key % tableSize);
-                int probed = 0;
-                while (probed < tableSize && scratchKeys[pos] != -1 && scratchKeys[pos] != key)
-                {
-                    pos = (pos + 1) % tableSize;
-                    probed++;
-                }
-                if (scratchKeys[pos] == -1)
+                int pos = FindSlot(scratchKeys, tableSize, key);
+                if (scratchKeys[pos] == EmptySlot)
                 {
                     scratchKeys[pos] = key;
                     scratchVals[pos] = i;
                 }
                 am = ModMul(am, a, mod);
             }
-            long factor = ModPow(am, mod - 2, mod);
+            return ModPow(am, mod - 2, mod);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static long ProbeGiantSteps(long b, long mod, int tableSize, long factor, long* scratchKeys, long* scratchVals)
+        {
             long cur = b;
             for (int i = 0; i < tableSize; i++)
             {
-                int pos = (int)(cur % tableSize);
-                int probed = 0;
-                while (probed < tableSize && scratchKeys[pos] != -1 && scratchKeys[pos] != cur)
-                {
-                    pos = (pos + 1) % tableSize;
-                    probed++;
-                }
+                int pos = FindSlot(scratchKeys, tableSize, cur);
                 if (scratchKeys[pos] == cur)
                 {
                     long ans = (long)i * tableSize + scratchVals[pos];
@@ -82,7 +100,21 @@ namespace IAFahim.Math.NT
                 }
                 cur = ModMul(cur, factor, mod);
             }
-            return -1;
+            return NoSolution;
+        }
+
+        public static long Run(long a, long b, long mod, long* scratchKeys, long* scratchVals)
+        {
+            if (b == 1) return LogOfIdentity;
+            a = Normalize(a, mod);
+            b = Normalize(b, mod);
+            long g = Gcd(a, mod);
+            if (b % g != 0) return NoSolution;
+            long m = (long)Math.Ceiling(Math.Sqrt(mod));
+            int tableSize = (int)m;
+            InitTable(scratchKeys, scratchVals, tableSize);
+            long factor = BuildBabySteps(a, mod, tableSize, scratchKeys, scratchVals);
+            return ProbeGiantSteps(b, mod, tableSize, factor, scratchKeys, scratchVals);
         }
     }
 }
