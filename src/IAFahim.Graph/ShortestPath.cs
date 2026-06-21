@@ -3,19 +3,45 @@ namespace IAFahim.Graph
     using System;
     using System.Runtime.CompilerServices;
 
+    internal static unsafe class SpArrays
+    {
+        public const long Infinity = long.MaxValue;
+
+        public const int NoParent = -1;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void InitDist(long* dist, int n)
+        {
+            for (int i = 0; i < n; i++) dist[i] = Infinity;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void InitParent(int* parent, int n)
+        {
+            for (int i = 0; i < n; i++) parent[i] = NoParent;
+        }
+    }
+
     internal unsafe struct SpMinHeap
     {
+        private const int HeapRoot = 0;
+
+        private const int NotInHeap = -1;
+
         public long* Dist;
+
         public int* V;
+
         public int* Pos;
+
         public int Size;
 
         public SpMinHeap(int n)
         {
-            Dist = (long*)System.Runtime.InteropServices.Marshal.AllocHGlobal(n * sizeof(long));
-            V = (int*)System.Runtime.InteropServices.Marshal.AllocHGlobal(n * sizeof(int));
-            Pos = (int*)System.Runtime.InteropServices.Marshal.AllocHGlobal(n * sizeof(int));
-            for (int i = 0; i < n; i++) Pos[i] = -1;
+            Dist = (long*)System.Runtime.InteropServices.Marshal.AllocHGlobal((nint)((long)n * sizeof(long)));
+            V = (int*)System.Runtime.InteropServices.Marshal.AllocHGlobal((nint)((long)n * sizeof(int)));
+            Pos = (int*)System.Runtime.InteropServices.Marshal.AllocHGlobal((nint)((long)n * sizeof(int)));
+            for (int i = 0; i < n; i++) Pos[i] = NotInHeap;
             Size = 0;
         }
 
@@ -26,53 +52,68 @@ namespace IAFahim.Graph
             System.Runtime.InteropServices.Marshal.FreeHGlobal((nint)Pos);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void SwapEntries(int a, int b)
+        {
+            long tmpD = Dist[a]; Dist[a] = Dist[b]; Dist[b] = tmpD;
+            int tmpV = V[a]; V[a] = V[b]; V[b] = tmpV;
+            Pos[V[a]] = a;
+            Pos[V[b]] = b;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void SiftUp(int idx)
+        {
+            while (idx > HeapRoot)
+            {
+                int p = (idx - 1) / 2;
+                if (Dist[p] <= Dist[idx]) break;
+                SwapEntries(p, idx);
+                idx = p;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void SiftDown()
+        {
+            int idx = HeapRoot;
+            while (idx * 2 + 1 < Size)
+            {
+                int left = idx * 2 + 1;
+                int right = idx * 2 + 2;
+                int smallest = left;
+                if (right < Size && Dist[right] < Dist[left]) smallest = right;
+                if (Dist[idx] <= Dist[smallest]) break;
+                SwapEntries(idx, smallest);
+                idx = smallest;
+            }
+        }
+
         public void PushOrUpdate(int v, long d)
         {
             int idx = Pos[v];
-            if (idx == -1)
+            if (idx == NotInHeap)
             {
                 idx = Size++;
                 V[idx] = v;
                 Pos[v] = idx;
             }
             Dist[idx] = d;
-            while (idx > 0)
-            {
-                int p = (idx - 1) / 2;
-                if (Dist[p] <= Dist[idx]) break;
-                long tmpD = Dist[p]; Dist[p] = Dist[idx]; Dist[idx] = tmpD;
-                int tmpV = V[p]; V[p] = V[idx]; V[idx] = tmpV;
-                Pos[V[p]] = p;
-                Pos[V[idx]] = idx;
-                idx = p;
-            }
+            SiftUp(idx);
         }
 
         public int Pop(out long d)
         {
-            int u = V[0];
-            d = Dist[0];
-            Pos[u] = -1;
+            int u = V[HeapRoot];
+            d = Dist[HeapRoot];
+            Pos[u] = NotInHeap;
             Size--;
             if (Size > 0)
             {
-                Dist[0] = Dist[Size];
-                V[0] = V[Size];
-                Pos[V[0]] = 0;
-                int idx = 0;
-                while (idx * 2 + 1 < Size)
-                {
-                    int left = idx * 2 + 1;
-                    int right = idx * 2 + 2;
-                    int smallest = left;
-                    if (right < Size && Dist[right] < Dist[left]) smallest = right;
-                    if (Dist[idx] <= Dist[smallest]) break;
-                    long tmpD = Dist[idx]; Dist[idx] = Dist[smallest]; Dist[smallest] = tmpD;
-                    int tmpV = V[idx]; V[idx] = V[smallest]; V[smallest] = tmpV;
-                    Pos[V[idx]] = idx;
-                    Pos[V[smallest]] = smallest;
-                    idx = smallest;
-                }
+                Dist[HeapRoot] = Dist[Size];
+                V[HeapRoot] = V[Size];
+                Pos[V[HeapRoot]] = HeapRoot;
+                SiftDown();
             }
             return u;
         }
@@ -82,10 +123,10 @@ namespace IAFahim.Graph
     {
         public static void Run(int n, int start, int* head, int* to, int* next, int* weight, long* dist, int* parent)
         {
-            for (int i = 0; i < n; i++) dist[i] = long.MaxValue;
-            for (int i = 0; i < n; i++) parent[i] = -1;
+            SpArrays.InitDist(dist, n);
+            SpArrays.InitParent(parent, n);
             dist[start] = 0;
-            var pq = new SpMinHeap(n);
+            SpMinHeap pq = new SpMinHeap(n);
             try
             {
                 pq.PushOrUpdate(start, 0);
@@ -114,45 +155,56 @@ namespace IAFahim.Graph
     {
         public static void Run(int n, int start, int* head, int* to, int* next, int* weight, long* dist, int* parent)
         {
-            // Identical heap-Dijkstra to Dijkstra.Run; forward to the single
-            // implementation to avoid divergence. Public class kept for API stability.
             Dijkstra.Run(n, start, head, to, next, weight, dist, parent);
         }
     }
 
     public static unsafe class DijkstraDense
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int ScanMinVertex(long* dist, bool* used, int n, out long best)
+        {
+            int v = SpArrays.NoParent;
+            best = SpArrays.Infinity;
+            for (int i = 0; i < n; i++)
+            {
+                if (!used[i] && dist[i] < best)
+                {
+                    best = dist[i];
+                    v = i;
+                }
+            }
+            return v;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void RelaxOutEdges(int* head, int* to, int* next, int* weight, long* dist, int* parent, int src, long srcDist)
+        {
+            for (int e = head[src]; e != 0; e = next[e])
+            {
+                int neighbor = to[e];
+                long nd = srcDist + weight[e];
+                if (nd < dist[neighbor])
+                {
+                    dist[neighbor] = nd;
+                    parent[neighbor] = src;
+                }
+            }
+        }
+
         public static void Run(int n, int start, int* head, int* to, int* next, int* weight, long* dist, int* parent)
         {
-            for (int i = 0; i < n; i++) dist[i] = long.MaxValue;
-            for (int i = 0; i < n; i++) parent[i] = -1;
+            SpArrays.InitDist(dist, n);
+            SpArrays.InitParent(parent, n);
             bool* used = stackalloc bool[n];
             for (int i = 0; i < n; i++) used[i] = false;
             dist[start] = 0;
             for (int iter = 0; iter < n; iter++)
             {
-                int v = -1;
-                long best = long.MaxValue;
-                for (int i = 0; i < n; i++)
-                {
-                    if (!used[i] && dist[i] < best)
-                    {
-                        best = dist[i];
-                        v = i;
-                    }
-                }
-                if (v == -1 || best == long.MaxValue) break;
+                int v = ScanMinVertex(dist, used, n, out long best);
+                if (v == SpArrays.NoParent || best == SpArrays.Infinity) break;
                 used[v] = true;
-                for (int e = head[v]; e != 0; e = next[e])
-                {
-                    int u = to[e];
-                    long nd = dist[v] + weight[e];
-                    if (nd < dist[u])
-                    {
-                        dist[u] = nd;
-                        parent[u] = v;
-                    }
-                }
+                RelaxOutEdges(head, to, next, weight, dist, parent, v, dist[v]);
             }
         }
     }
@@ -163,12 +215,13 @@ namespace IAFahim.Graph
         {
             int len = 0;
             int cur = target;
-            while (cur != -1)
+            while (cur != SpArrays.NoParent)
             {
                 path[len++] = cur;
                 cur = parent[cur];
             }
-            for (int i = 0; i < len / 2; i++)
+            int half = len / 2;
+            for (int i = 0; i < half; i++)
             {
                 int tmp = path[i];
                 path[i] = path[len - 1 - i];
@@ -180,58 +233,85 @@ namespace IAFahim.Graph
 
     public static unsafe class BellmanFord
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool RelaxEdges(int* eu, int* ev, int* ew, int m, long* dist, int* parent)
+        {
+            bool changed = false;
+            for (int i = 0; i < m; i++)
+            {
+                if (dist[eu[i]] == SpArrays.Infinity) continue;
+                long nd = dist[eu[i]] + ew[i];
+                if (nd < dist[ev[i]])
+                {
+                    dist[ev[i]] = nd;
+                    parent[ev[i]] = eu[i];
+                    changed = true;
+                }
+            }
+            return changed;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool HasNegativeCycle(int* eu, int* ev, int* ew, int m, long* dist)
+        {
+            for (int i = 0; i < m; i++)
+            {
+                if (dist[eu[i]] != SpArrays.Infinity && dist[eu[i]] + ew[i] < dist[ev[i]])
+                    return true;
+            }
+            return false;
+        }
+
         public static bool Run(int n, int start, int m, int* eu, int* ev, int* ew, long* dist, int* parent)
         {
-            for (int i = 0; i < n; i++) dist[i] = long.MaxValue;
-            for (int i = 0; i < n; i++) parent[i] = -1;
+            SpArrays.InitDist(dist, n);
+            SpArrays.InitParent(parent, n);
             dist[start] = 0;
             for (int iter = 0; iter < n - 1; iter++)
             {
-                bool changed = false;
-                for (int i = 0; i < m; i++)
-                {
-                    if (dist[eu[i]] == long.MaxValue) continue;
-                    long nd = dist[eu[i]] + ew[i];
-                    if (nd < dist[ev[i]])
-                    {
-                        dist[ev[i]] = nd;
-                        parent[ev[i]] = eu[i];
-                        changed = true;
-                    }
-                }
-                if (!changed) break;
+                if (!RelaxEdges(eu, ev, ew, m, dist, parent)) break;
             }
-            for (int i = 0; i < m; i++)
-            {
-                if (dist[eu[i]] != long.MaxValue && dist[eu[i]] + ew[i] < dist[ev[i]])
-                    return false;
-            }
-            return true;
+            return !HasNegativeCycle(eu, ev, ew, m, dist);
         }
     }
 
     public static unsafe class Spfa
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void Enqueue(int* q, int cap, ref int tail, ref int cnt, int* inqueue, int v)
+        {
+            q[tail] = v;
+            tail++;
+            if (tail >= cap) tail = 0;
+            cnt++;
+            inqueue[v] = 1;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int Dequeue(int* q, int cap, ref int head, ref int cnt)
+        {
+            int u = q[head];
+            head++;
+            if (head >= cap) head = 0;
+            cnt--;
+            return u;
+        }
+
         public static bool Run(int n, int start, int* head, int* to, int* next, int* weight, long* dist, int* parent, int* inqueue)
         {
-            for (int i = 0; i < n; i++) dist[i] = long.MaxValue;
-            for (int i = 0; i < n; i++) parent[i] = -1;
+            SpArrays.InitDist(dist, n);
+            SpArrays.InitParent(parent, n);
             for (int i = 0; i < n; i++) inqueue[i] = 0;
             int* q = stackalloc int[n];
-            int qh = 0, qt = 0, cnt = 0;
-            dist[start] = 0;
-            q[qt++] = start;
-            if (qt >= n) qt = 0;
-            cnt++;
-            inqueue[start] = 1;
             int* count = stackalloc int[n];
             for (int i = 0; i < n; i++) count[i] = 0;
+            int qh = 0, qt = 0, cnt = 0;
+            dist[start] = 0;
+            Enqueue(q, n, ref qt, ref cnt, inqueue, start);
             count[start] = 1;
             while (cnt > 0)
             {
-                int u = q[qh++];
-                if (qh >= n) qh = 0;
-                cnt--;
+                int u = Dequeue(q, n, ref qh, ref cnt);
                 inqueue[u] = 0;
                 for (int e = head[u]; e != 0; e = next[e])
                 {
@@ -243,10 +323,7 @@ namespace IAFahim.Graph
                         parent[v] = u;
                         if (inqueue[v] == 0)
                         {
-                            q[qt++] = v;
-                            if (qt >= n) qt = 0;
-                            cnt++;
-                            inqueue[v] = 1;
+                            Enqueue(q, n, ref qt, ref cnt, inqueue, v);
                             count[v]++;
                             if (count[v] > n) return false;
                         }
@@ -287,13 +364,9 @@ namespace IAFahim.Graph
 
     public static unsafe class Johnson
     {
-        public static bool Run(int n, int start, int m, int* eu, int* ev, int* ew, long* dist)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void BuildAugmentedGraph(int* eu, int* ev, int* ew, int m, int n, long* augU, long* augV, long* augW)
         {
-            long* h = stackalloc long[n];
-            int* parent = stackalloc int[n];
-            long* augU = stackalloc long[m + n];
-            long* augV = stackalloc long[m + n];
-            long* augW = stackalloc long[m + n];
             for (int i = 0; i < m; i++)
             {
                 augU[i] = eu[i];
@@ -306,92 +379,140 @@ namespace IAFahim.Graph
                 augV[m + i] = i;
                 augW[m + i] = 0;
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool RelaxAugmentedOnce(long* augU, long* augV, long* augW, int edgeCount, long* bfDist)
+        {
+            bool changed = false;
+            for (int i = 0; i < edgeCount; i++)
+            {
+                long uu = augU[i], vv = augV[i];
+                if (bfDist[uu] != long.MaxValue && bfDist[uu] + augW[i] < bfDist[vv])
+                {
+                    bfDist[vv] = bfDist[uu] + augW[i];
+                    changed = true;
+                }
+            }
+            return changed;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool HasAugmentedNegativeCycle(long* augU, long* augV, long* augW, int edgeCount, long* bfDist)
+        {
+            for (int i = 0; i < edgeCount; i++)
+            {
+                long uu = augU[i], vv = augV[i];
+                if (bfDist[uu] != long.MaxValue && bfDist[uu] + augW[i] < bfDist[vv])
+                    return true;
+            }
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void RunSingleSource(int n, int m, int* eu, int* ev, int* ew, long* dist, long* h, int s)
+        {
+            long* dBase = dist + s * n;
+            for (int i = 0; i < n; i++) dBase[i] = long.MaxValue;
+            dBase[s] = 0;
+            SpMinHeap pq = new SpMinHeap(n);
+            try
+            {
+                pq.PushOrUpdate(s, 0);
+                while (pq.Size > 0)
+                {
+                    int u = pq.Pop(out long d);
+                    if (d != dBase[u]) continue;
+                    long hu = h[u];
+                    for (int i = 0; i < m; i++)
+                    {
+                        if (eu[i] != u) continue;
+                        int v = ev[i];
+                        long nd = d + ew[i] + hu - h[v];
+                        if (nd < dBase[v])
+                        {
+                            dBase[v] = nd;
+                            pq.PushOrUpdate(v, nd);
+                        }
+                    }
+                }
+            }
+            finally { pq.Dispose(); }
+            for (int t = 0; t < n; t++)
+            {
+                if (dBase[t] != long.MaxValue)
+                    dBase[t] = dBase[t] - h[s] + h[t];
+            }
+        }
+
+        public static bool Run(int n, int start, int m, int* eu, int* ev, int* ew, long* dist)
+        {
+            int edgeCount = m + n;
+            long* augU = stackalloc long[edgeCount];
+            long* augV = stackalloc long[edgeCount];
+            long* augW = stackalloc long[edgeCount];
+            BuildAugmentedGraph(eu, ev, ew, m, n, augU, augV, augW);
             long* bfDist = stackalloc long[n + 1];
             for (int i = 0; i <= n; i++) bfDist[i] = 0;
             for (int iter = 0; iter < n; iter++)
             {
-                bool changed = false;
-                for (int i = 0; i < m + n; i++)
-                {
-                    long uu = augU[i], vv = augV[i];
-                    if (bfDist[uu] != long.MaxValue && bfDist[uu] + augW[i] < bfDist[vv])
-                    {
-                        bfDist[vv] = bfDist[uu] + augW[i];
-                        changed = true;
-                    }
-                }
-                if (!changed) break;
+                if (!RelaxAugmentedOnce(augU, augV, augW, edgeCount, bfDist)) break;
             }
-            for (int i = 0; i < m + n; i++)
-            {
-                long uu = augU[i], vv = augV[i];
-                if (bfDist[uu] != long.MaxValue && bfDist[uu] + augW[i] < bfDist[vv])
-                    return false;
-            }
+            if (HasAugmentedNegativeCycle(augU, augV, augW, edgeCount, bfDist)) return false;
+            long* h = stackalloc long[n];
             for (int i = 0; i < n; i++) h[i] = bfDist[i];
-            for (int s = 0; s < n; s++)
-            {
-                for (int i = 0; i < n; i++) dist[s * n + i] = long.MaxValue;
-                dist[s * n + s] = 0;
-                var pq = new SpMinHeap(n);
-                try
-                {
-                    pq.PushOrUpdate(s, 0);
-                    while (pq.Size > 0)
-                    {
-                        int u = pq.Pop(out long d);
-                        if (d != dist[s * n + u]) continue;
-                        long hu = h[u];
-                        for (int i = 0; i < m; i++)
-                        {
-                            if (eu[i] != u) continue;
-                            int v = ev[i];
-                            long nd = d + ew[i] + hu - h[v];
-                            if (nd < dist[s * n + v])
-                            {
-                                dist[s * n + v] = nd;
-                                pq.PushOrUpdate(v, nd);
-                            }
-                        }
-                    }
-                }
-                finally { pq.Dispose(); }
-                for (int t = 0; t < n; t++)
-                {
-                    if (dist[s * n + t] != long.MaxValue)
-                        dist[s * n + t] = dist[s * n + t] - h[s] + h[t];
-                }
-            }
+            for (int s = 0; s < n; s++) RunSingleSource(n, m, eu, ev, ew, dist, h, s);
             return true;
         }
     }
 
     public static unsafe class ZeroOneShortestPath
     {
+        private const int MaxLiveDequeEntriesPerVertex = 2;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void DequePushFront(int* dq, long* dqDist, int cap, ref int head, ref int cnt, int v, long nd)
+        {
+            head--;
+            if (head < 0) head = cap - 1;
+            dq[head] = v;
+            dqDist[head] = nd;
+            cnt++;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void DequePushBack(int* dq, long* dqDist, int cap, ref int tail, ref int cnt, int v, long nd)
+        {
+            dq[tail] = v;
+            dqDist[tail] = nd;
+            tail++;
+            if (tail >= cap) tail = 0;
+            cnt++;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int DequePopFront(int* dq, long* dqDist, int cap, ref int head, ref int cnt, out long nd)
+        {
+            int v = dq[head];
+            nd = dqDist[head];
+            head++;
+            if (head >= cap) head = 0;
+            cnt--;
+            return v;
+        }
+
         public static void Run(int n, int start, int* head, int* to, int* next, int* weight, long* dist)
         {
-            for (int i = 0; i < n; i++) dist[i] = long.MaxValue;
+            SpArrays.InitDist(dist, n);
             dist[start] = 0;
-            // A 0-1 BFS deque has no in-queue dedup, so a vertex may be enqueued
-            // again on every strict improvement. Distances present in the deque
-            // span at most {d, d+1}, so each vertex holds at most two live entries
-            // (one per distance value): capacity 2*n is a safe upper bound. Stale
-            // entries are skipped via the lazily-stored distance (dqDist).
-            int cap = 2 * n;
+            int cap = n * MaxLiveDequeEntriesPerVertex;
             int* dq = stackalloc int[cap];
             long* dqDist = stackalloc long[cap];
             int dh = 0, dt = 0, cnt = 0;
-            dq[dt] = start;
-            dqDist[dt] = 0;
-            dt++;
-            cnt++;
+            DequePushBack(dq, dqDist, cap, ref dt, ref cnt, start, 0);
             while (cnt > 0)
             {
-                int u = dq[dh];
-                long du = dqDist[dh];
-                dh++;
-                if (dh >= cap) dh = 0;
-                cnt--;
+                int u = DequePopFront(dq, dqDist, cap, ref dh, ref cnt, out long du);
                 if (du != dist[u]) continue;
                 for (int e = head[u]; e != 0; e = next[e])
                 {
@@ -401,21 +522,9 @@ namespace IAFahim.Graph
                     {
                         dist[v] = nd;
                         if (weight[e] == 0)
-                        {
-                            dh--;
-                            if (dh < 0) dh = cap - 1;
-                            dq[dh] = v;
-                            dqDist[dh] = nd;
-                            cnt++;
-                        }
+                            DequePushFront(dq, dqDist, cap, ref dh, ref cnt, v, nd);
                         else
-                        {
-                            dq[dt] = v;
-                            dqDist[dt] = nd;
-                            dt++;
-                            if (dt >= cap) dt = 0;
-                            cnt++;
-                        }
+                            DequePushBack(dq, dqDist, cap, ref dt, ref cnt, v, nd);
                     }
                 }
             }
@@ -426,10 +535,10 @@ namespace IAFahim.Graph
     {
         public static void Run(int n, int start, int* head, int* to, int* next, long* weight, long* dist, int* parent, long* potential)
         {
-            for (int i = 0; i < n; i++) dist[i] = long.MaxValue;
-            for (int i = 0; i < n; i++) parent[i] = -1;
+            SpArrays.InitDist(dist, n);
+            SpArrays.InitParent(parent, n);
             dist[start] = 0;
-            var pq = new SpMinHeap(n);
+            SpMinHeap pq = new SpMinHeap(n);
             try
             {
                 pq.PushOrUpdate(start, 0);
