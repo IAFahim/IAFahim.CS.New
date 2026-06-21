@@ -1,0 +1,10 @@
+IAFahim.Graph.Flow
+IAFahim.Graph
+IAFahim.Math.Gauss
+IAFahim.Math.PoissonDisk
+IAFahim.Graph.SCC
+IAFahim.Optimization.Games
+IAFahim.Search.ExactCover
+IAFahim.Geometry.Triangulation
+IAFahim.Algebra.Polynomial
+IAFahim.String.SuffixTree

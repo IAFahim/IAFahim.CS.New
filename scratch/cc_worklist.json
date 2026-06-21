@@ -1,0 +1,3444 @@
+[
+{
+"file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Layers.cs",
+"maxcc": 90,
+"methods": [
+[
+"BuildHeightfieldLayers",
+90
+]
+]
+},
+{
+"file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Region.cs",
+"maxcc": 63,
+"methods": [
+[
+"MergeAndFilterRegions",
+63
+],
+[
+"MergeAndFilterLayerRegions",
+43
+],
+[
+"CalculateDistanceField",
+32
+],
+[
+"BuildLayerRegions",
+26
+],
+[
+"BuildRegionsMonotone",
+25
+],
+[
+"ExpandRegions",
+24
+],
+[
+"FloodRegion",
+19
+],
+[
+"WalkContour",
+14
+],
+[
+"BuildRegions",
+12
+],
+[
+"MergeRegions",
+11
+],
+[
+"SortCellsByLevel",
+9
+],
+[
+"BoxBlur",
+8
+],
+[
+"CanMergeWithRegion",
+7
+],
+[
+"ReplaceNeighbour",
+6
+],
+[
+"RemoveAdjacentNeighbours",
+5
+],
+[
+"PaintRectRegion",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.Pathfinding.Recast/Detour/Detour.NavMeshBuilder.cs",
+"maxcc": 58,
+"methods": [
+[
+"CreateNavMeshData",
+58
+],
+[
+"ClassifyOffMeshPoint",
+13
+],
+[
+"CreateBVTree",
+12
+],
+[
+"CalcExtends",
+8
+],
+[
+"SiftDown",
+7
+]
+]
+},
+{
+"file": "src/IAFahim.Graph/MstVariants.cs",
+"maxcc": 52,
+"methods": [
+[
+"DegreeConstrainedMst",
+52
+],
+[
+"CapacitatedMst",
+30
+],
+[
+"MinimumDiameterSpanningTree",
+29
+],
+[
+"LexicographicShortestPath",
+23
+],
+[
+"RandomizedMstVerify",
+18
+],
+[
+"VertexConnectivity",
+16
+],
+[
+"ArborescenceCount",
+15
+],
+[
+"LexicographicMst",
+15
+],
+[
+"MaximumBranching",
+14
+],
+[
+"KargerSteinMinCut",
+12
+],
+[
+"MinimumBottleneckSpanningTree",
+10
+],
+[
+"MaximumCapacitySpanningTree",
+10
+],
+[
+"NagamochiIbarakiSparseCertificate",
+9
+],
+[
+"CutTreeQuery",
+9
+],
+[
+"StoerWagnerPhase",
+9
+],
+[
+"MinimumBottleneckPath",
+8
+],
+[
+"WidestPath",
+8
+]
+]
+},
+{
+"file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Mesh.cs",
+"maxcc": 47,
+"methods": [
+[
+"BuildPolyMesh",
+47
+],
+[
+"RemoveVertex",
+47
+],
+[
+"MergePolyMeshes",
+26
+],
+[
+"BuildMeshAdjacency",
+19
+],
+[
+"CanRemoveVertex",
+17
+],
+[
+"Triangulate",
+13
+],
+[
+"GetPolyMergeValue",
+12
+],
+[
+"Diagonalie",
+11
+],
+[
+"AddVertex",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.Pathfinding.Recast/Detour/DtNavMeshQuery.cs",
+"maxcc": 44,
+"methods": [
+[
+"FindStraightPath",
+44
+],
+[
+"FindStraightPath",
+42
+],
+[
+"UpdateSlicedFindPath",
+37
+],
+[
+"Raycast",
+36
+],
+[
+"FindDistanceToWall",
+29
+],
+[
+"FindLocalNeighbourhood",
+28
+],
+[
+"FindPath",
+27
+],
+[
+"FindStraightPath",
+27
+],
+[
+"FindPolysAroundShape",
+27
+],
+[
+"FindRandomPointAroundCircle",
+26
+],
+[
+"MoveAlongSurface",
+26
+],
+[
+"FindPolysAroundCircle",
+25
+],
+[
+"GetPolyWallSegments",
+24
+],
+[
+"FinalizeSlicedFindPathPartial",
+16
+],
+[
+"FindRandomPoint",
+13
+],
+[
+"GetPortalPoints",
+13
+],
+[
+"AppendVertex",
+13
+],
+[
+"FinalizeSlicedFindPath",
+12
+],
+[
+"AppendRaycastSegment",
+10
+],
+[
+"AppendVertex",
+9
+],
+[
+"AppendPortals",
+9
+],
+[
+"FinalizeSlicedFindPath",
+9
+],
+[
+"AppendPortals",
+8
+],
+[
+"InitSlicedFindPath",
+8
+],
+[
+"ClosestPointOnPolyBoundary",
+7
+],
+[
+"QueryPolygons",
+6
+],
+[
+"GetPathFromDijkstraSearch",
+6
+],
+[
+"GetPolyHeight",
+5
+],
+[
+"GetPathToNode",
+5
+],
+[
+"InsertInterval",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Flow/PushRelabelGlobalRelabel.cs",
+"maxcc": 44,
+"methods": [
+[
+"Run",
+44
+]
+]
+},
+{
+"file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Contour.cs",
+"maxcc": 42,
+"methods": [
+[
+"SimplifyContour",
+42
+],
+[
+"BuildContours",
+38
+],
+[
+"WalkContour",
+15
+],
+[
+"GetCornerHeight",
+14
+],
+[
+"MergeRegionHoles",
+14
+],
+[
+"IntersectSegContour",
+9
+],
+[
+"SiftDownHole",
+7
+],
+[
+"SiftDownDiag",
+7
+],
+[
+"CompareHoles",
+6
+],
+[
+"FindLeftMostVertex",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Flow/PushRelabelGap.cs",
+"maxcc": 37,
+"methods": [
+[
+"Run",
+37
+]
+]
+},
+{
+"file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.MeshDetail.cs",
+"maxcc": 36,
+"methods": [
+[
+"BuildPolyDetail",
+36
+],
+[
+"SeedArrayWithPolyCenter",
+27
+],
+[
+"BuildPolyMeshDetail",
+21
+],
+[
+"DelaunayHull",
+19
+],
+[
+"GetHeightData",
+17
+],
+[
+"GetHeight",
+16
+],
+[
+"CompleteFacet",
+15
+],
+[
+"MergePolyMeshDetails",
+8
+],
+[
+"UpdateLeftFace",
+7
+],
+[
+"OverlapEdges",
+7
+],
+[
+"DistToPoly",
+6
+],
+[
+"FindEdge",
+6
+],
+[
+"TriangulateHull",
+6
+],
+[
+"OnHull",
+6
+],
+[
+"PolyMinExtent",
+5
+],
+[
+"SetTriFlags",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.Graph/GraphRemaining.cs",
+"maxcc": 34,
+"methods": [
+[
+"Solve",
+34
+],
+[
+"Run",
+31
+],
+[
+"Run",
+20
+],
+[
+"Run",
+17
+],
+[
+"Dijkstra",
+11
+],
+[
+"Run",
+10
+],
+[
+"Run",
+9
+],
+[
+"Pop",
+6
+],
+[
+"Run",
+6
+],
+[
+"Run",
+5
+],
+[
+"ReconstructPath",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Area.cs",
+"maxcc": 33,
+"methods": [
+[
+"ErodeWalkableArea",
+33
+],
+[
+"MarkConvexPolyArea",
+17
+],
+[
+"MarkCylinderArea",
+16
+],
+[
+"MarkBoxArea",
+15
+],
+[
+"MedianFilterWalkableArea",
+11
+],
+[
+"OffsetPoly",
+7
+]
+]
+},
+{
+"file": "src/IAFahim.Graph/Planar.cs",
+"maxcc": 31,
+"methods": [
+[
+"IsOuterplanarForbiddenSubdivision",
+31
+],
+[
+"IsKuratowskiSubdivision",
+29
+],
+[
+"FindSeparationPair",
+28
+],
+[
+"DecomposeTriconnected",
+21
+],
+[
+"ValidatePlacement",
+19
+],
+[
+"ReduceSeries",
+17
+],
+[
+"FindAndAddPathEar",
+14
+],
+[
+"PlanarShortestPath",
+14
+],
+[
+"PlanarMinCut",
+14
+],
+[
+"FacePotentialSolve",
+13
+],
+[
+"IsK33",
+13
+],
+[
+"GetNextHalfEdge",
+12
+],
+[
+"SeparatorBacktrack",
+11
+],
+[
+"TryFindSplitEdge",
+10
+],
+[
+"StDfs",
+10
+],
+[
+"SeriesParallelDecompose",
+10
+],
+[
+"MarkComp",
+10
+],
+[
+"GetMinConnectivity",
+9
+],
+[
+"DfsCycle",
+9
+],
+[
+"TryAddEar",
+9
+],
+[
+"StNumbering",
+9
+],
+[
+"PlanarDualBuild",
+9
+],
+[
+"EarDecomposition",
+8
+],
+[
+"SegmentsIntersect",
+8
+],
+[
+"SearchKuratowski",
+8
+],
+[
+"BuildEmbeddingFromCoords",
+7
+],
+[
+"SiftDownAngleNbr",
+7
+],
+[
+"PlaceVertex",
+7
+],
+[
+"PlanarSeparator",
+7
+],
+[
+"ReduceParallel",
+7
+],
+[
+"FindCutNodes",
+6
+],
+[
+"ProcessGomoryHuNeighbors",
+6
+],
+[
+"SearchOuterplanar",
+6
+]
+]
+},
+{
+"file": "src/IAFahim.Geometry.Spatial/Octree.cs",
+"maxcc": 31,
+"methods": [
+[
+"RangeQuery",
+31
+],
+[
+"BuildChildren",
+9
+],
+[
+"PartitionOctants",
+6
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Matching/AssignmentHungarianRectangular.cs",
+"maxcc": 29,
+"methods": [
+[
+"Run",
+29
+]
+]
+},
+{
+"file": "src/IAFahim.Optimization.Games/MinCostFlow.cs",
+"maxcc": 29,
+"methods": [
+[
+"MinCostArborescence",
+29
+],
+[
+"MinMeanCycle",
+23
+],
+[
+"CompareProducts",
+9
+],
+[
+"CompareU128",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Flow/MinCostFlowNetworkSimplex.cs",
+"maxcc": 24,
+"methods": [
+[
+"Run",
+24
+]
+]
+},
+{
+"file": "src/IAFahim.Graph/ShortestPath.cs",
+"maxcc": 22,
+"methods": [
+[
+"Run",
+22
+],
+[
+"Run",
+13
+],
+[
+"Run",
+12
+],
+[
+"Run",
+11
+],
+[
+"Run",
+10
+],
+[
+"Run",
+9
+],
+[
+"Run",
+7
+],
+[
+"Run",
+7
+],
+[
+"Pop",
+6
+]
+]
+},
+{
+"file": "src/IAFahim.Pathfinding.Recast/Detour/DtNavMesh.cs",
+"maxcc": 21,
+"methods": [
+[
+"AddTile",
+21
+],
+[
+"ClosestPointOnDetailEdges",
+15
+],
+[
+"ConnectExternalLinks",
+15
+],
+[
+"RemoveTile",
+14
+],
+[
+"QueryPolygonsInTile",
+13
+],
+[
+"TryFindBestOffMeshLanding",
+11
+],
+[
+"ConnectOffMeshLink",
+11
+],
+[
+"RemoveLinksToPolyRef",
+10
+],
+[
+"GetNeighborTilesAt",
+9
+],
+[
+"GetOffMeshConnectionPolyEndPoints",
+9
+],
+[
+"GetPolyHeight",
+8
+],
+[
+"ConnectInternalLinks",
+8
+],
+[
+"FindConnectingPolys",
+8
+],
+[
+"GetTilesAt",
+7
+],
+[
+"Dispose",
+7
+],
+[
+"BaseOffMeshLinks",
+7
+],
+[
+"ConnectOffMeshLinksToTile",
+7
+],
+[
+"ReconnectOffMeshLink",
+7
+],
+[
+"UnconnectLinks",
+7
+],
+[
+"RemoveOffMeshLandingLinks",
+7
+],
+[
+"FindNearestPolyInTile",
+7
+],
+[
+"Init",
+6
+],
+[
+"GetTileAt",
+6
+],
+[
+"GetTileAndPolyByRef",
+6
+],
+[
+"GetOffMeshConnectionByRef",
+6
+],
+[
+"RestoreTileState",
+6
+],
+[
+"IsValidPolyRef",
+6
+],
+[
+"RemoveRemoteOffMeshLookupEntry",
+6
+],
+[
+"RemoveExistingOffMeshLanding",
+6
+],
+[
+"UnconnectRemoteIncomingOffMeshLinks",
+6
+],
+[
+"UnconnectRemoteOutgoingOffMeshLinks",
+6
+],
+[
+"EnsureRemoteOffMeshLookupCapacity",
+5
+],
+[
+"RegisterOffMeshLinks",
+5
+],
+[
+"UnregisterOffMeshLinks",
+5
+],
+[
+"ConnectOffMeshLinksFromTile",
+5
+],
+[
+"TryGetOffMeshBasePolyRef",
+5
+],
+[
+"CalcSlabEndPoints",
+5
+],
+[
+"OverlapSlabs",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Flow/ExcessScalingMaxFlow.cs",
+"maxcc": 21,
+"methods": [
+[
+"Run",
+21
+]
+]
+},
+{
+"file": "src/IAFahim.String/StringAdvanced.cs",
+"maxcc": 21,
+"methods": [
+[
+"Run",
+21
+],
+[
+"Run",
+11
+],
+[
+"Run",
+10
+],
+[
+"Run",
+10
+],
+[
+"Run",
+9
+],
+[
+"Run",
+9
+],
+[
+"Run",
+8
+],
+[
+"Run",
+8
+],
+[
+"Run",
+8
+],
+[
+"Run",
+7
+],
+[
+"Run",
+6
+],
+[
+"Run",
+6
+],
+[
+"Run",
+6
+],
+[
+"Run",
+6
+],
+[
+"Run",
+6
+],
+[
+"Run",
+5
+],
+[
+"Run",
+5
+],
+[
+"ParseAdd",
+5
+],
+[
+"ParseMul",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.String.Automata/FiniteAutomaton.cs",
+"maxcc": 20,
+"methods": [
+[
+"BuildDfa",
+20
+]
+]
+},
+{
+"file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.cs",
+"maxcc": 20,
+"methods": [
+[
+"BuildCompactHeightfield",
+20
+],
+[
+"Between",
+9
+],
+[
+"IntersectProp",
+6
+],
+[
+"Intersect",
+6
+]
+]
+},
+{
+"file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Filter.cs",
+"maxcc": 20,
+"methods": [
+[
+"FilterLedgeSpans",
+20
+],
+[
+"FilterLowHangingWalkableObstacles",
+7
+],
+[
+"FilterWalkableLowHeightSpans",
+6
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Flow/MinCostFlowSpfa.cs",
+"maxcc": 20,
+"methods": [
+[
+"Run",
+20
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Flow/MinCostFlowCapacityScaling.cs",
+"maxcc": 20,
+"methods": [
+[
+"Run",
+20
+]
+]
+},
+{
+"file": "src/IAFahim.String/Probabilistic.cs",
+"maxcc": 20,
+"methods": [
+[
+"RandomizedMstVerify",
+20
+],
+[
+"VerifyNonMstEdge",
+12
+],
+[
+"FreivaldsMatrixVerify",
+11
+],
+[
+"RabinKarpLasVegas",
+11
+]
+]
+},
+{
+"file": "src/IAFahim.Search.Range/Mex.cs",
+"maxcc": 19,
+"methods": [
+[
+"RunWindow",
+19
+],
+[
+"Run",
+8
+],
+[
+"Run",
+6
+]
+]
+},
+{
+"file": "src/IAFahim.Optimization.Exact/SteinerDreyfusWagner.cs",
+"maxcc": 19,
+"methods": [
+[
+"Run",
+19
+]
+]
+},
+{
+"file": "src/IAFahim.Math.Gauss/Gauss.cs",
+"maxcc": 19,
+"methods": [
+[
+"Run",
+19
+],
+[
+"Run",
+16
+],
+[
+"Determinant",
+11
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Flow/MinCostFlowCostScaling.cs",
+"maxcc": 19,
+"methods": [
+[
+"Run",
+19
+]
+]
+},
+{
+"file": "src/IAFahim.Math.PoissonDisk/PoissonDisk3D.cs",
+"maxcc": 18,
+"methods": [
+[
+"Run",
+18
+],
+[
+"IsTooClose",
+12
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.SCC/SccAugmentation.cs",
+"maxcc": 18,
+"methods": [
+[
+"MinEdgesForStronglyConnected",
+18
+]
+]
+},
+{
+"file": "src/IAFahim.Optimization.Games/Retrograde.cs",
+"maxcc": 18,
+"methods": [
+[
+"Solve",
+18
+]
+]
+},
+{
+"file": "src/IAFahim.Search.ExactCover/ExactCover.cs",
+"maxcc": 18,
+"methods": [
+[
+"MagicBacktrack",
+18
+],
+[
+"SolvePolyominoTiling",
+15
+],
+[
+"CheckKenKen",
+14
+],
+[
+"TransformCell",
+8
+],
+[
+"Revise",
+8
+],
+[
+"KillerBacktrack",
+8
+],
+[
+"BitIndex",
+6
+],
+[
+"ConstraintPropagationSolve",
+6
+],
+[
+"KillerSudokuSolve",
+6
+],
+[
+"KenKenSolve",
+6
+],
+[
+"KenKenBacktrack",
+6
+],
+[
+"SearchDlx",
+5
+],
+[
+"BuildSudokuMatrix",
+5
+],
+[
+"SudokuBitmaskSolve",
+5
+],
+[
+"SudokuBitmaskBacktrack",
+5
+],
+[
+"CompareQueensTransform",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.Geometry.Triangulation/EarClipping.cs",
+"maxcc": 17,
+"methods": [
+[
+"LineSegmentsIntersect",
+17
+],
+[
+"TriangulatePolygon",
+12
+],
+[
+"IsValidBridge",
+11
+],
+[
+"MergeHole",
+10
+],
+[
+"IsEar",
+10
+],
+[
+"Triangulate",
+8
+],
+[
+"PointInTriangle",
+6
+]
+]
+},
+{
+"file": "src/IAFahim.Algebra.Polynomial/RationalInterpolation.cs",
+"maxcc": 17,
+"methods": [
+[
+"ConvergentStep",
+17
+],
+[
+"ThieleInterpolation",
+11
+],
+[
+"Run",
+10
+],
+[
+"ModInv",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.String.SuffixTree/SuffixTree.cs",
+"maxcc": 17,
+"methods": [
+[
+"Build",
+17
+]
+]
+},
+{
+"file": "src/IAFahim.Graph/GraphBipartite.cs",
+"maxcc": 17,
+"methods": [
+[
+"Run",
+17
+],
+[
+"Run",
+11
+],
+[
+"Run",
+11
+],
+[
+"Bfs",
+9
+],
+[
+"Run",
+8
+],
+[
+"Run",
+8
+],
+[
+"Run",
+7
+],
+[
+"Run",
+7
+],
+[
+"Run",
+7
+],
+[
+"Run",
+6
+],
+[
+"Run",
+6
+],
+[
+"TryKuhn",
+6
+],
+[
+"Run",
+6
+],
+[
+"TryKuhnBfs",
+6
+],
+[
+"Dfs",
+6
+],
+[
+"Run",
+6
+],
+[
+"GetLca",
+6
+],
+[
+"Contract",
+6
+],
+[
+"ProcessNeighbor",
+6
+],
+[
+"UpdateDistances",
+5
+],
+[
+"FindAugmentingPath",
+5
+],
+[
+"FindAugmentingPath",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.Math.NT/Bsgs.cs",
+"maxcc": 17,
+"methods": [
+[
+"Run",
+17
+]
+]
+},
+{
+"file": "src/IAFahim.Optimization.Games/AttractorSet.cs",
+"maxcc": 17,
+"methods": [
+[
+"Solve",
+17
+]
+]
+},
+{
+"file": "src/IAFahim.Geometry.Spatial/RangeTree.cs",
+"maxcc": 17,
+"methods": [
+[
+"BuildRec",
+17
+],
+[
+"QueryRec3D",
+16
+],
+[
+"QueryRec",
+11
+]
+]
+},
+{
+"file": "src/IAFahim.Geometry.Voronoi/VisibilityGraph.cs",
+"maxcc": 17,
+"methods": [
+[
+"SegmentsIntersect",
+17
+],
+[
+"IsVisible",
+11
+]
+]
+},
+{
+"file": "src/IAFahim.String.Grammar/GrammarCompress.cs",
+"maxcc": 17,
+"methods": [
+[
+"Compress",
+17
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Matching/HospitalResidentsMatching.cs",
+"maxcc": 16,
+"methods": [
+[
+"Run",
+16
+]
+]
+},
+{
+"file": "src/IAFahim.Math.Barycentric/BarycentricCoords.cs",
+"maxcc": 16,
+"methods": [
+[
+"ProjectOntoTriangle",
+16
+]
+]
+},
+{
+"file": "src/IAFahim.Combinatorics.Generation/Permutations.cs",
+"maxcc": 16,
+"methods": [
+[
+"MoveNext",
+16
+],
+[
+"MoveNext",
+6
+],
+[
+"NextPermutation",
+6
+],
+[
+"NextDerangement",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.Graph/Mst.cs",
+"maxcc": 16,
+"methods": [
+[
+"Run",
+16
+],
+[
+"SiftDownEdge",
+7
+],
+[
+"SiftDownEdge2",
+7
+],
+[
+"Pop",
+6
+],
+[
+"Run",
+6
+],
+[
+"Run",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.Optimization.Exact/TspMeetInMiddle.cs",
+"maxcc": 16,
+"methods": [
+[
+"Run",
+16
+]
+]
+},
+{
+"file": "src/IAFahim.Math.Polynomial.Fps/Fps.cs",
+"maxcc": 16,
+"methods": [
+[
+"Run",
+16
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Flow/MinCostFlowDijkstra.cs",
+"maxcc": 16,
+"methods": [
+[
+"Run",
+16
+],
+[
+"Pop",
+7
+]
+]
+},
+{
+"file": "src/IAFahim.String.Parse/Parsing.cs",
+"maxcc": 16,
+"methods": [
+[
+"Parse",
+16
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Tree/TreeAdvanced.cs",
+"maxcc": 16,
+"methods": [
+[
+"Run",
+16
+],
+[
+"Run",
+8
+],
+[
+"Run",
+8
+],
+[
+"Decompose",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.DAG/MinimumEquivalentDigraph.cs",
+"maxcc": 16,
+"methods": [
+[
+"Run",
+16
+]
+]
+},
+{
+"file": "src/IAFahim.Collision.Gjk/Gjk.cs",
+"maxcc": 16,
+"methods": [
+[
+"ClosestPointOnTriangle",
+16
+],
+[
+"ClosestPointOnTetrahedron",
+10
+],
+[
+"Distance",
+9
+],
+[
+"Intersect",
+6
+],
+[
+"DoSimplex",
+6
+],
+[
+"TriangleCase",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.SpanningTrees/SpanningTreesAndCuts.cs",
+"maxcc": 15,
+"methods": [
+[
+"Run",
+15
+],
+[
+"Run",
+13
+],
+[
+"Run",
+12
+],
+[
+"Run",
+8
+],
+[
+"Run",
+7
+],
+[
+"TryBfs",
+7
+],
+[
+"TryDfs",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.Math.PoissonDisk/PoissonDisk2D.cs",
+"maxcc": 15,
+"methods": [
+[
+"Run",
+15
+],
+[
+"IsTooClose",
+9
+]
+]
+},
+{
+"file": "src/IAFahim.Math.NT/PrimitiveRoot.cs",
+"maxcc": 15,
+"methods": [
+[
+"Run",
+15
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Eulerian/Eulerian.cs",
+"maxcc": 15,
+"methods": [
+[
+"Run",
+15
+],
+[
+"Run",
+14
+]
+]
+},
+{
+"file": "src/IAFahim.Geometry.Spatial/SegmentTree.cs",
+"maxcc": 15,
+"methods": [
+[
+"BuildRec",
+15
+],
+[
+"Query2D",
+10
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Flow/MinCostFlowPrimalDual.cs",
+"maxcc": 15,
+"methods": [
+[
+"Run",
+15
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Flow/MinCostFlowSsp.cs",
+"maxcc": 15,
+"methods": [
+[
+"Run",
+15
+],
+[
+"PopMin",
+8
+]
+]
+},
+{
+"file": "src/IAFahim.Math.Transform/SubsetConvolutionRanked.cs",
+"maxcc": 15,
+"methods": [
+[
+"Run",
+15
+],
+[
+"MulMod",
+6
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.DAG/DagTransitiveReduction.cs",
+"maxcc": 15,
+"methods": [
+[
+"Run",
+15
+]
+]
+},
+{
+"file": "src/IAFahim.Collision.Gjk/Epa.cs",
+"maxcc": 15,
+"methods": [
+[
+"PenetrationDepth",
+15
+],
+[
+"IsHorizonEdge",
+9
+],
+[
+"ExpandSimplex",
+7
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Matching/StableRoommates.cs",
+"maxcc": 14,
+"methods": [
+[
+"Phase1",
+14
+],
+[
+"Phase2",
+14
+],
+[
+"Run",
+9
+],
+[
+"BuildLists",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.Algebra.Polynomial/Berlekamp.cs",
+"maxcc": 14,
+"methods": [
+[
+"ExtractBasis",
+14
+],
+[
+"ReduceQMatrix",
+12
+],
+[
+"BuildQMatrix",
+8
+]
+]
+},
+{
+"file": "src/IAFahim.Sort.RadixSort/RadixSort.cs",
+"maxcc": 14,
+"methods": [
+[
+"RunWithResult",
+14
+],
+[
+"Run",
+12
+],
+[
+"RunLong",
+12
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Misc/GraphMisc.cs",
+"maxcc": 14,
+"methods": [
+[
+"Run",
+14
+],
+[
+"Run",
+7
+],
+[
+"Run",
+7
+],
+[
+"Run",
+6
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.TreeDecomposition/PathwidthDp.cs",
+"maxcc": 14,
+"methods": [
+[
+"TryIntroduceNewVertices",
+14
+],
+[
+"MapOldToNewMasks",
+9
+],
+[
+"PathwidthDpIndependentSet",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.String.Match/EditDistance.cs",
+"maxcc": 14,
+"methods": [
+[
+"Ukkonen",
+14
+]
+]
+},
+{
+"file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Rasterization.cs",
+"maxcc": 14,
+"methods": [
+[
+"RasterizeTriangle",
+14
+],
+[
+"AddSpan",
+10
+],
+[
+"DividePoly",
+8
+]
+]
+},
+{
+"file": "src/IAFahim.Geometry.Hull/RotatingCalipers.cs",
+"maxcc": 14,
+"methods": [
+[
+"MinArea",
+14
+],
+[
+"MinWidth",
+6
+]
+]
+},
+{
+"file": "src/IAFahim.Geometry.Spatial/Quadtree.cs",
+"maxcc": 14,
+"methods": [
+[
+"BuildRecursive",
+14
+],
+[
+"Build",
+9
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Flow/MaximumClosureFlow.cs",
+"maxcc": 14,
+"methods": [
+[
+"Run",
+14
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Flow/FlowRecoverLowerBound.cs",
+"maxcc": 14,
+"methods": [
+[
+"Run",
+14
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Tree/TreeBasic.cs",
+"maxcc": 14,
+"methods": [
+[
+"Run",
+14
+],
+[
+"Run",
+11
+],
+[
+"Run",
+11
+],
+[
+"Run",
+9
+],
+[
+"Run",
+7
+],
+[
+"Run",
+6
+],
+[
+"Run",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.Math.Polynomial/OnlineNttConvolution.cs",
+"maxcc": 14,
+"methods": [
+[
+"Run",
+14
+],
+[
+"NttForward",
+6
+]
+]
+},
+{
+"file": "src/IAFahim.Math.Polynomial/PolynomialComposition.cs",
+"maxcc": 14,
+"methods": [
+[
+"Run",
+14
+],
+[
+"RunNaive",
+14
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.ShortestPath/ShortestPaths.cs",
+"maxcc": 14,
+"methods": [
+[
+"Run",
+14
+],
+[
+"Run",
+14
+],
+[
+"Run",
+8
+],
+[
+"Run",
+7
+],
+[
+"EdgeDecreased",
+7
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Matching/AssignmentAuctionAlgorithm.cs",
+"maxcc": 13,
+"methods": [
+[
+"Run",
+13
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Matching/Kuhn.cs",
+"maxcc": 13,
+"methods": [
+[
+"Run",
+13
+],
+[
+"Run",
+8
+],
+[
+"Run",
+7
+],
+[
+"TryKuhnDense",
+6
+],
+[
+"Run",
+5
+],
+[
+"TryKuhn",
+5
+],
+[
+"RunDense",
+5
+],
+[
+"ProcessBfsQueue",
+5
+],
+[
+"Dfs",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.Graph/GraphAdvanced.cs",
+"maxcc": 13,
+"methods": [
+[
+"MinimumCutPhase",
+13
+],
+[
+"Run",
+11
+],
+[
+"Run",
+7
+],
+[
+"Bfs",
+6
+]
+]
+},
+{
+"file": "src/IAFahim.Graph/GraphTopo.cs",
+"maxcc": 13,
+"methods": [
+[
+"Run",
+13
+],
+[
+"Run",
+10
+],
+[
+"Run",
+8
+],
+[
+"Run",
+8
+],
+[
+"Run",
+7
+],
+[
+"Run",
+7
+],
+[
+"Run",
+7
+]
+]
+},
+{
+"file": "src/IAFahim.String.Match/MainLorentz.cs",
+"maxcc": 13,
+"methods": [
+[
+"Find",
+13
+]
+]
+},
+{
+"file": "src/IAFahim.Search.RangeQueries/RangeQueries.cs",
+"maxcc": 13,
+"methods": [
+[
+"RunFenwick",
+13
+],
+[
+"Run",
+8
+],
+[
+"RunMin",
+5
+],
+[
+"RunMax",
+5
+],
+[
+"RunAdd",
+5
+],
+[
+"Run",
+5
+],
+[
+"Run",
+5
+],
+[
+"Run",
+5
+],
+[
+"RunSetInt32",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.Geometry.Hull/MaximumInscribedCircle.cs",
+"maxcc": 13,
+"methods": [
+[
+"Run",
+13
+]
+]
+},
+{
+"file": "src/IAFahim.Optimization.Knapsack/MeetInMiddle.cs",
+"maxcc": 13,
+"methods": [
+[
+"Run",
+13
+]
+]
+},
+{
+"file": "src/IAFahim.String.Parse/Earley.cs",
+"maxcc": 13,
+"methods": [
+[
+"Parse",
+13
+],
+[
+"Predict",
+7
+],
+[
+"AddState",
+6
+]
+]
+},
+{
+"file": "src/IAFahim.String/Enumeration.cs",
+"maxcc": 13,
+"methods": [
+[
+"ShortestCommonSupersequence",
+13
+],
+[
+"ShortestAbsentSubsequence",
+12
+],
+[
+"FindMissing",
+11
+],
+[
+"ShortestMissingSubstring",
+8
+]
+]
+},
+{
+"file": "src/IAFahim.String.Compress/Arithmetic.cs",
+"maxcc": 13,
+"methods": [
+[
+"Decode",
+13
+],
+[
+"Encode",
+7
+]
+]
+},
+{
+"file": "src/IAFahim.Algebra.GraphPoly/Chromatic.cs",
+"maxcc": 12,
+"methods": [
+[
+"Interpolate",
+12
+],
+[
+"Subset",
+9
+],
+[
+"IsIndependentSet",
+6
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Matching/BottleneckAssignment.cs",
+"maxcc": 12,
+"methods": [
+[
+"Run",
+12
+],
+[
+"TryAugment",
+6
+],
+[
+"SiftDown",
+6
+],
+[
+"HasPerfectMatching",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Matching/StableMarriageIncomplete.cs",
+"maxcc": 12,
+"methods": [
+[
+"Run",
+12
+]
+]
+},
+{
+"file": "src/IAFahim.Optimization.Offline/Offline.cs",
+"maxcc": 12,
+"methods": [
+[
+"Process",
+12
+],
+[
+"SortByX",
+8
+],
+[
+"BuildPersistentSegTree",
+8
+]
+]
+},
+{
+"file": "src/IAFahim.Optimization.Submodular/MaxCut.cs",
+"maxcc": 12,
+"methods": [
+[
+"LocalSearch",
+12
+]
+]
+},
+{
+"file": "src/IAFahim.Geometry.Arrangement/Arrangement.cs",
+"maxcc": 12,
+"methods": [
+[
+"QueryKdTree",
+12
+],
+[
+"Run",
+8
+],
+[
+"FindMinMax",
+6
+],
+[
+"Partition",
+6
+],
+[
+"Run",
+5
+],
+[
+"Run",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.Geometry.Hull/StraightSkeleton.cs",
+"maxcc": 12,
+"methods": [
+[
+"IntersectTime",
+12
+],
+[
+"Build",
+12
+]
+]
+},
+{
+"file": "src/IAFahim.Optimization.Exact/TspBitonic.cs",
+"maxcc": 12,
+"methods": [
+[
+"Run",
+12
+]
+]
+},
+{
+"file": "src/IAFahim.Geometry.Spatial/Mst.cs",
+"maxcc": 12,
+"methods": [
+[
+"Manhattan",
+12
+],
+[
+"Euclidean",
+12
+]
+]
+},
+{
+"file": "src/IAFahim.Geometry.Spatial/BallTree.cs",
+"maxcc": 12,
+"methods": [
+[
+"NearestRec",
+12
+],
+[
+"BuildRec",
+10
+],
+[
+"SiftDownAxis",
+10
+]
+]
+},
+{
+"file": "src/IAFahim.Optimization.Knapsack/SubsetSum.cs",
+"maxcc": 12,
+"methods": [
+[
+"Can",
+12
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Flow/MinimumSTCutAll.cs",
+"maxcc": 12,
+"methods": [
+[
+"Run",
+12
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Flow/MinimumWeightClosure.cs",
+"maxcc": 12,
+"methods": [
+[
+"Run",
+12
+]
+]
+},
+{
+"file": "src/IAFahim.Search.Bit/BitSearch.cs",
+"maxcc": 12,
+"methods": [
+[
+"Run",
+12
+],
+[
+"MergeSortCount",
+8
+],
+[
+"Run",
+7
+],
+[
+"Run",
+5
+],
+[
+"Run",
+5
+],
+[
+"Run",
+5
+],
+[
+"Run",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.String/StringCore.cs",
+"maxcc": 12,
+"methods": [
+[
+"Run",
+12
+],
+[
+"Run",
+9
+],
+[
+"Run",
+7
+],
+[
+"Run",
+7
+],
+[
+"Run",
+6
+],
+[
+"Run",
+6
+],
+[
+"Run",
+6
+]
+]
+},
+{
+"file": "src/IAFahim.Math.Polynomial/Polynomial.cs",
+"maxcc": 12,
+"methods": [
+[
+"Run",
+12
+],
+[
+"Run",
+11
+],
+[
+"Run",
+9
+],
+[
+"Run",
+9
+],
+[
+"Run",
+8
+],
+[
+"Run",
+8
+],
+[
+"Run",
+8
+],
+[
+"Run",
+8
+],
+[
+"Run",
+5
+],
+[
+"Run",
+5
+],
+[
+"Run",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.Collections.NoDeps/NativeParallelMultiHashMap.cs",
+"maxcc": 12,
+"methods": [
+[
+"SetAllocatedIndexLength",
+12
+],
+[
+"RecalculateBuckets",
+7
+],
+[
+"TryGetNextValue",
+7
+],
+[
+"Dispose",
+6
+],
+[
+"TryGetFirstValue",
+6
+]
+]
+},
+{
+"file": "src/IAFahim.Math.Combinatorics/Sieve.cs",
+"maxcc": 12,
+"methods": [
+[
+"Run",
+12
+],
+[
+"Run",
+9
+],
+[
+"Run",
+9
+],
+[
+"Run",
+6
+],
+[
+"MillerRabinTest",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.DAG/RandomTopologicalOrder.cs",
+"maxcc": 12,
+"methods": [
+[
+"Run",
+12
+]
+]
+},
+{
+"file": "src/IAFahim.DS.PieceTable/PieceTable.cs",
+"maxcc": 11,
+"methods": [
+[
+"Run",
+11
+],
+[
+"Run",
+9
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Matching/StableMarriage.cs",
+"maxcc": 11,
+"methods": [
+[
+"RunWithHistory",
+11
+],
+[
+"CheckStabilityForMan",
+6
+],
+[
+"IsStable",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.Combinatorics.Generation/NecklacesAndBracelets.cs",
+"maxcc": 11,
+"methods": [
+[
+"MoveNext",
+11
+],
+[
+"DeBruijnFromLyndon",
+9
+]
+]
+},
+{
+"file": "src/IAFahim.Graph/GraphTraversal.cs",
+"maxcc": 11,
+"methods": [
+[
+"Run",
+11
+],
+[
+"Run",
+7
+],
+[
+"Run",
+6
+],
+[
+"Run",
+6
+]
+]
+},
+{
+"file": "src/IAFahim.Geometry.Basic/GeometryBasic.cs",
+"maxcc": 11,
+"methods": [
+[
+"Run",
+11
+],
+[
+"Run",
+9
+],
+[
+"Run",
+6
+],
+[
+"Run",
+5
+],
+[
+"Run",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.Math.NT/MoebiusPrefix.cs",
+"maxcc": 11,
+"methods": [
+[
+"Run",
+11
+]
+]
+},
+{
+"file": "src/IAFahim.Math.NT/TonelliShanks.cs",
+"maxcc": 11,
+"methods": [
+[
+"ModSqrtOne",
+11
+],
+[
+"Run",
+6
+]
+]
+},
+{
+"file": "src/IAFahim.Math.NT/TotientPrefix.cs",
+"maxcc": 11,
+"methods": [
+[
+"Run",
+11
+]
+]
+},
+{
+"file": "src/IAFahim.Geometry.Hull/HalfSpaceIntersection.cs",
+"maxcc": 11,
+"methods": [
+[
+"Run",
+11
+],
+[
+"SiftDownAngle",
+7
+]
+]
+},
+{
+"file": "src/IAFahim.Geometry.Hull/ConvexHull3D.cs",
+"maxcc": 11,
+"methods": [
+[
+"TryFindInitialTetrahedron",
+11
+],
+[
+"Build",
+10
+],
+[
+"SetNeighbor",
+7
+],
+[
+"FixNeighbors",
+7
+],
+[
+"ProcessPoint",
+6
+]
+]
+},
+{
+"file": "src/IAFahim.Optimization.Games/Mdp.cs",
+"maxcc": 11,
+"methods": [
+[
+"PolicyIteration",
+11
+],
+[
+"ValueIteration",
+7
+]
+]
+},
+{
+"file": "src/IAFahim.Geometry.Frame/ParallelTransport.cs",
+"maxcc": 11,
+"methods": [
+[
+"Compute",
+11
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Flow/PicardQueyranneClosure.cs",
+"maxcc": 11,
+"methods": [
+[
+"Run",
+11
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Flow/MinCostFlowCancelCycle.cs",
+"maxcc": 11,
+"methods": [
+[
+"Spfa",
+11
+],
+[
+"Run",
+7
+]
+]
+},
+{
+"file": "src/IAFahim.String.SuffixAutomaton/KthSubstring.cs",
+"maxcc": 11,
+"methods": [
+[
+"Find",
+11
+],
+[
+"CollectEdgesDedup",
+7
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Bridges/BridgeAndArticulation.cs",
+"maxcc": 11,
+"methods": [
+[
+"Dfs",
+11
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Bridges/BiconnectivityAugmentation.cs",
+"maxcc": 11,
+"methods": [
+[
+"MinEdgesFor2EdgeConnected",
+11
+],
+[
+"DfsEdge",
+9
+]
+]
+},
+{
+"file": "src/IAFahim.Collections.NoDeps/NativeHashSet.cs",
+"maxcc": 11,
+"methods": [
+[
+"Reallocate",
+11
+],
+[
+"Remove",
+10
+],
+[
+"MoveNext",
+7
+],
+[
+"Add",
+6
+],
+[
+"NativeHashSet",
+5
+],
+[
+"Contains",
+5
+],
+[
+"Dispose",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.String.MinRotation/MinRotation.cs",
+"maxcc": 11,
+"methods": [
+[
+"Run",
+11
+],
+[
+"Run",
+10
+]
+]
+},
+{
+"file": "src/IAFahim.Search.Imos/Imos.cs",
+"maxcc": 11,
+"methods": [
+[
+"Run",
+11
+],
+[
+"Add",
+9
+],
+[
+"Run",
+8
+],
+[
+"Run",
+7
+],
+[
+"SiftDown",
+6
+],
+[
+"Build",
+5
+],
+[
+"Run",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.Search.Imos/Imos2D.cs",
+"maxcc": 11,
+"methods": [
+[
+"Add",
+11
+],
+[
+"Build",
+6
+]
+]
+},
+{
+"file": "src/IAFahim.Algebra.Sequence/Combinatorial.cs",
+"maxcc": 10,
+"methods": [
+[
+"Eulerian",
+10
+],
+[
+"QBinomial",
+7
+],
+[
+"YoungTableaux",
+6
+]
+]
+},
+{
+"file": "src/IAFahim.Algebra.Sequence/GeneratingFunction.cs",
+"maxcc": 10,
+"methods": [
+[
+"LagrangeInversion",
+10
+],
+[
+"EgfMultiply",
+7
+],
+[
+"TruncMul",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.TreeDecomposition/TreeDecompositionKnapsack.cs",
+"maxcc": 10,
+"methods": [
+[
+"ProcessJoin",
+10
+],
+[
+"TreeDecompositionKnapsack",
+9
+],
+[
+"ProcessForget",
+9
+],
+[
+"ProcessIntroduce",
+7
+],
+[
+"ProcessLeaf",
+6
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.TreeDecomposition/HeavyLightDecomposition.cs",
+"maxcc": 10,
+"methods": [
+[
+"PathMaxSubarray",
+10
+],
+[
+"Dfs2",
+5
+],
+[
+"SumTreeAdd",
+5
+],
+[
+"SumTreeAssign",
+5
+],
+[
+"SumTreeQuery",
+5
+],
+[
+"MaxSubarrayTreeAssign",
+5
+],
+[
+"MaxSubarrayTreeQuery",
+5
+],
+[
+"PathAdd",
+5
+],
+[
+"PathAssign",
+5
+],
+[
+"PathSumQuery",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.Math.NT/JacobiSymbol.cs",
+"maxcc": 10,
+"methods": [
+[
+"Run",
+10
+]
+]
+},
+{
+"file": "src/IAFahim.Math.NT/LinearSieveMultiplicative.cs",
+"maxcc": 10,
+"methods": [
+[
+"Run",
+10
+]
+]
+},
+{
+"file": "src/IAFahim.DS.Sparse/Sparse.cs",
+"maxcc": 10,
+"methods": [
+[
+"RunInt64",
+10
+],
+[
+"RangeMin",
+10
+],
+[
+"BitOperations_Log2",
+6
+],
+[
+"Run",
+5
+]
+]
+},
+{
+"file": "src/IAFahim.Geometry.Hull/MinkowskiSum.cs",
+"maxcc": 10,
+"methods": [
+[
+"Convex",
+10
+],
+[
+"Reorder",
+8
+]
+]
+},
+{
+"file": "src/IAFahim.Sort.QuickSort/QuickSort.cs",
+"maxcc": 10,
+"methods": [
+[
+"PartitionInt32",
+10
+]
+]
+},
+{
+"file": "src/IAFahim.Optimization.Exact/MinDominatingSet.cs",
+"maxcc": 10,
+"methods": [
+[
+"Search",
+10
+]
+]
+},
+{
+"file": "src/IAFahim.DS.Fenwick/PersistentFenwick.cs",
+"maxcc": 10,
+"methods": [
+[
+"Run",
+10
+],
+[
+"Run",
+6
+]
+]
+},
+{
+"file": "src/IAFahim.Search.MeetInMiddle/MeetInMiddle.cs",
+"maxcc": 10,
+"methods": [
+[
+"HasSubsetSum",
+10
+],
+[
+"SubsetSumCount",
+8
+],
+[
+"SiftDown",
+7
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Connectivity/FullyDynamicConnectivity.cs",
+"maxcc": 10,
+"methods": [
+[
+"MatchEvents",
+10
+],
+[
+"SortEdgeEvents",
+8
+]
+]
+},
+{
+"file": "src/IAFahim.Optimization.Knapsack/MultipleChoiceKnapsack.cs",
+"maxcc": 10,
+"methods": [
+[
+"Run",
+10
+]
+]
+},
+{
+"file": "src/IAFahim.Optimization.Knapsack/KSum.cs",
+"maxcc": 10,
+"methods": [
+[
+"Count",
+10
+],
+[
+"FourSum",
+6
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Flow/FlowWithEdgeDemands.cs",
+"maxcc": 10,
+"methods": [
+[
+"Run",
+10
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Flow/Flow.cs",
+"maxcc": 10,
+"methods": [
+[
+"TryFindMinCostPath",
+10
+],
+[
+"Run",
+7
+],
+[
+"TryFindPath",
+7
+],
+[
+"Pop",
+6
+],
+[
+"Run",
+6
+],
+[
+"Run",
+6
+]
+]
+},
+{
+"file": "src/IAFahim.Graph.Eertree/Eertree.cs",
+"maxcc": 10,
+"methods": [
+[
+"Build",
+10
+]
+]
+},
+{
+"file": "src/IAFahim.String.Parse/LlParse.cs",
+"maxcc": 10,
+"methods": [
+[
+"Parse",
+10
+]
+]
+},
+{
+"file": "src/IAFahim.Search.Specialized/Scheduling.cs",
+"maxcc": 10,
+"methods": [
+[
+"RoundRobinSchedule",
+10
+]
+]
+},
+{
+"file": "src/IAFahim.Math.Polynomial/PolynomialMultipointEval.cs",
+"maxcc": 10,
+"methods": [
+[
+"RunInterpolate",
+10
+]
+]
+},
+{
+"file": "src/IAFahim.Geometry.Advanced/GeometryAdvanced.cs",
+"maxcc": 10,
+"methods": [
+[
+"Run",
+10
+],
+[
+"Solve",
+9
+],
+[
+"Run",
+6
+],
+[
+"SiftDown",
+6
+],
+[
+"Run",
+5
+],
+[
+"UpdateMaxDist",
+5
+]
+]
+}
+]
