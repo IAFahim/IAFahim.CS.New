@@ -50,12 +50,7 @@ namespace IAFahim.String.Automata
                     int subset = queue[head++];
                     for (int c = 0; c < sigma; c++)
                     {
-                        int next = 0;
-                        for (int s = 0; s < nfaStates; s++)
-                        {
-                            if ((subset & (1 << s)) != 0 && nfaTrans[s][c] >= 0)
-                                next |= (1 << nfaTrans[s][c]);
-                        }
+                        int next = SubsetMove(nfaTrans, nfaStates, subset, c);
                         if (stateMap[next] == -1)
                         {
                             stateMap[next] = stateCount++;
@@ -79,22 +74,10 @@ namespace IAFahim.String.Automata
                     int dfaState = stateMap[mask];
                     for (int c = 0; c < sigma; c++)
                     {
-                        int next = 0;
-                        for (int s = 0; s < nfaStates; s++)
-                        {
-                            if ((mask & (1 << s)) != 0 && nfaTrans[s][c] >= 0)
-                                next |= (1 << nfaTrans[s][c]);
-                        }
+                        int next = SubsetMove(nfaTrans, nfaStates, mask, c);
                         dfa->Transitions[dfaState][c] = stateMap[next];
                     }
-                    for (int s = 0; s < nfaStates; s++)
-                    {
-                        if ((mask & (1 << s)) != 0 && nfaAccept[s])
-                        {
-                            dfa->IsAccept[dfaState] = true;
-                            break;
-                        }
-                    }
+                    dfa->IsAccept[dfaState] = SubsetAccepts(nfaAccept, nfaStates, mask);
                 }
             }
             finally
@@ -102,6 +85,29 @@ namespace IAFahim.String.Automata
                 Marshal.FreeHGlobal((nint)queue);
                 Marshal.FreeHGlobal((nint)tempNext);
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int SubsetMove(int** nfaTrans, int nfaStates, int subset, int c)
+        {
+            int next = 0;
+            for (int s = 0; s < nfaStates; s++)
+            {
+                if ((subset & (1 << s)) != 0 && nfaTrans[s][c] >= 0)
+                    next |= (1 << nfaTrans[s][c]);
+            }
+            return next;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool SubsetAccepts(bool* nfaAccept, int nfaStates, int subset)
+        {
+            for (int s = 0; s < nfaStates; s++)
+            {
+                if ((subset & (1 << s)) != 0 && nfaAccept[s])
+                    return true;
+            }
+            return false;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

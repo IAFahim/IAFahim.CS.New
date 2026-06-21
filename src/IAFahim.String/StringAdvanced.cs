@@ -372,14 +372,16 @@ namespace IAFahim.String
 
     public static unsafe class SuffixAutomatonExtend
     {
+        private const int Alphabet = 26;
+
         public static int Run(int* link, int* len_, int* next, int last, int c, int* size)
         {
             int cur = *size;
             (*size)++;
             int p = last;
-            while (p != -1 && next[p * 26 + c] == 0)
+            while (p != -1 && next[p * Alphabet + c] == 0)
             {
-                next[p * 26 + c] = cur;
+                next[p * Alphabet + c] = cur;
                 p = link[p];
             }
             if (p == -1)
@@ -388,29 +390,35 @@ namespace IAFahim.String
             }
             else
             {
-                int q = next[p * 26 + c];
+                int q = next[p * Alphabet + c];
                 if (len_[p] + 1 == len_[q])
                 {
                     link[cur] = q;
                 }
                 else
                 {
-                    int clone = *size;
-                    (*size)++;
-                    for (int i = 0; i < 26; i++)
-                        next[clone * 26 + i] = next[q * 26 + i];
-                    link[clone] = link[q];
-                    len_[clone] = len_[p] + 1;
-                    while (p != -1 && next[p * 26 + c] == q)
-                    {
-                        next[p * 26 + c] = clone;
-                        p = link[p];
-                    }
-                    link[q] = clone;
-                    link[cur] = clone;
+                    CloneState(link, len_, next, p, q, cur, c, size);
                 }
             }
             return cur;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void CloneState(int* link, int* len_, int* next, int p, int q, int cur, int c, int* size)
+        {
+            int clone = *size;
+            (*size)++;
+            for (int i = 0; i < Alphabet; i++)
+                next[clone * Alphabet + i] = next[q * Alphabet + i];
+            link[clone] = link[q];
+            len_[clone] = len_[p] + 1;
+            while (p != -1 && next[p * Alphabet + c] == q)
+            {
+                next[p * Alphabet + c] = clone;
+                p = link[p];
+            }
+            link[q] = clone;
+            link[cur] = clone;
         }
     }
 
@@ -502,24 +510,20 @@ namespace IAFahim.String
 
     public static unsafe class PalindromicTreeAdd
     {
+        private const int Alphabet = 26;
+
         public static int Run(int* len_, int* link, int* next, int* last, byte* s, int pos)
         {
-            int cur = *last;
+            int cur = FindSuffixPalindrome(len_, link, s, pos, *last);
             int ch = s[pos];
             int c = ch - 'a';
-            while (true)
+            if (next[cur * Alphabet + c] != 0)
             {
-                int curlen = len_[cur];
-                if (pos - curlen - 1 >= 0 && s[pos - curlen - 1] == ch) break;
-                cur = link[cur];
-            }
-            if (next[cur * 26 + c] != 0)
-            {
-                *last = next[cur * 26 + c];
+                *last = next[cur * Alphabet + c];
                 return 0;
             }
             int now = ++len_[0];
-            next[cur * 26 + c] = now;
+            next[cur * Alphabet + c] = now;
             len_[now] = len_[cur] + 2;
             if (len_[now] == 1)
             {
@@ -527,16 +531,23 @@ namespace IAFahim.String
                 *last = now;
                 return 1;
             }
-            cur = link[cur];
+            cur = FindSuffixPalindrome(len_, link, s, pos, link[cur]);
+            link[now] = next[cur * Alphabet + c];
+            *last = now;
+            return 1;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int FindSuffixPalindrome(int* len_, int* link, byte* s, int pos, int cur)
+        {
+            int ch = s[pos];
             while (true)
             {
                 int curlen = len_[cur];
                 if (pos - curlen - 1 >= 0 && s[pos - curlen - 1] == ch) break;
                 cur = link[cur];
             }
-            link[now] = next[cur * 26 + c];
-            *last = now;
-            return 1;
+            return cur;
         }
     }
 

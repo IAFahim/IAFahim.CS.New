@@ -52,20 +52,8 @@ namespace IAFahim.Graph.Matching
                     int i0 = (int)p[j0];
                     long delta = inf;
                     j1 = 0;
-                    for (int j = 1; j <= bigDim; j++)
-                    {
-                        if (used[j] == 0)
-                        {
-                            long cur = c[(i0 - 1) * bigDim + (j - 1)] - u[i0] - v[j];
-                            if (cur < minv[j]) { minv[j] = cur; way[j] = j0; }
-                            if (minv[j] < delta) { delta = minv[j]; j1 = j; }
-                        }
-                    }
-                    for (int j = 0; j <= bigDim; j++)
-                    {
-                        if (used[j] != 0) { u[(int)p[j]] += delta; v[j] -= delta; }
-                        else minv[j] -= delta;
-                    }
+                    ScanColumns(c, u, v, used, minv, way, bigDim, i0, j0, ref delta, ref j1);
+                    ApplyPotentials(p, u, v, used, minv, bigDim, delta);
                     j0 = j1;
                 } while (p[j0] != 0);
 
@@ -90,6 +78,30 @@ namespace IAFahim.Graph.Matching
             {
                 long row1 = p[j + 1];
                 matchRight[j] = (row1 >= 1 && row1 <= n) ? (int)row1 - 1 : -1;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ScanColumns(long* c, long* u, long* v, byte* used, long* minv, long* way, int bigDim, int i0, int j0, ref long delta, ref int j1)
+        {
+            for (int j = 1; j <= bigDim; j++)
+            {
+                if (used[j] == 0)
+                {
+                    long cur = c[(i0 - 1) * bigDim + (j - 1)] - u[i0] - v[j];
+                    if (cur < minv[j]) { minv[j] = cur; way[j] = j0; }
+                    if (minv[j] < delta) { delta = minv[j]; j1 = j; }
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ApplyPotentials(long* p, long* u, long* v, byte* used, long* minv, int bigDim, long delta)
+        {
+            for (int j = 0; j <= bigDim; j++)
+            {
+                if (used[j] != 0) { u[(int)p[j]] += delta; v[j] -= delta; }
+                else minv[j] -= delta;
             }
         }
     }

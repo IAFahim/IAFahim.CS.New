@@ -56,25 +56,10 @@ namespace IAFahim.Optimization.Games
             {
                 // 1. Choose the cheapest incoming edge for every non-root vertex.
                 for (int v = 0; v < vertexCount; v++) minIn[v] = Inf;
-                for (int e = 0; e < m; e++)
-                {
-                    int u = curFrom[e];
-                    int v = curTo[e];
-                    if (u == v) continue; // self-loops can never belong to an arborescence
-                    if (v == curRoot) continue;
-                    if (curW[e] < minIn[v])
-                    {
-                        minIn[v] = curW[e];
-                        fromVertex[v] = u;
-                    }
-                }
+                SelectMinInEdges(curFrom, curTo, curW, m, curRoot, minIn, fromVertex);
 
                 // Any non-root vertex without an incoming edge => no arborescence.
-                for (int v = 0; v < vertexCount; v++)
-                {
-                    if (v == curRoot) continue;
-                    if (minIn[v] == Inf) return Inf;
-                }
+                if (HasUnreachableVertex(minIn, vertexCount, curRoot, Inf)) return Inf;
 
                 // 2. Detect cycles among the chosen in-edges and assign new ids.
                 for (int v = 0; v < vertexCount; v++) { id[v] = -1; visited[v] = -1; }
@@ -83,26 +68,7 @@ namespace IAFahim.Optimization.Games
                 bool hasCycle = false;
                 for (int v = 0; v < vertexCount; v++)
                 {
-                    // Walk back along chosen in-edges marking the current trace, until
-                    // hitting the root, an already-finished vertex, or our own trace.
-                    int u = v;
-                    while (u != curRoot && visited[u] == -1 && id[u] == -1)
-                    {
-                        visited[u] = v;
-                        u = fromVertex[u];
-                    }
-                    // If we re-entered the trace started in this iteration, it's a cycle.
-                    if (u != curRoot && visited[u] == v && id[u] == -1)
-                    {
-                        hasCycle = true;
-                        int x = u;
-                        do
-                        {
-                            id[x] = newCount;
-                            x = fromVertex[x];
-                        } while (x != u);
-                        newCount++;
-                    }
+                    DetectCycleFromVertex(v, curRoot, fromVertex, id, visited, ref newCount, ref hasCycle);
                 }
 
                 // 3. No cycle: the chosen in-edges form the arborescence. Sum & finish.
@@ -137,26 +103,95 @@ namespace IAFahim.Optimization.Games
                 // 4. Reweight & relabel edges for the contracted graph.
                 //    An edge into a cycle member loses that member's chosen in-weight.
                 int newRoot = id[curRoot];
-                int newM = 0;
-                for (int e = 0; e < m; e++)
-                {
-                    int u = curFrom[e];
-                    int v = curTo[e];
-                    int nu = id[u];
-                    int nv = id[v];
-                    if (nu == nv) continue; // edge inside a contracted node: drop it
-                    long nw = curW[e];
-                    if (onStack[v] == 1) nw -= minIn[v]; // v is a contracted cycle member
-                    curFrom[newM] = nu;
-                    curTo[newM] = nv;
-                    curW[newM] = nw;
-                    newM++;
-                }
+                int newM = RelabelContractedEdges(curFrom, curTo, curW, m, id, onStack, minIn);
 
                 m = newM;
                 vertexCount = newCount;
                 curRoot = newRoot;
             }
+        }
+
+        // Populates minIn[v] with the cheapest incoming edge weight for every non-root
+        // vertex v and fromVertex[v] with that edge's source. Self-loops and edges into
+        // the root are ignored. Caller pre-fills minIn with Inf.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void SelectMinInEdges(int* curFrom, int* curTo, long* curW, int m, int curRoot, long* minIn, int* fromVertex)
+        {
+            for (int e = 0; e < m; e++)
+            {
+                int u = curFrom[e];
+                int v = curTo[e];
+                if (u == v) continue; // self-loops can never belong to an arborescence
+                if (v == curRoot) continue;
+                if (curW[e] < minIn[v])
+                {
+                    minIn[v] = curW[e];
+                    fromVertex[v] = u;
+                }
+            }
+        }
+
+        // Returns true when some non-root vertex has no incoming edge (minIn == Inf),
+        // signalling that no arborescence exists.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool HasUnreachableVertex(long* minIn, int vertexCount, int curRoot, long inf)
+        {
+            for (int v = 0; v < vertexCount; v++)
+            {
+                if (v == curRoot) continue;
+                if (minIn[v] == inf) return true;
+            }
+            return false;
+        }
+
+        // Walks back along chosen in-edges starting at `start`, marking the current trace
+        // in `visited`. If the walk re-enters its own trace a cycle is found: every member
+        // gets id = newCount, then newCount is incremented and hasCycle set.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void DetectCycleFromVertex(int start, int curRoot, int* fromVertex, int* id, int* visited, ref int newCount, ref bool hasCycle)
+        {
+            int u = start;
+            while (u != curRoot && visited[u] == -1 && id[u] == -1)
+            {
+                visited[u] = start;
+                u = fromVertex[u];
+            }
+            // If we re-entered the trace started in this iteration, it's a cycle.
+            if (u != curRoot && visited[u] == start && id[u] == -1)
+            {
+                hasCycle = true;
+                int x = u;
+                do
+                {
+                    id[x] = newCount;
+                    x = fromVertex[x];
+                } while (x != u);
+                newCount++;
+            }
+        }
+
+        // Rebuilds the contracted edge set in place: drops edges inside a contracted node,
+        // relabels endpoints via id[], and subtracts the chosen in-weight from edges that
+        // enter a cycle member (onStack[v] == 1). Returns the new edge count.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int RelabelContractedEdges(int* curFrom, int* curTo, long* curW, int m, int* id, int* onStack, long* minIn)
+        {
+            int newM = 0;
+            for (int e = 0; e < m; e++)
+            {
+                int u = curFrom[e];
+                int v = curTo[e];
+                int nu = id[u];
+                int nv = id[v];
+                if (nu == nv) continue; // edge inside a contracted node: drop it
+                long nw = curW[e];
+                if (onStack[v] == 1) nw -= minIn[v]; // v is a contracted cycle member
+                curFrom[newM] = nu;
+                curTo[newM] = nv;
+                curW[newM] = nw;
+                newM++;
+            }
+            return newM;
         }
 
         // Karp's minimum mean cycle algorithm.

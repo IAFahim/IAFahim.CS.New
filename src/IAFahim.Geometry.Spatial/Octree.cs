@@ -55,27 +55,35 @@ namespace IAFahim.Geometry.Spatial
             if (node < 0) return 0; Node* n = &nodes[node];
             if (x2 < n->X || x1 > n->X + n->Size || y2 < n->Y || y1 > n->Y + n->Size || z2 < n->Z || z1 > n->Z + n->Size) return 0;
             if (n->C0 < 0 && n->C1 < 0 && n->C2 < 0 && n->C3 < 0 && n->C4 < 0 && n->C5 < 0 && n->C6 < 0 && n->C7 < 0)
-            {
-                int emitted = 0;
-                for (int i = 0; i < n->Count; i++)
-                {
-                    int pi = n->FirstIndex + i;
-                    double px = xs[pi], py = ys[pi], pz = zs[pi];
-                    if (px >= x1 && px <= x2 && py >= y1 && py <= y2 && pz >= z1 && pz <= z2)
-                        outIdx[emitted++] = pi;
-                }
-                return emitted;
-            }
+                return EmitLeaf(n, xs, ys, zs, x1, y1, z1, x2, y2, z2, outIdx);
             int count = 0;
-            if (n->C0 >= 0) count += RangeQuery(nodes, n->C0, xs, ys, zs, x1, y1, z1, x2, y2, z2, outIdx + count);
-            if (n->C1 >= 0) count += RangeQuery(nodes, n->C1, xs, ys, zs, x1, y1, z1, x2, y2, z2, outIdx + count);
-            if (n->C2 >= 0) count += RangeQuery(nodes, n->C2, xs, ys, zs, x1, y1, z1, x2, y2, z2, outIdx + count);
-            if (n->C3 >= 0) count += RangeQuery(nodes, n->C3, xs, ys, zs, x1, y1, z1, x2, y2, z2, outIdx + count);
-            if (n->C4 >= 0) count += RangeQuery(nodes, n->C4, xs, ys, zs, x1, y1, z1, x2, y2, z2, outIdx + count);
-            if (n->C5 >= 0) count += RangeQuery(nodes, n->C5, xs, ys, zs, x1, y1, z1, x2, y2, z2, outIdx + count);
-            if (n->C6 >= 0) count += RangeQuery(nodes, n->C6, xs, ys, zs, x1, y1, z1, x2, y2, z2, outIdx + count);
-            if (n->C7 >= 0) count += RangeQuery(nodes, n->C7, xs, ys, zs, x1, y1, z1, x2, y2, z2, outIdx + count);
+            QueryChild(nodes, n->C0, xs, ys, zs, x1, y1, z1, x2, y2, z2, outIdx, ref count);
+            QueryChild(nodes, n->C1, xs, ys, zs, x1, y1, z1, x2, y2, z2, outIdx, ref count);
+            QueryChild(nodes, n->C2, xs, ys, zs, x1, y1, z1, x2, y2, z2, outIdx, ref count);
+            QueryChild(nodes, n->C3, xs, ys, zs, x1, y1, z1, x2, y2, z2, outIdx, ref count);
+            QueryChild(nodes, n->C4, xs, ys, zs, x1, y1, z1, x2, y2, z2, outIdx, ref count);
+            QueryChild(nodes, n->C5, xs, ys, zs, x1, y1, z1, x2, y2, z2, outIdx, ref count);
+            QueryChild(nodes, n->C6, xs, ys, zs, x1, y1, z1, x2, y2, z2, outIdx, ref count);
+            QueryChild(nodes, n->C7, xs, ys, zs, x1, y1, z1, x2, y2, z2, outIdx, ref count);
             return count;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int EmitLeaf(Node* n, double* xs, double* ys, double* zs, double x1, double y1, double z1, double x2, double y2, double z2, int* outIdx)
+        {
+            int emitted = 0;
+            for (int i = 0; i < n->Count; i++)
+            {
+                int pi = n->FirstIndex + i;
+                double px = xs[pi], py = ys[pi], pz = zs[pi];
+                if (px >= x1 && px <= x2 && py >= y1 && py <= y2 && pz >= z1 && pz <= z2)
+                    outIdx[emitted++] = pi;
+            }
+            return emitted;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void QueryChild(Node* nodes, int child, double* xs, double* ys, double* zs, double x1, double y1, double z1, double x2, double y2, double z2, int* outIdx, ref int count)
+        {
+            if (child >= 0) count += RangeQuery(nodes, child, xs, ys, zs, x1, y1, z1, x2, y2, z2, outIdx + count);
         }
     }
 }

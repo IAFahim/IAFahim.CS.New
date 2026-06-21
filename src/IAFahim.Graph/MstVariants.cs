@@ -65,20 +65,26 @@ namespace IAFahim.Graph
                     int parent = (int)result[i];
                     if (parent != dummyRoot)
                     {
-                        for (int e = 0; e < m; e++)
-                        {
-                            if (u[e] == parent && v[e] == i)
-                            {
-                                resultEdges[(*resultCount)++] = e;
-                                totalWeight += w[e];
-                                break;
-                            }
-                        }
+                        AppendBranchingEdge(parent, i, u, v, w, m, resultEdges, resultCount, ref totalWeight);
                     }
                 }
             }
 
             return totalWeight;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void AppendBranchingEdge(int parent, int target, int* u, int* v, long* w, int m, int* resultEdges, int* resultCount, ref long totalWeight)
+        {
+            for (int e = 0; e < m; e++)
+            {
+                if (u[e] == parent && v[e] == target)
+                {
+                    resultEdges[(*resultCount)++] = e;
+                    totalWeight += w[e];
+                    return;
+                }
+            }
         }
 
         public static long BranchingMatroidIntersection(int n, int* u, int* v, long* w, int m, int* resultEdges, int* resultCount)
@@ -131,40 +137,59 @@ namespace IAFahim.Graph
             int dim = n - 1;
             for (int i = 0; i < dim; i++)
             {
-                int pivot = i;
-                for (int j = i + 1; j < dim; j++)
-                {
-                    if (Math.Abs(laplacian[j * dim + i]) > Math.Abs(laplacian[pivot * dim + i]))
-                    {
-                        pivot = j;
-                    }
-                }
+                int pivot = SelectPivotRow(laplacian, dim, i);
                 if (laplacian[pivot * dim + i] == 0)
                 {
                     return 0;
                 }
                 if (pivot != i)
                 {
-                    for (int k = 0; k < dim; k++)
-                    {
-                        long tmp = laplacian[i * dim + k];
-                        laplacian[i * dim + k] = laplacian[pivot * dim + k];
-                        laplacian[pivot * dim + k] = tmp;
-                    }
+                    SwapRows(laplacian, dim, i, pivot);
                     det = (Mod - det) % Mod;
                 }
                 det = (det * laplacian[i * dim + i]) % Mod;
                 long inv = Power(laplacian[i * dim + i], Mod - 2, Mod);
-                for (int j = i + 1; j < dim; j++)
-                {
-                    long factor = (laplacian[j * dim + i] * inv) % Mod;
-                    for (int k = i; k < dim; k++)
-                    {
-                        laplacian[j * dim + k] = (laplacian[j * dim + k] - factor * laplacian[i * dim + k] % Mod + Mod) % Mod;
-                    }
-                }
+                EliminateBelow(laplacian, dim, i, inv, Mod);
             }
             return det;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int SelectPivotRow(long* laplacian, int dim, int i)
+        {
+            int pivot = i;
+            for (int j = i + 1; j < dim; j++)
+            {
+                if (Math.Abs(laplacian[j * dim + i]) > Math.Abs(laplacian[pivot * dim + i]))
+                {
+                    pivot = j;
+                }
+            }
+            return pivot;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void SwapRows(long* laplacian, int dim, int i, int pivot)
+        {
+            for (int k = 0; k < dim; k++)
+            {
+                long tmp = laplacian[i * dim + k];
+                laplacian[i * dim + k] = laplacian[pivot * dim + k];
+                laplacian[pivot * dim + k] = tmp;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void EliminateBelow(long* laplacian, int dim, int i, long inv, long mod)
+        {
+            for (int j = i + 1; j < dim; j++)
+            {
+                long factor = (laplacian[j * dim + i] * inv) % mod;
+                for (int k = i; k < dim; k++)
+                {
+                    laplacian[j * dim + k] = (laplacian[j * dim + k] - factor * laplacian[i * dim + k] % mod + mod) % mod;
+                }
+            }
         }
 
         private static long Power(long baseVal, long exp, long mod)
@@ -603,30 +628,14 @@ namespace IAFahim.Graph
 
             for (int k = 0; k < n; k++)
             {
-                for (int i = 0; i < n; i++)
-                {
-                    for (int j = 0; j < n; j++)
-                    {
-                        if (dist[i * n + k] + dist[k * n + j] < dist[i * n + j])
-                        {
-                            dist[i * n + j] = dist[i * n + k] + dist[k * n + j];
-                        }
-                    }
-                }
+                FloydWarshallRelaxVia(dist, n, k);
             }
 
             int bestCenter = 0;
             long minMaxDist = Inf;
             for (int i = 0; i < n; i++)
             {
-                long maxDist = 0;
-                for (int j = 0; j < n; j++)
-                {
-                    if (dist[i * n + j] > maxDist)
-                    {
-                        maxDist = dist[i * n + j];
-                    }
-                }
+                long maxDist = EccentricityOf(dist, n, i);
                 if (maxDist < minMaxDist)
                 {
                     minMaxDist = maxDist;
@@ -661,21 +670,7 @@ namespace IAFahim.Graph
                 }
                 vis[curr] = 1;
 
-                for (int e = 0; e < m; e++)
-                {
-                    int x = u[e];
-                    int y = v[e];
-                    if (x == curr && d[curr] + w[e] < d[y])
-                    {
-                        d[y] = d[curr] + w[e];
-                        p[y] = e;
-                    }
-                    if (y == curr && d[curr] + w[e] < d[x])
-                    {
-                        d[x] = d[curr] + w[e];
-                        p[x] = e;
-                    }
-                }
+                RelaxIncidentEdges(curr, m, u, v, w, d, p);
             }
 
             *resultCount = 0;
@@ -684,6 +679,55 @@ namespace IAFahim.Graph
                 if (p[i] != -1)
                 {
                     resultEdges[(*resultCount)++] = p[i];
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void FloydWarshallRelaxVia(long* dist, int n, int k)
+        {
+            for (int i = 0; i < n; i++)
+            {
+                for (int j = 0; j < n; j++)
+                {
+                    if (dist[i * n + k] + dist[k * n + j] < dist[i * n + j])
+                    {
+                        dist[i * n + j] = dist[i * n + k] + dist[k * n + j];
+                    }
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static long EccentricityOf(long* dist, int n, int i)
+        {
+            long maxDist = 0;
+            for (int j = 0; j < n; j++)
+            {
+                if (dist[i * n + j] > maxDist)
+                {
+                    maxDist = dist[i * n + j];
+                }
+            }
+            return maxDist;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void RelaxIncidentEdges(int curr, int m, int* u, int* v, long* w, long* d, int* p)
+        {
+            for (int e = 0; e < m; e++)
+            {
+                int x = u[e];
+                int y = v[e];
+                if (x == curr && d[curr] + w[e] < d[y])
+                {
+                    d[y] = d[curr] + w[e];
+                    p[y] = e;
+                }
+                if (y == curr && d[curr] + w[e] < d[x])
+                {
+                    d[x] = d[curr] + w[e];
+                    p[x] = e;
                 }
             }
         }
@@ -957,37 +1001,11 @@ namespace IAFahim.Graph
                     int y = v[e];
                     if (x == curr)
                     {
-                        if (dist[curr] + w[e] < dist[y])
-                        {
-                            dist[y] = dist[curr] + w[e];
-                            parent[y] = curr;
-                            parentEdge[y] = e;
-                        }
-                        else if (dist[curr] + w[e] == dist[y])
-                        {
-                            if (parent[y] == -1 || curr < parent[y])
-                            {
-                                parent[y] = curr;
-                                parentEdge[y] = e;
-                            }
-                        }
+                        RelaxLexEdge(curr, y, w[e], dist, parent, parentEdge, e);
                     }
                     if (y == curr)
                     {
-                        if (dist[curr] + w[e] < dist[x])
-                        {
-                            dist[x] = dist[curr] + w[e];
-                            parent[x] = curr;
-                            parentEdge[x] = e;
-                        }
-                        else if (dist[curr] + w[e] == dist[x])
-                        {
-                            if (parent[x] == -1 || curr < parent[x])
-                            {
-                                parent[x] = curr;
-                                parentEdge[x] = e;
-                            }
-                        }
+                        RelaxLexEdge(curr, x, w[e], dist, parent, parentEdge, e);
                     }
                 }
             }
@@ -1014,6 +1032,25 @@ namespace IAFahim.Graph
                 path[i] = tempPath[tempLen - 1 - i];
             }
             return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void RelaxLexEdge(int curr, int target, long edgeWeight, long* dist, int* parent, int* parentEdge, int e)
+        {
+            if (dist[curr] + edgeWeight < dist[target])
+            {
+                dist[target] = dist[curr] + edgeWeight;
+                parent[target] = curr;
+                parentEdge[target] = e;
+            }
+            else if (dist[curr] + edgeWeight == dist[target])
+            {
+                if (parent[target] == -1 || curr < parent[target])
+                {
+                    parent[target] = curr;
+                    parentEdge[target] = e;
+                }
+            }
         }
 
         public static void LexicographicMst(int n, int m, int* u, int* v, long* w, int* resultEdges, int* resultCount)
@@ -1250,12 +1287,7 @@ namespace IAFahim.Graph
                 int activeVertices = n;
                 while (activeVertices > 2)
                 {
-                    uint x = seed;
-                    x ^= x << 13;
-                    x ^= x >> 17;
-                    x ^= x << 5;
-                    seed = x;
-                    int e = (int)(seed % (uint)m);
+                    int e = (int)(NextXorShift(ref seed) % (uint)m);
                     int rx = Find(u[e]);
                     int ry = Find(v[e]);
                     if (rx != ry)
@@ -1289,6 +1321,17 @@ namespace IAFahim.Graph
                     }
                 }
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static uint NextXorShift(ref uint seed)
+        {
+            uint x = seed;
+            x ^= x << 13;
+            x ^= x >> 17;
+            x ^= x << 5;
+            seed = x;
+            return seed;
         }
 
         public static void NagamochiIbarakiSparseCertificate(int n, int m, int* u, int* v, int k, int* certEdges, int* certCount)
