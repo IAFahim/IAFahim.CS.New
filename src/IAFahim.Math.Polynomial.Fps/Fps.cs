@@ -87,23 +87,70 @@ namespace IAFahim.Math.Polynomial.Fps
 
     public static unsafe class FormalPowerSeriesPow
     {
+        private const long IdentityExponent = 0;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int CountLeadingZeros(long* a, int n)
+        {
+            int f = 0;
+            while (f < n && a[f] == 0) f++;
+            return f;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool ShiftExceedsLength(int f, int n, long k)
+        {
+            return f >= n || (f > 0 && k >= n) || f * k >= n;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void FillZeros(long* res, int n)
+        {
+            for (int i = 0; i < n; i++) res[i] = 0;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void WriteUnitSeries(long* res, int n)
+        {
+            if (n > 0) res[0] = 1;
+            for (int i = 1; i < n; i++) res[i] = 0;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void NormalizeShiftedSeries(long* s, long* a, int f, int newN, long invF, long mod)
+        {
+            for (int i = 0; i < newN; i++) s[i] = a[i + f] * invF % mod;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ScaleInPlace(long* s, long k, int newN, long mod)
+        {
+            for (int i = 0; i < newN; i++) s[i] = s[i] * k % mod;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void WriteShiftedResult(long* res, long* ex, int shift, int newN, long powF, long mod)
+        {
+            for (int i = 0; i < shift; i++) res[i] = 0;
+            for (int i = 0; i < newN; i++) res[shift + i] = ex[i] * powF % mod;
+        }
+
         public static int Run(int n, long* a, long k, long* res, long mod)
         {
-            if (k == 0) { if (n > 0) res[0] = 1; for (int i = 1; i < n; i++) res[i] = 0; return n; }
-            int f = 0; while (f < n && a[f] == 0) f++;
-            if (f >= n || (f > 0 && k >= n) || f * k >= n) { for (int i = 0; i < n; i++) res[i] = 0; return n; }
-            
+            if (k == IdentityExponent) { WriteUnitSeries(res, n); return n; }
+            int f = CountLeadingZeros(a, n);
+            if (ShiftExceedsLength(f, n, k)) { FillZeros(res, n); return n; }
             int newN = n - (int)(f * k);
-            long* s = stackalloc long[newN]; for (int i = 0; i < newN; i++) s[i] = a[i + f];
-            long invF = FpsShared.ModInverse(s[0], mod), powF = FpsShared.FastPow(a[f], k, mod);
-            for (int i = 0; i < newN; i++) s[i] = s[i] * invF % mod;
-            
-            long* ln = stackalloc long[newN]; FormalPowerSeriesLog.Run(newN, s, ln, mod);
-            for (int i = 0; i < newN; i++) ln[i] = ln[i] * k % mod;
-            
-            long* ex = stackalloc long[newN]; FormalPowerSeriesExp.Run(newN, ln, ex, mod);
-            for (int i = 0; i < (int)(f * k); i++) res[i] = 0;
-            for (int i = 0; i < newN; i++) res[(int)(f * k) + i] = ex[i] * powF % mod;
+            long invF = FpsShared.ModInverse(a[f], mod);
+            long powF = FpsShared.FastPow(a[f], k, mod);
+            long* s = stackalloc long[newN];
+            NormalizeShiftedSeries(s, a, f, newN, invF, mod);
+            long* ln = stackalloc long[newN];
+            FormalPowerSeriesLog.Run(newN, s, ln, mod);
+            ScaleInPlace(ln, k, newN, mod);
+            long* ex = stackalloc long[newN];
+            FormalPowerSeriesExp.Run(newN, ln, ex, mod);
+            WriteShiftedResult(res, ex, (int)(f * k), newN, powF, mod);
             return n;
         }
     }
