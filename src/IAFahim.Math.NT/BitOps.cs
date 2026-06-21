@@ -124,16 +124,14 @@ namespace IAFahim.Math.NT
         public static int Run(int x)
         {
             if (x <= 1) return 0;
-            int hb = HighestBit.Run(x - 1);
-            return hb << 1;
+            return HighestBit.Run(x - 1);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long Run(long x)
         {
             if (x <= 1) return 0;
-            long hb = HighestBit.Run(x - 1);
-            return hb << 1;
+            return HighestBit.Run(x - 1);
         }
     }
 
