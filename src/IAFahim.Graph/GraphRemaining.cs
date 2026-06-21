@@ -322,9 +322,11 @@ namespace IAFahim.Graph
 
     public static unsafe class YenKShortestPaths
     {
+        private const int MaxK = 64;
+
         public static int Run(int n, int src, int dst, int k, int* head, int* to, int* next, long* dist, long* pathCosts, long* work)
         {
-            int maxK = 64;
+            int maxK = MaxK;
             int* pathNodes = stackalloc int[maxK * n];
             int* pathLens = stackalloc int[maxK];
             long* pathCostsArr = stackalloc long[maxK];
@@ -369,27 +371,7 @@ namespace IAFahim.Graph
                     for (int b = 0; b < n; b++) { blockedU[b] = false; blockedV[b] = false; }
 
                     for (int p = 0; p < found; p++)
-                    {
-                        if (pathLens[p] > spurIdx)
-                        {
-                            bool match = true;
-                            for (int r = 0; r < spurIdx && match; r++)
-                            {
-                                if (pathNodes[p * n + r] != pathNodes[r])
-                                    match = false;
-                            }
-                            if (match && pathLens[p] > spurIdx)
-                            {
-                                int u = pathNodes[p * n + spurIdx];
-                                int v = pathNodes[p * n + spurIdx + 1];
-                                blockedU[u] = true;
-                                blockedV[v] = true;
-                                blockedUList[blockCount] = u;
-                                blockedVList[blockCount] = v;
-                                blockCount++;
-                            }
-                        }
-                    }
+                        CollectBlockedEdge(pathNodes, pathLens, n, p, spurIdx, blockedU, blockedV, blockedUList, blockedVList, ref blockCount);
 
                     long spurCost = Dijkstra(n, spurNode, dst, head, to, next, dist, distTo, prev, blockedUList, blockedVList, blockCount);
                     if (spurCost == long.MaxValue) continue;
@@ -413,15 +395,10 @@ namespace IAFahim.Graph
                 bool isDuplicate = false;
                 for (int p = 0; p < found; p++)
                 {
-                    if (pathCostsArr[p] == bestSpurCost && pathLens[p] == bestSpurLen)
+                    if (IsSamePath(pathNodes, pathLens, pathCostsArr, n, p, combinedPath, bestSpurLen, bestSpurCost))
                     {
-                        bool same = true;
-                        for (int r = 0; r < bestSpurLen && same; r++)
-                        {
-                            if (pathNodes[p * n + r] != combinedPath[r])
-                                same = false;
-                        }
-                        if (same) { isDuplicate = true; break; }
+                        isDuplicate = true;
+                        break;
                     }
                 }
 
@@ -456,16 +433,7 @@ namespace IAFahim.Graph
                 for (int e = head[u]; e != 0; e = next[e])
                 {
                     int v = to[e];
-                    bool isBlocked = false;
-                    for (int b = 0; b < blockCount; b++)
-                    {
-                        if (blockedU[b] == u && blockedV[b] == v)
-                        {
-                            isBlocked = true;
-                            break;
-                        }
-                    }
-                    if (isBlocked) continue;
+                    if (IsEdgeBlocked(blockedU, blockedV, blockCount, u, v)) continue;
                     long nd = currentD + dist[e];
                     if (nd < distTo[v])
                     {
@@ -492,6 +460,52 @@ namespace IAFahim.Graph
             for (int i = 0; i < len; i++)
                 path[i] = temp[len - 1 - i];
             return len;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void CollectBlockedEdge(int* pathNodes, int* pathLens, int n, int p, int spurIdx, bool* blockedU, bool* blockedV, int* blockedUList, int* blockedVList, ref int blockCount)
+        {
+            if (pathLens[p] <= spurIdx) return;
+            bool match = true;
+            for (int r = 0; r < spurIdx && match; r++)
+            {
+                if (pathNodes[p * n + r] != pathNodes[r])
+                    match = false;
+            }
+            if (match && pathLens[p] > spurIdx)
+            {
+                int u = pathNodes[p * n + spurIdx];
+                int v = pathNodes[p * n + spurIdx + 1];
+                blockedU[u] = true;
+                blockedV[v] = true;
+                blockedUList[blockCount] = u;
+                blockedVList[blockCount] = v;
+                blockCount++;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsSamePath(int* pathNodes, int* pathLens, long* pathCostsArr, int n, int p, int* combinedPath, int bestSpurLen, long bestSpurCost)
+        {
+            if (pathCostsArr[p] != bestSpurCost || pathLens[p] != bestSpurLen) return false;
+            bool same = true;
+            for (int r = 0; r < bestSpurLen && same; r++)
+            {
+                if (pathNodes[p * n + r] != combinedPath[r])
+                    same = false;
+            }
+            return same;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsEdgeBlocked(int* blockedU, int* blockedV, int blockCount, int u, int v)
+        {
+            for (int b = 0; b < blockCount; b++)
+            {
+                if (blockedU[b] == u && blockedV[b] == v)
+                    return true;
+            }
+            return false;
         }
     }
 

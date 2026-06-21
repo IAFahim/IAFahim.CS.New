@@ -93,22 +93,25 @@ namespace IAFahim.Search
         private static int CompareQueensTransform(int* pos, int n, int t)
         {
             int last = n - 1;
-            // Build transformed[row'] = col' on the fly and compare against pos[row'].
             for (int r = 0; r < n; r++)
             {
-                // The queen producing transformed row r originates from some source (sr, sc).
-                // Instead of inverting, scan all source queens and pick the one mapping to row r.
-                int tc = -1;
-                for (int sr = 0; sr < n; sr++)
-                {
-                    int sc = pos[sr];
-                    int nr, nc;
-                    TransformCell(sr, sc, last, t, &nr, &nc);
-                    if (nr == r) { tc = nc; break; }
-                }
+                int tc = TransformedColumnForRow(pos, n, last, t, r);
                 if (tc != pos[r]) return tc - pos[r];
             }
             return 0;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int TransformedColumnForRow(int* pos, int n, int last, int t, int r)
+        {
+            for (int sr = 0; sr < n; sr++)
+            {
+                int sc = pos[sr];
+                int nr, nc;
+                TransformCell(sr, sc, last, t, &nr, &nc);
+                if (nr == r) return nc;
+            }
+            return -1;
         }
 
         private static void TransformCell(int r, int c, int last, int t, int* nr, int* nc)
@@ -127,7 +130,9 @@ namespace IAFahim.Search
         }
 
         public static bool MagicSquareSolve(int n, int* sq) { int* rs = stackalloc int[n], cs = stackalloc int[n]; int d1 = 0, d2 = 0; bool* used = stackalloc bool[n * n + 1]; int target = n * (n * n + 1) / 2; return MagicBacktrack(0, 0, n, sq, rs, cs, ref d1, ref d2, used, target); }
-        private static bool MagicBacktrack(int r, int c, int n, int* sq, int* rs, int* cs, ref int d1, ref int d2, bool* used, int target) { if (r == n) return d1 == target && d2 == target; int nr = (c == n - 1) ? r + 1 : r, nc = (c == n - 1) ? 0 : c + 1; for (int v = 1; v <= n * n; v++) { if (used[v] || rs[r] + v > target || cs[c] + v > target) continue; if (r == c && d1 + v > target) continue; if (r + c == n - 1 && d2 + v > target) continue; sq[r * n + c] = v; used[v] = true; rs[r] += v; cs[c] += v; if (r == c) d1 += v; if (r + c == n - 1) d2 += v; if (MagicBacktrack(nr, nc, n, sq, rs, cs, ref d1, ref d2, used, target)) return true; sq[r * n + c] = 0; used[v] = false; rs[r] -= v; cs[c] -= v; if (r == c) d1 -= v; if (r + c == n - 1) d2 -= v; } return false; }
+        private static bool MagicBacktrack(int r, int c, int n, int* sq, int* rs, int* cs, ref int d1, ref int d2, bool* used, int target) { if (r == n) return d1 == target && d2 == target; int nr = (c == n - 1) ? r + 1 : r, nc = (c == n - 1) ? 0 : c + 1; for (int v = 1; v <= n * n; v++) { if (!MagicTryValue(r, c, v, n, sq, rs, cs, ref d1, ref d2, used, target, nr, nc)) continue; return true; } return false; }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool MagicTryValue(int r, int c, int v, int n, int* sq, int* rs, int* cs, ref int d1, ref int d2, bool* used, int target, int nr, int nc) { if (used[v] || rs[r] + v > target || cs[c] + v > target) return false; if (r == c && d1 + v > target) return false; if (r + c == n - 1 && d2 + v > target) return false; sq[r * n + c] = v; used[v] = true; rs[r] += v; cs[c] += v; if (r == c) d1 += v; if (r + c == n - 1) d2 += v; if (MagicBacktrack(nr, nc, n, sq, rs, cs, ref d1, ref d2, used, target)) return true; sq[r * n + c] = 0; used[v] = false; rs[r] -= v; cs[c] -= v; if (r == c) d1 -= v; if (r + c == n - 1) d2 -= v; return false; }
 
         public static bool CryptarithmSolve(int numLetters, int numWords, int* wordLengths, int* wordLetters, int* wordOffsets, int targetLength, int* targetLetters, bool* isLeading, int* resultDigits)
         {
@@ -179,12 +184,32 @@ namespace IAFahim.Search
         }
 
         public static bool KillerSudokuSolve(int* grid, int* cageSums, int* cageIds, int numCages) { int* rm = stackalloc int[9], cm = stackalloc int[9], bm = stackalloc int[9], ccs = stackalloc int[numCages], crr = stackalloc int[numCages], cum = stackalloc int[numCages]; for (int i = 0; i < 9; i++) rm[i] = cm[i] = bm[i] = 0; for (int i = 0; i < numCages; i++) ccs[i] = crr[i] = cum[i] = 0; for (int r = 0; r < 9; r++) for (int c = 0; c < 9; c++) { int id = cageIds[r * 9 + c]; crr[id]++; int v = grid[r * 9 + c]; if (v != 0) { int m = 1 << v; rm[r] |= m; cm[c] |= m; bm[(r / 3) * 3 + c / 3] |= m; ccs[id] += v; cum[id] |= m; } } return KillerBacktrack(0, grid, rm, cm, bm, cageSums, cageIds, ccs, crr, cum); }
-        private static bool KillerBacktrack(int cell, int* grid, int* rm, int* cm, int* bm, int* cageSums, int* cageIds, int* ccs, int* crr, int* cum) { if (cell == 81) return true; int r = cell / 9, c = cell - r * 9, box = (r / 3) * 3 + c / 3, id = cageIds[cell]; if (grid[cell] != 0) return KillerBacktrack(cell + 1, grid, rm, cm, bm, cageSums, cageIds, ccs, crr, cum); int allowed = ~(rm[r] | cm[c] | bm[box] | cum[id]) & 0x3FE; while (allowed != 0) { int lsb = allowed & -allowed; allowed ^= lsb; int val = BitIndex(lsb); if (ccs[id] + val <= cageSums[id] && (crr[id] > 1 || ccs[id] + val == cageSums[id])) { grid[cell] = val; rm[r] |= lsb; cm[c] |= lsb; bm[box] |= lsb; ccs[id] += val; crr[id]--; cum[id] |= lsb; if (KillerBacktrack(cell + 1, grid, rm, cm, bm, cageSums, cageIds, ccs, crr, cum)) return true; grid[cell] = 0; rm[r] ^= lsb; cm[c] ^= lsb; bm[box] ^= lsb; ccs[id] -= val; crr[id]++; cum[id] ^= lsb; } } return false; }
+        private static bool KillerBacktrack(int cell, int* grid, int* rm, int* cm, int* bm, int* cageSums, int* cageIds, int* ccs, int* crr, int* cum) { if (cell == 81) return true; int r = cell / 9, c = cell - r * 9, box = (r / 3) * 3 + c / 3, id = cageIds[cell]; if (grid[cell] != 0) return KillerBacktrack(cell + 1, grid, rm, cm, bm, cageSums, cageIds, ccs, crr, cum); int allowed = ~(rm[r] | cm[c] | bm[box] | cum[id]) & 0x3FE; while (allowed != 0) { int lsb = allowed & -allowed; allowed ^= lsb; if (KillerTryValue(cell, BitIndex(lsb), lsb, r, c, box, id, grid, rm, cm, bm, cageSums, cageIds, ccs, crr, cum)) return true; } return false; }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool KillerTryValue(int cell, int val, int lsb, int r, int c, int box, int id, int* grid, int* rm, int* cm, int* bm, int* cageSums, int* cageIds, int* ccs, int* crr, int* cum) { if (ccs[id] + val <= cageSums[id] && (crr[id] > 1 || ccs[id] + val == cageSums[id])) { grid[cell] = val; rm[r] |= lsb; cm[c] |= lsb; bm[box] |= lsb; ccs[id] += val; crr[id]--; cum[id] |= lsb; if (KillerBacktrack(cell + 1, grid, rm, cm, bm, cageSums, cageIds, ccs, crr, cum)) return true; grid[cell] = 0; rm[r] ^= lsb; cm[c] ^= lsb; bm[box] ^= lsb; ccs[id] -= val; crr[id]++; cum[id] ^= lsb; } return false; }
 
         public static bool KenKenSolve(int* grid, int n, int* targets, int* ops, int* ids, int numCages) { int* rm = stackalloc int[n], cm = stackalloc int[n], crr = stackalloc int[numCages], cvc = stackalloc int[numCages], cvs = stackalloc int[numCages * n * n]; int cageStride = n * n; for (int i = 0; i < n; i++) rm[i] = cm[i] = 0; for (int i = 0; i < numCages; i++) crr[i] = cvc[i] = 0; for (int r = 0; r < n; r++) for (int c = 0; c < n; c++) { int id = ids[r * n + c]; crr[id]++; int v = grid[r * n + c]; if (v != 0) { rm[r] |= (1 << v); cm[c] |= (1 << v); cvs[id * cageStride + cvc[id]++] = v; } } return KenKenBacktrack(0, grid, n, rm, cm, targets, ops, ids, crr, cvs, cvc); }
-        private static bool KenKenBacktrack(int cell, int* grid, int n, int* rm, int* cm, int* ts, int* ops, int* ids, int* crr, int* cvs, int* cvc) { if (cell == n * n) return true; int r = cell / n, c = cell - r * n, id = ids[cell]; if (grid[cell] != 0) return KenKenBacktrack(cell + 1, grid, n, rm, cm, ts, ops, ids, crr, cvs, cvc); int allowed = ~(rm[r] | cm[c]) & ((1 << (n + 1)) - 2); while (allowed != 0) { int lsb = allowed & -allowed; allowed ^= lsb; int val = BitIndex(lsb); if (CheckKenKen(id, val, n, ts, ops, crr, cvs, cvc)) { grid[cell] = val; rm[r] |= lsb; cm[c] |= lsb; cvs[id * n * n + cvc[id]++] = val; crr[id]--; if (KenKenBacktrack(cell + 1, grid, n, rm, cm, ts, ops, ids, crr, cvs, cvc)) return true; grid[cell] = 0; rm[r] ^= lsb; cm[c] ^= lsb; cvc[id]--; crr[id]++; } } return false; }
-        private static bool CheckKenKen(int id, int val, int n, int* ts, int* ops, int* crr, int* cvs, int* cvc) { int op = ops[id], target = ts[id], cageBase = id * n * n; if (op == 0) { int s = val; for (int i = 0; i < cvc[id]; i++) s += cvs[cageBase + i]; return (crr[id] == 1) ? s == target : s < target; } if (op == 1) { int p = val; for (int i = 0; i < cvc[id]; i++) p *= cvs[cageBase + i]; return (crr[id] == 1) ? p == target : p <= target; } if (crr[id] == 1) { int o = cvs[cageBase + 0]; if (op == 2) return val - o == target || o - val == target; if (op == 3) return (val % o == 0 && val / o == target) || (o % val == 0 && o / val == target); } return true; }
+        private static bool KenKenBacktrack(int cell, int* grid, int n, int* rm, int* cm, int* ts, int* ops, int* ids, int* crr, int* cvs, int* cvc) { if (cell == n * n) return true; int r = cell / n, c = cell - r * n, id = ids[cell]; if (grid[cell] != 0) return KenKenBacktrack(cell + 1, grid, n, rm, cm, ts, ops, ids, crr, cvs, cvc); int allowed = ~(rm[r] | cm[c]) & ((1 << (n + 1)) - 2); while (allowed != 0) { int lsb = allowed & -allowed; allowed ^= lsb; if (KenKenTryValue(cell, BitIndex(lsb), lsb, r, c, id, grid, n, rm, cm, ts, ops, ids, crr, cvs, cvc)) return true; } return false; }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool KenKenTryValue(int cell, int val, int lsb, int r, int c, int id, int* grid, int n, int* rm, int* cm, int* ts, int* ops, int* ids, int* crr, int* cvs, int* cvc) { if (CheckKenKen(id, val, n, ts, ops, crr, cvs, cvc)) { grid[cell] = val; rm[r] |= lsb; cm[c] |= lsb; cvs[id * n * n + cvc[id]++] = val; crr[id]--; if (KenKenBacktrack(cell + 1, grid, n, rm, cm, ts, ops, ids, crr, cvs, cvc)) return true; grid[cell] = 0; rm[r] ^= lsb; cm[c] ^= lsb; cvc[id]--; crr[id]++; } return false; }
+        private const int KenKenOpAdd = 0;
+        private const int KenKenOpMultiply = 1;
+        private const int KenKenOpSubtract = 2;
+        private const int KenKenOpDivide = 3;
+        private static bool CheckKenKen(int id, int val, int n, int* ts, int* ops, int* crr, int* cvs, int* cvc) { int op = ops[id], target = ts[id], cageBase = id * n * n; if (op == KenKenOpAdd) return CheckKenKenAdd(val, target, cageBase, crr[id], cvs, cvc[id]); if (op == KenKenOpMultiply) return CheckKenKenMultiply(val, target, cageBase, crr[id], cvs, cvc[id]); if (crr[id] == 1) return CheckKenKenPair(op, val, target, cvs[cageBase + 0]); return true; }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool CheckKenKenAdd(int val, int target, int cageBase, int remaining, int* cvs, int count) { int s = val; for (int i = 0; i < count; i++) s += cvs[cageBase + i]; return (remaining == 1) ? s == target : s < target; }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool CheckKenKenMultiply(int val, int target, int cageBase, int remaining, int* cvs, int count) { int p = val; for (int i = 0; i < count; i++) p *= cvs[cageBase + i]; return (remaining == 1) ? p == target : p <= target; }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool CheckKenKenPair(int op, int val, int target, int o) { if (op == KenKenOpSubtract) return val - o == target || o - val == target; if (op == KenKenOpDivide) return (val % o == 0 && val / o == target) || (o % val == 0 && o / val == target); return true; }
 
-        public static bool SolvePolyominoTiling(int w, int h, int nP, int nV, int* vPId, int* vOff, int* vL, int* vX, int* vY, int* g, int* plV, int* plR, int* plC, int* m, int* L, int* R_dlx, int* U, int* D, int* C, int* RowIdx, int* colSize) { int dCols = w * h + nP; int pIdx = 0; for (int v = 0; v < nV; v++) for (int r = 0; r < h; r++) for (int c = 0; c < w; c++) { bool ok = true; for (int i = 0; i < vL[v]; i++) { int nr = r + vY[vOff[v] + i], nc = c + vX[vOff[v] + i]; if (nr < 0 || nr >= h || nc < 0 || nc >= w) { ok = false; break; } } if (ok) { plV[pIdx] = v; plR[pIdx] = r; plC[pIdx] = c; long o = (long)pIdx * dCols; m[o + (w * h + vPId[v])] = 1; for (int i = 0; i < vL[v]; i++) m[o + ((r + vY[vOff[v] + i]) * w + (c + vX[vOff[v] + i]))] = 1; pIdx++; } } int* sol = stackalloc int[pIdx]; int ss = 0; if (SolveDlx(m, pIdx, dCols, sol, &ss, L, R_dlx, U, D, C, RowIdx, colSize)) { for (int i = 0; i < w * h; i++) g[i] = -1; for (int i = 0; i < ss; i++) { int p = sol[i], v = plV[p], r = plR[p], c = plC[p]; for (int j = 0; j < vL[v]; j++) g[(r + vY[vOff[v] + j]) * w + (c + vX[vOff[v] + j])] = vPId[v]; } return true; } return false; }
+        public static bool SolvePolyominoTiling(int w, int h, int nP, int nV, int* vPId, int* vOff, int* vL, int* vX, int* vY, int* g, int* plV, int* plR, int* plC, int* m, int* L, int* R_dlx, int* U, int* D, int* C, int* RowIdx, int* colSize) { int dCols = w * h + nP; int pIdx = 0; for (int v = 0; v < nV; v++) for (int r = 0; r < h; r++) for (int c = 0; c < w; c++) AddPolyominoPlacement(v, r, c, w, h, vPId, vOff, vL, vX, vY, plV, plR, plC, m, dCols, ref pIdx); int* sol = stackalloc int[pIdx]; int ss = 0; if (SolveDlx(m, pIdx, dCols, sol, &ss, L, R_dlx, U, D, C, RowIdx, colSize)) { for (int i = 0; i < w * h; i++) g[i] = -1; for (int i = 0; i < ss; i++) ApplyPolyominoPlacement(sol[i], w, vPId, vOff, vL, vX, vY, plV, plR, plC, g); return true; } return false; }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsPolyominoInBounds(int v, int r, int c, int w, int h, int* vOff, int* vL, int* vX, int* vY) { for (int i = 0; i < vL[v]; i++) { int nr = r + vY[vOff[v] + i], nc = c + vX[vOff[v] + i]; if (nr < 0 || nr >= h || nc < 0 || nc >= w) return false; } return true; }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void AddPolyominoPlacement(int v, int r, int c, int w, int h, int* vPId, int* vOff, int* vL, int* vX, int* vY, int* plV, int* plR, int* plC, int* m, int dCols, ref int pIdx) { if (!IsPolyominoInBounds(v, r, c, w, h, vOff, vL, vX, vY)) return; plV[pIdx] = v; plR[pIdx] = r; plC[pIdx] = c; long o = (long)pIdx * dCols; m[o + (w * h + vPId[v])] = 1; for (int i = 0; i < vL[v]; i++) m[o + ((r + vY[vOff[v] + i]) * w + (c + vX[vOff[v] + i]))] = 1; pIdx++; }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ApplyPolyominoPlacement(int p, int w, int* vPId, int* vOff, int* vL, int* vX, int* vY, int* plV, int* plR, int* plC, int* g) { int v = plV[p], r = plR[p], c = plC[p]; for (int j = 0; j < vL[v]; j++) g[(r + vY[vOff[v] + j]) * w + (c + vX[vOff[v] + j])] = vPId[v]; }
     }
 }

@@ -103,33 +103,41 @@ namespace IAFahim.Algebra.Polynomial
 
             for (int i = 0; i <= top; i++)
             {
-                long acc = 0L;
-
-                // ak * prev[i]
-                if (i <= degPrev)
-                {
-                    acc = ak * prev[i] % MOD;
-                }
-
-                // (x - xk1) * prev2 contributes prev2[i-1] (from the x factor)
-                // and (-xk1) * prev2[i] (from the constant factor).
-                if (i >= 1 && (i - 1) <= degPrev2 && degPrev2 >= 0)
-                {
-                    acc += prev2[i - 1];
-                    if (acc >= MOD) acc -= MOD;
-                }
-                if (i <= degPrev2 && degPrev2 >= 0 && negX != 0L)
-                {
-                    acc += negX * prev2[i] % MOD;
-                    if (acc >= MOD) acc -= MOD;
-                }
-
-                dst[i] = acc;
+                dst[i] = ConvergentCoefficient(prev, degPrev, prev2, degPrev2, ak, negX, i, MOD);
             }
 
             int deg = top;
             while (deg > 0 && dst[deg] == 0L) deg--;
             return deg;
+        }
+
+        // Single coefficient of dst = ak * prev + (x - xk1) * prev2 at power i.
+        // negX is (-xk1) mod MOD; result is reduced into [0, MOD).
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static long ConvergentCoefficient(long* prev, int degPrev, long* prev2, int degPrev2, long ak, long negX, int i, long MOD)
+        {
+            long acc = 0L;
+
+            // ak * prev[i]
+            if (i <= degPrev)
+            {
+                acc = ak * prev[i] % MOD;
+            }
+
+            // (x - xk1) * prev2 contributes prev2[i-1] (from the x factor)
+            // and (-xk1) * prev2[i] (from the constant factor).
+            if (i >= 1 && (i - 1) <= degPrev2 && degPrev2 >= 0)
+            {
+                acc += prev2[i - 1];
+                if (acc >= MOD) acc -= MOD;
+            }
+            if (i <= degPrev2 && degPrev2 >= 0 && negX != 0L)
+            {
+                acc += negX * prev2[i] % MOD;
+                if (acc >= MOD) acc -= MOD;
+            }
+
+            return acc;
         }
 
         // Fills a[0..n-1] with the Thiele continued-fraction (reciprocal-difference)
@@ -175,17 +183,7 @@ namespace IAFahim.Algebra.Polynomial
                 int count = n - k;          // number of entries in column k
                 for (int i = 0; i < count; i++)
                 {
-                    long denom = (prev[i] - prev[i + 1]) % MOD;
-                    if (denom < 0) denom += MOD;
-                    long inv = ModInv(denom, MOD);
-
-                    long xdiff = (xr[i] - xr[i + k]) % MOD;
-                    if (xdiff < 0) xdiff += MOD;
-
-                    long term = xdiff * inv % MOD;
-                    long val = prevPrev[i + 1] + term;
-                    if (val >= MOD) val -= MOD;
-                    cur[i] = val;
+                    cur[i] = ReciprocalDifference(prev, prevPrev, xr, i, k, MOD);
                 }
 
                 // Continued-fraction coefficient: subtract rho_{k-2}(x_0..x_{k-2}),
@@ -200,6 +198,25 @@ namespace IAFahim.Algebra.Polynomial
                 prev = cur;
                 cur = tmp;
             }
+        }
+
+        // One reciprocal-difference entry of column k at row i:
+        //   rho_{k-2}(x_{i+1}..) + (x_i - x_{i+k}) / (rho_{k-1}(x_i) - rho_{k-1}(x_{i+1}))
+        // reduced into [0, MOD). prev is column k-1, prevPrev is column k-2.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static long ReciprocalDifference(long* prev, long* prevPrev, long* xr, int i, int k, long MOD)
+        {
+            long denom = (prev[i] - prev[i + 1]) % MOD;
+            if (denom < 0) denom += MOD;
+            long inv = ModInv(denom, MOD);
+
+            long xdiff = (xr[i] - xr[i + k]) % MOD;
+            if (xdiff < 0) xdiff += MOD;
+
+            long term = xdiff * inv % MOD;
+            long val = prevPrev[i + 1] + term;
+            if (val >= MOD) val -= MOD;
+            return val;
         }
 
         // Modular inverse of a mod MOD via the extended Euclidean algorithm.

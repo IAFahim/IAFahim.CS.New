@@ -56,14 +56,7 @@ namespace IAFahim.String.SuffixTree
                     if (curEdge == Nil)
                     {
                         // No edge starts with s[activeEdge]: create a new leaf edge from activeNode.
-                        NewLeaf(nodes, edges, ref nodeCount, ref edgeCount, activeNode, pos, openEnd, curChar);
-                        last = edges[nodes[activeNode].FirstEdge].To;
-
-                        if (lastInternal != Nil)
-                        {
-                            nodes[lastInternal].Link = activeNode;
-                            lastInternal = Nil;
-                        }
+                        InsertLeafAtNode(nodes, edges, ref nodeCount, ref edgeCount, ref last, ref lastInternal, activeNode, pos, openEnd, curChar);
                     }
                     else
                     {
@@ -94,48 +87,12 @@ namespace IAFahim.String.SuffixTree
                         }
 
                         // Mismatch in the middle of the edge: split it with a new internal node.
-                        int split = nodeCount++;
-                        nodes[split].Start = edgeStart;
-                        nodes[split].Len = activeLen;
-                        nodes[split].Link = Nil;
-                        nodes[split].FirstEdge = Nil;
-
-                        // Lower half of the original edge becomes a child of the split node.
-                        int lowerEdge = edgeCount++;
-                        edges[lowerEdge].To = edges[curEdge].To;
-                        edges[lowerEdge].Char = s[edgeStart + activeLen];
-                        edges[lowerEdge].Min = edgeStart + activeLen;
-                        edges[lowerEdge].Max = edges[curEdge].Max;
-                        edges[lowerEdge].Next = Nil;
-                        nodes[split].FirstEdge = lowerEdge;
-
-                        // Shorten the original edge to the upper half and point it at the split node.
-                        edges[curEdge].To = split;
-                        edges[curEdge].Max = edgeStart + activeLen;
-
-                        // New leaf for the mismatching current character, hung off the split node.
-                        NewLeaf(nodes, edges, ref nodeCount, ref edgeCount, split, pos, openEnd, curChar);
-                        last = edges[nodes[split].FirstEdge].To; // most recently prepended leaf
-
-                        // Suffix link from the previously created internal node to this one.
-                        if (lastInternal != Nil)
-                        {
-                            nodes[lastInternal].Link = split;
-                        }
-                        lastInternal = split;
+                        SplitEdge(s, nodes, edges, ref nodeCount, ref edgeCount, ref last, ref lastInternal, curEdge, edgeStart, activeLen, pos, openEnd, curChar);
                     }
 
                     remainder--;
 
-                    if (activeNode == 0 && activeLen > 0)
-                    {
-                        activeLen--;
-                        activeEdge = pos - remainder + 1;
-                    }
-                    else if (activeNode != 0)
-                    {
-                        activeNode = nodes[activeNode].Link != Nil ? nodes[activeNode].Link : 0;
-                    }
+                    AdvanceActivePoint(nodes, ref activeNode, ref activeEdge, ref activeLen, pos, remainder);
                 }
             }
 
@@ -149,6 +106,78 @@ namespace IAFahim.String.SuffixTree
                 int child = edges[e].To;
                 nodes[child].Start = edges[e].Min;
                 nodes[child].Len = edges[e].Max - edges[e].Min;
+            }
+        }
+
+        /// <summary>
+        /// Rule-2 leaf insertion at an existing node: append a leaf edge and resolve any pending suffix link to node.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void InsertLeafAtNode(Node* nodes, Edge* edges, ref int nodeCount, ref int edgeCount, ref int last, ref int lastInternal, int activeNode, int pos, int openEnd, int curChar)
+        {
+            NewLeaf(nodes, edges, ref nodeCount, ref edgeCount, activeNode, pos, openEnd, curChar);
+            last = edges[nodes[activeNode].FirstEdge].To;
+
+            if (lastInternal != Nil)
+            {
+                nodes[lastInternal].Link = activeNode;
+                lastInternal = Nil;
+            }
+        }
+
+        /// <summary>
+        /// Splits curEdge at activeLen with a new internal node, reattaches the lower half, hangs a new leaf
+        /// for curChar, and chains the pending suffix link onto the split node.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void SplitEdge(int* s, Node* nodes, Edge* edges, ref int nodeCount, ref int edgeCount, ref int last, ref int lastInternal, int curEdge, int edgeStart, int activeLen, int pos, int openEnd, int curChar)
+        {
+            int split = nodeCount++;
+            nodes[split].Start = edgeStart;
+            nodes[split].Len = activeLen;
+            nodes[split].Link = Nil;
+            nodes[split].FirstEdge = Nil;
+
+            // Lower half of the original edge becomes a child of the split node.
+            int lowerEdge = edgeCount++;
+            edges[lowerEdge].To = edges[curEdge].To;
+            edges[lowerEdge].Char = s[edgeStart + activeLen];
+            edges[lowerEdge].Min = edgeStart + activeLen;
+            edges[lowerEdge].Max = edges[curEdge].Max;
+            edges[lowerEdge].Next = Nil;
+            nodes[split].FirstEdge = lowerEdge;
+
+            // Shorten the original edge to the upper half and point it at the split node.
+            edges[curEdge].To = split;
+            edges[curEdge].Max = edgeStart + activeLen;
+
+            // New leaf for the mismatching current character, hung off the split node.
+            NewLeaf(nodes, edges, ref nodeCount, ref edgeCount, split, pos, openEnd, curChar);
+            last = edges[nodes[split].FirstEdge].To; // most recently prepended leaf
+
+            // Suffix link from the previously created internal node to this one.
+            if (lastInternal != Nil)
+            {
+                nodes[lastInternal].Link = split;
+            }
+            lastInternal = split;
+        }
+
+        /// <summary>
+        /// Moves the active point after a suffix insertion: follow the root rule when at the root, otherwise
+        /// traverse the suffix link (falling back to the root).
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void AdvanceActivePoint(Node* nodes, ref int activeNode, ref int activeEdge, ref int activeLen, int pos, int remainder)
+        {
+            if (activeNode == 0 && activeLen > 0)
+            {
+                activeLen--;
+                activeEdge = pos - remainder + 1;
+            }
+            else if (activeNode != 0)
+            {
+                activeNode = nodes[activeNode].Link != Nil ? nodes[activeNode].Link : 0;
             }
         }
 

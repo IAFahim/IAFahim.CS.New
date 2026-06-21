@@ -50,33 +50,40 @@ namespace IAFahim.Optimization.Games
                 int end = radjStart[v + 1];
                 if (lose[v])
                 {
-                    // v is a losing position: any predecessor can move into it and win.
                     for (int k = start; k < end; k++)
                     {
-                        int u = radjFrom[k];
-                        if (win[u] || lose[u]) continue;
-                        win[u] = true;
-                        q[tail++] = u;
+                        PropagateFromLose(radjFrom[k], win, lose, q, ref tail);
                     }
                 }
                 else
                 {
-                    // v is a winning position: it removes one option from each predecessor.
-                    // A predecessor loses only once all of its moves lead to winning nodes.
                     for (int k = start; k < end; k++)
                     {
-                        int u = radjFrom[k];
-                        if (win[u] || lose[u]) continue;
-                        if (--outdeg[u] == 0)
-                        {
-                            lose[u] = true;
-                            q[tail++] = u;
-                        }
+                        PropagateFromWin(radjFrom[k], win, lose, outdeg, q, ref tail);
                     }
                 }
             }
 
             return tail;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void PropagateFromLose(int u, bool* win, bool* lose, int* q, ref int tail)
+        {
+            if (win[u] || lose[u]) return;
+            win[u] = true;
+            q[tail++] = u;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void PropagateFromWin(int u, bool* win, bool* lose, int* outdeg, int* q, ref int tail)
+        {
+            if (win[u] || lose[u]) return;
+            if (--outdeg[u] == 0)
+            {
+                lose[u] = true;
+                q[tail++] = u;
+            }
         }
     }
 }

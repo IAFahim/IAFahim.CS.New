@@ -1,7 +1,65 @@
+using System.Runtime.CompilerServices;
+
 namespace IAFahim.Graph.Flow
 {
     public static unsafe class PushRelabelGap
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void Enqueue(int v, int queueCapacity, int* inQueue, int* q, ref int qt, ref int qcount)
+        {
+            inQueue[v] = 1;
+            q[qt] = v; qt++; if (qt == queueCapacity) qt = 0;
+            qcount++;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void PushEdge(int e, int s, int t, int* to, int* cap, int* flow, int hu, int* height, ref int eu, int* excess, int* inQueue, int* q, int queueCapacity, ref int qt, ref int qcount)
+        {
+            int rc = cap[e] - flow[e];
+            if (rc <= 0) return;
+            int v = to[e];
+            if (hu != height[v] + 1) return;
+            int push = rc < eu ? rc : eu;
+            flow[e] += push; flow[e ^ 1] -= push;
+            eu -= push; excess[v] += push;
+            if (v != s && v != t && inQueue[v] == 0)
+            {
+                Enqueue(v, queueCapacity, inQueue, q, ref qt, ref qcount);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int MinResidualHeight(int u, int* head, int* next, int* to, int* cap, int* flow, int* height)
+        {
+            int minH = int.MaxValue;
+            for (int e = head[u]; e != 0; e = next[e])
+            {
+                if (cap[e] - flow[e] <= 0) continue;
+                int hv = height[to[e]];
+                if (hv < minH) minH = hv;
+            }
+            return minH;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ApplyGap(int n, int s, int u, int hu, int* height, int* count)
+        {
+            for (int i = 0; i < n; i++)
+            {
+                int hi = height[i];
+                if (hi > hu && hi <= n && i != s)
+                {
+                    count[hi] -= 1;
+                    height[i] = n + 1;
+                    count[n + 1] += 1;
+                }
+            }
+            // u was at hu (already decremented out of its level) and sits below the gap, so
+            // it is not touched by the sweep above; give it the parked height directly.
+            height[u] = n + 1;
+            count[n + 1] += 1;
+        }
+
         public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow)
         {
             if (s == t) return 0;
@@ -64,19 +122,7 @@ namespace IAFahim.Graph.Flow
                 // Push along every admissible residual edge until u runs out of excess.
                 for (int e = head[u]; e != 0 && eu > 0; e = next[e])
                 {
-                    int rc = cap[e] - flow[e];
-                    if (rc <= 0) continue;
-                    int v = to[e];
-                    if (hu != height[v] + 1) continue;
-                    int push = rc < eu ? rc : eu;
-                    flow[e] += push; flow[e ^ 1] -= push;
-                    eu -= push; excess[v] += push;
-                    if (v != s && v != t && inQueue[v] == 0)
-                    {
-                        inQueue[v] = 1;
-                        q[qt] = v; qt++; if (qt == queueCapacity) qt = 0;
-                        qcount++;
-                    }
+                    PushEdge(e, s, t, to, cap, flow, hu, height, ref eu, excess, inQueue, q, queueCapacity, ref qt, ref qcount);
                 }
 
                 if (eu == 0)
@@ -86,13 +132,7 @@ namespace IAFahim.Graph.Flow
                 }
 
                 // Relabel: lift u to one above the lowest residual neighbour.
-                int minH = int.MaxValue;
-                for (int e = head[u]; e != 0; e = next[e])
-                {
-                    if (cap[e] - flow[e] <= 0) continue;
-                    int hv = height[to[e]];
-                    if (hv < minH) minH = hv;
-                }
+                int minH = MinResidualHeight(u, head, next, to, cap, flow, height);
 
                 excess[u] = eu;
                 int newH = minH == int.MaxValue ? heightLevels - 1 : minH + 1;
@@ -105,20 +145,7 @@ namespace IAFahim.Graph.Flow
                 count[hu] -= 1;
                 if (count[hu] == 0 && hu < n)
                 {
-                    for (int i = 0; i < n; i++)
-                    {
-                        int hi = height[i];
-                        if (hi > hu && hi <= n && i != s)
-                        {
-                            count[hi] -= 1;
-                            height[i] = n + 1;
-                            count[n + 1] += 1;
-                        }
-                    }
-                    // u was at hu (already decremented out of its level) and sits below the gap, so
-                    // it is not touched by the sweep above; give it the parked height directly.
-                    height[u] = n + 1;
-                    count[n + 1] += 1;
+                    ApplyGap(n, s, u, hu, height, count);
                 }
                 else
                 {
@@ -130,9 +157,7 @@ namespace IAFahim.Graph.Flow
                 // u still carries excess, so it stays active.
                 if (inQueue[u] == 0)
                 {
-                    inQueue[u] = 1;
-                    q[qt] = u; qt++; if (qt == queueCapacity) qt = 0;
-                    qcount++;
+                    Enqueue(u, queueCapacity, inQueue, q, ref qt, ref qcount);
                 }
             }
 

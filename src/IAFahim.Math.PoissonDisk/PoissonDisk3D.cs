@@ -7,10 +7,12 @@ namespace IAFahim.Math.PoissonDisk
     public static unsafe class PoissonDisk3D
     {
         private const int MaxAttempts = 30;
+        private const float Sqrt3 = 1.73205081f;
+        private const float TwoPi = 6.28318530f;
 
         public static int Run(float3 min, float3 max, float minDistance, float3* output, int maxPoints, int seed)
         {
-            float cellSize = minDistance / 1.73205081f;
+            float cellSize = minDistance / Sqrt3;
             int gridW = (int)math.ceil((max.x - min.x) / cellSize);
             int gridH = (int)math.ceil((max.y - min.y) / cellSize);
             int gridD = (int)math.ceil((max.z - min.z) / cellSize);
@@ -56,36 +58,11 @@ namespace IAFahim.Math.PoissonDisk
 
                 for (int attempt = 0; attempt < MaxAttempts; attempt++)
                 {
-                    float theta = NextFloat(ref rng) * 6.28318530f;
-                    float phi = math.acos(2.0f * NextFloat(ref rng) - 1.0f);
-                    float radius = minDistance + NextFloat(ref rng) * minDistance;
-
-                    float sinPhi = math.sin(phi);
-                    float3 dir = new float3(
-                        sinPhi * math.cos(theta),
-                        sinPhi * math.sin(theta),
-                        math.cos(phi));
-
-                    float3 candidate = center + dir * radius;
-
-                    if (candidate.x < min.x || candidate.x > max.x ||
-                        candidate.y < min.y || candidate.y > max.y ||
-                        candidate.z < min.z || candidate.z > max.z)
+                    if (TryPlaceCandidate(grid, gridW, gridH, gridD, cellSize, min, max, minDistance, output, active, center, ref activeCount, ref pointCount, ref rng))
                     {
-                        continue;
+                        found = true;
+                        break;
                     }
-
-                    if (IsTooClose(grid, gridW, gridH, gridD, cellSize, min, output, pointCount, candidate, minDistance))
-                    {
-                        continue;
-                    }
-
-                    output[pointCount] = candidate;
-                    active[activeCount++] = candidate;
-                    InsertGrid(grid, gridW, gridH, gridD, cellSize, min, candidate, pointCount);
-                    pointCount++;
-                    found = true;
-                    break;
                 }
 
                 if (!found)
@@ -99,6 +76,40 @@ namespace IAFahim.Math.PoissonDisk
             }
 
             return pointCount;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool TryPlaceCandidate(int* grid, int gridW, int gridH, int gridD, float cellSize, float3 min, float3 max, float minDistance, float3* output, float3* active, float3 center, ref int activeCount, ref int pointCount, ref uint rng)
+        {
+            float theta = NextFloat(ref rng) * TwoPi;
+            float phi = math.acos(2.0f * NextFloat(ref rng) - 1.0f);
+            float radius = minDistance + NextFloat(ref rng) * minDistance;
+
+            float sinPhi = math.sin(phi);
+            float3 dir = new float3(
+                sinPhi * math.cos(theta),
+                sinPhi * math.sin(theta),
+                math.cos(phi));
+
+            float3 candidate = center + dir * radius;
+
+            if (candidate.x < min.x || candidate.x > max.x ||
+                candidate.y < min.y || candidate.y > max.y ||
+                candidate.z < min.z || candidate.z > max.z)
+            {
+                return false;
+            }
+
+            if (IsTooClose(grid, gridW, gridH, gridD, cellSize, min, output, pointCount, candidate, minDistance))
+            {
+                return false;
+            }
+
+            output[pointCount] = candidate;
+            active[activeCount++] = candidate;
+            InsertGrid(grid, gridW, gridH, gridD, cellSize, min, candidate, pointCount);
+            pointCount++;
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

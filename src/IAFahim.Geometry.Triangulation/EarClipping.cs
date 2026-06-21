@@ -65,22 +65,7 @@ namespace IAFahim.Geometry.Triangulation
                 int oIdx = mergedIndices[i];
                 float2 oPt = vertices[oIdx];
 
-                for (int j = 0; j < holeSize; j++)
-                {
-                    int hIdx = holeStart + j;
-                    float2 hPt = vertices[hIdx];
-
-                    float distSq = math.distancesq(oPt, hPt);
-                    if (distSq < minDistSq)
-                    {
-                        if (IsValidBridge(vertices, mergedIndices, *mergedCount, holeStart, holeSize, oIdx, hIdx, oPt, hPt))
-                        {
-                            minDistSq = distSq;
-                            bestOuter = i;
-                            bestHole = j;
-                        }
-                    }
-                }
+                ScanHoleBridges(vertices, mergedIndices, *mergedCount, holeStart, holeSize, oIdx, oPt, i, ref minDistSq, ref bestOuter, ref bestHole);
             }
 
             if (bestOuter != -1 && bestHole != -1)
@@ -113,6 +98,38 @@ namespace IAFahim.Geometry.Triangulation
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ScanHoleBridges(
+            float2* vertices,
+            int* mergedIndices,
+            int mergedCount,
+            int holeStart,
+            int holeSize,
+            int oIdx,
+            float2 oPt,
+            int outerSlot,
+            ref float minDistSq,
+            ref int bestOuter,
+            ref int bestHole)
+        {
+            for (int j = 0; j < holeSize; j++)
+            {
+                int hIdx = holeStart + j;
+                float2 hPt = vertices[hIdx];
+
+                float distSq = math.distancesq(oPt, hPt);
+                if (distSq < minDistSq)
+                {
+                    if (IsValidBridge(vertices, mergedIndices, mergedCount, holeStart, holeSize, oIdx, hIdx, oPt, hPt))
+                    {
+                        minDistSq = distSq;
+                        bestOuter = outerSlot;
+                        bestHole = j;
+                    }
+                }
+            }
+        }
+
         private static bool IsValidBridge(
             float2* vertices,
             int* mergedIndices,
@@ -135,17 +152,7 @@ namespace IAFahim.Geometry.Triangulation
                 int aIdx = mergedIndices[i];
                 int bIdx = mergedIndices[next];
 
-                // Skip polygon edges incident to the bridge's outer endpoint: the
-                // bridge shares that vertex, so a touch there is not a real crossing.
-                if (aIdx == outerIdx || bIdx == outerIdx)
-                {
-                    continue;
-                }
-
-                float2 a = vertices[aIdx];
-                float2 b = vertices[bIdx];
-
-                if (LineSegmentsIntersect(oPt, hPt, a, b))
+                if (BridgeCrossesEdge(vertices, aIdx, bIdx, outerIdx, oPt, hPt))
                 {
                     return false;
                 }
@@ -162,22 +169,33 @@ namespace IAFahim.Geometry.Triangulation
                 int aIdx = holeStart + j;
                 int bIdx = holeStart + next;
 
-                // Skip hole edges incident to the bridge's hole endpoint.
-                if (aIdx == holeIdx || bIdx == holeIdx)
-                {
-                    continue;
-                }
-
-                float2 a = vertices[aIdx];
-                float2 b = vertices[bIdx];
-
-                if (LineSegmentsIntersect(oPt, hPt, a, b))
+                if (BridgeCrossesEdge(vertices, aIdx, bIdx, holeIdx, oPt, hPt))
                 {
                     return false;
                 }
             }
 
             return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool BridgeCrossesEdge(
+            float2* vertices,
+            int aIdx,
+            int bIdx,
+            int sharedIdx,
+            float2 oPt,
+            float2 hPt)
+        {
+            if (aIdx == sharedIdx || bIdx == sharedIdx)
+            {
+                return false;
+            }
+
+            float2 a = vertices[aIdx];
+            float2 b = vertices[bIdx];
+
+            return LineSegmentsIntersect(oPt, hPt, a, b);
         }
 
         private static bool LineSegmentsIntersect(float2 p1, float2 q1, float2 p2, float2 q2)
@@ -242,41 +260,7 @@ namespace IAFahim.Geometry.Triangulation
             while (activeCount > 3 && iterations < maxIterations)
             {
                 iterations++;
-                bool earFound = false;
-
-                for (int i = 0; i < activeCount; i++)
-                {
-                    int prev = i - 1;
-                    if (prev < 0)
-                    {
-                        prev = activeCount - 1;
-                    }
-
-                    int next = i + 1;
-                    if (next == activeCount)
-                    {
-                        next = 0;
-                    }
-
-                    int prevIdx = activeIndices[prev];
-                    int currIdx = activeIndices[i];
-                    int nextIdx = activeIndices[next];
-
-                    if (IsEar(vertices, activeIndices, activeCount, prevIdx, currIdx, nextIdx, isCcw))
-                    {
-                        outTriangles[outTriangleCount++] = prevIdx;
-                        outTriangles[outTriangleCount++] = currIdx;
-                        outTriangles[outTriangleCount++] = nextIdx;
-
-                        for (int k = i; k < activeCount - 1; k++)
-                        {
-                            activeIndices[k] = activeIndices[k + 1];
-                        }
-                        activeCount--;
-                        earFound = true;
-                        break;
-                    }
-                }
+                bool earFound = ClipFirstEar(vertices, activeIndices, ref activeCount, isCcw, outTriangles, ref outTriangleCount);
 
                 if (!earFound)
                 {
@@ -292,9 +276,54 @@ namespace IAFahim.Geometry.Triangulation
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool ClipFirstEar(
+            float2* vertices,
+            int* activeIndices,
+            ref int activeCount,
+            bool isCcw,
+            int* outTriangles,
+            ref int outTriangleCount)
+        {
+            for (int i = 0; i < activeCount; i++)
+            {
+                int prev = i - 1;
+                if (prev < 0)
+                {
+                    prev = activeCount - 1;
+                }
+
+                int next = i + 1;
+                if (next == activeCount)
+                {
+                    next = 0;
+                }
+
+                int prevIdx = activeIndices[prev];
+                int currIdx = activeIndices[i];
+                int nextIdx = activeIndices[next];
+
+                if (IsEar(vertices, activeIndices, activeCount, prevIdx, currIdx, nextIdx, isCcw))
+                {
+                    outTriangles[outTriangleCount++] = prevIdx;
+                    outTriangles[outTriangleCount++] = currIdx;
+                    outTriangles[outTriangleCount++] = nextIdx;
+
+                    for (int k = i; k < activeCount - 1; k++)
+                    {
+                        activeIndices[k] = activeIndices[k + 1];
+                    }
+                    activeCount--;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private static bool IsEar(
-            float2* vertices, 
-            int* activeIndices, 
+            float2* vertices,
+            int* activeIndices,
             int activeCount, 
             int prevIdx, 
             int currIdx, 

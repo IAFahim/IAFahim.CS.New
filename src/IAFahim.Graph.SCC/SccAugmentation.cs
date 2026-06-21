@@ -28,25 +28,23 @@ namespace IAFahim.Graph.SCC
             }
         }
 
+        private const int NilEdge = -1;
+        private const int Unassigned = -1;
+        private const int SingleComponent = 1;
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int MinEdgesForStronglyConnected(int n, int m, int* u, int* v)
+        private static void InitHeads(int n, int* head, int* revHead)
         {
-            if (n <= 1) return 0;
-
-            int* head = stackalloc int[n];
-            int* next = stackalloc int[m];
-            int* to = stackalloc int[m];
-
-            int* revHead = stackalloc int[n];
-            int* revNext = stackalloc int[m];
-            int* revTo = stackalloc int[m];
-
             for (int i = 0; i < n; i++)
             {
-                head[i] = -1;
-                revHead[i] = -1;
+                head[i] = NilEdge;
+                revHead[i] = NilEdge;
             }
+        }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void BuildAdjacency(int m, int* u, int* v, int* head, int* next, int* to, int* revHead, int* revNext, int* revTo)
+        {
             for (int i = 0; i < m; i++)
             {
                 int from = u[i], dest = v[i];
@@ -58,36 +56,42 @@ namespace IAFahim.Graph.SCC
                 revNext[i] = revHead[dest];
                 revHead[dest] = i;
             }
+        }
 
-            bool* visited = stackalloc bool[n];
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ForwardOrder(int n, int* head, int* next, int* to, bool* visited, int* order)
+        {
             for (int i = 0; i < n; i++) visited[i] = false;
 
-            int* order = stackalloc int[n];
             int time = 0;
-
             for (int i = 0; i < n; i++)
             {
                 if (!visited[i]) Dfs1(i, head, next, to, visited, order, ref time);
             }
+        }
 
-            int* comp = stackalloc int[n];
-            for (int i = 0; i < n; i++) comp[i] = -1;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int AssignComponents(int n, int* order, int* revHead, int* revNext, int* revTo, int* comp)
+        {
+            for (int i = 0; i < n; i++) comp[i] = Unassigned;
 
             int sccCount = 0;
             for (int i = n - 1; i >= 0; i--)
             {
                 int curr = order[i];
-                if (comp[curr] == -1)
+                if (comp[curr] == Unassigned)
                 {
                     Dfs2(curr, revHead, revNext, revTo, comp, sccCount);
                     sccCount++;
                 }
             }
 
-            if (sccCount == 1) return 0;
+            return sccCount;
+        }
 
-            int* inDegree = stackalloc int[sccCount];
-            int* outDegree = stackalloc int[sccCount];
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void CondensationDegrees(int sccCount, int m, int* u, int* v, int* comp, int* inDegree, int* outDegree)
+        {
             for (int i = 0; i < sccCount; i++)
             {
                 inDegree[i] = 0;
@@ -104,7 +108,11 @@ namespace IAFahim.Graph.SCC
                     inDegree[toComp]++;
                 }
             }
+        }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int RequiredEdges(int sccCount, int* inDegree, int* outDegree)
+        {
             int zeroIn = 0, zeroOut = 0;
             for (int i = 0; i < sccCount; i++)
             {
@@ -113,6 +121,38 @@ namespace IAFahim.Graph.SCC
             }
 
             return zeroIn > zeroOut ? zeroIn : zeroOut;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int MinEdgesForStronglyConnected(int n, int m, int* u, int* v)
+        {
+            if (n <= 1) return 0;
+
+            int* head = stackalloc int[n];
+            int* next = stackalloc int[m];
+            int* to = stackalloc int[m];
+
+            int* revHead = stackalloc int[n];
+            int* revNext = stackalloc int[m];
+            int* revTo = stackalloc int[m];
+
+            InitHeads(n, head, revHead);
+            BuildAdjacency(m, u, v, head, next, to, revHead, revNext, revTo);
+
+            bool* visited = stackalloc bool[n];
+            int* order = stackalloc int[n];
+            ForwardOrder(n, head, next, to, visited, order);
+
+            int* comp = stackalloc int[n];
+            int sccCount = AssignComponents(n, order, revHead, revNext, revTo, comp);
+
+            if (sccCount == SingleComponent) return 0;
+
+            int* inDegree = stackalloc int[sccCount];
+            int* outDegree = stackalloc int[sccCount];
+            CondensationDegrees(sccCount, m, u, v, comp, inDegree, outDegree);
+
+            return RequiredEdges(sccCount, inDegree, outDegree);
         }
     }
 }
