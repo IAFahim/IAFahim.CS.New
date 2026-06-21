@@ -7,10 +7,87 @@ namespace IAFahim.Collision.Gjk
     public static unsafe class Epa
     {
         private const float Epsilon = 1e-6f;
+
         private const int MaxIterations = 128;
+
         private const int MaxFaces = 256;
 
         private const int EdgesPerFace = 3;
+
+        private const int TetrahedronVertexCount = 4;
+
+        private const int RefineContinue = 0;
+
+        private const int RefineConverged = 1;
+
+        private const int RefineFailed = 2;
+
+        private const float DirectionThresholdRatio = 0.9f;
+
+        private const float PerturbationFactor = 0.1f;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void TryAddHorizonEdge(int u, int v, int currentFace, int faceCount, bool* visible, int* faceA, int* faceB, int* faceC, int* horizonA, int* horizonB, ref int horizonCount)
+        {
+            if (IsHorizonEdge(u, v, currentFace, faceCount, visible, faceA, faceB, faceC))
+            {
+                horizonA[horizonCount] = u;
+                horizonB[horizonCount] = v;
+                horizonCount++;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ExpandPolytope(float3 newSupport, float3* vertices, ref int vertexCount, float3* faceNormals, float* faceDistances, int* faceA, int* faceB, int* faceC, ref int faceCount)
+        {
+            int newIdx = vertexCount;
+            vertices[vertexCount] = newSupport;
+            vertexCount++;
+
+            bool* visible = stackalloc bool[MaxFaces];
+            for (int f = 0; f < faceCount; f++)
+                visible[f] = math.dot(faceNormals[f], newSupport) - faceDistances[f] > Epsilon;
+
+            int* horizonA = stackalloc int[MaxFaces * EdgesPerFace];
+            int* horizonB = stackalloc int[MaxFaces * EdgesPerFace];
+            int horizonCount = 0;
+
+            for (int f = 0; f < faceCount; f++)
+            {
+                if (!visible[f]) continue;
+                int aIdx = faceA[f], bIdx = faceB[f], cIdx = faceC[f];
+                TryAddHorizonEdge(aIdx, bIdx, f, faceCount, visible, faceA, faceB, faceC, horizonA, horizonB, ref horizonCount);
+                TryAddHorizonEdge(bIdx, cIdx, f, faceCount, visible, faceA, faceB, faceC, horizonA, horizonB, ref horizonCount);
+                TryAddHorizonEdge(cIdx, aIdx, f, faceCount, visible, faceA, faceB, faceC, horizonA, horizonB, ref horizonCount);
+            }
+
+            for (int f = faceCount - 1; f >= 0; f--)
+                if (visible[f]) RemoveFace(f, faceNormals, faceDistances, faceA, faceB, faceC, ref faceCount);
+
+            for (int i = 0; i < horizonCount; i++)
+                AddFace(vertices, horizonA[i], horizonB[i], newIdx, faceNormals, faceDistances, faceA, faceB, faceC, ref faceCount);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int RefineOnce(Gjk.SupportFunction supportA, Gjk.SupportFunction supportB, float3* vertices, ref int vertexCount, float3* faceNormals, float* faceDistances, int* faceA, int* faceB, int* faceC, ref int faceCount, out float3 outNormal, out float outDepth)
+        {
+            outNormal = float3.zero;
+            outDepth = 0.0f;
+            int closestFace = FindClosestFace(faceDistances, faceCount);
+            if (closestFace < 0) return RefineFailed;
+            float minDist = faceDistances[closestFace];
+            float3 faceNormal = faceNormals[closestFace];
+            float3 newSupport = supportA(faceNormal) - supportB(-faceNormal);
+            float supDist = math.dot(newSupport, faceNormal);
+            if (supDist - minDist < Epsilon)
+            {
+                outNormal = faceNormal;
+                outDepth = minDist;
+                return RefineConverged;
+            }
+            ExpandPolytope(newSupport, vertices, ref vertexCount, faceNormals, faceDistances, faceA, faceB, faceC, ref faceCount);
+            return RefineContinue;
+        }
 
         public static float PenetrationDepth(Gjk.SupportFunction supportA, Gjk.SupportFunction supportB,
             float3* initialSimplex, int simplexCount, out float3 normal, out float depth)
@@ -18,15 +95,11 @@ namespace IAFahim.Collision.Gjk
             normal = float3.zero;
             depth = 0.0f;
 
-            float3* vertices = stackalloc float3[MaxIterations + 4];
+            float3* vertices = stackalloc float3[MaxIterations + TetrahedronVertexCount];
             int vertexCount = simplexCount;
+            for (int i = 0; i < simplexCount; i++) vertices[i] = initialSimplex[i];
 
-            for (int i = 0; i < simplexCount; i++)
-            {
-                vertices[i] = initialSimplex[i];
-            }
-
-            if (vertexCount < 4)
+            if (vertexCount < TetrahedronVertexCount)
             {
                 ExpandSimplex(supportA, supportB, vertices, ref vertexCount);
             }
@@ -45,85 +118,9 @@ namespace IAFahim.Collision.Gjk
 
             for (int iter = 0; iter < MaxIterations; iter++)
             {
-                int closestFace = FindClosestFace(faceDistances, faceCount);
-
-                if (closestFace < 0)
-                {
-                    return 0.0f;
-                }
-
-                float minDist = faceDistances[closestFace];
-                float3 faceNormal = faceNormals[closestFace];
-
-                float3 newSupport = supportA(faceNormal) - supportB(-faceNormal);
-                float supDist = math.dot(newSupport, faceNormal);
-
-                if (supDist - minDist < Epsilon)
-                {
-                    normal = faceNormal;
-                    depth = minDist;
-                    return depth;
-                }
-
-                vertices[vertexCount] = newSupport;
-                vertexCount++;
-
-                int newIdx = vertexCount - 1;
-
-                bool* visible = stackalloc bool[MaxFaces];
-                for (int f = 0; f < faceCount; f++)
-                {
-                    visible[f] = math.dot(faceNormals[f], newSupport) - faceDistances[f] > Epsilon;
-                }
-
-                int* horizonA = stackalloc int[MaxFaces * EdgesPerFace];
-                int* horizonB = stackalloc int[MaxFaces * EdgesPerFace];
-                int horizonCount = 0;
-
-                for (int f = 0; f < faceCount; f++)
-                {
-                    if (visible[f])
-                    {
-                        int aIdx = faceA[f];
-                        int bIdx = faceB[f];
-                        int cIdx = faceC[f];
-
-                        if (IsHorizonEdge(aIdx, bIdx, f, faceCount, visible, faceA, faceB, faceC))
-                        {
-                            horizonA[horizonCount] = aIdx;
-                            horizonB[horizonCount] = bIdx;
-                            horizonCount++;
-                        }
-
-                        if (IsHorizonEdge(bIdx, cIdx, f, faceCount, visible, faceA, faceB, faceC))
-                        {
-                            horizonA[horizonCount] = bIdx;
-                            horizonB[horizonCount] = cIdx;
-                            horizonCount++;
-                        }
-
-                        if (IsHorizonEdge(cIdx, aIdx, f, faceCount, visible, faceA, faceB, faceC))
-                        {
-                            horizonA[horizonCount] = cIdx;
-                            horizonB[horizonCount] = aIdx;
-                            horizonCount++;
-                        }
-                    }
-                }
-
-                for (int f = faceCount - 1; f >= 0; f--)
-                {
-                    if (visible[f])
-                    {
-                        RemoveFace(f, faceNormals, faceDistances, faceA, faceB, faceC, ref faceCount);
-                    }
-                }
-
-                for (int i = 0; i < horizonCount; i++)
-                {
-                    AddFace(vertices, horizonA[i], horizonB[i], newIdx,
-                        faceNormals, faceDistances, faceA, faceB, faceC, ref faceCount);
-                }
+                int status = RefineOnce(supportA, supportB, vertices, ref vertexCount, faceNormals, faceDistances, faceA, faceB, faceC, ref faceCount, out float3 iterNormal, out float iterDepth);
+                if (status == RefineFailed) return 0.0f;
+                if (status == RefineConverged) { normal = iterNormal; depth = iterDepth; return depth; }
             }
 
             return 0.0f;
@@ -134,24 +131,14 @@ namespace IAFahim.Collision.Gjk
         {
             for (int i = 0; i < faceCount; i++)
             {
-                if (i == currentFace)
-                {
-                    continue;
-                }
-
+                if (i == currentFace) continue;
                 int a = fa[i];
                 int b = fb[i];
                 int c = fc[i];
-
                 bool containsU = a == u || b == u || c == u;
                 bool containsV = a == v || b == v || c == v;
-
-                if (containsU && containsV)
-                {
-                    return !visible[i];
-                }
+                if (containsU && containsV) return !visible[i];
             }
-
             return true;
         }
 
@@ -159,31 +146,15 @@ namespace IAFahim.Collision.Gjk
         private static void AddFace(float3* vertices, int a, int b, int c,
             float3* normals, float* distances, int* fa, int* fb, int* fc, ref int faceCount)
         {
-            if (faceCount >= MaxFaces)
-            {
-                return;
-            }
-
+            if (faceCount >= MaxFaces) return;
             float3 ab = vertices[b] - vertices[a];
             float3 ac = vertices[c] - vertices[a];
             float3 n = math.cross(ab, ac);
             float len = math.length(n);
-
-            if (len < Epsilon)
-            {
-                return;
-            }
-
+            if (len < Epsilon) return;
             n = n / len;
-
             float d = math.dot(n, vertices[a]);
-
-            if (d < 0.0f)
-            {
-                n = -n;
-                d = -d;
-            }
-
+            if (d < 0.0f) { n = -n; d = -d; }
             int idx = faceCount;
             normals[idx] = n;
             distances[idx] = d;
@@ -196,23 +167,11 @@ namespace IAFahim.Collision.Gjk
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int FindClosestFace(float* distances, int faceCount)
         {
-            if (faceCount == 0)
-            {
-                return -1;
-            }
-
+            if (faceCount == 0) return -1;
             int closest = 0;
             float minDist = distances[0];
-
             for (int i = 1; i < faceCount; i++)
-            {
-                if (distances[i] < minDist)
-                {
-                    minDist = distances[i];
-                    closest = i;
-                }
-            }
-
+                if (distances[i] < minDist) { minDist = distances[i]; closest = i; }
             return closest;
         }
 
@@ -229,12 +188,8 @@ namespace IAFahim.Collision.Gjk
                 fb[idx] = fb[last];
                 fc[idx] = fc[last];
             }
-
             faceCount--;
         }
-
-        private const float DirectionThresholdRatio = 0.9f;
-        private const float PerturbationFactor = 0.1f;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ExpandSimplex(Gjk.SupportFunction supportA, Gjk.SupportFunction supportB,
