@@ -3,27 +3,40 @@ namespace IAFahim.Graph.Eulerian
     using System;
     using System.Runtime.CompilerServices;
 
-    public static unsafe class EulerianPathUndirected
+    internal static unsafe class EulerShared
     {
-        public static int Run(int n, int* head, int* to, int* next, int start, int* path)
-        {
-            int* deg = stackalloc int[n];
-            for (int i = 0; i < n; i++) deg[i] = 0;
-            for (int u = 0; u < n; u++)
-                for (int e = head[u]; e != 0; e = next[e])
-                    deg[u]++;
-            int oddCount = 0;
-            for (int i = 0; i < n; i++) if ((deg[i] & 1) != 0) oddCount++;
-            if (oddCount != 0 && oddCount != 2) return 0;
+        public const int EdgeFree = 0;
 
-            int* stack = stackalloc int[n];
+        public const int EdgeUsed = 1;
+
+        public const int ReverseEdge = 1;
+
+        public const int EdgeCapacityFactor = 4;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ReversePath(int* path, int len)
+        {
+            int i = 0, j = len - 1;
+            while (i < j)
+            {
+                int tmp = path[i];
+                path[i] = path[j];
+                path[j] = tmp;
+                i++;
+                j--;
+            }
+        }
+
+        public static int BuildTrail(int n, int* head, int* to, int* next, int startNode, int* path, bool markReverse)
+        {
             int* curHead = stackalloc int[n];
             for (int i = 0; i < n; i++) curHead[i] = head[i];
+            int* stack = stackalloc int[n];
             int top = 0;
-            stack[top++] = start;
-            int edgeCap = n * 4;
+            stack[top++] = startNode;
+            int edgeCap = n * EdgeCapacityFactor;
             int* edgeUsed = stackalloc int[edgeCap];
-            for (int i = 0; i < edgeCap; i++) edgeUsed[i] = 0;
+            for (int i = 0; i < edgeCap; i++) edgeUsed[i] = EdgeFree;
             int pathLen = 0;
             while (top > 0)
             {
@@ -31,9 +44,10 @@ namespace IAFahim.Graph.Eulerian
                 bool pushed = false;
                 for (int e = curHead[u]; e != 0; e = next[e])
                 {
-                    if (edgeUsed[e] != 0) { curHead[u] = next[e]; continue; }
+                    if (edgeUsed[e] != EdgeFree) { curHead[u] = next[e]; continue; }
                     int v = to[e];
-                    edgeUsed[e] = 1; edgeUsed[e ^ 1] = 1;
+                    edgeUsed[e] = EdgeUsed;
+                    if (markReverse) edgeUsed[e ^ ReverseEdge] = EdgeUsed;
                     curHead[u] = next[e];
                     stack[top++] = v;
                     pushed = true;
@@ -41,18 +55,51 @@ namespace IAFahim.Graph.Eulerian
                 }
                 if (!pushed) { top--; path[pathLen++] = u; }
             }
-            for (int i = 0, j = pathLen - 1; i < j; i++, j--)
-            {
-                int tmp = path[i];
-                path[i] = path[j];
-                path[j] = tmp;
-            }
+            ReversePath(path, pathLen);
             return pathLen;
+        }
+    }
+
+    public static unsafe class EulerianPathUndirected
+    {
+        private const int EulerCircuitOddDegrees = 0;
+
+        private const int EulerPathOddDegrees = 2;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int CountOddDegrees(int* deg, int n)
+        {
+            int odd = 0;
+            for (int i = 0; i < n; i++) if ((deg[i] & 1) != 0) odd++;
+            return odd;
+        }
+
+        public static int Run(int n, int* head, int* to, int* next, int start, int* path)
+        {
+            int* deg = stackalloc int[n];
+            for (int i = 0; i < n; i++) deg[i] = 0;
+            for (int u = 0; u < n; u++)
+                for (int e = head[u]; e != 0; e = next[e])
+                    deg[u]++;
+            int oddCount = CountOddDegrees(deg, n);
+            if (oddCount != EulerCircuitOddDegrees && oddCount != EulerPathOddDegrees) return 0;
+            return EulerShared.BuildTrail(n, head, to, next, start, path, true);
         }
     }
 
     public static unsafe class EulerianPathDirected
     {
+        private const int ExcessOutDegree = 1;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int DetectTrailStart(int* indeg, int* outdeg, int n, int fallbackStart)
+        {
+            int startNode = fallbackStart;
+            for (int i = 0; i < n; i++)
+                if (outdeg[i] - indeg[i] == ExcessOutDegree) startNode = i;
+            return startNode;
+        }
+
         public static int Run(int n, int* head, int* to, int* next, int start, int* path)
         {
             int* indeg = stackalloc int[n];
@@ -60,46 +107,8 @@ namespace IAFahim.Graph.Eulerian
             for (int i = 0; i < n; i++) { indeg[i] = 0; outdeg[i] = 0; }
             for (int u = 0; u < n; u++)
                 for (int e = head[u]; e != 0; e = next[e]) { indeg[to[e]]++; outdeg[u]++; }
-
-            int startNode = start, endNode = -1;
-            for (int i = 0; i < n; i++)
-            {
-                if (outdeg[i] - indeg[i] == 1) startNode = i;
-                if (outdeg[i] - indeg[i] == -1) endNode = i;
-            }
-
-            int* stack = stackalloc int[n];
-            int* curHead = stackalloc int[n];
-            for (int i = 0; i < n; i++) curHead[i] = head[i];
-            int top = 0;
-            stack[top++] = startNode;
-            int edgeCap = n * 4;
-            int* edgeUsed = stackalloc int[edgeCap];
-            for (int i = 0; i < edgeCap; i++) edgeUsed[i] = 0;
-            int pathLen = 0;
-
-            while (top > 0)
-            {
-                int u = stack[top - 1];
-                bool pushed = false;
-                for (int e = curHead[u]; e != 0; e = next[e])
-                {
-                    if (edgeUsed[e] != 0) { curHead[u] = next[e]; continue; }
-                    edgeUsed[e] = 1;
-                    curHead[u] = next[e];
-                    stack[top++] = to[e];
-                    pushed = true;
-                    break;
-                }
-                if (!pushed) { top--; path[pathLen++] = u; }
-            }
-            for (int i = 0, j = pathLen - 1; i < j; i++, j--)
-            {
-                int tmp = path[i];
-                path[i] = path[j];
-                path[j] = tmp;
-            }
-            return pathLen;
+            int startNode = DetectTrailStart(indeg, outdeg, n, start);
+            return EulerShared.BuildTrail(n, head, to, next, startNode, path, false);
         }
     }
 }
