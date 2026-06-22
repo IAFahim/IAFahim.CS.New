@@ -1,14 +1,19 @@
+src/IAFahim.Algebra.Polynomial/Berlekamp.cs
 src/IAFahim.Algebra.Polynomial/RationalInterpolation.cs
+src/IAFahim.Collision.Gjk/Epa.cs
 src/IAFahim.Collision.Gjk/Gjk.cs
 src/IAFahim.Combinatorics.Generation/Permutations.cs
+src/IAFahim.Geometry.Hull/RotatingCalipers.cs
 src/IAFahim.Geometry.Spatial/Octree.cs
 src/IAFahim.Geometry.Spatial/RangeTree.cs
 src/IAFahim.Geometry.Spatial/SegmentTree.cs
 src/IAFahim.Geometry.Triangulation/EarClipping.cs
 src/IAFahim.Geometry.Voronoi/VisibilityGraph.cs
+src/IAFahim.Graph.DAG/DagTransitiveReduction.cs
 src/IAFahim.Graph.DAG/MinimumEquivalentDigraph.cs
 src/IAFahim.Graph.Eulerian/Eulerian.cs
 src/IAFahim.Graph.Flow/ExcessScalingMaxFlow.cs
+src/IAFahim.Graph.Flow/MinCostFlowCapacityScaling.cs
 src/IAFahim.Graph.Flow/MinCostFlowDijkstra.cs
 src/IAFahim.Graph.Flow/MinCostFlowNetworkSimplex.cs
 src/IAFahim.Graph.Flow/MinCostFlowSpfa.cs
@@ -16,6 +21,8 @@ src/IAFahim.Graph.Flow/PushRelabelGap.cs
 src/IAFahim.Graph.Flow/PushRelabelGlobalRelabel.cs
 src/IAFahim.Graph.Matching/AssignmentHungarianRectangular.cs
 src/IAFahim.Graph.Matching/HospitalResidentsMatching.cs
+src/IAFahim.Graph.Matching/StableRoommates.cs
+src/IAFahim.Graph.Misc/GraphMisc.cs
 src/IAFahim.Graph.SCC/SccAugmentation.cs
 src/IAFahim.Graph.SpanningTrees/SpanningTreesAndCuts.cs
 src/IAFahim.Graph.Tree/TreeAdvanced.cs
@@ -34,6 +41,7 @@ src/IAFahim.Math.PoissonDisk/PoissonDisk2D.cs
 src/IAFahim.Math.PoissonDisk/PoissonDisk3D.cs
 src/IAFahim.Math.Polynomial.Fps/Fps.cs
 src/IAFahim.Math.Polynomial/OnlineNttConvolution.cs
+src/IAFahim.Math.Transform/SubsetConvolutionRanked.cs
 src/IAFahim.Optimization.Exact/SteinerDreyfusWagner.cs
 src/IAFahim.Optimization.Exact/TspMeetInMiddle.cs
 src/IAFahim.Optimization.Games/AttractorSet.cs
@@ -41,8 +49,10 @@ src/IAFahim.Optimization.Games/MinCostFlow.cs
 src/IAFahim.Optimization.Games/Retrograde.cs
 src/IAFahim.Search.ExactCover/ExactCover.cs
 src/IAFahim.Search.Range/Mex.cs
+src/IAFahim.Sort.RadixSort/RadixSort.cs
 src/IAFahim.String.Automata/FiniteAutomaton.cs
 src/IAFahim.String.Grammar/GrammarCompress.cs
+src/IAFahim.String.Match/EditDistance.cs
 src/IAFahim.String.Parse/Earley.cs
 src/IAFahim.String.Parse/Parsing.cs
 src/IAFahim.String.SuffixTree/SuffixTree.cs

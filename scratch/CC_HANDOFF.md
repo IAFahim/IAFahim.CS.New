@@ -7,17 +7,28 @@ leaves) across every `src/` file. Adversarial critics gate every change. Never
 benchmark. One project build / one test at a time (tests can hang the PC).
 Commit only explicit verified paths — NEVER `git add -A`.
 
-## State (as of master HEAD `c48a00c` + rounds 4-5)
+## State (as of master HEAD e492bea + rounds 4-6)
 
-- 50 high-CC files refactored + committed. Rounds 4 (10 files) and 5 (10 files)
-  done by a single inline agent (no sub-agent fan-out available in this harness):
-  each file got fix + adversarial self-critique across 3 dimensions (semantics /
-  contract / complexity) + per-module build + test (where a test project exists).
+- 60 high-CC files refactored + committed (30 in this turn: rounds 4, 5, 6, each
+  10 files one-per-project). Single inline agent (no Workflow/sub-agent tool in
+  this harness): each file got fix + adversarial self-critique across 3
+  dimensions (semantics / contract / complexity) + per-module build + test
+  (where a test project exists).
 - Tree is clean. All CC commits are LOCAL (unpushed, ahead of origin/master).
-- `scratch/cc_done.txt` = 50 files already done (skip these).
+- `scratch/cc_done.txt` = 60 files already done (skip these).
 - `scratch/cc_worklist.json` = 153 files with a method CC>=10, sorted worst-first.
-- 91 non-Recast high-CC files remain + 12 Recast DEFERRED (var-laden
+- 81 non-Recast high-CC files remain + 12 Recast DEFERRED (var-laden
   recastnavigation port — explicit types required in any new helpers).
+
+DECISION LOG (this turn):
+
+- Tested files: full refactor + comment strip (tests catch regressions).
+- Untested subtle algorithms (StableRoommates, Berlekamp): mechanical body-
+  extraction only (semantics preserved by construction); comments KEPT
+  (load-bearing invariant docs; correctness outranks no-comments on untested code).
+- Repeatedly-found dup centralized into internal shared classes where same
+  project/namespace: SpArrays, MstShared, StShared, DagShared. Cross-project
+  near-twins left (e.g. MinCostFlow{Spfa,CapacityScaling}) — a later dedup pass.
 
 NOTE: this harness has no Workflow/sub-agent tool. Run the gate INLINE: read
 file -> refactor (extract AggressiveInlining helpers, preserve EXACT semantics)
