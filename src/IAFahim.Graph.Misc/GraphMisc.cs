@@ -22,14 +22,18 @@ namespace IAFahim.Graph.Misc
 
     public static unsafe class CycleDp
     {
-        public static long Run(int n, long* dp, int* next, long* values)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ComputeNextInDegrees(int n, int* next, int* inDeg)
         {
-            int* inDeg = stackalloc int[n];
             for (int i = 0; i < n; i++) inDeg[i] = 0;
             for (int i = 0; i < n; i++) inDeg[next[i]]++;
-            bool* removed = stackalloc bool[n];
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void RemoveAcyclicNodes(int n, int* next, int* inDeg, bool* removed, int* queue)
+        {
             for (int i = 0; i < n; i++) removed[i] = false;
-            int* queue = stackalloc int[n]; int qh = 0, qt = 0;
+            int qh = 0, qt = 0;
             for (int i = 0; i < n; i++) if (inDeg[i] == 0) queue[qt++] = i;
             while (qh < qt)
             {
@@ -38,8 +42,13 @@ namespace IAFahim.Graph.Misc
                 int v = next[u];
                 if (--inDeg[v] == 0) queue[qt++] = v;
             }
-            long maxSum = 0;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static long SumCycleValues(int n, int* next, long* values, long* dp, bool* removed)
+        {
             for (int i = 0; i < n; i++) dp[i] = 0;
+            long maxSum = 0;
             for (int start = 0; start < n; start++)
             {
                 if (removed[start] || dp[start] != 0) continue;
@@ -48,6 +57,16 @@ namespace IAFahim.Graph.Misc
                 if (sum > maxSum) maxSum = sum;
             }
             return maxSum;
+        }
+
+        public static long Run(int n, long* dp, int* next, long* values)
+        {
+            int* inDeg = stackalloc int[n];
+            ComputeNextInDegrees(n, next, inDeg);
+            bool* removed = stackalloc bool[n];
+            int* queue = stackalloc int[n];
+            RemoveAcyclicNodes(n, next, inDeg, removed, queue);
+            return SumCycleValues(n, next, values, dp, removed);
         }
     }
 
