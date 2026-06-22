@@ -51,6 +51,46 @@ using System.Runtime.InteropServices;
 
         private static void SwapBuffers(ref int* a, ref int* b) { int* t = a; a = b; b = t; }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool LengthDifferenceExceedsK(int lenA, int lenB, int k)
+            => lenA - lenB > k || lenB - lenA > k;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void InitUkkonenRowZero(int* v, int lenB, int k, bool* trace)
+        {
+            for (int j = 0; j <= lenB; j++)
+            {
+                v[j] = j;
+                if (trace != null) trace[j] = j <= k;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int FillUkkonenRow(int i, int lenB, int stride, byte* a, byte* b, int* v, bool* trace, int k)
+        {
+            int rowBase = i * stride;
+            int diag = v[0];
+            v[0] = i;
+            if (trace != null) trace[rowBase] = i <= k;
+            byte ai = a[i - 1];
+            int rowMin = i;
+            for (int j = 1; j <= lenB; j++)
+            {
+                int up = v[j];
+                int cost = ai == b[j - 1] ? 0 : 1;
+                int best = diag + cost;
+                int delUp = up + 1;
+                if (delUp < best) best = delUp;
+                int delLeft = v[j - 1] + 1;
+                if (delLeft < best) best = delLeft;
+                diag = up;
+                v[j] = best;
+                if (best < rowMin) rowMin = best;
+                if (trace != null) trace[rowBase + j] = best <= k;
+            }
+            return rowMin;
+        }
+
         /// <summary>
         /// Returns true when the Levenshtein edit distance between <paramref name="a"/>
         /// (length <paramref name="lenA"/>) and <paramref name="b"/> (length
@@ -63,48 +103,13 @@ using System.Runtime.InteropServices;
         /// </summary>
         public static bool Ukkonen(byte* a, int lenA, byte* b, int lenB, int k, int* v, bool* trace)
         {
-            // The edit distance is at least the length difference, so reject early.
-            if (lenA - lenB > k || lenB - lenA > k) return false;
-
+            if (LengthDifferenceExceedsK(lenA, lenB, k)) return false;
             int stride = lenB + 1;
-
-            // Row 0: dp[0][j] = j.
-            for (int j = 0; j <= lenB; j++)
-            {
-                v[j] = j;
-                if (trace != null) trace[j] = j <= k;
-            }
-
+            InitUkkonenRowZero(v, lenB, k, trace);
             for (int i = 1; i <= lenA; i++)
             {
-                int rowBase = i * stride;
-                int diag = v[0]; // dp[i-1][0] before it is overwritten
-                v[0] = i;        // dp[i][0]
-                if (trace != null) trace[rowBase] = i <= k;
-
-                byte ai = a[i - 1];
-                int rowMin = i;
-                for (int j = 1; j <= lenB; j++)
-                {
-                    int up = v[j];   // dp[i-1][j]
-                    int cost = ai == b[j - 1] ? 0 : 1;
-                    int best = diag + cost;
-                    int delUp = up + 1;
-                    if (delUp < best) best = delUp;
-                    int delLeft = v[j - 1] + 1;
-                    if (delLeft < best) best = delLeft;
-
-                    diag = up;
-                    v[j] = best;
-                    if (best < rowMin) rowMin = best;
-                    if (trace != null) trace[rowBase + j] = best <= k;
-                }
-
-                // Ukkonen pruning: once every cell of a row exceeds k, the minimum of each
-                // following row stays > k, so the final distance is certainly > k.
-                if (rowMin > k) return false;
+                if (FillUkkonenRow(i, lenB, stride, a, b, v, trace, k) > k) return false;
             }
-
             return v[lenB] <= k;
         }
     }
