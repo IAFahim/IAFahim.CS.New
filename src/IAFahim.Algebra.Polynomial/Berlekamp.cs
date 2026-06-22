@@ -5,6 +5,8 @@ namespace IAFahim.Algebra.Polynomial
 
     public static unsafe class Berlekamp
     {
+        private const int NoPivotColumn = -1;
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Run(long* poly, int n, int MOD, long* outF, int* outL)
         {
@@ -64,47 +66,61 @@ namespace IAFahim.Algebra.Polynomial
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int FindPivotRow(long* Q, int n, int startRow, int col)
+        {
+            int row = startRow;
+            int rowBase = row * n + col;
+            while (row < n)
+            {
+                if (Q[rowBase] != 0L) break;
+                row++;
+                rowBase += n;
+            }
+            return row;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void NormalizePivotRow(long* Q, int n, int pivotRow, long inv, long mod)
+        {
+            long* rankRow = Q + pivotRow * n;
+            for (int j = 0; j < n; j++)
+                rankRow[j] = (rankRow[j] * inv) % mod;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void EliminateOtherRows(long* Q, int n, int pivotRow, int col, long mod)
+        {
+            long* rankRow = Q + pivotRow * n;
+            for (int r = 0; r < n; r++)
+            {
+                int rBase = r * n;
+                if (r != pivotRow && Q[rBase + col] != 0L)
+                {
+                    long factor = Q[rBase + col];
+                    long* curRow = Q + rBase;
+                    for (int j = 0; j < n; j++)
+                    {
+                        long t = curRow[j] - (factor * rankRow[j]) % mod;
+                        t += (t >> 63) & mod;
+                        curRow[j] = t;
+                    }
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int ReduceQMatrix(long* Q, int n, int MOD)
         {
             long mod = (long)MOD;
             int rank = 0;
             for (int col = 0; col < n && rank < n; col++)
             {
-                int row = rank;
-                int rowBase = row * n + col;
-                while (row < n)
-                {
-                    if (Q[rowBase] != 0L) break;
-                    row++;
-                    rowBase += n;
-                }
+                int row = FindPivotRow(Q, n, rank, col);
                 if (row == n) continue;
-
                 if (row != rank) SwapRows(Q, n, rank, row);
-
-                int rankBase = rank * n;
-                long inv = ModInv(Q[rankBase + col], mod);
-                long* rankRow = Q + rankBase;
-                for (int j = 0; j < n; j++)
-                {
-                    rankRow[j] = (rankRow[j] * inv) % mod;
-                }
-
-                for (int r = 0; r < n; r++)
-                {
-                    int rBase = r * n;
-                    if (r != rank && Q[rBase + col] != 0L)
-                    {
-                        long factor = Q[rBase + col];
-                        long* curRow = Q + rBase;
-                        for (int j = 0; j < n; j++)
-                        {
-                            long t = curRow[j] - (factor * rankRow[j]) % mod;
-                            t += (t >> 63) & mod;
-                            curRow[j] = t;
-                        }
-                    }
-                }
+                long inv = ModInv(Q[rank * n + col], mod);
+                NormalizePivotRow(Q, n, rank, inv, mod);
+                EliminateOtherRows(Q, n, rank, col, mod);
                 rank++;
             }
             return rank;
@@ -124,21 +140,13 @@ namespace IAFahim.Algebra.Polynomial
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int ExtractBasis(long* poly, long* Q, int n, int rank, int MOD, long* outF, int* outL)
+        private static void MarkPivotColumns(long* Q, int n, int rank, int* pivotColOfRow, byte* isPivotCol)
         {
-            // Q is in reduced row-echelon form. Identify the pivot column of each
-            // pivot row and mark every column as pivot or free. The null space of Q
-            // (vectors v with Q v = 0) has dimension n - rank, with one basis vector
-            // per free column.
-            int* pivotColOfRow = stackalloc int[rank];
-            byte* isPivotCol = stackalloc byte[n];
             for (int c = 0; c < n; c++) isPivotCol[c] = 0;
-
-            long mod = (long)MOD;
             for (int r = 0; r < rank; r++)
             {
                 long rowBase = (long)r * (long)n;
-                int pivotCol = -1;
+                int pivotCol = NoPivotColumn;
                 for (int c = 0; c < n; c++)
                 {
                     if (Q[rowBase + c] != 0L)
@@ -150,28 +158,41 @@ namespace IAFahim.Algebra.Polynomial
                 pivotColOfRow[r] = pivotCol;
                 if (pivotCol >= 0) isPivotCol[pivotCol] = 1;
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void BuildBasisVector(long* Q, int n, int rank, int freeCol, int* pivotColOfRow, long mod, long* basis)
+        {
+            for (int j = 0; j < n; j++) basis[j] = 0L;
+            basis[freeCol] = 1L;
+            for (int r = 0; r < rank; r++)
+            {
+                int pivotCol = pivotColOfRow[r];
+                if (pivotCol < 0) continue;
+                long coeff = Q[(long)r * (long)n + (long)freeCol] % mod;
+                if (coeff != 0L) coeff = mod - coeff;
+                basis[pivotCol] = coeff;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int ExtractBasis(long* poly, long* Q, int n, int rank, int MOD, long* outF, int* outL)
+        {
+            // Q is in reduced row-echelon form. Identify the pivot column of each
+            // pivot row and mark every column as pivot or free. The null space of Q
+            // (vectors v with Q v = 0) has dimension n - rank, with one basis vector
+            // per free column.
+            int* pivotColOfRow = stackalloc int[rank];
+            byte* isPivotCol = stackalloc byte[n];
+            long mod = (long)MOD;
+            MarkPivotColumns(Q, n, rank, pivotColOfRow, isPivotCol);
 
             int factorCount = 0;
             long* basis = stackalloc long[n];
             for (int freeCol = 0; freeCol < n; freeCol++)
             {
                 if (isPivotCol[freeCol] != 0) continue;
-
-                for (int j = 0; j < n; j++) basis[j] = 0L;
-                basis[freeCol] = 1L;
-
-                // For each pivot row r with pivot column p: the equation contributes
-                // Q[r][p]*v[p] + Q[r][freeCol]*v[freeCol] = 0 (RREF: Q[r][p] == 1),
-                // so v[p] = -Q[r][freeCol].
-                for (int r = 0; r < rank; r++)
-                {
-                    int pivotCol = pivotColOfRow[r];
-                    if (pivotCol < 0) continue;
-                    long coeff = Q[(long)r * (long)n + (long)freeCol] % mod;
-                    if (coeff != 0L) coeff = mod - coeff;
-                    basis[pivotCol] = coeff;
-                }
-
+                BuildBasisVector(Q, n, rank, freeCol, pivotColOfRow, mod, basis);
                 for (int j = 0; j < n; j++) outF[(long)factorCount * (long)n + (long)j] = basis[j];
                 outL[factorCount++] = n;
             }
