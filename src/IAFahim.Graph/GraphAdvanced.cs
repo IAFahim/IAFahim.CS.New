@@ -40,6 +40,31 @@ namespace IAFahim.Graph
 
     public static unsafe class StoerWagner
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void BuildWeightMatrix(int n, int* head, int* to, int* next, int* weight, long* w)
+        {
+            for (int i = 0; i < n * n; i++) w[i] = 0;
+            for (int u = 0; u < n; u++)
+                for (int e = head[u]; e != 0; e = next[e])
+                {
+                    int v = to[e];
+                    w[u * n + v] += weight[e];
+                }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ContractVertex(int n, long* w, bool* merged, int s, int t)
+        {
+            merged[t] = true;
+            for (int i = 0; i < n; i++)
+            {
+                if (merged[i] || i == s) continue;
+                long add = w[t * n + i];
+                w[s * n + i] += add;
+                w[i * n + s] += add;
+            }
+        }
+
         // Global minimum cut of an undirected weighted graph (Stoer-Wagner).
         // Input is the library's adjacency-list form: head/to/next with edge index 0
         // as the sentinel and undirected edges stored as pairs (e, e^1). The list is
@@ -48,44 +73,39 @@ namespace IAFahim.Graph
         public static long Run(int n, int* head, int* to, int* next, int* weight)
         {
             if (n < 2) return long.MaxValue;
-
             long* w = stackalloc long[n * n];
-            for (int i = 0; i < n * n; i++) w[i] = 0;
-            // Accumulate undirected edge weights into the symmetric matrix.
-            for (int u = 0; u < n; u++)
-                for (int e = head[u]; e != 0; e = next[e])
-                {
-                    int v = to[e];
-                    w[u * n + v] += weight[e];
-                }
-
+            BuildWeightMatrix(n, head, to, next, weight, w);
             bool* merged = stackalloc bool[n];
             for (int i = 0; i < n; i++) merged[i] = false;
-
             long* dist = stackalloc long[n];
             bool* inA = stackalloc bool[n];
-
             long minCut = long.MaxValue;
             int remaining = n;
-
             while (remaining > 1)
             {
                 long cutOfPhase = MinimumCutPhase(n, w, merged, dist, inA, out int s, out int t);
                 if (cutOfPhase < minCut) minCut = cutOfPhase;
-
-                // Contract t into s: fold every edge incident to t onto s.
-                merged[t] = true;
+                ContractVertex(n, w, merged, s, t);
                 remaining--;
-                for (int i = 0; i < n; i++)
-                {
-                    if (merged[i] || i == s) continue;
-                    long add = w[t * n + i];
-                    w[s * n + i] += add;
-                    w[i * n + s] += add;
-                }
             }
-
             return minCut;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int CountActive(int n, bool* merged)
+        {
+            int active = 0;
+            for (int i = 0; i < n; i++) if (!merged[i]) active++;
+            return active;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int SelectMaxAdjacency(int n, long* dist, bool* merged, bool* inA)
+        {
+            int sel = -1;
+            for (int i = 0; i < n; i++)
+                if (!merged[i] && !inA[i] && (sel == -1 || dist[i] > dist[sel])) sel = i;
+            return sel;
         }
 
         // Runs one maximum-adjacency ordering over the non-merged vertices,
@@ -94,30 +114,20 @@ namespace IAFahim.Graph
         private static long MinimumCutPhase(int n, long* w, bool* merged, long* dist, bool* inA, out int s, out int t)
         {
             for (int i = 0; i < n; i++) { dist[i] = 0; inA[i] = false; }
-
             s = -1;
             t = -1;
             long lastWeight = 0;
-
-            // Count active vertices for this phase.
-            int active = 0;
-            for (int i = 0; i < n; i++) if (!merged[i]) active++;
-
+            int active = CountActive(n, merged);
             for (int added = 0; added < active; added++)
             {
-                int sel = -1;
-                for (int i = 0; i < n; i++)
-                    if (!merged[i] && !inA[i] && (sel == -1 || dist[i] > dist[sel])) sel = i;
-
+                int sel = SelectMaxAdjacency(n, dist, merged, inA);
                 inA[sel] = true;
                 s = t;
                 t = sel;
                 lastWeight = dist[sel];
-
                 for (int i = 0; i < n; i++)
                     if (!merged[i] && !inA[i]) dist[i] += w[sel * n + i];
             }
-
             return lastWeight;
         }
     }
