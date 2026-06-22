@@ -382,16 +382,60 @@ namespace IAFahim.Search.RangeQueries
 
     public static unsafe class RangeInversionQuery
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void CopyAndInsertionSort(int* arr, int l, int len, int* sorted)
+        {
+            for (int i = 0; i < len; i++) sorted[i] = arr[l + i];
+            for (int i = 1; i < len; i++)
+            {
+                int key = sorted[i], j = i - 1;
+                while (j >= 0 && sorted[j] > key) { sorted[j + 1] = sorted[j]; j--; }
+                sorted[j + 1] = key;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int CompressDistinct(int* sorted, int len)
+        {
+            int m = 0;
+            for (int i = 0; i < len; i++)
+                if (i == 0 || sorted[i] != sorted[m - 1]) { sorted[m] = sorted[i]; m++; }
+            return m;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int LowerBoundRank(int* sorted, int m, int value)
+        {
+            int lo = 0, hi = m;
+            while (lo < hi)
+            {
+                int mid = (lo + hi) >> 1;
+                if (sorted[mid] < value) lo = mid + 1;
+                else hi = mid;
+            }
+            return lo + 1;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static long FenwickPrefix(int* bit, int rank)
+        {
+            long sum = 0;
+            for (int j = rank; j > 0; j -= j & -j) sum += bit[j];
+            return sum;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void FenwickUpdate(int* bit, int rank, int m)
+        {
+            for (int j = rank; j <= m; j += j & -j) bit[j]++;
+        }
+
         public static long Run(int* arr, int n, int l, int r)
         {
             long inv = 0;
             for (int i = l; i <= r; i++)
-            {
                 for (int j = i + 1; j <= r; j++)
-                {
                     if (arr[i] > arr[j]) inv++;
-                }
-            }
             return inv;
         }
 
@@ -399,48 +443,17 @@ namespace IAFahim.Search.RangeQueries
         {
             int len = r - l + 1;
             int* sorted = stackalloc int[len];
-            for (int i = 0; i < len; i++) sorted[i] = arr[l + i];
-
-            // Insertion sort to build the coordinate-compression key set.
-            for (int i = 1; i < len; i++)
-            {
-                int key = sorted[i], j = i - 1;
-                while (j >= 0 && sorted[j] > key) { sorted[j + 1] = sorted[j]; j--; }
-                sorted[j + 1] = key;
-            }
-
-            // Deduplicate in place; m = number of distinct values, ranks are 1..m.
-            int m = 0;
-            for (int i = 0; i < len; i++)
-            {
-                if (i == 0 || sorted[i] != sorted[m - 1]) { sorted[m] = sorted[i]; m++; }
-            }
-
+            CopyAndInsertionSort(arr, l, len, sorted);
+            int m = CompressDistinct(sorted, len);
             long inv = 0;
             // Process elements in ORIGINAL order; count already-inserted elements
             // with a strictly greater rank (equal values are not inversions).
             for (int i = 0; i < len; i++)
             {
-                int value = arr[l + i];
-
-                // lower_bound: smallest index whose sorted value >= value (exact, found).
-                int lo = 0, hi = m;
-                while (lo < hi)
-                {
-                    int mid = (lo + hi) >> 1;
-                    if (sorted[mid] < value) lo = mid + 1;
-                    else hi = mid;
-                }
-                int rank = lo + 1; // 1-based rank in [1..m]
-
-                // Count inserted elements with rank > rank: total inserted so far minus
-                // prefix-sum up to and including this rank.
-                long lessOrEqual = 0;
-                for (int j = rank; j > 0; j -= j & -j) lessOrEqual += bit[j];
+                int rank = LowerBoundRank(sorted, m, arr[l + i]);
+                long lessOrEqual = FenwickPrefix(bit, rank);
                 inv += i - lessOrEqual;
-
-                // Point update at rank.
-                for (int j = rank; j <= m; j += j & -j) bit[j]++;
+                FenwickUpdate(bit, rank, m);
             }
             return inv;
         }
