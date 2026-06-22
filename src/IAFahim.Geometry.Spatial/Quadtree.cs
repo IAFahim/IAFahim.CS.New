@@ -5,6 +5,22 @@ namespace IAFahim.Geometry.Spatial
 
     public static unsafe class Quadtree
     {
+        private const int QuadrantCount = 4;
+
+        private const int QuadrantLowerLeft = 0;
+
+        private const int QuadrantLowerRight = 1;
+
+        private const int QuadrantUpperLeft = 2;
+
+        private const int QuadrantUpperRight = 3;
+
+        private const double MidpointWeight = 0.5;
+
+        private const int NoChild = -1;
+
+        private const int NoPoint = -1;
+
         public struct Node
         {
             public double MinX, MinY, MaxX, MaxY;
@@ -13,11 +29,9 @@ namespace IAFahim.Geometry.Spatial
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Build(double* xs, double* ys, int n, Node* nodes, int maxNodes)
+        private static void ComputeBoundingBox(double* xs, double* ys, int n, out double minX, out double minY, out double maxX, out double maxY)
         {
-            if (n == 0 || maxNodes < 1) return 0;
-
-            double minX = xs[0], minY = ys[0], maxX = xs[0], maxY = ys[0];
+            minX = xs[0]; minY = ys[0]; maxX = xs[0]; maxY = ys[0];
             for (int i = 1; i < n; i++)
             {
                 if (xs[i] < minX) minX = xs[i];
@@ -25,16 +39,77 @@ namespace IAFahim.Geometry.Spatial
                 if (ys[i] < minY) minY = ys[i];
                 if (ys[i] > maxY) maxY = ys[i];
             }
+        }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsInQuadrant(double px, double py, double midX, double midY, int quadrant)
+        {
+            bool lowerY = py <= midY;
+            bool leftX = px <= midX;
+            switch (quadrant)
+            {
+                case QuadrantLowerLeft: return leftX && lowerY;
+                case QuadrantLowerRight: return !leftX && lowerY;
+                case QuadrantUpperLeft: return leftX && !lowerY;
+                default: return !leftX && !lowerY;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int PartitionQuadrant(double* xs, double* ys, int* indices, int lo, int count, double midX, double midY, int quadrant)
+        {
+            int matched = 0;
+            for (int i = lo; i < count; i++)
+            {
+                int p = indices[i];
+                if (IsInQuadrant(xs[p], ys[p], midX, midY, quadrant))
+                {
+                    int t = indices[lo + matched];
+                    indices[lo + matched] = indices[i];
+                    indices[i] = t;
+                    matched++;
+                }
+            }
+            return matched;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ConfigureQuadrantBounds(Node* nodes, int first, int u, double midX, double midY, int quadrant)
+        {
+            Node* child = &nodes[first + quadrant];
+            switch (quadrant)
+            {
+                case QuadrantLowerLeft:
+                    child->MinX = nodes[u].MinX; child->MaxX = midX;
+                    child->MinY = nodes[u].MinY; child->MaxY = midY;
+                    break;
+                case QuadrantLowerRight:
+                    child->MinX = midX; child->MaxX = nodes[u].MaxX;
+                    child->MinY = nodes[u].MinY; child->MaxY = midY;
+                    break;
+                case QuadrantUpperLeft:
+                    child->MinX = nodes[u].MinX; child->MaxX = midX;
+                    child->MinY = midY; child->MaxY = nodes[u].MaxY;
+                    break;
+                default:
+                    child->MinX = midX; child->MaxX = nodes[u].MaxX;
+                    child->MinY = midY; child->MaxY = nodes[u].MaxY;
+                    break;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int Build(double* xs, double* ys, int n, Node* nodes, int maxNodes)
+        {
+            if (n == 0 || maxNodes < 1) return 0;
+            ComputeBoundingBox(xs, ys, n, out double minX, out double minY, out double maxX, out double maxY);
             int nodeCount = 1;
             nodes[0].MinX = minX; nodes[0].MinY = minY;
             nodes[0].MaxX = maxX; nodes[0].MaxY = maxY;
-            nodes[0].FirstChild = -1;
-            nodes[0].PointIndex = -1;
-
+            nodes[0].FirstChild = NoChild;
+            nodes[0].PointIndex = NoPoint;
             int* indices = stackalloc int[n];
             for (int i = 0; i < n; i++) indices[i] = i;
-
             BuildRecursive(xs, ys, nodes, 0, indices, n, ref nodeCount, maxNodes);
             return nodeCount;
         }
@@ -48,61 +123,35 @@ namespace IAFahim.Geometry.Spatial
                 nodes[u].PointIndex = indices[0];
                 return;
             }
-
-            if (nodeCount + 4 > maxNodes)
+            if (nodeCount + QuadrantCount > maxNodes)
             {
-                nodes[u].PointIndex = indices[0]; // Truncate
+                nodes[u].PointIndex = indices[0];
                 return;
             }
 
-            double midX = (nodes[u].MinX + nodes[u].MaxX) * 0.5;
-            double midY = (nodes[u].MinY + nodes[u].MaxY) * 0.5;
+            double midX = (nodes[u].MinX + nodes[u].MaxX) * MidpointWeight;
+            double midY = (nodes[u].MinY + nodes[u].MaxY) * MidpointWeight;
 
             int first = nodeCount;
             nodes[u].FirstChild = first;
-            nodeCount += 4;
+            nodeCount += QuadrantCount;
 
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < QuadrantCount; i++)
             {
-                nodes[first + i].FirstChild = -1;
-                nodes[first + i].PointIndex = -1;
+                nodes[first + i].FirstChild = NoChild;
+                nodes[first + i].PointIndex = NoPoint;
+                ConfigureQuadrantBounds(nodes, first, u, midX, midY, i);
             }
 
-            nodes[first].MinX = nodes[u].MinX; nodes[first].MaxX = midX;
-            nodes[first].MinY = nodes[u].MinY; nodes[first].MaxY = midY;
-
-            nodes[first + 1].MinX = midX; nodes[first + 1].MaxX = nodes[u].MaxX;
-            nodes[first + 1].MinY = nodes[u].MinY; nodes[first + 1].MaxY = midY;
-
-            nodes[first + 2].MinX = nodes[u].MinX; nodes[first + 2].MaxX = midX;
-            nodes[first + 2].MinY = midY; nodes[first + 2].MaxY = nodes[u].MaxY;
-
-            nodes[first + 3].MinX = midX; nodes[first + 3].MaxX = nodes[u].MaxX;
-            nodes[first + 3].MinY = midY; nodes[first + 3].MaxY = nodes[u].MaxY;
+            int n0 = PartitionQuadrant(xs, ys, indices, 0, count, midX, midY, QuadrantLowerLeft);
+            int n1 = PartitionQuadrant(xs, ys, indices, n0, count, midX, midY, QuadrantLowerRight);
+            int n2 = PartitionQuadrant(xs, ys, indices, n0 + n1, count, midX, midY, QuadrantUpperLeft);
+            int n3 = count - n0 - n1 - n2;
 
             int* c0Start = indices;
-            int n0 = 0;
-            for (int i = 0; i < count; i++)
-            {
-                int p = indices[i];
-                if (xs[p] <= midX && ys[p] <= midY) { int t = indices[n0]; indices[n0] = indices[i]; indices[i] = t; n0++; }
-            }
             int* c1Start = indices + n0;
-            int n1 = 0;
-            for (int i = n0; i < count; i++)
-            {
-                int p = indices[i];
-                if (xs[p] > midX && ys[p] <= midY) { int t = c1Start[n1]; c1Start[n1] = indices[i]; indices[i] = t; n1++; }
-            }
             int* c2Start = c1Start + n1;
-            int n2 = 0;
-            for (int i = n0 + n1; i < count; i++)
-            {
-                int p = indices[i];
-                if (xs[p] <= midX && ys[p] > midY) { int t = c2Start[n2]; c2Start[n2] = indices[i]; indices[i] = t; n2++; }
-            }
             int* c3Start = c2Start + n2;
-            int n3 = count - n0 - n1 - n2;
 
             BuildRecursive(xs, ys, nodes, first, c0Start, n0, ref nodeCount, maxNodes);
             BuildRecursive(xs, ys, nodes, first + 1, c1Start, n1, ref nodeCount, maxNodes);
