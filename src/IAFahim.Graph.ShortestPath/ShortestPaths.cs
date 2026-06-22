@@ -32,22 +32,52 @@ namespace IAFahim.Graph.ShortestPath
 
     public static unsafe class ReplacementPaths
     {
+        private const int NoVertex = -1;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void InitDistances(int n, long* d, bool* visited)
+        {
+            for (int j = 0; j < n; j++) { d[j] = long.MaxValue; visited[j] = false; }
+            d[0] = 0;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int FindClosestUnvisited(int n, long* d, bool* visited)
+        {
+            int cur = NoVertex;
+            for (int j = 0; j < n; j++)
+                if (!visited[j] && (cur == NoVertex || d[j] < d[cur])) cur = j;
+            return cur;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void RelaxEdgesExcluding(int m, int excludedEdge, int* eu, int* ev, long* ew, int cur, long* d)
+        {
+            for (int e = 0; e < m; e++)
+                if (e != excludedEdge && eu[e] == cur && d[cur] + ew[e] < d[ev[e]]) d[ev[e]] = d[cur] + ew[e];
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static long ShortestAvoidingEdge(int n, int m, int* eu, int* ev, long* ew, int s, int t, int excludedEdge)
+        {
+            long* d = stackalloc long[n];
+            bool* v = stackalloc bool[n];
+            InitDistances(n, d, v);
+            d[s] = 0;
+            for (int it = 0; it < n; it++)
+            {
+                int cur = FindClosestUnvisited(n, d, v);
+                if (cur == NoVertex || d[cur] == long.MaxValue) break;
+                v[cur] = true;
+                RelaxEdgesExcluding(m, excludedEdge, eu, ev, ew, cur, d);
+            }
+            return d[t];
+        }
+
         public static void Run(int n, int m, int* eu, int* ev, long* ew, int s, int t, int pLen, int* pEdges, long* res)
         {
             for (int i = 0; i < pLen; i++)
-            {
-                long* d = stackalloc long[n]; bool* v = stackalloc bool[n];
-                for (int j = 0; j < n; j++) { d[j] = long.MaxValue; v[j] = false; }
-                d[s] = 0;
-                for (int it = 0; it < n; it++)
-                {
-                    int cur = -1; for (int j = 0; j < n; j++) if (!v[j] && (cur == -1 || d[j] < d[cur])) cur = j;
-                    if (cur == -1 || d[cur] == long.MaxValue) break;
-                    v[cur] = true;
-                    for (int e = 0; e < m; e++) if (e != pEdges[i] && eu[e] == cur && d[cur] + ew[e] < d[ev[e]]) d[ev[e]] = d[cur] + ew[e];
-                }
-                res[i] = d[t];
-            }
+                res[i] = ShortestAvoidingEdge(n, m, eu, ev, ew, s, t, pEdges[i]);
         }
     }
 
@@ -88,29 +118,48 @@ namespace IAFahim.Graph.ShortestPath
 
     public static unsafe class MinimumCycleMean
     {
-        public static double Run(int n, int m, int* eu, int* ev, long* ew, long* dp)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void InitDp(int n, long* dp)
         {
             for (int i = 0; i <= n; i++) for (int j = 0; j < n; j++) dp[i * n + j] = long.MaxValue;
             for (int j = 0; j < n; j++) dp[j] = 0;
-            for (int k = 1; k <= n; k++)
-                for (int e = 0; e < m; e++)
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void RelaxLayer(int n, int m, int k, int* eu, int* ev, long* ew, long* dp)
+        {
+            for (int e = 0; e < m; e++)
+            {
+                if (dp[(k - 1) * n + eu[e]] != long.MaxValue)
                 {
-                    if (dp[(k - 1) * n + eu[e]] != long.MaxValue)
-                    {
-                        long v = dp[(k - 1) * n + eu[e]] + ew[e]; if (v < dp[k * n + ev[e]]) dp[k * n + ev[e]] = v;
-                    }
+                    long v = dp[(k - 1) * n + eu[e]] + ew[e];
+                    if (v < dp[k * n + ev[e]]) dp[k * n + ev[e]] = v;
                 }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static double BestMeanForVertex(int n, int v, long* dp)
+        {
+            double maxVal = double.NegativeInfinity;
+            for (int k = 0; k < n; k++)
+                if (dp[k * n + v] != long.MaxValue)
+                {
+                    double val = (double)(dp[n * n + v] - dp[k * n + v]) / (n - k);
+                    if (val > maxVal) maxVal = val;
+                }
+            return maxVal;
+        }
+
+        public static double Run(int n, int m, int* eu, int* ev, long* ew, long* dp)
+        {
+            InitDp(n, dp);
+            for (int k = 1; k <= n; k++) RelaxLayer(n, m, k, eu, ev, ew, dp);
             double minMean = double.PositiveInfinity;
             for (int v = 0; v < n; v++)
             {
                 if (dp[n * n + v] == long.MaxValue) continue;
-                double maxVal = double.NegativeInfinity;
-                for (int k = 0; k < n; k++)
-                    if (dp[k * n + v] != long.MaxValue)
-                    {
-                        double val = (double)(dp[n * n + v] - dp[k * n + v]) / (n - k);
-                        if (val > maxVal) maxVal = val;
-                    }
+                double maxVal = BestMeanForVertex(n, v, dp);
                 if (maxVal < minMean) minMean = maxVal;
             }
             return minMean;
