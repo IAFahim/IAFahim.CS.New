@@ -61,7 +61,13 @@ namespace IAFahim.Graph.Matching
             if (!Phase2(pref, n, rank, nextPos, prevPos, head, tail, rotX, rotY, seenAt))
                 return false;
 
-            // Each reduced list now has exactly one entry: the partner.
+            return ExtractPartners(head, pref, n, match);
+        }
+
+        // Each reduced list now has exactly one entry: the partner.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool ExtractPartners(int* head, int* pref, int n, int* match)
+        {
             for (int i = 0; i < n; i++)
             {
                 int p = head[i];
@@ -123,14 +129,25 @@ namespace IAFahim.Graph.Matching
         // everyone it likes less. Fails if any list becomes empty.
         private static bool Phase1(int* pref, int n, int* rank, int* nextPos, int* prevPos, int* head, int* tail, int* holder, int* stack)
         {
+            if (!ProposeRound(pref, n, rank, nextPos, prevPos, head, tail, holder, stack))
+                return false;
+            if (!ReduceToPhaseTable(pref, n, rank, nextPos, prevPos, head, tail, holder))
+                return false;
+            for (int i = 0; i < n; i++)
+                if (head[i] == NoPosition) return false;
+            return true;
+        }
+
+        // x proposes to the head of its list until held by someone, or its list
+        // empties (failure). Returns false if any proposer's list empties.
+        private static bool ProposeRound(int* pref, int n, int* rank, int* nextPos, int* prevPos, int* head, int* tail, int* holder, int* stack)
+        {
             int top = 0;
             for (int i = 0; i < n; i++) stack[top++] = i;
 
             while (top > 0)
             {
                 int x = stack[--top];
-                // x proposes to the head of its list until it is held by
-                // someone, or its list empties (failure).
                 while (head[x] != NoPosition)
                 {
                     int y = pref[x * n + head[x]];
@@ -162,11 +179,15 @@ namespace IAFahim.Graph.Matching
 
                 if (head[x] == NoPosition) return false;
             }
+            return true;
+        }
 
-            // Reduce to the phase-1 table: each receiver y keeps its best
-            // proposer holder[y] as the WORST entry of its list, deleting (both
-            // ways) everyone y ranks strictly below that proposer. This restores
-            // the invariant first(p)=q  <=>  last(q)=p needed by phase 2.
+        // Reduce to the phase-1 table: each receiver y keeps its best proposer
+        // holder[y] as the WORST entry of its list, deleting (both ways) everyone
+        // y ranks strictly below that proposer. This restores the invariant
+        // first(p)=q  <=>  last(q)=p needed by phase 2.
+        private static bool ReduceToPhaseTable(int* pref, int n, int* rank, int* nextPos, int* prevPos, int* head, int* tail, int* holder)
+        {
             for (int y = 0; y < n; y++)
             {
                 int h = holder[y];
@@ -185,9 +206,6 @@ namespace IAFahim.Graph.Matching
                     p = nextP;
                 }
             }
-
-            for (int i = 0; i < n; i++)
-                if (head[i] == NoPosition) return false;
             return true;
         }
 
@@ -203,66 +221,83 @@ namespace IAFahim.Graph.Matching
         {
             while (true)
             {
-                // Find any participant whose reduced list still has >= 2 entries.
-                int start = NoPosition;
-                for (int i = 0; i < n; i++)
-                {
-                    if (head[i] != tail[i]) { start = i; break; }
-                }
+                int start = FindListWithMultipleEntries(head, tail, n);
                 if (start == NoPosition) return true; // all lists length one: done
 
-                // Trace the rotation, recording x's in rotX, y's in rotY.
-                // seenAt[p] = 1 + traceIndex marks p as an x already visited.
-                int len = 0;
-                int x = start;
+                int len;
                 int cycleStart;
-                while (true)
-                {
-                    int xFirst = head[x];
-                    int secondPos = nextPos[x * n + xFirst];
-                    if (secondPos == NoPosition) { cycleStart = NoPosition; break; } // safety
-                    int y = pref[x * n + secondPos];
+                TraceRotation(pref, n, nextPos, head, tail, rotX, rotY, seenAt, start, out len, out cycleStart);
 
-                    seenAt[x] = len + 1;
-                    rotX[len] = x;
-                    rotY[len] = y;
-                    len++;
-
-                    int nextX = pref[y * n + tail[y]]; // last(y)
-                    if (seenAt[nextX] != NotSeen)
-                    {
-                        cycleStart = seenAt[nextX] - 1; // cycle is [cycleStart .. len-1]
-                        break;
-                    }
-                    x = nextX;
-                }
-
-                // Clear seen marks for the traced participants.
                 for (int t = 0; t < len; t++) seenAt[rotX[t]] = NotSeen;
 
                 if (cycleStart == NoPosition) return false; // should not happen on valid input
 
-                // The rotation has L entries. Following the canonical "lasts /
-                // seconds" formulation: lasts[k] = rotX[k] for k < len and
-                // lasts[len] = rotX[cycleStart] (the participant that closed the
-                // cycle), seconds[k] = rotY[k]. Cycle entry i (i = 0..L-1) is
-                //   right_i = seconds[cycleStart + i] = rotY[cycleStart + i]
-                //   left_i  = lasts[cycleStart + 1 + i]
-                // To eliminate, right_i rejects every participant it ranks
-                // strictly below left_{(i-1) mod L} (mutual deletion).
-                int rotLen = len - cycleStart;
-                for (int i = 0; i < rotLen; i++)
-                {
-                    int owner = rotY[cycleStart + i];
-                    int prevI = i == 0 ? rotLen - 1 : i - 1;
-                    // left_{prevI} = lasts[cycleStart + 1 + prevI]; the last index
-                    // (cycleStart + 1 + (rotLen-1) == len) wraps to rotX[cycleStart].
-                    int lastsIdx = cycleStart + 1 + prevI;
-                    int pivot = lastsIdx == len ? rotX[cycleStart] : rotX[lastsIdx];
-                    if (!EliminateSuccessors(pref, owner, pivot, n, rank, nextPos, prevPos, head, tail))
-                        return false;
-                }
+                if (!EliminateRotation(pref, n, rank, nextPos, prevPos, head, tail, rotX, rotY, len, cycleStart))
+                    return false;
             }
+        }
+
+        // Finds any participant whose reduced list still has >= 2 entries.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int FindListWithMultipleEntries(int* head, int* tail, int n)
+        {
+            for (int i = 0; i < n; i++)
+                if (head[i] != tail[i]) return i;
+            return NoPosition;
+        }
+
+        // Traces the rotation, recording x's in rotX, y's in rotY.
+        // seenAt[p] = 1 + traceIndex marks p as an x already visited.
+        private static void TraceRotation(int* pref, int n, int* nextPos, int* head, int* tail, int* rotX, int* rotY, int* seenAt, int start, out int len, out int cycleStart)
+        {
+            len = 0;
+            int x = start;
+            cycleStart = NoPosition;
+            while (true)
+            {
+                int xFirst = head[x];
+                int secondPos = nextPos[x * n + xFirst];
+                if (secondPos == NoPosition) { cycleStart = NoPosition; break; } // safety
+                int y = pref[x * n + secondPos];
+
+                seenAt[x] = len + 1;
+                rotX[len] = x;
+                rotY[len] = y;
+                len++;
+
+                int nextX = pref[y * n + tail[y]]; // last(y)
+                if (seenAt[nextX] != NotSeen)
+                {
+                    cycleStart = seenAt[nextX] - 1; // cycle is [cycleStart .. len-1]
+                    break;
+                }
+                x = nextX;
+            }
+        }
+
+        // The rotation has L entries. Following the canonical "lasts /
+        // seconds" formulation: lasts[k] = rotX[k] for k < len and
+        // lasts[len] = rotX[cycleStart] (the participant that closed the
+        // cycle), seconds[k] = rotY[k]. Cycle entry i (i = 0..L-1) is
+        //   right_i = seconds[cycleStart + i] = rotY[cycleStart + i]
+        //   left_i  = lasts[cycleStart + 1 + i]
+        // To eliminate, right_i rejects every participant it ranks
+        // strictly below left_{(i-1) mod L} (mutual deletion).
+        private static bool EliminateRotation(int* pref, int n, int* rank, int* nextPos, int* prevPos, int* head, int* tail, int* rotX, int* rotY, int len, int cycleStart)
+        {
+            int rotLen = len - cycleStart;
+            for (int i = 0; i < rotLen; i++)
+            {
+                int owner = rotY[cycleStart + i];
+                int prevI = i == 0 ? rotLen - 1 : i - 1;
+                // left_{prevI} = lasts[cycleStart + 1 + prevI]; the last index
+                // (cycleStart + 1 + (rotLen-1) == len) wraps to rotX[cycleStart].
+                int lastsIdx = cycleStart + 1 + prevI;
+                int pivot = lastsIdx == len ? rotX[cycleStart] : rotX[lastsIdx];
+                if (!EliminateSuccessors(pref, owner, pivot, n, rank, nextPos, prevPos, head, tail))
+                    return false;
+            }
+            return true;
         }
 
         // In owner's reduced list, removes every participant ranked strictly
