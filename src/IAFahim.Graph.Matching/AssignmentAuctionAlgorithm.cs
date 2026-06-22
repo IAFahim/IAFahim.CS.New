@@ -4,6 +4,33 @@ namespace IAFahim.Graph.Matching
 
     public static unsafe class AssignmentAuctionAlgorithm
     {
+        private const int Epsilon = 1;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void FindBestColumns(int* cost, int n, int i, int scale, int* prices, out long bestNet, out long secondNet, out int bestJ)
+        {
+            bestNet = long.MinValue;
+            secondNet = long.MinValue;
+            bestJ = 0;
+            for (int j = 0; j < n; j++)
+            {
+                long net = -(long)cost[i * n + j] * scale - prices[j];
+                if (net > bestNet) { secondNet = bestNet; bestNet = net; bestJ = j; }
+                else if (net > secondNet) secondNet = net;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void PlaceBid(int n, int* prices, int* match, int* matchObj, int i, long bestNet, long secondNet, int bestJ)
+        {
+            long bid = bestNet - secondNet + Epsilon;
+            prices[bestJ] += (int)bid;
+            int prev = matchObj[bestJ];
+            match[i] = bestJ;
+            matchObj[bestJ] = i;
+            if (prev != -1) match[prev] = -1;
+        }
+
         // Bertsekas auction for the square min-cost assignment problem.
         // cost[i * n + j] = cost of assigning row i to column j (integers).
         // match[i]   = column assigned to row i (always assigned for n > 0).
@@ -19,16 +46,11 @@ namespace IAFahim.Graph.Matching
             for (int j = 0; j < n; j++) prices[j] = 0;
             if (n <= 0) return;
 
-            const int Epsilon = 1;
             int scale = n + 1;
 
             int* matchObj = stackalloc int[n];
             for (int j = 0; j < n; j++) matchObj[j] = -1;
 
-            // Scan-based control loop: each pass bids for every still-unassigned
-            // row. A row becomes unassigned again when another row outbids it for
-            // its column, so we rescan until a full pass assigns everyone. No
-            // growable queue -> no stackalloc overflow.
             long cap = 8L * n * n + 16;
             long iter = 0;
             bool changed = true;
@@ -39,24 +61,8 @@ namespace IAFahim.Graph.Matching
                 {
                     if (match[i] != -1) continue;
                     if (++iter > cap) { changed = false; break; }
-
-                    long bestNet = long.MinValue;
-                    long secondNet = long.MinValue;
-                    int bestJ = 0;
-                    for (int j = 0; j < n; j++)
-                    {
-                        long net = -(long)cost[i * n + j] * scale - prices[j];
-                        if (net > bestNet) { secondNet = bestNet; bestNet = net; bestJ = j; }
-                        else if (net > secondNet) secondNet = net;
-                    }
-
-                    long bid = bestNet - secondNet + Epsilon;
-                    prices[bestJ] += (int)bid;
-
-                    int prev = matchObj[bestJ];
-                    match[i] = bestJ;
-                    matchObj[bestJ] = i;
-                    if (prev != -1) match[prev] = -1;
+                    FindBestColumns(cost, n, i, scale, prices, out long bestNet, out long secondNet, out int bestJ);
+                    PlaceBid(n, prices, match, matchObj, i, bestNet, secondNet, bestJ);
                     changed = true;
                 }
             }
