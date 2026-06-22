@@ -96,11 +96,12 @@ namespace IAFahim.Graph.Tree
 
     public static unsafe class CentroidFind
     {
-        public static int Run(int n, int u, int* head, int* to, int* next, bool* removed, int* size)
+        private const int NoParent = -1;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int BfsComponent(int n, int u, int* head, int* to, int* next, bool* removed, int* parent, int* q)
         {
-            int* parent = stackalloc int[n];
-            for (int i = 0; i < n; i++) parent[i] = -1;
-            int* q = stackalloc int[n];
+            for (int i = 0; i < n; i++) parent[i] = NoParent;
             int qh = 0, qt = 0;
             q[qt++] = u;
             parent[u] = u;
@@ -112,21 +113,23 @@ namespace IAFahim.Graph.Tree
                 for (int e = head[cur]; e != 0; e = next[e])
                 {
                     int v = to[e];
-                    if (!removed[v] && parent[v] == -1)
-                    {
-                        parent[v] = cur;
-                        q[qt++] = v;
-                    }
+                    if (!removed[v] && parent[v] == NoParent) { parent[v] = cur; q[qt++] = v; }
                 }
             }
+            return totalSize;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ComputeSubtreeSizes(int n, int* size, int* parent, int* q, int visitedCount)
+        {
             for (int i = 0; i < n; i++) size[i] = 0;
-            for (int i = 0; i < qt; i++) size[q[i]] = 1;
-            for (int i = qt - 1; i > 0; i--)
-            {
-                int cur = q[i];
-                size[parent[cur]] += size[cur];
-            }
-            int threshold = totalSize / 2;
+            for (int i = 0; i < visitedCount; i++) size[q[i]] = 1;
+            for (int i = visitedCount - 1; i > 0; i--) size[parent[q[i]]] += size[q[i]];
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int DescendToCentroid(int u, int threshold, int* head, int* to, int* next, bool* removed, int* parent, int* size)
+        {
             int centroid = u;
             bool found = false;
             while (!found)
@@ -144,6 +147,15 @@ namespace IAFahim.Graph.Tree
                 }
             }
             return centroid;
+        }
+
+        public static int Run(int n, int u, int* head, int* to, int* next, bool* removed, int* size)
+        {
+            int* parent = stackalloc int[n];
+            int* q = stackalloc int[n];
+            int totalSize = BfsComponent(n, u, head, to, next, removed, parent, q);
+            ComputeSubtreeSizes(n, size, parent, q, totalSize);
+            return DescendToCentroid(u, totalSize / 2, head, to, next, removed, parent, size);
         }
     }
 
@@ -265,71 +277,67 @@ namespace IAFahim.Graph.Tree
 
     public static unsafe class TreeDiameter
     {
+        private const int Unvisited = -1;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void BfsFrom(int n, int source, int* head, int* to, int* next, int* dist, int* q, out int farthest, out int maxDist)
+        {
+            for (int i = 0; i < n; i++) dist[i] = Unvisited;
+            int qh = 0, qt = 0;
+            dist[source] = 0;
+            q[qt++] = source;
+            farthest = source;
+            maxDist = 0;
+            while (qh < qt)
+            {
+                int u = q[qh++];
+                for (int e = head[u]; e != 0; e = next[e])
+                {
+                    int v = to[e];
+                    if (dist[v] == Unvisited)
+                    {
+                        dist[v] = dist[u] + 1;
+                        q[qt++] = v;
+                        if (dist[v] > maxDist) { maxDist = dist[v]; farthest = v; }
+                    }
+                }
+            }
+        }
+
         public static int Run(int n, int root, int* head, int* to, int* next)
         {
             int* dist = stackalloc int[n];
-            for (int i = 0; i < n; i++) dist[i] = -1;
             int* q = stackalloc int[n];
-            int qh = 0, qt = 0;
-            dist[root] = 0;
-            q[qt++] = root;
-            int farthest = root;
-            while (qh < qt)
-            {
-                int u = q[qh++];
-                for (int e = head[u]; e != 0; e = next[e])
-                {
-                    int v = to[e];
-                    if (dist[v] == -1)
-                    {
-                        dist[v] = dist[u] + 1;
-                        q[qt++] = v;
-                        if (dist[v] > dist[farthest]) farthest = v;
-                    }
-                }
-            }
-            for (int i = 0; i < n; i++) dist[i] = -1;
-            qh = 0; qt = 0;
-            dist[farthest] = 0;
-            q[qt++] = farthest;
-            int maxDist = 0;
-            while (qh < qt)
-            {
-                int u = q[qh++];
-                for (int e = head[u]; e != 0; e = next[e])
-                {
-                    int v = to[e];
-                    if (dist[v] == -1)
-                    {
-                        dist[v] = dist[u] + 1;
-                        q[qt++] = v;
-                        if (dist[v] > maxDist) maxDist = dist[v];
-                    }
-                }
-            }
+            BfsFrom(n, root, head, to, next, dist, q, out int farthest, out _);
+            BfsFrom(n, farthest, head, to, next, dist, q, out _, out int maxDist);
             return maxDist;
         }
     }
 
     public static unsafe class TreeCenter
     {
-        public static int Run(int n, int* head, int* to, int* next, int* centers)
+        private const int MaxCenters = 2;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ComputeDegrees(int n, int* head, int* next, int* degree)
         {
-            int* degree = stackalloc int[n];
-            int* q = stackalloc int[n];
-            int qh = 0, qt = 0;
-            int remaining = n;
             for (int i = 0; i < n; i++) degree[i] = 0;
             for (int u = 0; u < n; u++)
-            {
-                for (int e = head[u]; e != 0; e = next[e])
-                    degree[u]++;
-            }
+                for (int e = head[u]; e != 0; e = next[e]) degree[u]++;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void SeedLeaves(int n, int* degree, int* q, out int qt)
+        {
+            qt = 0;
             for (int i = 0; i < n; i++)
-            {
-                if (degree[i] <= 1) { q[qt++] = i; }
-            }
-            while (remaining > 2)
+                if (degree[i] <= 1) q[qt++] = i;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void PeelToTwoCenters(int n, int* head, int* to, int* next, int* degree, int* q, ref int qh, ref int qt, ref int remaining)
+        {
+            while (remaining > MaxCenters)
             {
                 int sz = qt - qh;
                 for (int i = 0; i < sz; i++)
@@ -344,6 +352,17 @@ namespace IAFahim.Graph.Tree
                     }
                 }
             }
+        }
+
+        public static int Run(int n, int* head, int* to, int* next, int* centers)
+        {
+            int* degree = stackalloc int[n];
+            int* q = stackalloc int[n];
+            int qh = 0;
+            int remaining = n;
+            ComputeDegrees(n, head, next, degree);
+            SeedLeaves(n, degree, q, out int qt);
+            PeelToTwoCenters(n, head, to, next, degree, q, ref qh, ref qt, ref remaining);
             int count = 0;
             while (qh < qt) centers[count++] = q[qh++];
             return count;
