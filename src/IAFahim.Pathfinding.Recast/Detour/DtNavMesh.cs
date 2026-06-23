@@ -346,11 +346,20 @@ namespace IAFahim.Pathfinding.Recast
             this.ConnectOffMeshLinksToTile(tile);
 
             // Create connections with neighbor tiles
-            var neighbors = stackalloc DtMeshTile*[MaxNeighbourTiles];
+            this.ConnectTileNeighbors(tile, header);
 
-            // Connect with layers in current tile
-            var neighborCount = this.GetTilesAt(header->x, header->y, neighbors, MaxNeighbourTiles);
-            for (var j = 0; j < neighborCount; ++j)
+            result = this.GetTileRef(tile);
+
+            return DtStatus.Success;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ConnectTileNeighbors(DtMeshTile* tile, DtMeshHeader* header)
+        {
+            DtMeshTile** neighbors = stackalloc DtMeshTile*[MaxNeighbourTiles];
+
+            int neighborCount = this.GetTilesAt(header->x, header->y, neighbors, MaxNeighbourTiles);
+            for (int j = 0; j < neighborCount; ++j)
             {
                 if (neighbors[j] == tile)
                 {
@@ -361,20 +370,15 @@ namespace IAFahim.Pathfinding.Recast
                 this.ConnectExternalLinks(neighbors[j], tile, -1);
             }
 
-            // Connect with neighbor tiles
             for (byte i = 0; i < 8; ++i)
             {
                 neighborCount = this.GetNeighborTilesAt(header->x, header->y, i, neighbors, MaxNeighbourTiles);
-                for (var j = 0; j < neighborCount; ++j)
+                for (int j = 0; j < neighborCount; ++j)
                 {
                     this.ConnectExternalLinks(tile, neighbors[j], i);
                     this.ConnectExternalLinks(neighbors[j], tile, Detour.OppositeTile(i));
                 }
             }
-
-            result = this.GetTileRef(tile);
-
-            return DtStatus.Success;
         }
 
         /// <summary>

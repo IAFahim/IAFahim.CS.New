@@ -59,68 +59,7 @@ namespace IAFahim.Pathfinding.Recast
 
             if (createParams->OffMeshConCount > 0)
             {
-                offMeshConClass = (byte*)AllocatorManager.Allocate(Allocator.Temp, sizeof(byte) * createParams->OffMeshConCount * 2, UnsafeUtility.AlignOf<byte>());
-
-                // Find tight height bounds, used for culling out off-mesh start locations.
-                var hmin = float.MaxValue;
-                var hmax = -float.MaxValue;
-
-                if (createParams->DetailVerts != null && createParams->DetailVertsCount > 0)
-                {
-                    for (var i = 0; i < createParams->DetailVertsCount; ++i)
-                    {
-                        var h = createParams->DetailVerts[i].y;
-                        hmin = math.min(hmin, h);
-                        hmax = math.max(hmax, h);
-                    }
-                }
-                else
-                {
-                    for (var i = 0; i < createParams->VertCount; ++i)
-                    {
-                        var iv = createParams->Verts[i];
-                        var h = createParams->Bmin.y + (iv.y * createParams->Ch);
-                        hmin = math.min(hmin, h);
-                        hmax = math.max(hmax, h);
-                    }
-                }
-
-                hmin -= createParams->WalkableClimb;
-                hmax += createParams->WalkableClimb;
-                var bmin = createParams->Bmin;
-                var bmax = createParams->Bmax;
-                bmin.y = hmin;
-                bmax.y = hmax;
-
-                for (var i = 0; i < createParams->OffMeshConCount; ++i)
-                {
-                    var connection = &createParams->OffMeshConVerts[i];
-                    var start = connection->c0;
-                    var end = connection->c1;
-                    offMeshConClass[(i * 2) + 0] = ClassifyOffMeshPoint(start, bmin, bmax);
-                    offMeshConClass[(i * 2) + 1] = ClassifyOffMeshPoint(end, bmin, bmax);
-
-                    // Zero out off-mesh start positions which are not even potentially touching the mesh.
-                    // And count how many links should be allocated for off-mesh connections.
-                    if (offMeshConClass[(i * 2) + 0] == 0xff)
-                    {
-                        if (connection->c0.y < bmin.y || connection->c0.y > bmax.y)
-                        {
-                            offMeshConClass[(i * 2) + 0] = 0;
-                        }
-                        else
-                        {
-                            storedOffMeshConCount++;
-                            offMeshBaseLinkCount += 2;
-                            offMeshLandingLinkCount++;
-                        }
-                    }
-
-                    if (offMeshConClass[(i * 2) + 1] == 0xff && createParams->OffMeshConDir[i] != 0)
-                    {
-                        offMeshLandingReverseLinkCount++;
-                    }
-                }
+                ClassifyOffMeshConnections(createParams, out offMeshConClass, out storedOffMeshConCount, out offMeshBaseLinkCount, out offMeshLandingLinkCount, out offMeshLandingReverseLinkCount);
             }
 
             // Off-mesh connections are stored as polygons, adjust values.
@@ -478,6 +417,74 @@ namespace IAFahim.Pathfinding.Recast
         /// <summary>
         /// Classifies a point based on which side of the tile boundary it lies.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ClassifyOffMeshConnections(DtNavMeshCreateParams* createParams, out byte* offMeshConClass, out int storedOffMeshConCount, out int offMeshBaseLinkCount, out int offMeshLandingLinkCount, out int offMeshLandingReverseLinkCount)
+        {
+            offMeshConClass = (byte*)AllocatorManager.Allocate(Allocator.Temp, sizeof(byte) * createParams->OffMeshConCount * 2, UnsafeUtility.AlignOf<byte>());
+            storedOffMeshConCount = 0;
+            offMeshBaseLinkCount = 0;
+            offMeshLandingLinkCount = 0;
+            offMeshLandingReverseLinkCount = 0;
+
+            float hmin = float.MaxValue;
+            float hmax = -float.MaxValue;
+
+            if (createParams->DetailVerts != null && createParams->DetailVertsCount > 0)
+            {
+                for (int i = 0; i < createParams->DetailVertsCount; ++i)
+                {
+                    float h = createParams->DetailVerts[i].y;
+                    hmin = math.min(hmin, h);
+                    hmax = math.max(hmax, h);
+                }
+            }
+            else
+            {
+                for (int i = 0; i < createParams->VertCount; ++i)
+                {
+                    ushort3 iv = createParams->Verts[i];
+                    float h = createParams->Bmin.y + (iv.y * createParams->Ch);
+                    hmin = math.min(hmin, h);
+                    hmax = math.max(hmax, h);
+                }
+            }
+
+            hmin -= createParams->WalkableClimb;
+            hmax += createParams->WalkableClimb;
+            float3 bmin = createParams->Bmin;
+            float3 bmax = createParams->Bmax;
+            bmin.y = hmin;
+            bmax.y = hmax;
+
+            for (int i = 0; i < createParams->OffMeshConCount; ++i)
+            {
+                float3x2* connection = &createParams->OffMeshConVerts[i];
+                float3 start = connection->c0;
+                float3 end = connection->c1;
+                offMeshConClass[(i * 2) + 0] = ClassifyOffMeshPoint(start, bmin, bmax);
+                offMeshConClass[(i * 2) + 1] = ClassifyOffMeshPoint(end, bmin, bmax);
+
+                if (offMeshConClass[(i * 2) + 0] == 0xff)
+                {
+                    if (connection->c0.y < bmin.y || connection->c0.y > bmax.y)
+                    {
+                        offMeshConClass[(i * 2) + 0] = 0;
+                    }
+                    else
+                    {
+                        storedOffMeshConCount++;
+                        offMeshBaseLinkCount += 2;
+                        offMeshLandingLinkCount++;
+                    }
+                }
+
+                if (offMeshConClass[(i * 2) + 1] == 0xff && createParams->OffMeshConDir[i] != 0)
+                {
+                    offMeshLandingReverseLinkCount++;
+                }
+            }
+        }
+
         private static byte ClassifyOffMeshPoint(float3 pt, float3 bmin, float3 bmax)
         {
             const byte xp = 1 << 0;
