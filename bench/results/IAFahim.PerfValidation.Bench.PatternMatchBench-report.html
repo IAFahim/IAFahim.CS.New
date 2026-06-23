@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>IAFahim.PerfValidation.Bench.PatternMatchBench-20260623-224421</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.14.0, Ubuntu 24.04.4 LTS (Noble Numbat)
+AMD EPYC 7763, 1 CPU, 4 logical and 2 physical cores
+.NET SDK 10.0.301
+  [Host]     : .NET 10.0.9 (10.0.926.27113), X64 RyuJIT AVX2
+  Job-TELDJN : .NET 10.0.9 (10.0.926.27113), X64 RyuJIT AVX2
+  Dry        : .NET 10.0.9 (10.0.926.27113), X64 RyuJIT AVX2
+</code></pre>
+<pre><code></code></pre>
+
+<table>
+<thead><tr><th>Method             </th><th>Job </th><th>InvocationCount</th><th>IterationCount</th><th>LaunchCount</th><th>RunStrategy</th><th>UnrollFactor</th><th>WarmupCount</th><th>Mean</th><th>Error</th><th>StdDev</th><th>Allocated</th>
+</tr>
+</thead><tbody><tr><td>Patternized_LastSeenTable</td><td>Job-TELDJN</td><td>16</td><td>3</td><td>Default</td><td>Default</td><td>16</td><td>2</td><td>11.87 &mu;s</td><td>3.567 &mu;s</td><td>0.196 &mu;s</td><td>-</td>
+</tr><tr><td>Patternized_LastSeenTable</td><td>Dry</td><td>Default</td><td>1</td><td>1</td><td>ColdStart</td><td>1</td><td>1</td><td>936.99 &mu;s</td><td>NA</td><td>0.000 &mu;s</td><td>-</td>
+</tr></tbody></table>
+</body>
+</html>
