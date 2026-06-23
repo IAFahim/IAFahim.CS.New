@@ -14,30 +14,24 @@ namespace IAFahim.Graph.Matching
         // NoFeasibleAssignment (-1) when no perfect matching exists (only possible if n == 0
         // returns 0; a complete n x n matrix always admits a perfect matching for n > 0).
         // Caller guarantees cost is a valid n*n buffer and match has length n.
-        public static int Run(int* cost, int n, int* match)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int CollectDistinctThresholds(int* cost, int n, int* sorted)
         {
-            for (int i = 0; i < n; i++) match[i] = Unmatched;
-            if (n == 0) return 0;
-
             int total = n * n;
-
-            // Collect and sort all distinct candidate thresholds (the cost values).
-            int* sorted = stackalloc int[total];
             for (int i = 0; i < total; i++) sorted[i] = cost[i];
             SortAscending(sorted, total);
-
-            // Compact to distinct values to bound the binary search range.
             int distinct = 0;
             for (int i = 0; i < total; i++)
             {
                 if (distinct == 0 || sorted[i] != sorted[distinct - 1])
                     sorted[distinct++] = sorted[i];
             }
+            return distinct;
+        }
 
-            int* matchRight = stackalloc int[n];
-            int* seen = stackalloc int[n];
-
-            // Binary search for the smallest threshold index that yields a perfect matching.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int BinarySearchThreshold(int* cost, int n, int* sorted, int distinct, int* matchRight, int* seen)
+        {
             int lo = 0;
             int hi = distinct - 1;
             int answerIndex = NoFeasibleAssignment;
@@ -54,17 +48,38 @@ namespace IAFahim.Graph.Matching
                     lo = mid + 1;
                 }
             }
+            return answerIndex;
+        }
 
-            if (answerIndex == NoFeasibleAssignment) return NoFeasibleAssignment;
-
-            int threshold = sorted[answerIndex];
-            // Recompute the matching at the chosen threshold and write it into match[].
-            HasPerfectMatching(cost, n, threshold, matchRight, seen);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void WriteMatch(int* matchRight, int n, int* match)
+        {
             for (int v = 0; v < n; v++)
             {
                 int u = matchRight[v];
                 if (u != Unmatched) match[u] = v;
             }
+        }
+
+        public static int Run(int* cost, int n, int* match)
+        {
+            for (int i = 0; i < n; i++) match[i] = Unmatched;
+            if (n == 0) return 0;
+
+            int total = n * n;
+            int* sorted = stackalloc int[total];
+            int distinct = CollectDistinctThresholds(cost, n, sorted);
+
+            int* matchRight = stackalloc int[n];
+            int* seen = stackalloc int[n];
+
+            int answerIndex = BinarySearchThreshold(cost, n, sorted, distinct, matchRight, seen);
+
+            if (answerIndex == NoFeasibleAssignment) return NoFeasibleAssignment;
+
+            int threshold = sorted[answerIndex];
+            HasPerfectMatching(cost, n, threshold, matchRight, seen);
+            WriteMatch(matchRight, n, match);
             return threshold;
         }
 

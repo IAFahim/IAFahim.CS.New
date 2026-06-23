@@ -3,6 +3,21 @@ namespace IAFahim.String
     using System;
     using System.Runtime.CompilerServices;
 
+    public static unsafe class StringCoreKmp
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void BuildPrefixFunction(byte* s, int len, int* fail)
+        {
+            fail[0] = 0;
+            for (int i = 1, j = 0; i < len; i++)
+            {
+                while (j > 0 && s[i] != s[j]) j = fail[j - 1];
+                if (s[i] == s[j]) j++;
+                fail[i] = j;
+            }
+        }
+    }
+
     public static unsafe class ManacherOdd
     {
         public static void Run(byte* s, int len, int* radii)
@@ -130,13 +145,7 @@ namespace IAFahim.String
         public static int Run(byte* s, int len)
         {
             int* fail = stackalloc int[len];
-            fail[0] = 0;
-            for (int i = 1, j = 0; i < len; i++)
-            {
-                while (j > 0 && s[i] != s[j]) j = fail[j - 1];
-                if (s[i] == s[j]) j++;
-                fail[i] = j;
-            }
+            StringCoreKmp.BuildPrefixFunction(s, len, fail);
             int p = len - fail[len - 1];
             return len % p == 0 ? p : len;
         }
@@ -155,13 +164,7 @@ namespace IAFahim.String
         public static int Run(byte* s, int len, int* borders)
         {
             int* fail = stackalloc int[len];
-            fail[0] = 0;
-            for (int i = 1, j = 0; i < len; i++)
-            {
-                while (j > 0 && s[i] != s[j]) j = fail[j - 1];
-                if (s[i] == s[j]) j++;
-                fail[i] = j;
-            }
+            StringCoreKmp.BuildPrefixFunction(s, len, fail);
             int count = 0;
             int b = fail[len - 1];
             while (b > 0)
@@ -180,13 +183,7 @@ namespace IAFahim.String
             if (patLen == 0 || patLen > textLen) return 0;
             int count = 0;
             int* fail = stackalloc int[patLen];
-            fail[0] = 0;
-            for (int i = 1, j = 0; i < patLen; i++)
-            {
-                while (j > 0 && pattern[i] != pattern[j]) j = fail[j - 1];
-                if (pattern[i] == pattern[j]) j++;
-                fail[i] = j;
-            }
+            StringCoreKmp.BuildPrefixFunction(pattern, patLen, fail);
             int k = 0;
             for (int i = 0; i < textLen; i++)
             {

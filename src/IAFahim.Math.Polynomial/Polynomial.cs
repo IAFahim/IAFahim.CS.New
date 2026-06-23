@@ -3,6 +3,29 @@ namespace IAFahim.Math.Polynomial
     using System;
     using System.Runtime.CompilerServices;
 
+    public static unsafe class PolyModArith
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static long ModInverse(long a, long mod)
+        {
+            long b = mod, x = 0, y = 0;
+            long g = ExtGcd(a, b, out x, out y);
+            if (g != 1) return 1;
+            return (x % b + b) % b;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static long ExtGcd(long a, long b, out long x, out long y)
+        {
+            if (b == 0) { x = 1; y = 0; return a; }
+            long x1, y1;
+            long g = ExtGcd(b, a % b, out x1, out y1);
+            x = y1;
+            y = x1 - (a / b) * y1;
+            return g;
+        }
+    }
+
     public static unsafe class PolynomialAdd
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -123,28 +146,10 @@ namespace IAFahim.Math.Polynomial
             res[0] = 0;
             for (int i = 0; i < n; i++)
             {
-                long inv = ModInverse(i + 1, mod);
-                res[i + 1] = a[i] % mod * inv % mod;
+            long inv = PolyModArith.ModInverse(i + 1, mod);
+            res[i + 1] = a[i] % mod * inv % mod;
             }
             return n + 1;
-        }
-
-        private static long ModInverse(long a, long mod)
-        {
-            long b = mod, x = 0, y = 0;
-            long g = ExtGcd(a, b, out x, out y);
-            if (g != 1) return 1;
-            return (x % b + b) % b;
-        }
-
-        private static long ExtGcd(long a, long b, out long x, out long y)
-        {
-            if (b == 0) { x = 1; y = 0; return a; }
-            long x1, y1;
-            long g = ExtGcd(b, a % b, out x1, out y1);
-            x = y1;
-            y = x1 - (a / b) * y1;
-            return g;
         }
     }
 
@@ -152,7 +157,7 @@ namespace IAFahim.Math.Polynomial
     {
         public static int Run(int n, long* a, long* res, long mod)
         {
-            res[0] = ModInverse(a[0], mod);
+            res[0] = PolyModArith.ModInverse(a[0], mod);
             int sz = 1;
             while (sz < n) sz <<= 1;
             long* tmp = stackalloc long[sz * 6];
@@ -179,24 +184,6 @@ namespace IAFahim.Math.Polynomial
                 for (int i = 0; i < cur; i++) res[i] = fr[i] % mod;
             }
             return n;
-        }
-
-        private static long ModInverse(long a, long mod)
-        {
-            long b = mod, x = 0, y = 0;
-            long g = ExtGcd(a, b, out x, out y);
-            if (g != 1) return 1;
-            return (x % b + b) % b;
-        }
-
-        private static long ExtGcd(long a, long b, out long x, out long y)
-        {
-            if (b == 0) { x = 1; y = 0; return a; }
-            long x1, y1;
-            long g = ExtGcd(b, a % b, out x1, out y1);
-            x = y1;
-            y = x1 - (a / b) * y1;
-            return g;
         }
     }
 
@@ -323,11 +310,9 @@ namespace IAFahim.Math.Polynomial
 
     public static unsafe class PolynomialInterpolate
     {
-        public static int Run(int n, long* x, long* y, long* res, long mod)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void BuildVandermonde(long* x, int n, long mod, long* vand)
         {
-            for (int i = 0; i < n; i++) res[i] = 0;
-            if (n == 0) return 0;
-            long* vand = stackalloc long[n + 1];
             for (int i = 0; i <= n; i++) vand[i] = 0;
             vand[0] = 1;
             for (int i = 0; i < n; i++)
@@ -337,43 +322,46 @@ namespace IAFahim.Math.Polynomial
                     vand[j] = (vand[j - 1] + vand[j] * negXi) % mod;
                 vand[0] = vand[0] * negXi % mod;
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void EvalBasisAt(long xi, long* vand, int n, long* wi, long mod)
+        {
+            wi[n - 1] = vand[n];
+            for (int j = n - 2; j >= 0; j--)
+                wi[j] = (vand[j + 1] + wi[j + 1] * xi) % mod;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void AccumulateWeights(long* res, long* wi, int n, long* x, long* y, int i, long mod)
+        {
+            long xi = x[i] % mod;
+            long den = 1;
+            for (int j = 0; j < n; j++)
+            {
+                if (j == i) continue;
+                den = den * ((xi - x[j] % mod + mod) % mod) % mod;
+            }
+            long inv = PolyModArith.ModInverse(den, mod);
+            long coef = y[i] % mod * inv % mod;
+            for (int j = 0; j < n; j++)
+                res[j] = (res[j] + coef * wi[j]) % mod;
+        }
+
+        public static int Run(int n, long* x, long* y, long* res, long mod)
+        {
+            for (int i = 0; i < n; i++) res[i] = 0;
+            if (n == 0) return 0;
+            long* vand = stackalloc long[n + 1];
+            BuildVandermonde(x, n, mod, vand);
             long* wi = stackalloc long[n];
             for (int i = 0; i < n; i++)
             {
                 long xi = x[i] % mod;
-                wi[n - 1] = vand[n];
-                for (int j = n - 2; j >= 0; j--)
-                    wi[j] = (vand[j + 1] + wi[j + 1] * xi) % mod;
-                long den = 1;
-                for (int j = 0; j < n; j++)
-                {
-                    if (j == i) continue;
-                    den = den * ((xi - x[j] % mod + mod) % mod) % mod;
-                }
-                long inv = ModInverse(den, mod);
-                long coef = y[i] % mod * inv % mod;
-                for (int j = 0; j < n; j++)
-                    res[j] = (res[j] + coef * wi[j]) % mod;
+                EvalBasisAt(xi, vand, n, wi, mod);
+                AccumulateWeights(res, wi, n, x, y, i, mod);
             }
             return n;
-        }
-
-        private static long ModInverse(long a, long mod)
-        {
-            long b = mod, x = 0, y = 0;
-            long g = ExtGcd(a, b, out x, out y);
-            if (g != 1) return 1;
-            return (x % b + b) % b;
-        }
-
-        private static long ExtGcd(long a, long b, out long x, out long y)
-        {
-            if (b == 0) { x = 1; y = 0; return a; }
-            long x1, y1;
-            long g = ExtGcd(b, a % b, out x1, out y1);
-            x = y1;
-            y = x1 - (a / b) * y1;
-            return g;
         }
     }
 
@@ -404,29 +392,11 @@ namespace IAFahim.Math.Polynomial
                 }
                 long den = 1;
                 for (int j = 0; j < dc; j++) den = den * denTerms[j] % mod;
-                long inv = ModInverse(den, mod);
+                long inv = PolyModArith.ModInverse(den, mod);
                 long term = y[i] % mod * num % mod * inv % mod;
                 res = (res + term) % mod;
             }
             return res;
-        }
-
-        private static long ModInverse(long a, long mod)
-        {
-            long b = mod, x = 0, y = 0;
-            long g = ExtGcd(a, b, out x, out y);
-            if (g != 1) return 1;
-            return (x % b + b) % b;
-        }
-
-        private static long ExtGcd(long a, long b, out long x, out long y)
-        {
-            if (b == 0) { x = 1; y = 0; return a; }
-            long x1, y1;
-            long g = ExtGcd(b, a % b, out x1, out y1);
-            x = y1;
-            y = x1 - (a / b) * y1;
-            return g;
         }
     }
 }

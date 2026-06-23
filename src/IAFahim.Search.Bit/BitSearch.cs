@@ -123,14 +123,10 @@ namespace IAFahim.Search.Bit
 
     public static unsafe class BitonicLength
     {
-        public static int Run(int n, int* arr)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int ComputeLisLengths(int* arr, int n, int* inc, int* lisLengths)
         {
-            if (n <= 0) return 0;
-            int* inc = stackalloc int[n];
-            int* dec = stackalloc int[n];
-            int* lisLengths = stackalloc int[n];
-            int* ldsLengths = stackalloc int[n];
-            int lenI = 0, lenD = 0;
+            int lenI = 0;
             for (int i = 0; i < n; i++)
             {
                 int lo = 0, hi = lenI;
@@ -144,6 +140,13 @@ namespace IAFahim.Search.Bit
                 if (lo >= lenI) lenI++;
                 lisLengths[i] = lo + 1;
             }
+            return lenI;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int ComputeLdsLengths(int* arr, int n, int* dec, int* ldsLengths)
+        {
+            int lenD = 0;
             for (int i = n - 1; i >= 0; i--)
             {
                 int lo = 0, hi = lenD;
@@ -157,6 +160,12 @@ namespace IAFahim.Search.Bit
                 if (lo >= lenD) lenD++;
                 ldsLengths[i] = lo + 1;
             }
+            return lenD;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int CombineBitonic(int* lisLengths, int* ldsLengths, int n)
+        {
             int maxLen = 0;
             for (int i = 0; i < n; i++)
             {
@@ -164,6 +173,18 @@ namespace IAFahim.Search.Bit
                 if (val > maxLen) maxLen = val;
             }
             return maxLen;
+        }
+
+        public static int Run(int n, int* arr)
+        {
+            if (n <= 0) return 0;
+            int* inc = stackalloc int[n];
+            int* dec = stackalloc int[n];
+            int* lisLengths = stackalloc int[n];
+            int* ldsLengths = stackalloc int[n];
+            ComputeLisLengths(arr, n, inc, lisLengths);
+            ComputeLdsLengths(arr, n, dec, ldsLengths);
+            return CombineBitonic(lisLengths, ldsLengths, n);
         }
     }
 

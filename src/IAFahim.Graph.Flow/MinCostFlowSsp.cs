@@ -5,6 +5,54 @@ namespace IAFahim.Graph.Flow
 
     public static unsafe class MinCostFlowSsp
     {
+        private const int NoParent = -1;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void DijkstraSearch(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, int* flow, long* dist, int* parent, int* parentEdge, long* pot, long* pqDist, int* pqV, int* pqPos, int* pqSize)
+        {
+            for (int i = 0; i < n; i++) { dist[i] = long.MaxValue; parent[i] = NoParent; pqPos[i] = -1; }
+            dist[s] = 0;
+            PushHeap(pqV, pqDist, pqPos, pqSize, s, 0);
+            while (*pqSize > 0)
+            {
+                int u = PopMin(pqV, pqDist, pqPos, pqSize);
+                if (u == t) break;
+                for (int e = head[u]; e != 0; e = next[e])
+                {
+                    if (cap[e] - flow[e] <= 0) continue;
+                    int v = to[e];
+                    long nd = dist[u] + cost[e] + pot[u] - pot[v];
+                    if (nd < dist[v])
+                    {
+                        dist[v] = nd; parent[v] = u; parentEdge[v] = e;
+                        PushHeap(pqV, pqDist, pqPos, pqSize, v, nd);
+                    }
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void UpdatePotentials(int n, long* pot, long* dist)
+        {
+            for (int i = 0; i < n; i++) if (dist[i] < long.MaxValue) pot[i] += dist[i];
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int PathCapacity(int s, int t, int* parent, int* parentEdge, int* cap, int* flow)
+        {
+            int add = int.MaxValue;
+            int v = t;
+            while (v != s) { int e = parentEdge[v]; add = Math.Min(add, cap[e] - flow[e]); v = parent[v]; }
+            return add;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void AugmentPath(int s, int t, int* parent, int* parentEdge, int* flow, int* cost, int add, ref long totalCost)
+        {
+            int v = t;
+            while (v != s) { int e = parentEdge[v]; flow[e] += add; flow[e ^ 1] -= add; totalCost += (long)cost[e] * add; v = parent[v]; }
+        }
+
         public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, int* flow)
         {
             long totalCost = 0;
@@ -20,33 +68,12 @@ namespace IAFahim.Graph.Flow
             int* pqPos = stackalloc int[n];
             while (true)
             {
-                for (int i = 0; i < n; i++) { dist[i] = long.MaxValue; parent[i] = -1; pqPos[i] = -1; }
-                dist[s] = 0;
                 int pqSize = 0;
-                PushHeap(pqV, pqDist, pqPos, &pqSize, s, 0);
-                while (pqSize > 0)
-                {
-                    int u = PopMin(pqV, pqDist, pqPos, &pqSize);
-                    if (u == t) break;
-                    for (int e = head[u]; e != 0; e = next[e])
-                    {
-                        if (cap[e] - flow[e] <= 0) continue;
-                        int v = to[e];
-                        long nd = dist[u] + cost[e] + pot[u] - pot[v];
-                        if (nd < dist[v])
-                        {
-                            dist[v] = nd; parent[v] = u; parentEdge[v] = e;
-                            PushHeap(pqV, pqDist, pqPos, &pqSize, v, nd);
-                        }
-                    }
-                }
+                DijkstraSearch(n, s, t, head, to, next, cap, cost, flow, dist, parent, parentEdge, pot, pqDist, pqV, pqPos, &pqSize);
                 if (dist[t] == long.MaxValue) break;
-                for (int i = 0; i < n; i++) if (dist[i] < long.MaxValue) pot[i] += dist[i];
-                int add = int.MaxValue;
-                int v2 = t;
-                while (v2 != s) { int e = parentEdge[v2]; add = Math.Min(add, cap[e] - flow[e]); v2 = parent[v2]; }
-                v2 = t;
-                while (v2 != s) { int e = parentEdge[v2]; flow[e] += add; flow[e ^ 1] -= add; totalCost += (long)cost[e] * add; v2 = parent[v2]; }
+                UpdatePotentials(n, pot, dist);
+                int add = PathCapacity(s, t, parent, parentEdge, cap, flow);
+                AugmentPath(s, t, parent, parentEdge, flow, cost, add, ref totalCost);
             }
             return totalCost;
         }

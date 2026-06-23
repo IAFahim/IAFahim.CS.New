@@ -20,18 +20,45 @@ namespace IAFahim.Geometry.Arrangement
     public static unsafe class PointLocationQuery
     {
         public static int Run(int* grid, int gridSize, int minX, int minY, int cellW, int cellH, int px, int py) { int cx = (px - minX) / cellW, cy = (py - minY) / cellH; if (cx < 0 || cx >= gridSize || cy < 0 || cy >= gridSize) return -1; return grid[cy * gridSize + cx]; }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static long AxisValue(long* points, int idx, int axis)
+        {
+            return axis == 0 ? points[idx * 2] : points[idx * 2 + 1];
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int PickNearChild(int node, int axis, long px, long py, long val)
+        {
+            bool goLeft = axis == 0 ? px < val : py < val;
+            return goLeft ? node * 2 : node * 2 + 1;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void MergeBest(long* points, int cand, long px, long py, ref int best, ref double dist)
+        {
+            if (cand >= 0)
+            {
+                double d = SqDist(points, cand, px, py);
+                if (d < dist) { best = cand; dist = d; }
+            }
+        }
+
         public static int QueryKdTree(long* points, int* tree, int node, int depth, long px, long py)
         {
             if (node == 0) return -1;
-            int idx = tree[node], axis = depth & 1; long val = axis == 0 ? points[idx * 2] : points[idx * 2 + 1];
-            int near = (axis == 0 ? px < val : py < val) ? node * 2 : node * 2 + 1;
+            int idx = tree[node], axis = depth & 1; long val = AxisValue(points, idx, axis);
+            int near = PickNearChild(node, axis, px, py, val);
             int far = near == node * 2 ? node * 2 + 1 : node * 2;
             int best = idx;
             double dist = SqDist(points, idx, px, py);
             int next = QueryKdTree(points, tree, near, depth + 1, px, py);
-            if (next >= 0) { double d = SqDist(points, next, px, py); if (d < dist) { best = next; dist = d; } }
+            MergeBest(points, next, px, py, ref best, ref dist);
             long diff = axis == 0 ? px - val : py - val;
-            if ((double)diff * diff <= dist) { int cand = QueryKdTree(points, tree, far, depth + 1, px, py); if (cand >= 0) { double d = SqDist(points, cand, px, py); if (d < dist) best = cand; } }
+            if ((double)diff * diff <= dist)
+            {
+                int cand = QueryKdTree(points, tree, far, depth + 1, px, py);
+                MergeBest(points, cand, px, py, ref best, ref dist);
+            }
             return best;
         }
 

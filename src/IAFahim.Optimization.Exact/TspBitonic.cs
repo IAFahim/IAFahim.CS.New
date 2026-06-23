@@ -11,14 +11,45 @@ namespace IAFahim.Optimization.Exact
             return (long)Math.Sqrt(dx * dx + dy * dy);
         }
 
-        public static long Run(int n, double* xs, double* ys, long* dp)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void InitDp(long* dp, int n, double* xs, double* ys)
         {
-            if (n < 2) return 0;
             for (int i = 0; i < n; i++)
             for (int j = 0; j < n; j++)
                 dp[i * n + j] = long.MaxValue;
             dp[0 * n + 1] = Dist(xs[0], ys[0], xs[1], ys[1]);
             dp[1 * n + 0] = dp[0 * n + 1];
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static long BestJoin(long* dp, double* xs, double* ys, int n, int i)
+        {
+            long best = long.MaxValue;
+            for (int k = 0; k < i - 1; k++)
+            {
+                long d = dp[k * n + i - 1];
+                if (d != long.MaxValue)
+                {
+                    long cand = d + Dist(xs[k], ys[k], xs[i], ys[i]);
+                    if (cand < best) best = cand;
+                }
+            }
+            return best;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static long CloseTour(long* dp, double* xs, double* ys, int n)
+        {
+            long dLast = dp[0 * n + n - 1];
+            if (dLast != long.MaxValue)
+                return dLast + Dist(xs[0], ys[0], xs[n - 1], ys[n - 1]);
+            return long.MaxValue;
+        }
+
+        public static long Run(int n, double* xs, double* ys, long* dp)
+        {
+            if (n < 2) return 0;
+            InitDp(dp, n, xs, ys);
             for (int i = 2; i < n; i++)
             {
                 for (int j = 0; j < i; j++)
@@ -26,17 +57,7 @@ namespace IAFahim.Optimization.Exact
                     long prev = dp[j * n + i - 1];
                     if (j == i - 1)
                     {
-                        long best = long.MaxValue;
-                        for (int k = 0; k < i - 1; k++)
-                        {
-                            long d = dp[k * n + i - 1];
-                            if (d != long.MaxValue)
-                            {
-                                long cand = d + Dist(xs[k], ys[k], xs[i], ys[i]);
-                                if (cand < best) best = cand;
-                            }
-                        }
-                        dp[j * n + i] = best;
+                        dp[j * n + i] = BestJoin(dp, xs, ys, n, i);
                     }
                     else if (prev != long.MaxValue)
                     {
@@ -45,10 +66,7 @@ namespace IAFahim.Optimization.Exact
                     dp[i * n + j] = dp[j * n + i];
                 }
             }
-            long dLast = dp[0 * n + n - 1];
-            if (dLast != long.MaxValue)
-                return dLast + Dist(xs[0], ys[0], xs[n - 1], ys[n - 1]);
-            return long.MaxValue;
+            return CloseTour(dp, xs, ys, n);
         }
     }
 }
