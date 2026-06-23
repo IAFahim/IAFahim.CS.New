@@ -6,17 +6,16 @@ namespace IAFahim.String
 
     public static unsafe class Enumeration
     {
-        public static int ShortestCommonSupersequence(byte* a, int aLen, byte* b, int bLen, byte* c, int* dp)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void InitSuperseqBorders(int aLen, int bLen, int cols, int* dp)
         {
-            int cols = bLen + 1;
-            for (int i = 0; i <= aLen; i++)
-            {
-                dp[i * cols] = i;
-            }
-            for (int j = 0; j <= bLen; j++)
-            {
-                dp[j] = j;
-            }
+            for (int i = 0; i <= aLen; i++) dp[i * cols] = i;
+            for (int j = 0; j <= bLen; j++) dp[j] = j;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void FillSuperseqDp(byte* a, int aLen, byte* b, int bLen, int cols, int* dp)
+        {
             for (int i = 1; i <= aLen; i++)
             {
                 for (int j = 1; j <= bLen; j++)
@@ -33,6 +32,11 @@ namespace IAFahim.String
                     }
                 }
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int BacktrackSuperseq(byte* a, int aLen, byte* b, int bLen, int cols, int* dp, byte* c)
+        {
             int idxA = aLen;
             int idxB = bLen;
             int writeIdx = dp[aLen * cols + bLen];
@@ -69,7 +73,16 @@ namespace IAFahim.String
             return totalLen;
         }
 
-        public static int ShortestAbsentSubsequence(byte* s, int len, int alphabetSize, byte* result, int* nextOcc, int* dp, int* path)
+        public static int ShortestCommonSupersequence(byte* a, int aLen, byte* b, int bLen, byte* c, int* dp)
+        {
+            int cols = bLen + 1;
+            InitSuperseqBorders(aLen, bLen, cols, dp);
+            FillSuperseqDp(a, aLen, b, bLen, cols, dp);
+            return BacktrackSuperseq(a, aLen, b, bLen, cols, dp, c);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void BuildNextOcc(byte* s, int len, int alphabetSize, int* nextOcc)
         {
             for (int c = 0; c < alphabetSize; c++)
             {
@@ -88,6 +101,11 @@ namespace IAFahim.String
                     nextOcc[(long)i * alphabetSize + charVal] = i;
                 }
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ComputeAbsentDp(int len, int alphabetSize, int* nextOcc, int* dp, int* path)
+        {
             dp[len] = 1;
             path[len] = -1;
             dp[len + 1] = 0;
@@ -109,6 +127,11 @@ namespace IAFahim.String
                 dp[i] = bestVal;
                 path[i] = bestChar;
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int ReconstructAbsent(int len, int alphabetSize, int* nextOcc, int* path, byte* result)
+        {
             int curr = 0;
             int writeIdx = 0;
             while (curr < len)
@@ -128,49 +151,17 @@ namespace IAFahim.String
             return writeIdx;
         }
 
-        public static int ShortestMissingSubstring(byte* s, int len, int alphabetSize, byte* result, bool* seen)
+        public static int ShortestAbsentSubsequence(byte* s, int len, int alphabetSize, byte* result, int* nextOcc, int* dp, int* path)
         {
-            for (int subLen = 1; ; subLen++)
-            {
-                long limit = 1;
-                bool overflow = false;
-                for (int i = 0; i < subLen; i++)
-                {
-                    limit *= alphabetSize;
-                    if (limit > len + 1)
-                    {
-                        overflow = true;
-                    }
-                }
-                if (overflow || limit > len)
-                {
-                    int foundLen = -1;
-                    FindMissing(s, len, subLen, alphabetSize, result, &foundLen, seen);
-                    if (foundLen != -1)
-                    {
-                        return foundLen;
-                    }
-                }
-                else
-                {
-                    int foundLen = -1;
-                    FindMissing(s, len, subLen, alphabetSize, result, &foundLen, seen);
-                    if (foundLen != -1)
-                    {
-                        return foundLen;
-                    }
-                }
-            }
+            BuildNextOcc(s, len, alphabetSize, nextOcc);
+            ComputeAbsentDp(len, alphabetSize, nextOcc, dp, path);
+            return ReconstructAbsent(len, alphabetSize, nextOcc, path, result);
         }
 
-        private static void FindMissing(byte* s, int len, int subLen, int alphabetSize, byte* result, int* foundLen, bool* seen)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void MarkSeenSubstrings(byte* s, int len, int subLen, int alphabetSize, long limit, bool* seen)
         {
-            long limit = 1;
-            for (int i = 0; i < subLen; i++)
-            {
-                limit *= alphabetSize;
-            }
-            for (int i = 0; i < limit; i++)
+            for (long i = 0; i < limit; i++)
             {
                 seen[i] = false;
             }
@@ -193,21 +184,50 @@ namespace IAFahim.String
                     seen[hash] = true;
                 }
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void DecodeSubstring(long i, int subLen, int alphabetSize, byte* result)
+        {
+            long temp = i;
+            for (int j = subLen - 1; j >= 0; j--)
+            {
+                result[j] = (byte)(temp % alphabetSize);
+                temp /= alphabetSize;
+            }
+        }
+
+        private static void FindMissing(byte* s, int len, int subLen, int alphabetSize, byte* result, int* foundLen, bool* seen)
+        {
+            long limit = 1;
+            for (int i = 0; i < subLen; i++)
+            {
+                limit *= alphabetSize;
+            }
+            MarkSeenSubstrings(s, len, subLen, alphabetSize, limit, seen);
             for (long i = 0; i < limit; i++)
             {
                 if (!seen[i])
                 {
-                    long temp = i;
-                    for (int j = subLen - 1; j >= 0; j--)
-                    {
-                        result[j] = (byte)(temp % alphabetSize);
-                        temp /= alphabetSize;
-                    }
+                    DecodeSubstring(i, subLen, alphabetSize, result);
                     *foundLen = subLen;
                     return;
                 }
             }
             *foundLen = -1;
+        }
+
+        public static int ShortestMissingSubstring(byte* s, int len, int alphabetSize, byte* result, bool* seen)
+        {
+            for (int subLen = 1; ; subLen++)
+            {
+                int foundLen = -1;
+                FindMissing(s, len, subLen, alphabetSize, result, &foundLen, seen);
+                if (foundLen != -1)
+                {
+                    return foundLen;
+                }
+            }
         }
     }
 }

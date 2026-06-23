@@ -42,6 +42,30 @@ namespace IAFahim.Optimization.Offline
 
     public static unsafe class DivideConquerAnswer
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void AdvanceToMid(void* context, ref int k, int mid,
+            delegate*<void*, int, int, int, void> addFn,
+            delegate*<void*, int, int, int, void> removeFn,
+            delegate*<void*, int, bool> checkFn)
+        {
+            while (k < mid)
+            {
+                if (!checkFn(context, k))
+                {
+                    addFn(context, k, 0, 0);
+                }
+                k++;
+            }
+            while (k > mid)
+            {
+                k--;
+                if (!checkFn(context, k))
+                {
+                    removeFn(context, k, 0, 0);
+                }
+            }
+        }
+
         public static void Solve<T>(
             T* answers,
             int lo, int hi,
@@ -65,22 +89,7 @@ namespace IAFahim.Optimization.Offline
                 }
                 else if (queryL[idx] <= lo && hi <= queryR[idx])
                 {
-                    while (queryK[idx] < mid)
-                    {
-                        if (!checkFn(context, queryK[idx]))
-                        {
-                            addFn(context, queryK[idx], 0, 0);
-                        }
-                        queryK[idx]++;
-                    }
-                    while (queryK[idx] > mid)
-                    {
-                        queryK[idx]--;
-                        if (!checkFn(context, queryK[idx]))
-                        {
-                            removeFn(context, queryK[idx], 0, 0);
-                        }
-                    }
+                    AdvanceToMid(context, ref queryK[idx], mid, addFn, removeFn, checkFn);
                 }
                 else
                 {
@@ -114,15 +123,10 @@ namespace IAFahim.Optimization.Offline
             for (i = l; i <= r; i++) idx[i] = tmp[i];
         }
 
-        public static void Process(int* x, int* y, int* z, int* idx, int* tmp, int* count, int l, int r,
-            int* bit, int maxZ,
-            delegate*<int*, int, int, void> bitAdd,
-            delegate*<int*, int, int> bitSum)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void CountDominance(int* y, int* z, int* idx, int* count, int l, int mid, int r,
+            int* bit, delegate*<int*, int, int, void> bitAdd, delegate*<int*, int, int> bitSum)
         {
-            if (l >= r) return;
-            int mid = l + ((r - l) >> 1);
-            Process(x, y, z, idx, tmp, count, l, mid, bit, maxZ, bitAdd, bitSum);
-            Process(x, y, z, idx, tmp, count, mid + 1, r, bit, maxZ, bitAdd, bitSum);
             int i = l, j = mid + 1;
             while (j <= r)
             {
@@ -138,8 +142,12 @@ namespace IAFahim.Optimization.Offline
             {
                 bitAdd(bit, z[idx[t]], -1);
             }
-            i = l; j = mid + 1;
-            int k = l;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void MergeByY(int* y, int* idx, int* tmp, int l, int mid, int r)
+        {
+            int i = l, j = mid + 1, k = l;
             while (i <= mid && j <= r)
             {
                 if (y[idx[i]] <= y[idx[j]]) tmp[k++] = idx[i++];
@@ -148,6 +156,19 @@ namespace IAFahim.Optimization.Offline
             while (i <= mid) tmp[k++] = idx[i++];
             while (j <= r) tmp[k++] = idx[j++];
             for (int t = l; t <= r; t++) idx[t] = tmp[t];
+        }
+
+        public static void Process(int* x, int* y, int* z, int* idx, int* tmp, int* count, int l, int r,
+            int* bit, int maxZ,
+            delegate*<int*, int, int, void> bitAdd,
+            delegate*<int*, int, int> bitSum)
+        {
+            if (l >= r) return;
+            int mid = l + ((r - l) >> 1);
+            Process(x, y, z, idx, tmp, count, l, mid, bit, maxZ, bitAdd, bitSum);
+            Process(x, y, z, idx, tmp, count, mid + 1, r, bit, maxZ, bitAdd, bitSum);
+            CountDominance(y, z, idx, count, l, mid, r, bit, bitAdd, bitSum);
+            MergeByY(y, idx, tmp, l, mid, r);
         }
     }
 

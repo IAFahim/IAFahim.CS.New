@@ -94,15 +94,17 @@ namespace IAFahim.Algebra.GraphPoly
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void Interpolate(int n, long* y, int MOD, long* coeffs)
+        private static int InitBasis(int n, int MOD, long* coeffs, long* poly)
         {
             for (int i = 0; i <= n; i++) coeffs[i] = 0L;
-
-            long* poly = stackalloc long[n + 2];
             poly[0] = 1L;
             for (int i = 1; i <= n + 1; i++) poly[i] = 0L;
-            int polyLen = 1;
+            return 1;
+        }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int BuildBasisPoly(int n, int MOD, long* poly, int polyLen)
+        {
             for (int i = 0; i <= n; i++)
             {
                 long* nextPoly = stackalloc long[polyLen + 1];
@@ -117,11 +119,13 @@ namespace IAFahim.Algebra.GraphPoly
                 polyLen++;
                 for (int j = 0; j < polyLen; j++) poly[j] = nextPoly[j];
             }
+            return polyLen;
+        }
 
-            long* temp = stackalloc long[polyLen];
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void LagrangeAccumulate(int n, long* y, int MOD, long* poly, int polyLen, long* coeffs)
+        {
             long* q = stackalloc long[polyLen];
-            long* r = stackalloc long[polyLen];
-
             for (int i = 0; i <= n; i++)
             {
                 long den = 1L;
@@ -151,6 +155,15 @@ namespace IAFahim.Algebra.GraphPoly
                     coeffs[j] = (coeffs[j] + add) % MOD;
                 }
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void Interpolate(int n, long* y, int MOD, long* coeffs)
+        {
+            long* poly = stackalloc long[n + 2];
+            int polyLen = InitBasis(n, MOD, coeffs, poly);
+            polyLen = BuildBasisPoly(n, MOD, poly, polyLen);
+            LagrangeAccumulate(n, y, MOD, poly, polyLen, coeffs);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -48,15 +48,54 @@ namespace IAFahim.Graph
 
     public static unsafe class DetectCycleDirected
     {
-        public static bool Run(int n, int* head, int* to, int* next, int* parent, int* depth)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void InitCycleState(int n, int* parent, int* depth, bool* onStack, bool* visited)
         {
             for (int i = 0; i < n; i++) parent[i] = -1;
             for (int i = 0; i < n; i++) depth[i] = 0;
-            bool* onStack = stackalloc bool[n];
             for (int i = 0; i < n; i++) onStack[i] = false;
-            bool* visited = stackalloc bool[n];
             for (int i = 0; i < n; i++) visited[i] = false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool AdvanceFrame(int u, int* head, int* to, int* next, int* parent, int* depth, bool* visited, bool* onStack, int* stack, ref int top)
+        {
+            if (!visited[u])
+            {
+                visited[u] = true;
+                onStack[u] = true;
+            }
+            bool foundChild = false;
+            for (int e = head[u]; e != 0; e = next[e])
+            {
+                int v = to[e];
+                if (!visited[v])
+                {
+                    parent[v] = u;
+                    depth[v] = depth[u] + 1;
+                    stack[++top] = v;
+                    foundChild = true;
+                    break;
+                }
+                else if (onStack[v])
+                {
+                    return true;
+                }
+            }
+            if (!foundChild)
+            {
+                onStack[u] = false;
+                top--;
+            }
+            return false;
+        }
+
+        public static bool Run(int n, int* head, int* to, int* next, int* parent, int* depth)
+        {
+            bool* onStack = stackalloc bool[n];
+            bool* visited = stackalloc bool[n];
             int* stack = stackalloc int[n];
+            InitCycleState(n, parent, depth, onStack, visited);
             for (int start = 0; start < n; start++)
             {
                 if (visited[start]) continue;
@@ -65,33 +104,7 @@ namespace IAFahim.Graph
                 while (top >= 0)
                 {
                     int u = stack[top];
-                    if (!visited[u])
-                    {
-                        visited[u] = true;
-                        onStack[u] = true;
-                    }
-                    bool foundChild = false;
-                    for (int e = head[u]; e != 0; e = next[e])
-                    {
-                        int v = to[e];
-                        if (!visited[v])
-                        {
-                            parent[v] = u;
-                            depth[v] = depth[u] + 1;
-                            stack[++top] = v;
-                            foundChild = true;
-                            break;
-                        }
-                        else if (onStack[v])
-                        {
-                            return true;
-                        }
-                    }
-                    if (!foundChild)
-                    {
-                        onStack[u] = false;
-                        top--;
-                    }
+                    if (AdvanceFrame(u, head, to, next, parent, depth, visited, onStack, stack, ref top)) return true;
                 }
             }
             return false;

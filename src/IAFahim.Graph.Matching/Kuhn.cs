@@ -179,12 +179,10 @@ namespace IAFahim.Graph.Matching
 
     public static unsafe class MinimumVertexCoverBipartite
     {
-        public static int Run(int n, int* head, int* to, int* next, int* matchLeft, int* matchRight, int* cover)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void SeedUnmatched(int n, int* matchLeft, int* vis, int* q, ref int qt)
         {
-            int* vis = stackalloc int[n];
             for (int i = 0; i < n; i++) vis[i] = 0;
-            int* q = stackalloc int[n];
-            int qh = 0, qt = 0;
             for (int u = 0; u < n; u++)
             {
                 if (matchLeft[u] == -1)
@@ -193,6 +191,11 @@ namespace IAFahim.Graph.Matching
                     vis[u] = 1;
                 }
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void BfsAlternate(int* head, int* to, int* next, int* matchRight, int* vis, int* q, ref int qh, ref int qt)
+        {
             while (qh < qt)
             {
                 int u = q[qh++];
@@ -209,11 +212,18 @@ namespace IAFahim.Graph.Matching
                     }
                 }
             }
-            for (int u = 0; u < n; u++)
-                cover[u] = (vis[u] == 0) ? 1 : 0;
+        }
+
+        public static int Run(int n, int* head, int* to, int* next, int* matchLeft, int* matchRight, int* cover)
+        {
+            int* vis = stackalloc int[n];
+            int* q = stackalloc int[n];
+            int qh = 0, qt = 0;
+            SeedUnmatched(n, matchLeft, vis, q, ref qt);
+            BfsAlternate(head, to, next, matchRight, vis, q, ref qh, ref qt);
+            for (int u = 0; u < n; u++) cover[u] = (vis[u] == 0) ? 1 : 0;
             int count = 0;
-            for (int u = 0; u < n; u++)
-                if (cover[u] == 1) count++;
+            for (int u = 0; u < n; u++) if (cover[u] == 1) count++;
             return count;
         }
     }

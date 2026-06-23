@@ -11,14 +11,9 @@ namespace IAFahim.Geometry.Hull
             return (x2 - x1) * (y3 - y1) - (y2 - y1) * (x3 - x1);
         }
 
-        public static double Run(double* xs, double* ys, int n)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ComputeNormals(double* xs, double* ys, int n, double* nx, double* ny, double* c)
         {
-            if (n < 3) return 0;
-            double lo = 0, hi = 2e9;
-            double* nx = stackalloc double[n];
-            double* ny = stackalloc double[n];
-            double* c = stackalloc double[n];
-            
             for (int i = 0; i < n; i++)
             {
                 int nxt = (i + 1) % n;
@@ -29,56 +24,61 @@ namespace IAFahim.Geometry.Hull
                 ny[i] = dx / len;
                 c[i] = xs[i] * nx[i] + ys[i] * ny[i];
             }
+        }
 
-            int* q = stackalloc int[n + 5];
-            
-            for (int iter = 0; iter < 60; iter++)
+        private static bool IsFeasible(double mid, int n, double* nx, double* ny, double* c, int* q)
+        {
+            int head = 0, tail = 0;
+            q[tail++] = 0;
+            q[tail++] = 1;
+            for (int i = 2; i < n; i++)
             {
-                double mid = (lo + hi) / 2;
-                bool possible = true;
-                
-                int head = 0, tail = 0;
-                
-                q[tail++] = 0;
-                q[tail++] = 1;
-                
-                for (int i = 2; i < n; i++)
-                {
-                    while (head + 1 < tail)
-                    {
-                        int prev = q[tail - 2];
-                        int curr = q[tail - 1];
-                        double px_curr, py_curr;
-                        Intersect(nx[prev], ny[prev], c[prev] + mid, nx[curr], ny[curr], c[curr] + mid, out px_curr, out py_curr);
-                        if (nx[i] * px_curr + ny[i] * py_curr > c[i] + mid - 1e-9) tail--;
-                        else break;
-                    }
-                    while (head + 1 < tail)
-                    {
-                        int prev = q[head];
-                        int curr = q[head + 1];
-                        double px_curr, py_curr;
-                        Intersect(nx[prev], ny[prev], c[prev] + mid, nx[curr], ny[curr], c[curr] + mid, out px_curr, out py_curr);
-                        if (nx[i] * px_curr + ny[i] * py_curr > c[i] + mid - 1e-9) head++;
-                        else break;
-                    }
-                    q[tail++] = i;
-                }
-                
                 while (head + 1 < tail)
                 {
                     int prev = q[tail - 2];
                     int curr = q[tail - 1];
-                    int first = q[head];
                     double px_curr, py_curr;
                     Intersect(nx[prev], ny[prev], c[prev] + mid, nx[curr], ny[curr], c[curr] + mid, out px_curr, out py_curr);
-                    if (nx[first] * px_curr + ny[first] * py_curr > c[first] + mid - 1e-9) tail--;
+                    if (nx[i] * px_curr + ny[i] * py_curr > c[i] + mid - 1e-9) tail--;
                     else break;
                 }
-                
-                if (tail - head < 3) possible = false;
-                
-                if (possible) lo = mid;
+                while (head + 1 < tail)
+                {
+                    int prev = q[head];
+                    int curr = q[head + 1];
+                    double px_curr, py_curr;
+                    Intersect(nx[prev], ny[prev], c[prev] + mid, nx[curr], ny[curr], c[curr] + mid, out px_curr, out py_curr);
+                    if (nx[i] * px_curr + ny[i] * py_curr > c[i] + mid - 1e-9) head++;
+                    else break;
+                }
+                q[tail++] = i;
+            }
+            while (head + 1 < tail)
+            {
+                int prev = q[tail - 2];
+                int curr = q[tail - 1];
+                int first = q[head];
+                double px_curr, py_curr;
+                Intersect(nx[prev], ny[prev], c[prev] + mid, nx[curr], ny[curr], c[curr] + mid, out px_curr, out py_curr);
+                if (nx[first] * px_curr + ny[first] * py_curr > c[first] + mid - 1e-9) tail--;
+                else break;
+            }
+            return tail - head >= 3;
+        }
+
+        public static double Run(double* xs, double* ys, int n)
+        {
+            if (n < 3) return 0;
+            double lo = 0, hi = 2e9;
+            double* nx = stackalloc double[n];
+            double* ny = stackalloc double[n];
+            double* c = stackalloc double[n];
+            int* q = stackalloc int[n + 5];
+            ComputeNormals(xs, ys, n, nx, ny, c);
+            for (int iter = 0; iter < 60; iter++)
+            {
+                double mid = (lo + hi) / 2;
+                if (IsFeasible(mid, n, nx, ny, c, q)) lo = mid;
                 else hi = mid;
             }
             return lo;
