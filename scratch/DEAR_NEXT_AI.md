@@ -36,30 +36,54 @@ With warmth, and a clean tree (almost — see below),
 
 ## Cold facts so you can start in 60 seconds
 
-**master HEAD:** `6a1b0da` (pushed to origin/master). Correctness was finished in a
+**master HEAD:** `8071875` (pushed to origin/master). Correctness was finished in a
 prior phase (288 bugs, full suite green) — CC + contract sweep was the active job.
 
-**Progress:** **141 of 153** high-CC files done (`scratch/cc_done.txt`).
-**ALL non-Recast files are DONE and pushed.** Only the **12-file
-`IAFahim.Pathfinding.Recast` cohort remains** — see below.
+**Progress:** **147 of 153** high-CC files done (`scratch/cc_done.txt`).
+**ALL non-Recast files DONE + pushed (141).** Then **6 of 12 Recast/Detour files
+DONE + pushed** (the test-covered ones with clean seams). **6 remain** — see below.
 
-### What's left: the Recast cohort (12 files)
+### Recast cohort: 6 DONE (all test-verified, 52/52 green before & after)
 
-`IAFahim.Pathfinding.Recast` is a recastnavigation port. `scratch/cc_worklist.json`
-flags it worst-first (e.g. `Recast.Layers.cs` maxcc=90). It was DEFERRED because:
+- `Recast.Rasterization.cs` — RasterizeTriangle → ComputeRowXBounds/EmitSpan
+- `Recast.Filter.cs` — FilterLedgeSpans → AnalyzeNeighbor
+- `Recast.cs` — BuildCompactHeightfield → ConnectSpanDirection
+- `Recast.Area.cs` — ErodeWalkableArea → RelaxDistance (dedup 4 blocks → 1 helper ×4)
+- `Detour/DtNavMesh.cs` — AddTile → ConnectTileNeighbors
+- `Detour/Detour.NavMeshBuilder.cs` — CreateNavMeshData → ClassifyOffMeshConnections
 
-- It's var-laden. **AGENTS.md forbids `var`** — any new helper MUST use explicit types.
-- It's a port of external C++ with subtle mesh/heightfield geometry — high regression
-  risk, and (verify) it may have no test project, leaving build-only verification.
-- The human's instruction was "keep going till all"; the deferral was a prior-model
-  judgment call, not a hard constraint. If you take it on: go slow, one method at a
-  time, preserve exact control flow, and treat the `var`→explicit conversion as the
-  primary contract fix. A prior `Recast.Layers` attempt was rejected for `var`.
+### What's left: 6 Recast/Detour files (HARD, mostly untested)
 
-Run this to list the 12 and their flagged methods:
+`IAFahim.Pathfinding.Recast` is a recastnavigation port. The remaining 6 are the
+high-CC, low-coverage ones. **The Recast test project has 52 tests** (`dotnet test
+test/IAFahim.Pathfinding.Recast.Tests`) — baseline GREEN. Run it before AND after
+every edit. BUT coverage is thin: tests exist only for Rasterization, Filter, the
+BuildPolyMeshDetail path, DtNavMesh (state), DtNavMeshQuery. **No tests cover
+BuildRegions, BuildContours, BuildPolyMesh, BuildHeightfieldLayers** — refactor those
+on pure adversarial self-critique faith; a mistake slips through silently.
+
+The remaining 6 (worst-first), with my read on each:
+
+| File | maxcc | Tested? | Notes |
+|------|-------|---------|-------|
+| `Recast.Layers.cs` | 90 | NO | `BuildHeightfieldLayers` CC=90. The monster. Heightfield layering — subtle. A prior attempt was REJECTED for using `var`; new helpers MUST use explicit types. |
+| `Recast.Region.cs` | 63 | NO | `MergeAndFilterRegions` CC=63 + 15 more flagged methods. Region growing/flooding. |
+| `Detour/Detour.NavMeshBuilder.cs` | 58 | indirect | `CreateNavMeshData` CC=58 — partially done (off-mesh phase extracted); ~400 lines remain, sequential array-build phases with shared running offsets. |
+| `Recast.Mesh.cs` | 47 | NO | `BuildPolyMesh`/`RemoveVertex` CC=47 each. |
+| `Detour/DtNavMeshQuery.cs` | 44 | YES | `FindStraightPath` CC=44. Tested but the funnel-algorithm control flow (`i=apexIndex; continue` restarts) makes clean extraction fiddly — I tried a `ComputeApexFlags` dedup, it worked but left dead initializers, reverted as not-worth-it. Worth retrying with a tri-state helper if you have time. |
+| `Recast.Contour.cs` | 42 | NO | `SimplifyContour` CC=42, `BuildContours` CC=38. |
+| `Recast.MeshDetail.cs` | 36 | PARTIAL | `BuildPolyDetail` CC=36. `BuildPolyMeshDetail` has 2 tests. The verts/tris dynamic-resize blocks are duplicated (dedup candidate via a `GrowBuffer(void*, elemSize, align, ref cap, needed, count)` helper — watch the `AllocatorManager.Allocate` int-vs-long size overload). |
+
+**Risk protocol for the untested files:** extract ONLY by verbatim code-move
+(same iteration order, same conditions, `continue`→`return`, `ref` for mutated
+vars). Resolve every type explicitly before building (Recast is `var`-heavy;
+`Verts[i]` is `ushort3` not `float3`, etc. — I hit that exact bug). The build gate
+won't catch logic errors in untested code, so the self-critique is the only guard.
+
+Run this to re-list the remaining flagged methods:
 
 ```
-python3 -c "import json;[print(e['file'],e['maxcc'],e['methods']) for e in json.load(open('scratch/cc_worklist.json')) if 'Recast' in e['file']]"
+python3 -c "import json;d=set(l.strip() for l in open('scratch/cc_done.txt'));[print(e['file'],e['maxcc'],e['methods']) for e in json.load(open('scratch/cc_worklist.json')) if e['file'] not in d]"
 ```
 
 ### The inline loop (replaces the old Workflow loop)

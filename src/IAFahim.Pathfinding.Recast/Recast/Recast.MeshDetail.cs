@@ -4,6 +4,7 @@
 
 namespace IAFahim.Pathfinding.Recast
 {
+    using System.Runtime.CompilerServices;
     using Unity.Collections;
     using Unity.Collections.LowLevel.Unsafe;
     using Unity.Mathematics;
@@ -168,20 +169,7 @@ namespace IAFahim.Pathfinding.Recast
                 // Store vertices, allocate more memory if necessary
                 if (detailMesh->NVerts + nverts > vcap)
                 {
-                    while (detailMesh->NVerts + nverts > vcap)
-                    {
-                        vcap += 256;
-                    }
-
-                    var newv = (float3*)AllocatorManager.Allocate(detailMesh->Allocator, sizeof(float3) * vcap, UnsafeUtility.AlignOf<float3>());
-
-                    if (detailMesh->NVerts > 0)
-                    {
-                        UnsafeUtility.MemCpy(newv, detailMesh->Verts, sizeof(float3) * detailMesh->NVerts);
-                    }
-
-                    AllocatorManager.Free(detailMesh->Allocator, detailMesh->Verts);
-                    detailMesh->Verts = newv;
+                    detailMesh->Verts = (float3*)GrowBuffer(detailMesh->Allocator, detailMesh->Verts, sizeof(float3), UnsafeUtility.AlignOf<float3>(), ref vcap, detailMesh->NVerts + nverts, detailMesh->NVerts);
                 }
 
                 for (var j = 0; j < nverts; ++j)
@@ -196,20 +184,7 @@ namespace IAFahim.Pathfinding.Recast
                 // Store triangles, allocate more memory if necessary
                 if (detailMesh->NTris + ntris > tcap)
                 {
-                    while (detailMesh->NTris + ntris > tcap)
-                    {
-                        tcap += 256;
-                    }
-
-                    var newt = (byte4*)AllocatorManager.Allocate(detailMesh->Allocator, sizeof(byte4) * tcap, UnsafeUtility.AlignOf<byte4>());
-
-                    if (detailMesh->NTris > 0)
-                    {
-                        UnsafeUtility.MemCpy(newt, detailMesh->Tris, sizeof(byte4) * detailMesh->NTris);
-                    }
-
-                    AllocatorManager.Free(detailMesh->Allocator, detailMesh->Tris);
-                    detailMesh->Tris = newt;
+                    detailMesh->Tris = (byte4*)GrowBuffer(detailMesh->Allocator, detailMesh->Tris, sizeof(byte4), UnsafeUtility.AlignOf<byte4>(), ref tcap, detailMesh->NTris + ntris, detailMesh->NTris);
                 }
 
                 for (var j = 0; j < ntris; ++j)
@@ -219,6 +194,25 @@ namespace IAFahim.Pathfinding.Recast
                     detailMesh->NTris++;
                 }
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void* GrowBuffer(Allocator allocator, void* current, int elemSize, int align, ref int cap, int needed, int currentCount)
+        {
+            while (needed > cap)
+            {
+                cap += 256;
+            }
+
+            void* buf = AllocatorManager.Allocate(allocator, elemSize * cap, align);
+
+            if (currentCount > 0)
+            {
+                UnsafeUtility.MemCpy(buf, current, elemSize * currentCount);
+            }
+
+            AllocatorManager.Free(allocator, current);
+            return buf;
         }
 
         /// <summary>
