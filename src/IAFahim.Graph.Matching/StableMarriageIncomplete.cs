@@ -20,6 +20,34 @@ namespace IAFahim.Graph.Matching
         private const int Unmatched = -1;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool HandleProposal(int woman, int man, int* prefWomen, int* numPrefWomen, int n, int* matchMen, int* matchWomen, int* freeStack, ref int top)
+        {
+            int current = matchWomen[woman];
+            int rankNew = RankOf(prefWomen, numPrefWomen, n, woman, man);
+            if (current == Unmatched)
+            {
+                if (rankNew >= 0)
+                {
+                    matchWomen[woman] = man;
+                    matchMen[man] = woman;
+                    return true;
+                }
+                return false;
+            }
+            if (rankNew < 0) return false;
+            int rankCur = RankOf(prefWomen, numPrefWomen, n, woman, current);
+            if (rankNew < rankCur)
+            {
+                matchMen[current] = Unmatched;
+                freeStack[top++] = current;
+                matchWomen[woman] = man;
+                matchMen[man] = woman;
+                return true;
+            }
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Run(int* prefMen, int* prefWomen, int* numPrefMen, int* numPrefWomen, int n, int m, int* matchMen, int* matchWomen)
         {
             for (int i = 0; i < n; i++) matchMen[i] = Unmatched;
@@ -47,33 +75,7 @@ namespace IAFahim.Graph.Matching
                 while (nextProposal[man] < listLen)
                 {
                     int woman = manList[nextProposal[man]++];
-                    int current = matchWomen[woman];
-                    if (current == Unmatched)
-                    {
-                        if (RankOf(prefWomen, numPrefWomen, n, woman, man) >= 0)
-                        {
-                            matchWomen[woman] = man;
-                            matchMen[man] = woman;
-                            break;
-                        }
-                        // Woman does not list this man; he keeps proposing.
-                    }
-                    else
-                    {
-                        int rankNew = RankOf(prefWomen, numPrefWomen, n, woman, man);
-                        if (rankNew < 0) continue; // not on her list; try next woman.
-                        int rankCur = RankOf(prefWomen, numPrefWomen, n, woman, current);
-                        if (rankNew < rankCur)
-                        {
-                            // She prefers the new man: dump the current partner.
-                            matchMen[current] = Unmatched;
-                            freeStack[top++] = current;
-                            matchWomen[woman] = man;
-                            matchMen[man] = woman;
-                            break;
-                        }
-                        // She keeps the current partner; this man tries the next woman.
-                    }
+                    if (HandleProposal(woman, man, prefWomen, numPrefWomen, n, matchMen, matchWomen, freeStack, ref top)) break;
                 }
             }
         }

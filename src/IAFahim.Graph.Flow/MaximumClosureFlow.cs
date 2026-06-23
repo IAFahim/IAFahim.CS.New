@@ -5,18 +5,11 @@ namespace IAFahim.Graph.Flow
 
     public static unsafe class MaximumClosureFlow
     {
-        public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow, int* nodeWeight)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int BuildClosureGraph(int n, int s, int t, int* head, int* to, int* next, int* nodeWeight, int* newHead, int* newTo, int* newNext, int* newCap, int nn)
         {
-            // Edge ids must start at 2 so the reverse-edge XOR pairing (e ^ 1) maps
-            // (2,3),(4,5),... and never aliases the head[] sentinel slot 0.
-            int nn = n + 2, edgeId = 2;
-            int maxEdges = n * 4 + 2; // +2 for the two unused slots (0,1) skipped by edgeId starting at 2
-            int* newHead = stackalloc int[nn];
-            int* newTo = stackalloc int[maxEdges];
-            int* newNext = stackalloc int[maxEdges];
-            int* newCap = stackalloc int[maxEdges];
-            int* newFlow = stackalloc int[maxEdges];
             for (int i = 0; i < nn; i++) newHead[i] = 0;
+            int edgeId = 2;
             for (int u = 0; u < n; u++)
             {
                 if (nodeWeight[u] > 0) MinCostFlowAddEdge.Run(newHead, newTo, newNext, null, newCap, &edgeId, s, u, 0, nodeWeight[u]);
@@ -25,7 +18,12 @@ namespace IAFahim.Graph.Flow
             for (int u = 0; u < n; u++)
                 for (int e = head[u]; e != 0; e = next[e])
                     MinCostFlowAddEdge.Run(newHead, newTo, newNext, null, newCap, &edgeId, u, to[e], 0, int.MaxValue);
-            DinicMaxFlow.Run(nn, s, t, newHead, newTo, newNext, newCap, newFlow);
+            return edgeId;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static long BfsReachable(int n, int s, int* newHead, int* newTo, int* newNext, int* newCap, int* newFlow, int* nodeWeight, int nn)
+        {
             long maxWeight = 0;
             byte* visited = stackalloc byte[nn];
             for (int i = 0; i < nn; i++) visited[i] = 0;
@@ -45,6 +43,22 @@ namespace IAFahim.Graph.Flow
                 }
             }
             return maxWeight;
+        }
+
+        public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow, int* nodeWeight)
+        {
+            // Edge ids must start at 2 so the reverse-edge XOR pairing (e ^ 1) maps
+            // (2,3),(4,5),... and never aliases the head[] sentinel slot 0.
+            int nn = n + 2;
+            int maxEdges = n * 4 + 2; // +2 for the two unused slots (0,1) skipped by edgeId starting at 2
+            int* newHead = stackalloc int[nn];
+            int* newTo = stackalloc int[maxEdges];
+            int* newNext = stackalloc int[maxEdges];
+            int* newCap = stackalloc int[maxEdges];
+            int* newFlow = stackalloc int[maxEdges];
+            BuildClosureGraph(n, s, t, head, to, next, nodeWeight, newHead, newTo, newNext, newCap, nn);
+            DinicMaxFlow.Run(nn, s, t, newHead, newTo, newNext, newCap, newFlow);
+            return BfsReachable(n, s, newHead, newTo, newNext, newCap, newFlow, nodeWeight, nn);
         }
     }
 }

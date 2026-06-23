@@ -13,11 +13,9 @@ using System.Runtime.CompilerServices;
             while (_j > 0)
             {
                 int curJ = _j;
-                int nextJ = _n; while (nextJ > 0 && w[nextJ] == _k - 1) nextJ--;
                 bool emit = curJ == _n;
                 if (emit) { resLen = _n; for (int i = 0; i < _n; i++) res[i] = w[i + 1]; }
-                if (nextJ > 0) { w[nextJ]++; for (int m = nextJ + 1; m <= _n; m++) w[m] = w[m - nextJ]; _j = nextJ; }
-                else _j = 0;
+                NecklacesAndBracelets.AdvanceFkmSuccessor(w, _n, _k, ref _j);
                 if (emit) return true;
             }
             return false;
@@ -28,6 +26,14 @@ using System.Runtime.CompilerServices;
     public static unsafe class NecklacesAndBracelets
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void AdvanceFkmSuccessor(int* w, int n, int k, ref int j)
+        {
+            int nextJ = n; while (nextJ > 0 && w[nextJ] == k - 1) nextJ--;
+            if (nextJ > 0) { w[nextJ]++; for (int m = nextJ + 1; m <= n; m++) w[m] = w[m - nextJ]; j = nextJ; }
+            else j = 0;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int DeBruijnFromLyndon(int k, int n, int* outSeq)
         {
             int* w = stackalloc int[n + 1]; for (int i = 0; i <= n; i++) w[i] = 0;
@@ -35,9 +41,7 @@ using System.Runtime.CompilerServices;
             while (j > 0)
             {
                 if (n % j == 0) for (int i = 1; i <= j; i++) outSeq[pos++] = w[i];
-                int nextJ = n; while (nextJ > 0 && w[nextJ] == k - 1) nextJ--;
-                if (nextJ > 0) { w[nextJ]++; for (int m = nextJ + 1; m <= n; m++) w[m] = w[m - nextJ]; j = nextJ; }
-                else j = 0;
+                AdvanceFkmSuccessor(w, n, k, ref j);
             }
             return pos;
         }

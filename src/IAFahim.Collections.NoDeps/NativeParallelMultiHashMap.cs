@@ -83,26 +83,53 @@ namespace Unity.Collections
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void FreeBuffers(HashMapState* st)
+        {
+            if (st->Keys != null) Marshal.FreeHGlobal((IntPtr)st->Keys);
+            if (st->Values != null) Marshal.FreeHGlobal((IntPtr)st->Values);
+            if (st->Next != null) Marshal.FreeHGlobal((IntPtr)st->Next);
+            if (st->Buckets != null) Marshal.FreeHGlobal((IntPtr)st->Buckets);
+            st->Keys = null;
+            st->Values = null;
+            st->Next = null;
+            st->Buckets = null;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void AllocateBuffers(HashMapState* st, int length)
+        {
+            long keysSize = (long)length * sizeof(TKey);
+            long valuesSize = (long)length * sizeof(TValue);
+            long nextSize = (long)length * sizeof(int);
+
+            st->Keys = (void*)Marshal.AllocHGlobal((IntPtr)keysSize);
+            st->Values = (void*)Marshal.AllocHGlobal((IntPtr)valuesSize);
+            st->Next = (int*)Marshal.AllocHGlobal((IntPtr)nextSize);
+
+            byte* keysPtr = (byte*)st->Keys;
+            for (long i = 0; i < keysSize; i++) keysPtr[i] = 0;
+
+            byte* valuesPtr = (byte*)st->Values;
+            for (long i = 0; i < valuesSize; i++) valuesPtr[i] = 0;
+
+            for (int i = 0; i < length; i++) st->Next[i] = EmptyBucket;
+
+            int bucketCount = length * 2;
+            if (bucketCount < MinBucketCount) bucketCount = MinBucketCount;
+            long bucketsSize = (long)bucketCount * sizeof(int);
+            st->Buckets = (int*)Marshal.AllocHGlobal((IntPtr)bucketsSize);
+            for (int i = 0; i < bucketCount; i++) st->Buckets[i] = EmptyBucket;
+
+            st->AllocatedLength = length;
+            st->BucketCount = bucketCount;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()
         {
             if (this.state != null)
             {
-                if (this.state->Keys != null)
-                {
-                    Marshal.FreeHGlobal((IntPtr)this.state->Keys);
-                }
-                if (this.state->Values != null)
-                {
-                    Marshal.FreeHGlobal((IntPtr)this.state->Values);
-                }
-                if (this.state->Next != null)
-                {
-                    Marshal.FreeHGlobal((IntPtr)this.state->Next);
-                }
-                if (this.state->Buckets != null)
-                {
-                    Marshal.FreeHGlobal((IntPtr)this.state->Buckets);
-                }
+                FreeBuffers(this.state);
                 Marshal.FreeHGlobal((IntPtr)this.state);
                 this.state = null;
             }
@@ -135,78 +162,13 @@ namespace Unity.Collections
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly void SetAllocatedIndexLength(int length)
         {
-            if (this.state == null)
-            {
-                return;
-            }
+            if (this.state == null) return;
 
-            if (this.state->Keys != null)
-            {
-                Marshal.FreeHGlobal((IntPtr)this.state->Keys);
-            }
-            if (this.state->Values != null)
-            {
-                Marshal.FreeHGlobal((IntPtr)this.state->Values);
-            }
-            if (this.state->Next != null)
-            {
-                Marshal.FreeHGlobal((IntPtr)this.state->Next);
-            }
-            if (this.state->Buckets != null)
-            {
-                Marshal.FreeHGlobal((IntPtr)this.state->Buckets);
-            }
-
-            this.state->Keys = null;
-            this.state->Values = null;
-            this.state->Next = null;
-            this.state->Buckets = null;
+            FreeBuffers(this.state);
             this.state->AllocatedLength = 0;
             this.state->BucketCount = 0;
 
-            if (length > 0)
-            {
-                long keysSize = (long)length * sizeof(TKey);
-                long valuesSize = (long)length * sizeof(TValue);
-                long nextSize = (long)length * sizeof(int);
-
-                this.state->Keys = (void*)Marshal.AllocHGlobal((IntPtr)keysSize);
-                this.state->Values = (void*)Marshal.AllocHGlobal((IntPtr)valuesSize);
-                this.state->Next = (int*)Marshal.AllocHGlobal((IntPtr)nextSize);
-
-                byte* keysPtr = (byte*)this.state->Keys;
-                for (long i = 0; i < keysSize; i++)
-                {
-                    keysPtr[i] = 0;
-                }
-
-                byte* valuesPtr = (byte*)this.state->Values;
-                for (long i = 0; i < valuesSize; i++)
-                {
-                    valuesPtr[i] = 0;
-                }
-
-                for (int i = 0; i < length; i++)
-                {
-                    this.state->Next[i] = EmptyBucket;
-                }
-
-                int bucketCount = length * 2;
-                if (bucketCount < MinBucketCount)
-                {
-                    bucketCount = MinBucketCount;
-                }
-                long bucketsSize = (long)bucketCount * sizeof(int);
-                this.state->Buckets = (int*)Marshal.AllocHGlobal((IntPtr)bucketsSize);
-
-                for (int i = 0; i < bucketCount; i++)
-                {
-                    this.state->Buckets[i] = EmptyBucket;
-                }
-
-                this.state->AllocatedLength = length;
-                this.state->BucketCount = bucketCount;
-            }
+            if (length > 0) AllocateBuffers(this.state, length);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

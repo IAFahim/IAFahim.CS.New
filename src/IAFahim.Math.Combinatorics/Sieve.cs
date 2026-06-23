@@ -36,15 +36,20 @@ namespace IAFahim.Math.Combinatorics
 
     public static unsafe class SegmentedSieve
     {
-        public static int Run(long low, long high, int* primes, int primeCount, int* result)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool* InitSegmentFlags(long low, long high)
         {
-            int count = 0;
             long size = high - low + 1;
             bool* isPrime = stackalloc bool[(int)size];
             for (long i = 0; i < size; i++) isPrime[i] = true;
             if (low <= 0 && high >= 0) isPrime[0 - low] = false;
             if (low <= 1 && high >= 1) isPrime[1 - low] = false;
-            
+            return isPrime;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void MarkCompositesInSegment(long low, long high, int* primes, int primeCount, bool* isPrime)
+        {
             long limit = (long)Math.Sqrt(high) + 1;
             for (int i = 0; i < primeCount && primes[i] <= limit; i++)
             {
@@ -53,6 +58,13 @@ namespace IAFahim.Math.Combinatorics
                 if (start < p * 2) start = p * 2;
                 for (long j = start; j <= high; j += p) isPrime[j - low] = false;
             }
+        }
+
+        public static int Run(long low, long high, int* primes, int primeCount, int* result)
+        {
+            int count = 0;
+            bool* isPrime = InitSegmentFlags(low, high);
+            MarkCompositesInSegment(low, high, primes, primeCount, isPrime);
             for (long i = low; i <= high; i++) if (isPrime[i - low]) result[count++] = (int)i;
             return count;
         }

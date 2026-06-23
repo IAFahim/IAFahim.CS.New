@@ -32,6 +32,38 @@ namespace IAFahim.Graph
 
     public static unsafe class ZeroOneBfs
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void RelaxOutgoing01(int* dq, byte* inDeque, ref int dh, ref int dt, ref int cnt, int u, int n, int* head, int* to, int* next, int* weight, int* dist)
+        {
+            int du = dist[u];
+            for (int e = head[u]; e != 0; e = next[e])
+            {
+                int v = to[e];
+                int w = weight[e];
+                int nd = du + w;
+                if (dist[v] > nd)
+                {
+                    dist[v] = nd;
+                    if (inDeque[v] == 0)
+                    {
+                        inDeque[v] = 1;
+                        cnt++;
+                        if (w == 0)
+                        {
+                            dh--;
+                            if (dh < 0) dh = n - 1;
+                            dq[dh] = v;
+                        }
+                        else
+                        {
+                            dq[dt++] = v;
+                            if (dt >= n) dt = 0;
+                        }
+                    }
+                }
+            }
+        }
+
         public static void Run(int n, int start, int* head, int* to, int* next, int* weight, int* dist)
         {
             for (int i = 0; i < n; i++) dist[i] = int.MaxValue;
@@ -49,33 +81,7 @@ namespace IAFahim.Graph
                 if (dh >= n) dh = 0;
                 cnt--;
                 inDeque[u] = 0;
-                int du = dist[u];
-                for (int e = head[u]; e != 0; e = next[e])
-                {
-                    int v = to[e];
-                    int w = weight[e];
-                    int nd = du + w;
-                    if (dist[v] > nd)
-                    {
-                        dist[v] = nd;
-                        if (inDeque[v] == 0)
-                        {
-                            inDeque[v] = 1;
-                            cnt++;
-                            if (w == 0)
-                            {
-                                dh--;
-                                if (dh < 0) dh = n - 1;
-                                dq[dh] = v;
-                            }
-                            else
-                            {
-                                dq[dt++] = v;
-                                if (dt >= n) dt = 0;
-                            }
-                        }
-                    }
-                }
+                RelaxOutgoing01(dq, inDeque, ref dh, ref dt, ref cnt, u, n, head, to, next, weight, dist);
             }
         }
     }

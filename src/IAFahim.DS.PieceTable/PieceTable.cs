@@ -23,6 +23,20 @@ namespace IAFahim.DS.PieceTable
         public Piece* Head;
     }
 
+    public static unsafe class PieceTableShared
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Piece* MakeTailPiece(Piece* newPieces, ref int pieceCount, Piece* src, int splitAt)
+        {
+            Piece* tail = newPieces + pieceCount++;
+            tail->BufferIndex = src->BufferIndex;
+            tail->Start = src->Start + splitAt;
+            tail->Length = src->Length - splitAt;
+            tail->Next = src->Next;
+            return tail;
+        }
+    }
+
     public static unsafe class PieceTableInsert
     {
         public static void Run(ref PieceTableState s, int pos, byte* data, int len,
@@ -54,12 +68,7 @@ namespace IAFahim.DS.PieceTable
             if (after != null && offset < pos)
             {
                 int splitAt = pos - offset;
-                Piece* tail = newPieces + pieceCount++;
-                tail->BufferIndex = after->BufferIndex;
-                tail->Start = after->Start + splitAt;
-                tail->Length = after->Length - splitAt;
-                tail->Next = after->Next;
-
+                Piece* tail = PieceTableShared.MakeTailPiece(newPieces, ref pieceCount, after, splitAt);
                 after->Length = splitAt;
                 after->Next = newPiece;
                 newPiece->Next = tail;
@@ -97,11 +106,7 @@ namespace IAFahim.DS.PieceTable
             int startSplit = pos - offset;
             if (startSplit > 0)
             {
-                Piece* tail = newPieces + pieceCount++;
-                tail->BufferIndex = cur->BufferIndex;
-                tail->Start = cur->Start + startSplit;
-                tail->Length = cur->Length - startSplit;
-                tail->Next = cur->Next;
+                Piece* tail = PieceTableShared.MakeTailPiece(newPieces, ref pieceCount, cur, startSplit);
                 cur->Length = startSplit;
                 cur->Next = tail;
                 prev = cur;

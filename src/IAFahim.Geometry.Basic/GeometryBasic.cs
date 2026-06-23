@@ -128,6 +128,12 @@ namespace IAFahim.Geometry.Basic
     public static unsafe class SegmentIntersect
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool CollinearTouch(int o, long sx, long sy, long ax, long ay, long bx, long by)
+        {
+            return o == 0 && OnSegment.Run(sx, sy, ax, ay, bx, by);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool Run(long ax, long ay, long bx, long by, long cx, long cy, long dx, long dy)
         {
             int o1 = Orientation.Run(ax, ay, bx, by, cx, cy);
@@ -135,11 +141,10 @@ namespace IAFahim.Geometry.Basic
             int o3 = Orientation.Run(cx, cy, dx, dy, ax, ay);
             int o4 = Orientation.Run(cx, cy, dx, dy, bx, by);
             if (o1 != o2 && o3 != o4) return true;
-            if (o1 == 0 && OnSegment.Run(cx, cy, ax, ay, bx, by)) return true;
-            if (o2 == 0 && OnSegment.Run(dx, dy, ax, ay, bx, by)) return true;
-            if (o3 == 0 && OnSegment.Run(ax, ay, cx, cy, dx, dy)) return true;
-            if (o4 == 0 && OnSegment.Run(bx, by, cx, cy, dx, dy)) return true;
-            return false;
+            return CollinearTouch(o1, cx, cy, ax, ay, bx, by)
+                || CollinearTouch(o2, dx, dy, ax, ay, bx, by)
+                || CollinearTouch(o3, ax, ay, cx, cy, dx, dy)
+                || CollinearTouch(o4, bx, by, cx, cy, dx, dy);
         }
     }
 

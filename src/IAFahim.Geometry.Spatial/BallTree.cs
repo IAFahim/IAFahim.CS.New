@@ -18,24 +18,22 @@ namespace IAFahim.Geometry.Spatial
             return n;
         }
 
-        private static int BuildRec(double* xs, double* ys, int* idx, int lo, int hi, Node* nodes, ref int nextSlot)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ComputeBounds(double* xs, double* ys, int* idx, int lo, int hi, out double minX, out double maxX, out double minY, out double maxY)
         {
-            int slot = nextSlot++;
-            double minX = double.MaxValue, maxX = double.MinValue;
-            double minY = double.MaxValue, maxY = double.MinValue;
+            minX = double.MaxValue; maxX = double.MinValue;
+            minY = double.MaxValue; maxY = double.MinValue;
             for (int i = lo; i <= hi; i++)
             {
                 double px = xs[idx[i]], py = ys[idx[i]];
                 if (px < minX) minX = px; if (px > maxX) maxX = px;
                 if (py < minY) minY = py; if (py > maxY) maxY = py;
             }
-            bool splitX = (maxX - minX) >= (maxY - minY);
-            int mid = (lo + hi) >> 1;
-            SortRangeByAxis(xs, ys, idx, lo, hi, splitX);
+        }
 
-            int p = idx[mid];
-            nodes[slot].X = xs[p];
-            nodes[slot].Y = ys[p];
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static double ComputeRadius(double* xs, double* ys, int* idx, int lo, int hi, int p)
+        {
             double r2 = 0;
             for (int i = lo; i <= hi; i++)
             {
@@ -43,7 +41,21 @@ namespace IAFahim.Geometry.Spatial
                 double dd = ddx * ddx + ddy * ddy;
                 if (dd > r2) r2 = dd;
             }
-            nodes[slot].R = Math.Sqrt(r2);
+            return Math.Sqrt(r2);
+        }
+
+        private static int BuildRec(double* xs, double* ys, int* idx, int lo, int hi, Node* nodes, ref int nextSlot)
+        {
+            int slot = nextSlot++;
+            ComputeBounds(xs, ys, idx, lo, hi, out double minX, out double maxX, out double minY, out double maxY);
+            bool splitX = (maxX - minX) >= (maxY - minY);
+            int mid = (lo + hi) >> 1;
+            SortRangeByAxis(xs, ys, idx, lo, hi, splitX);
+
+            int p = idx[mid];
+            nodes[slot].X = xs[p];
+            nodes[slot].Y = ys[p];
+            nodes[slot].R = ComputeRadius(xs, ys, idx, lo, hi, p);
             nodes[slot].Left = lo <= mid - 1 ? BuildRec(xs, ys, idx, lo, mid - 1, nodes, ref nextSlot) : -1;
             nodes[slot].Right = mid + 1 <= hi ? BuildRec(xs, ys, idx, mid + 1, hi, nodes, ref nextSlot) : -1;
             return slot;
