@@ -363,17 +363,23 @@ namespace IAFahim.Graph.Flow
             return (flow, minCost);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void InitSpfa(int n, int s, long* dist, int* parent, byte* inq, int* q, out int qt)
+        {
+            for (int i = 0; i < n; i++) { dist[i] = long.MaxValue; parent[i] = -1; inq[i] = 0; }
+            dist[s] = 0;
+            q[0] = s; inq[s] = 1;
+            qt = 1;
+        }
+
         // SPFA (Bellman-Ford queue): correct under negative-cost residual edges.
         // Min-cost-flow residual graphs contain no negative cycles, so this terminates.
         private static bool TryFindMinCostPath(int n, int s, int t, int* head, int* to, int* next, int* cost, int* cap, long* dist, int* parent, int* parentEdge)
         {
-            for (int i = 0; i < n; i++) { dist[i] = long.MaxValue; parent[i] = -1; }
-            dist[s] = 0;
             int* q = stackalloc int[n];
             byte* inq = stackalloc byte[n];
-            for (int i = 0; i < n; i++) inq[i] = 0;
-            int qh = 0, qt = 0;
-            q[qt++] = s; inq[s] = 1;
+            InitSpfa(n, s, dist, parent, inq, q, out int qt);
+            int qh = 0;
             while (qh != qt)
             {
                 int u = q[qh++]; if (qh == n) qh = 0; inq[u] = 0;

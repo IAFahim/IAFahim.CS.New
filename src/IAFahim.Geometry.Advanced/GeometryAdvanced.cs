@@ -91,16 +91,9 @@ namespace IAFahim.Geometry.Advanced
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)] private static void Swap(long* a, long* b, int i, int j) { long ta = a[i]; a[i] = a[j]; a[j] = ta; long tb = b[i]; b[i] = b[j]; b[j] = tb; }
 
-        // x[] ascending by x over [l,r). stx/sty are scratch buffers of capacity >= n for the strip.
-        private static long Solve(long* x, long* y, long* stx, long* sty, int l, int r)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static long CombineStrip(long* stx, long* sty, int k, long d)
         {
-            int count = r - l;
-            if (count <= 3) return Brute(x, y, l, r);
-            int m = (l + r) >> 1; long mx = x[m];
-            long d = Math.Min(Solve(x, y, stx, sty, l, m), Solve(x, y, stx, sty, m, r));
-            int k = 0;
-            for (int i = l; i < r; i++) { long dxm = x[i] - mx; if (dxm * dxm < d) { stx[k] = x[i]; sty[k] = y[i]; k++; } }
-            HeapSort(sty, stx, k);
             for (int i = 0; i < k; i++)
             {
                 int last = i + StripNeighbors; if (last > k) last = k;
@@ -114,6 +107,19 @@ namespace IAFahim.Geometry.Advanced
                 }
             }
             return d;
+        }
+
+        // x[] ascending by x over [l,r). stx/sty are scratch buffers of capacity >= n for the strip.
+        private static long Solve(long* x, long* y, long* stx, long* sty, int l, int r)
+        {
+            int count = r - l;
+            if (count <= 3) return Brute(x, y, l, r);
+            int m = (l + r) >> 1; long mx = x[m];
+            long d = Math.Min(Solve(x, y, stx, sty, l, m), Solve(x, y, stx, sty, m, r));
+            int k = 0;
+            for (int i = l; i < r; i++) { long dxm = x[i] - mx; if (dxm * dxm < d) { stx[k] = x[i]; sty[k] = y[i]; k++; } }
+            HeapSort(sty, stx, k);
+            return CombineStrip(stx, sty, k, d);
         }
         private static long Brute(long* x, long* y, int l, int r)
         {

@@ -6,6 +6,23 @@ namespace IAFahim.Optimization.Knapsack
     public static unsafe class KSum
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool ProcessMatch(int* a, int n, ref int li, ref int ri, ref long count)
+        {
+            if (a[li] == a[ri])
+            {
+                long pairCount = (long)(ri - li + 1) * (ri - li) / 2;
+                count += pairCount;
+                return true;
+            }
+            int lv = a[li], rv = a[ri];
+            long lc = 0, rc = 0;
+            while (li < n && a[li] == lv) { li++; lc++; }
+            while (ri >= 0 && a[ri] == rv) { ri--; rc++; }
+            count += lc * rc;
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Count(int* a, int n, int k, int target)
         {
             if (k == 2)
@@ -17,17 +34,7 @@ namespace IAFahim.Optimization.Knapsack
                     long s = (long)a[l] + a[r];
                     if (s == target)
                     {
-                        if (a[l] == a[r])
-                        {
-                            long pairCount = (long)(r - l + 1) * (r - l) / 2;
-                            count += pairCount;
-                            break;
-                        }
-                        int lv = a[l], rv = a[r];
-                        long lc = 0, rc = 0;
-                        while (l < n && a[l] == lv) { l++; lc++; }
-                        while (r >= 0 && a[r] == rv) { r--; rc++; }
-                        count += lc * rc;
+                        if (ProcessMatch(a, n, ref l, ref r, ref count)) break;
                     }
                     else if (s < target) l++;
                     else r--;

@@ -5,6 +5,23 @@ namespace IAFahim.Graph.Flow
 
     public static unsafe class PicardQueyranneClosure
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int BuildClosureNetworkForSink(int i, int n, int s, int t, int* head, int* to, int* next, int* nodeWeight, int* newHead, int* newTo, int* newNext, int* newCap, int nn)
+        {
+            int edgeId = 2;
+            for (int j = 0; j < nn; j++) newHead[j] = 0;
+            MinCostFlowAddEdge.Run(newHead, newTo, newNext, null, newCap, &edgeId, i, t, 0, int.MaxValue);
+            for (int j = 0; j < n; j++)
+            {
+                if (nodeWeight[j] > 0) MinCostFlowAddEdge.Run(newHead, newTo, newNext, null, newCap, &edgeId, s, j, 0, nodeWeight[j]);
+                else if (nodeWeight[j] < 0) MinCostFlowAddEdge.Run(newHead, newTo, newNext, null, newCap, &edgeId, j, t, 0, -nodeWeight[j]);
+            }
+            for (int u = 0; u < n; u++)
+                for (int e = head[u]; e != 0; e = next[e])
+                    MinCostFlowAddEdge.Run(newHead, newTo, newNext, null, newCap, &edgeId, u, to[e], 0, int.MaxValue);
+            return edgeId;
+        }
+
         public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, int* flow, int* nodeWeight)
         {
             int nn = n + 2;
@@ -19,20 +36,7 @@ namespace IAFahim.Graph.Flow
             long minCut = long.MaxValue;
             for (int i = 0; i < n; i++)
             {
-                // Edge ids must start at 2 so the reverse-edge XOR pairing (e ^ 1) in
-                // DinicDfs maps (2,3),(4,5),... and never aliases the head[] sentinel
-                // slot 0. Reset per iteration since the network is rebuilt each pass.
-                int edgeId = 2;
-                for (int j = 0; j < nn; j++) newHead[j] = 0;
-                MinCostFlowAddEdge.Run(newHead, newTo, newNext, null, newCap, &edgeId, i, t, 0, int.MaxValue);
-                for (int j = 0; j < n; j++)
-                {
-                    if (nodeWeight[j] > 0) MinCostFlowAddEdge.Run(newHead, newTo, newNext, null, newCap, &edgeId, s, j, 0, nodeWeight[j]);
-                    else if (nodeWeight[j] < 0) MinCostFlowAddEdge.Run(newHead, newTo, newNext, null, newCap, &edgeId, j, t, 0, -nodeWeight[j]);
-                }
-                for (int u = 0; u < n; u++)
-                    for (int e = head[u]; e != 0; e = next[e])
-                        MinCostFlowAddEdge.Run(newHead, newTo, newNext, null, newCap, &edgeId, u, to[e], 0, int.MaxValue);
+                int edgeId = BuildClosureNetworkForSink(i, n, s, t, head, to, next, nodeWeight, newHead, newTo, newNext, newCap, nn);
                 // DinicMaxFlow does not zero flow on entry; clear the slots this iteration
                 // uses so stale residual flow from a previous (differently-built) network
                 // cannot leak in and corrupt the max-flow / cut value.

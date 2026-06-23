@@ -6,6 +6,26 @@ namespace IAFahim.Math.NT
 
     public static unsafe class LinearSieveMultiplicative
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void SieveMultiples(int i, int* primes, int primeCount, int n, long* f, int* e, long* pk, bool* isPrime, delegate* managed<int, int, long> fPower)
+        {
+            for (int j = 0; j < primeCount; j++)
+            {
+                long prod = (long)i * primes[j];
+                if (prod > n) break;
+                int ip = (int)prod; int p = primes[j];
+                isPrime[ip] = false;
+                if (i % p == 0)
+                {
+                    e[ip] = e[i] + 1; pk[ip] = pk[i] * (long)p;
+                    long rem = (long)ip / pk[ip];
+                    f[ip] = fPower(p, e[ip]) * (rem == 1 ? 1L : f[rem]);
+                    break;
+                }
+                else { e[ip] = 1; pk[ip] = (long)p; f[ip] = f[i] * f[p]; }
+            }
+        }
+
         public static int Run(
             long* f,
             int* primes,
@@ -32,21 +52,7 @@ namespace IAFahim.Math.NT
                     e[i] = 1;
                     pk[i] = (long)i;
                 }
-                for (int j = 0; j < primeCount; j++)
-                {
-                    long prod = (long)i * primes[j];
-                    if (prod > n) break;
-                    int ip = (int)prod; int p = primes[j];
-                    isPrime[ip] = false;
-                    if (i % p == 0)
-                    {
-                        e[ip] = e[i] + 1; pk[ip] = pk[i] * (long)p;
-                        long rem = (long)ip / pk[ip];
-                        f[ip] = fPower(p, e[ip]) * (rem == 1 ? 1L : f[rem]);
-                        break;
-                    }
-                    else { e[ip] = 1; pk[ip] = (long)p; f[ip] = f[i] * f[p]; }
-                }
+                SieveMultiples(i, primes, primeCount, n, f, e, pk, isPrime, fPower);
             }
             return primeCount;
         }

@@ -5,6 +5,24 @@ namespace IAFahim.Graph.Flow
 
     public static unsafe class MinCostFlowCancelCycle
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void AugmentPath(int s, int t, int* parent, int* parentEdge, int* cap, int* cost, int* flow, ref long totalCost)
+        {
+            int minCap = int.MaxValue;
+            for (int v = t; v != s; v = parent[v])
+            {
+                int e = parentEdge[v];
+                minCap = Math.Min(minCap, cap[e] - flow[e]);
+            }
+            for (int v = t; v != s; v = parent[v])
+            {
+                int e = parentEdge[v];
+                flow[e] += minCap;
+                flow[e ^ 1] -= minCap;
+                totalCost += (long)cost[e] * minCap;
+            }
+        }
+
         public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, int* flow)
         {
             long totalCost = 0;
@@ -18,10 +36,7 @@ namespace IAFahim.Graph.Flow
                 for (int i = 0; i < n; i++) { dist[i] = long.MaxValue; parent[i] = -1; inqueue[i] = 0; }
                 if (!Spfa(n, s, head, to, next, cap, cost, flow, dist, parent, parentEdge, inqueue))
                     break;
-                int v = t, minCap = int.MaxValue;
-                while (v != s) { int e = parentEdge[v]; minCap = Math.Min(minCap, cap[e] - flow[e]); v = parent[v]; }
-                v = t;
-                while (v != s) { int e = parentEdge[v]; flow[e] += minCap; flow[e ^ 1] -= minCap; totalCost += (long)cost[e] * minCap; v = parent[v]; }
+                AugmentPath(s, t, parent, parentEdge, cap, cost, flow, ref totalCost);
             }
             return totalCost;
         }

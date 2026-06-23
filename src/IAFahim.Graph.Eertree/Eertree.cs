@@ -8,6 +8,18 @@ namespace IAFahim.Graph.Eertree
         public struct Node { public int Len; public int Link; public int FirstNext; }
         public struct Next { public int Char; public int To; public int NextIdx; }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void WalkToMatchingSuffix(int* s, int i, int c, Node* nodes, ref int state)
+        {
+            while (true)
+            {
+                Node* p = &nodes[state];
+                int stateLen = p->Len;
+                if (i - stateLen - 1 >= 0 && s[i - stateLen - 1] == c) break;
+                state = p->Link;
+            }
+        }
+
         public static void Build(int* s, int len, Node* nodes, Next* next, ref int nodeCount, ref int nextCount, ref int last, ref int cur)
         {
             nodeCount = 2; nextCount = 0; last = 1;
@@ -17,13 +29,7 @@ namespace IAFahim.Graph.Eertree
             for (int i = 0; i < len; i++)
             {
                 int c = s[i];
-                while (true)
-                {
-                    Node* p = &nodes[cur];
-                    int curLen = p->Len;
-                    if (i - curLen - 1 >= 0 && s[i - curLen - 1] == c) break;
-                    cur = p->Link;
-                }
+                WalkToMatchingSuffix(s, i, c, nodes, ref cur);
                 int exist = FindTransition(cur, c, nodes, next);
                 if (exist != -1) { cur = exist; continue; }
 
@@ -37,13 +43,7 @@ namespace IAFahim.Graph.Eertree
                 else
                 {
                     int temp = nodes[cur].Link;
-                    while (true)
-                    {
-                        Node* p = &nodes[temp];
-                        int tempLen = p->Len;
-                        if (i - tempLen - 1 >= 0 && s[i - tempLen - 1] == c) break;
-                        temp = p->Link;
-                    }
+                    WalkToMatchingSuffix(s, i, c, nodes, ref temp);
                     nodes[newNode].Link = FindTransition(temp, c, nodes, next);
                 }
                 cur = newNode;

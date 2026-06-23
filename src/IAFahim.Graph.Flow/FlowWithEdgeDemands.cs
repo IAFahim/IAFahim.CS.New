@@ -5,19 +5,11 @@ namespace IAFahim.Graph.Flow
 
     public static unsafe class FlowWithEdgeDemands
     {
-        public static bool Run(int n, int s, int t, int* head, int* to, int* next, int* lower, int* upper, int* flow, int* result)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int BuildDemandNetwork(int n, int s, int t, int ss, int tt, int* head, int* to, int* next, int* lower, int* upper, long* b, int* newHead, int* newTo, int* newNext, int* newCap, int nn)
         {
-            int nn = n + 2, ss = n, tt = n + 1, edgeId = 2;
-            int* newHead = stackalloc int[nn];
-            int* newTo = stackalloc int[n * 4 + 10];
-            int* newNext = stackalloc int[n * 4 + 10];
-            int* newCap = stackalloc int[n * 4 + 10];
-            int* newFlow = stackalloc int[n * 4 + 10];
             for (int i = 0; i < nn; i++) newHead[i] = 0;
-
-            long* b = stackalloc long[n];
-            for (int i = 0; i < n; i++) b[i] = 0;
-
+            int edgeId = 2;
             for (int u = 0; u < n; u++)
                 for (int e = head[u]; e != 0; e = next[e])
                 {
@@ -32,6 +24,21 @@ namespace IAFahim.Graph.Flow
                 else if (b[i] < 0) MinCostFlowAddEdge.Run(newHead, newTo, newNext, null, newCap, &edgeId, i, tt, 0, (int)-b[i]);
             }
             MinCostFlowAddEdge.Run(newHead, newTo, newNext, null, newCap, &edgeId, t, s, 0, int.MaxValue);
+            return edgeId;
+        }
+
+        public static bool Run(int n, int s, int t, int* head, int* to, int* next, int* lower, int* upper, int* flow, int* result)
+        {
+            int nn = n + 2, ss = n, tt = n + 1;
+            int* newHead = stackalloc int[nn];
+            int* newTo = stackalloc int[n * 4 + 10];
+            int* newNext = stackalloc int[n * 4 + 10];
+            int* newCap = stackalloc int[n * 4 + 10];
+            int* newFlow = stackalloc int[n * 4 + 10];
+            long* b = stackalloc long[n];
+            for (int i = 0; i < n; i++) b[i] = 0;
+
+            BuildDemandNetwork(n, s, t, ss, tt, head, to, next, lower, upper, b, newHead, newTo, newNext, newCap, nn);
             DinicMaxFlow.Run(nn, ss, tt, newHead, newTo, newNext, newCap, newFlow);
             for (int u = 0; u < n; u++)
                 for (int e = head[u]; e != 0; e = next[e]) flow[e] = newFlow[e] + lower[e];

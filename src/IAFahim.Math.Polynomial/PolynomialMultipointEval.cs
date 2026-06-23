@@ -16,6 +16,27 @@ namespace IAFahim.Math.Polynomial
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static long ComputeDenominator(long* xs, int n, int i, long mod)
+        {
+            long den = 1;
+            for (int j = 0; j < n; j++)
+            {
+                if (j == i) continue;
+                den = den * ((xs[i] - xs[j] + mod) % mod) % mod;
+            }
+            return den;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void MultiplyBasisTerm(long* tmp, int n, long xj, long mod)
+        {
+            long negXj = (mod - xj) % mod;
+            for (int k = n - 1; k >= 1; k--)
+                tmp[k] = (tmp[k] * negXj + tmp[k - 1]) % mod;
+            tmp[0] = tmp[0] * negXj % mod;
+        }
+
         public static void RunInterpolate(long* xs, long* ys, int n, long* poly, long mod)
         {
             for (int i = 0; i < n; i++) poly[i] = 0;
@@ -25,12 +46,7 @@ namespace IAFahim.Math.Polynomial
             for (int i = 0; i < n; i++)
             {
                 long num = ys[i] % mod;
-                long den = 1;
-                for (int j = 0; j < n; j++)
-                {
-                    if (j == i) continue;
-                    den = den * ((xs[i] - xs[j] + mod) % mod) % mod;
-                }
+                long den = ComputeDenominator(xs, n, i, mod);
                 long coef = num * FastPow(den, mod - 2, mod) % mod;
 
                 tmp[0] = coef;
@@ -38,9 +54,7 @@ namespace IAFahim.Math.Polynomial
                 for (int j = 0; j < n; j++)
                 {
                     if (j == i) continue;
-                    for (int k = n - 1; k >= 1; k--)
-                        tmp[k] = (tmp[k] * ((mod - xs[j]) % mod) + tmp[k - 1]) % mod;
-                    tmp[0] = tmp[0] * ((mod - xs[j]) % mod) % mod;
+                    MultiplyBasisTerm(tmp, n, xs[j], mod);
                 }
 
                 for (int k = 0; k < n; k++)
