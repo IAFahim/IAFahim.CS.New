@@ -4,6 +4,7 @@
 
 namespace IAFahim.Pathfinding.Recast
 {
+    using System.Runtime.CompilerServices;
     using Unity.Mathematics;
 
     /// <summary>
@@ -113,58 +114,9 @@ namespace IAFahim.Pathfinding.Recast
                         // Check 4 cardinal directions
                         for (var direction = 0; direction < 4; direction++)
                         {
-                            var neighborX = x + GetDirOffsetX(direction);
-                            var neighborZ = z + GetDirOffsetY(direction);
-
-                            // Skip neighbors which are out of bounds
-                            if (neighborX < 0 || neighborZ < 0 || neighborX >= w || neighborZ >= h)
+                            if (AnalyzeNeighbor(heightfield, x, z, direction, w, h, floor, ceiling, walkableHeight, walkableClimb, ref lowestNeighborFloorDifference, ref lowestTraversableNeighborFloor, ref highestTraversableNeighborFloor))
                             {
-                                lowestNeighborFloorDifference = -walkableClimb - 1;
                                 break;
-                            }
-
-                            var neighborSpan = heightfield->Spans[neighborX + (neighborZ * w)];
-
-                            // The most we can step down to the neighbor is the walkableClimb distance.
-                            // Start with the area under the neighbor span
-                            var neighborCeiling = neighborSpan != null ? (int)neighborSpan->SMin : MaxHeightfieldHeight;
-
-                            // Skip neighbor if the gap between the spans is too small
-                            if (math.min(ceiling, neighborCeiling) - floor >= walkableHeight)
-                            {
-                                lowestNeighborFloorDifference = -walkableClimb - 1;
-                                break;
-                            }
-
-                            // For each span in the neighboring column...
-                            for (; neighborSpan != null; neighborSpan = neighborSpan->Next)
-                            {
-                                var neighborFloor = (int)neighborSpan->SMax;
-                                neighborCeiling = neighborSpan->Next != null ? (int)neighborSpan->Next->SMin : MaxHeightfieldHeight;
-
-                                // Only consider neighboring areas that have enough overlap to be potentially traversable
-                                if (math.min(ceiling, neighborCeiling) - math.max(floor, neighborFloor) < walkableHeight)
-                                {
-                                    // No space to traverse between them
-                                    continue;
-                                }
-
-                                var neighborFloorDifference = neighborFloor - floor;
-                                lowestNeighborFloorDifference = math.min(lowestNeighborFloorDifference, neighborFloorDifference);
-
-                                // Find min/max accessible neighbor height.
-                                // Only consider neighbors that are at most walkableClimb away.
-                                if (math.abs(neighborFloorDifference) <= walkableClimb)
-                                {
-                                    // There is space to move to the neighbor cell and the slope isn't too much
-                                    lowestTraversableNeighborFloor = math.min(lowestTraversableNeighborFloor, neighborFloor);
-                                    highestTraversableNeighborFloor = math.max(highestTraversableNeighborFloor, neighborFloor);
-                                }
-                                else if (neighborFloorDifference < -walkableClimb)
-                                {
-                                    // We already know this will be considered a ledge span so we can early-out
-                                    break;
-                                }
                             }
                         }
 
@@ -185,6 +137,54 @@ namespace IAFahim.Pathfinding.Recast
                     }
                 }
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool AnalyzeNeighbor(RcHeightfield* heightfield, int x, int z, int direction, int w, int h, int floor, int ceiling, int walkableHeight, int walkableClimb, ref int lowestNeighborFloorDifference, ref int lowestTraversableNeighborFloor, ref int highestTraversableNeighborFloor)
+        {
+            int neighborX = x + GetDirOffsetX(direction);
+            int neighborZ = z + GetDirOffsetY(direction);
+
+            if (neighborX < 0 || neighborZ < 0 || neighborX >= w || neighborZ >= h)
+            {
+                lowestNeighborFloorDifference = -walkableClimb - 1;
+                return true;
+            }
+
+            RcSpan* neighborSpan = heightfield->Spans[neighborX + (neighborZ * w)];
+            int neighborCeiling = neighborSpan != null ? (int)neighborSpan->SMin : MaxHeightfieldHeight;
+
+            if (math.min(ceiling, neighborCeiling) - floor >= walkableHeight)
+            {
+                lowestNeighborFloorDifference = -walkableClimb - 1;
+                return true;
+            }
+
+            for (; neighborSpan != null; neighborSpan = neighborSpan->Next)
+            {
+                int neighborFloor = (int)neighborSpan->SMax;
+                neighborCeiling = neighborSpan->Next != null ? (int)neighborSpan->Next->SMin : MaxHeightfieldHeight;
+
+                if (math.min(ceiling, neighborCeiling) - math.max(floor, neighborFloor) < walkableHeight)
+                {
+                    continue;
+                }
+
+                int neighborFloorDifference = neighborFloor - floor;
+                lowestNeighborFloorDifference = math.min(lowestNeighborFloorDifference, neighborFloorDifference);
+
+                if (math.abs(neighborFloorDifference) <= walkableClimb)
+                {
+                    lowestTraversableNeighborFloor = math.min(lowestTraversableNeighborFloor, neighborFloor);
+                    highestTraversableNeighborFloor = math.max(highestTraversableNeighborFloor, neighborFloor);
+                }
+                else if (neighborFloorDifference < -walkableClimb)
+                {
+                    break;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>

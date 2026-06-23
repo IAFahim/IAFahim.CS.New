@@ -190,14 +190,7 @@ namespace IAFahim.Pathfinding.Recast
                     continue;
                 }
 
-                // Find X-axis bounds of the row
-                var minX = inRow[0].x;
-                var maxX = inRow[0].x;
-                for (var vert = 1; vert < nvRow; vert++)
-                {
-                    minX = math.min(minX, inRow[vert].x);
-                    maxX = math.max(maxX, inRow[vert].x);
-                }
+                ComputeRowXBounds(inRow, nvRow, out float minX, out float maxX);
 
                 var x0 = (int)((minX - heightfield->Bmin.x) * inverseCellSize);
                 var x1 = (int)((maxX - heightfield->Bmin.x) * inverseCellSize);
@@ -233,40 +226,47 @@ namespace IAFahim.Pathfinding.Recast
                         continue;
                     }
 
-                    // Calculate min and max of the span
-                    var spanMin = p1[0].y;
-                    var spanMax = p1[0].y;
-                    for (var vert = 1; vert < nv; vert++)
-                    {
-                        spanMin = math.min(spanMin, p1[vert].y);
-                        spanMax = math.max(spanMax, p1[vert].y);
-                    }
-
-                    spanMin -= heightfield->Bmin.y;
-                    spanMax -= heightfield->Bmin.y;
-
-                    // Skip the span if it's completely outside the heightfield bounding box
-                    if (spanMax < 0.0f)
-                    {
-                        continue;
-                    }
-
-                    if (spanMin > heightfieldRange)
-                    {
-                        continue;
-                    }
-
-                    // Clamp the span to the heightfield bounding box
-                    spanMin = math.max(spanMin, 0);
-                    spanMax = math.min(spanMax, heightfieldRange);
-
-                    // Snap the span to the heightfield height grid
-                    var spanMinCellIndex = (uint)math.clamp((int)math.floor(spanMin * inverseCellHeight), 0, RCSpanMaxHeight);
-                    var spanMaxCellIndex = (uint)math.clamp((int)math.ceil(spanMax * inverseCellHeight), (int)spanMinCellIndex + 1, RCSpanMaxHeight);
-
-                    AddSpan(heightfield, x, z, spanMinCellIndex, spanMaxCellIndex, areaID, flagMergeThreshold);
+                    EmitSpan(p1, nv, heightfield, heightfieldRange, x, z, areaID, inverseCellHeight, flagMergeThreshold);
                 }
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ComputeRowXBounds(float3* inRow, int nvRow, out float minX, out float maxX)
+        {
+            minX = inRow[0].x;
+            maxX = inRow[0].x;
+            for (int vert = 1; vert < nvRow; vert++)
+            {
+                minX = math.min(minX, inRow[vert].x);
+                maxX = math.max(maxX, inRow[vert].x);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void EmitSpan(float3* p1, int nv, RcHeightfield* heightfield, float heightfieldRange, int x, int z, uint areaID, float inverseCellHeight, int flagMergeThreshold)
+        {
+            float spanMin = p1[0].y;
+            float spanMax = p1[0].y;
+            for (int vert = 1; vert < nv; vert++)
+            {
+                spanMin = math.min(spanMin, p1[vert].y);
+                spanMax = math.max(spanMax, p1[vert].y);
+            }
+
+            spanMin -= heightfield->Bmin.y;
+            spanMax -= heightfield->Bmin.y;
+
+            if (spanMax < 0.0f) return;
+            if (spanMin > heightfieldRange) return;
+
+            spanMin = math.max(spanMin, 0);
+            spanMax = math.min(spanMax, heightfieldRange);
+
+            uint spanMinCellIndex = (uint)math.clamp((int)math.floor(spanMin * inverseCellHeight), 0, RCSpanMaxHeight);
+            uint spanMaxCellIndex = (uint)math.clamp((int)math.ceil(spanMax * inverseCellHeight), (int)spanMinCellIndex + 1, RCSpanMaxHeight);
+
+            AddSpan(heightfield, x, z, spanMinCellIndex, spanMaxCellIndex, areaID, flagMergeThreshold);
         }
 
         /// <summary>
