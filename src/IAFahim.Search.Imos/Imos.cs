@@ -41,9 +41,10 @@ namespace IAFahim.Search.Imos
         }
     }
 
-    public static unsafe class LargestRectangleHistogram
+    public static unsafe class ImosShared
     {
-        public static long Run(int n, long* h, long* res)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static long MaxRectFromHeights(long* h, int n)
         {
             long maxArea = 0;
             int* stack = stackalloc int[n];
@@ -60,6 +61,15 @@ namespace IAFahim.Search.Imos
                 }
                 stack[top++] = i;
             }
+            return maxArea;
+        }
+    }
+
+    public static unsafe class LargestRectangleHistogram
+    {
+        public static long Run(int n, long* h, long* res)
+        {
+            long maxArea = ImosShared.MaxRectFromHeights(h, n);
             *res = maxArea;
             return maxArea;
         }
@@ -72,7 +82,6 @@ namespace IAFahim.Search.Imos
             long maxArea = 0;
             long* heights = stackalloc long[width];
             for (int i = 0; i < width; i++) heights[i] = 0;
-            int* stack = stackalloc int[width];
             for (int i = 0; i < height; i++)
             {
                 for (int j = 0; j < width; j++)
@@ -82,19 +91,8 @@ namespace IAFahim.Search.Imos
                     else
                         heights[j]++;
                 }
-                int top = 0;
-                for (int j = 0; j <= width; j++)
-                {
-                    long curHeight = (j < width) ? heights[j] : 0;
-                    while (top > 0 && heights[stack[top - 1]] >= curHeight)
-                    {
-                        int h = (int)heights[stack[--top]];
-                        int w = (top == 0) ? j : j - stack[top - 1] - 1;
-                        long area = (long)h * w;
-                        if (area > maxArea) maxArea = area;
-                    }
-                    stack[top++] = j;
-                }
+                long area = ImosShared.MaxRectFromHeights(heights, width);
+                if (area > maxArea) maxArea = area;
             }
             *res = maxArea;
             return maxArea;

@@ -1,6 +1,7 @@
 namespace IAFahim.Optimization.Exact
 {
     using System;
+    using System.Runtime.CompilerServices;
 
     public static unsafe class MinDominatingSet
     {
@@ -11,6 +12,14 @@ namespace IAFahim.Optimization.Exact
             *best = n + 1;
             Search(n, adj, dom, 0, 0, best, tmp);
             return *best;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ApplyDomination(int n, bool* adj, int* dom, int vi, int delta)
+        {
+            dom[vi] += delta;
+            for (int u = 0; u < n; u++)
+                if (adj[vi * n + u]) dom[u] += delta;
         }
 
         private static void Search(int n, bool* adj, int* dom, int idx, int used, int* best, int* order)
@@ -28,13 +37,9 @@ namespace IAFahim.Optimization.Exact
                 Search(n, adj, dom, idx + 1, used, best, order);
                 return;
             }
-            dom[vi2]++;
-            for (int u = 0; u < n; u++)
-                if (adj[vi2 * n + u]) dom[u]++;
+            ApplyDomination(n, adj, dom, vi2, 1);
             Search(n, adj, dom, idx + 1, used + 1, best, order);
-            dom[vi2]--;
-            for (int u = 0; u < n; u++)
-                if (adj[vi2 * n + u]) dom[u]--;
+            ApplyDomination(n, adj, dom, vi2, -1);
         }
     }
 }

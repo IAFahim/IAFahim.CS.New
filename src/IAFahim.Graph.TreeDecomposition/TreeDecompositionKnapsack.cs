@@ -78,6 +78,23 @@ namespace IAFahim.Graph.TreeDecomposition
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void SumMaskSubset(int u, int m, int sz, int* bEl, int mBS, long* weights, long* values, out long w, out long val)
+        {
+            long lw = 0, lval = 0;
+            for (int i = 0; i < sz; i++)
+            {
+                if (((m >> i) & 1) != 0)
+                {
+                    int vtx = bEl[u * mBS + i];
+                    lw += weights[vtx];
+                    lval += values[vtx];
+                }
+            }
+            w = lw;
+            val = lval;
+        }
+
         private static void ProcessLeaf(
             int u, int* bSz, int* bEl, int mBS, int capacity, long capStride, long nodeStride,
             long* weights, long* values, long* dp)
@@ -87,17 +104,8 @@ namespace IAFahim.Graph.TreeDecomposition
             int subsetCount = 1 << sz;
             for (int m = 0; m < subsetCount; m++)
             {
-                long w = 0;
-                long val = 0;
-                for (int i = 0; i < sz; i++)
-                {
-                    if (((m >> i) & 1) != 0)
-                    {
-                        int vtx = bEl[u * mBS + i];
-                        w += weights[vtx];
-                        val += values[vtx];
-                    }
-                }
+                long w, val;
+                SumMaskSubset(u, m, sz, bEl, mBS, weights, values, out w, out val);
                 if (w <= capacity)
                 {
                     long* slot = cur + (long)m * capStride + w;
@@ -184,17 +192,8 @@ namespace IAFahim.Graph.TreeDecomposition
             int maskCount = 1 << sz;
             for (int m = 0; m < maskCount; m++)
             {
-                long sharedW = 0;
-                long sharedVal = 0;
-                for (int i = 0; i < sz; i++)
-                {
-                    if (((m >> i) & 1) != 0)
-                    {
-                        int vtx = bEl[u * mBS + i];
-                        sharedW += weights[vtx];
-                        sharedVal += values[vtx];
-                    }
-                }
+                long sharedW, sharedVal;
+                SumMaskSubset(u, m, sz, bEl, mBS, weights, values, out sharedW, out sharedVal);
                 if (sharedW > capacity) continue;
                 int sharedWi = (int)sharedW;
                 long* leftRow = left + (long)m * capStride;

@@ -62,42 +62,44 @@ namespace IAFahim.DS.Sparse
 
     public static unsafe class DisjointSparseBuild
     {
-        public static void RunInt64(long* arr, long* table, int* blockSize, int n)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void FillLevel(long* arr, long* table, int n, int j)
         {
-            int levels = CalculateLevels(n);
-            *blockSize = n;
-
-            for (int j = 0; j < levels; j++)
+            int half = 1 << j;
+            int blockLen = 1 << (j + 1);
+            for (int start = 0; start < n; start += blockLen)
             {
-                int half = 1 << j;
-                int blockLen = 1 << (j + 1);
-                for (int start = 0; start < n; start += blockLen)
+                int mid = start + half - 1;
+                if (mid >= n) mid = n - 1;
+
+                long cur = arr[mid];
+                table[j * n + mid] = cur;
+                for (int i = mid - 1; i >= start; i--)
                 {
-                    int mid = start + half - 1;
-                    if (mid >= n) mid = n - 1;
-                    
-                    long cur = arr[mid];
-                    table[j * n + mid] = cur;
-                    for (int i = mid - 1; i >= start; i--)
+                    cur = cur < arr[i] ? cur : arr[i];
+                    table[j * n + i] = cur;
+                }
+
+                if (mid + 1 < n)
+                {
+                    int end = start + blockLen - 1;
+                    if (end >= n) end = n - 1;
+                    cur = arr[mid + 1];
+                    table[j * n + mid + 1] = cur;
+                    for (int i = mid + 2; i <= end; i++)
                     {
                         cur = cur < arr[i] ? cur : arr[i];
                         table[j * n + i] = cur;
                     }
-
-                    if (mid + 1 < n)
-                    {
-                        int end = start + blockLen - 1;
-                        if (end >= n) end = n - 1;
-                        cur = arr[mid + 1];
-                        table[j * n + mid + 1] = cur;
-                        for (int i = mid + 2; i <= end; i++)
-                        {
-                            cur = cur < arr[i] ? cur : arr[i];
-                            table[j * n + i] = cur;
-                        }
-                    }
                 }
             }
+        }
+
+        public static void RunInt64(long* arr, long* table, int* blockSize, int n)
+        {
+            int levels = CalculateLevels(n);
+            *blockSize = n;
+            for (int j = 0; j < levels; j++) FillLevel(arr, table, n, j);
         }
 
         private static int CalculateLevels(int n)

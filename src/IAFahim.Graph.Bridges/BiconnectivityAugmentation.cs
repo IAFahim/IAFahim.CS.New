@@ -18,6 +18,17 @@ namespace IAFahim.Graph.Bridges
             if (low[u] == tin[u]) { while (true) { int v = stack[--top]; comp[v] = compCount; if (u == v) break; } compCount++; }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ClassifyComponents(int* degree, int compCount, out int leaves, out int isolated)
+        {
+            leaves = 0; isolated = 0;
+            for (int i = 0; i < compCount; i++)
+            {
+                if (degree[i] == 0) isolated++;
+                else if (degree[i] == 1) leaves++;
+            }
+        }
+
         public static int MinEdgesFor2EdgeConnected(int n, int* head, int* next, int* to)
         {
             if (n <= 1) return 0;
@@ -31,8 +42,7 @@ namespace IAFahim.Graph.Bridges
             for (int i = 0; i < compCount; i++) degree[i] = 0;
             ComputeComponentDegrees(n, head, next, to, comp, degree);
 
-            int leaves = 0, isolated = 0;
-            for (int i = 0; i < compCount; i++) { if (degree[i] == 0) isolated++; else if (degree[i] == 1) leaves++; }
+            ClassifyComponents(degree, compCount, out int leaves, out int isolated);
             return trees > 1 ? leaves / 2 + isolated + trees - 1 : (leaves + 1) / 2;
         }
 

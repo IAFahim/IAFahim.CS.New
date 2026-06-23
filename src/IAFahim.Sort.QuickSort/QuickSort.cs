@@ -49,26 +49,24 @@ namespace IAFahim.Sort.QuickSort
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static T MedianOfThree<T>(T a, T b, T c) where T : unmanaged, IComparable<T>
+        {
+            if (a.CompareTo(b) < 0)
+            {
+                if (b.CompareTo(c) < 0) return b;
+                else if (a.CompareTo(c) < 0) return c;
+                else return a;
+            }
+            if (a.CompareTo(c) < 0) return a;
+            else if (b.CompareTo(c) < 0) return c;
+            else return b;
+        }
+
         private static int Partition<T>(T* ptr, int lo, int hi) where T : unmanaged, IComparable<T>
         {
             // Median-of-three pivot selection: avoids O(n^2) on sorted/reverse-sorted input.
             int mid = lo + ((hi - lo) >> 1);
-            T a = ptr[lo];
-            T b = ptr[mid];
-            T c = ptr[hi];
-            T pivot;
-            if (a.CompareTo(b) < 0)
-            {
-                if (b.CompareTo(c) < 0) pivot = b;
-                else if (a.CompareTo(c) < 0) pivot = c;
-                else pivot = a;
-            }
-            else
-            {
-                if (a.CompareTo(c) < 0) pivot = a;
-                else if (b.CompareTo(c) < 0) pivot = c;
-                else pivot = b;
-            }
+            T pivot = MedianOfThree(ptr[lo], ptr[mid], ptr[hi]);
 
             int i = lo - 1;
             int j = hi + 1;
@@ -123,26 +121,25 @@ namespace IAFahim.Sort.QuickSort
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int MedianOfThreeInt32(int a, int b, int c)
+        {
+            if (a < b)
+            {
+                if (b < c) return b;
+                else if (a < c) return c;
+                else return a;
+            }
+            if (a < c) return a;
+            else if (b < c) return c;
+            else return b;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int PartitionInt32(int* ptr, int lo, int hi)
         {
             // Median-of-three pivot selection: avoids O(n^2) on sorted/reverse-sorted input.
             int mid = lo + ((hi - lo) >> 1);
-            int a = ptr[lo];
-            int b = ptr[mid];
-            int c = ptr[hi];
-            int pivot;
-            if (a < b)
-            {
-                if (b < c) pivot = b;
-                else if (a < c) pivot = c;
-                else pivot = a;
-            }
-            else
-            {
-                if (a < c) pivot = a;
-                else if (b < c) pivot = c;
-                else pivot = b;
-            }
+            int pivot = MedianOfThreeInt32(ptr[lo], ptr[mid], ptr[hi]);
 
             int i = lo - 1;
             int j = hi + 1;
