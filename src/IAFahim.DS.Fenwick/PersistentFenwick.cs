@@ -4,6 +4,14 @@ namespace IAFahim.DS.Fenwick
 
     public static unsafe class PersistentFenwickUpdate
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void CopyNodeFromPrev(int* leftChild, int* rightChild, int* sumArr, int node, int curPrev, int val)
+        {
+            leftChild[node] = curPrev != 0 ? leftChild[curPrev] : 0;
+            rightChild[node] = curPrev != 0 ? rightChild[curPrev] : 0;
+            sumArr[node] = (curPrev != 0 ? sumArr[curPrev] : 0) + val;
+        }
+
         public static int Run(int* leftChild, int* rightChild, int* sumArr, int* allocCount,
             int prev, int lIn, int rIn, int idx, int val)
         {
@@ -14,9 +22,7 @@ namespace IAFahim.DS.Fenwick
             bool firstNode = true;
             while (true)
             {
-                leftChild[node] = curPrev != 0 ? leftChild[curPrev] : 0;
-                rightChild[node] = curPrev != 0 ? rightChild[curPrev] : 0;
-                sumArr[node] = (curPrev != 0 ? sumArr[curPrev] : 0) + val;
+                CopyNodeFromPrev(leftChild, rightChild, sumArr, node, curPrev, val);
 
                 if (l == r)
                 {

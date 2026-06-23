@@ -6,26 +6,11 @@ namespace IAFahim.Math.NT
 
     public static unsafe class TotientPrefix
     {
-        public static void Run(int n, long* result, int* phi, int* primes, bool* isPrime)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int RunLinearSieve(int n, int* phi, int* primes, bool* isPrime)
         {
-            if (n < 0)
-            {
-                return;
-            }
-            result[0] = 0;
-            if (n == 0)
-            {
-                return;
-            }
-
-            for (int i = 0; i <= n; i++)
-            {
-                phi[i] = i;
-            }
-            for (int i = 2; i <= n; i++)
-            {
-                isPrime[i] = true;
-            }
+            for (int i = 0; i <= n; i++) phi[i] = i;
+            for (int i = 2; i <= n; i++) isPrime[i] = true;
             int pCount = 0;
             phi[1] = 1;
             for (int i = 2; i <= n; i++)
@@ -50,6 +35,23 @@ namespace IAFahim.Math.NT
                     }
                 }
             }
+            return pCount;
+        }
+
+        public static void Run(int n, long* result, int* phi, int* primes, bool* isPrime)
+        {
+            if (n < 0)
+            {
+                return;
+            }
+            result[0] = 0;
+            if (n == 0)
+            {
+                return;
+            }
+
+            RunLinearSieve(n, phi, primes, isPrime);
+
             result[0] = 0;
             for (int i = 1; i <= n; i++)
             {

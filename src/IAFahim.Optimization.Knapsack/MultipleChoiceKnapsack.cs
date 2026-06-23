@@ -8,6 +8,21 @@ namespace IAFahim.Optimization.Knapsack
         private const long NegInf = long.MinValue / 4;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static long BestItemForCapacity(int* groupStart, int* itemW, long* itemV, long* dp, int g, int c)
+        {
+            long best = NegInf;
+            for (int idx = groupStart[g]; idx < groupStart[g + 1]; idx++)
+            {
+                if (itemW[idx] <= c && dp[c - itemW[idx]] > NegInf)
+                {
+                    long cand = dp[c - itemW[idx]] + itemV[idx];
+                    if (cand > best) best = cand;
+                }
+            }
+            return best;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long Run(int* groupStart, int* itemW, long* itemV, int n, int cap, long* dp)
         {
             dp[0] = 0;
@@ -15,18 +30,7 @@ namespace IAFahim.Optimization.Knapsack
             for (int g = 0; g < n; g++)
             {
                 for (int c = cap; c >= 0; c--)
-                {
-                    long best = NegInf;
-                    for (int idx = groupStart[g]; idx < groupStart[g + 1]; idx++)
-                    {
-                        if (itemW[idx] <= c && dp[c - itemW[idx]] > NegInf)
-                        {
-                            long cand = dp[c - itemW[idx]] + itemV[idx];
-                            if (cand > best) best = cand;
-                        }
-                    }
-                    dp[c] = best;
-                }
+                    dp[c] = BestItemForCapacity(groupStart, itemW, itemV, dp, g, c);
             }
             long answer = NegInf;
             for (int c = 0; c <= cap; c++)

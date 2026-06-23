@@ -6,13 +6,11 @@ namespace IAFahim.Search.MeetInMiddle
     public static unsafe class MeetInMiddle
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int SubsetSumCount(int* values, int len, int target)
+        private static void BuildSubsetSums(int* values, int len, long* leftSums, long* rightSums)
         {
             int half = len >> 1;
             int leftCount = 1 << half;
             int rightCount = 1 << (len - half);
-            long* leftSums = stackalloc long[leftCount];
-            long* rightSums = stackalloc long[rightCount];
             for (int mask = 0; mask < leftCount; mask++)
             {
                 long sum = 0;
@@ -33,7 +31,17 @@ namespace IAFahim.Search.MeetInMiddle
                 }
                 rightSums[mask] = sum;
             }
+        }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int SubsetSumCount(int* values, int len, int target)
+        {
+            int half = len >> 1;
+            int leftCount = 1 << half;
+            int rightCount = 1 << (len - half);
+            long* leftSums = stackalloc long[leftCount];
+            long* rightSums = stackalloc long[rightCount];
+            BuildSubsetSums(values, len, leftSums, rightSums);
             SortLongs(rightSums, rightCount);
 
             int count = 0;
@@ -55,27 +63,7 @@ namespace IAFahim.Search.MeetInMiddle
             int rightCount = 1 << (len - half);
             long* leftSums = stackalloc long[leftCount];
             long* rightSums = stackalloc long[rightCount];
-            for (int mask = 0; mask < leftCount; mask++)
-            {
-                long sum = 0;
-                for (int i = 0; i < half; i++)
-                {
-                    if ((mask & (1 << i)) != 0)
-                        sum += values[i];
-                }
-                leftSums[mask] = sum;
-            }
-            for (int mask = 0; mask < rightCount; mask++)
-            {
-                long sum = 0;
-                for (int i = 0; i < len - half; i++)
-                {
-                    if ((mask & (1 << i)) != 0)
-                        sum += values[half + i];
-                }
-                rightSums[mask] = sum;
-            }
-
+            BuildSubsetSums(values, len, leftSums, rightSums);
             SortLongs(rightSums, rightCount);
 
             for (int i = 0; i < leftCount; i++)

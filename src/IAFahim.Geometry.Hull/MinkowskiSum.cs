@@ -29,17 +29,30 @@ namespace IAFahim.Geometry.Hull
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void SelectStep(double dx1, double dy1, double dx2, double dy2, int i, int j, int an, int bn, out double stepx, out double stepy, ref int ni, ref int nj)
+        {
+            if (i < an && j < bn)
+            {
+                double cross = dx1 * dy2 - dy1 * dx2;
+                if (cross >= 0) { stepx = dx1; stepy = dy1; ni = i + 1; nj = j; return; }
+                stepx = dx2; stepy = dy2; ni = i; nj = j + 1; return;
+            }
+            if (i < an) { stepx = dx1; stepy = dy1; ni = i + 1; nj = j; return; }
+            stepx = dx2; stepy = dy2; ni = i; nj = j + 1;
+        }
+
         public static int Convex(double* ax, double* ay, int an, double* bx, double* by, int bn, double* outX, double* outY)
         {
             if (an == 0 || bn == 0) return 0;
             Reorder(ax, ay, an);
             Reorder(bx, by, bn);
-            
+
             int i = 0, j = 0, k = 0;
             outX[k] = ax[0] + bx[0];
             outY[k] = ay[0] + by[0];
             k++;
-            
+
             int limit = an + bn;
             while (i < an || j < bn)
             {
@@ -48,16 +61,7 @@ namespace IAFahim.Geometry.Hull
                 double dx2 = bx[(j + 1) % bn] - bx[j % bn];
                 double dy2 = by[(j + 1) % bn] - by[j % bn];
 
-                double cross = dx1 * dy2 - dy1 * dx2;
-
-                double stepx, stepy;
-                if (i < an && j < bn)
-                {
-                    if (cross >= 0) { stepx = dx1; stepy = dy1; i++; }
-                    else { stepx = dx2; stepy = dy2; j++; }
-                }
-                else if (i < an) { stepx = dx1; stepy = dy1; i++; }
-                else { stepx = dx2; stepy = dy2; j++; }
+                SelectStep(dx1, dy1, dx2, dy2, i, j, an, bn, out double stepx, out double stepy, ref i, ref j);
 
                 // The closing edge reproduces the start vertex; do not write that
                 // duplicate (it would overflow a buffer sized to the return value).

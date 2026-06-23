@@ -357,6 +357,23 @@ namespace IAFahim.Graph.TreeDecomposition
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void AccumulateUSide(HldSegNode* tree, long* lazyAssign, byte* hasAssign, int n, int lo, int hi, ref HldSegNode ansU, ref bool hasU)
+        {
+            HldSegNode segment = MaxSubarrayTreeQuery(tree, lazyAssign, hasAssign, 1, 0, n - 1, lo, hi);
+            long t = segment.Pref; segment.Pref = segment.Suff; segment.Suff = t;
+            if (!hasU) { ansU = segment; hasU = true; }
+            else ansU = MergeMaxSubarray(ansU, segment);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void AccumulateVSide(HldSegNode* tree, long* lazyAssign, byte* hasAssign, int n, int lo, int hi, ref HldSegNode ansV, ref bool hasV)
+        {
+            HldSegNode segment = MaxSubarrayTreeQuery(tree, lazyAssign, hasAssign, 1, 0, n - 1, lo, hi);
+            if (!hasV) { ansV = segment; hasV = true; }
+            else ansV = MergeMaxSubarray(segment, ansV);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static HldSegNode PathMaxSubarray(
             int u, int v,
             HldSegNode* tree, long* lazyAssign, byte* hasAssign,
@@ -374,71 +391,23 @@ namespace IAFahim.Graph.TreeDecomposition
             {
                 if (depth[headChain[u]] > depth[headChain[v]])
                 {
-                    HldSegNode segment = MaxSubarrayTreeQuery(tree, lazyAssign, hasAssign, 1, 0, n - 1, pos[headChain[u]], pos[u]);
-                    long t = segment.Pref; segment.Pref = segment.Suff; segment.Suff = t; // Swap prefix and suffix
-                    if (!hasU)
-                    {
-                        ansU = segment;
-                        hasU = true;
-                    }
-                    else
-                    {
-                        ansU = MergeMaxSubarray(ansU, segment);
-                    }
+                    AccumulateUSide(tree, lazyAssign, hasAssign, n, pos[headChain[u]], pos[u], ref ansU, ref hasU);
                     u = parent[headChain[u]];
                 }
                 else
                 {
-                    HldSegNode segment = MaxSubarrayTreeQuery(tree, lazyAssign, hasAssign, 1, 0, n - 1, pos[headChain[v]], pos[v]);
-                    if (!hasV)
-                    {
-                        ansV = segment;
-                        hasV = true;
-                    }
-                    else
-                    {
-                        ansV = MergeMaxSubarray(segment, ansV);
-                    }
+                    AccumulateVSide(tree, lazyAssign, hasAssign, n, pos[headChain[v]], pos[v], ref ansV, ref hasV);
                     v = parent[headChain[v]];
                 }
             }
 
             if (depth[u] > depth[v])
-            {
-                HldSegNode segment = MaxSubarrayTreeQuery(tree, lazyAssign, hasAssign, 1, 0, n - 1, pos[v], pos[u]);
-                long t = segment.Pref; segment.Pref = segment.Suff; segment.Suff = t;
-                if (!hasU)
-                {
-                    ansU = segment;
-                    hasU = true;
-                }
-                else
-                {
-                    ansU = MergeMaxSubarray(ansU, segment);
-                }
-            }
+                AccumulateUSide(tree, lazyAssign, hasAssign, n, pos[v], pos[u], ref ansU, ref hasU);
             else
-            {
-                HldSegNode segment = MaxSubarrayTreeQuery(tree, lazyAssign, hasAssign, 1, 0, n - 1, pos[u], pos[v]);
-                if (!hasV)
-                {
-                    ansV = segment;
-                    hasV = true;
-                }
-                else
-                {
-                    ansV = MergeMaxSubarray(segment, ansV);
-                }
-            }
+                AccumulateVSide(tree, lazyAssign, hasAssign, n, pos[u], pos[v], ref ansV, ref hasV);
 
-            if (!hasU)
-            {
-                return ansV;
-            }
-            if (!hasV)
-            {
-                return ansU;
-            }
+            if (!hasU) return ansV;
+            if (!hasV) return ansU;
             return MergeMaxSubarray(ansU, ansV);
         }
     }

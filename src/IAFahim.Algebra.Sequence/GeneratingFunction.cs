@@ -42,25 +42,28 @@ namespace IAFahim.Algebra.Sequence
         // Returns the k-th coefficient g_k of the compositional inverse g of f,
         // where f(x) = f[1]*x + f[2]*x^2 + ... (f[0] = 0, f[1] invertible mod MOD).
         // Lagrange inversion: g_k = (1/k) * [x^{k-1}] (x/f(x))^k, computed modulo x^k.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void BuildInverseSeries(long* f, int k, long mod, long* h)
+        {
+            long invPhi0 = Combinatorial.ModPow(f[1], mod - 2L, mod);
+            h[0] = invPhi0;
+            for (int i = 1; i < k; i++)
+            {
+                long acc = 0L;
+                for (int j = 1; j <= i; j++)
+                    acc = (acc + f[j + 1] * h[i - j]) % mod;
+                h[i] = (mod - (invPhi0 * acc) % mod) % mod;
+            }
+        }
+
         public static long LagrangeInversion(long* f, int n, int k, int MOD)
         {
             if (k <= 0) return 0L;
 
             long mod = (long)MOD;
 
-            // phi(x) = f(x)/x, i.e. phi[i] = f[i+1]; we need phi[0..k-1] (f[1..k]).
-            // h(x) = x/f(x) = 1/phi(x), the power-series inverse of phi, modulo x^k.
             long* h = stackalloc long[k];
-            long invPhi0 = Combinatorial.ModPow(f[1], mod - 2L, mod);
-            h[0] = invPhi0;
-            for (int i = 1; i < k; i++)
-            {
-                long acc = 0L;
-                // phi[j] = f[j+1]; sum_{j=1}^{i} phi[j] * h[i-j]
-                for (int j = 1; j <= i; j++)
-                    acc = (acc + f[j + 1] * h[i - j]) % mod;
-                h[i] = (mod - (invPhi0 * acc) % mod) % mod;
-            }
+            BuildInverseSeries(f, k, mod, h);
 
             // pw(x) = h(x)^k modulo x^k via binary exponentiation of truncated products.
             long* pw = stackalloc long[k];

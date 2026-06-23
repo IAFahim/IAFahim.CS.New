@@ -47,6 +47,14 @@ namespace IAFahim.Graph.Connectivity
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int FindMatchingRemove(EdgeEvent* sorted, int q, int i, int* match)
+        {
+            for (int j = i + 1; j < q && sorted[j].U == sorted[i].U && sorted[j].V == sorted[i].V; j++)
+                if (sorted[j].Type == 1 && match[sorted[j].Id] == -1) { match[sorted[j].Id] = sorted[i].Id; return sorted[j].Id; }
+            return -1;
+        }
+
         private static void MatchEvents(int q, EdgeEvent* sorted, int* match)
         {
             for (int i = 0; i < q; i++) match[i] = -1;
@@ -54,9 +62,7 @@ namespace IAFahim.Graph.Connectivity
             {
                 if (sorted[i].Type == 0) // Add
                 {
-                    int matchedId = -1;
-                    for (int j = i + 1; j < q && sorted[j].U == sorted[i].U && sorted[j].V == sorted[i].V; j++)
-                        if (sorted[j].Type == 1 && match[sorted[j].Id] == -1) { matchedId = sorted[j].Id; match[sorted[j].Id] = sorted[i].Id; break; }
+                    int matchedId = FindMatchingRemove(sorted, q, i, match);
                     match[sorted[i].Id] = matchedId != -1 ? matchedId : q;
                 }
             }
