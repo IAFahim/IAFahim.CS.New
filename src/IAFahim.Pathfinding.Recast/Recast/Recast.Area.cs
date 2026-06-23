@@ -5,6 +5,7 @@
 namespace IAFahim.Pathfinding.Recast
 {
     using System;
+    using System.Runtime.CompilerServices;
     using Unity.Collections;
     using Unity.Collections.LowLevel.Unsafe;
     using Unity.Mathematics;
@@ -82,8 +83,6 @@ namespace IAFahim.Pathfinding.Recast
                 }
             }
 
-            byte newDistance;
-
             // Pass 1
             for (var z = 0; z < zSize; z++)
             {
@@ -93,57 +92,8 @@ namespace IAFahim.Pathfinding.Recast
                     var maxSpanIndex = (int)(cell.Index + cell.Count);
                     for (var spanIndex = (int)cell.Index; spanIndex < maxSpanIndex; spanIndex++)
                     {
-                        var span = compactHeightfield->Spans[spanIndex];
-
-                        if (GetCon(span, 0) != RCNotConnected)
-                        {
-                            var aX = x + GetDirOffsetX(0);
-                            var aY = z + GetDirOffsetY(0);
-                            var aIndex = (int)compactHeightfield->Cells[aX + (aY * xSize)].Index + GetCon(span, 0);
-                            var aSpan = compactHeightfield->Spans[aIndex];
-                            newDistance = (byte)math.min(distanceToBoundary[aIndex] + 2, 255);
-                            if (newDistance < distanceToBoundary[spanIndex])
-                            {
-                                distanceToBoundary[spanIndex] = newDistance;
-                            }
-
-                            if (GetCon(aSpan, 3) != RCNotConnected)
-                            {
-                                var bX = aX + GetDirOffsetX(3);
-                                var bY = aY + GetDirOffsetY(3);
-                                var bIndex = (int)compactHeightfield->Cells[bX + (bY * xSize)].Index + GetCon(aSpan, 3);
-                                newDistance = (byte)math.min(distanceToBoundary[bIndex] + 3, 255);
-                                if (newDistance < distanceToBoundary[spanIndex])
-                                {
-                                    distanceToBoundary[spanIndex] = newDistance;
-                                }
-                            }
-                        }
-
-                        if (GetCon(span, 3) != RCNotConnected)
-                        {
-                            var aX = x + GetDirOffsetX(3);
-                            var aY = z + GetDirOffsetY(3);
-                            var aIndex = (int)compactHeightfield->Cells[aX + (aY * xSize)].Index + GetCon(span, 3);
-                            var aSpan = compactHeightfield->Spans[aIndex];
-                            newDistance = (byte)math.min(distanceToBoundary[aIndex] + 2, 255);
-                            if (newDistance < distanceToBoundary[spanIndex])
-                            {
-                                distanceToBoundary[spanIndex] = newDistance;
-                            }
-
-                            if (GetCon(aSpan, 2) != RCNotConnected)
-                            {
-                                var bX = aX + GetDirOffsetX(2);
-                                var bY = aY + GetDirOffsetY(2);
-                                var bIndex = (int)compactHeightfield->Cells[bX + (bY * xSize)].Index + GetCon(aSpan, 2);
-                                newDistance = (byte)math.min(distanceToBoundary[bIndex] + 3, 255);
-                                if (newDistance < distanceToBoundary[spanIndex])
-                                {
-                                    distanceToBoundary[spanIndex] = newDistance;
-                                }
-                            }
-                        }
+                        RelaxDistance(compactHeightfield, x, z, 0, 3, spanIndex, distanceToBoundary, xSize);
+                        RelaxDistance(compactHeightfield, x, z, 3, 2, spanIndex, distanceToBoundary, xSize);
                     }
                 }
             }
@@ -157,57 +107,8 @@ namespace IAFahim.Pathfinding.Recast
                     var maxSpanIndex = (int)(cell.Index + cell.Count);
                     for (var spanIndex = (int)cell.Index; spanIndex < maxSpanIndex; spanIndex++)
                     {
-                        var span = compactHeightfield->Spans[spanIndex];
-
-                        if (GetCon(span, 2) != RCNotConnected)
-                        {
-                            var aX = x + GetDirOffsetX(2);
-                            var aY = z + GetDirOffsetY(2);
-                            var aIndex = (int)compactHeightfield->Cells[aX + (aY * xSize)].Index + GetCon(span, 2);
-                            var aSpan = compactHeightfield->Spans[aIndex];
-                            newDistance = (byte)math.min(distanceToBoundary[aIndex] + 2, 255);
-                            if (newDistance < distanceToBoundary[spanIndex])
-                            {
-                                distanceToBoundary[spanIndex] = newDistance;
-                            }
-
-                            if (GetCon(aSpan, 1) != RCNotConnected)
-                            {
-                                var bX = aX + GetDirOffsetX(1);
-                                var bY = aY + GetDirOffsetY(1);
-                                var bIndex = (int)compactHeightfield->Cells[bX + (bY * xSize)].Index + GetCon(aSpan, 1);
-                                newDistance = (byte)math.min(distanceToBoundary[bIndex] + 3, 255);
-                                if (newDistance < distanceToBoundary[spanIndex])
-                                {
-                                    distanceToBoundary[spanIndex] = newDistance;
-                                }
-                            }
-                        }
-
-                        if (GetCon(span, 1) != RCNotConnected)
-                        {
-                            var aX = x + GetDirOffsetX(1);
-                            var aY = z + GetDirOffsetY(1);
-                            var aIndex = (int)compactHeightfield->Cells[aX + (aY * xSize)].Index + GetCon(span, 1);
-                            var aSpan = compactHeightfield->Spans[aIndex];
-                            newDistance = (byte)math.min(distanceToBoundary[aIndex] + 2, 255);
-                            if (newDistance < distanceToBoundary[spanIndex])
-                            {
-                                distanceToBoundary[spanIndex] = newDistance;
-                            }
-
-                            if (GetCon(aSpan, 0) != RCNotConnected)
-                            {
-                                var bX = aX + GetDirOffsetX(0);
-                                var bY = aY + GetDirOffsetY(0);
-                                var bIndex = (int)compactHeightfield->Cells[bX + (bY * xSize)].Index + GetCon(aSpan, 0);
-                                newDistance = (byte)math.min(distanceToBoundary[bIndex] + 3, 255);
-                                if (newDistance < distanceToBoundary[spanIndex])
-                                {
-                                    distanceToBoundary[spanIndex] = newDistance;
-                                }
-                            }
-                        }
+                        RelaxDistance(compactHeightfield, x, z, 2, 1, spanIndex, distanceToBoundary, xSize);
+                        RelaxDistance(compactHeightfield, x, z, 1, 0, spanIndex, distanceToBoundary, xSize);
                     }
                 }
             }
@@ -219,6 +120,40 @@ namespace IAFahim.Pathfinding.Recast
                 {
                     compactHeightfield->Areas[spanIndex] = RCNullArea;
                 }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void RelaxDistance(RcCompactHeightfield* compactHeightfield, int x, int z, int dirA, int dirB, int spanIndex, byte* distanceToBoundary, int xSize)
+        {
+            RcCompactSpan span = compactHeightfield->Spans[spanIndex];
+            if (GetCon(span, dirA) == RCNotConnected)
+            {
+                return;
+            }
+
+            int aX = x + GetDirOffsetX(dirA);
+            int aY = z + GetDirOffsetY(dirA);
+            int aIndex = (int)compactHeightfield->Cells[aX + (aY * xSize)].Index + GetCon(span, dirA);
+            RcCompactSpan aSpan = compactHeightfield->Spans[aIndex];
+            byte newDistance = (byte)math.min(distanceToBoundary[aIndex] + 2, 255);
+            if (newDistance < distanceToBoundary[spanIndex])
+            {
+                distanceToBoundary[spanIndex] = newDistance;
+            }
+
+            if (GetCon(aSpan, dirB) == RCNotConnected)
+            {
+                return;
+            }
+
+            int bX = aX + GetDirOffsetX(dirB);
+            int bY = aY + GetDirOffsetY(dirB);
+            int bIndex = (int)compactHeightfield->Cells[bX + (bY * xSize)].Index + GetCon(aSpan, dirB);
+            newDistance = (byte)math.min(distanceToBoundary[bIndex] + 3, 255);
+            if (newDistance < distanceToBoundary[spanIndex])
+            {
+                distanceToBoundary[spanIndex] = newDistance;
             }
         }
 

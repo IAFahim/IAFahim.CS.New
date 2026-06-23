@@ -139,3 +139,7 @@ src/IAFahim.Search.Specialized/Scheduling.cs
 src/IAFahim.Math.Polynomial/PolynomialMultipointEval.cs
 src/IAFahim.Geometry.Advanced/GeometryAdvanced.cs
 src/IAFahim.Graph.Flow/Flow.cs
+src/IAFahim.Pathfinding.Recast/Recast/Recast.Rasterization.cs
+src/IAFahim.Pathfinding.Recast/Recast/Recast.Filter.cs
+src/IAFahim.Pathfinding.Recast/Recast/Recast.cs
+src/IAFahim.Pathfinding.Recast/Recast/Recast.Area.cs

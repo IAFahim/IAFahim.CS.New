@@ -378,35 +378,7 @@ namespace IAFahim.Pathfinding.Recast
 
                         for (var dir = 0; dir < 4; dir++)
                         {
-                            SetCon(span, dir, RCNotConnected);
-                            var neighborX = x + GetDirOffsetX(dir);
-                            var neighborZ = z + GetDirOffsetY(dir);
-
-                            if (neighborX < 0 || neighborZ < 0 || neighborX >= xSize || neighborZ >= zSize)
-                            {
-                                continue;
-                            }
-
-                            var neighborCell = compactHeightfield->Cells[neighborX + (neighborZ * zStride)];
-                            for (int k = (int)neighborCell.Index, nk = (int)(neighborCell.Index + neighborCell.Count); k < nk; k++)
-                            {
-                                var neighborSpan = compactHeightfield->Spans[k];
-                                var bot = math.max(span->Y, (int)neighborSpan.Y);
-                                var top = math.min(span->Y + (int)span->H, neighborSpan.Y + (int)neighborSpan.H);
-
-                                if (top - bot >= walkableHeight && math.abs(neighborSpan.Y - span->Y) <= walkableClimb)
-                                {
-                                    var layerIndex = k - (int)neighborCell.Index;
-                                    if (layerIndex < 0 || layerIndex > MaxLayers)
-                                    {
-                                        maxLayerIndex = math.max(maxLayerIndex, layerIndex);
-                                        continue;
-                                    }
-
-                                    SetCon(span, dir, layerIndex);
-                                    break;
-                                }
-                            }
+                            ConnectSpanDirection(span, x, z, dir, xSize, zSize, zStride, walkableHeight, walkableClimb, compactHeightfield, ref maxLayerIndex);
                         }
                     }
                 }
@@ -419,6 +391,40 @@ namespace IAFahim.Pathfinding.Recast
             }
 
             return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ConnectSpanDirection(RcCompactSpan* span, int x, int z, int dir, int xSize, int zSize, int zStride, int walkableHeight, int walkableClimb, RcCompactHeightfield* compactHeightfield, ref int maxLayerIndex)
+        {
+            SetCon(span, dir, RCNotConnected);
+            int neighborX = x + GetDirOffsetX(dir);
+            int neighborZ = z + GetDirOffsetY(dir);
+
+            if (neighborX < 0 || neighborZ < 0 || neighborX >= xSize || neighborZ >= zSize)
+            {
+                return;
+            }
+
+            RcCompactCell neighborCell = compactHeightfield->Cells[neighborX + (neighborZ * zStride)];
+            for (int k = (int)neighborCell.Index, nk = (int)(neighborCell.Index + neighborCell.Count); k < nk; k++)
+            {
+                RcCompactSpan neighborSpan = compactHeightfield->Spans[k];
+                int bot = math.max(span->Y, (int)neighborSpan.Y);
+                int top = math.min(span->Y + (int)span->H, neighborSpan.Y + (int)neighborSpan.H);
+
+                if (top - bot >= walkableHeight && math.abs(neighborSpan.Y - span->Y) <= walkableClimb)
+                {
+                    int layerIndex = k - (int)neighborCell.Index;
+                    if (layerIndex < 0 || layerIndex > MaxLayers)
+                    {
+                        maxLayerIndex = math.max(maxLayerIndex, layerIndex);
+                        continue;
+                    }
+
+                    SetCon(span, dir, layerIndex);
+                    break;
+                }
+            }
         }
 
         /// <summary>
