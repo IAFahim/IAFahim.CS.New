@@ -5,6 +5,13 @@ namespace IAFahim.String.MinRotation
 
     public static unsafe class Booth
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void AdvanceLoser(ref int loser, int winner, int k)
+        {
+            loser = loser + k + 1;
+            if (loser <= winner) loser = winner + 1;
+        }
+
         public static int Run(byte* s, int len)
         {
             if (len <= 1) return 0;
@@ -16,8 +23,8 @@ namespace IAFahim.String.MinRotation
                 byte a = s[(i2 + k) % len];
                 byte b = s[(j + k) % len];
                 if (a == b) { k++; continue; }
-                if (a > b) { i2 = i2 + k + 1; if (i2 <= j) i2 = j + 1; }
-                else { j = j + k + 1; if (j <= i2) j = i2 + 1; }
+                if (a > b) AdvanceLoser(ref i2, j, k);
+                else AdvanceLoser(ref j, i2, k);
                 k = 0;
             }
             return i2 < j ? i2 : j;
@@ -32,8 +39,8 @@ namespace IAFahim.String.MinRotation
                 int a = s[(i2 + k) % len];
                 int b = s[(j + k) % len];
                 if (a == b) { k++; continue; }
-                if (a > b) { i2 = i2 + k + 1; if (i2 <= j) i2 = j + 1; }
-                else { j = j + k + 1; if (j <= i2) j = i2 + 1; }
+                if (a > b) AdvanceLoser(ref i2, j, k);
+                else AdvanceLoser(ref j, i2, k);
                 k = 0;
             }
             return i2 < j ? i2 : j;

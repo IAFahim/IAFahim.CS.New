@@ -7,6 +7,20 @@ namespace IAFahim.Geometry.Hull
     {
         public struct HalfPlane { public double Nx, Ny, D, Angle; public int Id; }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void BuildIntersectionDeque(HalfPlane* scratchPlanes, int* scratchQ, int total, out int head, out int tail)
+        {
+            head = 0; tail = 0;
+            scratchQ[tail++] = 0; scratchQ[tail++] = 1;
+            for (int i = 2; i < total; i++)
+            {
+                while (head + 1 < tail && IsOutside(scratchPlanes[i], scratchPlanes[scratchQ[tail - 2]], scratchPlanes[scratchQ[tail - 1]])) tail--;
+                while (head + 1 < tail && IsOutside(scratchPlanes[i], scratchPlanes[scratchQ[head]], scratchPlanes[scratchQ[head + 1]])) head++;
+                scratchQ[tail++] = i;
+            }
+            while (head + 1 < tail && IsOutside(scratchPlanes[scratchQ[head]], scratchPlanes[scratchQ[tail - 2]], scratchPlanes[scratchQ[tail - 1]])) tail--;
+        }
+
         public static int Run(double* nx, double* ny, double* d, int m, double* outX, double* outY, int* outSize, HalfPlane* scratchPlanes, int* scratchQ)
         {
             if (m == 0) { *outSize = 0; return 0; }
@@ -14,18 +28,8 @@ namespace IAFahim.Geometry.Hull
             SortPlanesByAngle(scratchPlanes, total);
             total = UniquePlanes(scratchPlanes, total);
 
-            int head = 0, tail = 0;
             if (total < 2) { *outSize = 0; return 0; }
-            scratchQ[tail++] = 0; scratchQ[tail++] = 1;
-
-            for (int i = 2; i < total; i++)
-            {
-                while (head + 1 < tail && IsOutside(scratchPlanes[i], scratchPlanes[scratchQ[tail - 2]], scratchPlanes[scratchQ[tail - 1]])) tail--;
-                while (head + 1 < tail && IsOutside(scratchPlanes[i], scratchPlanes[scratchQ[head]], scratchPlanes[scratchQ[head + 1]])) head++;
-                scratchQ[tail++] = i;
-            }
-
-            while (head + 1 < tail && IsOutside(scratchPlanes[scratchQ[head]], scratchPlanes[scratchQ[tail - 2]], scratchPlanes[scratchQ[tail - 1]])) tail--;
+            BuildIntersectionDeque(scratchPlanes, scratchQ, total, out int head, out int tail);
 
             if (tail - head < 3) { *outSize = 0; return 0; }
             return ExtractVertices(scratchPlanes, scratchQ, head, tail, outX, outY, outSize);

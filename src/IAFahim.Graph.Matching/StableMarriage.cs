@@ -94,6 +94,32 @@ namespace IAFahim.Graph.Matching
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ProposeStep(int n, int m, int w, int* womanRank, int* manMatch, int* womanMatch, int* stack, ref int top)
+        {
+            if (womanMatch[w] == -1)
+            {
+                manMatch[m] = w;
+                womanMatch[w] = m;
+            }
+            else
+            {
+                int m2 = womanMatch[w];
+                int* wRow = womanRank + w * n;
+                if (wRow[m] < wRow[m2])
+                {
+                    manMatch[m2] = -1;
+                    manMatch[m] = w;
+                    womanMatch[w] = m;
+                    stack[top++] = m2;
+                }
+                else
+                {
+                    stack[top++] = m;
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void RunWithHistory(int n, int* manPref, int* womanPref, int* manMatch, int* womanMatch, int* history, int* histSize, int* scratch)
         {
             for (int i = 0; i < n; i++) manMatch[i] = -1;
@@ -120,27 +146,7 @@ namespace IAFahim.Graph.Matching
                 history[(*histSize)++] = m;
                 int w = manPref[m * n + manNext[m]++];
                 history[(*histSize)++] = w;
-                if (womanMatch[w] == -1)
-                {
-                    manMatch[m] = w;
-                    womanMatch[w] = m;
-                }
-                else
-                {
-                    int m2 = womanMatch[w];
-                    int* wRow = womanRank + w * n;
-                    if (wRow[m] < wRow[m2])
-                    {
-                        manMatch[m2] = -1;
-                        manMatch[m] = w;
-                        womanMatch[w] = m;
-                        stack[top++] = m2;
-                    }
-                    else
-                    {
-                        stack[top++] = m;
-                    }
-                }
+                ProposeStep(n, m, w, womanRank, manMatch, womanMatch, stack, ref top);
             }
         }
     }

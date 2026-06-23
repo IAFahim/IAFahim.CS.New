@@ -119,6 +119,40 @@ namespace Unity.Collections
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void UnlinkFromBucket(int bucket, int prev, int entry)
+        {
+            if (prev == -1) this.state->Buckets[bucket] = this.state->Next[entry];
+            else this.state->Next[prev] = this.state->Next[entry];
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void SwapLastIntoHole(int entry)
+        {
+            int lastIdx = this.state->Length - 1;
+            if (entry >= lastIdx) return;
+            T lastKey = this.state->Keys[lastIdx];
+            this.state->Keys[entry] = lastKey;
+
+            uint lastHash = Hash(lastKey);
+            int lastBucket = (int)(lastHash & (uint)(this.state->BucketCount - 1));
+
+            int curr = this.state->Buckets[lastBucket];
+            int currPrev = -1;
+            while (curr != EmptyBucket)
+            {
+                if (curr == lastIdx)
+                {
+                    if (currPrev == -1) this.state->Buckets[lastBucket] = entry;
+                    else this.state->Next[currPrev] = entry;
+                    this.state->Next[entry] = this.state->Next[lastIdx];
+                    break;
+                }
+                currPrev = curr;
+                curr = this.state->Next[curr];
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Remove(T item)
         {
             if (this.state == null || this.state->Length == 0)
@@ -135,46 +169,8 @@ namespace Unity.Collections
             {
                 if (this.state->Keys[entry].Equals(item))
                 {
-                    if (prev == -1)
-                    {
-                        this.state->Buckets[bucket] = this.state->Next[entry];
-                    }
-                    else
-                    {
-                        this.state->Next[prev] = this.state->Next[entry];
-                    }
-
-                    int lastIdx = this.state->Length - 1;
-                    if (entry < lastIdx)
-                    {
-                        T lastKey = this.state->Keys[lastIdx];
-                        this.state->Keys[entry] = lastKey;
-
-                        uint lastHash = Hash(lastKey);
-                        int lastBucket = (int)(lastHash & (uint)(this.state->BucketCount - 1));
-
-                        int curr = this.state->Buckets[lastBucket];
-                        int currPrev = -1;
-                        while (curr != EmptyBucket)
-                        {
-                            if (curr == lastIdx)
-                            {
-                                if (currPrev == -1)
-                                {
-                                    this.state->Buckets[lastBucket] = entry;
-                                }
-                                else
-                                {
-                                    this.state->Next[currPrev] = entry;
-                                }
-                                this.state->Next[entry] = this.state->Next[lastIdx];
-                                break;
-                            }
-                            currPrev = curr;
-                            curr = this.state->Next[curr];
-                        }
-                    }
-
+                    UnlinkFromBucket(bucket, prev, entry);
+                    SwapLastIntoHole(entry);
                     this.state->Length--;
                     return true;
                 }

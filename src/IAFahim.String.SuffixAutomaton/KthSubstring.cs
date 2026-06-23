@@ -7,6 +7,28 @@ namespace IAFahim.String.SuffixAutomaton
     {
         private const int Sigma = 256;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool AdvanceKth(SuffixAutomaton.State* stPtr, SuffixAutomaton.Edge* e, long* dp, ref int v, ref int len, ref long rem, int* chars, int* tos, int* outPtr)
+        {
+            int deg = CollectEdgesDedup(stPtr, e, v, chars, tos);
+            bool advanced = false;
+            for (int i = 0; i < deg; i++)
+            {
+                int w = tos[i];
+                long cw = dp[w];
+                if (cw < 0) continue;
+                if (rem <= cw)
+                {
+                    outPtr[len++] = chars[i];
+                    v = w;
+                    advanced = true;
+                    break;
+                }
+                rem -= cw;
+            }
+            return advanced;
+        }
+
         public static bool Find(SuffixAutomaton.State* stPtr, SuffixAutomaton.Edge* e, int stateCount, long k, int* outLen, int* outPtr, long* dp)
         {
             *outLen = 0;
@@ -25,23 +47,7 @@ namespace IAFahim.String.SuffixAutomaton
             {
                 if (rem == 1) break;
                 rem -= 1;
-                int deg = CollectEdgesDedup(stPtr, e, v, chars, tos);
-                bool advanced = false;
-                for (int i = 0; i < deg; i++)
-                {
-                    int w = tos[i];
-                    long cw = dp[w];
-                    if (cw < 0) continue;
-                    if (rem <= cw)
-                    {
-                        outPtr[len++] = chars[i];
-                        v = w;
-                        advanced = true;
-                        break;
-                    }
-                    rem -= cw;
-                }
-                if (!advanced) return false;
+                if (!AdvanceKth(stPtr, e, dp, ref v, ref len, ref rem, chars, tos, outPtr)) return false;
             }
             *outLen = len;
             return true;

@@ -5,6 +5,33 @@ namespace IAFahim.Graph.Bridges
     public static unsafe class BridgeAndArticulation
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void HandleBackEdge(int* tin, ref int lowU, int v)
+        {
+            if (tin[v] < lowU) lowU = tin[v];
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void HandleTreeEdge(int u, int v, int tu, int p, int* head, int* next, int* to,
+                                           int* tin, int* low, ref int timer,
+                                           byte* isArticulation, int* bridgesU, int* bridgesV, ref int bridgeCount, ref int lowU)
+        {
+            Dfs(v, u, head, next, to, tin, low, ref timer, isArticulation, bridgesU, bridgesV, ref bridgeCount);
+            int lv = low[v];
+            if (lv < lowU) lowU = lv;
+
+            if (lv >= tu)
+            {
+                if (lv > tu)
+                {
+                    bridgesU[bridgeCount] = u;
+                    bridgesV[bridgeCount] = v;
+                    bridgeCount++;
+                }
+                if (p != -1) isArticulation[u] = 1;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Dfs(int u, int p, int* head, int* next, int* to,
                                int* tin, int* low, ref int timer,
                                byte* isArticulation, int* bridgesU, int* bridgesV, ref int bridgeCount)
@@ -19,35 +46,16 @@ namespace IAFahim.Graph.Bridges
 
                 if (tin[v] != 0)
                 {
-                    if (tin[v] < low[u]) low[u] = tin[v];
+                    HandleBackEdge(tin, ref low[u], v);
                 }
                 else
                 {
                     children++;
-                    Dfs(v, u, head, next, to, tin, low, ref timer, isArticulation, bridgesU, bridgesV, ref bridgeCount);
-                    int lv = low[v];
-                    if (lv < low[u]) low[u] = lv;
-
-                    if (lv >= tu)
-                    {
-                        if (lv > tu)
-                        {
-                            bridgesU[bridgeCount] = u;
-                            bridgesV[bridgeCount] = v;
-                            bridgeCount++;
-                        }
-                        if (p != -1)
-                        {
-                            isArticulation[u] = 1;
-                        }
-                    }
+                    HandleTreeEdge(u, v, tu, p, head, next, to, tin, low, ref timer, isArticulation, bridgesU, bridgesV, ref bridgeCount, ref low[u]);
                 }
             }
-            
-            if (p == -1 && children > 1)
-            {
-                isArticulation[u] = 1;
-            }
+
+            if (p == -1 && children > 1) isArticulation[u] = 1;
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

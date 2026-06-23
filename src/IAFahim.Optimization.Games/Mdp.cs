@@ -6,6 +6,15 @@ namespace IAFahim.Optimization.Games
     public static unsafe class Mdp
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static double ComputeQValue(int n, int m, double* trans, double* reward, double gamma, double* v, int s, int a)
+        {
+            double q = 0;
+            for (int sp = 0; sp < n; sp++)
+                q += trans[s * m * n + a * n + sp] * (reward[s * m + a] + gamma * v[sp]);
+            return q;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ValueIteration(int n, int m, double* trans, double* reward, double gamma, double* v, double* newV, int iters)
         {
             for (int iter = 0; iter < iters; iter++)
@@ -15,9 +24,7 @@ namespace IAFahim.Optimization.Games
                     double best = double.MinValue;
                     for (int a = 0; a < m; a++)
                     {
-                        double q = 0;
-                        for (int sp = 0; sp < n; sp++)
-                            q += trans[s * m * n + a * n + sp] * (reward[s * m + a] + gamma * v[sp]);
+                        double q = ComputeQValue(n, m, trans, reward, gamma, v, s, a);
                         if (q > best) best = q;
                     }
                     newV[s] = best;
@@ -33,14 +40,7 @@ namespace IAFahim.Optimization.Games
             bool changed = true;
             while (changed)
             {
-                for (int s = 0; s < n; s++)
-                {
-                    int a = policy[s];
-                    double sum = 0;
-                    for (int sp = 0; sp < n; sp++)
-                        sum += trans[s * m * n + a * n + sp] * (reward[s * m + a] + gamma * v[sp]);
-                    v[s] = sum;
-                }
+                for (int s = 0; s < n; s++) v[s] = ComputeQValue(n, m, trans, reward, gamma, v, s, policy[s]);
                 changed = false;
                 for (int s = 0; s < n; s++)
                 {
@@ -48,9 +48,7 @@ namespace IAFahim.Optimization.Games
                     int bestA = 0;
                     for (int a = 0; a < m; a++)
                     {
-                        double q = 0;
-                        for (int sp = 0; sp < n; sp++)
-                            q += trans[s * m * n + a * n + sp] * (reward[s * m + a] + gamma * v[sp]);
+                        double q = ComputeQValue(n, m, trans, reward, gamma, v, s, a);
                         if (q > best) { best = q; bestA = a; }
                     }
                     if (bestA != policy[s]) { newPol[s] = bestA; changed = true; }
