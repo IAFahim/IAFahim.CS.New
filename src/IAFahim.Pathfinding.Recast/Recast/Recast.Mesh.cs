@@ -88,156 +88,16 @@ namespace IAFahim.Pathfinding.Recast
 
             for (var i = 0; i < contourSet->Nconts; ++i)
             {
-                var cont = contourSet->Conts[i];
-
-                // Skip null contours
-                if (cont.NVerts < 3)
+                if (!ProcessContour(contourSet, i, nvp, maxVertsPerCont, indices, tris, polys, tmpPoly, mesh, vflags, firstVert, nextVert, maxTris))
                 {
-                    continue;
-                }
-
-                // Triangulate contour
-                for (var j = 0; j < cont.NVerts; ++j)
-                {
-                    indices[j] = j;
-                }
-
-                var ntris = Triangulate(cont.NVerts, (int*)cont.Verts, indices, tris);
-                if (ntris <= 0)
-                {
-                    // Bad triangulation, should not happen
-                    ntris = -ntris;
-                }
-
-                // Add and merge vertices
-                for (var j = 0; j < cont.NVerts; ++j)
-                {
-                    var v = cont.Verts + j;
-                    indices[j] = AddVertex((ushort)v->x, (ushort)v->y, (ushort)v->z,
-                        mesh->Verts, firstVert, nextVert, ref mesh->NVerts);
-                    if ((v->w & RCBorderVertex) != 0)
-                    {
-                        // This vertex should be removed
-                        vflags[indices[j]] = 1;
-                    }
-                }
-
-                // Build initial polygons
-                var npolys = 0;
-                UnsafeUtility.MemSet(polys, 0xff, maxVertsPerCont * nvp * sizeof(ushort));
-                for (var j = 0; j < ntris; ++j)
-                {
-                    var t = &tris[j * 3];
-                    if (t[0] != t[1] && t[0] != t[2] && t[1] != t[2])
-                    {
-                        polys[(npolys * nvp) + 0] = (ushort)indices[t[0]];
-                        polys[(npolys * nvp) + 1] = (ushort)indices[t[1]];
-                        polys[(npolys * nvp) + 2] = (ushort)indices[t[2]];
-                        npolys++;
-                    }
-                }
-
-                if (npolys == 0)
-                {
-                    continue;
-                }
-
-                // Merge polygons
-                if (nvp > 3)
-                {
-                    while (true)
-                    {
-                        // Find best polygons to merge
-                        var bestMergeVal = 0;
-                        int bestPa = 0, bestPb = 0, bestEa = 0, bestEb = 0;
-
-                        for (var j = 0; j < npolys - 1; ++j)
-                        {
-                            var pj = &polys[j * nvp];
-                            for (var k = j + 1; k < npolys; ++k)
-                            {
-                                var pk = &polys[k * nvp];
-                                int ea, eb;
-                                var v = GetPolyMergeValue(pj, pk, mesh->Verts, out ea, out eb, nvp);
-                                if (v > bestMergeVal)
-                                {
-                                    bestMergeVal = v;
-                                    bestPa = j;
-                                    bestPb = k;
-                                    bestEa = ea;
-                                    bestEb = eb;
-                                }
-                            }
-                        }
-
-                        if (bestMergeVal > 0)
-                        {
-                            // Found best, merge
-                            var pa = &polys[bestPa * nvp];
-                            var pb = &polys[bestPb * nvp];
-                            MergePolyVerts(pa, pb, bestEa, bestEb, tmpPoly, nvp);
-                            var lastPoly = &polys[(npolys - 1) * nvp];
-                            if (pb != lastPoly)
-                            {
-                                UnsafeUtility.MemCpy(pb, lastPoly, sizeof(ushort) * nvp);
-                            }
-
-                            npolys--;
-                        }
-                        else
-                        {
-                            // Could not merge any polygons, stop
-                            break;
-                        }
-                    }
-                }
-
-                // Store polygons
-                for (var j = 0; j < npolys; ++j)
-                {
-                    var p = &mesh->Polys[mesh->NPolys * nvp * 2];
-                    var q = &polys[j * nvp];
-                    for (var k = 0; k < nvp; ++k)
-                    {
-                        p[k] = q[k];
-                    }
-
-                    mesh->Regs[mesh->NPolys] = cont.Reg;
-                    mesh->Areas[mesh->NPolys] = cont.Area;
-                    mesh->NPolys++;
-                    if (mesh->NPolys > maxTris)
-                    {
-                        return false;
-                    }
+                    return false;
                 }
             }
 
             // Remove edge vertices
-            for (var i = 0; i < mesh->NVerts; ++i)
+            if (!RemoveEdgeVertices(mesh, vflags, maxTris))
             {
-                if (vflags[i] != 0)
-                {
-                    if (!CanRemoveVertex(mesh, (ushort)i))
-                    {
-                        continue;
-                    }
-
-                    if (!RemoveVertex(mesh, (ushort)i, maxTris))
-                    {
-                        // Failed to remove vertex
-                        return false;
-                    }
-
-                    // Remove vertex
-                    // Note: mesh.nverts is already decremented inside RemoveVertex()!
-                    // Fixup vertex flags
-                    for (var j = i; j < mesh->NVerts; ++j)
-                    {
-                        vflags[j] = vflags[j + 1];
-                    }
-
-                    --i;
-                }
+                return false;
             }
 
             // Calculate adjacency
@@ -249,51 +109,7 @@ namespace IAFahim.Pathfinding.Recast
             // Find portal edges
             if (mesh->BorderSize > 0)
             {
-                var w = contourSet->Width;
-                var h = contourSet->Height;
-                for (var i = 0; i < mesh->NPolys; ++i)
-                {
-                    var p = &mesh->Polys[i * 2 * nvp];
-                    for (var j = 0; j < nvp; ++j)
-                    {
-                        if (p[j] == RCMeshNullIdx)
-                        {
-                            break;
-                        }
-
-                        // Skip connected edges
-                        if (p[nvp + j] != RCMeshNullIdx)
-                        {
-                            continue;
-                        }
-
-                        var nj = j + 1;
-                        if (nj >= nvp || p[nj] == RCMeshNullIdx)
-                        {
-                            nj = 0;
-                        }
-
-                        var va = mesh->Verts[p[j]];
-                        var vb = mesh->Verts[p[nj]];
-
-                        if (va.x == 0 && vb.x == 0)
-                        {
-                            p[nvp + j] = 0x8000 | 0;
-                        }
-                        else if (va.z == h && vb.z == h)
-                        {
-                            p[nvp + j] = 0x8000 | 1;
-                        }
-                        else if (va.x == w && vb.x == w)
-                        {
-                            p[nvp + j] = 0x8000 | 2;
-                        }
-                        else if (va.z == 0 && vb.z == 0)
-                        {
-                            p[nvp + j] = 0x8000 | 3;
-                        }
-                    }
-                }
+                FindPortalEdges(mesh, contourSet->Width, contourSet->Height, nvp);
             }
 
             // Just allocate the mesh flags array. The user is responsible to fill it
@@ -451,6 +267,133 @@ namespace IAFahim.Pathfinding.Recast
             if (!BuildMeshAdjacency(mesh->Polys, mesh->NPolys, mesh->NVerts, mesh->Nvp))
             {
                 return false;
+            }
+
+            return true;
+        }
+
+        private static bool ProcessContour(RcContourSet* contourSet, int i, int nvp, int maxVertsPerCont, int* indices, int* tris, ushort* polys, ushort* tmpPoly, RcPolyMesh* mesh, byte* vflags, int* firstVert, int* nextVert, int maxTris)
+        {
+            var cont = contourSet->Conts[i];
+
+            // Skip null contours
+            if (cont.NVerts < 3)
+            {
+                return true;
+            }
+
+            // Triangulate contour
+            for (var j = 0; j < cont.NVerts; ++j)
+            {
+                indices[j] = j;
+            }
+
+            var ntris = Triangulate(cont.NVerts, (int*)cont.Verts, indices, tris);
+            if (ntris <= 0)
+            {
+                // Bad triangulation, should not happen
+                ntris = -ntris;
+            }
+
+            // Add and merge vertices
+            for (var j = 0; j < cont.NVerts; ++j)
+            {
+                var v = cont.Verts + j;
+                indices[j] = AddVertex((ushort)v->x, (ushort)v->y, (ushort)v->z,
+                    mesh->Verts, firstVert, nextVert, ref mesh->NVerts);
+                if ((v->w & RCBorderVertex) != 0)
+                {
+                    vflags[indices[j]] = 1;
+                }
+            }
+
+            // Build initial polygons
+            var npolys = 0;
+            UnsafeUtility.MemSet(polys, 0xff, maxVertsPerCont * nvp * sizeof(ushort));
+            for (var j = 0; j < ntris; ++j)
+            {
+                var t = &tris[j * 3];
+                if (t[0] != t[1] && t[0] != t[2] && t[1] != t[2])
+                {
+                    polys[(npolys * nvp) + 0] = (ushort)indices[t[0]];
+                    polys[(npolys * nvp) + 1] = (ushort)indices[t[1]];
+                    polys[(npolys * nvp) + 2] = (ushort)indices[t[2]];
+                    npolys++;
+                }
+            }
+
+            if (npolys == 0)
+            {
+                return true;
+            }
+
+            // Merge polygons
+            if (nvp > 3)
+            {
+                while (true)
+                {
+                    // Find best polygons to merge
+                    var bestMergeVal = 0;
+                    int bestPa = 0, bestPb = 0, bestEa = 0, bestEb = 0;
+
+                    for (var j = 0; j < npolys - 1; ++j)
+                    {
+                        var pj = &polys[j * nvp];
+                        for (var k = j + 1; k < npolys; ++k)
+                        {
+                            var pk = &polys[k * nvp];
+                            int ea, eb;
+                            var v = GetPolyMergeValue(pj, pk, mesh->Verts, out ea, out eb, nvp);
+                            if (v > bestMergeVal)
+                            {
+                                bestMergeVal = v;
+                                bestPa = j;
+                                bestPb = k;
+                                bestEa = ea;
+                                bestEb = eb;
+                            }
+                        }
+                    }
+
+                    if (bestMergeVal > 0)
+                    {
+                        // Found best, merge
+                        var pa = &polys[bestPa * nvp];
+                        var pb = &polys[bestPb * nvp];
+                        MergePolyVerts(pa, pb, bestEa, bestEb, tmpPoly, nvp);
+                        var lastPoly = &polys[(npolys - 1) * nvp];
+                        if (pb != lastPoly)
+                        {
+                            UnsafeUtility.MemCpy(pb, lastPoly, sizeof(ushort) * nvp);
+                        }
+
+                        npolys--;
+                    }
+                    else
+                    {
+                        // Could not merge any polygons, stop
+                        break;
+                    }
+                }
+            }
+
+            // Store polygons
+            for (var j = 0; j < npolys; ++j)
+            {
+                var p = &mesh->Polys[mesh->NPolys * nvp * 2];
+                var q = &polys[j * nvp];
+                for (var k = 0; k < nvp; ++k)
+                {
+                    p[k] = q[k];
+                }
+
+                mesh->Regs[mesh->NPolys] = cont.Reg;
+                mesh->Areas[mesh->NPolys] = cont.Area;
+                mesh->NPolys++;
+                if (mesh->NPolys > maxTris)
+                {
+                    return false;
+                }
             }
 
             return true;
@@ -861,6 +804,85 @@ namespace IAFahim.Pathfinding.Recast
             UnsafeUtility.MemCpy(pa, tmp, sizeof(ushort) * nvp);
         }
 
+        private static bool RemoveEdgeVertices(RcPolyMesh* mesh, byte* vflags, int maxTris)
+        {
+            for (var i = 0; i < mesh->NVerts; ++i)
+            {
+                if (vflags[i] != 0)
+                {
+                    if (!CanRemoveVertex(mesh, (ushort)i))
+                    {
+                        continue;
+                    }
+
+                    if (!RemoveVertex(mesh, (ushort)i, maxTris))
+                    {
+                        // Failed to remove vertex
+                        return false;
+                    }
+
+                    // Remove vertex
+                    // Note: mesh.nverts is already decremented inside RemoveVertex()!
+                    // Fixup vertex flags
+                    for (var j = i; j < mesh->NVerts; ++j)
+                    {
+                        vflags[j] = vflags[j + 1];
+                    }
+
+                    --i;
+                }
+            }
+
+            return true;
+        }
+
+        private static void FindPortalEdges(RcPolyMesh* mesh, int w, int h, int nvp)
+        {
+            for (var i = 0; i < mesh->NPolys; ++i)
+            {
+                var p = &mesh->Polys[i * 2 * nvp];
+                for (var j = 0; j < nvp; ++j)
+                {
+                    if (p[j] == RCMeshNullIdx)
+                    {
+                        break;
+                    }
+
+                    // Skip connected edges
+                    if (p[nvp + j] != RCMeshNullIdx)
+                    {
+                        continue;
+                    }
+
+                    var nj = j + 1;
+                    if (nj >= nvp || p[nj] == RCMeshNullIdx)
+                    {
+                        nj = 0;
+                    }
+
+                    var va = mesh->Verts[p[j]];
+                    var vb = mesh->Verts[p[nj]];
+
+                    if (va.x == 0 && vb.x == 0)
+                    {
+                        p[nvp + j] = 0x8000 | 0;
+                    }
+                    else if (va.z == h && vb.z == h)
+                    {
+                        p[nvp + j] = 0x8000 | 1;
+                    }
+                    else if (va.x == w && vb.x == w)
+                    {
+                        p[nvp + j] = 0x8000 | 2;
+                    }
+                    else if (va.z == 0 && vb.z == 0)
+                    {
+                        p[nvp + j] = 0x8000 | 3;
+                    }
+                }
+            }
+        }
+
         private static bool CanRemoveVertex(RcPolyMesh* mesh, ushort rem)
         {
             var nvp = mesh->Nvp;
@@ -1001,46 +1023,7 @@ namespace IAFahim.Pathfinding.Recast
 
             for (var i = 0; i < mesh->NPolys; ++i)
             {
-                var p = &mesh->Polys[i * nvp * 2];
-                var nv = CountPolyVerts(p, nvp);
-                var hasRem = false;
-                for (var j = 0; j < nv; ++j)
-                {
-                    if (p[j] == rem)
-                    {
-                        hasRem = true;
-                    }
-                }
-
-                if (hasRem)
-                {
-                    // Collect edges which does not touch the removed vertex
-                    for (int j = 0, k = nv - 1; j < nv; k = j++)
-                    {
-                        if (p[j] != rem && p[k] != rem)
-                        {
-                            var e = &edges[nedges * 4];
-                            e[0] = p[k];
-                            e[1] = p[j];
-                            e[2] = mesh->Regs[i];
-                            e[3] = mesh->Areas[i];
-                            nedges++;
-                        }
-                    }
-
-                    // Remove the polygon
-                    var p2 = &mesh->Polys[(mesh->NPolys - 1) * nvp * 2];
-                    if (p != p2)
-                    {
-                        UnsafeUtility.MemCpy(p, p2, sizeof(ushort) * nvp);
-                    }
-
-                    UnsafeUtility.MemSet(p + nvp, 0xff, sizeof(ushort) * nvp);
-                    mesh->Regs[i] = mesh->Regs[mesh->NPolys - 1];
-                    mesh->Areas[i] = mesh->Areas[mesh->NPolys - 1];
-                    mesh->NPolys--;
-                    --i;
-                }
+                CollectEdgesForPoly(mesh, i, rem, nvp, edges, ref nedges);
             }
 
             // Remove vertex
@@ -1085,56 +1068,7 @@ namespace IAFahim.Pathfinding.Recast
 
             // Start with one vertex, keep appending connected
             // segments to the start and end of the hole
-            PushBack(edges[0], hole, ref nhole);
-            PushBack(edges[2], hreg, ref nhreg);
-            PushBack(edges[3], harea, ref nharea);
-
-            while (nedges > 0)
-            {
-                var match = false;
-
-                for (var i = 0; i < nedges; ++i)
-                {
-                    var ea = edges[(i * 4) + 0];
-                    var eb = edges[(i * 4) + 1];
-                    var r = edges[(i * 4) + 2];
-                    var a = edges[(i * 4) + 3];
-                    var add = false;
-                    if (hole[0] == eb)
-                    {
-                        // The segment matches the beginning of the hole boundary
-                        PushFront(ea, hole, ref nhole);
-                        PushFront(r, hreg, ref nhreg);
-                        PushFront(a, harea, ref nharea);
-                        add = true;
-                    }
-                    else if (hole[nhole - 1] == ea)
-                    {
-                        // The segment matches the end of the hole boundary
-                        PushBack(eb, hole, ref nhole);
-                        PushBack(r, hreg, ref nhreg);
-                        PushBack(a, harea, ref nharea);
-                        add = true;
-                    }
-
-                    if (add)
-                    {
-                        // The edge segment was added, remove it
-                        edges[(i * 4) + 0] = edges[((nedges - 1) * 4) + 0];
-                        edges[(i * 4) + 1] = edges[((nedges - 1) * 4) + 1];
-                        edges[(i * 4) + 2] = edges[((nedges - 1) * 4) + 2];
-                        edges[(i * 4) + 3] = edges[((nedges - 1) * 4) + 3];
-                        --nedges;
-                        match = true;
-                        --i;
-                    }
-                }
-
-                if (!match)
-                {
-                    break;
-                }
-            }
+            AssembleHoleBoundary(edges, ref nedges, hole, ref nhole, hreg, ref nhreg, harea, ref nharea);
 
             var tris = (int*)AllocatorManager.Allocate(Allocator.Temp, sizeof(int) * nhole * 3, UnsafeUtility.AlignOf<int>());
             var tverts = (int*)AllocatorManager.Allocate(Allocator.Temp, sizeof(int) * nhole * 4, UnsafeUtility.AlignOf<int>());
@@ -1280,6 +1214,104 @@ namespace IAFahim.Pathfinding.Recast
             }
 
             return true;
+        }
+
+        private static void CollectEdgesForPoly(RcPolyMesh* mesh, int i, ushort rem, int nvp, int* edges, ref int nedges)
+        {
+            var p = &mesh->Polys[i * nvp * 2];
+            var nv = CountPolyVerts(p, nvp);
+            var hasRem = false;
+            for (var j = 0; j < nv; ++j)
+            {
+                if (p[j] == rem)
+                {
+                    hasRem = true;
+                }
+            }
+
+            if (hasRem)
+            {
+                // Collect edges which does not touch the removed vertex
+                for (int j = 0, k = nv - 1; j < nv; k = j++)
+                {
+                    if (p[j] != rem && p[k] != rem)
+                    {
+                        var e = &edges[nedges * 4];
+                        e[0] = p[k];
+                        e[1] = p[j];
+                        e[2] = mesh->Regs[i];
+                        e[3] = mesh->Areas[i];
+                        nedges++;
+                    }
+                }
+
+                // Remove the polygon
+                var p2 = &mesh->Polys[(mesh->NPolys - 1) * nvp * 2];
+                if (p != p2)
+                {
+                    UnsafeUtility.MemCpy(p, p2, sizeof(ushort) * nvp);
+                }
+
+                UnsafeUtility.MemSet(p + nvp, 0xff, sizeof(ushort) * nvp);
+                mesh->Regs[i] = mesh->Regs[mesh->NPolys - 1];
+                mesh->Areas[i] = mesh->Areas[mesh->NPolys - 1];
+                mesh->NPolys--;
+                --i;
+            }
+        }
+
+        private static void AssembleHoleBoundary(int* edges, ref int nedges, int* hole, ref int nhole, int* hreg, ref int nhreg, int* harea, ref int nharea)
+        {
+            PushBack(edges[0], hole, ref nhole);
+            PushBack(edges[2], hreg, ref nhreg);
+            PushBack(edges[3], harea, ref nharea);
+
+            while (nedges > 0)
+            {
+                var match = false;
+
+                for (var i = 0; i < nedges; ++i)
+                {
+                    var ea = edges[(i * 4) + 0];
+                    var eb = edges[(i * 4) + 1];
+                    var r = edges[(i * 4) + 2];
+                    var a = edges[(i * 4) + 3];
+                    var add = false;
+                    if (hole[0] == eb)
+                    {
+                        // The segment matches the beginning of the hole boundary
+                        PushFront(ea, hole, ref nhole);
+                        PushFront(r, hreg, ref nhreg);
+                        PushFront(a, harea, ref nharea);
+                        add = true;
+                    }
+                    else if (hole[nhole - 1] == ea)
+                    {
+                        // The segment matches the end of the hole boundary
+                        PushBack(eb, hole, ref nhole);
+                        PushBack(r, hreg, ref nhreg);
+                        PushBack(a, harea, ref nharea);
+                        add = true;
+                    }
+
+                    if (add)
+                    {
+                        // The edge segment was added, remove it
+                        edges[(i * 4) + 0] = edges[((nedges - 1) * 4) + 0];
+                        edges[(i * 4) + 1] = edges[((nedges - 1) * 4) + 1];
+                        edges[(i * 4) + 2] = edges[((nedges - 1) * 4) + 2];
+                        edges[(i * 4) + 3] = edges[((nedges - 1) * 4) + 3];
+                        --nedges;
+                        match = true;
+                        --i;
+                    }
+                }
+
+                if (!match)
+                {
+                    break;
+                }
+            }
         }
 
         private static void PushFront(int v, int* arr, ref int an)
