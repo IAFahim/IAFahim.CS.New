@@ -150,3 +150,4 @@ src/IAFahim.Pathfinding.Recast/Recast/Recast.Region.cs
 src/IAFahim.Pathfinding.Recast/Recast/Recast.Contour.cs
 src/IAFahim.Pathfinding.Recast/Recast/Recast.Mesh.cs
 src/IAFahim.Pathfinding.Recast/Recast/Recast.Layers.cs
+src/IAFahim.Pathfinding.Recast/Detour/DtNavMeshQuery.cs

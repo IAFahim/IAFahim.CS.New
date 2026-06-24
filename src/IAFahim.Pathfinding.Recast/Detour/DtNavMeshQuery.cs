@@ -1409,15 +1409,8 @@ namespace IAFahim.Pathfinding.Recast
                             portalApex = portalLeft;
                             apexIndex = leftIndex;
 
-                            var flags = (DtStraightPathFlags)0;
-                            if (leftPolyRef == 0)
-                            {
-                                flags = DtStraightPathFlags.StraightpathEnd;
-                            }
-                            else if (leftPolyType == DtPolyTypes.PolytypeOffMeshConnection)
-                            {
-                                flags = DtStraightPathFlags.StraightpathOffmeshConnection;
-                            }
+                            
+                            var flags = ComputeApexFlags(leftPolyRef, leftPolyType);
 
                             var polyRef = leftPolyRef;
 
@@ -1473,15 +1466,8 @@ namespace IAFahim.Pathfinding.Recast
                             portalApex = portalRight;
                             apexIndex = rightIndex;
 
-                            var flags = (DtStraightPathFlags)0;
-                            if (rightPolyRef == 0)
-                            {
-                                flags = DtStraightPathFlags.StraightpathEnd;
-                            }
-                            else if (rightPolyType == DtPolyTypes.PolytypeOffMeshConnection)
-                            {
-                                flags = DtStraightPathFlags.StraightpathOffmeshConnection;
-                            }
+                            
+                            var flags = ComputeApexFlags(rightPolyRef, rightPolyType);
 
                             var polyRef = rightPolyRef;
 
@@ -1803,15 +1789,8 @@ namespace IAFahim.Pathfinding.Recast
                             portalApex = portalLeft;
                             apexIndex = leftIndex;
 
-                            var flags = (DtStraightPathFlags)0;
-                            if (leftPolyRef == 0)
-                            {
-                                flags = DtStraightPathFlags.StraightpathEnd;
-                            }
-                            else if (leftPolyType == DtPolyTypes.PolytypeOffMeshConnection)
-                            {
-                                flags = DtStraightPathFlags.StraightpathOffmeshConnection;
-                            }
+                            
+                            var flags = ComputeApexFlags(leftPolyRef, leftPolyType);
 
                             var polyRef = leftPolyRef;
 
@@ -1866,15 +1845,8 @@ namespace IAFahim.Pathfinding.Recast
                             portalApex = portalRight;
                             apexIndex = rightIndex;
 
-                            var flags = (DtStraightPathFlags)0;
-                            if (rightPolyRef == 0)
-                            {
-                                flags = DtStraightPathFlags.StraightpathEnd;
-                            }
-                            else if (rightPolyType == DtPolyTypes.PolytypeOffMeshConnection)
-                            {
-                                flags = DtStraightPathFlags.StraightpathOffmeshConnection;
-                            }
+                            
+                            var flags = ComputeApexFlags(rightPolyRef, rightPolyType);
 
                             var polyRef = rightPolyRef;
 
@@ -1955,6 +1927,21 @@ namespace IAFahim.Pathfinding.Recast
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static DtStraightPathFlags ComputeApexFlags(DtPolyRef polyRef, DtPolyTypes polyType)
+        {
+            if (polyRef == 0)
+            {
+                return DtStraightPathFlags.StraightpathEnd;
+            }
+
+            if (polyType == DtPolyTypes.PolytypeOffMeshConnection)
+            {
+                return DtStraightPathFlags.StraightpathOffmeshConnection;
+            }
+
+            return (DtStraightPathFlags)0;
+        }
+
         private static bool ShouldAppendStraightPathPortals(DtStraightPathOptions options)
         {
             return (options & (DtStraightPathOptions.StraightPathAreaCrossings | DtStraightPathOptions.StraightPathAllCrossings)) != 0;
