@@ -1,4 +1,32 @@
 # IAFahim.Graph.RandomWalk
 
-## Use case
-Curious cat uses random walk routines to estimate visit probabilities and expected steps. It helps when the cat needs stochastic graph insights.
+## Description
+This package provides random walk routines for graph path simulations.
+
+## Complexity
+Time complexity depends on the walk step count.
+
+## API Signature
+```csharp
+public static unsafe class RandomWalk
+{
+    public static void Run(int* ptr, int len)
+}
+```
+
+## Usage Example
+```csharp
+unsafe
+{
+    int len = 10;
+    int* ptr = (int*)System.Runtime.InteropServices.Marshal.AllocHGlobal(len * sizeof(int));
+    try
+    {
+        IAFahim.Graph.RandomWalk.Run(ptr, len);
+    }
+    finally
+    {
+        System.Runtime.InteropServices.Marshal.FreeHGlobal((System.IntPtr)ptr);
+    }
+}
+```
