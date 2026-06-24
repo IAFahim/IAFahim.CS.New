@@ -1358,6 +1358,42 @@ namespace IAFahim.Pathfinding.Recast
                 regions[i] = new RcRegion((ushort)i);
             }
 
+            BuildRegionData(w, h, nreg, chf, srcReg, regions);
+
+            // Remove too small regions
+            var stack = new NativeList<int>(32, Allocator.Temp);
+            var trace = new NativeList<int>(32, Allocator.Temp);
+            RemoveSmallRegions(nreg, minRegionArea, regions, stack, trace);
+
+            // Merge too small regions to neighbour regions
+            MergeSmallRegions(nreg, mergeRegionSize, regions);
+
+            // Compress region Ids
+            CompressRegionIds(nreg, regions, out ushort regIdGen);
+
+            maxRegionId = regIdGen;
+
+            // Remap regions
+            for (var i = 0; i < chf.SpanCount; ++i)
+            {
+                if ((srcReg[i] & RCBorderReg) == 0)
+                {
+                    srcReg[i] = regions[srcReg[i]].ID;
+                }
+            }
+
+            // Return regions that we found to be overlapping
+            for (var i = 0; i < nreg; ++i)
+            {
+                if (regions[i].Overlap)
+                {
+                    overlaps.Add(regions[i].ID);
+                }
+            }
+        }
+
+        private static void BuildRegionData(int w, int h, int nreg, in RcCompactHeightfield chf, ushort* srcReg, NativeArray<RcRegion> regions)
+        {
             // Find edge of a region and find connections around the contour
             for (var y = 0; y < h; ++y)
             {
@@ -1427,10 +1463,10 @@ namespace IAFahim.Pathfinding.Recast
                     }
                 }
             }
+        }
 
-            // Remove too small regions
-            var stack = new NativeList<int>(32, Allocator.Temp);
-            var trace = new NativeList<int>(32, Allocator.Temp);
+        private static void RemoveSmallRegions(int nreg, int minRegionArea, NativeArray<RcRegion> regions, NativeList<int> stack, NativeList<int> trace)
+        {
             for (var i = 0; i < nreg; ++i)
             {
                 var reg = regions[i];
@@ -1509,7 +1545,10 @@ namespace IAFahim.Pathfinding.Recast
                     }
                 }
             }
+        }
 
+        private static void MergeSmallRegions(int nreg, int mergeRegionSize, NativeArray<RcRegion> regions)
+        {
             // Merge too small regions to neighbour regions
             int mergeCount;
             do
@@ -1604,8 +1643,10 @@ namespace IAFahim.Pathfinding.Recast
                 }
             }
             while (mergeCount > 0);
+        }
 
-            // Compress region Ids
+        private static void CompressRegionIds(int nreg, NativeArray<RcRegion> regions, out ushort regIdGen)
+        {
             for (var i = 0; i < nreg; ++i)
             {
                 var reg = regions[i];
@@ -1624,7 +1665,7 @@ namespace IAFahim.Pathfinding.Recast
                 regions[i] = reg;
             }
 
-            ushort regIdGen = 0;
+            regIdGen = 0;
             for (var i = 0; i < nreg; ++i)
             {
                 var reg = regions[i];
@@ -1644,26 +1685,6 @@ namespace IAFahim.Pathfinding.Recast
                         updateReg.Remap = false;
                         regions[j] = updateReg;
                     }
-                }
-            }
-
-            maxRegionId = regIdGen;
-
-            // Remap regions
-            for (var i = 0; i < chf.SpanCount; ++i)
-            {
-                if ((srcReg[i] & RCBorderReg) == 0)
-                {
-                    srcReg[i] = regions[srcReg[i]].ID;
-                }
-            }
-
-            // Return regions that we found to be overlapping
-            for (var i = 0; i < nreg; ++i)
-            {
-                if (regions[i].Overlap)
-                {
-                    overlaps.Add(regions[i].ID);
                 }
             }
         }
