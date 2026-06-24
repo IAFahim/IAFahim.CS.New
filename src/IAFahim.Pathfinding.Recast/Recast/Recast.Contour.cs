@@ -481,7 +481,16 @@ namespace IAFahim.Pathfinding.Recast
 
         private static void SimplifyContour(NativeList<int> points, NativeList<int> simplified, float maxError, int maxEdgeLen, RcBuildContoursFlags buildFlags)
         {
-            // Add initial points
+            SeedSimplifiedPoints(points, simplified);
+
+            var pn = points.Length / 4;
+            SimplifyByError(points, simplified, pn, maxError);
+            SplitLongEdges(points, simplified, pn, maxEdgeLen, buildFlags);
+            RebuildEdgeFlags(points, simplified, pn);
+        }
+
+        private static void SeedSimplifiedPoints(NativeList<int> points, NativeList<int> simplified)
+        {
             var hasConnections = false;
             for (var i = 0; i < points.Length; i += 4)
             {
@@ -494,8 +503,6 @@ namespace IAFahim.Pathfinding.Recast
 
             if (hasConnections)
             {
-                // The contour has some portals to other regions
-                // Add a new point to every location where the region changes
                 for (int i = 0, ni = points.Length / 4; i < ni; ++i)
                 {
                     var ii = (i + 1) % ni;
@@ -513,9 +520,6 @@ namespace IAFahim.Pathfinding.Recast
 
             if (simplified.Length == 0)
             {
-                // If there is no connections at all,
-                // create some initial points for the simplification process
-                // Find lower-left and upper-right vertices of the contour
                 var llx = points[0];
                 var lly = points[1];
                 var llz = points[2];
@@ -556,9 +560,10 @@ namespace IAFahim.Pathfinding.Recast
                 simplified.Add(urz);
                 simplified.Add(uri);
             }
+        }
 
-            // Add points until all raw points are within error tolerance to the simplified shape
-            var pn = points.Length / 4;
+        private static void SimplifyByError(NativeList<int> points, NativeList<int> simplified, int pn, float maxError)
+        {
             for (var i = 0; i < simplified.Length / 4;)
             {
                 var ii = (i + 1) % (simplified.Length / 4);
@@ -571,13 +576,10 @@ namespace IAFahim.Pathfinding.Recast
                 var bz = simplified[(ii * 4) + 2];
                 var bi = simplified[(ii * 4) + 3];
 
-                // Find maximum deviation from the segment
                 float maxd = 0;
                 var maxi = -1;
                 int ci, cinc, endi;
 
-                // Traverse the segment in lexilogical order so that the
-                // max deviation is calculated similarly when traversing opposite segments
                 if (bx > ax || (bx == ax && bz > az))
                 {
                     cinc = 1;
@@ -590,12 +592,10 @@ namespace IAFahim.Pathfinding.Recast
                     ci = (bi + cinc) % pn;
                     endi = ai;
 
-                    // Swap ax,bx and az,bz
                     (ax, bx) = (bx, ax);
                     (az, bz) = (bz, az);
                 }
 
-                // Tessellate only outer edges or edges between areas
                 if ((points[(ci * 4) + 3] & RCContourRegMask) == 0 || (points[(ci * 4) + 3] & RCAreaBorder) != 0)
                 {
                     while (ci != endi)
@@ -611,111 +611,97 @@ namespace IAFahim.Pathfinding.Recast
                     }
                 }
 
-                // If the max deviation is larger than accepted error, add new point, else continue to next segment
                 if (maxi != -1 && maxd > maxError * maxError)
                 {
-                    // Add space for the new point
-                    simplified.Resize(simplified.Length + 4, NativeArrayOptions.UninitializedMemory);
-                    var n = simplified.Length / 4;
-                    for (var j = n - 1; j > i; --j)
-                    {
-                        simplified[(j * 4) + 0] = simplified[((j - 1) * 4) + 0];
-                        simplified[(j * 4) + 1] = simplified[((j - 1) * 4) + 1];
-                        simplified[(j * 4) + 2] = simplified[((j - 1) * 4) + 2];
-                        simplified[(j * 4) + 3] = simplified[((j - 1) * 4) + 3];
-                    }
-
-                    // Add the point
-                    simplified[((i + 1) * 4) + 0] = points[(maxi * 4) + 0];
-                    simplified[((i + 1) * 4) + 1] = points[(maxi * 4) + 1];
-                    simplified[((i + 1) * 4) + 2] = points[(maxi * 4) + 2];
-                    simplified[((i + 1) * 4) + 3] = maxi;
+                    InsertSimplifiedPoint(points, simplified, i, maxi);
                 }
                 else
                 {
                     ++i;
                 }
             }
+        }
 
-            // Split too long edges
-            if (maxEdgeLen > 0 && (buildFlags & (RcBuildContoursFlags.RCContourTessWallEdges | RcBuildContoursFlags.RCContourTessAreaEdges)) != 0)
+        private static void SplitLongEdges(NativeList<int> points, NativeList<int> simplified, int pn, int maxEdgeLen, RcBuildContoursFlags buildFlags)
+        {
+            if (maxEdgeLen <= 0 || (buildFlags & (RcBuildContoursFlags.RCContourTessWallEdges | RcBuildContoursFlags.RCContourTessAreaEdges)) == 0)
             {
-                for (var i = 0; i < simplified.Length / 4;)
+                return;
+            }
+
+            for (var i = 0; i < simplified.Length / 4;)
+            {
+                var ii = (i + 1) % (simplified.Length / 4);
+
+                var ax = simplified[(i * 4) + 0];
+                var az = simplified[(i * 4) + 2];
+                var ai = simplified[(i * 4) + 3];
+
+                var bx = simplified[(ii * 4) + 0];
+                var bz = simplified[(ii * 4) + 2];
+                var bi = simplified[(ii * 4) + 3];
+
+                var maxi = -1;
+                var ci = (ai + 1) % pn;
+
+                var tess =
+                    ((buildFlags & RcBuildContoursFlags.RCContourTessWallEdges) != 0 && (points[(ci * 4) + 3] & RCContourRegMask) == 0)
+                    || ((buildFlags & RcBuildContoursFlags.RCContourTessAreaEdges) != 0 && (points[(ci * 4) + 3] & RCAreaBorder) != 0);
+
+                if (tess)
                 {
-                    var ii = (i + 1) % (simplified.Length / 4);
-
-                    var ax = simplified[(i * 4) + 0];
-                    var az = simplified[(i * 4) + 2];
-                    var ai = simplified[(i * 4) + 3];
-
-                    var bx = simplified[(ii * 4) + 0];
-                    var bz = simplified[(ii * 4) + 2];
-                    var bi = simplified[(ii * 4) + 3];
-
-                    // Find maximum deviation from the segment
-                    var maxi = -1;
-                    var ci = (ai + 1) % pn;
-
-                    // Tessellate only outer edges or edges between areas
-                    // Wall edges or Edges between areas
-                    var tess =
-                        ((buildFlags & RcBuildContoursFlags.RCContourTessWallEdges) != 0 && (points[(ci * 4) + 3] & RCContourRegMask) == 0)
-                        || ((buildFlags & RcBuildContoursFlags.RCContourTessAreaEdges) != 0 && (points[(ci * 4) + 3] & RCAreaBorder) != 0);
-
-                    if (tess)
+                    var dx = bx - ax;
+                    var dz = bz - az;
+                    if ((dx * dx) + (dz * dz) > maxEdgeLen * maxEdgeLen)
                     {
-                        var dx = bx - ax;
-                        var dz = bz - az;
-                        if ((dx * dx) + (dz * dz) > maxEdgeLen * maxEdgeLen)
+                        var n = bi < ai ? bi + pn - ai : bi - ai;
+                        if (n > 1)
                         {
-                            // Round based on the segments in lexilogical order so that the
-                            // max tesselation is consistent regardless in which direction segments are traversed
-                            var n = bi < ai ? bi + pn - ai : bi - ai;
-                            if (n > 1)
+                            if (bx > ax || (bx == ax && bz > az))
                             {
-                                if (bx > ax || (bx == ax && bz > az))
-                                {
-                                    maxi = (ai + (n / 2)) % pn;
-                                }
-                                else
-                                {
-                                    maxi = (ai + ((n + 1) / 2)) % pn;
-                                }
+                                maxi = (ai + (n / 2)) % pn;
+                            }
+                            else
+                            {
+                                maxi = (ai + ((n + 1) / 2)) % pn;
                             }
                         }
                     }
+                }
 
-                    // If the max deviation is larger than accepted error, add new point, else continue to next segment
-                    if (maxi != -1)
-                    {
-                        // Add space for the new point
-                        simplified.Resize(simplified.Length + 4, NativeArrayOptions.UninitializedMemory);
-                        var n = simplified.Length / 4;
-                        for (var j = n - 1; j > i; --j)
-                        {
-                            simplified[(j * 4) + 0] = simplified[((j - 1) * 4) + 0];
-                            simplified[(j * 4) + 1] = simplified[((j - 1) * 4) + 1];
-                            simplified[(j * 4) + 2] = simplified[((j - 1) * 4) + 2];
-                            simplified[(j * 4) + 3] = simplified[((j - 1) * 4) + 3];
-                        }
-
-                        // Add the point
-                        simplified[((i + 1) * 4) + 0] = points[(maxi * 4) + 0];
-                        simplified[((i + 1) * 4) + 1] = points[(maxi * 4) + 1];
-                        simplified[((i + 1) * 4) + 2] = points[(maxi * 4) + 2];
-                        simplified[((i + 1) * 4) + 3] = maxi;
-                    }
-                    else
-                    {
-                        ++i;
-                    }
+                if (maxi != -1)
+                {
+                    InsertSimplifiedPoint(points, simplified, i, maxi);
+                }
+                else
+                {
+                    ++i;
                 }
             }
+        }
 
+        private static void InsertSimplifiedPoint(NativeList<int> points, NativeList<int> simplified, int i, int maxi)
+        {
+            simplified.Resize(simplified.Length + 4, NativeArrayOptions.UninitializedMemory);
+            var n = simplified.Length / 4;
+            for (var j = n - 1; j > i; --j)
+            {
+                simplified[(j * 4) + 0] = simplified[((j - 1) * 4) + 0];
+                simplified[(j * 4) + 1] = simplified[((j - 1) * 4) + 1];
+                simplified[(j * 4) + 2] = simplified[((j - 1) * 4) + 2];
+                simplified[(j * 4) + 3] = simplified[((j - 1) * 4) + 3];
+            }
+
+            simplified[((i + 1) * 4) + 0] = points[(maxi * 4) + 0];
+            simplified[((i + 1) * 4) + 1] = points[(maxi * 4) + 1];
+            simplified[((i + 1) * 4) + 2] = points[(maxi * 4) + 2];
+            simplified[((i + 1) * 4) + 3] = maxi;
+        }
+
+        private static void RebuildEdgeFlags(NativeList<int> points, NativeList<int> simplified, int pn)
+        {
             for (var i = 0; i < simplified.Length / 4; ++i)
             {
-                // The edge vertex flag is taken from the current raw point,
-                // and the neighbour region is taken from the next raw point
                 var ai = (simplified[(i * 4) + 3] + 1) % pn;
                 var bi = simplified[(i * 4) + 3];
                 simplified[(i * 4) + 3] = (points[(ai * 4) + 3] & (RCContourRegMask | RCAreaBorder)) |
