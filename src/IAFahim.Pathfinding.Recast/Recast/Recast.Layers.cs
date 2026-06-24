@@ -42,6 +42,253 @@ namespace IAFahim.Pathfinding.Recast
             var prevCount = stackalloc int[256];
             byte regId = 0;
 
+            if (!PartitionMonotoneRegions(compactHeightfield, borderSize, w, h, srcReg, sweeps, prevCount, ref regId))
+            {
+                return false;
+            }
+
+            // Allocate and init layer regions
+            int nregs = regId;
+            var regs = (LayerRegion*)AllocatorManager.Allocate(Allocator.Temp, sizeof(LayerRegion) * nregs, UnsafeUtility.AlignOf<LayerRegion>());
+
+            UnsafeUtility.MemClear(regs, sizeof(LayerRegion) * nregs);
+            for (var i = 0; i < nregs; ++i)
+            {
+                regs[i].LayerId = 0xff;
+                regs[i].Ymin = 0xffff;
+                regs[i].Ymax = 0;
+            }
+
+            var lregs = stackalloc byte[RCMaxLayers];
+
+            // Find region neighbours and overlapping regions
+            if (!FindRegionNeighboursAndOverlaps(compactHeightfield, w, h, srcReg, regs, lregs))
+            {
+                return false;
+            }
+
+            // Create 2D layers from regions
+            byte layerId = 0;
+
+            const int maxStack = 64;
+            var stack = stackalloc byte[maxStack];
+
+            if (!CreateLayersFromRegions(regs, nregs, stack, maxStack, ref layerId))
+            {
+                return false;
+            }
+
+            // Merge non-overlapping regions that are close in height
+            var mergeHeight = (ushort)(walkableHeight * 4);
+
+            if (!MergeCloseHeightRegions(regs, nregs, mergeHeight))
+            {
+                return false;
+            }
+
+            // Compact layerIds
+            var remap = stackalloc byte[256];
+            UnsafeUtility.MemClear(remap, 256);
+
+            // Find number of unique layers
+            layerId = 0;
+            for (var i = 0; i < nregs; ++i)
+            {
+                remap[regs[i].LayerId] = 1;
+            }
+
+            for (var i = 0; i < 256; ++i)
+            {
+                if (remap[i] != 0)
+                {
+                    remap[i] = layerId++;
+                }
+                else
+                {
+                    remap[i] = 0xff;
+                }
+            }
+
+            // Remap ids
+            for (var i = 0; i < nregs; ++i)
+            {
+                regs[i].LayerId = remap[regs[i].LayerId];
+            }
+
+            // No layers, return empty
+            if (layerId == 0)
+            {
+                return true;
+            }
+
+            // Create layers
+            var lw = w - (borderSize * 2);
+            var lh = h - (borderSize * 2);
+
+            // Build contracted bbox for layers
+            var bmin = compactHeightfield->BMin;
+            var bmax = compactHeightfield->BMax;
+            bmin.x += borderSize * compactHeightfield->CellSize;
+            bmin.z += borderSize * compactHeightfield->CellSize;
+            bmax.x -= borderSize * compactHeightfield->CellSize;
+            bmax.z -= borderSize * compactHeightfield->CellSize;
+
+            layerSet->NLayers = layerId;
+
+            layerSet->Layers = (RcHeightfieldLayer*)AllocatorManager.Allocate(layerSet->Allocator, sizeof(RcHeightfieldLayer) * layerSet->NLayers,
+                UnsafeUtility.AlignOf<RcHeightfieldLayer>());
+
+            UnsafeUtility.MemClear(layerSet->Layers, sizeof(RcHeightfieldLayer) * layerSet->NLayers);
+
+            // Store layers
+            for (var i = 0; i < layerSet->NLayers; ++i)
+            {
+                BuildLayer(layerSet, i, compactHeightfield, borderSize, w, lw, lh, bmin, bmax, srcReg, regs, nregs);
+            }
+
+            return true;
+        }
+
+        private static void BuildLayer(RcHeightfieldLayerSet* layerSet, int i, RcCompactHeightfield* compactHeightfield, int borderSize, int w, int lw, int lh, float3 bmin, float3 bmax, byte* srcReg, LayerRegion* regs, int nregs)
+        {
+            var curId = (byte)i;
+
+            var layer = &layerSet->Layers[i];
+            *layer = new RcHeightfieldLayer(layerSet->Allocator);
+
+            var gridSize = sizeof(byte) * lw * lh;
+
+            layer->Heights = (byte*)AllocatorManager.Allocate(layerSet->Allocator, gridSize, UnsafeUtility.AlignOf<byte>());
+            UnsafeUtility.MemSet(layer->Heights, 0xff, gridSize);
+
+            layer->Areas = (byte*)AllocatorManager.Allocate(layerSet->Allocator, gridSize, UnsafeUtility.AlignOf<byte>());
+            UnsafeUtility.MemClear(layer->Areas, gridSize);
+
+            layer->Cons = (byte*)AllocatorManager.Allocate(layerSet->Allocator, gridSize, UnsafeUtility.AlignOf<byte>());
+            UnsafeUtility.MemClear(layer->Cons, gridSize);
+
+            // Find layer height bounds
+            int hmin = 0, hmax = 0;
+            for (var j = 0; j < nregs; ++j)
+            {
+                if (regs[j].Base != 0 && regs[j].LayerId == curId)
+                {
+                    hmin = regs[j].Ymin;
+                    hmax = regs[j].Ymax;
+                }
+            }
+
+            layer->Width = lw;
+            layer->Height = lh;
+            layer->CellSize = compactHeightfield->CellSize;
+            layer->CellHeight = compactHeightfield->CellHeight;
+
+            // Adjust the bbox to fit the heightfield
+            layer->BoundMin = bmin;
+            layer->BoundMax = bmax;
+            layer->BoundMin.y = bmin.y + (hmin * compactHeightfield->CellHeight);
+            layer->BoundMax.y = bmin.y + (hmax * compactHeightfield->CellHeight);
+            layer->HeightMin = hmin;
+            layer->HeightMax = hmax;
+
+            // Update usable data region
+            layer->MinX = layer->Width;
+            layer->MaxX = 0;
+            layer->MinY = layer->Height;
+            layer->MaxY = 0;
+
+            // Copy height and area from compact heightfield
+            for (var y = 0; y < lh; ++y)
+            {
+                for (var x = 0; x < lw; ++x)
+                {
+                    var cx = borderSize + x;
+                    var cy = borderSize + y;
+                    var c = compactHeightfield->Cells[cx + (cy * w)];
+                    for (int j = (int)c.Index, nj = (int)(c.Index + c.Count); j < nj; ++j)
+                    {
+                        var s = compactHeightfield->Spans[j];
+
+                        // Skip unassigned regions
+                        if (srcReg[j] == 0xff)
+                        {
+                            continue;
+                        }
+
+                        // Skip if does not belong to current layer
+                        var lid = regs[srcReg[j]].LayerId;
+                        if (lid != curId)
+                        {
+                            continue;
+                        }
+
+                        // Update data bounds
+                        layer->MinX = math.min(layer->MinX, x);
+                        layer->MaxX = math.max(layer->MaxX, x);
+                        layer->MinY = math.min(layer->MinY, y);
+                        layer->MaxY = math.max(layer->MaxY, y);
+
+                        // Store height and area type
+                        var idx = x + (y * lw);
+                        layer->Heights[idx] = (byte)(s.Y - hmin);
+                        layer->Areas[idx] = compactHeightfield->Areas[j];
+
+                        // Check connection
+                        byte portal = 0;
+                        byte con = 0;
+                        for (var dir = 0; dir < 4; ++dir)
+                        {
+                            if (GetCon(s, dir) != RCNotConnected)
+                            {
+                                var ax = cx + GetDirOffsetX(dir);
+                                var ay = cy + GetDirOffsetY(dir);
+                                var ai = (int)compactHeightfield->Cells[ax + (ay * w)].Index + GetCon(s, dir);
+                                var alid = srcReg[ai] != 0xff ? regs[srcReg[ai]].LayerId : (byte)0xff;
+
+                                // Portal mask
+                                if (compactHeightfield->Areas[ai] != RCNullArea && lid != alid)
+                                {
+                                    portal |= (byte)(1 << dir);
+
+                                    // Update height so that it matches on both sides of the portal
+                                    var aSpan = compactHeightfield->Spans[ai];
+                                    if (aSpan.Y > hmin)
+                                    {
+                                        layer->Heights[idx] = (byte)math.max((int)layer->Heights[idx], (byte)(aSpan.Y - hmin));
+                                    }
+                                }
+
+                                // Valid connection mask
+                                if (compactHeightfield->Areas[ai] != RCNullArea && lid == alid)
+                                {
+                                    var nx = ax - borderSize;
+                                    var ny = ay - borderSize;
+                                    if (nx >= 0 && ny >= 0 && nx < lw && ny < lh)
+                                    {
+                                        con |= (byte)(1 << dir);
+                                    }
+                                }
+                            }
+                        }
+
+                        layer->Cons[idx] = (byte)((portal << 4) | con);
+                    }
+                }
+            }
+
+            if (layer->MinX > layer->MaxX)
+            {
+                layer->MinX = layer->MaxX = 0;
+            }
+
+            if (layer->MinY > layer->MaxY)
+            {
+                layer->MinY = layer->MaxY = 0;
+            }
+        }
+
+        private static bool PartitionMonotoneRegions(RcCompactHeightfield* compactHeightfield, int borderSize, int w, int h, byte* srcReg, LayerSweepSpan* sweeps, int* prevCount, ref byte regId)
+        {
             for (var y = borderSize; y < h - borderSize; ++y)
             {
                 UnsafeUtility.MemClear(prevCount, sizeof(int) * regId);
@@ -148,21 +395,11 @@ namespace IAFahim.Pathfinding.Recast
                 }
             }
 
-            // Allocate and init layer regions
-            int nregs = regId;
-            var regs = (LayerRegion*)AllocatorManager.Allocate(Allocator.Temp, sizeof(LayerRegion) * nregs, UnsafeUtility.AlignOf<LayerRegion>());
+            return true;
+        }
 
-            UnsafeUtility.MemClear(regs, sizeof(LayerRegion) * nregs);
-            for (var i = 0; i < nregs; ++i)
-            {
-                regs[i].LayerId = 0xff;
-                regs[i].Ymin = 0xffff;
-                regs[i].Ymax = 0;
-            }
-
-            var lregs = stackalloc byte[RCMaxLayers];
-
-            // Find region neighbours and overlapping regions
+        private static bool FindRegionNeighboursAndOverlaps(RcCompactHeightfield* compactHeightfield, int w, int h, byte* srcReg, LayerRegion* regs, byte* lregs)
+        {
             for (var y = 0; y < h; ++y)
             {
                 for (var x = 0; x < w; ++x)
@@ -227,12 +464,11 @@ namespace IAFahim.Pathfinding.Recast
                 }
             }
 
-            // Create 2D layers from regions
-            byte layerId = 0;
+            return true;
+        }
 
-            const int maxStack = 64;
-            var stack = stackalloc byte[maxStack];
-
+        private static bool CreateLayersFromRegions(LayerRegion* regs, int nregs, byte* stack, int maxStack, ref byte layerId)
+        {
             for (var i = 0; i < nregs; ++i)
             {
                 var root = &regs[i];
@@ -308,9 +544,11 @@ namespace IAFahim.Pathfinding.Recast
                 layerId++;
             }
 
-            // Merge non-overlapping regions that are close in height
-            var mergeHeight = (ushort)(walkableHeight * 4);
+            return true;
+        }
 
+        private static bool MergeCloseHeightRegions(LayerRegion* regs, int nregs, ushort mergeHeight)
+        {
             for (var i = 0; i < nregs; ++i)
             {
                 var ri = &regs[i];
@@ -414,199 +652,6 @@ namespace IAFahim.Pathfinding.Recast
                             ri->Ymax = (ushort)math.max((int)ri->Ymax, rj->Ymax);
                         }
                     }
-                }
-            }
-
-            // Compact layerIds
-            var remap = stackalloc byte[256];
-            UnsafeUtility.MemClear(remap, 256);
-
-            // Find number of unique layers
-            layerId = 0;
-            for (var i = 0; i < nregs; ++i)
-            {
-                remap[regs[i].LayerId] = 1;
-            }
-
-            for (var i = 0; i < 256; ++i)
-            {
-                if (remap[i] != 0)
-                {
-                    remap[i] = layerId++;
-                }
-                else
-                {
-                    remap[i] = 0xff;
-                }
-            }
-
-            // Remap ids
-            for (var i = 0; i < nregs; ++i)
-            {
-                regs[i].LayerId = remap[regs[i].LayerId];
-            }
-
-            // No layers, return empty
-            if (layerId == 0)
-            {
-                return true;
-            }
-
-            // Create layers
-            var lw = w - (borderSize * 2);
-            var lh = h - (borderSize * 2);
-
-            // Build contracted bbox for layers
-            var bmin = compactHeightfield->BMin;
-            var bmax = compactHeightfield->BMax;
-            bmin.x += borderSize * compactHeightfield->CellSize;
-            bmin.z += borderSize * compactHeightfield->CellSize;
-            bmax.x -= borderSize * compactHeightfield->CellSize;
-            bmax.z -= borderSize * compactHeightfield->CellSize;
-
-            layerSet->NLayers = layerId;
-
-            layerSet->Layers = (RcHeightfieldLayer*)AllocatorManager.Allocate(layerSet->Allocator, sizeof(RcHeightfieldLayer) * layerSet->NLayers,
-                UnsafeUtility.AlignOf<RcHeightfieldLayer>());
-
-            UnsafeUtility.MemClear(layerSet->Layers, sizeof(RcHeightfieldLayer) * layerSet->NLayers);
-
-            // Store layers
-            for (var i = 0; i < layerSet->NLayers; ++i)
-            {
-                var curId = (byte)i;
-
-                var layer = &layerSet->Layers[i];
-                *layer = new RcHeightfieldLayer(layerSet->Allocator);
-
-                var gridSize = sizeof(byte) * lw * lh;
-
-                layer->Heights = (byte*)AllocatorManager.Allocate(layerSet->Allocator, gridSize, UnsafeUtility.AlignOf<byte>());
-                UnsafeUtility.MemSet(layer->Heights, 0xff, gridSize);
-
-                layer->Areas = (byte*)AllocatorManager.Allocate(layerSet->Allocator, gridSize, UnsafeUtility.AlignOf<byte>());
-                UnsafeUtility.MemClear(layer->Areas, gridSize);
-
-                layer->Cons = (byte*)AllocatorManager.Allocate(layerSet->Allocator, gridSize, UnsafeUtility.AlignOf<byte>());
-                UnsafeUtility.MemClear(layer->Cons, gridSize);
-
-                // Find layer height bounds
-                int hmin = 0, hmax = 0;
-                for (var j = 0; j < nregs; ++j)
-                {
-                    if (regs[j].Base != 0 && regs[j].LayerId == curId)
-                    {
-                        hmin = regs[j].Ymin;
-                        hmax = regs[j].Ymax;
-                    }
-                }
-
-                layer->Width = lw;
-                layer->Height = lh;
-                layer->CellSize = compactHeightfield->CellSize;
-                layer->CellHeight = compactHeightfield->CellHeight;
-
-                // Adjust the bbox to fit the heightfield
-                layer->BoundMin = bmin;
-                layer->BoundMax = bmax;
-                layer->BoundMin.y = bmin.y + (hmin * compactHeightfield->CellHeight);
-                layer->BoundMax.y = bmin.y + (hmax * compactHeightfield->CellHeight);
-                layer->HeightMin = hmin;
-                layer->HeightMax = hmax;
-
-                // Update usable data region
-                layer->MinX = layer->Width;
-                layer->MaxX = 0;
-                layer->MinY = layer->Height;
-                layer->MaxY = 0;
-
-                // Copy height and area from compact heightfield
-                for (var y = 0; y < lh; ++y)
-                {
-                    for (var x = 0; x < lw; ++x)
-                    {
-                        var cx = borderSize + x;
-                        var cy = borderSize + y;
-                        var c = compactHeightfield->Cells[cx + (cy * w)];
-                        for (int j = (int)c.Index, nj = (int)(c.Index + c.Count); j < nj; ++j)
-                        {
-                            var s = compactHeightfield->Spans[j];
-
-                            // Skip unassigned regions
-                            if (srcReg[j] == 0xff)
-                            {
-                                continue;
-                            }
-
-                            // Skip if does not belong to current layer
-                            var lid = regs[srcReg[j]].LayerId;
-                            if (lid != curId)
-                            {
-                                continue;
-                            }
-
-                            // Update data bounds
-                            layer->MinX = math.min(layer->MinX, x);
-                            layer->MaxX = math.max(layer->MaxX, x);
-                            layer->MinY = math.min(layer->MinY, y);
-                            layer->MaxY = math.max(layer->MaxY, y);
-
-                            // Store height and area type
-                            var idx = x + (y * lw);
-                            layer->Heights[idx] = (byte)(s.Y - hmin);
-                            layer->Areas[idx] = compactHeightfield->Areas[j];
-
-                            // Check connection
-                            byte portal = 0;
-                            byte con = 0;
-                            for (var dir = 0; dir < 4; ++dir)
-                            {
-                                if (GetCon(s, dir) != RCNotConnected)
-                                {
-                                    var ax = cx + GetDirOffsetX(dir);
-                                    var ay = cy + GetDirOffsetY(dir);
-                                    var ai = (int)compactHeightfield->Cells[ax + (ay * w)].Index + GetCon(s, dir);
-                                    var alid = srcReg[ai] != 0xff ? regs[srcReg[ai]].LayerId : (byte)0xff;
-
-                                    // Portal mask
-                                    if (compactHeightfield->Areas[ai] != RCNullArea && lid != alid)
-                                    {
-                                        portal |= (byte)(1 << dir);
-
-                                        // Update height so that it matches on both sides of the portal
-                                        var aSpan = compactHeightfield->Spans[ai];
-                                        if (aSpan.Y > hmin)
-                                        {
-                                            layer->Heights[idx] = (byte)math.max((int)layer->Heights[idx], (byte)(aSpan.Y - hmin));
-                                        }
-                                    }
-
-                                    // Valid connection mask
-                                    if (compactHeightfield->Areas[ai] != RCNullArea && lid == alid)
-                                    {
-                                        var nx = ax - borderSize;
-                                        var ny = ay - borderSize;
-                                        if (nx >= 0 && ny >= 0 && nx < lw && ny < lh)
-                                        {
-                                            con |= (byte)(1 << dir);
-                                        }
-                                    }
-                                }
-                            }
-
-                            layer->Cons[idx] = (byte)((portal << 4) | con);
-                        }
-                    }
-                }
-
-                if (layer->MinX > layer->MaxX)
-                {
-                    layer->MinX = layer->MaxX = 0;
-                }
-
-                if (layer->MinY > layer->MaxY)
-                {
-                    layer->MinY = layer->MaxY = 0;
                 }
             }
 
