@@ -11,28 +11,25 @@ namespace IAFahim.Search.RangeQueries
             if (l > r) return 0;
             int len = r - l + 1;
             int* buf = (int*)Marshal.AllocHGlobal(sizeof(int) * len);
-            try
+            for (int i = 0; i < len; i++) buf[i] = arr[l + i];
+            HeapSortInt(buf, len);
+            int mode = buf[0];
+            int bestCnt = 1;
+            int cur = buf[0];
+            int cnt = 1;
+            for (int i = 1; i < len; i++)
             {
-                for (int i = 0; i < len; i++) buf[i] = arr[l + i];
-                HeapSortInt(buf, len);
-                int mode = buf[0];
-                int bestCnt = 1;
-                int cur = buf[0];
-                int cnt = 1;
-                for (int i = 1; i < len; i++)
+                if (buf[i] == cur) cnt++;
+                else
                 {
-                    if (buf[i] == cur) cnt++;
-                    else
-                    {
-                        if (cnt > bestCnt) { bestCnt = cnt; mode = cur; }
-                        cur = buf[i];
-                        cnt = 1;
-                    }
+                    if (cnt > bestCnt) { bestCnt = cnt; mode = cur; }
+                    cur = buf[i];
+                    cnt = 1;
                 }
-                if (cnt > bestCnt) mode = cur;
-                return mode;
             }
-            finally { Marshal.FreeHGlobal((IntPtr)buf); }
+            if (cnt > bestCnt) mode = cur;
+            Marshal.FreeHGlobal((IntPtr)buf);
+            return mode;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -70,19 +67,16 @@ namespace IAFahim.Search.RangeQueries
             int len = r - l + 1;
             int cap = len + 2;
             byte* seen = (byte*)Marshal.AllocHGlobal(sizeof(byte) * cap);
-            try
+            for (int i = 0; i < cap; i++) seen[i] = 0;
+            for (int i = l; i <= r; i++)
             {
-                for (int i = 0; i < cap; i++) seen[i] = 0;
-                for (int i = l; i <= r; i++)
-                {
-                    int v = arr[i];
-                    if (v >= 0 && v < cap) seen[v] = 1;
-                }
-                int mex = 0;
-                while (mex < cap && seen[mex] != 0) mex++;
-                return mex;
+                int v = arr[i];
+                if (v >= 0 && v < cap) seen[v] = 1;
             }
-            finally { Marshal.FreeHGlobal((IntPtr)seen); }
+            int mex = 0;
+            while (mex < cap && seen[mex] != 0) mex++;
+            Marshal.FreeHGlobal((IntPtr)seen);
+            return mex;
         }
     }
 
@@ -94,27 +88,21 @@ namespace IAFahim.Search.RangeQueries
             int len = r - l + 1;
             int* sorted = (int*)Marshal.AllocHGlobal(sizeof(int) * len);
             int* bit = (int*)Marshal.AllocHGlobal(sizeof(int) * (len + 1));
-            try
-            {
-                for (int i = 0; i < len; i++) sorted[i] = arr[l + i];
-                HeapSortInt(sorted, len);
-                for (int i = 0; i <= len; i++) bit[i] = 0;
+            for (int i = 0; i < len; i++) sorted[i] = arr[l + i];
+            HeapSortInt(sorted, len);
+            for (int i = 0; i <= len; i++) bit[i] = 0;
 
-                long inv = 0;
-                for (int i = 0; i < len; i++)
-                {
-                    int rank = LowerBound(sorted, len, arr[l + i]) + 1;
-                    long lessOrEqual = BitPrefix(bit, rank);
-                    inv += i - lessOrEqual;
-                    BitUpdate(bit, len, rank);
-                }
-                return inv;
-            }
-            finally
+            long inv = 0;
+            for (int i = 0; i < len; i++)
             {
-                Marshal.FreeHGlobal((IntPtr)sorted);
-                Marshal.FreeHGlobal((IntPtr)bit);
+                int rank = LowerBound(sorted, len, arr[l + i]) + 1;
+                long lessOrEqual = BitPrefix(bit, rank);
+                inv += i - lessOrEqual;
+                BitUpdate(bit, len, rank);
             }
+            Marshal.FreeHGlobal((IntPtr)sorted);
+            Marshal.FreeHGlobal((IntPtr)bit);
+            return inv;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -199,70 +187,61 @@ namespace IAFahim.Search.RangeQueries
             // collect all y values for compression
             int* allY = (int*)Marshal.AllocHGlobal(sizeof(int) * (cap + E));
             int yCount = 0;
-            try
+            for (int t = 0; t < E; t++)
             {
-                for (int t = 0; t < E; t++)
+                if (evType[t] == 0)
                 {
-                    if (evType[t] == 0)
-                    {
-                        evX[evCount] = x[t]; evY1[evCount] = y[t]; evY2[evCount] = y[t];
-                        evContrib[evCount] = delta[t]; evOut[evCount] = -1;
-                        allY[yCount++] = y[t];
-                        evCount++;
-                    }
-                    else
-                    {
-                        int qi = qIdxOf[t];
-                        // prefix x<=qx2 contributes +1 factor
-                        evX[evCount] = qx2[t]; evY1[evCount] = qy1[t]; evY2[evCount] = qy2[t];
-                        evContrib[evCount] = 1; evOut[evCount] = qi;
-                        allY[yCount++] = qy1[t]; allY[yCount++] = qy2[t] + 1;
-                        evCount++;
-                        // prefix x<qx1 (i.e. x<=qx1-1) contributes -1
-                        evX[evCount] = qx1[t] - 1; evY1[evCount] = qy1[t]; evY2[evCount] = qy2[t];
-                        evContrib[evCount] = -1; evOut[evCount] = qi;
-                        evCount++;
-                    }
+                    evX[evCount] = x[t]; evY1[evCount] = y[t]; evY2[evCount] = y[t];
+                    evContrib[evCount] = delta[t]; evOut[evCount] = -1;
+                    allY[yCount++] = y[t];
+                    evCount++;
                 }
-                SortInt(allY, yCount);
-                int uniq = 0;
-                for (int i = 0; i < yCount; i++)
-                    if (i == 0 || allY[i] != allY[i - 1]) allY[uniq++] = allY[i];
-
-                int* order = (int*)Marshal.AllocHGlobal(sizeof(int) * evCount);
-                for (int i = 0; i < evCount; i++) order[i] = i;
-                // stable-sort events by x ascending; adds (evOut<0) before queries at same x.
-                SortOrderStable(order, evX, evCount);
-
-                long* bit = (long*)Marshal.AllocHGlobal(sizeof(long) * (uniq + 2));
-                for (int i = 0; i < uniq + 2; i++) bit[i] = 0;
-                try
+                else
                 {
-                    for (int oi = 0; oi < evCount; oi++)
-                    {
-                        int idx = order[oi];
-                        if (evOut[idx] < 0)
-                        {
-                            int ry = LowerBoundInt(allY, uniq, evY1[idx]) + 1;
-                            BitAdd(bit, uniq + 1, ry, evContrib[idx]);
-                        }
-                        else
-                        {
-                            int r1 = LowerBoundInt(allY, uniq, evY1[idx]);     // y >= qy1 -> rank+1
-                            int r2 = LowerBoundInt(allY, uniq, evY2[idx] + 1); // y <= qy2 -> rank
-                            long sum = BitPrefix(bit, r2) - BitPrefix(bit, r1);
-                            ans[evOut[idx]] += (long)evContrib[idx] * sum;
-                        }
-                    }
+                    int qi = qIdxOf[t];
+                    // prefix x<=qx2 contributes +1 factor
+                    evX[evCount] = qx2[t]; evY1[evCount] = qy1[t]; evY2[evCount] = qy2[t];
+                    evContrib[evCount] = 1; evOut[evCount] = qi;
+                    allY[yCount++] = qy1[t]; allY[yCount++] = qy2[t] + 1;
+                    evCount++;
+                    // prefix x<qx1 (i.e. x<=qx1-1) contributes -1
+                    evX[evCount] = qx1[t] - 1; evY1[evCount] = qy1[t]; evY2[evCount] = qy2[t];
+                    evContrib[evCount] = -1; evOut[evCount] = qi;
+                    evCount++;
                 }
-                finally { Marshal.FreeHGlobal((IntPtr)bit); Marshal.FreeHGlobal((IntPtr)order); }
             }
-            finally
+            SortInt(allY, yCount);
+            int uniq = 0;
+            for (int i = 0; i < yCount; i++)
+                if (i == 0 || allY[i] != allY[i - 1]) allY[uniq++] = allY[i];
+
+            int* order = (int*)Marshal.AllocHGlobal(sizeof(int) * evCount);
+            for (int i = 0; i < evCount; i++) order[i] = i;
+            // stable-sort events by x ascending; adds (evOut<0) before queries at same x.
+            SortOrderStable(order, evX, evCount);
+
+            long* bit = (long*)Marshal.AllocHGlobal(sizeof(long) * (uniq + 2));
+            for (int i = 0; i < uniq + 2; i++) bit[i] = 0;
+            for (int oi = 0; oi < evCount; oi++)
             {
-                Marshal.FreeHGlobal((IntPtr)evX); Marshal.FreeHGlobal((IntPtr)evY1);
-                Marshal.FreeHGlobal((IntPtr)evY2); Marshal.FreeHGlobal((IntPtr)evContrib);
-                Marshal.FreeHGlobal((IntPtr)evOut); Marshal.FreeHGlobal((IntPtr)allY);
+                int idx = order[oi];
+                if (evOut[idx] < 0)
+                {
+                    int ry = LowerBoundInt(allY, uniq, evY1[idx]) + 1;
+                    BitAdd(bit, uniq + 1, ry, evContrib[idx]);
+                }
+                else
+                {
+                    int r1 = LowerBoundInt(allY, uniq, evY1[idx]);     // y >= qy1 -> rank+1
+                    int r2 = LowerBoundInt(allY, uniq, evY2[idx] + 1); // y <= qy2 -> rank
+                    long sum = BitPrefix(bit, r2) - BitPrefix(bit, r1);
+                    ans[evOut[idx]] += (long)evContrib[idx] * sum;
+                }
             }
+            Marshal.FreeHGlobal((IntPtr)bit); Marshal.FreeHGlobal((IntPtr)order);
+            Marshal.FreeHGlobal((IntPtr)evX); Marshal.FreeHGlobal((IntPtr)evY1);
+            Marshal.FreeHGlobal((IntPtr)evY2); Marshal.FreeHGlobal((IntPtr)evContrib);
+            Marshal.FreeHGlobal((IntPtr)evOut); Marshal.FreeHGlobal((IntPtr)allY);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -312,28 +291,25 @@ namespace IAFahim.Search.RangeQueries
         {
             // merge sort for stability
             int* tmp = (int*)Marshal.AllocHGlobal(sizeof(int) * n);
-            try
+            for (int w = 1; w < n; w <<= 1)
             {
-                for (int w = 1; w < n; w <<= 1)
+                for (int lo = 0; lo < n; lo += w << 1)
                 {
-                    for (int lo = 0; lo < n; lo += w << 1)
+                    int mid = lo + w; if (mid >= n) break;
+                    int hi = mid + w; if (hi > n) hi = n;
+                    int i = lo, j = mid, k = lo;
+                    while (i < mid && j < hi)
                     {
-                        int mid = lo + w; if (mid >= n) break;
-                        int hi = mid + w; if (hi > n) hi = n;
-                        int i = lo, j = mid, k = lo;
-                        while (i < mid && j < hi)
-                        {
-                            int xi = evX[order[i]], xj = evX[order[j]];
-                            if (xi < xj || (xi == xj && order[i] < order[j])) tmp[k++] = order[i++];
-                            else tmp[k++] = order[j++];
-                        }
-                        while (i < mid) tmp[k++] = order[i++];
-                        while (j < hi) tmp[k++] = order[j++];
-                        for (int t = lo; t < k; t++) order[t] = tmp[t];
+                        int xi = evX[order[i]], xj = evX[order[j]];
+                        if (xi < xj || (xi == xj && order[i] < order[j])) tmp[k++] = order[i++];
+                        else tmp[k++] = order[j++];
                     }
+                    while (i < mid) tmp[k++] = order[i++];
+                    while (j < hi) tmp[k++] = order[j++];
+                    for (int t = lo; t < k; t++) order[t] = tmp[t];
                 }
             }
-            finally { Marshal.FreeHGlobal((IntPtr)tmp); }
+            Marshal.FreeHGlobal((IntPtr)tmp);
         }
     }
 
@@ -369,52 +345,40 @@ namespace IAFahim.Search.RangeQueries
             int* tsrc = (int*)Marshal.AllocHGlobal(sizeof(int) * E);
             long* ty = (long*)Marshal.AllocHGlobal(sizeof(long) * E);
             long* tx = (long*)Marshal.AllocHGlobal(sizeof(long) * E);
-            try
-            {
-                // compress Z across all events
-                long* allZ = (long*)Marshal.AllocHGlobal(sizeof(long) * E);
-                try
-                {
-                    int zc = 0;
-                    for (int i = 0; i < D; i++) allZ[zc++] = dZ[i];
-                    for (int i = 0; i < Qnum; i++) allZ[zc++] = qZ[i];
-                    SortLong(allZ, zc);
-                    int uniq = 0;
-                    for (int i = 0; i < zc; i++)
-                        if (i == 0 || allZ[i] != allZ[i - 1]) allZ[uniq++] = allZ[i];
+            // compress Z across all events
+            long* allZ = (long*)Marshal.AllocHGlobal(sizeof(long) * E);
+            int zc = 0;
+            for (int i = 0; i < D; i++) allZ[zc++] = dZ[i];
+            for (int i = 0; i < Qnum; i++) allZ[zc++] = qZ[i];
+            SortLong(allZ, zc);
+            int uniq = 0;
+            for (int i = 0; i < zc; i++)
+                if (i == 0 || allZ[i] != allZ[i - 1]) allZ[uniq++] = allZ[i];
 
-                    for (int i = 0; i < D; i++)
-                    {
-                        ex[i] = dX[i]; ey[i] = dY[i]; ez[i] = LB(allZ, uniq, dZ[i]) + 1;
-                        ekind[i] = 0; esrc[i] = i;
-                    }
-                    for (int i = 0; i < Qnum; i++)
-                    {
-                        int k = D + i;
-                        ex[k] = qX[i]; ey[k] = qY[i]; ez[k] = LB(allZ, uniq, qZ[i]) + 1;
-                        ekind[k] = 1; esrc[k] = i;
-                    }
-                    long* bit = (long*)Marshal.AllocHGlobal(sizeof(long) * (uniq + 2));
-                    for (int i = 0; i < uniq + 2; i++) bit[i] = 0;
-                    try
-                    {
-                        // Sort by X asc; on equal X, queries (kind=1) before data (kind=0) so equal-X
-                        // data never precedes an equal-X query in the divide -> strict X enforced.
-                        SortByX(ex, ey, ez, ekind, esrc, E, tx, ty, tz, tkind, tsrc);
-                        Rec(ex, ey, ez, ekind, esrc, 0, E - 1, counts, bit, uniq, tx, ty, tz, tkind, tsrc);
-                    }
-                    finally { Marshal.FreeHGlobal((IntPtr)bit); }
-                }
-                finally { Marshal.FreeHGlobal((IntPtr)allZ); }
-            }
-            finally
+            for (int i = 0; i < D; i++)
             {
-                Marshal.FreeHGlobal((IntPtr)ex); Marshal.FreeHGlobal((IntPtr)ey);
-                Marshal.FreeHGlobal((IntPtr)ez); Marshal.FreeHGlobal((IntPtr)ekind);
-                Marshal.FreeHGlobal((IntPtr)esrc); Marshal.FreeHGlobal((IntPtr)tz);
-                Marshal.FreeHGlobal((IntPtr)tkind); Marshal.FreeHGlobal((IntPtr)tsrc);
-                Marshal.FreeHGlobal((IntPtr)ty); Marshal.FreeHGlobal((IntPtr)tx);
+                ex[i] = dX[i]; ey[i] = dY[i]; ez[i] = LB(allZ, uniq, dZ[i]) + 1;
+                ekind[i] = 0; esrc[i] = i;
             }
+            for (int i = 0; i < Qnum; i++)
+            {
+                int k = D + i;
+                ex[k] = qX[i]; ey[k] = qY[i]; ez[k] = LB(allZ, uniq, qZ[i]) + 1;
+                ekind[k] = 1; esrc[k] = i;
+            }
+            long* bit = (long*)Marshal.AllocHGlobal(sizeof(long) * (uniq + 2));
+            for (int i = 0; i < uniq + 2; i++) bit[i] = 0;
+            // Sort by X asc; on equal X, queries (kind=1) before data (kind=0) so equal-X
+            // data never precedes an equal-X query in the divide -> strict X enforced.
+            SortByX(ex, ey, ez, ekind, esrc, E, tx, ty, tz, tkind, tsrc);
+            Rec(ex, ey, ez, ekind, esrc, 0, E - 1, counts, bit, uniq, tx, ty, tz, tkind, tsrc);
+            Marshal.FreeHGlobal((IntPtr)bit);
+            Marshal.FreeHGlobal((IntPtr)allZ);
+            Marshal.FreeHGlobal((IntPtr)ex); Marshal.FreeHGlobal((IntPtr)ey);
+            Marshal.FreeHGlobal((IntPtr)ez); Marshal.FreeHGlobal((IntPtr)ekind);
+            Marshal.FreeHGlobal((IntPtr)esrc); Marshal.FreeHGlobal((IntPtr)tz);
+            Marshal.FreeHGlobal((IntPtr)tkind); Marshal.FreeHGlobal((IntPtr)tsrc);
+            Marshal.FreeHGlobal((IntPtr)ty); Marshal.FreeHGlobal((IntPtr)tx);
         }
 
         private static void Rec(long* ex, long* ey, long* ez, int* ekind, int* esrc,
@@ -539,45 +503,36 @@ namespace IAFahim.Search.RangeQueries
             for (int t = 0; t < k; t++) ans[t] = 0;
             if (n <= 0 || k <= 0) return;
             int* rtime = (int*)Marshal.AllocHGlobal(sizeof(int) * n);
-            try
-            {
-                for (int i = 0; i < n; i++) rtime[i] = k;   // never removed
-                for (int t = 0; t < k; t++) rtime[removeIdx[t]] = t;
+            for (int i = 0; i < n; i++) rtime[i] = k;   // never removed
+            for (int t = 0; t < k; t++) rtime[removeIdx[t]] = t;
 
-                long* dX = (long*)Marshal.AllocHGlobal(sizeof(long) * n);
-                long* dY = (long*)Marshal.AllocHGlobal(sizeof(long) * n);
-                long* dZ = (long*)Marshal.AllocHGlobal(sizeof(long) * n);
-                long* qX = (long*)Marshal.AllocHGlobal(sizeof(long) * k);
-                long* qY = (long*)Marshal.AllocHGlobal(sizeof(long) * k);
-                long* qZ = (long*)Marshal.AllocHGlobal(sizeof(long) * k);
-                long* cnt = (long*)Marshal.AllocHGlobal(sizeof(long) * k);
-                try
-                {
-                    // left-count: partners j with origIdx<j? no: j to the LEFT of e (j<pe), val>ve, still present (tj>te)
-                    //   dominance: data (oj, -vj, -tj) < (pe, -ve, -te)
-                    for (int i = 0; i < n; i++) { dX[i] = i; dY[i] = -(long)perm[i]; dZ[i] = -(long)rtime[i]; }
-                    for (int t = 0; t < k; t++)
-                    { int e = removeIdx[t]; qX[t] = e; qY[t] = -(long)perm[e]; qZ[t] = -(long)t; }
-                    CDQ3D.Run(dX, dY, dZ, n, qX, qY, qZ, k, cnt);
-                    for (int t = 0; t < k; t++) ans[t] += cnt[t];
+            long* dX = (long*)Marshal.AllocHGlobal(sizeof(long) * n);
+            long* dY = (long*)Marshal.AllocHGlobal(sizeof(long) * n);
+            long* dZ = (long*)Marshal.AllocHGlobal(sizeof(long) * n);
+            long* qX = (long*)Marshal.AllocHGlobal(sizeof(long) * k);
+            long* qY = (long*)Marshal.AllocHGlobal(sizeof(long) * k);
+            long* qZ = (long*)Marshal.AllocHGlobal(sizeof(long) * k);
+            long* cnt = (long*)Marshal.AllocHGlobal(sizeof(long) * k);
+            // left-count: partners j with origIdx<j? no: j to the LEFT of e (j<pe), val>ve, still present (tj>te)
+            //   dominance: data (oj, -vj, -tj) < (pe, -ve, -te)
+            for (int i = 0; i < n; i++) { dX[i] = i; dY[i] = -(long)perm[i]; dZ[i] = -(long)rtime[i]; }
+            for (int t = 0; t < k; t++)
+            { int e = removeIdx[t]; qX[t] = e; qY[t] = -(long)perm[e]; qZ[t] = -(long)t; }
+            CDQ3D.Run(dX, dY, dZ, n, qX, qY, qZ, k, cnt);
+            for (int t = 0; t < k; t++) ans[t] += cnt[t];
 
-                    // right-count: partners j with origIdx>pe, val<ve, tj>te
-                    //   dominance: data (-oj, vj, -tj) < (-pe, ve, -te)
-                    for (int i = 0; i < n; i++) { dX[i] = -(long)i; dY[i] = perm[i]; dZ[i] = -(long)rtime[i]; }
-                    for (int t = 0; t < k; t++)
-                    { int e = removeIdx[t]; qX[t] = -(long)e; qY[t] = perm[e]; qZ[t] = -(long)t; }
-                    CDQ3D.Run(dX, dY, dZ, n, qX, qY, qZ, k, cnt);
-                    for (int t = 0; t < k; t++) ans[t] += cnt[t];
-                }
-                finally
-                {
-                    Marshal.FreeHGlobal((IntPtr)dX); Marshal.FreeHGlobal((IntPtr)dY);
-                    Marshal.FreeHGlobal((IntPtr)dZ); Marshal.FreeHGlobal((IntPtr)qX);
-                    Marshal.FreeHGlobal((IntPtr)qY); Marshal.FreeHGlobal((IntPtr)qZ);
-                    Marshal.FreeHGlobal((IntPtr)cnt);
-                }
-            }
-            finally { Marshal.FreeHGlobal((IntPtr)rtime); }
+            // right-count: partners j with origIdx>pe, val<ve, tj>te
+            //   dominance: data (-oj, vj, -tj) < (-pe, ve, -te)
+            for (int i = 0; i < n; i++) { dX[i] = -(long)i; dY[i] = perm[i]; dZ[i] = -(long)rtime[i]; }
+            for (int t = 0; t < k; t++)
+            { int e = removeIdx[t]; qX[t] = -(long)e; qY[t] = perm[e]; qZ[t] = -(long)t; }
+            CDQ3D.Run(dX, dY, dZ, n, qX, qY, qZ, k, cnt);
+            for (int t = 0; t < k; t++) ans[t] += cnt[t];
+            Marshal.FreeHGlobal((IntPtr)dX); Marshal.FreeHGlobal((IntPtr)dY);
+            Marshal.FreeHGlobal((IntPtr)dZ); Marshal.FreeHGlobal((IntPtr)qX);
+            Marshal.FreeHGlobal((IntPtr)qY); Marshal.FreeHGlobal((IntPtr)qZ);
+            Marshal.FreeHGlobal((IntPtr)cnt);
+            Marshal.FreeHGlobal((IntPtr)rtime);
         }
     }
 
@@ -613,10 +568,8 @@ namespace IAFahim.Search.RangeQueries
             int* stkPar = (int*)Marshal.AllocHGlobal(sizeof(int) * stkCap);
             int* stkOld = (int*)Marshal.AllocHGlobal(sizeof(int) * stkCap);
 
-            try
-            {
-                // count edges per segment-tree node
-                for (int i = 0; i < m; i++)
+            // count edges per segment-tree node
+            for (int i = 0; i < m; i++)
                 {
                     int a = el[i], b = er[i];
                     if (a < 0) a = 0;
@@ -648,15 +601,14 @@ namespace IAFahim.Search.RangeQueries
                 int stkPtr = 0;
                 Dfs(nodeOff, nodeCnt, nodeEu, nodeEv, qOff, qCnt, qBucket, qu, qv, ans,
                     parent, sz, stkChild, stkPar, stkOld, ref stkPtr, 1, 0, T - 1);
-            }
-            finally
-            {
+                Marshal.FreeHGlobal((IntPtr)nodeEu);
+                Marshal.FreeHGlobal((IntPtr)nodeEv);
+                Marshal.FreeHGlobal((IntPtr)qBucket);
                 Marshal.FreeHGlobal((IntPtr)nodeCnt); Marshal.FreeHGlobal((IntPtr)nodeOff);
                 Marshal.FreeHGlobal((IntPtr)qCnt); Marshal.FreeHGlobal((IntPtr)qOff);
                 Marshal.FreeHGlobal((IntPtr)parent); Marshal.FreeHGlobal((IntPtr)sz);
                 Marshal.FreeHGlobal((IntPtr)stkChild); Marshal.FreeHGlobal((IntPtr)stkPar); Marshal.FreeHGlobal((IntPtr)stkOld);
             }
-        }
 
         private static void Dfs(int* nodeOff, int* nodeCnt, int* nodeEu, int* nodeEv,
                                 int* qOff, int* qCnt, int* qBucket, int* qu, int* qv, int* ans,
@@ -750,22 +702,19 @@ namespace IAFahim.Search.RangeQueries
             for (int t = 0; t < T; t++) ans[t] = 0;
             if (m <= 0 || T <= 0) return;
             long* diff = (long*)Marshal.AllocHGlobal(sizeof(long) * (T + 1));
-            try
+            for (int t = 0; t <= T; t++) diff[t] = 0;
+            for (int i = 0; i < m; i++)
             {
-                for (int t = 0; t <= T; t++) diff[t] = 0;
-                for (int i = 0; i < m; i++)
-                {
-                    int a = l[i], b = r[i];
-                    if (a < 0) a = 0;
-                    if (b > T - 1) b = T - 1;
-                    if (a > b) continue;
-                    diff[a] += delta[i];
-                    diff[b + 1] -= delta[i];
-                }
-                long acc = 0;
-                for (int t = 0; t < T; t++) { acc += diff[t]; ans[t] = acc; }
+                int a = l[i], b = r[i];
+                if (a < 0) a = 0;
+                if (b > T - 1) b = T - 1;
+                if (a > b) continue;
+                diff[a] += delta[i];
+                diff[b + 1] -= delta[i];
             }
-            finally { Marshal.FreeHGlobal((IntPtr)diff); }
+            long acc = 0;
+            for (int t = 0; t < T; t++) { acc += diff[t]; ans[t] = acc; }
+            Marshal.FreeHGlobal((IntPtr)diff);
         }
     }
 
@@ -795,35 +744,31 @@ namespace IAFahim.Search.RangeQueries
             int* stkPar = (int*)Marshal.AllocHGlobal(sizeof(int) * stkCap);
             int* stkOld = (int*)Marshal.AllocHGlobal(sizeof(int) * stkCap);
 
-            try
+            for (int i = 0; i < m; i++)
             {
-                for (int i = 0; i < m; i++)
-                {
-                    int a = el[i], b = er[i];
-                    if (a < 0) a = 0; if (b > T - 1) b = T - 1; if (a > b) continue;
-                    CountEdge(nodeCnt, 1, 0, T - 1, a, b);
-                }
-                int acc = 0;
-                for (int i = 0; i < nodes; i++) { nodeOff[i] = acc; acc += nodeCnt[i]; nodeCnt[i] = 0; }
-                int* nodeEu = (int*)Marshal.AllocHGlobal(sizeof(int) * acc);
-                int* nodeEv = (int*)Marshal.AllocHGlobal(sizeof(int) * acc);
-                for (int i = 0; i < m; i++)
-                {
-                    int a = el[i], b = er[i];
-                    if (a < 0) a = 0; if (b > T - 1) b = T - 1; if (a > b) continue;
-                    FillEdge(nodeOff, nodeCnt, nodeEu, nodeEv, eu[i], ev[i], 1, 0, T - 1, a, b);
-                }
+                int a = el[i], b = er[i];
+                if (a < 0) a = 0; if (b > T - 1) b = T - 1; if (a > b) continue;
+                CountEdge(nodeCnt, 1, 0, T - 1, a, b);
+            }
+            int acc = 0;
+            for (int i = 0; i < nodes; i++) { nodeOff[i] = acc; acc += nodeCnt[i]; nodeCnt[i] = 0; }
+            int* nodeEu = (int*)Marshal.AllocHGlobal(sizeof(int) * acc);
+            int* nodeEv = (int*)Marshal.AllocHGlobal(sizeof(int) * acc);
+            for (int i = 0; i < m; i++)
+            {
+                int a = el[i], b = er[i];
+                if (a < 0) a = 0; if (b > T - 1) b = T - 1; if (a > b) continue;
+                FillEdge(nodeOff, nodeCnt, nodeEu, nodeEv, eu[i], ev[i], 1, 0, T - 1, a, b);
+            }
 
-                int stkPtr = 0;
-                Dfs(nodeOff, nodeCnt, nodeEu, nodeEv, compCount, parent, sz, stkChild, stkPar, stkOld,
-                    ref stkPtr, n, 1, 0, T - 1);
-            }
-            finally
-            {
-                Marshal.FreeHGlobal((IntPtr)nodeCnt); Marshal.FreeHGlobal((IntPtr)nodeOff);
-                Marshal.FreeHGlobal((IntPtr)parent); Marshal.FreeHGlobal((IntPtr)sz);
-                Marshal.FreeHGlobal((IntPtr)stkChild); Marshal.FreeHGlobal((IntPtr)stkPar); Marshal.FreeHGlobal((IntPtr)stkOld);
-            }
+            int stkPtr = 0;
+            Dfs(nodeOff, nodeCnt, nodeEu, nodeEv, compCount, parent, sz, stkChild, stkPar, stkOld,
+                ref stkPtr, n, 1, 0, T - 1);
+            Marshal.FreeHGlobal((IntPtr)nodeEu);
+            Marshal.FreeHGlobal((IntPtr)nodeEv);
+            Marshal.FreeHGlobal((IntPtr)nodeCnt); Marshal.FreeHGlobal((IntPtr)nodeOff);
+            Marshal.FreeHGlobal((IntPtr)parent); Marshal.FreeHGlobal((IntPtr)sz);
+            Marshal.FreeHGlobal((IntPtr)stkChild); Marshal.FreeHGlobal((IntPtr)stkPar); Marshal.FreeHGlobal((IntPtr)stkOld);
         }
 
         private static void Dfs(int* nodeOff, int* nodeCnt, int* nodeEu, int* nodeEv, int* compCount,

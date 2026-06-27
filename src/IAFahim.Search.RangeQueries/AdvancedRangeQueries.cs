@@ -41,16 +41,13 @@ namespace IAFahim.Search.RangeQueries
             if (l > r) return 0;
             int len = r - l + 1;
             int* buf = (int*)Marshal.AllocHGlobal(sizeof(int) * len);
-            try
-            {
-                for (int i = 0; i < len; i++) buf[i] = arr[l + i];
-                HeapSortInt(buf, len);
-                int count = 1;
-                for (int i = 1; i < len; i++)
-                    if (buf[i] != buf[i - 1]) count++;
-                return count;
-            }
-            finally { Marshal.FreeHGlobal((IntPtr)buf); }
+            for (int i = 0; i < len; i++) buf[i] = arr[l + i];
+            HeapSortInt(buf, len);
+            int count = 1;
+            for (int i = 1; i < len; i++)
+                if (buf[i] != buf[i - 1]) count++;
+            Marshal.FreeHGlobal((IntPtr)buf);
+            return count;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

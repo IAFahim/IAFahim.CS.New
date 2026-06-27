@@ -2,6 +2,7 @@ namespace IAFahim.Graph
 {
     using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
     using IAFahim.Graph.Flow;
 
     public static unsafe class MstVariants
@@ -603,8 +604,8 @@ namespace IAFahim.Graph
 
         public static void MinimumDiameterSpanningTree(int n, int m, int* u, int* v, long* w, int* resultEdges, int* resultCount)
         {
-            long* dist = stackalloc long[n * n];
-            int* parent = stackalloc int[n * n];
+            long* dist = (long*)Marshal.AllocHGlobal((IntPtr)((long)n * n * sizeof(long)));
+            int* parent = (int*)Marshal.AllocHGlobal((IntPtr)((long)n * n * sizeof(int)));
             const long Inf = 999999999999;
             for (int i = 0; i < n; i++)
             {
@@ -681,6 +682,8 @@ namespace IAFahim.Graph
                     resultEdges[(*resultCount)++] = p[i];
                 }
             }
+            Marshal.FreeHGlobal((IntPtr)dist);
+            Marshal.FreeHGlobal((IntPtr)parent);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

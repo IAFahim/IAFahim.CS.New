@@ -21,27 +21,21 @@ namespace IAFahim.Geometry.Voronoi
             int triCap = n * 2 + 16;
             Delaunay.Triangle* tris = (Delaunay.Triangle*)
                 System.Runtime.InteropServices.Marshal.AllocHGlobal(sizeof(Delaunay.Triangle) * triCap);
-            try
+            int cnt = Delaunay.Build(xs, ys, n, tris);
+            int written = 0;
+            for (int i = 0; i < cnt; i++)
             {
-                int cnt = Delaunay.Build(xs, ys, n, tris);
-                int written = 0;
-                for (int i = 0; i < cnt; i++)
+                int a = tris[i].A, b = tris[i].B, c = tris[i].C;
+                if (Circumcenter(xs[a], ys[a], xs[b], ys[b], xs[c], ys[c], out double vx, out double vy))
                 {
-                    int a = tris[i].A, b = tris[i].B, c = tris[i].C;
-                    if (Circumcenter(xs[a], ys[a], xs[b], ys[b], xs[c], ys[c], out double vx, out double vy))
-                    {
-                        outX[written] = vx;
-                        outY[written] = vy;
-                        written++;
-                    }
+                    outX[written] = vx;
+                    outY[written] = vy;
+                    written++;
                 }
-                *outSize = written;
-                return written;
             }
-            finally
-            {
-                System.Runtime.InteropServices.Marshal.FreeHGlobal((System.IntPtr)tris);
-            }
+            *outSize = written;
+            System.Runtime.InteropServices.Marshal.FreeHGlobal((System.IntPtr)tris);
+            return written;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

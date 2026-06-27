@@ -2,6 +2,7 @@ namespace IAFahim.Graph
 {
     using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
     using IAFahim.Graph.Flow;
 
     public static unsafe class MinimumCutGomoryHu
@@ -73,12 +74,12 @@ namespace IAFahim.Graph
         public static long Run(int n, int* head, int* to, int* next, int* weight)
         {
             if (n < 2) return long.MaxValue;
-            long* w = stackalloc long[n * n];
+            long* w = (long*)Marshal.AllocHGlobal((IntPtr)((long)n * n * sizeof(long)));
+            bool* merged = (bool*)Marshal.AllocHGlobal(sizeof(bool) * n);
+            long* dist = (long*)Marshal.AllocHGlobal(sizeof(long) * n);
+            bool* inA = (bool*)Marshal.AllocHGlobal(sizeof(bool) * n);
             BuildWeightMatrix(n, head, to, next, weight, w);
-            bool* merged = stackalloc bool[n];
             for (int i = 0; i < n; i++) merged[i] = false;
-            long* dist = stackalloc long[n];
-            bool* inA = stackalloc bool[n];
             long minCut = long.MaxValue;
             int remaining = n;
             while (remaining > 1)
@@ -88,6 +89,10 @@ namespace IAFahim.Graph
                 ContractVertex(n, w, merged, s, t);
                 remaining--;
             }
+            Marshal.FreeHGlobal((IntPtr)w);
+            Marshal.FreeHGlobal((IntPtr)merged);
+            Marshal.FreeHGlobal((IntPtr)dist);
+            Marshal.FreeHGlobal((IntPtr)inA);
             return minCut;
         }
 

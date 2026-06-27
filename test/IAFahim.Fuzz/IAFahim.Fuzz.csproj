@@ -4,5 +4,9 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/IAFahim.Search.RangeQueries/IAFahim.Search.RangeQueries.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Sort.RadixSort/IAFahim.Sort.RadixSort.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Math.Transform.Ntt/IAFahim.Math.Transform.Ntt.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Math.Gauss/IAFahim.Math.Gauss.csproj" />
+    <ProjectReference Include="../../src/IAFahim.String.SuffixTree/IAFahim.String.SuffixTree.csproj" />
   </ItemGroup>
 </Project>

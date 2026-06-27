@@ -25,39 +25,35 @@ namespace IAFahim.Graph.Cactus
             long* dist = (long*)Marshal.AllocHGlobal(sizeof(long) * n);
             int* heap = (int*)Marshal.AllocHGlobal(sizeof(int) * (n + 1));
             long* heapKey = (long*)Marshal.AllocHGlobal(sizeof(long) * (n + 1));
-            try
+            long inf = long.MaxValue;
+            for (int i = 0; i < n; i++) dist[i] = inf;
+            dist[u] = 0;
+            int hs = 0;
+            Push(heap, heapKey, ref hs, 0, u);
+            long result = -1;
+            while (hs > 0)
             {
-                long inf = long.MaxValue;
-                for (int i = 0; i < n; i++) dist[i] = inf;
-                dist[u] = 0;
-                int hs = 0;
-                Push(heap, heapKey, ref hs, 0, u);
-                while (hs > 0)
+                long du = heapKey[1];
+                int x = heap[1];
+                Pop(heap, heapKey, ref hs);
+                if (du > dist[x]) continue;
+                if (x == v) { result = dist[v]; break; }
+                for (int e = head[x]; e != -1; e = next[e])
                 {
-                    long du = heapKey[1];
-                    int x = heap[1];
-                    Pop(heap, heapKey, ref hs);
-                    if (du > dist[x]) continue;
-                    if (x == v) return dist[v];
-                    for (int e = head[x]; e != -1; e = next[e])
+                    int y = to[e];
+                    long nd = du + weight[e];
+                    if (nd < dist[y])
                     {
-                        int y = to[e];
-                        long nd = du + weight[e];
-                        if (nd < dist[y])
-                        {
-                            dist[y] = nd;
-                            Push(heap, heapKey, ref hs, nd, y);
-                        }
+                        dist[y] = nd;
+                        Push(heap, heapKey, ref hs, nd, y);
                     }
                 }
-                return dist[v] == inf ? -1 : dist[v];
             }
-            finally
-            {
-                Marshal.FreeHGlobal((IntPtr)dist);
-                Marshal.FreeHGlobal((IntPtr)heap);
-                Marshal.FreeHGlobal((IntPtr)heapKey);
-            }
+            if (result == -1) result = dist[v] == inf ? -1 : dist[v];
+            Marshal.FreeHGlobal((IntPtr)dist);
+            Marshal.FreeHGlobal((IntPtr)heap);
+            Marshal.FreeHGlobal((IntPtr)heapKey);
+            return result;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

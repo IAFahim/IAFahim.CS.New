@@ -28,10 +28,8 @@ using System.Runtime.InteropServices;
             int hashSize = 1 << HashBits;
             int* head = (int*)Marshal.AllocHGlobal(sizeof(int) * hashSize);
             int* prev = (int*)Marshal.AllocHGlobal(sizeof(int) * len);
-            try
-            {
-                for (int h = 0; h < hashSize; h++) head[h] = -1;
-                for (int p = 0; p < len; p++) prev[p] = -1;
+            for (int h = 0; h < hashSize; h++) head[h] = -1;
+            for (int p = 0; p < len; p++) prev[p] = -1;
 
                 int i = 0;
                 while (i < len)
@@ -68,12 +66,8 @@ using System.Runtime.InteropServices;
                         i++;
                     }
                 }
-            }
-            finally
-            {
-                Marshal.FreeHGlobal((System.IntPtr)head);
-                Marshal.FreeHGlobal((System.IntPtr)prev);
-            }
+            Marshal.FreeHGlobal((System.IntPtr)head);
+            Marshal.FreeHGlobal((System.IntPtr)prev);
             return outCount;
         }
 

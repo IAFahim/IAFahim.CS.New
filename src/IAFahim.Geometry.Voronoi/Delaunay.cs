@@ -3,6 +3,7 @@ namespace IAFahim.Geometry.Voronoi
     using System;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
+    using IAFahim.Geometry.Basic;
 
     public static unsafe class Delaunay
     {
@@ -58,6 +59,17 @@ namespace IAFahim.Geometry.Voronoi
         public static int BuildFast(double* xs, double* ys, int n, Triangle* outTri)
         {
             return BowyerWatson.Build(xs, ys, n, outTri);
+        }
+
+        // O(n²) Bowyer-Watson on INTEGER coordinates using the exact 256-bit incircle predicate
+        // (IAFahim.Geometry.Basic.IncircleExact). GUARANTEED MAXIMAL: the exact predicate has no
+        // float-rounding ambiguity, so the bad-cavity classification is always correct — no coverage
+        // holes even on cocircular / near-cocircular / degenerate inputs. Use this when (a) the input
+        // is integer-grid (pixel/voxel/tile coords, integer geometry) and (b) maximality matters.
+        // Coordinates must fit in `long`; the predicate handles up to ~2³¹ without fall-back error.
+        public static int BuildFastLong(long* xs, long* ys, int n, Triangle* outTri)
+        {
+            return BowyerWatson.BuildLong(xs, ys, n, outTri);
         }
 
         // Edge flip with adjacency update. triangles[t1],triangles[t2] share an interior edge;
@@ -203,13 +215,11 @@ namespace IAFahim.Geometry.Voronoi
             int* bad = (int*)Marshal.AllocHGlobal(sizeof(int) * cap);
             int* edgeU = (int*)Marshal.AllocHGlobal(sizeof(int) * cap * 3);
             int* edgeV = (int*)Marshal.AllocHGlobal(sizeof(int) * cap * 3);
-            try
-            {
-                for (int i = 0; i < n; i++) { px[i] = xs[i]; py[i] = ys[i]; }
-                px[n] = midX - big; py[n] = minY - big;
-                px[n + 1] = midX + big; py[n + 1] = minY - big * 0.5;
-                px[n + 2] = midX; py[n + 2] = maxY + big;
-                int cnt = 1;
+            for (int i = 0; i < n; i++) { px[i] = xs[i]; py[i] = ys[i]; }
+            px[n] = midX - big; py[n] = minY - big;
+            px[n + 1] = midX + big; py[n + 1] = minY - big * 0.5;
+            px[n + 2] = midX; py[n + 2] = maxY + big;
+            int cnt = 1;
                 ta[0] = n; tb[0] = n + 1; tc[0] = n + 2; alive[0] = 1;
                 for (int p = 0; p < n; p++)
                 {
@@ -241,10 +251,6 @@ namespace IAFahim.Geometry.Voronoi
                     if (ta[t] >= n || tb[t] >= n || tc[t] >= n) continue;
                     outTri[outCount++] = new Delaunay.Triangle { A = ta[t], B = tb[t], C = tc[t] };
                 }
-                return outCount;
-            }
-            finally
-            {
                 Marshal.FreeHGlobal((System.IntPtr)px);
                 Marshal.FreeHGlobal((System.IntPtr)py);
                 Marshal.FreeHGlobal((System.IntPtr)ta);
@@ -254,6 +260,113 @@ namespace IAFahim.Geometry.Voronoi
                 Marshal.FreeHGlobal((System.IntPtr)bad);
                 Marshal.FreeHGlobal((System.IntPtr)edgeU);
                 Marshal.FreeHGlobal((System.IntPtr)edgeV);
+                return outCount;
+            }
+
+        // Bowyer-Watson on integer coordinates using the EXACT incircle predicate. Identical cavity /
+        // retriangulation logic to Build(double) but the bad-triangle test is the orientation-corrected
+        // IncircleExact sign, so the classification is exact → result is always maximal (no holes).
+        public static int BuildLong(long* xs, long* ys, int n, Delaunay.Triangle* outTri)
+        {
+            if (n < 3) return 0;
+            if (!HasNonCollinearTripleLong(xs, ys, n)) return 0;
+            BoundingBoxLong(xs, ys, n, out long minX, out long minY, out long maxX, out long maxY);
+            long spanX = maxX - minX, spanY = maxY - minY;
+            long span = spanX > spanY ? spanX : spanY;
+            if (span <= 0) span = 1;
+            if (span > long.MaxValue / 8) span = long.MaxValue / 8;   // guard super-triangle against overflow
+            long midX = minX + spanX / 2, midY = minY + spanY / 2;
+            long big = span * 4;
+            int total = n + 3;
+            long* px = (long*)Marshal.AllocHGlobal(sizeof(long) * total);
+            long* py = (long*)Marshal.AllocHGlobal(sizeof(long) * total);
+            int cap = 2 * n + 32;
+            int* ta = (int*)Marshal.AllocHGlobal(sizeof(int) * cap);
+            int* tb = (int*)Marshal.AllocHGlobal(sizeof(int) * cap);
+            int* tc = (int*)Marshal.AllocHGlobal(sizeof(int) * cap);
+            byte* alive = (byte*)Marshal.AllocHGlobal(sizeof(byte) * cap);
+            int* bad = (int*)Marshal.AllocHGlobal(sizeof(int) * cap);
+            int* edgeU = (int*)Marshal.AllocHGlobal(sizeof(int) * cap * 3);
+            int* edgeV = (int*)Marshal.AllocHGlobal(sizeof(int) * cap * 3);
+            for (int i = 0; i < n; i++) { px[i] = xs[i]; py[i] = ys[i]; }
+            px[n] = midX - big; py[n] = minY - big;
+            px[n + 1] = midX + big; py[n + 1] = minY - big / 2;
+            px[n + 2] = midX; py[n + 2] = maxY + big;
+            int cnt = 1;
+                ta[0] = n; tb[0] = n + 1; tc[0] = n + 2; alive[0] = 1;
+                for (int p = 0; p < n; p++)
+                {
+                    int badCnt = 0;
+                    for (int t = 0; t < cnt; t++)
+                    {
+                        if (alive[t] == 0) continue;
+                        if (InCircleLong(px[ta[t]], py[ta[t]], px[tb[t]], py[tb[t]], px[tc[t]], py[tc[t]], px[p], py[p]))
+                        { bad[badCnt++] = t; alive[t] = 0; }
+                    }
+                    int edgeCnt = 0;
+                    for (int bi = 0; bi < badCnt; bi++)
+                    {
+                        int t = bad[bi];
+                        AddBoundaryEdge(ta[t], tb[t], t, bad, badCnt, ta, tb, tc, edgeU, edgeV, ref edgeCnt);
+                        AddBoundaryEdge(tb[t], tc[t], t, bad, badCnt, ta, tb, tc, edgeU, edgeV, ref edgeCnt);
+                        AddBoundaryEdge(tc[t], ta[t], t, bad, badCnt, ta, tb, tc, edgeU, edgeV, ref edgeCnt);
+                    }
+                    for (int e = 0; e < edgeCnt; e++)
+                    {
+                        if (cnt >= cap) { cap *= 2; GrowAll(ref ta, ref tb, ref tc, ref alive, ref bad, ref edgeU, ref edgeV, cap); }
+                        ta[cnt] = edgeU[e]; tb[cnt] = edgeV[e]; tc[cnt] = p; alive[cnt] = 1; cnt++;
+                    }
+                }
+                int outCount = 0;
+                for (int t = 0; t < cnt; t++)
+                {
+                    if (alive[t] == 0) continue;
+                    if (ta[t] >= n || tb[t] >= n || tc[t] >= n) continue;
+                    outTri[outCount++] = new Delaunay.Triangle { A = ta[t], B = tb[t], C = tc[t] };
+                }
+                Marshal.FreeHGlobal((System.IntPtr)px);
+                Marshal.FreeHGlobal((System.IntPtr)py);
+                Marshal.FreeHGlobal((System.IntPtr)ta);
+                Marshal.FreeHGlobal((System.IntPtr)tb);
+                Marshal.FreeHGlobal((System.IntPtr)tc);
+                Marshal.FreeHGlobal((System.IntPtr)alive);
+                Marshal.FreeHGlobal((System.IntPtr)bad);
+                Marshal.FreeHGlobal((System.IntPtr)edgeU);
+                Marshal.FreeHGlobal((System.IntPtr)edgeV);
+                return outCount;
+            }
+
+        // d strictly inside circumcircle of triangle (a,b,c) ⟺ orient(a,b,c) and incircle(a,b,c,d)
+        // share the same nonzero sign (exact predicates → no float ambiguity).
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool InCircleLong(long ax, long ay, long bx, long by, long cx, long cy, long dx, long dy)
+        {
+            int inc = IncircleExact.Run(ax, ay, bx, by, cx, cy, dx, dy);
+            if (inc == 0) return false;
+            int ori = OrientationExact.Run(ax, ay, bx, by, cx, cy);
+            if (ori == 0) return false;
+            return (inc > 0) == (ori > 0);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool HasNonCollinearTripleLong(long* xs, long* ys, int n)
+        {
+            int p0 = 0, p1 = 1;
+            while (p1 < n && xs[p0] == xs[p1] && ys[p0] == ys[p1]) p1++;
+            if (p1 >= n) return false;
+            for (int i = p1 + 1; i < n; i++)
+                if (OrientationExact.Run(xs[p0], ys[p0], xs[p1], ys[p1], xs[i], ys[i]) != 0) return true;
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void BoundingBoxLong(long* xs, long* ys, int n, out long minX, out long minY, out long maxX, out long maxY)
+        {
+            minX = maxX = xs[0]; minY = maxY = ys[0];
+            for (int i = 1; i < n; i++)
+            {
+                if (xs[i] < minX) minX = xs[i]; else if (xs[i] > maxX) maxX = xs[i];
+                if (ys[i] < minY) minY = ys[i]; else if (ys[i] > maxY) maxY = ys[i];
             }
         }
 

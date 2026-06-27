@@ -33,30 +33,25 @@ namespace IAFahim.Graph.TreeIsomorphism
             int* ed = (int*)Marshal.AllocHGlobal(sizeof(int) * n1 * n2);
             int* matchBuf = (int*)Marshal.AllocHGlobal(sizeof(int) * (dim + 1) * 2);
             int* hungCost = (int*)Marshal.AllocHGlobal(sizeof(int) * (dim + 1) * (dim + 1));
-            try
+            for (int i = 0; i < n1 * n2; i++) ed[i] = 0;
+            for (int ii = 0; ii < n1; ii++)
             {
-                for (int i = 0; i < n1 * n2; i++) ed[i] = 0;
-                for (int ii = 0; ii < n1; ii++)
+                int a = post1[ii];
+                for (int jj = 0; jj < n2; jj++)
                 {
-                    int a = post1[ii];
-                    for (int jj = 0; jj < n2; jj++)
-                    {
-                        int b = post2[jj];
-                        ed[a * n2 + b] = SolveNode(a, b, ch1, nx1, hd1, ch2, nx2, hd2, size1, size2, ed, n2, matchBuf, hungCost);
-                    }
+                    int b = post2[jj];
+                    ed[a * n2 + b] = SolveNode(a, b, ch1, nx1, hd1, ch2, nx2, hd2, size1, size2, ed, n2, matchBuf, hungCost);
                 }
-                return root1 >= 0 && root2 >= 0 ? ed[root1 * n2 + root2] : Math.Max(n1, n2);
             }
-            finally
-            {
-                Marshal.FreeHGlobal((IntPtr)ch1); Marshal.FreeHGlobal((IntPtr)nx1); Marshal.FreeHGlobal((IntPtr)hd1);
-                Marshal.FreeHGlobal((IntPtr)ch2); Marshal.FreeHGlobal((IntPtr)nx2); Marshal.FreeHGlobal((IntPtr)hd2);
-                Marshal.FreeHGlobal((IntPtr)size1); Marshal.FreeHGlobal((IntPtr)size2);
-                Marshal.FreeHGlobal((IntPtr)post1); Marshal.FreeHGlobal((IntPtr)post2);
-                Marshal.FreeHGlobal((IntPtr)ed);
-                Marshal.FreeHGlobal((IntPtr)matchBuf);
-                Marshal.FreeHGlobal((IntPtr)hungCost);
-            }
+            int result = root1 >= 0 && root2 >= 0 ? ed[root1 * n2 + root2] : Math.Max(n1, n2);
+            Marshal.FreeHGlobal((IntPtr)ch1); Marshal.FreeHGlobal((IntPtr)nx1); Marshal.FreeHGlobal((IntPtr)hd1);
+            Marshal.FreeHGlobal((IntPtr)ch2); Marshal.FreeHGlobal((IntPtr)nx2); Marshal.FreeHGlobal((IntPtr)hd2);
+            Marshal.FreeHGlobal((IntPtr)size1); Marshal.FreeHGlobal((IntPtr)size2);
+            Marshal.FreeHGlobal((IntPtr)post1); Marshal.FreeHGlobal((IntPtr)post2);
+            Marshal.FreeHGlobal((IntPtr)ed);
+            Marshal.FreeHGlobal((IntPtr)matchBuf);
+            Marshal.FreeHGlobal((IntPtr)hungCost);
+            return result;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

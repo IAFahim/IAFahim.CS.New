@@ -2,4 +2,7 @@
   <PropertyGroup>
     <PackageId>IAFahim.$pkg</PackageId>
   </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\IAFahim.Geometry.Basic\IAFahim.Geometry.Basic.csproj" />
+  </ItemGroup>
 </Project>

@@ -14,46 +14,40 @@ namespace IAFahim.Search.RangeQueries
             long* elemKeys = (long*)Marshal.AllocHGlobal(sizeof(long) * n);
             long* queryKeys = (long*)Marshal.AllocHGlobal(sizeof(long) * q);
             int* bit = (int*)Marshal.AllocHGlobal(sizeof(int) * (n + 1));
-            try
+            for (int i = 0; i < n; i++)
+                elemKeys[i] = ((long)arr[i] << 32) | (uint)i;
+            for (int j = 0; j < q; j++)
+                queryKeys[j] = ((long)qx[j] << 32) | (uint)j;
+            for (int i = 0; i <= n; i++) bit[i] = 0;
+
+            HeapSortLong(elemKeys, n);
+            HeapSortLong(queryKeys, q);
+
+            int ei = 0;
+            for (int sj = 0; sj < q; sj++)
             {
-                for (int i = 0; i < n; i++)
-                    elemKeys[i] = ((long)arr[i] << 32) | (uint)i;
-                for (int j = 0; j < q; j++)
-                    queryKeys[j] = ((long)qx[j] << 32) | (uint)j;
-                for (int i = 0; i <= n; i++) bit[i] = 0;
-
-                HeapSortLong(elemKeys, n);
-                HeapSortLong(queryKeys, q);
-
-                int ei = 0;
-                for (int sj = 0; sj < q; sj++)
+                long qk = queryKeys[sj];
+                int threshold = (int)(qk >> 32);
+                int origIdx = (int)(qk & 0xFFFFFFFFL);
+                while (ei < n)
                 {
-                    long qk = queryKeys[sj];
-                    int threshold = (int)(qk >> 32);
-                    int origIdx = (int)(qk & 0xFFFFFFFFL);
-                    while (ei < n)
-                    {
-                        long ek = elemKeys[ei];
-                        int eval = (int)(ek >> 32);
-                        if (eval > threshold) break;
-                        int pos = (int)(ek & 0xFFFFFFFFL);
-                        BitUpdate(bit, n, pos);
-                        ei++;
-                    }
-                    int a = ql[origIdx];
-                    int b = qr[origIdx];
-                    if (a < 0) a = 0;
-                    if (b > n - 1) b = n - 1;
-                    int cnt = a <= b ? BitPrefix(bit, b + 1) - BitPrefix(bit, a) : 0;
-                    ans[origIdx] = cnt;
+                    long ek = elemKeys[ei];
+                    int eval = (int)(ek >> 32);
+                    if (eval > threshold) break;
+                    int pos = (int)(ek & 0xFFFFFFFFL);
+                    BitUpdate(bit, n, pos);
+                    ei++;
                 }
+                int a = ql[origIdx];
+                int b = qr[origIdx];
+                if (a < 0) a = 0;
+                if (b > n - 1) b = n - 1;
+                int cnt = a <= b ? BitPrefix(bit, b + 1) - BitPrefix(bit, a) : 0;
+                ans[origIdx] = cnt;
             }
-            finally
-            {
-                Marshal.FreeHGlobal((IntPtr)elemKeys);
-                Marshal.FreeHGlobal((IntPtr)queryKeys);
-                Marshal.FreeHGlobal((IntPtr)bit);
-            }
+            Marshal.FreeHGlobal((IntPtr)elemKeys);
+            Marshal.FreeHGlobal((IntPtr)queryKeys);
+            Marshal.FreeHGlobal((IntPtr)bit);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

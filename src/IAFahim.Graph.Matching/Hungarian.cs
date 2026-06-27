@@ -2,6 +2,7 @@ namespace IAFahim.Graph.Matching
 {
     using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     public static unsafe class HungarianMin
     {
@@ -83,12 +84,17 @@ namespace IAFahim.Graph.Matching
     {
         public static long Run(int n, long* a, int* matchL, int* matchR)
         {
-            long* maxA = stackalloc long[n * n];
+            long* maxA = (long*)Marshal.AllocHGlobal((IntPtr)((long)n * n * sizeof(long)));
+            long* mL = (long*)Marshal.AllocHGlobal(sizeof(long) * n);
+            long* mR = (long*)Marshal.AllocHGlobal(sizeof(long) * n);
             for (int i = 0; i < n * n; i++) maxA[i] = -a[i];
-            long* mL = stackalloc long[n], mR = stackalloc long[n];
             long res = HungarianMin.Run(n, maxA, mL, mR);
             for (int i = 0; i < n; i++) { matchL[i] = (int)mL[i]; matchR[i] = (int)mR[i]; }
-            return -res;
+            long ret = -res;
+            Marshal.FreeHGlobal((IntPtr)maxA);
+            Marshal.FreeHGlobal((IntPtr)mL);
+            Marshal.FreeHGlobal((IntPtr)mR);
+            return ret;
         }
     }
 

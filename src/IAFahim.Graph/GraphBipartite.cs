@@ -2,6 +2,7 @@ namespace IAFahim.Graph
 {
     using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     public static unsafe class IsBipartite
     {
@@ -432,7 +433,7 @@ namespace IAFahim.Graph
     {
         public static long Run(int n, long* cost, long* assign)
         {
-            long* maxCost = stackalloc long[n * n];
+            long* maxCost = (long*)Marshal.AllocHGlobal((IntPtr)((long)n * n * sizeof(long)));
             long maxVal = long.MinValue;
             for (int i = 0; i < n; i++)
             {
@@ -453,7 +454,9 @@ namespace IAFahim.Graph
                 }
             }
             long result = HungarianMin.Run(n, maxCost, assign);
-            return (long)n * maxVal - result;
+            long ret = (long)n * maxVal - result;
+            Marshal.FreeHGlobal((IntPtr)maxCost);
+            return ret;
         }
     }
 
@@ -628,9 +631,10 @@ namespace IAFahim.Graph
         {
             for (int i = 0; i < n; i++) manMatch[i] = -1;
             for (int i = 0; i < n; i++) womanMatch[i] = -1;
-            int* manNext = stackalloc int[n];
+            int* manNext = (int*)Marshal.AllocHGlobal(sizeof(int) * n);
+            int* womanRank = (int*)Marshal.AllocHGlobal((IntPtr)((long)n * n * sizeof(int)));
+            int* stack = (int*)Marshal.AllocHGlobal(sizeof(int) * n);
             for (int i = 0; i < n; i++) manNext[i] = 0;
-            int* womanRank = stackalloc int[n * n];
             for (int w = 0; w < n; w++)
             {
                 for (int r = 0; r < n; r++)
@@ -639,7 +643,6 @@ namespace IAFahim.Graph
                     womanRank[w * n + mID] = r;
                 }
             }
-            int* stack = stackalloc int[n];
             int top = 0;
             for (int i = 0; i < n; i++) stack[top++] = i;
             while (top > 0)
@@ -668,6 +671,9 @@ namespace IAFahim.Graph
                     }
                 }
             }
+            Marshal.FreeHGlobal((IntPtr)manNext);
+            Marshal.FreeHGlobal((IntPtr)womanRank);
+            Marshal.FreeHGlobal((IntPtr)stack);
         }
     }
 
@@ -677,9 +683,10 @@ namespace IAFahim.Graph
         {
             for (int i = 0; i < n; i++) proposerMatch[i] = -1;
             for (int i = 0; i < n; i++) receiverMatch[i] = -1;
-            int* nextIdx = stackalloc int[n];
+            int* nextIdx = (int*)Marshal.AllocHGlobal(sizeof(int) * n);
+            int* receiverRank = (int*)Marshal.AllocHGlobal((IntPtr)((long)n * n * sizeof(int)));
+            int* stack = (int*)Marshal.AllocHGlobal(sizeof(int) * n);
             for (int i = 0; i < n; i++) nextIdx[i] = 0;
-            int* receiverRank = stackalloc int[n * n];
             for (int r = 0; r < n; r++)
             {
                 for (int rank = 0; rank < n; rank++)
@@ -688,7 +695,6 @@ namespace IAFahim.Graph
                     receiverRank[r * n + pID] = rank;
                 }
             }
-            int* stack = stackalloc int[n];
             int top = 0;
             for (int i = 0; i < n; i++) stack[top++] = i;
             while (top > 0)
@@ -717,6 +723,9 @@ namespace IAFahim.Graph
                     }
                 }
             }
+            Marshal.FreeHGlobal((IntPtr)nextIdx);
+            Marshal.FreeHGlobal((IntPtr)receiverRank);
+            Marshal.FreeHGlobal((IntPtr)stack);
         }
     }
 }

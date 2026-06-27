@@ -2,6 +2,7 @@ namespace IAFahim.Linear.Matrix
 {
     using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     public static unsafe class MatrixMul
     {
@@ -24,15 +25,16 @@ namespace IAFahim.Linear.Matrix
         public static void Run(int n, long* a, long* result, long exp)
         {
             InitializeIdentity(n, result);
-            long* temp = stackalloc long[n * n];
-            Buffer.MemoryCopy(a, temp, n * n * sizeof(long), n * n * sizeof(long));
-            
+            long* temp = (long*)Marshal.AllocHGlobal((IntPtr)((long)n * n * sizeof(long)));
+            Buffer.MemoryCopy(a, temp, (long)n * n * sizeof(long), (long)n * n * sizeof(long));
+
             while (exp > 0)
             {
                 if ((exp & 1) == 1) MultiplyInto(n, result, temp);
                 if (exp > 1) MultiplyInto(n, temp, temp);
                 exp >>= 1;
             }
+            Marshal.FreeHGlobal((IntPtr)temp);
         }
 
         private static void InitializeIdentity(int n, long* res)
@@ -43,9 +45,10 @@ namespace IAFahim.Linear.Matrix
 
         private static void MultiplyInto(int n, long* a, long* b)
         {
-            long* res = stackalloc long[n * n];
+            long* res = (long*)Marshal.AllocHGlobal((IntPtr)((long)n * n * sizeof(long)));
             MatrixMul.Run(n, n, n, a, b, res);
-            Buffer.MemoryCopy(res, a, n * n * sizeof(long), n * n * sizeof(long));
+            Buffer.MemoryCopy(res, a, (long)n * n * sizeof(long), (long)n * n * sizeof(long));
+            Marshal.FreeHGlobal((IntPtr)res);
         }
     }
 
@@ -135,16 +138,17 @@ namespace IAFahim.Linear.Matrix
     {
         public static bool Run(int n, long* a, long* inv)
         {
-            long* aug = stackalloc long[n * n * 2];
+            long* aug = (long*)Marshal.AllocHGlobal((IntPtr)((long)n * n * 2 * sizeof(long)));
             InitializeAugmented(n, a, aug);
             for (int i = 0; i < n; i++)
             {
                 int sel = FindPivot(n, i, aug);
-                if (aug[sel * 2 * n + i] == 0) return false;
+                if (aug[sel * 2 * n + i] == 0) { Marshal.FreeHGlobal((IntPtr)aug); return false; }
                 SwapRowsAug(n, i, sel, aug);
                 EliminateAug(n, i, aug);
             }
             ExtractInverse(n, aug, inv);
+            Marshal.FreeHGlobal((IntPtr)aug);
             return true;
         }
 

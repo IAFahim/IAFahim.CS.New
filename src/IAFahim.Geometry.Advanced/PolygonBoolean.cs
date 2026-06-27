@@ -21,45 +21,40 @@ namespace IAFahim.Geometry.Advanced
             double* curY = (double*)Marshal.AllocHGlobal(sizeof(double) * cap);
             double* nxtX = (double*)Marshal.AllocHGlobal(sizeof(double) * cap);
             double* nxtY = (double*)Marshal.AllocHGlobal(sizeof(double) * cap);
-            try
+            int curN = sn;
+            for (int i = 0; i < sn; i++) { curX[i] = sx[i]; curY[i] = sy[i]; }
+            for (int e = 0; e < cn; e++)
             {
-                int curN = sn;
-                for (int i = 0; i < sn; i++) { curX[i] = sx[i]; curY[i] = sy[i]; }
-                for (int e = 0; e < cn; e++)
+                double ax = cx[e], ay = cy[e];
+                double bx = cx[(e + 1) % cn], by = cy[(e + 1) % cn];
+                int nxtN = 0;
+                for (int i = 0; i < curN; i++)
                 {
-                    double ax = cx[e], ay = cy[e];
-                    double bx = cx[(e + 1) % cn], by = cy[(e + 1) % cn];
-                    int nxtN = 0;
-                    for (int i = 0; i < curN; i++)
+                    double px = curX[i], py = curY[i];
+                    double qx = curX[(i + 1) % curN], qy = curY[(i + 1) % curN];
+                    bool pin = LeftOf(ax, ay, bx, by, px, py);
+                    bool qin = LeftOf(ax, ay, bx, by, qx, qy);
+                    if (pin)
                     {
-                        double px = curX[i], py = curY[i];
-                        double qx = curX[(i + 1) % curN], qy = curY[(i + 1) % curN];
-                        bool pin = LeftOf(ax, ay, bx, by, px, py);
-                        bool qin = LeftOf(ax, ay, bx, by, qx, qy);
-                        if (pin)
-                        {
-                            if (!qin) { Emit(nxtX, nxtY, ref nxtN, px, py); Emit(nxtX, nxtY, ref nxtN, Intersect(ax, ay, bx, by, px, py, qx, qy)); }
-                            else Emit(nxtX, nxtY, ref nxtN, qx, qy);
-                        }
-                        else if (qin)
-                        {
-                            Emit(nxtX, nxtY, ref nxtN, Intersect(ax, ay, bx, by, px, py, qx, qy));
-                            Emit(nxtX, nxtY, ref nxtN, qx, qy);
-                        }
+                        if (!qin) { Emit(nxtX, nxtY, ref nxtN, px, py); Emit(nxtX, nxtY, ref nxtN, Intersect(ax, ay, bx, by, px, py, qx, qy)); }
+                        else Emit(nxtX, nxtY, ref nxtN, qx, qy);
                     }
-                    double* tX = curX; curX = nxtX; nxtX = tX;
-                    double* tY = curY; curY = nxtY; nxtY = tY;
-                    curN = nxtN;
-                    if (curN == 0) return 0;
+                    else if (qin)
+                    {
+                        Emit(nxtX, nxtY, ref nxtN, Intersect(ax, ay, bx, by, px, py, qx, qy));
+                        Emit(nxtX, nxtY, ref nxtN, qx, qy);
+                    }
                 }
-                for (int i = 0; i < curN; i++) { ox[i] = curX[i]; oy[i] = curY[i]; }
-                return curN;
+                double* tX = curX; curX = nxtX; nxtX = tX;
+                double* tY = curY; curY = nxtY; nxtY = tY;
+                curN = nxtN;
+                if (curN == 0) { Marshal.FreeHGlobal((IntPtr)curX); Marshal.FreeHGlobal((IntPtr)curY); Marshal.FreeHGlobal((IntPtr)nxtX); Marshal.FreeHGlobal((IntPtr)nxtY); return 0; }
             }
-            finally
-            {
-                Marshal.FreeHGlobal((IntPtr)curX); Marshal.FreeHGlobal((IntPtr)curY);
-                Marshal.FreeHGlobal((IntPtr)nxtX); Marshal.FreeHGlobal((IntPtr)nxtY);
-            }
+            for (int i = 0; i < curN; i++) { ox[i] = curX[i]; oy[i] = curY[i]; }
+            int ret = curN;
+            Marshal.FreeHGlobal((IntPtr)curX); Marshal.FreeHGlobal((IntPtr)curY);
+            Marshal.FreeHGlobal((IntPtr)nxtX); Marshal.FreeHGlobal((IntPtr)nxtY);
+            return ret;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

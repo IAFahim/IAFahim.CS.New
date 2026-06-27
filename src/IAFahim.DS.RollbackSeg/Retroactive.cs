@@ -90,38 +90,32 @@ namespace IAFahim.DS.RollbackSeg
             for (int j = 0; j < Q; j++) order[j] = j;
             SortByKey(order, queryTime, Q);
             int* buf = (int*)Marshal.AllocHGlobal(sizeof(int) * O);
-            try
+            int enqHead = 0, enqTail = 0;   // FIFO: buf[enqHead..enqTail)
+            int qi = 0;
+            for (int t = 0; t < O; t++)
             {
-                int enqHead = 0, enqTail = 0;   // FIFO: buf[enqHead..enqTail)
-                int qi = 0;
-                for (int t = 0; t < O; t++)
-                {
-                    if (opType[t] == 0) buf[enqTail++] = val[t];
-                    else if (enqHead < enqTail) enqHead++;
-                    while (qi < Q && queryTime[order[qi]] == t)
-                    { head[order[qi]] = enqHead < enqTail ? buf[enqHead] : 0; qi++; }
-                }
-                while (qi < Q) { head[order[qi]] = enqHead < enqTail ? buf[enqHead] : 0; qi++; }
+                if (opType[t] == 0) buf[enqTail++] = val[t];
+                else if (enqHead < enqTail) enqHead++;
+                while (qi < Q && queryTime[order[qi]] == t)
+                { head[order[qi]] = enqHead < enqTail ? buf[enqHead] : 0; qi++; }
             }
-            finally { Marshal.FreeHGlobal((IntPtr)order); Marshal.FreeHGlobal((IntPtr)buf); }
+            while (qi < Q) { head[order[qi]] = enqHead < enqTail ? buf[enqHead] : 0; qi++; }
+            Marshal.FreeHGlobal((IntPtr)order); Marshal.FreeHGlobal((IntPtr)buf);
         }
 
         private static void SortByKey(int* order, int* key, int n)
         {
             int* tmp = (int*)Marshal.AllocHGlobal(sizeof(int) * n);
-            try
-            {
-                for (int w = 1; w < n; w <<= 1)
-                    for (int lo = 0; lo < n; lo += w << 1)
-                    {
-                        int mid = lo + w; if (mid >= n) break; int hi = mid + w; if (hi > n) hi = n;
-                        int i = lo, j = mid, k = lo;
-                        while (i < mid && j < hi) { if (key[order[i]] <= key[order[j]]) tmp[k++] = order[i++]; else tmp[k++] = order[j++]; }
-                        while (i < mid) tmp[k++] = order[i++]; while (j < hi) tmp[k++] = order[j++];
-                        for (int t = lo; t < k; t++) order[t] = tmp[t];
-                    }
-            }
-            finally { Marshal.FreeHGlobal((IntPtr)tmp); }
+            for (int w = 1; w < n; w <<= 1)
+                for (int lo = 0; lo < n; lo += w << 1)
+                {
+                    int mid = lo + w; if (mid >= n) break; int hi = mid + w; if (hi > n) hi = n;
+                    int i = lo, j = mid, k = lo;
+                    while (i < mid && j < hi) { if (key[order[i]] <= key[order[j]]) tmp[k++] = order[i++]; else tmp[k++] = order[j++]; }
+                    while (i < mid) tmp[k++] = order[i++]; while (j < hi) tmp[k++] = order[j++];
+                    for (int t = lo; t < k; t++) order[t] = tmp[t];
+                }
+            Marshal.FreeHGlobal((IntPtr)tmp);
         }
     }
 
@@ -149,19 +143,16 @@ namespace IAFahim.DS.RollbackSeg
             for (int j = 0; j < Q; j++) order[j] = j;
             SortByKey(order, queryTime, Q);
             int* buf = (int*)Marshal.AllocHGlobal(sizeof(int) * O);   // ascending sorted multiset
-            try
+            int cnt = 0, qi = 0;
+            for (int t = 0; t < O; t++)
             {
-                int cnt = 0, qi = 0;
-                for (int t = 0; t < O; t++)
-                {
-                    if (opType[t] == 0) InsertSorted(buf, ref cnt, val[t]);
-                    else if (cnt > 0) { for (int i = 1; i < cnt; i++) buf[i - 1] = buf[i]; cnt--; }   // extract-min: drop buf[0], shift left
-                    while (qi < Q && queryTime[order[qi]] == t)
-                    { min[order[qi]] = cnt > 0 ? buf[0] : 0; qi++; }
-                }
-                while (qi < Q) { min[order[qi]] = cnt > 0 ? buf[0] : 0; qi++; }
+                if (opType[t] == 0) InsertSorted(buf, ref cnt, val[t]);
+                else if (cnt > 0) { for (int i = 1; i < cnt; i++) buf[i - 1] = buf[i]; cnt--; }   // extract-min: drop buf[0], shift left
+                while (qi < Q && queryTime[order[qi]] == t)
+                { min[order[qi]] = cnt > 0 ? buf[0] : 0; qi++; }
             }
-            finally { Marshal.FreeHGlobal((IntPtr)order); Marshal.FreeHGlobal((IntPtr)buf); }
+            while (qi < Q) { min[order[qi]] = cnt > 0 ? buf[0] : 0; qi++; }
+            Marshal.FreeHGlobal((IntPtr)order); Marshal.FreeHGlobal((IntPtr)buf);
         }
 
         private static void InsertSorted(int* buf, ref int cnt, int v)
@@ -175,19 +166,16 @@ namespace IAFahim.DS.RollbackSeg
         private static void SortByKey(int* order, int* key, int n)
         {
             int* tmp = (int*)Marshal.AllocHGlobal(sizeof(int) * n);
-            try
-            {
-                for (int w = 1; w < n; w <<= 1)
-                    for (int lo = 0; lo < n; lo += w << 1)
-                    {
-                        int mid = lo + w; if (mid >= n) break; int hi = mid + w; if (hi > n) hi = n;
-                        int i = lo, j = mid, k = lo;
-                        while (i < mid && j < hi) { if (key[order[i]] <= key[order[j]]) tmp[k++] = order[i++]; else tmp[k++] = order[j++]; }
-                        while (i < mid) tmp[k++] = order[i++]; while (j < hi) tmp[k++] = order[j++];
-                        for (int t = lo; t < k; t++) order[t] = tmp[t];
-                    }
-            }
-            finally { Marshal.FreeHGlobal((IntPtr)tmp); }
+            for (int w = 1; w < n; w <<= 1)
+                for (int lo = 0; lo < n; lo += w << 1)
+                {
+                    int mid = lo + w; if (mid >= n) break; int hi = mid + w; if (hi > n) hi = n;
+                    int i = lo, j = mid, k = lo;
+                    while (i < mid && j < hi) { if (key[order[i]] <= key[order[j]]) tmp[k++] = order[i++]; else tmp[k++] = order[j++]; }
+                    while (i < mid) tmp[k++] = order[i++]; while (j < hi) tmp[k++] = order[j++];
+                    for (int t = lo; t < k; t++) order[t] = tmp[t];
+                }
+            Marshal.FreeHGlobal((IntPtr)tmp);
         }
     }
 
@@ -226,14 +214,12 @@ namespace IAFahim.DS.RollbackSeg
             int* stkChild = (int*)Marshal.AllocHGlobal(sizeof(int) * stkCap);
             int* stkPar = (int*)Marshal.AllocHGlobal(sizeof(int) * stkCap);
             int* stkOld = (int*)Marshal.AllocHGlobal(sizeof(int) * stkCap);
-            try
+            for (int i = 0; i < m; i++)
             {
-                for (int i = 0; i < m; i++)
-                {
-                    int a = start[i], b = end[i];
-                    if (a < 0) a = 0; if (b > timePoints - 1) b = timePoints - 1; if (a > b) continue;
-                    CountEdge(nodeCnt, 1, 0, timePoints - 1, a, b);
-                }
+                int a = start[i], b = end[i];
+                if (a < 0) a = 0; if (b > timePoints - 1) b = timePoints - 1; if (a > b) continue;
+                CountEdge(nodeCnt, 1, 0, timePoints - 1, a, b);
+            }
                 int acc = 0;
                 for (int i = 0; i < nodes; i++) { nodeOff[i] = acc; acc += nodeCnt[i]; nodeCnt[i] = 0; }
                 int* nodeEu = (int*)Marshal.AllocHGlobal(sizeof(int) * acc);
@@ -253,15 +239,14 @@ namespace IAFahim.DS.RollbackSeg
                 int stkPtr = 0;
                 Dfs(nodeOff, nodeCnt, nodeEu, nodeEv, qOff, qCnt, qBucket, qu, qv, ans,
                     parent, sz, stkChild, stkPar, stkOld, ref stkPtr, 1, 0, timePoints - 1);
-            }
-            finally
-            {
+                Marshal.FreeHGlobal((IntPtr)nodeEu);
+                Marshal.FreeHGlobal((IntPtr)nodeEv);
+                Marshal.FreeHGlobal((IntPtr)qBucket);
                 Marshal.FreeHGlobal((IntPtr)nodeCnt); Marshal.FreeHGlobal((IntPtr)nodeOff);
                 Marshal.FreeHGlobal((IntPtr)qCnt); Marshal.FreeHGlobal((IntPtr)qOff);
                 Marshal.FreeHGlobal((IntPtr)parent); Marshal.FreeHGlobal((IntPtr)sz);
                 Marshal.FreeHGlobal((IntPtr)stkChild); Marshal.FreeHGlobal((IntPtr)stkPar); Marshal.FreeHGlobal((IntPtr)stkOld);
             }
-        }
 
         private static void Dfs(int* nodeOff, int* nodeCnt, int* nodeEu, int* nodeEv,
                                 int* qOff, int* qCnt, int* qBucket, int* qu, int* qv, int* ans,
