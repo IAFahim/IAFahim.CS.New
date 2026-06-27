@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Optimization.DivideConquer/SlopeTrick.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.DivideConquer/SlopeTrick.cs",
+   "symbol": "MaxHeapPop",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Sift-down does two compares + possible swap per level; use a single-store hole/percolate to halve writes, and precompute child indices without redundant bounds work.",
+   "currentCost": "Each sift-down level performs up to 2 comparisons and a 3-assignment swap (`tmp; heap[idx]=...; heap[largest]=...`). With swaps, the moved-up element is written then potentially overwritten again next level, doubling memory writes along the path (O(log size) per pop, called once per AddAbsWithHeaps).",
+   "proposedChange": "Use the classic 'hole' technique: hold the displaced value in a register `long item = heap[size]` (after `size--`), walk down comparing children and writing only the larger child up into the hole each level, then write `item` once into the final hole. This replaces ~2 writes/level with 1 write/level plus one final store.",
+   "rationale": "Halves the store traffic along the sift path and removes the temp-swap dependency chain, improving the heap operation that sits in the AddAbsWithHeaps hot path. Same comparison count, fewer writes -> fewer dependent stores.",
+   "risk": "Must replicate exact comparison direction (`>` for max-heap, `<` for min-heap) and the `left<size`/`right<size` bounds so identical elements land in identical positions; heap is not a canonical structure but the resulting heap-order property and peek results are identical. Apply symmetrically to MinHeapPop."
+  },
+  {
+   "file": "src/IAFahim.Optimization.DivideConquer/SlopeTrick.cs",
+   "symbol": "MaxHeapPeek",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Unused `size` parameter on MaxHeapPeek/MinHeapPeek widens the signature without benefit.",
+   "currentCost": "`MaxHeapPeek(long* heap, int size)` and `MinHeapPeek(long* heap, int size)` take a `size` they never use; it just returns heap[0]. Minor: an extra argument set up at each (inlined) call site and a misleading API.",
+   "proposedChange": "Drop the `size` parameter: `private static long MaxHeapPeek(long* heap) => heap[0];` (likewise MinHeapPeek). Update the two call sites in AdjustHeaps.",
+   "rationale": "Cleaner, honest signature; with AggressiveInlining the codegen is already heap[0], so this is purely API/ergonomics clarity with zero perf regression and a tiny chance of removing an arg-marshal if inlining ever fails.",
+   "risk": "None functionally; private method, two internal call sites. Behavior identical."
+  },
+  {
+   "file": "src/IAFahim.Optimization.DivideConquer/SlopeTrick.cs",
+   "symbol": "MaxHeapPop",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Replace `idx * 2 + 1` / `idx * 2 + 2` with shift to express child index as a true shift+or.",
+   "currentCost": "Child index computed as `idx * 2 + 1` and `idx * 2 + 2`. A multiply-by-2 is typically lowered to a shift already, but writing it explicitly guarantees the cheap form and avoids any reliance on the optimizer for the +2 case.",
+   "proposedChange": "Use `int left = (idx << 1) + 1; int right = left + 1;` \u2014 compute right as left+1 instead of a second `idx*2+2`, saving the redundant shift/mul.",
+   "rationale": "Removes one shift/multiply per sift level by deriving right from left. Trivial but free; applies to both Pop functions.",
+   "risk": "Pure arithmetic identity (right = idx*2+2 = left+1). No overflow concern for realistic heap sizes (idx < int range/2). Behavior identical."
+  }
+ ]
+}

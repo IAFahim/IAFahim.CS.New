@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Search.Subset/EnumerateSupersets.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Search.Subset/EnumerateSupersets.cs",
+   "symbol": "EnumerateSupersets.Run",
+   "severity": "critical",
+   "category": "wrong-recurrence",
+   "summary": "Superset enumeration is fundamentally wrong: it only adds the single smallest free bit each step (super = super + smallest), walking one monotone chain from subMask up to maxMask instead of enumerating all 2^k supersets over the k free bits. It emits roughly k+1 masks instead of 2^k, and the masks it does emit are not the distinct supersets. For subMask=0b001, maxMask=0b111 it returns 3 masks (001,011,111) when there are 4 supersets (001,011,101,111); 0b101 is never produced. A brute-force cross-check over all (subMask,maxMask) pairs with maxMask<256 found 5281/6561 inputs produce a wrong count.",
+   "triggeringInput": "subMask=0b001 (1), maxMask=0b111 (7): returns count=3 and dst={1,3,7}, missing superset 0b101 (5); correct result is 4 masks {1,3,5,7}.",
+   "rootCause": "The algorithm treats superset generation as a single ascending walk: at each step it takes the lowest free bit (add = maxMask & ~super; smallest = add & -add) and does super = super + smallest. This deterministically fills bits from low to high along one path and reaches maxMask after k additions, so it visits only the k+1 masks on that chain and never the other 2^k - (k+1) supersets formed by other combinations of the free bits. 'super + smallest' also only behaves like a set-bit because that bit is guaranteed clear, but the enumeration logic itself is wrong. The unused 'remaining = maxMask ^ subMask' confirms the intent to range over free bits, which the code fails to do.",
+   "suggestedFix": "Enumerate subsets of the free-bit set and OR onto subMask. e.g.: int free = maxMask & ~subMask; int s = free; int count = 0; while (true) { dst[count++] = subMask | s; if (s == 0) break; s = (s - 1) & free; } return count; This emits exactly 2^popcount(free) distinct supersets (including subMask itself when s==0 and maxMask when s==free)."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.Subset/EnumerateSupersets.cs",
+   "symbol": "Run",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Remove the dead local `remaining`, which is computed but never used.",
+   "currentCost": "`int remaining = maxMask ^ subMask;` performs an xor and occupies a register/stack slot but is never read. A good optimizer (and Burst) will usually dead-code-eliminate it, but it is dead source that obscures intent.",
+   "proposedChange": "Delete the line `int remaining = maxMask ^ subMask;`.",
+   "rationale": "Eliminates a guaranteed-dead computation and clarifies the algorithm; zero behavioral effect, smaller readable surface, and removes reliance on DCE.",
+   "risk": "None. The variable has no readers, so removal cannot change observable behavior."
+  }
+ ]
+}

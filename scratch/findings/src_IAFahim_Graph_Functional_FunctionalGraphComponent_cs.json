@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Graph.Functional/FunctionalGraphComponent.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Functional/FunctionalGraphComponent.cs",
+   "symbol": "FunctionalGraphComponent.Run",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Unimplemented stub: returns 0 unconditionally; not an optimization target.",
+   "currentCost": "Body is `return 0;` regardless of f, n, comp. No algorithm present, so there is nothing to optimize; AggressiveInlining on a constant-return stub is harmless but meaningless.",
+   "proposedChange": "No optimization possible until implemented. When implemented (weakly connected components of a functional graph = union-find or cycle-root labeling over the f-pointers), the natural O(n) approach is to label each node by its cycle root using the CycleEntry machinery and a single pass writing into comp; design it in-place over comp with no scratch buffer.",
+   "rationale": "Flagging that this file is a placeholder so reviewers do not mistake it for finished hot-path code.",
+   "risk": "None; reporting state only. Changing the stub would change behavior by definition."
+  }
+ ]
+}

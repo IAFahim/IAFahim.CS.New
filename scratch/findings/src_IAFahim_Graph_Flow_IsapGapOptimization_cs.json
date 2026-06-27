@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Graph.Flow/IsapGapOptimization.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Flow/IsapGapOptimization.cs",
+   "symbol": "IsapGapOptimization.Run",
+   "severity": "high",
+   "category": "edge-case",
+   "summary": "flow[] is an edge-indexed array (indices up to 2*edges) but Run only zeroes flow[0..n) inside the per-node init loop, leaving residual flow on all edge slots >= n uninitialized, so the algorithm starts from a garbage residual graph and returns a wrong max-flow.",
+   "triggeringInput": "Any graph with more edges than n. E.g. n=3 nodes but 4+ directed edge entries: edge ids 3,4,5,... in flow[] are never set to 0. If the caller-supplied flow buffer has nonzero contents at those indices, cap[e]-flow[e] is wrong and the computed flow is incorrect.",
+   "rootCause": "Line 13 'for (int i = 0; i < n; i++) { ...; flow[i] = 0; }' iterates over node indices, but flow is indexed by edge id (paired via e^1) which ranges far beyond n. Sibling Run methods (MinCostFlowCancelCycle, MinCostFlowCapacityScaling) correctly zero flow[i] for i < n*2; ISAP zeroes only the first n edge slots.",
+   "suggestedFix": "Zero the flow array over its full edge range (the number of edge entries, e.g. 2*edgeCount) separately from the node-init loop, or document that the caller must pre-zero flow and remove the misleading partial flow[i]=0 from the node loop."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Flow/IsapGapOptimization.cs",
+   "symbol": "Run / BfsLevel2",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Remove the redundant level[]/cnt[] initialization in Run that BfsLevel2 immediately overwrites.",
+   "currentCost": "Line 13 sets level[i]=0 and cnt[i]=0 for all i. BfsLevel2 (line 27) then overwrites level[i]=n and cnt[i]=0 for all i, and rebuilds cnt fully at line 44. So the level=0 and cnt=0 writes in Run are dead stores (two O(n) streaming writes wasted before the first and only BfsLevel2 call).",
+   "proposedChange": "In Run's init loop keep only `it[i] = head[i];` and `flow[i] = 0;`. Drop `level[i]=0;` and `cnt[i]=0;` since BfsLevel2 unconditionally reinitializes both. flow[i]=0 must stay (it is the caller's flow array reset and is not touched by BfsLevel2).",
+   "rationale": "Eliminates two dead O(n) initialization passes over level and cnt before they are clobbered, reducing startup memory traffic. Pure win, no behavior change.",
+   "risk": "None provided BfsLevel2 is always called once before any level/cnt read (it is, line 15). flow[i]=0 must be retained as it is the real output/residual reset."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/IsapGapOptimization.cs",
+   "symbol": "SendFlow2",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist invariant level[u]+1 and cache residual; add AggressiveInlining is not viable (recursive) but reduce repeated indexed loads of level[u].",
+   "currentCost": "Inside the edge loop (lines 50-58) level[u] is re-loaded for the `level[v] == level[u]+1` test on every edge though it is invariant across the loop. cap[e]-flow[e] is computed once for the guard then recomputed inside Math.Min on line 56. cnt[level[u]] is indexed three times (lines 60-63) reloading level[u] each time.",
+   "proposedChange": "Cache `int lu1 = level[u] + 1;` before the for-loop and compare `level[v] == lu1`. Cache `int res = cap[e] - flow[e];` once and pass `Math.Min(f, res)` reusing res. In the retreat block cache `int lu = level[u];` and index cnt[lu] consistently, then after `level[u]++` use cnt[lu+1].",
+   "rationale": "Removes a redundant level[u] load per edge and a redundant residual subtraction per accepted edge in the hottest recursive routine; shortens dependency chains. Math.Min(int) already lowers to branchless cmov under Burst, so reusing the precomputed res is free correctness-wise.",
+   "risk": "None: level[u] is not modified inside the edge loop (only in the retreat tail after the loop), so caching lu1 across the loop is exact. res is recomputed only because flow[e] is unchanged until after the recursive call returns; caching before the recursion is fine because the value passed to Math.Min is the pre-recursion residual, matching current semantics."
+  }
+ ]
+}

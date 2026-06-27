@@ -1,0 +1,71 @@
+{
+ "file": "src/IAFahim.Graph.TreeDecomposition/TreeDecompositionKnapsack.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.TreeDecomposition/TreeDecompositionKnapsack.cs",
+   "symbol": "TreeDecompositionKnapsackAlgorithm.TreeDecompositionKnapsack",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "The knapsack solver is an unimplemented placeholder: it allocates and zero-clears a DP table but every node-type branch (LEAF/INTRODUCE/FORGET/JOIN) has an empty body, and the method unconditionally returns the literal 0 instead of the computed maximum value. For any non-trivial input it produces a wrong result.",
+   "triggeringInput": "niceNodesCount=1, nodeType={TYPE_LEAF}, leftChild/rightChild={-1,-1}, introForgetVertex={0}, bagSizes={1}, bagElements={0}, maxBagSize=1, capacity=10, weights={5}, values={100}. Expected best value 100; returns 0.",
+   "rootCause": "The DP transitions for the four nice-tree-decomposition node types are stubbed out (empty if/else bodies) and the function returns the constant 0 rather than reading the final answer from dp. The algorithm named TreeDecompositionKnapsack does no knapsack computation at all.",
+   "suggestedFix": "Implement the DP: for each nice-tree node in reverse topological order, fill dp[u][mask][c] per type (LEAF base case dp=0; INTRODUCE adds the introduced item's weight/value subject to capacity; FORGET maxes over inclusion of the forgotten vertex; JOIN combines children over c1+c2=c). Then return the maximum dp value at the root over all masks and c<=capacity instead of 0."
+  },
+  {
+   "file": "src/IAFahim.Graph.TreeDecomposition/TreeDecompositionKnapsack.cs",
+   "symbol": "TreeDecompositionKnapsackAlgorithm.TreeDecompositionKnapsack",
+   "severity": "medium",
+   "category": "overflow",
+   "summary": "DP table size computation evaluates (capacity + 1) as 32-bit int arithmetic; for capacity == int.MaxValue this overflows to int.MinValue, making the negative factor propagate into dpSize and yield a negative/garbage allocation size cast to nint, causing a wrong/failed AllocHGlobal.",
+   "triggeringInput": "niceNodesCount=1, maxBagSize=0, capacity=2147483647 (int.MaxValue). (capacity + 1) overflows to -2147483648, so dpSize becomes negative.",
+   "rootCause": "capacity + 1 is computed in int before being promoted to long in the product, so the +1 overflows when capacity is near int.MaxValue.",
+   "suggestedFix": "Promote to long before adding: use ((long)capacity + 1) in the dpSize expression so the +1 cannot overflow 32-bit range."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.TreeDecomposition/TreeDecompositionKnapsack.cs",
+   "symbol": "UnsafeUtilityMemClear",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Byte-at-a-time clear loop is ~8x slower than necessary and defeats Burst vectorization on a potentially huge buffer.",
+   "currentCost": "One store per byte: dpSize iterations of a 1-byte write with a long-typed loop counter. dpSize = niceNodesCount * 2^maxBagSize * (capacity+1) * 8 bytes, which for non-trivial inputs is tens of MB to GB. A scalar byte loop issues 8x more store-uops than a long-width loop and is hard for Burst/the JIT to auto-vectorize cleanly due to the byte granularity.",
+   "proposedChange": "Clear in long-width strides since dpSize is always a multiple of sizeof(long) (it is computed as count*...*sizeof(long)). Rewrite as: long* lp = (long*)ptr; long n = size >> 3; for (long i = 0; i < n; i++) lp[i] = 0L;  Even better, call the platform's bulk-zero primitive (Unity's UnsafeUtility.MemClear / memset) which uses SIMD/rep-stos. Add [MethodImpl(MethodImplOptions.AggressiveInlining)] is NOT appropriate here (large loop), but a wide-store loop is.",
+   "rationale": "8x fewer store-uops, the long-stride loop is trivially vectorizable by Burst into 16/32-byte SIMD stores, and a memset intrinsic uses rep stos / streaming stores that avoid polluting cache. size is guaranteed a multiple of 8 because the expression ends in * sizeof(long), so the >>3 division is exact with no tail remainder.",
+   "risk": "Safe: size is always a multiple of sizeof(long) by construction, so no leftover-byte tail handling is needed. Use a shift (>>3) not division. dp comes from AllocHGlobal which is at least pointer-aligned, so long-width stores are aligned. If the helper is ever called with a non-8-multiple size elsewhere, a tail byte loop guard would be required, but there is currently only this one caller."
+  },
+  {
+   "file": "src/IAFahim.Graph.TreeDecomposition/TreeDecompositionKnapsack.cs",
+   "symbol": "TreeDecompositionKnapsack",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "dpSize multiplication can overflow long silently and the cleared allocation is never read, so the whole alloc+clear is dead work in the current stub.",
+   "currentCost": "dpSize = (long)niceNodesCount * (1L << maxBagSize) * (capacity+1) * 8. With maxBagSize up to ~31 the 1L<<maxBagSize term alone is 2^31; multiplied by niceNodesCount and (capacity+1) this overflows 63-bit range for realistic tree-decomposition widths, producing a negative/wrapped size passed to (nint)AllocHGlobal. Separately, in the current code dp is allocated, zeroed (O(dpSize) writes), and then never read before returning 0 -- pure wasted cycles and a large transient memory spike on mobile.",
+   "proposedChange": "(1) When the DP is actually implemented, avoid materializing the full niceNodesCount * 2^maxBagSize * (capacity+1) table at once: standard nice-tree-decomposition knapsack DP only needs the table(s) of the current node and its child/children live at any time (post-order), so allocate per-active-node and free as you go -- reducing peak RAM from O(niceNodesCount * 2^w * cap) to O((children+1) * 2^w * cap). (2) Compute dpSize in a way that detects overflow or assert maxBagSize is small; prefer indexing math that keeps the 2^maxBagSize and (capacity+1) factors as int strides. (3) Until the body is implemented, the alloc+memclear is dead and should be removed so the stub does not allocate/clear gigabytes.",
+   "rationale": "Peak working set on mobile is the binding constraint; a full 3D DP table is exponential in bag size and need not be resident all at once for a tree DP. Eliminating dead alloc+clear removes an O(dpSize) cost entirely. Overflow-safe sizing prevents UB.",
+   "risk": "Behavioral: removing the alloc changes nothing observable now (function returns 0 regardless) but obviously the real DP must be written; flag as design guidance, not a drop-in micro-opt. The per-node allocation strategy changes memory lifetime, not outputs. Overflow guard only triggers on inputs that already produce UB today."
+  },
+  {
+   "file": "src/IAFahim.Graph.TreeDecomposition/TreeDecompositionKnapsack.cs",
+   "symbol": "TreeDecompositionKnapsack",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "Marshal.AllocHGlobal/FreeHGlobal and try/finally are not Burst-compatible and add managed-interop overhead on the hot allocation path.",
+   "currentCost": "Marshal.AllocHGlobal and Marshal.FreeHGlobal are managed P/Invoke wrappers that Burst cannot compile; the try/finally also introduces an exception region that Burst does not support. This forces the whole method off the Burst path despite the [AggressiveInlining] and unsafe pointer style.",
+   "proposedChange": "Use Unity's UnsafeUtility.Malloc/Free with an Allocator (e.g. Allocator.Temp/TempJob) instead of Marshal.AllocHGlobal/FreeHGlobal, and replace try/finally with a straight-line free at the single return point (the method has one logical exit). This keeps the routine Burst-compilable and removes managed interop and the EH frame.",
+   "rationale": "Burst-compiled allocation via UnsafeUtility maps to native malloc without managed marshalling; dropping try/finally removes an unwind region Burst rejects, letting the whole function (and its memclear loop) be Burst-vectorized. Fewer instructions on entry/exit and no managed transition.",
+   "risk": "Behavioral-neutral for valid input. Without try/finally, an exception between alloc and free would leak -- but house rules forbid exceptions on the hot path and Run methods assume valid input, so straight-line free is acceptable. Requires Unity.Collections.LowLevel.Unsafe dependency; if this module must stay engine-agnostic, keep a manual free at the single exit instead of try/finally rather than switching allocators."
+  },
+  {
+   "file": "src/IAFahim.Graph.TreeDecomposition/TreeDecompositionKnapsack.cs",
+   "symbol": "TreeDecompositionKnapsack",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "if/else-if chain on nodeType should be a switch (jump table) and the loop is a candidate for branch-predictable dispatch once implemented.",
+   "currentCost": "The per-node dispatch is a linear if/else-if chain over 4 contiguous constant types (0..3). The compiler may turn it into sequential compares (up to 3 branches for TYPE_JOIN) rather than a single jump table, costing extra compares/branches per node for niceNodesCount iterations.",
+   "proposedChange": "Replace the if/else-if cascade with switch (type) { case TYPE_LEAF: ...; case TYPE_INTRODUCE: ...; case TYPE_FORGET: ...; case TYPE_JOIN: ...; }. Since the cases are dense 0..3 constants, the compiler/Burst emits a computed-goto jump table: one indexed branch instead of up to three compares.",
+   "rationale": "Constant per-node dispatch cost drops from up to 3 dependent compare/branch pairs to a single jump-table indirection; types are dense so a jump table is ideal. Lower branch-misprediction pressure in a hot post-order loop.",
+   "risk": "None: switch over the same constants is semantically identical to the if-chain. Burst handles dense switch as a jump table. Purely a readability+dispatch improvement; effect is negligible until the case bodies do real work."
+  }
+ ]
+}

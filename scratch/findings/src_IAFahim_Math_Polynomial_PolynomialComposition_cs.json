@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.Polynomial/PolynomialComposition.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Polynomial/PolynomialComposition.cs",
+   "symbol": "PolynomialComposition.Run",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "A fresh 'next' buffer is stackalloc'd inside the per-k loop, growing stack usage and re-zeroing every iteration; it can be a single reused buffer (the 'tmp' parameter exists for exactly this but is unused).",
+   "currentCost": "stackalloc long[n] executed up to n times within the k-loop (n*n longs of stack pressure / repeated frame growth) plus an n-length zero pass each iteration, and a separate n-length copy 'gpow[j]=next[j]' each iteration.",
+   "proposedChange": "Allocate 'next' once (or use the unused 'tmp' parameter) outside the loop. Better: ping-pong between gpow and next pointers (swap the two pointers) to eliminate the per-iteration 'gpow[j]=next[j]' copy entirely; just zero the target buffer before the convolution.",
+   "rationale": "stackalloc inside a loop is a known anti-pattern (frame does not shrink until method exit in C#, so it accumulates), and pointer ping-pong removes an O(n) copy pass per k, cutting an O(n^2) copy cost to zero. The 'tmp' parameter is currently dead, indicating intended scratch reuse.",
+   "risk": "Must still zero the destination buffer before each convolution accumulation (it does 'next[j]=0'). Ping-pong requires care that the final gpow read after the loop points at the right buffer, but gpow is not read after the loop here. Safe and behavior-preserving."
+  },
+  {
+   "file": "src/IAFahim.Math.Polynomial/PolynomialComposition.cs",
+   "symbol": "PolynomialComposition.RunNaive",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "RunNaive is a byte-for-byte duplicate of Run (minus the unused tmp parameter), doubling code/icache footprint with no behavioral difference.",
+   "currentCost": "Two identical method bodies; the 'tmp' parameter in Run is never used, so Run and RunNaive are functionally indistinguishable. Larger compiled code, more icache pressure, maintenance hazard.",
+   "proposedChange": "Either implement the Brent-Kung baby-step/giant-step composition in Run (O(n^2 / sqrt or n sqrt(n) log) with the tmp scratch it was given) so the two methods genuinely differ, or delete RunNaive and keep one. As-is, collapse to one method.",
+   "rationale": "Removes duplicated code path; if the intended design was a fast Run vs naive fallback, the tmp parameter signals an unfinished Brent-Kung implementation that would lower composition from O(n^2*m) toward O(n^1.5 log n).",
+   "risk": "Pure ergonomics/dedup unless the faster algorithm is implemented; deleting RunNaive is an API change for callers. State clearly which to keep. No semantic change from dedup since bodies are identical."
+  }
+ ]
+}

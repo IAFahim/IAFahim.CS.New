@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Search.Bit/Bitset.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.Bit/Bitset.cs",
+   "symbol": "BitsetCount.PopCountWord",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace the iterative w &= w-1 popcount loop with a hardware popcount intrinsic.",
+   "currentCost": "PopCountWord loops once per SET bit (Kernighan), so up to 64 iterations per 64-bit word, each a dependent AND + decrement + branch. For a dense bitset this is ~64 cycles/word and a hard-to-predict branch.",
+   "proposedChange": "Use Unity.Mathematics math.countbits((ulong)w) (or System.Numerics.BitOperations.PopCount on platforms where available). Under Burst this lowers to a single POPCNT/CNT instruction; delete the helper. Sum into count over the wordCount loop.",
+   "rationale": "One fixed-latency instruction replaces a data-dependent loop of up to 64 dependent iterations: ~1 cycle vs tens, with no branch misprediction and far shorter dependency chain. The outer accumulation also vectorizes/pipelines better.",
+   "risk": "Bit-identical result; popcount is exact. Requires Unity.Mathematics reference (already used in sibling modules). If neither intrinsic is guaranteed, keep a SWAR fallback (parallel bit-count) which is still branchless and ~12 ops vs the current loop."
+  },
+  {
+   "file": "src/IAFahim.Search.Bit/Bitset.cs",
+   "symbol": "BitsetNextSet.BitIndex",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace the manual 6-step binary-search trailing-zero count with a tzcnt intrinsic.",
+   "currentCost": "BitIndex does 6 sequential compare/shift/add steps (a dependency chain of ~6 dependent branches+shifts) to compute the trailing-zero count of the masked word, on every NextSet hit.",
+   "proposedChange": "Use math.tzcnt((ulong)w) (Unity.Mathematics) \u2014 returns count of trailing zeros directly. Replace both call sites in Run with from + math.tzcnt(...) and (i<<6) + math.tzcnt(...). Delete BitIndex.",
+   "rationale": "TZCNT/CTZ is a single ~3-cycle instruction versus a 6-deep dependency chain of branchy shifts. Shorter critical path, no branches.",
+   "risk": "Behavior identical for nonzero w (the only values passed: callers guard w != 0 and bitset[i] != 0). tzcnt of zero is undefined/64 but is never reached here. Requires Unity.Mathematics; otherwise keep current code or use BitOperations.TrailingZeroCount."
+  },
+  {
+   "file": "src/IAFahim.Search.Bit/Bitset.cs",
+   "symbol": "BitsetPrevSet.BitIndexRev",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace the manual 6-step leading-zero search with an lzcnt intrinsic.",
+   "currentCost": "BitIndexRev runs 6 sequential masked compares with shifts to find the highest set bit index \u2014 a long dependent branch chain executed on every PrevSet hit.",
+   "proposedChange": "Compute the highest set bit as 63 - math.lzcnt((ulong)x). Replace both call sites and delete BitIndexRev.",
+   "rationale": "LZCNT/CLZ is one ~3-cycle instruction; replaces a 6-deep branchy chain. Same result for all nonzero x (the only inputs, since callers guard w != 0 / bitset[i] != 0).",
+   "risk": "lzcnt(0) is 64 -> would give 63-64 = -1, but x is never zero at call sites. Bit-identical otherwise. Requires Unity.Mathematics or BitOperations.Log2/LeadingZeroCount."
+  },
+  {
+   "file": "src/IAFahim.Search.Bit/Bitset.cs",
+   "symbol": "BitsetShift.ShiftUnaligned",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Per-iteration branch 'if (i > wordShift)' to skip the carry-in only matters on the final word; peel it out of the loop.",
+   "currentCost": "Every iteration of the descending loop tests i > wordShift even though it is false for exactly one iteration (i == wordShift), adding a predictable but real compare+branch to each word.",
+   "proposedChange": "Loop i from wordCount-1 down to wordShift+1 doing dst[i] = (src[i-wordShift] << bitShift) | (src[i-wordShift-1] >> invShift); then handle the single i == wordShift word after the loop as dst[wordShift] = src[0] << bitShift. Removes the in-loop branch.",
+   "rationale": "Eliminates a branch and an index recomputation from the hot per-word body, shortening the loop body and improving the chance Burst keeps the two shifts/OR in a tight pipeline.",
+   "risk": "Behavior identical: the peeled iteration reproduces exactly the i==wordShift case (no carry-in). Guard the peeled write only runs when wordCount > wordShift, which the loop already requires."
+  },
+  {
+   "file": "src/IAFahim.Search.Bit/Bitset.cs",
+   "symbol": "BitsetOr.Run / BitsetAnd.Run",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "wordsPerRow parameter is accepted but unused; wordCount is derived from n instead \u2014 dead/misleading parameter.",
+   "currentCost": "No runtime cost, but the unused parameter is a correctness/clarity hazard: callers may pass a row stride expecting it to be honored, and it diverges from the Set/Get/Count signatures that also ignore wordsPerRow.",
+   "proposedChange": "Either remove wordsPerRow from these signatures, or use it as the loop bound consistently (wordCount = wordsPerRow) across the whole Bitset API. Make the convention uniform so the parameter is either always meaningful or absent.",
+   "rationale": "Reduces API misuse risk and signature inconsistency without changing the perf model; an unused parameter is pure overhead in the ABI and a discoverability trap.",
+   "risk": "Removing the parameter is a public-API change; keep it only if some caller relies on the signature. No behavioral change to the OR/AND result for current usage since the parameter is ignored today."
+  }
+ ]
+}

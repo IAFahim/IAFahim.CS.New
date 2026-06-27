@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.Modular/ModAdd.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.Modular/ModAdd.cs",
+   "symbol": "ModAdd.Run",
+   "severity": "medium",
+   "category": "overflow",
+   "summary": "Modular addition overflows long for valid residue inputs when mod > long.MaxValue/2, producing a garbage (often negative) result instead of (a+b) mod mod.",
+   "triggeringInput": "ModAdd.Run(a=4999999999999999999, b=4999999999999999999, mod=5000000000000000000). Both a,b are valid residues in [0,mod). `a+b` overflows Int64 to a negative value, `r >= mod` is false, and the method returns -8446744073709551618 instead of the correct 4999999999999999998 (mod-2).",
+   "rootCause": "`long r = a + b;` is computed without overflow protection. For inputs in [0,mod), a+b can reach 2*mod-2; when mod exceeds long.MaxValue/2 (~4.61e18) this exceeds Int64.MaxValue and wraps. The sibling ModMul deliberately uses an overflow-safe doubling scheme, indicating the library intends to support near-long moduli, so this addition path is inconsistent and wrong for the same input domain.",
+   "suggestedFix": "Use an overflow-safe form, e.g. `if (a >= mod - b) r = a - (mod - b); else r = a + b;` (assuming a,b already in [0,mod)), or compute via the same compare-before-add trick used in ModMul.Run line 22."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Modular/ModAdd.cs",
+   "symbol": "ModAdd.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Single conditional subtract can be made branchless to avoid a mispredict in tight loops.",
+   "currentCost": "if (r >= mod) r -= mod; is a data-dependent branch; in summation loops over pseudo-random residues it mispredicts ~50% of the time.",
+   "proposedChange": "Branchless: long r = a + b; r -= mod; r += (r >> 63) & mod; (r>>63 is all-ones when r<0 i.e. original r<mod, adding mod back). Equivalent to the conditional subtract, no branch.",
+   "rationale": "Removes a 50%-mispredicted branch from a 3-instruction leaf that is frequently called in inner loops (NTT/poly accumulation). Burst/SIMD-friendly and vectorizable across arrays.",
+   "risk": "Relies on a+b not overflowing Int64 \u2014 same precondition the current code already assumes (a,b in [0,mod), so a+b < 2*mod <= 2^63 only if mod <= 2^62). r>>63 arithmetic shift of negative is implementation-consistent in C# (sign-propagating). Behavior identical for all valid reduced inputs."
+  }
+ ]
+}

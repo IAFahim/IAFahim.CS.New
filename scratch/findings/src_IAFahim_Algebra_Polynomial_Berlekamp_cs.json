@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Algebra.Polynomial/Berlekamp.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/Berlekamp.cs",
+   "symbol": "Berlekamp.ExtractBasis",
+   "severity": "high",
+   "category": "logic",
+   "summary": "Berlekamp factorization is supposed to return null-space basis vectors of (Q - I) (the Berlekamp subalgebra) as splitting polynomials, but ExtractBasis ignores the reduced matrix entirely and emits the unit vectors e_{rank}, e_{rank+1}, ..., e_{n-1} (basis[rank+i]=1, all else 0). These x^(rank+i) monomials are not in the null space of the reduced Q for general input, so the returned `factors` are not factors of poly (and not even kernel elements). Only the COUNT n-rank (number of irreducible factors) is meaningful; the polynomials themselves are wrong.",
+   "triggeringInput": "poly = x^2 + 2 over MOD=3 with companion setup, or any reducible polynomial with n>=3 whose RREF free columns carry nonzero entries above the pivot rows; the emitted basis vector e_{rank+i} does not satisfy (Q-I)v=0, so the output polynomial does not divide poly.",
+   "rootCause": "Lines 128-136: the loop sets basis[rank+i]=1 unconditionally instead of reading the free-variable column entries from the row-reduced Q to construct genuine null-space vectors. The kernel basis is built independent of the matrix that was just reduced.",
+   "suggestedFix": "Construct each null-space basis vector from the RREF: for each free column f, set v[f]=1 and v[pivotRow(col)] = -Q[pivotRow,f] for every pivot column, matching pivots to their rows; do not use plain unit vectors."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/Berlekamp.cs",
+   "symbol": "Berlekamp.BuildQMatrix / ReduceQMatrix / SwapRows",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Flat index arithmetic recomputes (long)row*(long)n + (long)col with 64-bit multiplies in every inner-loop iteration; row-base offsets are loop-invariant and the casts to long are unnecessary since n*n already fits in int (stackalloc long[(int)(n*n)] requires n*n < 2^31).",
+   "currentCost": "Inner Gaussian-elimination loop (lines 91-104) computes (long)r*(long)n+(long)j and (long)rank*(long)n+(long)j for every j with full 64-bit imul. The rank*n term is invariant across j; r*n is invariant across j. Same pattern in BuildQMatrix, SwapRows, ExtractBasis.",
+   "proposedChange": "Precompute int row-base offsets once per row (int rankBase = rank*n; int rBase = r*n;) and index Q[rBase + j], Q[rankBase + j]. Use pointer walks (long* rowR = Q + rBase; long* rowRank = Q + rankBase;) to drop the index multiply entirely from the j loop. Since n*n fits in int, use int index math throughout instead of (long) casts.",
+   "rationale": "Hoisting r*n / rank*n out of the j loop removes a multiply per element from the hottest loop of the O(n^3) reduction. Pointer-stride access is Burst-vectorization-friendly and shortens the address-dependency chain. int math avoids 64-bit imul on mobile where it can be multi-cycle.",
+   "risk": "stackalloc long[(int)byteCount] already casts n*n to int, so n*n < 2^31 is a precondition of the existing code; int index math is therefore safe and preserves behavior. Pure address-computation refactor, no numeric change."
+  },
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/Berlekamp.cs",
+   "symbol": "Berlekamp.ReduceQMatrix",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Inner elimination does (Q[rjIdx] - (factor*Q[rankjIdx]) % MOD + MOD) % MOD with two divisions (modulo) per element; the pivot-row normalization plus per-element double-% can be reduced.",
+   "currentCost": "Line 101 performs two 64-bit % MOD per inner iteration (one on the product, one on the final result) -> 2 divisions per element across the O(n^3) loop. Division is the most expensive integer op, especially on mobile ARM where there is no hardware 64-bit divide.",
+   "proposedChange": "Since factor and Q[rankjIdx] are both already reduced into [0,MOD), and MOD fits in int, the product factor*Q[rankjIdx] < MOD^2 < 2^62 cannot overflow long. Compute t = (Q[rjIdx] - (factor*Q[rankjIdx]) % MOD); then a single branchless add-if-negative (t += (t >> 63) & MOD) instead of (+ MOD) % MOD. This drops the outer modulo to a conditional add.",
+   "rationale": "(x + MOD) % MOD where x in (-MOD, MOD) is exactly the branchless 'add MOD if negative'. Replacing a 64-bit division with a shift+and+add removes one of the two divisions per element in the hottest loop. The arithmetic-shift mask (t>>63) is branchless and Burst-friendly.",
+   "risk": "Requires factor and the rank-row entries to be in [0,MOD) (they are after normalization on lines 85-89) so the inner % keeps the product term in [0,MOD) and the subtraction result stays in (-MOD, MOD). MOD must fit in 31 bits so MOD^2 < 2^62 (it is an int). If MOD could be > ~3e9 this guard fails; for int MOD it is safe."
+  },
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/Berlekamp.cs",
+   "symbol": "Berlekamp.BuildQMatrix",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "The transpose loop (lines 50-63) effectively copies column i into row i via a tmp buffer that is fully zeroed each outer iteration; the per-j tmp[i] accumulation is degenerate (only tmp[i] is ever written) so the structure is over-complicated and does redundant zeroing.",
+   "currentCost": "For each i: zero all n tmp entries (line 52), then accumulate Q[j*n+i] into tmp[i] for all j with a % MOD per add (lines 53-57, though only tmp[i] is touched), then write tmp back to row i (lines 58-62). The tmp zeroing of all n entries plus writing n entries when only one column is read is wasteful.",
+   "proposedChange": "This block transposes Q in place. Replace with a direct in-place transpose swapping Q[i*n+j] with Q[j*n+i] for j>i (single pass, no tmp buffer, no zeroing, no modulo since entries are already reduced). If the intent is genuinely a transpose, the stackalloc long[n] tmp and its O(n) zeroing per row are eliminated.",
+   "rationale": "An in-place transpose is O(n^2/2) swaps with zero modulo ops and zero scratch, versus the current O(n^2) reads + O(n^2) zeroing + O(n^2) writes + O(n^2) modulo. Removes the n-long stackalloc entirely.",
+   "risk": "Must verify the loop's true intent is a transpose (the accumulation onto tmp[i] with %MOD over already-reduced values is identity, so it is). If any aliasing semantics differ for non-reduced inputs, keep the %MOD; but since BuildQMatrix produced reduced entries above, a plain swap preserves values. Validate against existing NUnit tests before landing."
+  },
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/Berlekamp.cs",
+   "symbol": "Berlekamp.Run",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "stackalloc long[(int)byteCount] for the n-by-n Q matrix plus inner stackalloc long[n] buffers in BuildQMatrix/ExtractBasis push O(n^2) longs onto the stack; on mobile this can exceed the thread stack for moderate n and the (int) cast silently truncates if n*n >= 2^31.",
+   "currentCost": "Q is n^2 longs = 8*n^2 bytes on the stack (n=256 -> 512KB, overflowing typical 256KB-1MB thread stacks). BuildQMatrix and ExtractBasis add further n-long stackallocs. The (int)byteCount cast can wrap negative for large n with no guard.",
+   "proposedChange": "Either document/assert an upper bound on n (named const MAX_N) so the stack budget is provable, or accept a caller-provided scratch pointer (T* workspace) following the library's unmanaged-pointer convention so the O(n^2) buffer can be pooled/persisted rather than re-stackalloc'd per call. Hoist BuildQMatrix's tmp out as part of the same workspace.",
+   "rationale": "Moving the O(n^2) buffer off the stack into caller-owned memory removes stack-overflow risk on mobile, enables reuse across calls (no repeated zero-init of n^2 entries), and makes the function's memory footprint explicit and Burst-friendly.",
+   "risk": "API change (adds a workspace parameter) -- an ergonomics/signature shift; must keep the unchecked Run contract. Purely additive if a workspace overload is introduced alongside the existing one. No numeric behavior change."
+  }
+ ]
+}

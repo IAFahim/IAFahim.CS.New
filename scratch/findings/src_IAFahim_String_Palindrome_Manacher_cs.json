@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.String.Palindrome/Manacher.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Palindrome/Manacher.cs",
+   "symbol": "Odd",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Branchy mirror init and redundant null-window guard; the i<=r test is subsumed by l<=r when r is the active window, and Math.Min reads d[] then branches.",
+   "currentCost": "Per i: ternary l<=r && i<=r ? Math.Min(d[l+r-i], r-i+1) : 1. Two comparisons plus a Math.Min (which on int is a compare+cmov but Burst may emit a branch). The l<=r check is loop-invariant-ish but evaluated every iteration; mirror index l+r-i is recomputed.",
+   "proposedChange": "Hoist int center = l + r into nothing useful but instead: since r starts at -1 and only grows, replace l<=r with a single r>=i test after ensuring r initialized; compute int k = i <= r ? Math.Min(d[l + r - i], r - i + 1) : 1; (the l<=r is implied because whenever r>=0 we have l<=r by construction). This drops one comparison per iteration on the hot O(n) loop.",
+   "rationale": "Removes one branch from every iteration of the linear scan. The invariant l<=r holds whenever r>=0 because (l,r) are only assigned together as a valid window, so testing only i<=r is sufficient and equivalent.",
+   "risk": "Must verify the window invariant l<=r holds at all r>=0 (it does: l=i-k, r=i+k with k>=1 in Odd so l<=r). If r==-1, i<=r is false so the else branch (1) is taken, matching original. Equivalent."
+  },
+  {
+   "file": "src/IAFahim.String.Palindrome/Manacher.cs",
+   "symbol": "Even",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Same redundant l<=r guard as Odd; drop to single i<=r comparison.",
+   "currentCost": "Per i: l<=r && i<=r ? Math.Min(d[l+r-i+1], r-i+1) : 0 evaluates two comparisons every iteration.",
+   "proposedChange": "int k = i <= r ? Math.Min(d[l + r - i + 1], r - i + 1) : 0; relying on the window invariant l<=r whenever r>=0. Saves one comparison per iteration.",
+   "rationale": "Identical reasoning to Odd: (l,r) are assigned together as a valid window so l<=r is implied by r>=0; removing the redundant test shortens the per-iteration critical path of the O(n) scan.",
+   "risk": "For Even, k can be 0 so l=i-k-1 = i-1, r=i+k=i; l<=r holds (i-1<=i). When r==-1 the else (0) is taken. Equivalent \u2014 verify the d[l+r-i+1] index stays in-bounds, which it does because i<=r implies the mirror index is within [l,r]."
+  },
+  {
+   "file": "src/IAFahim.String.Palindrome/Manacher.cs",
+   "symbol": "Odd",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Math.Min(int,int) may not be recognized by Burst as branchless; use math.min or manual cmov pattern.",
+   "currentCost": "Math.Min from System.Math; under Burst the System.Math.Min(int,int) intrinsic is usually fine but not guaranteed to vectorize/branchless across versions, and pulling System.Math into a Burst hot path is less idiomatic than Unity.Mathematics math.min.",
+   "proposedChange": "If Unity.Mathematics is available in this module, use math.min(a,b) which Burst lowers to a branchless min. Otherwise replace with a manual branchless form: int m = b + ((a - b) & ((a - b) >> 31)); for a<b style min (with care on overflow). Keep Math.Min if it already lowers to cmov.",
+   "rationale": "Guarantees branchless min in the hot O(n) inner expression, avoiding a potential mispredicted branch per character.",
+   "risk": "Manual branchless min can overflow on a-b for extreme int ranges; here both operands are bounded by n (string length) so a-b cannot overflow. Prefer math.min to avoid the overflow caveat entirely."
+  }
+ ]
+}

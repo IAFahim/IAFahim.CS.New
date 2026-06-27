@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Math.NT/Mobius.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/Mobius.cs",
+   "symbol": "Mobius.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Even factor 2 is not special-cased, so the loop tests every p including evens; also p*p<=n recomputes a multiply each step and n shrinks so the bound moves.",
+   "currentCost": "Loop runs p=2,3,4,... incrementing by 1, testing n%p for even p>2 that can never divide (n already had all 2s removed only if handled). Each iteration also does p*p<=n multiply.",
+   "proposedChange": "Peel out p=2: while ((n&1)==0) divide out twos, counting (and return 0 if divisible twice). Then loop p=3;p+=2 over odds only, halving iteration count. Keep p*p<=n but the odd-only stride halves the multiplies/mods. This mirrors MinPrimeFactor's even peel.",
+   "rationale": "Halves the number of trial-division iterations (skip all even p>2), each of which costs a 64-bit % and a multiply \u2014 the hot cost of the function. Same square-free/parity result.",
+   "risk": "Must replicate the 'divides twice => return 0' check for the factor 2 (if (n%2==0) after removing one 2, return 0). After peeling 2, n is odd so odd-only stride is exact. Behavior identical for all n; count parity preserved."
+  }
+ ]
+}

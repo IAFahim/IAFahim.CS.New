@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.String.FMIndex/FMIndex.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.FMIndex/FMIndex.cs",
+   "symbol": "FMIndex.Build",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "The occ table is stored column-major (stride len+1 per symbol) and rebuilt with an inner per-symbol copy loop, making Build O(len*sigma) with cache-hostile strided writes; switch to row-major prefix layout so each step writes one contiguous row.",
+   "currentCost": "Inner loop `for c in sigma: occ[c*(len+1)+i+1] = occ[c*(len+1)+i]` does sigma strided loads+stores per text position (O(len*sigma) total). Each access jumps len+1 ints, so every symbol's column is a separate cache line \u2014 sigma cache misses per position.",
+   "proposedChange": "Store occ row-major: occ[i*sigma + c] = number of occurrences of c in text[0..i). Then per position copy the previous row contiguously and bump one counter: `int* prev = occ + i*sigma; int* cur = occ + (i+1)*sigma; for(int c=0;c<sigma;c++) cur[c]=prev[c]; cur[text[i]]++;`. The contiguous sigma-int copy is vectorizable by Burst (memcpy-like) versus sigma strided scalar stores. Adjust all occ readers (rank queries) to the new index formula c -> i*sigma+c.",
+   "rationale": "Same asymptotic O(len*sigma) work but turns sigma cache-line-straddling stores into one contiguous, Burst-vectorizable row copy, drastically cutting cache misses and enabling SIMD. The recomputed stride `c*(len+1)` (a multiply per inner iter) is also eliminated.",
+   "risk": "Changes the occ memory layout, so every consumer of occ must use the new indexing. occ is currently unused by Count/Locate in this file (they use SA), so the blast radius is external rank-query code; coordinate the layout change everywhere. Behavior of stored counts is identical, only layout changes."
+  },
+  {
+   "file": "src/IAFahim.String.FMIndex/FMIndex.cs",
+   "symbol": "FMIndex.Build",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "If the column-major layout must be kept, at least hoist the c*(len+1) stride multiply and the +i+1 base out of the inner loop.",
+   "currentCost": "Inner loop recomputes `c*(len+1)` (an imul) and `+ i + 1` / `+ i` address arithmetic every iteration of the sigma loop.",
+   "proposedChange": "Precompute `int stride = len + 1;` once. Maintain a running base per column or, simpler, iterate `int* col = occ + i; int* coln = occ + i + 1; for(int c=0;c<sigma;c++){ coln[c*stride] = col[c*stride]; }` so the loop-invariant `len+1` is a register and only one multiply by c remains; or accumulate `base += stride` to make it an add instead of a multiply: `int idx = i; for(int c=0;c<sigma;c++){ occ[idx+1]=occ[idx]; idx += stride; }`.",
+   "rationale": "Replaces a per-iteration multiply with a single add (strength reduction) and keeps len+1 in a register. Cheaper than the current code even without changing layout.",
+   "risk": "None semantically; pure address-arithmetic refactor. Only worth doing if the row-major rewrite is rejected (that one is strictly better)."
+  },
+  {
+   "file": "src/IAFahim.String.FMIndex/FMIndex.cs",
+   "symbol": "FMIndex.Locate",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Locate recomputes both binary-search bounds via two full FindBound calls; the second search can be narrowed using the first result and the comparison work is duplicated.",
+   "currentCost": "Two FindBound calls, each O(log len * patLen) comparisons over the whole [0,len) range. The lower-bound and upper-bound searches independently re-compare the same suffixes near the boundary.",
+   "proposedChange": "Seed the upper-bound search with the lower bound: `int start = FindBound(...,true); int end = FindBoundFrom(text,len,pattern,patLen,sa,start,len);` where FindBoundFrom takes an initial l=start (all positions < start already compare < pattern, so cmp>0 cannot occur below start). This shrinks the second search range from len to len-start.",
+   "rationale": "The upper bound is always >= the lower bound, so the lower-half of the second binary search is provably useless. Narrowing l to start removes up to log2(start) comparison rounds, each costing up to patLen integer compares.",
+   "risk": "Correct only because for any mid<start, CompareWithSa returns cmp<=0 in the lower sense already established; passing l=start preserves the invariant since end>=start. No semantic change to returned count/results."
+  },
+  {
+   "file": "src/IAFahim.String.FMIndex/FMIndex.cs",
+   "symbol": "FMIndex.CompareRange",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Add AggressiveInlining to the leaf comparison helpers so the binary-search inner loop is one flat function Burst can optimize and auto-vectorize.",
+   "currentCost": "CompareRange and CompareWithSa are private leaf methods called O(log len) times per query inside FindBound; without inlining hints there is call overhead and the comparison loop is opaque to the surrounding binary search.",
+   "proposedChange": "Annotate CompareRange and CompareWithSa with [MethodImpl(MethodImplOptions.AggressiveInlining)] (matching the convention already used in Bwt.cs). The early-return scalar loop in CompareRange is already branch-predictable; inlining lets Burst hoist len-saPos and Math.Min.",
+   "rationale": "Removes call overhead in a logarithmically-hot path and exposes the compare loop to the optimizer for hoisting and potential SIMD on the equality scan. Matches existing inlining convention in the module.",
+   "risk": "None; pure hint. Larger code size is negligible for these tiny methods."
+  },
+  {
+   "file": "src/IAFahim.String.FMIndex/FMIndex.cs",
+   "symbol": "FMIndex.CompareWithSa",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Replace Math.Min with a branchless/inline min and avoid the redundant `patLen > cmpLen` recheck.",
+   "currentCost": "`Math.Min(patLen, len - saPos)` is a call (usually inlined, but worth ensuring) and then `patLen > cmpLen` re-tests the same relation Math.Min just resolved.",
+   "proposedChange": "`int rem = len - saPos; int cmpLen = patLen < rem ? patLen : rem; int cmp = CompareRange(text+saPos, pattern, cmpLen); if (cmp == 0 && cmpLen == rem && patLen != rem) return -1;` \u2014 or simply keep `patLen > cmpLen` which is equivalent to `cmpLen == rem` after the min; the point is to compute min inline once. Since cmpLen<patLen iff rem<patLen, `patLen > cmpLen` is already the cheapest test, so just inline the min.",
+   "rationale": "Inlining the min avoids any chance of an un-inlined Math.Min call under Burst and keeps the value in a register; the existing `patLen > cmpLen` is fine. Minor cycle save in a log-hot path.",
+   "risk": "None; ternary min is identical to Math.Min for ints. Pure refactor."
+  }
+ ]
+}

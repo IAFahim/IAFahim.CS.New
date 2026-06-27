@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/ushort3.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/ushort3.cs",
+   "symbol": "ushort3.this[int]",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Same fixed(&this) pinning per access as byte4; the ushort3 indexer is used in RasterizeTriangles(ushort3* tris) per triangle (tris[i].x/.y/.z), so a pin-free switch helps the rasterization driver loop.",
+   "currentCost": "RasterizeTriangles with ushort3 reads tris[triIndex].x/.y/.z \u2014 though these are direct field reads, the general indexer (when used) pins via `fixed (ushort3* array = &this)`. Direct .x/.y/.z avoid it, but any [index] usage incurs the pin.",
+   "proposedChange": "Provide a `switch`/`Unsafe.Add(ref Unsafe.As<ushort3,ushort>(ref this), index)` indexer to drop the fixed region; keep direct .x/.y/.z field access in the rasterization loop (already done there).",
+   "rationale": "Pin-free element access keeps the small struct in registers and avoids forcing it to the stack, marginally improving any code path using the indexer under Burst.",
+   "risk": "Must match index 0..2 semantics; guarded bounds check stays under ENABLE_UNITY_COLLECTIONS_CHECKS. Very low impact because the hot rasterization path already uses .x/.y/.z directly, not the indexer."
+  }
+ ]
+}

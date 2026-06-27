@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.MeshDetail.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.MeshDetail.cs",
+   "symbol": "DistToTriMesh / DistPtTri (lines 451-472, 357-390)",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Per-sample full-mesh distance scan recomputes per-triangle invariants (edge vectors and the barycentric denominator) every call.",
+   "currentCost": "In BuildPolyDetail the sample-error loop (lines 1452-1478) calls DistToTriMesh for every un-added sample on every iteration (O(nsamples^2) overall), and DistToTriMesh loops over all ntris calling DistPtTri. DistPtTri recomputes v0=c-a, v1=b-a, dot00,dot01,dot11 and invDenom = 1/((dot00*dot11)-(dot01*dot01)) for the same triangle on every sample query, including a divide per triangle per sample.",
+   "proposedChange": "When the triangulation is stable across the inner sample scan, precompute per-triangle (a, v0, v1, dot00, dot01, dot11, invDenom) once into a small stackalloc/Temp cache after each DelaunayHull rebuild, and have the inner DistPtTri only compute v2=p-a, dot02, dot12, the two barycentric coords and the y interpolation. Mark VDot2 AggressiveInlining.",
+   "rationale": "Moves ~3 dot products and one division per (triangle,sample) pair to per-triangle-once, turning the dominant inner cost from ~5 dots+1 div to ~2 dots. Given the nsamples x ntris x (per-iter) nesting this is the largest constant-factor win in the detail-mesh build and removes a divide from the innermost loop.",
+   "risk": "Cache must be invalidated whenever tris changes (after each DelaunayHull rebuild at line 1500 and the initial TriangulateHull). invDenom hoist is bit-identical (same operands, same order). The clamp/eps tests are unchanged. Watch maxTris (255) so the cache buffer is bounded; allocate for maxTris triangles."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.MeshDetail.cs",
+   "symbol": "VDist2 usage in TriangulateHull (lines 1160, 1190-1191)",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "TriangulateHull compares triangle perimeters using VDist2 (sqrt) where squared lengths would suffice for ordering, and recomputes shared edge lengths.",
+   "currentCost": "VDist2 calls math.sqrt (lines 306-309). In the perimeter heuristic (line 1160 ear selection, and 1190-1191 left/right advance) only relative comparisons of perimeter sums are needed, yet each VDist2 pays a sqrt. The advance loop runs O(nhull) times with 4 sqrt calls per iteration; the ear selection adds 3 sqrt per hull vertex.",
+   "proposedChange": "Where the value is only used in a comparison (dleft<dright, d<dmin), the sum-of-sqrt is not equal to sqrt-of-sum so you cannot trivially drop sqrt on a *sum*; instead cache VDist2 results for shared edges between consecutive iterations (e.g. VDist2(cvleft,nvleft) reused as the new edge next step) and reuse the previously computed cvleft/cvright endpoints to avoid recomputing one of the two terms each advance.",
+   "rationale": "Each advance step shares an endpoint with the previous one; caching the one overlapping distance removes ~1 of the ~4 sqrt evaluations per iteration of the hull walk, a direct reduction in transcendental ops on a per-poly path.",
+   "risk": "Because the heuristic sums two sqrt values, you cannot replace with squared distances without changing which branch is taken; do NOT do that. Only the caching/reuse of identical VDist2(endpointA,endpointB) values is safe and bit-exact. Verify the reused pair truly matches operand order (VDist2 is symmetric, so order is irrelevant)."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.MeshDetail.cs",
+   "symbol": "DistToPoly (lines 474-491)",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Per-sample point-in-polygon + edge-distance test recomputes edge-derived divisions every call though the polygon (@in) is fixed for the whole sample grid.",
+   "currentCost": "DistToPoly is called once per grid sample (line 1425) over the same nin-vertex polygon. Each call, for each edge, computes (vj[0]-vi[0]) and divides by (vj[2]-vi[2]) for the crossing test, and calls DistancePtSeg2d which recomputes pqx,pqz,d per edge. All edge-intrinsic terms (dx, dz, 1/d, the crossing slope) are invariant across samples.",
+   "proposedChange": "Hoist a per-edge precompute (edge dx, dz, invLen2 = d>0?1/d:0, and slope (vj[0]-vi[0])/(vj[2]-vi[2]) guarded for horizontal edges) into a small stackalloc cache built once before the sample double-loop in BuildPolyDetail, and pass it to a specialized DistToPoly that only does the per-sample dot/clamp.",
+   "rationale": "Turns O(samples*edges) divisions into O(edges) divisions plus O(samples*edges) multiplies, removing a division from the innermost grid-sample test. The sample grid can be large (bbox/sampleDist in x and z), so this scales with sample count.",
+   "risk": "The crossing test uses an exact comparison with a divided slope; precomputing slope changes the order of the division relative to the multiply by (p[2]-vi[2]), which can alter the last ULP and flip the inside/outside classification for points exactly on an edge. Keep the crossing-test arithmetic in its original form/order and only hoist the DistancePtSeg2d edge invariants (dx,dz,d) which are used for a min and are far less tie-sensitive. Stated guard: do not reassociate the slope division if exact boundary classification must match."
+  }
+ ]
+}

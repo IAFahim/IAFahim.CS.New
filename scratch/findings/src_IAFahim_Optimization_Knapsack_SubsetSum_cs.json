@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Optimization.Knapsack/SubsetSum.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Optimization.Knapsack/SubsetSum.cs",
+   "symbol": "SubsetSum.Can",
+   "severity": "critical",
+   "category": "edge-case",
+   "summary": "The n<=64 fast path uses a 64-bit ulong bitset indexed by SUM value (not item index), but the branch is selected based on the number of ITEMS n, with no constraint on target. For any target >= 64 (or any item weight >= 64) the C# shift operators mask the shift count to 6 bits (count & 63), so 'bits << (int)w[i]' and 'bits >> (int)target' silently wrap, producing wrong reachable-sum bits and a wrong answer.",
+   "triggeringInput": "w = [100], n = 1, target = 100. Correct answer: true (subset {100} sums to 100). Line 17: 100 > 100 is false, so it computes bits |= bits << 100. C# evaluates the shift as bits << (100 & 63) = bits << 36, and line 20 reads (bits >> (100 & 63)) & 1 = (bits >> 36) & 1, which is 0 -> returns false. Wrong result.",
+   "rootCause": "The bitset approach packs reachable subset sums into the bits of a single 64-bit ulong, so it is only valid when target <= 63. The branch condition gates on n (item count) instead of target (sum range). C#'s << and >> on a 64-bit operand mask the shift amount to the low 6 bits (RHS & 63), so any w[i] or target of 64 or more wraps around instead of falling off, corrupting the result rather than even returning a deterministic miss. The fallback DP path (which is correct for arbitrary target) is never reached when n <= 64.",
+   "suggestedFix": "Gate the fast bitset path on the sum range, not the item count: use it only when target <= 63 (e.g. 'if (target < 64)'). Otherwise fall through to the bool[] DP path (or use a multi-word bitset of length (target/64)+1 with proper word/bit indexing). Also note the DP path allocates new bool[target+1], so for very large target the intended micro-optimization of the bit path is moot; the key correctness fix is to never run the single-ulong path when target or any relevant w[i] can exceed 63."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Knapsack/SubsetSum.cs",
+   "symbol": "SubsetSum.Can",
+   "dimension": "burst",
+   "impact": "high",
+   "summary": "Replace managed bool[] dp with a caller-provided byte* scratch buffer (or stackalloc) to make the large-n path Burst-compatible and allocation-free",
+   "currentCost": "`bool[] dp = new bool[target + 1]` is a managed heap allocation of `target+1` bytes on every call to the large-n path. Managed arrays are forbidden by house constraints in src, defeat Burst compilation entirely (the method cannot be Burst-compiled with a managed allocation/GC reference), and cause a GC allocation + zeroing pass each invocation. On mobile this is the dominant cost.",
+   "proposedChange": "Change the signature to accept a scratch buffer, e.g. `public static bool Can(long* w, int n, long target, byte* dp)` where `dp` has `target+1` entries, or split into a `Run` (caller-provided buffer) plus a `Try`/convenience overload. Inside, zero the buffer (or document the caller must), set `dp[0]=1`, and do `dp[j] = (byte)(dp[j] | dp[j - w[i]])`. This removes the allocation, keeps the function blittable/unmanaged, and lets the whole method Burst-compile.",
+   "rationale": "Eliminates one heap allocation + GC pressure per call and a managed-reference that prevents Burst codegen. A byte* DP table is blittable and Burst vectorizes the inner OR loop well; the boolean `||` short-circuit is replaced by a branchless bitwise OR.",
+   "risk": "API change (breaking). Caller must supply a buffer of size target+1 and is responsible for zeroing it (or the method zeroes via UnsafeUtility.MemClear). Using `|` instead of `||` is semantics-preserving for boolean-valued bytes (0/1) and removes a branch but reads both operands unconditionally (always safe here, both are in-bounds). For Burst, prefer byte (0/1) over bool* for clean blittability."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Knapsack/SubsetSum.cs",
+   "symbol": "SubsetSum.Can",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "The 64-bit bitset path is silently wrong (and the n<=64 selector is misconceived): the shift amount comes from item weight, not item count, so weights >= 64 corrupt results",
+   "currentCost": "`bits |= bits << (int)w[i]` shifts a 64-bit value by `w[i]`. C# masks shift counts to the low 6 bits for ulong, so any item with `w[i] >= 64` (even though `w[i] <= target` passes the guard) shifts by `w[i] & 63`, producing wrong reachable-sum bits. The bitset width must be `target+1` bits, not 64, so the `n <= 64` condition is the wrong predicate entirely \u2014 it should be `target < 64` (or `target <= 63`).",
+   "proposedChange": "Gate the single-word bitset path on `target <= 63` instead of `n <= 64`. For larger `target`, either fall through to the DP path or use a multi-word bitset of `(target/64)+1` words (shift-OR across words) which is O(n * target/64) \u2014 a 64x constant-factor win over the byte DP for the same asymptotics. Add the guard so an item is skipped/handled only when `w[i] <= 63` in the single-word path.",
+   "rationale": "Correctness first: the current predicate ties capacity to item count. Fixing it to `target <= 63` makes the fast path correct. The multi-word bitset generalizes it: subset-sum reachability via word-parallel shift-OR is the standard O(n*target/word) bitset DP, 64x fewer operations than the byte-per-cell DP while preserving exact output.",
+   "risk": "This is primarily a correctness fix, not a pure micro-opt \u2014 flag for the maintainer since it changes observable behavior for the currently-buggy inputs (weights >= 64 with n <= 64). The multi-word bitset must handle the cross-word carry of the shift (`(word[k] << s) | (word[k-1] >> (64-s))`) with care for s==0. Verify against the DP path on random inputs before shipping."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Knapsack/SubsetSum.cs",
+   "symbol": "SubsetSum.Can",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist w[i] into a local and make the DP inner loop branchless to shorten the dependency chain and cut redundant loads",
+   "currentCost": "Inner loop `dp[j] = dp[j] || dp[j - w[i]]` reloads `w[i]` implicitly via the loop bound and index each iteration, and the `||` introduces a per-cell branch that is poorly predicted for random data, stalling the pipeline. `dp[j - w[i]]` recomputes the offset each iteration.",
+   "proposedChange": "Hoist `long wi = w[i];` once per outer iteration (already partly implied by the bound, but make it explicit and reuse for both the bound and the index). Replace the inner body with branchless `dp[j] |= dp[j - wi];` over byte cells. Optionally walk a moving pointer `byte* src = dp + (j - wi)` to avoid recomputing the subtraction.",
+   "rationale": "Branchless bitwise OR removes a mispredicted branch in a hot O(n*target) loop and lets Burst auto-vectorize the OR across contiguous cells. Hoisting wi and using a pointer cuts the per-iteration address arithmetic and load of w[i].",
+   "risk": "Requires the byte* buffer change (opportunity 1) since `|=` on bool is not idiomatic; with 0/1 byte values it is exactly equivalent to `||` for all inputs. No overflow concern (values are 0/1). Vectorization across the descending j loop is safe only because the gap (wi) guarantees no overlap between read dp[j-wi] and write dp[j] within a vector when wi >= vector width; for small wi Burst will serialize correctly, so semantics are preserved either way."
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Algebra.GraphPoly/Independence.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Algebra.GraphPoly/Independence.cs",
+   "symbol": "Independence.Polynomial",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace PopCount bit-loop with BitOperations.PopCount and iterate IsIndependentSet over set bits only (same fixes as Chromatic).",
+   "currentCost": "Per mask in [0,2^n): IsIndependentSet does n^2 bit tests with recomputed shifts and long index math; PopCount loops bit-by-bit. Hot loop runs 2^n times.",
+   "proposedChange": "Use (int)System.Numerics.BitOperations.PopCount((uint)mask); rewrite IsIndependentSet to walk set bits via TrailingZeroCount and use int i*n+j indexing (n<=30 so product < 2^31).",
+   "rationale": "popcnt intrinsic replaces a data-dependent loop; set-bit iteration reduces inner work from n^2 to popcount^2; 32-bit indexing shortens the address-compute chain. All in the 2^n-iteration hot path.",
+   "risk": "uint cast for popcount is safe (mask>=0). int index safe for all valid n (n<=30 -> n*n<=900M<2^31). No observable change."
+  }
+ ]
+}

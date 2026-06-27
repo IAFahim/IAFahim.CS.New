@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Collections.NoDeps/UnsafeUtility.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Collections.NoDeps/UnsafeUtility.cs",
+   "symbol": "MemClear",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Byte-at-a-time clear loop is ~8x slower than word-wide clear and is not auto-vectorized well; clear in word-sized chunks with a byte tail.",
+   "currentCost": "One store + one branch per byte: `size` iterations, each a dependent loop-carried `i++` and a single-byte store. For a typical struct/array clear (hundreds-thousands of bytes) this is an order of magnitude more loop overhead and store-port pressure than necessary.",
+   "proposedChange": "Cast to `ulong*` and store 0 in 8-byte strides for `size >> 3` iterations, then clear the remaining `size & 7` bytes with the existing byte loop. e.g. `ulong* q = (ulong*)destination; long n = size >> 3; for (long i = 0; i < n; i++) q[i] = 0UL; byte* p = (byte*)(q + n); for (long j = 0; j < (size & 7); j++) p[j] = 0;`",
+   "rationale": "8 bytes cleared per store instead of 1, cutting store count and loop branches by 8x and exposing the inner loop to Burst's SIMD widening (vectorized zero stores). The byte tail handles non-multiple-of-8 sizes. Strength-reduces nothing semantically \u2014 same bytes written to zero.",
+   "risk": "`size >> 3` and `size & 7` are safe because `size` is non-negative by contract (a memory length); for negative `size` the original loop never executes and the new one also never executes (n<=0, tail loop count <=0 via unsigned-intent comparison) so behavior matches for valid input. Word stores assume `destination` is byte-addressable (it is); no alignment requirement on modern targets but Burst-preferred aligned access is the common case."
+  },
+  {
+   "file": "src/IAFahim.Collections.NoDeps/UnsafeUtility.cs",
+   "symbol": "MemSet",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Byte-at-a-time fill is ~8x slower than word-wide fill; broadcast the byte to a ulong and store in 8-byte strides with a byte tail.",
+   "currentCost": "One store + branch per byte across `size` iterations, same loop-overhead and store-port problem as MemClear, but for arbitrary fill values.",
+   "proposedChange": "Broadcast: `ulong v = value; v |= v<<8; v |= v<<16; v |= v<<32;` then `ulong* q=(ulong*)destination; long n=size>>3; for(long i=0;i<n;i++) q[i]=v;` then fill `size & 7` tail bytes with `value`. The broadcast is a handful of hoisted ops outside the loop.",
+   "rationale": "8 bytes per store, 8x fewer loop branches, and Burst can vectorize the uniform `ulong` store into wide SIMD splat stores. The broadcast constant is loop-invariant and computed once.",
+   "risk": "Broadcast math is exact for all byte values (each byte of `v` equals `value`). `size>>3`/`size&7` safe for non-negative `size` (contract). Same observable bytes written as the byte loop for valid input."
+  },
+  {
+   "file": "src/IAFahim.Collections.NoDeps/UnsafeUtility.cs",
+   "symbol": "MemCpyReplicate",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Nested byte-copy with recomputed `i*size+j` index has a multiply per inner iteration and copies one byte at a time; hoist the base and copy whole blocks via MemCpy.",
+   "currentCost": "Inner body computes `i*size+j` every iteration (a multiply plus two adds) and does a single-byte load/store. Total `count*size` byte ops plus `count*size` multiplies. Index arithmetic dominates for small `size`.",
+   "proposedChange": "Hoist the row base out of the inner loop: `byte* dest=(byte*)destination; for(int i=0;i<count;i++){ Buffer.MemoryCopy(source, dest, size, size); dest += size; }` \u2014 i.e. delegate each replica to the intrinsic block copy and advance `dest` by `size`, eliminating the inner loop and the per-byte multiply entirely.",
+   "rationale": "Removes the `i*size+j` multiply (replaced by a single pointer add per outer iteration), removes the inner branch, and lets `Buffer.MemoryCopy` (an intrinsic Burst lowers to a fast memcpy / wide SIMD) copy each block. Asymptotically same O(count*size) bytes moved but with far lower per-byte overhead and better vectorization.",
+   "risk": "`Buffer.MemoryCopy` requires non-overlapping src/dest per call, which holds here (source is a distinct `size`-byte block, each dest slot is disjoint). Semantics identical for valid input. If callers ever pass `count<=0` or `size<=0`, both old and new loops are no-ops."
+  },
+  {
+   "file": "src/IAFahim.Collections.NoDeps/UnsafeUtility.cs",
+   "symbol": "MemCpyReplicate",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "`int i*size+j` index can overflow for large replicate counts; the pointer-advance rewrite also removes this latent 32-bit overflow.",
+   "currentCost": "`i * size + j` is computed in `int`; for large `count*size` (>2^31 bytes) the index wraps to a negative/incorrect offset, corrupting memory. Even within the current API this is a hidden 32-bit ceiling.",
+   "proposedChange": "Adopting the pointer-advance form above (dest += size) accumulates the offset in a 64-bit pointer rather than a 32-bit index, raising the safe range without changing the signature.",
+   "rationale": "Pointer advancement avoids the 32-bit multiply overflow entirely; offset tracked in the native pointer width. Pure robustness/RAM-safety win at zero extra cost.",
+   "risk": "`size` and `count` remain `int` per the existing signature so total still bounded by callers, but intermediate overflow is removed. No behavior change for inputs where `count*size` already fits in int."
+  }
+ ]
+}

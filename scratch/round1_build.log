@@ -1,0 +1,38 @@
+PASS(test) IAFahim.Algebra.GraphPoly
+FAIL(build) IAFahim.Algebra.Polynomial
+        0 Error(s)
+PASS(test) IAFahim.Collections.NoDeps
+FAIL(build) IAFahim.DP.General
+        0 Error(s)
+FAIL(build) IAFahim.DP.Optimization
+        0 Error(s)
+PASS(test) IAFahim.DS.GapBuffer
+PASS(test) IAFahim.DS.HilbertOrder
+PASS(test) IAFahim.DS.Mo
+FAIL(build) IAFahim.DS.PerfectHashMap
+        0 Error(s)
+PASS(test) IAFahim.DS.PersistentTreap
+FAIL(build) IAFahim.DS.RollbackSeg
+        0 Error(s)
+PASS(test) IAFahim.DS.RollbackStack
+PASS(test) IAFahim.DS.SegmentTree
+PASS(test) IAFahim.DS.Splay
+PASS(test) IAFahim.DS.Trie
+FAIL(build) IAFahim.DS.WaveletMatrix
+        0 Error(s)
+FAIL(build) IAFahim.Geometry.Advanced
+        0 Error(s)
+FAIL(build) IAFahim.Geometry.Basic
+        0 Error(s)
+FAIL(build) IAFahim.Geometry.Hull
+        0 Error(s)
+FAIL(build) IAFahim.Geometry.Intersect
+        0 Error(s)
+FAIL(build) IAFahim.Geometry.Spatial
+        0 Error(s)
+FAIL(build) IAFahim.Geometry.Triangulation
+        0 Error(s)
+PASS(test) IAFahim.Graph.Bridges
+FAIL(build) IAFahim.Graph.Centroid
+        0 Error(s)
+=== SWEEP DONE ===

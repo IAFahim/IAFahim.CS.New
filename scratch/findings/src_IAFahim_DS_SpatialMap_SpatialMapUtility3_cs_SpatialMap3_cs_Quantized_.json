@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.DS.SpatialMap/SpatialMapUtility3.cs (SpatialMap3.cs Quantized)",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.SpatialMap/SpatialMapUtility3.cs (SpatialMap3.cs Quantized)",
+   "symbol": "SpatialMapUtility3.Quantized",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Per-element float division by step in the hottest loop; step is loop-invariant and could be a precomputed reciprocal multiply.",
+   "currentCost": "'(position + halfSize) / step' executes a 3-lane float divide per entity inside QuantizeJob.Execute. Division has ~3-6x the latency/throughput cost of multiplication on PC and especially on mobile ARM NEON.",
+   "proposedChange": "Hoist 'float invStep = 1f / this.QuantizeStep;' out of the loop (or store an invQuantizeStep field computed once in the ctor) and change Quantized to multiply: 'new int3(math.floor((position + halfSize) * invStep))'. Keep a step-based overload for SpatialMapReadOnly3 if exact reciprocal differs.",
+   "rationale": "Replaces N vector divides with one reciprocal plus N vector multiplies. Multiply is significantly cheaper and pipelines better; the divisor is constant across the whole job.",
+   "risk": "1/step then multiply is not always bit-identical to direct divide; math.floor could land on a different integer cell for values exactly on a quantization boundary. If exact-divide semantics must be preserved, restrict this to the Build/QuantizeJob path where cell assignment tolerance is acceptable, or document the boundary tolerance. Reject if bit-exact cell parity with the readonly query path is required."
+  }
+ ]
+}

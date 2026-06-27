@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.NT/Radical.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/Radical.cs",
+   "symbol": "Radical.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Trial division checks every p including all even p>2 and recomputes p*p each iteration; handle 2 separately then step odd, and compare p against a running sqrt bound to avoid the multiply.",
+   "currentCost": "Loop tests p=2,3,4,5,... with two divisions (n%p and the while) per p and a 64-bit multiply p*p in the condition every iteration; even p>2 can never divide a reduced n yet still cost a modulo.",
+   "proposedChange": "Peel p=2: if((n&1)==0){result*=2; do n>>=1; while((n&1)==0);} then loop p=3; p*p<=n; p+=2. Optionally hoist the bound: since n only shrinks, the p*p<=n test stays but p+=2 halves iteration count. Use (n&1)==0 instead of n%2.",
+   "rationale": "Skipping even candidates halves the trial-division iterations; the &1 / >>1 for the factor-2 phase replaces modulo/division with mask/shift. n only decreases so the p*p bound shrinks favorably.",
+   "risk": "Must extract factor 2 before the odd loop or 2's contribution is lost \u2014 straightforward. p*p can overflow only for n beyond ~9.2e18 (long max) where p approaches 3e9; within long-valid n the bound p*p<=n keeps p below sqrt(n) so no overflow. (n&1) is exact for all n since n>=1 here (n could be negative? Run assumes n>=1 per unchecked convention)."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/Radical.cs",
+   "symbol": "Radical.Run",
+   "dimension": "purity",
+   "impact": "low",
+   "summary": "result starts at 1 and for n<=1 returns 1, which conflates radical(1)=1 with edge inputs; signature/contract could be clarified but behavior is fine.",
+   "currentCost": "No runtime cost; rad(1)=1 falls out correctly and the loop is skipped. Pure already.",
+   "proposedChange": "No code change needed for correctness; optionally add [MethodImpl(AggressiveInlining)] is NOT advised (loop body too large). Document that Run assumes n>=1 per unchecked convention. Leave as-is.",
+   "rationale": "Function is already pure and deterministic; flagging only that no further purity work is warranted.",
+   "risk": "None \u2014 this is a no-op note indicating the file is otherwise near-optimal aside from the trial-division cycle win above."
+  }
+ ]
+}

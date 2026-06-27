@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Math.Sdf/SdfPrimitive.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Sdf/SdfPrimitive.cs",
+   "symbol": "Cone",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Cone recomputes new float2(dimensions.x,-dimensions.y) twice and computes ca/cb/tip which are dead, plus recomputes the clamp expression inline.",
+   "currentCost": "Two constructions of new float2(dimensions.x,-dimensions.y) (lines 69-70) whose results (ca, cb) are never used in the return. 'tip' (line 68) is computed but only tip.x/tip.y feed 'd' = max(tip.x,tip.y) = max(q.x-dimensions.x, q.y-dimensions.y). The dead float2 builds plus unused locals waste registers/instructions even after DCE may not fully remove the constructor side-effect-free float2.",
+   "proposedChange": "Delete the dead locals: remove 'float2 tip = q - dimensions;' if you instead write 'float d = math.max(q.x - dimensions.x, q.y - dimensions.y);' (keep tip if preferred but drop ca/cb entirely). Remove lines 69-70 ('ca','cb') completely. Precompute 'float2 dd = dimensions;' is unnecessary; just keep the single 'side' expression.",
+   "rationale": "Removes two float2 vector constructions and two unused float loads per call; shorter dependency chain and fewer SSA values for Burst to schedule. Pure dead-code removal \u2014 no numeric change.",
+   "risk": "None for ca/cb (provably unused). 'tip' removal must keep d = max(q.x-dimensions.x, q.y-dimensions.y) identical to math.max(tip.x,tip.y), which it is by definition of tip = q - dimensions."
+  },
+  {
+   "file": "src/IAFahim.Math.Sdf/SdfPrimitive.cs",
+   "symbol": "Ellipsoid",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Ellipsoid divides p by radii twice (scaled = p/radii, then k1V = scaled/radii) creating a long dependency chain through two vector reciprocals.",
+   "currentCost": "Two vector divides: scaled = p/radii (3 div), k1V = scaled/radii (3 div), then two math.length (2 sqrt). The second divide depends on the first, lengthening the critical path.",
+   "proposedChange": "Precompute 'float3 inv = math.rcp(radii);' once, then 'float3 scaled = p * inv;' and 'float3 k1V = scaled * inv;'. This replaces 6 divides with 3 (rcp) + 6 muls; muls are far cheaper and the two scaled products both depend only on inv, shortening the chain. Burst vectorizes rcp+mul well.",
+   "rationale": "div is ~4-5x the latency/throughput of mul on most targets; computing reciprocal once and multiplying twice cuts divide count from 6 to 3 and breaks the serial div->div chain into rcp then two independent-ish muls.",
+   "risk": "math.rcp is an approximation-free 1.0f/x in Unity.Mathematics for scalar/float3 (full-precision divide), so result is bit-identical to p/radii / scaled/radii within float rounding of the same operations. If exact bit-reproducibility with the original division order is contractually required, note rcp(x)*y may round differently than x/y; for SDF distance fields this tolerance is acceptable but flag it."
+  },
+  {
+   "file": "src/IAFahim.Math.Sdf/SdfPrimitive.cs",
+   "symbol": "Cylinder",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Cylinder builds new float2(p.x,p.z) and an inner length, then abs and subtract via temporaries; layout is fine but the construction of two float2 literals can be fused.",
+   "currentCost": "new float2(radius, halfHeight) is constructed every call though it is purely a function of the two scalar args; same for the inner new float2(p.x,p.z).",
+   "proposedChange": "This is minor; the main real win is ensuring the intermediate 'd' stays in vector regs. No semantic change available beyond what Burst already does. Consider leaving as-is \u2014 already near optimal.",
+   "rationale": "Burst already SROAs float2 literals into scalars; constant-factor only. Listed for completeness, low confidence of measurable gain.",
+   "risk": "None; effectively a no-op cleanup. Could be skipped entirely."
+  }
+ ]
+}

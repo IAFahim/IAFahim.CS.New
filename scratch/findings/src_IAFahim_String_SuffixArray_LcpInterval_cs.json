@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.String.SuffixArray/LcpInterval.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.SuffixArray/LcpInterval.cs",
+   "symbol": "LcpInterval.Find",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "After the binary search lands at l, a linear scan counts matching lcp entries, degrading to O(len) when the matching interval is large.",
+   "currentCost": "The `for (i = l; i < len; i++)` linear count can scan up to len entries when many suffixes share the prefix length, making the function O(len) instead of O(log len) for wide intervals.",
+   "proposedChange": "Replace the linear forward scan with a second binary search for the last index where lcp[i] >= queryLen, then return that index - l + 1 (mirroring the existing right-bound binary search). Both bounds become O(log len).",
+   "rationale": "Restores O(log len) worst case for the whole query; the current linear tail dominates for common-prefix-heavy data (e.g. repetitive text), which is exactly where suffix-array locate is used.",
+   "risk": "Must reproduce the exact same count: the current loop counts contiguous entries from l with lcp>=queryLen, so the upper-bound binary search must use the identical comparison (>=) and inclusive bounds. Verify off-by-one against the loop on edge cases (l==len-1, all-match, none-match)."
+  }
+ ]
+}

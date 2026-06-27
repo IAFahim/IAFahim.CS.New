@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Geometry.Azimuth/CartesianAzimuth.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Azimuth/CartesianAzimuth.cs",
+   "symbol": "CartesianAzimuth.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Make the [-pi,pi] -> [0,2pi) normalization branchless to remove a data-dependent branch on the Atan2 result.",
+   "currentCost": "if (angle < 0.0) angle += 2.0 * Math.PI is a branch whose direction depends on the runtime Atan2 output, so it can mispredict (~50% taken depending on input distribution) and creates a control dependency right after a long-latency Atan2.",
+   "proposedChange": "Compute branchlessly: long bits = BitConverter.DoubleToInt64Bits(angle); double mask = (double)((bits >> 63)); but cleaner under Burst: double add = angle < 0.0 ? (2.0 * Math.PI) : 0.0; angle += add; \u2014 the ternary lowers to a conditional-move (no branch). Also hoist 2.0 * Math.PI into a const TwoPi field to avoid the literal multiply.",
+   "rationale": "A cmov/select removes a mispredictable branch and the dependent control flow, keeping the pipeline straight after Atan2. Precomputing TwoPi as a named constant removes a runtime multiply.",
+   "risk": "Behavior-identical: ternary select yields the same value as the if for all inputs including angle == -0.0 (-0.0 < 0.0 is false, matching the current branch). Whether the JIT actually emits cmov is not guaranteed; if it keeps a branch the change is neutral, never worse."
+  }
+ ]
+}

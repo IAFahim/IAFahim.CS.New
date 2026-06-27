@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Layers.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Layers.cs",
+   "symbol": "BuildHeightfieldLayers (BFS queue, lines 253-261)",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "BFS 'pop front' shifts the entire stack array left by one every iteration, making the traversal O(n^2) in queue length.",
+   "currentCost": "Lines 256-261: after reading regs[stack[0]] it does nStack-- then a loop copying stack[j]=stack[j+1] for all remaining entries. Each pop is O(nStack); total work for the layer-build traversal is quadratic in the number of regions pushed (up to maxStack=64 per root, repeated per root).",
+   "proposedChange": "Replace the front-shift queue with a head/tail ring or a head index: keep 'int head=0' and 'int nStack', pop via 'var reg=&regs[stack[head++]];' and push at tail; the buffer holds at most maxStack live entries (size it accordingly or wrap). This turns each pop into O(1).",
+   "rationale": "Eliminates the O(n) memmove per pop, reducing the BFS from O(n^2) to O(n) in entries processed. For dense layered heightfields where regions count is high this is a real asymptotic win on a build-time path.",
+   "risk": "Must preserve FIFO order (original pops index 0, i.e. front) so layer assignment order is unchanged; a head-index queue preserves FIFO exactly. Ensure backing buffer capacity accounts for head advancing (use a separate ring or only push while nStack<maxStack as today, tracking live count = tail-head). Behavior identical."
+  }
+ ]
+}

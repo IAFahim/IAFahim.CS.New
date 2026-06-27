@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Optimization.Exact/SteinerDreyfusWagner.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Optimization.Exact/SteinerDreyfusWagner.cs",
+   "symbol": "SteinerDreyfusWagner.Run",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "The final answer reads only dp[fullMask*n + 0], i.e. the minimum Steiner tree cost constrained to connect at vertex 0. The correct Dreyfus-Wagner answer is the minimum of dp[fullMask*n + v] over ALL v in [0,n). When vertex 0 is not an optimal connection vertex (e.g. it is isolated/far), the routine returns a too-large value or inf instead of the true optimum.",
+   "triggeringInput": "n=3, m=2, terminals = {v1, v2} (terminals[1]=terminals[2]=true, terminals[0]=false). Dense w with w[1*3+2]=w[2*3+1]=5 (edge 1-2 cost 5) and vertex 0 isolated (all w entries involving index 0 = inf). True min Steiner tree connecting {1,2} costs 5. After the DP, dp[3*n+1]=dp[3*n+2]=5 but dp[3*n+0]=inf (vertex 0 unreachable). Run returns dp[3*n+0] = inf instead of 5.",
+   "rootCause": "Missing the final minimization over the third (vertex) index. dp[mask*n+v] is indexed by the connection vertex v; the implementation hardcodes v=0 in the return statement 'return dp[((1<<m)-1)*n];' (offset (fullMask)*n + 0) rather than scanning all v.",
+   "suggestedFix": "Replace the return with: long ans = inf; int full = (1<<m)-1; for (int v=0; v<n; v++) if (dp[full*n+v] < ans) ans = dp[full*n+v]; return ans;"
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Exact/SteinerDreyfusWagner.cs",
+   "symbol": "Run (subset-merge while loop)",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "The submask enumeration loop has dead branches and iterates every (sub, other) ordered pair, doing twice the necessary work.",
+   "currentCost": "while-loop at lines 21-28 contains two provably-dead branches: 'if (sub == mask)' can never fire because sub starts at (mask-1)&mask which is strictly < mask, and 'if (sub == 0) break' is unreachable because the loop condition '> 0' already excludes 0. Worse, it visits all proper non-empty submasks sub, so each unordered split {sub, mask^sub} is processed twice (once as sub, once as other), doubling the inner work.",
+   "proposedChange": "Drop both dead branches. Iterate only the canonical half of splits, e.g. enumerate sub over proper submasks but only process when sub < (mask ^ sub) (or sub <= mask^sub for the symmetric case), halving the dp[sub*n+v]+dp[other*n+v] evaluations. Loop becomes: 'int sub=(mask-1)&mask; while(sub>0){ int other=mask^sub; if(sub<other){ long cand=dp[sub*n+v]+dp[other*n+v]; if(cand<best)best=cand;} sub=(sub-1)&mask; }'",
+   "rationale": "Removes 2 unpredictable branches per iteration and halves the number of dp loads/adds/compares in the inner split loop. The cand for {sub,other} equals cand for {other,sub}, so skipping one is semantics-preserving; best is unchanged.",
+   "risk": "None: the two removed branches are provably unreachable, and add is commutative so dp[sub]+dp[other]==dp[other]+dp[sub]. Must guard with sub<other (not <=) only if every split has sub!=other, which holds because mask has >=2 bits here (singletons are 'continue'd at line 16), so sub==other would require sub==mask^sub, impossible for a partition of a >=2-bit mask."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Exact/SteinerDreyfusWagner.cs",
+   "symbol": "Run (triple-nested merge i,j,k)",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "The O(n^3) two-edge relaxation per mask is an order of n more work than the standard Dreyfus-Wagner single-source relaxation needs.",
+   "currentCost": "For each of 2^m masks, the i/j/k triple loop (lines 31-43) costs n^3 multiply-add-compare with 3 inf-checks, giving total O(2^m * n^3). It relaxes dp[mask][k] via two graph edges i->j->k, but standard DW only needs a single-source shortest-path relaxation (Dijkstra/Bellman) over the contracted dp[mask][*] as sources, which is O(2^m * n^2) on a dense graph.",
+   "proposedChange": "Replace the i,j,k triple loop with a single-edge relaxation: treat dp[mask*n+v] as initial distances and run one round of all-pairs single-edge relaxation to fixpoint (Bellman over dense matrix is O(n^2) per pass, O(n^2) passes worst case, but for the metric closure precompute all-pairs shortest paths apsp[i][k] ONCE via Floyd-Warshall outside the mask loop, then inner step is dp[mask*n+k]=min over i of dp[mask*n+i]+apsp[i*n+k], which is O(n^2) per mask).",
+   "rationale": "Precomputing the metric closure apsp once (O(n^3) total, not per-mask) collapses the per-mask merge from O(n^3) to O(n^2), reducing the dominant term from 2^m*n^3 to n^3 + 2^m*n^2 \u2014 an n-fold asymptotic win for the hot exponential loop.",
+   "risk": "Must verify the current two-edge form was not intentionally limited to paths of exactly <=2 edges; for shortest-path Steiner it should be the full closure, so using apsp is the correct (and equivalent-or-better) relaxation. Provide w as already-closed metric, or compute closure once. Keep inf-saturating adds to avoid long overflow (inf+w must not wrap)."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Exact/SteinerDreyfusWagner.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "(1<<m) and (1<<m)*n are recomputed in loop bounds and the init pass; hoist them.",
+   "currentCost": "Line 9 computes (1<<m)*n inside the loop condition each iteration; line 14 recomputes (1<<m) each mask-loop test. These are cheap shifts but re-evaluated every iteration of large loops.",
+   "proposedChange": "Hoist 'int full = 1 << m;' and 'int dpLen = full * n;' once at the top; use them in the init loop bound, the mask loop bound, and the final return index '((full-1)*n)'.",
+   "rationale": "Eliminates a redundant shift+multiply from each iteration of the 2^m*n init loop and each mask-loop condition; lets Burst keep the bound in a register and reason about loop trip count.",
+   "risk": "None; m is constant within the call so 1<<m is loop-invariant."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Exact/SteinerDreyfusWagner.cs",
+   "symbol": "Run (inf-checked add)",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The d1!=inf && w1!=inf && w2!=inf triple guard adds three branches per innermost iteration to avoid overflow; a saturating/clamped add or single combined check is cheaper.",
+   "currentCost": "Innermost i,j,k body (lines 38-42) evaluates up to three branch conditions before the actual add/compare, on the hottest loop in the file (2^m*n^3 iterations).",
+   "proposedChange": "If inf is chosen with headroom (e.g. inf <= long.MaxValue/4), drop the per-term inf guards and instead clamp: 'long cand = d1 + w1 + w2;' then compare 'cand < dp[...]' \u2014 since any path through an inf edge yields >= inf and won't beat a real value. Alternatively hoist the d1!=inf check out of the j,k loops (it's invariant in j and k).",
+   "rationale": "Removes two/three branch evaluations from the innermost loop; if guards are kept, hoisting 'd1 != inf' (invariant over j,k) out of the inner two loops removes one compare from n^2 iterations per i.",
+   "risk": "Saturating-add variant requires inf to have sufficient headroom against long overflow; state that explicitly. The hoist of d1!=inf is unconditionally safe and semantics-preserving."
+  }
+ ]
+}

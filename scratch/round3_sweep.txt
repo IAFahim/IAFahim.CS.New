@@ -1,0 +1,5 @@
+PASS(test)  IAFahim.Graph
+PASS(test)  IAFahim.Graph.Flow
+PASS(test)  IAFahim.Graph.Matching
+PASS(test)  IAFahim.Combinatorics.Generation
+=== SWEEP DONE ===

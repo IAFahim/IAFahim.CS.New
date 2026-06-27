@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.Graph.Functional/IAFahim.Graph.Functional.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Graph.Cactus/IAFahim.Graph.Cactus.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Graph.TreeIsomorphism/IAFahim.Graph.TreeIsomorphism.csproj" />
+  </ItemGroup>
+</Project>

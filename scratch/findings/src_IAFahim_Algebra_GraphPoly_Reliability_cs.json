@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Algebra.GraphPoly/Reliability.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Algebra.GraphPoly/Reliability.cs",
+   "symbol": "Reliability.CalculateProbability",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Edge success/failure probabilities are swapped: present edges (those in the mask, counted by edgeCount) are multiplied by the failure probability q=(1-p), and absent edges (totalEdges-edgeCount) are multiplied by the success probability p. The all-terminal reliability polynomial requires present edges to contribute p and absent edges to contribute (1-p), so every term is computed with inverted factors and the returned reliability is wrong.",
+   "triggeringInput": "n=2, edges=1, from[0]=0, to[0]=1, p=2, MOD=7. The only connected subgraph is the one with the edge present (edgeCount=1). Correct reliability = p = 2. Code computes pk = q^1 = (1-2+7)%7 = 6, qk = p^0 = 1, and returns 6 instead of 2.",
+   "rootCause": "In CalculateProbability, pk accumulates q (=1-p) edgeCount times while qk accumulates p over (totalEdges-edgeCount) absent edges. edgeCount is the number of OPERATIONAL/present edges, so it should be paired with p, and the absent edges should be paired with q. The two loops use the wrong base.",
+   "suggestedFix": "Swap the bases: multiply p over the edgeCount present edges and q=(1-p) over the (totalEdges-edgeCount) absent edges, i.e. pk should accumulate p (edgeCount times) and qk should accumulate q (totalEdges-edgeCount times). Equivalently swap p and q in the two for-loops."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Algebra.GraphPoly/Reliability.cs",
+   "symbol": "Reliability.Run / CalculateProbability",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Precompute power tables of p and q once, replacing per-mask O(edges) probability recomputation and the per-mask bit-count loop.",
+   "currentCost": "CalculateProbability runs two loops totalling O(edges) modular muls for every connected mask, and Run recomputes edgeCount with a bit-by-bit loop per mask. Over 2^edges masks this is O(edges * 2^edges) extra muls plus O(edges * 2^edges) popcount work, all redundant since results depend only on edgeCount in [0,edges].",
+   "proposedChange": "Before the mask loop, precompute qPow[i]=q^i and pPow[i]=p^i for i in [0,edges] (two O(edges) passes). Then per mask use popCnt = (int)BitOperations.PopCount((uint)mask) and prob = (qPow[popCnt]*pPow[edges-popCnt]) % MOD. Note current code multiplies q edgeCount times and p (totalEdges-edgeCount) times, so map accordingly to preserve exact semantics.",
+   "rationale": "Reduces the per-mask probability cost from O(edges) to O(1) table lookups plus one mul, cutting total from O(edges*2^edges) to O(2^edges) for the probability work; popcnt intrinsic removes the bit loop. The probability is a pure function of popcount, so caching is exact.",
+   "risk": "Must preserve the existing (slightly unusual) mapping: current code raises q to edgeCount and p to totalEdges-edgeCount. Keep that exact assignment in the table lookup. uint popcount cast safe (mask>=0, edges<=30). Table is (edges+1)*8 bytes per array, negligible."
+  },
+  {
+   "file": "src/IAFahim.Algebra.GraphPoly/Reliability.cs",
+   "symbol": "Reliability.IsConnected",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Add union-by-size/rank and stop re-running Find(parent,0) for the root each iteration; also short-circuit using a component count.",
+   "currentCost": "IsConnected rebuilds DSU per mask (O(n) reset) then for the connectivity check calls Find for component count: it computes root=Find(0) then Find(i) for i=1..n-1. Union lacks rank/size so trees can be taller, and the final verification re-Finds every node. Runs 2^edges times.",
+   "proposedChange": "Track the number of distinct components while unioning (start at n, decrement on each successful union); the graph is connected iff components==1 after processing edges. This removes the entire final O(n) Find verification loop. Optionally add union-by-size to bound tree height (already have path halving in Find).",
+   "rationale": "Eliminates the O(n) post-pass of Find calls per mask (O(n*2^edges) saved) by maintaining component count during union; union-by-size keeps amortised Find near O(alpha). Pure structural improvement to the per-mask hot routine.",
+   "risk": "Component-count connectivity is equivalent to the all-same-root check for an undirected graph on n vertices. Must initialise components=n each mask and decrement only when Find(u)!=Find(v). Behaviour identical for all inputs."
+  }
+ ]
+}

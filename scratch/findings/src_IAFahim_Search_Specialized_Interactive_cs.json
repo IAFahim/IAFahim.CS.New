@@ -1,0 +1,72 @@
+{
+ "file": "src/IAFahim.Search.Specialized/Interactive.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.Specialized/Interactive.cs",
+   "symbol": "QueryCacheGet",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Open-addressing probe recomputes (idx+i)%cap every iteration; replace modulo with an incrementing index that wraps by subtraction.",
+   "currentCost": "Inner loop executes `int c=(idx+i)%cap` each probe \u2014 an integer division/remainder (10-40 cycles on many targets, not vectorizable) on every step of a linear probe.",
+   "proposedChange": "Compute idx once, then iterate: `int c=idx; for(int i=0;i<cap;i++){ ... if(occ[c]==0)return false; if(CompareKeys...){...} c++; if(c==cap)c-=cap; }`. The wrap is a single compare+subtract, no division.",
+   "rationale": "Removes one integer remainder per probe iteration, replacing ~20-cycle div with a 1-cycle predictable compare/sub. Linear probing already walks contiguous memory; the branch `c==cap` is taken at most once per full scan so prediction is near-perfect.",
+   "risk": "None semantically: idx is already in [0,cap), and c increments by 1 each step wrapping at cap, producing the exact same probe sequence (idx, idx+1, ..., mod cap). cap must be >0 (already required for the original % cap)."
+  },
+  {
+   "file": "src/IAFahim.Search.Specialized/Interactive.cs",
+   "symbol": "QueryCacheGet",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Initial bucket uses signed `h % cap`; the masked-positive hash means an unsigned reduction is valid and avoids signed-remainder overhead.",
+   "currentCost": "`int idx = h % cap` is a signed remainder; signed % emits extra instructions to handle the sign of the dividend even though h is already non-negative (GetUnmanagedHash returns h & 0x7FFFFFFF).",
+   "proposedChange": "Use `int idx = (int)((uint)h % (uint)cap);` so the JIT/Burst emits an unsigned remainder, or if cap is constrained to a power of two by the caller, expose a masked variant `idx = h & (cap-1)`.",
+   "rationale": "h is guaranteed in [0, 2^31-1], so unsigned reduction is identical in value but the codegen for unsigned % is cheaper (no sign-correction). A power-of-two mask path would strength-reduce the only remaining division entirely.",
+   "risk": "Value-identical because h>=0 and cap>0, so signed and unsigned remainder agree. The mask variant is only valid when cap is a power of two \u2014 gate it behind a separate method or a documented precondition; do not silently apply."
+  },
+  {
+   "file": "src/IAFahim.Search.Specialized/Interactive.cs",
+   "symbol": "CompareKeys/GetUnmanagedHash",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Byte-by-byte hash and compare defeat vectorization for common blittable key sizes (4/8/16 bytes); special-case word-sized keys.",
+   "currentCost": "Both loops iterate sizeof(T) times one byte at a time. For a 16-byte key that is 16 load+branch iterations for compare and 16 mul-add iterations for hash, far more than the data warrants; the per-byte loop is a serial dependency chain (h=h*31+p[i]) that Burst cannot SIMD.",
+   "proposedChange": "Branch on sizeof(T): for sizeof(T)==4 compare/hash via *(uint*)a; for ==8 via *(ulong*); for ==16 via two ulongs. CompareKeys becomes a single (or two) word comparisons; hashing can mix words with a multiply-xor finalizer. Fall back to the byte loop for odd sizes. Since sizeof(T) is a JIT-time constant per generic instantiation, Burst will dead-code-eliminate the wrong branches.",
+   "rationale": "Word-wide loads cut the compare from N byte-loads to N/8 word-loads and remove the per-byte branch; the equality early-out on mismatch is rarely hit for full-key compares anyway. Fewer loads, shorter dependency chain, better for Burst which specializes per generic type.",
+   "risk": "Hash VALUE will differ from the current byte-polynomial hash. That is acceptable only if no external contract depends on the exact hash value (it is an internal probe index). The compare must remain a full bitwise equality (same observable result). Unaligned word loads are fine on the supported targets but note it for strict-alignment platforms; CompareKeys result is bit-identical so observable behavior of QueryCacheGet is preserved."
+  },
+  {
+   "file": "src/IAFahim.Search.Specialized/Interactive.cs",
+   "symbol": "InteractiveTreeCentroidFind/FindBestCentroid",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "qt/2 is recomputed repeatedly inside FindBestCentroid's nested loops; hoist the half-size and reuse.",
+   "currentCost": "FindBestCentroid evaluates `qt/2` once per outer node for the `ok` test and again per incident edge in the inner condition `sz[v] > qt/2`. qt is loop-invariant for the whole call, so this is a redundant signed division (qt/2) executed O(edges) times.",
+   "proposedChange": "At the top of FindBestCentroid compute `int half = qt >> 1;` (qt is the queue tail count, always >=0, so arithmetic shift == /2) and use `half` in both the outer and inner comparisons.",
+   "rationale": "Removes a division (or at least a redundant recompute) from the innermost edge-scan loop, replacing it with a single hoisted shift. The centroid scan touches every edge of the component, so this is the hot inner loop of each decomposition level.",
+   "risk": "None: qt is a count of enqueued nodes, strictly >=0, so qt>>1 equals qt/2 exactly. Pure hoist, no behavior change."
+  },
+  {
+   "file": "src/IAFahim.Search.Specialized/Interactive.cs",
+   "symbol": "InteractiveTreeCentroidFind",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "FindBestCentroid re-scans every node's edges to validate the centroid, an O(V+E) pass that duplicates information already derivable from subtree sizes in O(V).",
+   "currentCost": "After ComputeSubtreeSizes, FindBestCentroid does a second full edge walk per candidate to find the max child subtree, making centroid finding O(V+E) with an extra adjacency traversal each decomposition level.",
+   "proposedChange": "During the reverse pass in ComputeSubtreeSizes, also accumulate per-node maxChildSize[u] (the largest sz over children) by updating maxChildSize[p]=max(maxChildSize[p], sz[u]). Then the centroid test is purely sz-based: node u is a centroid iff max(maxChildSize[u], qt - sz[u]) <= qt/2, evaluated in a single O(V) forward scan with no adjacency walk.",
+   "rationale": "Eliminates the second adjacency traversal (the dominant edge-touching loop) and replaces it with an O(1) test per node using an array filled during the existing size pass \u2014 same total info, strictly fewer edge visits, lower constant and no extra asymptotic term beyond the unavoidable size computation.",
+   "risk": "Requires one more stackalloc int[numNodes] (maxChildSize), increasing stack working set by 4*numNodes bytes \u2014 acceptable given numNodes already drives several such buffers; on deeply recursive decomposition the stackalloc is per-call so verify total stack budget. The selected centroid is equivalent (same definition: no subtree, including the parent side qt-sz[u], exceeds qt/2). Init maxChildSize to 0 each level."
+  },
+  {
+   "file": "src/IAFahim.Search.Specialized/Interactive.cs",
+   "symbol": "InteractiveTreeCentroidFind",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "The `queue` scratch buffer duplicates traversal order that `parent` already encodes; but more concretely, removed[] init loop can be fused and buffers right-sized.",
+   "currentCost": "Four stackalloc int[numNodes] plus a byte[numNodes] are allocated every call; the removed[] zero-init is a separate loop from the others. On mobile with large numNodes this is a sizable per-call stack footprint and an extra init pass.",
+   "proposedChange": "Allocate the int buffers in one stackalloc int[numNodes*3] block and slice (sz/parent/queue) to improve locality, and zero removed[] with a single Unsafe.InitBlockUnaligned/Burst memset rather than a scalar loop. Keep removed as the only persistent-across-iterations buffer.",
+   "rationale": "A single contiguous allocation improves cache locality and a vectorized memset clears removed[] faster than a scalar byte loop (which Burst may not auto-vectorize across the function boundary). Reduces setup overhead per outer decomposition call.",
+   "risk": "Pointer slicing must keep correct alignment (int* slices of an int block are naturally aligned). InitBlock semantics identical to the zero loop. Low impact; mainly setup-phase, not the inner loop."
+  }
+ ]
+}

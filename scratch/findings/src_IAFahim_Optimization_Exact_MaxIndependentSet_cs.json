@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Optimization.Exact/MaxIndependentSet.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Exact/MaxIndependentSet.cs",
+   "symbol": "CanIncludeNode",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Only scan already-decided neighbors u < v instead of all n; used[u] is only ever 1 for u already processed in this DFS branch.",
+   "currentCost": "CanIncludeNode loops u from 0..n-1 checking adj[v*n+u] && used[u]. But used[u] can only be set for u<v (DFS assigns in increasing v and resets on backtrack), so iterations u>=v always have used[u]==0 and are wasted work in the innermost hot check.",
+   "proposedChange": "Change the loop bound to `for (int u = 0; u < v; u++)` and use a row pointer `bool* row = adj + v * n;` with `row[u]`.",
+   "rationale": "Halves the average inner-loop length of the most-called leaf function in an exponential branch-and-bound, and removes the v*n multiply per iteration. used[u]!=0 implies u was included earlier, which only happens for u<v.",
+   "risk": "Relies on the invariant that used[] is zero for all indices >= v at the time CanIncludeNode(v) runs. This holds because Run zeroes nothing explicitly -- caller must pass used[] pre-zeroed (already assumed) and the DFS only sets used[v]=1 then resets to 0 on unwind, touching index v only. Safe given the increasing-v traversal. Add a comment documenting the invariant."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Exact/MaxIndependentSet.cs",
+   "symbol": "Search",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Add a bound to prune: if cur + (n - v) <= *best, the remaining vertices cannot beat best, so return early.",
+   "currentCost": "The search explores the full include/exclude binary tree of depth n with no upper-bound pruning, giving worst-case 2^n leaves even when best is already large.",
+   "proposedChange": "At the top of Search add `if (cur + (n - v) <= *best) return;` before the v==n check (or right after). This is an admissible bound: at most n-v more vertices can be added.",
+   "rationale": "Trivial branch that cuts entire subtrees once a good solution is found, often reducing the effective branching dramatically on dense graphs. Pure cycles/asymptotic win with no semantic change -- it only prunes branches that provably cannot improve *best.",
+   "risk": "None for correctness: cur+(n-v) is a true upper bound on the achievable set size in this subtree, so pruning when it cannot exceed *best preserves the optimum. Edge: when cur+(n-v)==*best pruning is correct since we need strictly greater (cur > *best) to update."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Exact/MaxIndependentSet.cs",
+   "symbol": "Search / CanIncludeNode",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "The depth and tmp parameters are entirely unused dead weight threaded through every recursive call.",
+   "currentCost": "depth and tmp are passed and incremented/forwarded on every recursion but never read; extra register/stack traffic and a misleading signature.",
+   "proposedChange": "Remove the `int depth` and `int* tmp` parameters from Search (and tmp from Run's signature if the public API allows, else keep Run signature and drop internally). Stop threading depth+1.",
+   "rationale": "Fewer arguments shorten the recursive call's prologue and reduce stack/register pressure in a hot exponential recursion; clearer API. The increment `depth+1` is also wasted ALU work per node.",
+   "risk": "tmp is part of the public Run signature; removing it there is a breaking API change -- only safe to drop internally from Search. depth removal is purely internal and safe."
+  }
+ ]
+}

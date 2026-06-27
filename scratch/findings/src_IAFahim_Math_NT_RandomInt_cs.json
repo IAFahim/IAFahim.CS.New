@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Math.NT/RandomInt.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.NT/RandomInt.cs",
+   "symbol": "RandomInt.Next / RandomInt64.Next",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Next(bound) can return a NEGATIVE value because it computes a signed long modulo of a SplitMix64 output whose high bit is often set; the contract (and all callers) require a result in [0, bound).",
+   "triggeringInput": "With the default seed 123456789, the SECOND call to RandomInt.Next(100) returns -90 (SplitMix64 yields seed = -9222453836012030090, and -...090 % 100 = -90 in C#). Any bound works; e.g. RandomInt.Next(100) returns negative on roughly half of all draws.",
+   "rootCause": "_seed % bound (line 19 and line 42) uses signed remainder. SplitMix64.Run returns (long)u where the top bit is frequently set, so _seed is negative ~50% of the time, and C# 'negative % positive' is negative. Range() (lo + Next(...)) then returns values below lo, and RandomShuffle.Run uses Next(i+1) as an index j which can be negative.",
+   "suggestedFix": "Reduce in unsigned space and only then take the result, e.g. return (int)((ulong)_seed % (uint)bound); for Next, and (long)((ulong)_seed % (ulong)bound); for Next64. (Note this also still has modulo bias, but the correctness defect is the negative return.)"
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/RandomInt.cs",
+   "symbol": "Next",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace the variable-bound 64-bit modulo with Lemire's multiply-shift reduction to avoid a hardware division on every draw.",
+   "currentCost": "_seed % bound is a signed 64-bit (RandomInt64) / 64-bit-result-truncated-to-32 (RandomInt) division: ~20-40 cycles on most cores and not vectorizable, executed once per random number.",
+   "proposedChange": "For RandomInt.Next(int bound): take the 64-bit SplitMix output as ulong, compute (uint)(((ulong)(uint)hash * (ulong)bound) >> 32) to map uniformly into [0,bound) with a single 64-bit multiply and shift, no division. For RandomInt64 a 128-bit mulhi (Math.BigMul) gives the same.",
+   "rationale": "A multiply (3-5 cycles) plus shift replaces a multi-cycle division; also removes the negative-result hazard of signed % (current (int)(_seed % bound) can be negative when _seed is negative, which is almost certainly an unintended bug).",
+   "risk": "Changes the exact bit pattern/sequence of returned values for a given seed (distribution stays uniform, sequence reproducibility differs) and changes whether negatives can appear. If exact sequence reproducibility is a contract, gate behind a new method; otherwise this also fixes the signed-modulo negativity. Lemire has a slight modulo-bias unless rejection is added, same as current %."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/RandomInt.cs",
+   "symbol": "_seed",
+   "dimension": "purity",
+   "impact": "medium",
+   "summary": "Hidden mutable static seed makes Next/Range/Shuffle impure, non-deterministic across threads, and unsafe under parallel Burst jobs.",
+   "currentCost": "Static long _seed is shared global mutable state; two Burst worker threads calling Next race on it, and results depend on call order, so functions are neither pure nor thread-safe.",
+   "proposedChange": "Add a stateless overload Next(ref long state, int bound) (and Range/Shuffle variants) that threads the seed explicitly, keeping the convenience static wrapper for single-threaded callers. SplitMix64.Run is already pure and ideal for this.",
+   "rationale": "Lets Burst jobs hold per-thread state with no contention, makes the core deterministic/pure (testable), and removes a hidden data dependency that blocks parallelization.",
+   "risk": "Pure addition; existing API preserved. The static overload keeps current behavior."
+  }
+ ]
+}

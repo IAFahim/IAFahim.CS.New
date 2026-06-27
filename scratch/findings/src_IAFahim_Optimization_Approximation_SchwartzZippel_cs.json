@@ -1,0 +1,60 @@
+{
+ "file": "src/IAFahim.Optimization.Approximation/SchwartzZippel.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Optimization.Approximation/SchwartzZippel.cs",
+   "symbol": "SchwartzZippel.Test",
+   "severity": "high",
+   "category": "modular-sign",
+   "summary": "Negative point coordinates produce negative residues that are never normalized, so two polynomials that are equal mod prime can be reported as unequal (false negative) and the comparison is generally wrong for negative inputs.",
+   "triggeringInput": "n=1, m=1, prime=7, points[0]=-1, poly={bit0 set so poly[0]&1!=0} -> p = (-1)%7 = -1, pow=(1*-1)%7 = -1, lhs=-1. If eval encodes the same value via a term producing +6 (e.g. point evaluated through a path yielding a normalized positive residue), lhs=-1 != rhs=6 even though -1 \u2261 6 (mod 7).",
+   "rootCause": "C# % returns a result with the sign of the dividend. points[j] % prime is negative when points[j] is negative, and the running products/sums are never normalized into [0,prime), so identical residues can be represented as e.g. -1 vs 6 and compared unequal.",
+   "suggestedFix": "Normalize after every mod: long p = ((points[j] % prime) + prime) % prime; and likewise normalize lhs/rhs each iteration: lhs = ((lhs + pow) % prime + prime) % prime; (and the same for rhs)."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Approximation/SchwartzZippel.cs",
+   "symbol": "SchwartzZippel.Test",
+   "severity": "high",
+   "category": "overflow",
+   "summary": "Monomial exponent bitmask (1 << j) overflows int when n >= 32, so the wrong set of variables is multiplied into each monomial, producing a wrong lhs/rhs and a wrong identity result.",
+   "triggeringInput": "n=33, prime=1000000007, with poly[i*n + 32] having bit pattern such that (poly[..] & (1 << 32)) is expected to test bit 32. In C#, 1 << 32 == 1 (shift count is masked to 5 bits), so the mask aliases bit 0 instead of bit 32, selecting the wrong factor and yielding incorrect pow/lhs.",
+   "rootCause": "`1 << j` is computed in int; for j >= 32 the shift amount is reduced modulo 32, so 1<<32 == 1, 1<<33 == 2, etc. The intended bit j is not tested.",
+   "suggestedFix": "Use a 64-bit mask (1L << j) only if n <= 64, and document/guard n; better, store/check coefficients without relying on bit shifts that overflow, or assert n <= 31."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Approximation/SchwartzZippel.cs",
+   "symbol": "SchwartzZippel.Test",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "points[j] % prime is recomputed n times for every j; precompute the reduced points array once, turning O(n^2) modulo ops into O(n).",
+   "currentCost": "Inner loop computes points[j] % prime on every (i,j) pair, in both the lhs and rhs passes. That is 2*n*n modulo operations (the most expensive integer op, ~20-40 cycles each), plus the dependency the value never changes across i.",
+   "proposedChange": "Before the i-loops, allocate long* p = stackalloc long[n]; for (int j=0;j<n;j++) p[j] = points[j] % prime; then in the hot loop use p[j] directly: pow = (pow * p[j]) % prime;",
+   "rationale": "Hoists a loop-invariant (independent of i) out of the doubly-nested loop, collapsing 2*n^2 divisions to n divisions plus n^2 multiply+mod. Cuts the dominant cost roughly in half and removes a redundant load+div from the inner dependency chain.",
+   "risk": "None. points[j] % prime depends only on j, so the value is identical for every i. stackalloc long[n] is consistent with house style. Assumes prime>0 (same precondition as existing code)."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Approximation/SchwartzZippel.cs",
+   "symbol": "SchwartzZippel.Test",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "(1 << j) is recomputed each inner iteration; it can be a single shifting mask variable, and poly[i*n+j] row base i*n is loop-invariant in the inner loop.",
+   "currentCost": "Each inner iteration computes 1<<j (shift), i*n+j (multiply-add for index), and tests against poly. i*n is recomputed every inner step.",
+   "proposedChange": "Hoist int rowBase = i * n; before the j-loop and index poly[rowBase + j]. Optionally maintain int bit = 1; advancing bit <<= 1; each iteration instead of recomputing 1<<j.",
+   "rationale": "Removes a multiply from the inner index computation (replaced by a single add) and turns a variable-distance shift into an incremental shift, shortening the inner-loop instruction count and dependency.",
+   "risk": "None for rowBase. For the incremental bit, j<32 is required so the shift does not overflow; the existing (1<<j) already assumes j<32, so semantics are unchanged."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Approximation/SchwartzZippel.cs",
+   "symbol": "SchwartzZippel.Test",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "The lhs and rhs passes are byte-identical except for the source matrix; factor into a private helper to shrink code size and improve I-cache/inlining behavior.",
+   "currentCost": "Two copies of the same triple-nested reduction body bloat the method, hurting I-cache and making the AggressiveInlining attribute expand a large body at every call site.",
+   "proposedChange": "Extract private static long EvalSum(int* mat, int n, long* reducedPoints, int prime) and call it twice: return EvalSum(poly,...) == EvalSum(eval,...). Keep AggressiveInlining on the leaf helper only if small.",
+   "rationale": "Single code path improves maintainability and lets the compiler optimize one body; reduces duplicated instruction footprint. Combined with the precomputed points array, the helper is the natural home for the hoisted work.",
+   "risk": "None functionally. Re-evaluate AggressiveInlining: inlining a large triple-loop body twice may bloat callers; consider dropping it from Test and keeping the helper non-inlined."
+  }
+ ]
+}

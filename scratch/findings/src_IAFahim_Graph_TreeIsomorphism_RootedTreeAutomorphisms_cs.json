@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Graph.TreeIsomorphism/RootedTreeAutomorphisms.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.TreeIsomorphism/RootedTreeAutomorphisms.cs",
+   "symbol": "RootedTreeAutomorphisms.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Run does two full DFS traversals of the tree (CanonicalHashRooted then AutomorphismCountRooted); the symmetry counting can read subHash that the first pass produces, but the two passes can be fused or the second can be made to compute hashes inline, eliminating one O(n) traversal plus its per-node insertion-sort of child hashes.",
+   "currentCost": "Two recursive DFS walks over all n nodes. CanonicalHashRooted sorts childHashes at every internal node via O(k^2) insertion sort, then AutomorphismCountRooted re-sorts the same child hashes again via another O(k^2) insertion sort. So each internal node pays the child-sort cost twice and the tree is traversed twice end to end.",
+   "proposedChange": "Have AutomorphismCountRooted compute and store subHash[u] itself in post-order (it already visits children before the parent and already has childHashes in hand), so CanonicalHashRooted is not needed as a separate pre-pass. Then Run becomes a single traversal: TreeHashing.AutomorphismCountRooted(root,-1,head,to,next,subHash,mod) where that routine fills subHash bottom-up. This removes one of the two DFS walks and one of the two per-node child sorts.",
+   "rationale": "Both passes already sort the identical multiset of child sub-hashes at each node; computing the canonical hash during the automorphism post-order reuses that sorted array, halving traversal count and removing n redundant SplitMix/sort operations. Fewer cycles, smaller dependency chain, same outputs because subHash[v] for a child is fully computed before the parent reads it in post-order.",
+   "risk": "Requires editing TreeHashing.AutomorphismCountRooted (in IAFahim.Graph.TreeQueries, a dependency module) so it is consistent with CanonicalHashRooted's hash formula (h=h*1000003+SplitMix64(child); final SplitMix64(h); leaf=SplitMix64(1)). AutomorphismCount (the centroid entry point) also relies on CanonicalHashRooted being run first to fill subHash before AutomorphismCountRooted; that path must keep correct ordering. If TreeQueries is out of scope for edits, this opportunity cannot be applied without cross-module change. Pure refactor preserves observable results only if the hash formula is replicated exactly."
+  },
+  {
+   "file": "src/IAFahim.Graph.TreeIsomorphism/RootedTreeAutomorphisms.cs",
+   "symbol": "RootedTreeAutomorphisms.Run",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "stackalloc ulong[n] uses n as the allocation size but Run never validates that root is in [0,n); subHash is indexed by node id (subHash[u]) in CanonicalHashRooted, so node ids must be < n. This is fine for an unchecked Run by design, but the AggressiveInlining on a method that does a stackalloc of dynamic size n and two deep recursive calls yields no inlining benefit and may bloat any caller.",
+   "currentCost": "AggressiveInlining is applied to a method whose body is a dynamic-sized stackalloc plus two non-inlinable recursive DFS calls. The attribute cannot meaningfully inline the recursion or the stackalloc, so it only risks code-size growth at call sites with zero cycle benefit.",
+   "proposedChange": "Drop [MethodImpl(MethodImplOptions.AggressiveInlining)] from Run. Keep AggressiveInlining only on true hot leaf methods (e.g. SplitMix64). Run is a heavyweight entry point, not a leaf.",
+   "rationale": "AggressiveInlining is a code-size/icache tradeoff justified only for tiny hot leaves. Inlining a frame that contains a variable-length stackalloc forces the alloca into the caller's frame and bloats every call site without removing any real call overhead, since the dominant cost is the recursive traversal that stays out-of-line. Removing it reduces caller code size and icache pressure.",
+   "risk": "None to correctness. Behavior is identical; only the inlining hint changes. Burst/JIT may already ignore the hint for stackalloc-containing methods, so worst case is a no-op."
+  }
+ ]
+}

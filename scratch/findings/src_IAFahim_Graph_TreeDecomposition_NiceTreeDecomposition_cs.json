@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Graph.TreeDecomposition/NiceTreeDecomposition.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.TreeDecomposition/NiceTreeDecomposition.cs",
+   "symbol": "TreeDecompositionNice",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "This is an explicitly-documented placeholder/dummy that ignores nearly all inputs and always emits a single LEAF node; not a real algorithm to optimize.",
+   "currentCost": "No meaningful computation; many parameters (tdHead/tdTo/tdNext/bag arrays) are unused. The [AggressiveInlining] on a non-hot stub bloats call sites slightly.",
+   "proposedChange": "Either implement the real O(N) general->nice conversion, or, until then, drop [MethodImpl(AggressiveInlining)] from this large multi-parameter stub so it is not force-inlined, and mark unused parameters to silence warnings. No micro-opt applies until the real body exists.",
+   "rationale": "Inlining a large parameter-heavy method with no hot body only increases code size at every call site without benefit. This is a correctness/placeholder flag rather than a perf win.",
+   "risk": "Flagging only: removing AggressiveInlining has no behavioral effect. Implementing the real algorithm is out of scope for a semantics-preserving micro-opt and must not silently change the current (placeholder) output contract."
+  }
+ ]
+}

@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Sort.Insertion/Insertion.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Sort.Insertion/Insertion.cs",
+   "symbol": "Insertion.Run<T> / Insertion.RunDescending<T>",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the just-loaded element when it is already in order, skipping the inner-loop entry comparison and key store on the common nearly-sorted case.",
+   "currentCost": "Every iteration unconditionally reads ptr[i] into key, enters the while with a CompareTo, and always writes ptr[j+1]=key at the end even when no shift happened. For already-sorted or nearly-sorted runs the trailing store is a redundant self-write (ptr[i]=ptr[i]).",
+   "proposedChange": "Guard the inner shift loop with an early check: compare ptr[i] against ptr[i-1] first; if ptr[i-1].CompareTo(key) <= 0 (for ascending) continue without loading key into a temp or writing it back. Concretely: if (ptr[i-1].CompareTo(ptr[i]) <= 0) continue; else proceed with the current shift loop. This eliminates one register copy + one store per already-ordered element.",
+   "rationale": "Insertion sort's dominant real-world use is small or nearly-sorted arrays (it is typically a base case of a hybrid sort). Removing the redundant key copy and the self-store on the in-order fast path cuts the per-element cost to a single comparison, halving memory traffic on sorted input and shortening the dependency chain (no store feeding the next iteration's load).",
+   "risk": "Must keep the comparison direction identical (ascending uses <=0 to preserve stability; descending uses >=0). The < / <= boundary matters: using <= (ascending) / >= (descending) keeps equal elements from being shifted, preserving the existing stable behavior. No overflow or signed/unsigned concern."
+  },
+  {
+   "file": "src/IAFahim.Sort.Insertion/Insertion.cs",
+   "symbol": "Insertion.RunDescending<T>",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Collapse the two near-identical methods into one comparison-direction-parameterized core, or document them as a deliberate duplicated pair, to avoid divergence and ease adding a Comparer overload.",
+   "currentCost": "Run and RunDescending are byte-for-byte identical except the inner comparison sign (>0 vs <0), so any future fix (e.g. the fast-path guard above) must be applied twice and can drift.",
+   "proposedChange": "Keep the two public entry points for Burst-friendliness (no function-pointer indirection on the hot path), but factor the body into a private generic helper taking a compile-time direction flag, or at minimum apply identical optimizations to both. Since Burst specializes generics, a private static core inlined into both wrappers via AggressiveInlining preserves codegen.",
+   "rationale": "Reduces maintenance surface and the chance the two paths diverge in correctness; if implemented as an inlined private helper with a const direction, Burst constant-folds the branch so there is zero runtime cost.",
+   "risk": "If the direction is passed as a non-const runtime parameter it introduces a per-iteration branch that Burst may not hoist; must be a const/generic specialization so the branch is eliminated at compile time. Otherwise it regresses cycles."
+  },
+  {
+   "file": "src/IAFahim.Sort.Insertion/Insertion.cs",
+   "symbol": "Insertion.Run<T>",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Constraining on IComparable<T> dispatches through the interface; for the hot path Burst handles generic-constrained CompareTo well, but a function-pointer or direct-comparator overload would let callers avoid interface CompareTo overhead for custom orderings.",
+   "currentCost": "T.CompareTo is an interface-constrained call. For built-in unmanaged types Burst lowers this to direct comparisons, but the IComparable<T> constraint forces every comparison through CompareTo semantics (which for floats invokes total-order/NaN handling, costlier than a raw < comparison).",
+   "proposedChange": "Offer an overload (or document) that, for primitive numeric T where caller wants raw IEEE comparison, sorts via a delegate*<T,T,int> comparator or a typed fast path. Keep the IComparable<T> version as the default. Do not change the existing method's semantics.",
+   "rationale": "CompareTo on float/double does NaN-aware total ordering; a raw '<' is fewer cycles when the caller knows NaNs are absent. Exposing a comparator-pointer overload lets perf-sensitive callers opt into the cheaper comparison without breaking the stable, NaN-correct default.",
+   "risk": "Raw '<' is NOT equivalent to float.CompareTo for NaN/-0.0; this must be a SEPARATE overload, never a silent replacement of CompareTo, or it changes observable ordering for NaN inputs. The function-pointer comparator must be a delegate* (Burst-compatible), not a managed delegate."
+  }
+ ]
+}

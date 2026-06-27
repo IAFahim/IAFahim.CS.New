@@ -1,0 +1,686 @@
+=== IAFahim.Math.Spline ===
+  NO existing readme
+  File: CubicHermite.cs
+    Namespace: ['IAFahim.Math.Spline']
+    Class: ['CubicHermite']
+    Structs: []
+    Methods: ['Evaluate', 'EvaluateTangent', 'IntegrateArcLength']
+  File: UniformBSpline.cs
+    Namespace: ['IAFahim.Math.Spline']
+    Class: ['UniformBSpline']
+    Structs: []
+    Methods: ['Evaluate', 'EvaluateTangent']
+
+=== IAFahim.Math.Transform ===
+  Has existing readme
+  File: SubsetConvolutionRanked.cs
+    Namespace: ['IAFahim.Math.Transform']
+    Class: ['SubsetConvolutionRanked']
+    Structs: []
+    Methods: ['Run']
+  File: Fwht.cs
+    Namespace: ['IAFahim.Math.Transform']
+    Class: ['WalshHadamardXor', 'WalshHadamardOr', 'WalshHadamardAnd', 'FwhtConvolution']
+    Structs: []
+    Methods: ['Forward', 'Inverse', 'Forward', 'Inverse', 'Forward', 'Inverse', 'Run']
+  File: PosetTransforms.cs
+    Namespace: ['IAFahim.Math.Transform']
+    Class: ['PosetTransforms']
+    Structs: []
+    Methods: ['ZetaTransform', 'MobiusTransform', 'LatticeMeet', 'LatticeJoin', 'BooleanLatticeRank']
+  File: OrAndXorConvolution.cs
+    Namespace: ['IAFahim.Math.Transform']
+    Class: ['OrAndXorConvolution']
+    Structs: []
+    Methods: ['RunOr', 'RunAnd', 'RunXor']
+  File: PartitionConvolution.cs
+    Namespace: ['IAFahim.Math.Transform']
+    Class: ['PartitionConvolution']
+    Structs: []
+    Methods: ['ConvolveWithPartition', 'ConvolveWithPentagonal']
+  File: XorBasis.cs
+    Namespace: ['IAFahim.Math.Transform']
+    Class: ['XorBasisInsert', 'XorBasisMax', 'XorBasisMin', 'XorBasisRank', 'XorBasisKth']
+    Structs: []
+    Methods: ['Run', 'Run', 'Run', 'Run', 'Run']
+  File: SubsetTransform.cs
+    Namespace: ['IAFahim.Math.Transform']
+    Class: ['SubsetZeta', 'SubsetMobius', 'SupersetZeta', 'SupersetMobius', 'SubsetConvolution']
+    Structs: []
+    Methods: ['Run', 'RunInt32', 'Run', 'RunInt32', 'Run', 'Run', 'Run']
+  File: MinMaxConvolution.cs
+    Namespace: ['IAFahim.Math.Transform']
+    Class: ['MinMaxConvolution']
+    Structs: []
+    Methods: ['MinIndex', 'MaxIndex', 'MinPlusGeneral', 'MaxPlusGeneral', 'MinPlusConvexArbitrary', 'MaxPlusConcaveArbitrary', 'MinPlusConvexConvex', 'MaxPlusConcaveConcave']
+
+=== IAFahim.Math.Transform.AnyMod ===
+  Has existing readme
+  File: AnyMod.cs
+    Namespace: ['IAFahim.Math.Transform.AnyMod']
+    Class: ['ArbitraryModConvolution']
+    Structs: []
+    Methods: ['Run']
+
+=== IAFahim.Math.Transform.Fft ===
+  Has existing readme
+  File: Fft.cs
+    Namespace: ['IAFahim.Math.Transform.Fft']
+    Class: ['FftTransform', 'FftConvolution']
+    Structs: []
+    Methods: ['Forward', 'Inverse', 'Run']
+
+=== IAFahim.Math.Transform.Ntt ===
+  Has existing readme
+  File: Ntt.cs
+    Namespace: ['IAFahim.Math.Transform.Ntt']
+    Class: ['NttInit', 'NttTransform', 'NttConvolution']
+    Structs: []
+    Methods: ['Run', 'Forward', 'Inverse', 'Run']
+
+=== IAFahim.Memory.Allocators ===
+  NO existing readme
+  File: Ptr.cs
+    Namespace: ['IAFahim.Memory.Allocators']
+    Class: []
+    Structs: []
+    Methods: []
+  File: UnsafeFixedPoolAllocator.cs
+    Namespace: ['IAFahim.Memory.Allocators']
+    Class: []
+    Structs: ['UnsafeFixedPoolAllocator']
+    Methods: []
+  File: MemoryAllocator.cs
+    Namespace: ['IAFahim.Memory.Allocators']
+    Class: []
+    Structs: ['MemoryAllocator']
+    Methods: []
+  File: UnsafeParallelPoolAllocator.cs
+    Namespace: ['IAFahim.Memory.Allocators']
+    Class: []
+    Structs: ['UnsafeParallelPoolAllocator']
+    Methods: []
+  File: UnsafeSlabAllocator.cs
+    Namespace: ['IAFahim.Memory.Allocators']
+    Class: []
+    Structs: ['UnsafeSlabAllocator']
+    Methods: []
+  File: UnsafePoolAllocator.cs
+    Namespace: ['IAFahim.Memory.Allocators']
+    Class: []
+    Structs: ['UnsafePoolAllocator']
+    Methods: []
+  File: NativeSlabAllocator.cs
+    Namespace: ['IAFahim.Memory.Allocators']
+    Class: []
+    Structs: ['NativeSlabAllocator']
+    Methods: []
+
+=== IAFahim.Optimization.Approximation ===
+  NO existing readme
+  File: Metheuristics.cs
+    Namespace: ['IAFahim.Optimization.Approximation']
+    Class: ['Metheuristics']
+    Structs: []
+    Methods: ['SimulatedAnnealing', 'HillClimb', 'MonteCarlo']
+  File: Freivalds.cs
+    Namespace: ['IAFahim.Optimization.Approximation']
+    Class: ['Freivalds']
+    Structs: []
+    Methods: ['Verify']
+  File: SchwartzZippel.cs
+    Namespace: ['IAFahim.Optimization.Approximation']
+    Class: ['SchwartzZippel']
+    Structs: []
+    Methods: ['Test']
+
+=== IAFahim.Optimization.DivideConquer ===
+  NO existing readme
+  File: SlopeTrick.cs
+    Namespace: ['IAFahim.Optimization.DivideConquer']
+    Class: ['SlopeTrick']
+    Structs: ['State']
+    Methods: ['Init', 'AddAbs', 'AddAbsWithHeaps', 'AddMaxZero', 'Shift', 'Query']
+  File: LagrangianRelaxation.cs
+    Namespace: ['IAFahim.Optimization.DivideConquer']
+    Class: ['LagrangianRelaxation']
+    Structs: []
+    Methods: ['Search']
+  File: MatrixSearch.cs
+    Namespace: ['IAFahim.Optimization.DivideConquer']
+    Class: ['MatrixSearch']
+    Structs: []
+    Methods: ['Run', 'RunSortedColumns']
+  File: OnlineDp.cs
+    Namespace: ['IAFahim.Optimization.DivideConquer']
+    Class: ['OnlineDp']
+    Structs: []
+    Methods: ['Recompute']
+  File: DequeOpt.cs
+    Namespace: ['IAFahim.Optimization.DivideConquer']
+    Class: ['DequeOpt']
+    Structs: ['Quad']
+    Methods: ['Eval', 'IntersectX', 'Run']
+
+=== IAFahim.Optimization.Exact ===
+  NO existing readme
+  File: MaxIndependentSet.cs
+    Namespace: ['IAFahim.Optimization.Exact']
+    Class: ['MaxIndependentSet']
+    Structs: []
+    Methods: ['Run']
+  File: MinSetCover.cs
+    Namespace: ['IAFahim.Optimization.Exact']
+    Class: ['MinSetCover']
+    Structs: []
+    Methods: ['Run']
+  File: MaximumClique.cs
+    Namespace: ['IAFahim.Optimization.Exact']
+    Class: ['MaximumClique']
+    Structs: []
+    Methods: ['Run']
+  File: HamiltonianPath.cs
+    Namespace: ['IAFahim.Optimization.Exact']
+    Class: ['HamiltonianPath']
+    Structs: []
+    Methods: ['Run']
+  File: TspHeldKarp.cs
+    Namespace: ['IAFahim.Optimization.Exact']
+    Class: ['TspHeldKarp']
+    Structs: []
+    Methods: ['Run']
+  File: MinDominatingSet.cs
+    Namespace: ['IAFahim.Optimization.Exact']
+    Class: ['MinDominatingSet']
+    Structs: []
+    Methods: ['Run']
+  File: HamiltonianCycle.cs
+    Namespace: ['IAFahim.Optimization.Exact']
+    Class: ['HamiltonianCycle']
+    Structs: []
+    Methods: ['Run']
+  File: TspBitonic.cs
+    Namespace: ['IAFahim.Optimization.Exact']
+    Class: ['TspBitonic']
+    Structs: []
+    Methods: ['Run']
+  File: GraphColoring.cs
+    Namespace: ['IAFahim.Optimization.Exact']
+    Class: ['GraphColoring']
+    Structs: []
+    Methods: ['Run']
+  File: SteinerDreyfusWagner.cs
+    Namespace: ['IAFahim.Optimization.Exact']
+    Class: ['SteinerDreyfusWagner']
+    Structs: []
+    Methods: ['Run']
+  File: TspMeetInMiddle.cs
+    Namespace: ['IAFahim.Optimization.Exact']
+    Class: ['TspMeetInMiddle']
+    Structs: []
+    Methods: ['Run']
+
+=== IAFahim.Optimization.Games ===
+  NO existing readme
+  File: AttractorSet.cs
+    Namespace: ['IAFahim.Optimization.Games']
+    Class: ['AttractorSet']
+    Structs: []
+    Methods: ['Solve']
+  File: MinCostFlow.cs
+    Namespace: ['IAFahim.Optimization.Games']
+    Class: ['MinCostFlow']
+    Structs: []
+    Methods: ['MinCostCirculation', 'MinCostArborescence', 'MinMeanCycle']
+  File: Grundy.cs
+    Namespace: ['IAFahim.Optimization.Games']
+    Class: ['Grundy']
+    Structs: []
+    Methods: ['Mex', 'SpragueGrundy']
+  File: Simplex.cs
+    Namespace: ['IAFahim.Optimization.Games']
+    Class: ['Simplex']
+    Structs: ['Result']
+    Methods: ['Run']
+  File: Mdp.cs
+    Namespace: ['IAFahim.Optimization.Games']
+    Class: ['Mdp']
+    Structs: []
+    Methods: ['ValueIteration', 'PolicyIteration']
+  File: Retrograde.cs
+    Namespace: ['IAFahim.Optimization.Games']
+    Class: ['Retrograde']
+    Structs: []
+    Methods: ['Solve']
+  File: MeanPayoff.cs
+    Namespace: ['IAFahim.Optimization.Games']
+    Class: ['MeanPayoff']
+    Structs: []
+    Methods: ['Solve']
+
+=== IAFahim.Optimization.Geometric ===
+  NO existing readme
+  File: WelzlSphere.cs
+    Namespace: ['IAFahim.Optimization.Geometric']
+    Class: ['WelzlSphere']
+    Structs: ['Sphere']
+    Methods: ['Run']
+  File: MinEnclosingBall.cs
+    Namespace: ['IAFahim.Optimization.Geometric']
+    Class: ['MinEnclosingBall']
+    Structs: ['Circle']
+    Methods: ['Welzl']
+
+=== IAFahim.Optimization.Knapsack ===
+  NO existing readme
+  File: DivideConquerKnapsack.cs
+    Namespace: ['IAFahim.Optimization.Knapsack']
+    Class: ['DivideConquerKnapsack']
+    Structs: []
+    Methods: ['Run']
+  File: MultipleChoiceKnapsack.cs
+    Namespace: ['IAFahim.Optimization.Knapsack']
+    Class: ['MultipleChoiceKnapsack']
+    Structs: []
+    Methods: ['Run']
+  File: MeetInMiddle.cs
+    Namespace: ['IAFahim.Optimization.Knapsack']
+    Class: ['MeetInMiddle']
+    Structs: []
+    Methods: ['Run']
+  File: BoundedKnapsack.cs
+    Namespace: ['IAFahim.Optimization.Knapsack']
+    Class: ['BoundedKnapsack']
+    Structs: []
+    Methods: ['BinarySplit', 'MonotoneQueue']
+  File: KSum.cs
+    Namespace: ['IAFahim.Optimization.Knapsack']
+    Class: ['KSum']
+    Structs: []
+    Methods: ['Count', 'FourSum']
+  File: SubsetSum.cs
+    Namespace: ['IAFahim.Optimization.Knapsack']
+    Class: ['SubsetSum']
+    Structs: []
+    Methods: ['Can']
+
+=== IAFahim.Optimization.Matroid ===
+  NO existing readme
+  File: MatroidGreedy.cs
+    Namespace: ['IAFahim.Optimization.Matroid']
+    Class: ['MatroidGreedy']
+    Structs: []
+    Methods: ['Run']
+  File: LinearMatroid.cs
+    Namespace: ['IAFahim.Optimization.Matroid']
+    Class: ['LinearMatroid']
+    Structs: []
+    Methods: ['Rank']
+
+=== IAFahim.Optimization.Offline ===
+  NO existing readme
+  File: Offline.cs
+    Namespace: ['IAFahim.Optimization.Offline']
+    Class: ['ParallelBinarySearch', 'DivideConquerAnswer', 'Cdq3DDominance', 'OfflineKthNumber']
+    Structs: []
+    Methods: ['Init', 'InitWithRange', 'Mid', 'GroupByMid', 'SortByX']
+
+=== IAFahim.Optimization.Submodular ===
+  NO existing readme
+  File: MaxCut.cs
+    Namespace: ['IAFahim.Optimization.Submodular']
+    Class: ['MaxCut']
+    Structs: []
+    Methods: ['LocalSearch', 'GoemansWilliamson']
+  File: SubmodularGreedy.cs
+    Namespace: ['IAFahim.Optimization.Submodular']
+    Class: ['SubmodularGreedy']
+    Structs: []
+    Methods: ['Run', 'GreedySetCover']
+  File: Rounding.cs
+    Namespace: ['IAFahim.Optimization.Submodular']
+    Class: ['Rounding']
+    Structs: []
+    Methods: ['Random', 'Dependent', 'Pipage']
+
+=== IAFahim.Optimization.Treewidth ===
+  NO existing readme
+  File: CutAndCount.cs
+    Namespace: ['IAFahim.Optimization.Treewidth']
+    Class: ['CutAndCount']
+    Structs: []
+    Methods: ['Run']
+  File: ConvexHull.cs
+    Namespace: ['IAFahim.Optimization.Treewidth']
+    Class: ['ConvexHull']
+    Structs: []
+    Methods: ['CheckMonge', 'CheckQuadrangle']
+  File: RankDp.cs
+    Namespace: ['IAFahim.Optimization.Treewidth']
+    Class: ['RankDp']
+    Structs: []
+    Methods: ['ComputeOrder', 'FillBag', 'Run']
+  File: FastSubsetDp.cs
+    Namespace: ['IAFahim.Optimization.Treewidth']
+    Class: ['FastSubsetDp']
+    Structs: []
+    Methods: ['Run']
+  File: RankTransform.cs
+    Namespace: ['IAFahim.Optimization.Treewidth']
+    Class: ['RankTransform']
+    Structs: []
+    Methods: ['Run']
+
+=== IAFahim.Pathfinding.Recast ===
+  NO existing readme
+  File: ushort3.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['ushort3']
+    Methods: []
+  File: AssemblyInfo.cs
+    Namespace: []
+    Class: []
+    Structs: []
+    Methods: []
+  File: byte4.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['byte4']
+    Methods: []
+  File: Recast/Recast.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: []
+    Methods: ['AllocHeightfield', 'FreeHeightfield', 'AllocCompactHeightfield', 'FreeCompactHeightfield', 'AllocContourSet', 'FreeContourSet', 'AllocPolyMesh', 'FreePolyMesh', 'AllocPolyMeshDetail', 'FreePolyMeshDetail', 'AllocHeightfieldLayerSet', 'FreeHeightfieldLayerSet', 'MarkWalkableTriangles', 'ClearUnwalkableTriangles', 'CalcGridSize', 'CalcBounds', 'GetHeightFieldSpanCount', 'BuildCompactHeightfield', 'SetCon', 'GetCon', 'GetDirOffsetX', 'GetDirOffsetY', 'GetDirForOffset']
+  File: Recast/RcContour.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['RcContour']
+    Methods: []
+  File: Recast/RcPolyMeshDetail.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['RcPolyMeshDetail']
+    Methods: []
+  File: Recast/Recast.Filter.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: []
+    Methods: ['FilterLowHangingWalkableObstacles', 'FilterLedgeSpans', 'FilterWalkableLowHeightSpans']
+  File: Recast/RcContourSet.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['RcContourSet']
+    Methods: []
+  File: Recast/Recast.Layers.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: []
+    Methods: []
+  File: Recast/Recast.Area.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: []
+    Methods: ['ErodeWalkableArea', 'MedianFilterWalkableArea', 'OffsetPoly']
+  File: Recast/RcCompactSpan.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['RcCompactSpan']
+    Methods: []
+  File: Recast/RcHeightField.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['RcHeightfield']
+    Methods: []
+  File: Recast/Recast.Region.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: []
+    Methods: ['BuildDistanceField', 'BuildRegions', 'BuildRegionsMonotone', 'BuildLayerRegions']
+  File: Recast/Recast.Constants.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: []
+    Methods: []
+  File: Recast/RcHeightfieldLayer.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['RcHeightfieldLayer']
+    Methods: []
+  File: Recast/RcSpan.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['RcSpan']
+    Methods: []
+  File: Recast/Recast.MeshDetail.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: []
+    Methods: ['MergePolyMeshDetails']
+  File: Recast/RcPolyMesh.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['RcPolyMesh']
+    Methods: []
+  File: Recast/Recast.Contour.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: []
+    Methods: []
+  File: Recast/RcCompactCell.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['RcCompactCell']
+    Methods: []
+  File: Recast/RcSpanPool.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['RcSpanPool']
+    Methods: []
+  File: Recast/RcCompactHeightfield.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['RcCompactHeightfield']
+    Methods: []
+  File: Recast/Recast.Rasterization.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: []
+    Methods: ['RasterizeTriangles', 'RasterizeTriangles', 'RasterizeTriangle', 'AddSpan']
+  File: Recast/RcHeightfieldLayerSet.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['RcHeightfieldLayerSet']
+    Methods: []
+  File: Recast/Recast.Mesh.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: []
+    Methods: ['BuildPolyMesh', 'MergePolyMeshes']
+  File: Detour/DtMeshTile.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['DtMeshTile']
+    Methods: []
+  File: Detour/DtPoly.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['DtPoly']
+    Methods: []
+  File: Detour/DtNavMesh.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['DtNavMesh']
+    Methods: ['Alloc', 'Free', 'GetDetailTriEdgeFlags']
+  File: Detour/DtRaycastHit.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['DtRaycastHit']
+    Methods: []
+  File: Detour/DtNodeQueue.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['DtNodeQueue']
+    Methods: []
+  File: Detour/DtNavMeshQuery.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['DtNavMeshQuery']
+    Methods: ['Create', 'Free']
+  File: Detour/DtQueryFilter.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['DtQueryFilter']
+    Methods: ['CreateDefault']
+  File: Detour/DtLink.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['DtLink']
+    Methods: []
+  File: Detour/DtPolyRef.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: []
+    Methods: []
+  File: Detour/DtNavMeshCreateParams.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['DtNavMeshCreateParams']
+    Methods: []
+  File: Detour/Detour.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: []
+    Methods: ['StatusSucceed', 'StatusFailed', 'StatusInProgress', 'StatusDetail']
+  File: Detour/DtOffMeshConnection.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['DtOffMeshConnection']
+    Methods: []
+  File: Detour/DtNode.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['DtNode']
+    Methods: []
+  File: Detour/Detour.NavMeshBuilder.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: []
+    Methods: ['FreeNavMeshData']
+  File: Detour/Detour.Common.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: []
+    Methods: []
+  File: Detour/DtNavMeshParams.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['DtNavMeshParams']
+    Methods: []
+  File: Detour/Detour.Math.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: []
+    Methods: []
+  File: Detour/DtPolyQuery.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['DtCollectPolysQuery', 'DtFindNearestPolyQuery']
+    Methods: []
+  File: Detour/DtPolyDetail.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['DtPolyDetail']
+    Methods: []
+  File: Detour/DtNodePool.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['DtNodePool']
+    Methods: []
+  File: Detour/DtTileRef.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: []
+    Methods: []
+  File: Detour/DtNavMeshData.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: []
+    Methods: []
+  File: Detour/DtBVNode.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['DtBVNode']
+    Methods: []
+  File: Detour/Detour.Constants.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: []
+    Methods: []
+  File: Detour/DtMeshHeader.cs
+    Namespace: ['IAFahim.Pathfinding.Recast']
+    Class: []
+    Structs: ['DtMeshHeader']
+    Methods: []
+
+=== IAFahim.Permutation ===
+  Has existing readme
+  File: Permutation.cs
+    Namespace: ['IAFahim.Permutation']
+    Class: ['ValidatePermutation', 'InversePermutation', 'ComposePermutation', 'PermPower', 'CycleDecomposition', 'KthPermutation', 'PermutationRank', 'GrayRank', 'GrayUnrank']
+    Structs: []
+    Methods: ['Run', 'Run', 'Run', 'Run', 'Run', 'Run', 'Run', 'Run', 'Run']
+  File: PrevPermutation.cs
+    Namespace: ['IAFahim.Permutation']
+    Class: ['PrevPermutation']
+    Structs: []
+    Methods: ['Run']
+  File: GrayCode.cs
+    Namespace: ['IAFahim.Permutation']
+    Class: ['GrayCode']
+    Structs: []
+    Methods: ['ToGray', 'FromGray', 'Generate']
+  File: NextPermutation.cs
+    Namespace: ['IAFahim.Permutation']
+    Class: ['NextPermutation']
+    Structs: []
+    Methods: ['Run']
+  File: CartesianProduct.cs
+    Namespace: ['IAFahim.Permutation']
+    Class: ['CartesianProduct']
+    Structs: []
+    Methods: ['ComputeCount', 'GetAt']
+
+=== IAFahim.Physics.Xpbd ===
+  NO existing readme
+  File: ShapeMatchingConstraint.cs
+    Namespace: ['IAFahim.Physics.Xpbd']
+    Class: ['ShapeMatchingConstraint']
+    Structs: []
+    Methods: []
+  File: CollisionConstraint.cs
+    Namespace: ['IAFahim.Physics.Xpbd']
+    Class: ['CollisionConstraint']
+    Structs: []
+    Methods: []
+  File: DistanceConstraint.cs
+    Namespace: ['IAFahim.Physics.Xpbd']
+    Class: ['DistanceConstraint']
+    Structs: []
+    Methods: []
+  File: XpbdIntegrator.cs
+    Namespace: ['IAFahim.Physics.Xpbd']
+    Class: ['XpbdIntegrator']
+    Structs: []
+    Methods: ['PredictPosition', 'UpdateVelocity', 'ApplyDamping']
+  File: BendingConstraint.cs
+    Namespace: ['IAFahim.Physics.Xpbd']
+    Class: ['BendingConstraint']
+    Structs: []
+    Methods: []
+  File: VolumeConstraint.cs
+    Namespace: ['IAFahim.Physics.Xpbd']
+    Class: ['VolumeConstraint']
+    Structs: []
+    Methods: ['ComputeRestVolume']

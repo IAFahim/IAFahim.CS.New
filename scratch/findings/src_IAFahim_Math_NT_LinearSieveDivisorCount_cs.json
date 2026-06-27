@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Math.NT/LinearSieveDivisorCount.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/LinearSieveDivisorCount.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Eliminate the redundant 64-bit multiply per inner iteration by bounding primes[j] <= n/i.",
+   "currentCost": "Each inner iteration computes prod = (long)i * primes[j] (a 64-bit multiply) purely to test prod > n and to form the index. The multiply + 64-bit compare is on the critical path of the densest loop (linear sieve inner loop runs O(n) total but with high constant).",
+   "proposedChange": "Precompute int lim = n / i; once per outer i. Inner loop: if (primes[j] > lim) break; int ip = i * primes[j]; (32-bit multiply, guaranteed <= n so no overflow). Keeps semantics identical.",
+   "rationale": "n / i is computed once per i (n divisions total) instead of one 64-bit multiply + 64-bit compare per inner iteration. Since primes are ascending, primes[j] > lim is the exact same break condition as i*primes[j] > n. The kept multiply is a cheap 32-bit i*primes[j] known not to overflow.",
+   "risk": "Correctness preserved because primes[j] <= n/i  <=>  i*primes[j] <= n for positive ints (floor division). ip = i*primes[j] fits in int since result <= n. Apply identically to LinearSieveDivisorSum and LinearSieveMaxPrime."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/LinearSieveDivisorCount.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Cache e[i] into a local to avoid repeated pointer loads in the divisor-count update.",
+   "currentCost": "In the i % primes[j] == 0 branch, e[i] is loaded three times (e[i]+1 twice as divisor and as factor base, e[i]+2). d[i] is also loaded. These are dependent loads through int* that the JIT may not coalesce due to aliasing with the e[ip]/d[ip] stores.",
+   "proposedChange": "int ei = e[i]; int di = d[i]; e[ip] = ei + 1; d[ip] = di / (ei + 1) * (ei + 2);",
+   "rationale": "One load of e[i] and d[i] each instead of several; ip != i (ip = i*primes[j] >= 2i > i) so the stores to e[ip]/d[ip] provably do not alias e[i]/d[i], but the compiler may not prove it \u2014 the local makes it explicit and shortens the dependency chain.",
+   "risk": "None; ip strictly greater than i guarantees no aliasing. Same arithmetic, same result."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/LinearSieveDivisorCount.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Fuse / simplify the initialization: index 1 is overwritten then loop starts at 2 redundantly handling zero-fill.",
+   "currentCost": "d[1]=1; e[1]=0; then a separate loop i=2..n sets d[i]=0,e[i]=0. Two passes over conceptually the same region; the zero-fill is a strided dual-array write that Burst could memset.",
+   "proposedChange": "Zero the whole [0..n] (or [1..n]) ranges with a tight single loop or Unsafe.InitBlockUnaligned over each array, then set d[1]=1 (e[1] already 0). This makes the zero-fill a vectorizable/memset pattern instead of interleaved stores to two arrays.",
+   "rationale": "Interleaving d[i]=0 and e[i]=0 in one loop forces alternating stores to two different cache lines/arrays, hurting write-combining. Separate contiguous zero passes (or InitBlock) let Burst emit wide vector stores / memset.",
+   "risk": "Behavior identical as long as indices 0 and 1 end with the documented values (d[1]=1,e[1]=0). Index 0 is unused by the algorithm; zeroing it is harmless and matches MaxPrime which already zeroes from 0."
+  }
+ ]
+}

@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Memory.Allocators/UnsafePoolAllocator.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Memory.Allocators/UnsafePoolAllocator.cs",
+   "symbol": "UnsafePoolAllocator<T>.free / Alloc / Free",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Replace the UnsafeParallelHashSet free list with an intrusive singly-linked LIFO free stack.",
+   "currentCost": "Every Free hashes the pointer and inserts into a hash set (bucket probe + possible resize). Every Alloc, on the fast path, constructs an enumerator, calls MoveNext, reads Current, then calls Remove which re-hashes and re-probes for the SAME key \u2014 two full hash operations plus enumerator setup/teardown per allocation. The hash set also stores keys in scattered buckets (cache misses) and duplicates pointer storage entirely separate from the slab memory.",
+   "proposedChange": "Since each freed block is at least sizeof(T) (T:unmanaged) and these blocks are dead while free, store the free list intrusively: keep a single `T* freeHead`. Free(p): `*(T**)p = freeHead; freeHead = p;`. Alloc(): if freeHead != null, `T* r = freeHead; freeHead = *(T**)r; return r;` else slabAllocator.Alloc(). This requires sizeof(T) >= sizeof(void*); guard with a Debug.Assert in the ctor (true for any T big enough to be worth pooling). Removes the UnsafeParallelHashSet field entirely.",
+   "rationale": "Alloc/Free become a handful of pointer loads/stores with zero hashing, zero probing, zero allocation, and perfect temporal/spatial locality (the link is in the block being reused, which is about to be touched anyway). O(1) worst case vs amortized-with-resize hashing. Also frees the RAM the hash set's bucket/next arrays consumed.",
+   "risk": "Changes internal representation only; Alloc/Free observable contract (returns a free block, marks block free) is preserved. Reusing the freed block's first 8 bytes as the link is safe because the block is unowned while free. Requires sizeof(T) >= sizeof(void*) (8 on 64-bit); add Debug.Assert(UnsafeUtility.SizeOf<T>() >= sizeof(void*)). LIFO vs the hash set's arbitrary order is not an observable guarantee. Loses the parallel-write capability, which is unused here and not part of the single-threaded contract."
+  },
+  {
+   "file": "src/IAFahim.Memory.Allocators/UnsafePoolAllocator.cs",
+   "symbol": "UnsafePoolAllocator<T>.free (UnsafeParallelHashSet)",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "If a hash-based free list must be kept, use UnsafeHashSet not UnsafeParallelHashSet, and avoid the double lookup.",
+   "currentCost": "UnsafeParallelHashSet carries per-thread-block bookkeeping for concurrent writers; this allocator is single-threaded, so that machinery (extra indirection, padded per-thread data) is pure overhead in cache footprint and per-op cost. Additionally Alloc does MoveNext+Current then Remove(ptr), re-hashing the same key.",
+   "proposedChange": "Swap to UnsafeHashSet<Ptr>. Better: expose/emulate a 'remove one element' that reuses the located slot. At minimum, the enumerator-then-Remove pattern should be replaced by a method that pops-and-removes in one hash probe. (Preferred fix is the intrusive list above; this is the fallback if hash semantics are required.)",
+   "rationale": "Eliminates parallel-set per-thread overhead and one redundant hash+probe per Alloc, reducing both cycles and working-set size.",
+   "risk": "Behavior identical for single-threaded use. Only safe because no concurrent Add/Remove occur; the parallel set is not needed by the documented API."
+  }
+ ]
+}

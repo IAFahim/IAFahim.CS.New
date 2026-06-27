@@ -1,0 +1,83 @@
+{
+ "file": "src/IAFahim.Geometry.Triangulation/EarClipping.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Geometry.Triangulation/EarClipping.cs",
+   "symbol": "EarClipping.IsValidBridge",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Every hole-bridge candidate is rejected because the bridge endpoints coincide with polygon/hole edge endpoints, so LineSegmentsIntersect's shared-endpoint touch test always fires; no hole is ever merged and all hole vertices are silently dropped from the triangulation.",
+   "triggeringInput": "vertices = {(0,0),(4,0),(4,4),(0,4), (1,1),(3,1),(2,3)} (square outer CCW + triangle hole), outerCount=4, holeStarts={4}, holeCounts={3}, holeCount=1, outTriangles sized for 8 triangles. Expected: a triangulation of the square-with-hole region. Actual: MergeHole finds no valid bridge, the hole is never inserted, and Triangulate triangulates only the outer 4-gon (2 triangles), ignoring the hole entirely.",
+   "rootCause": "In IsValidBridge, the bridge segment (oPt,hPt) is tested against every merged-polygon edge and every hole edge using LineSegmentsIntersect. But oPt = vertices[mergedIndices[i]] is itself an endpoint of the two adjacent polygon edges (edge i->i+1 has a==oPt), and hPt is an endpoint of two hole edges. For such an edge, LineSegmentsIntersect computes d1 = Direction(a=oPt, b, p1=oPt) = 0 and then hits the branch `if (d1 == Zero && OnSegment(oPt, b, oPt)) return true` (the shared point trivially lies on the segment), reporting a (false) intersection. Thus IsValidBridge returns false for EVERY candidate bridge regardless of geometry, leaving bestOuter/bestHole = -1, so MergeHole never inserts the hole.",
+   "suggestedFix": "Exclude the polygon/hole edges that are incident to the bridge endpoints from the intersection test (skip edges whose endpoint index equals the chosen outer/hole vertex index), or make LineSegmentsIntersect ignore intersections that occur exactly at a shared endpoint when validating a bridge (treat endpoint-only contact as non-blocking). Concretely, in IsValidBridge skip edge i when mergedIndices[i]==outerIdx or mergedIndices[next]==outerIdx, and skip hole edge j when (holeStart+j) or (holeStart+next) equals the hole vertex index, before calling LineSegmentsIntersect."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Triangulation/EarClipping.cs",
+   "symbol": "TriangulatePolygon",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Restart ear search from the removed vertex instead of from index 0 each iteration; track a clip count instead of re-evaluating the whole polygon repeatedly.",
+   "currentCost": "After every ear is clipped, the for-loop restarts at i=0 and re-tests already-rejected vertices via IsEar (which itself is O(activeCount)). Combined with maxIterations = activeCount*activeCount, the worst-case is O(n^3) point-in-triangle tests, and the common case re-scans a large prefix of still-reflex vertices every clip.",
+   "proposedChange": "After clipping vertex i, do not `break` back to i=0. Continue scanning from the neighborhood of the removed vertex (a single pass index that wraps), and bound total work by a counter of consecutive failed ear tests equal to activeCount (no ear in a full lap -> bail). This keeps the same outputs (first-found ear at each step in scan order is unchanged when you resume at the same position) but removes the repeated rescans of the leading reflex run.",
+   "rationale": "Standard ear-clipping resumes near the modified vertex because removing an ear only changes the convex/reflex status of its two neighbors. Re-testing the whole prefix each time is wasted work; resuming locally turns the typical case from O(n^2)-with-large-constant rescans into far fewer IsEar calls without changing which triangle list is produced for convex-scan order.",
+   "risk": "Output order of triangles can change if you resume at a different scan position; to PRESERVE the exact current triangle list, keep resuming the scan at the same vertex position the ear was found (i clamped into the shrunk array) rather than at 0 \u2014 that yields the identical first-found-ear sequence the current code produces, just without re-scanning [0..i). Verify against existing NUnit tests."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Triangulation/EarClipping.cs",
+   "symbol": "TriangulatePolygon",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Eliminate the O(n) array shift on each ear removal by using a doubly-linked-list of indices in the stackalloc buffer.",
+   "currentCost": "On every successful ear, the inner `for (k=i; k<activeCount-1; k++) activeIndices[k]=activeIndices[k+1]` shifts up to activeCount elements, i.e. O(n) memmove per clip, O(n^2) total just for compaction.",
+   "proposedChange": "Replace the compacted array with prev[]/next[] arrays (two int* stackalloc of size mergedCount) forming a circular linked list. Removing vertex v becomes next[prev[v]]=next[v]; prev[next[v]]=prev[v] \u2014 O(1). Iterate via next[] pointers. activeCount is a simple decrement.",
+   "rationale": "Removing the per-clip O(n) shift drops total compaction cost from O(n^2) to O(n). The neighbor lookups (prev/next) also become array reads instead of `(i-1+activeCount)%activeCount` and `(i+1)%activeCount` modulo ops, removing a div from the hot loop.",
+   "risk": "More stackalloc (2*mergedCount ints) \u2014 bounded and small, still within the no-managed-alloc constraint. Must keep IsEar's containment scan iterating over the live list (follow next[] for activeCount steps) so the same vertices are tested; output triangle order must be validated identical against tests since traversal order is preserved."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Triangulation/EarClipping.cs",
+   "symbol": "MergeHole",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Only run the expensive IsValidBridge check on the closest candidate(s), not on every pair that beats the running min distance.",
+   "currentCost": "The double loop is O(mergedCount * holeSize) distance evals, and for every pair whose distSq < current min it calls IsValidBridge, which is itself O(mergedCount + holeSize) segment-intersection tests. Early in the scan minDistSq drops frequently, so IsValidBridge runs many times: worst case O(mergedCount * holeSize * (mergedCount + holeSize)).",
+   "proposedChange": "First pass: find the globally-nearest (outer,hole) pair by distance only (no bridge test) \u2014 pure O(mergedCount*holeSize), no early IsValidBridge. Then validate that single best bridge; if it fails, fall back to scanning remaining pairs in increasing-distance order validating until one passes. This reduces IsValidBridge invocations from potentially O(mergedCount*holeSize) down to ~1 in the common (non-degenerate) case.",
+   "rationale": "Bridge validity rarely fails for the nearest pair in well-formed polygons, so deferring the O(n) intersection test until after the cheap distance minimization avoids the vast majority of intersection sweeps. Same chosen bridge for the common case; identical final result.",
+   "risk": "Tie-breaking: the current code picks the first pair (in i,j scan order) achieving the strict-min that also passes IsValidBridge; a deferred scheme can select a different valid bridge when multiple pairs share equal/near distance, changing the merged polygon and thus triangle output. To preserve semantics exactly, only skip IsValidBridge for pairs that cannot become the strict minimum (distSq >= current best); pairs that DO lower the min must still be validated in the same order \u2014 so the safe form keeps the early-out `if (distSq < minDistSq)` but is otherwise unchanged. The fully-deferred form is a behavior change and must be gated/tested."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Triangulation/EarClipping.cs",
+   "symbol": "IsEar",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist edge-vector subtractions out of PointInTriangle's per-point loop by precomputing the triangle's three edge directions once per ear test.",
+   "currentCost": "PointInTriangle recomputes Direction(p,a,b), Direction(p,b,c), Direction(p,c,a) for every active vertex p. Each Direction does 2 subtractions + 2 mults + 1 sub. The triangle vertices a,b,c are constant across the whole containment loop, yet the cross-product is recomputed from scratch each call.",
+   "proposedChange": "Precompute edge vectors e_ab=(b-a), e_bc=(c-b), e_ca=(a-c) once in IsEar before the loop. Inside the loop compute the sign tests as cross(e_ab, p-a), cross(e_bc, p-b), cross(e_ca, p-c). This reuses the constant edge deltas and only varies (p - vertex) per iteration, shaving redundant subtractions of the fixed endpoints.",
+   "rationale": "Removes recomputation of the constant edge differences (b-a etc.) for every interior-point test; in a near-convex polygon the containment loop runs ~activeCount times per ear, so the saved subtractions accumulate. Burst vectorizes the per-point (p - vertex) float2 ops well.",
+   "risk": "Must keep the exact same Epsilon comparison semantics (d1<-Epsilon / d>Epsilon) and the same multiplication/subtraction ordering to avoid float rounding differences that could flip a borderline containment result. Reorder must reproduce identical float expression `(dx)*(dy2)-(dy)*(dx2)` term-for-term to be bit-identical; if exact bit-reproduction isn't guaranteed, mark as a numeric-tolerance change and validate."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Triangulation/EarClipping.cs",
+   "symbol": "IsCounterClockwise",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Replace the `(i+1)%count` wrap with a rolling 'previous point' variable to drop the modulo and one vertex re-load per iteration.",
+   "currentCost": "Loop does `next=(i+1)%count` (an integer division each iteration) plus two indexed vertex loads (vertices[indices[i]] and vertices[indices[next]]); consecutive iterations re-load the same point twice.",
+   "proposedChange": "Carry currPt across iterations (seed with the last vertex as the initial 'prev'), compute the shoelace term against the stored previous point, and avoid the modulo by handling the wrap once. Each iteration then does one new load instead of two and no division.",
+   "rationale": "Removes a div and halves the vertex loads in the signed-area sweep. Pure constant-factor win but the sum is identical (shoelace is order-independent on which adjacent pair, just keep the same pairing).",
+   "risk": "Floating-point summation order must stay identical to keep the same accumulated `area` value and thus the same `area < 0` result on borderline (near-degenerate) polygons. Keep the addition order i=0..count-1 with the same (next - curr)*(next + curr) term to remain bit-identical."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Triangulation/EarClipping.cs",
+   "symbol": "IsValidBridge / MergeHole / IsEar",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Strength-reduce the `(i+1)%mergedCount`, `(j+1)%holeSize`, `(bestHole+k)%holeSize` modulo wraps in hot loops to a compare-and-reset.",
+   "currentCost": "These loops do an integer division (`%`) every iteration purely to wrap the last index back to 0; division is multi-cycle and serializes the dependency chain on each segment test.",
+   "proposedChange": "Use `int next = i + 1; if (next == count) next = 0;` (branch predicts perfectly \u2014 taken once per loop) instead of `% count`. For the `(bestHole + k) % holeSize` copy loop, maintain a running index that decrements/wraps once.",
+   "rationale": "A predictable single branch (mispredicted at most once per loop) is cheaper than an integer division every iteration on both PC and mobile ARM where idiv is slow. Indices are always in [0,count), so the conditional reset is exactly equivalent to the modulo.",
+   "risk": "None for non-negative operands \u2014 `i+1` is always in [1,count] so `==count -> 0` reproduces `%count` exactly. No signed-negative concern here since all operands are non-negative. (Do NOT apply a similar &-mask trick: counts are not power-of-two.)"
+  }
+ ]
+}

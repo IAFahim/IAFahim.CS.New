@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.String.Parse/SuffixOracle.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Parse/SuffixOracle.cs",
+   "symbol": "SuffixOracle (static mutable fields _link/_len/_trans/_size/_last/_sigma)",
+   "dimension": "purity",
+   "impact": "high",
+   "summary": "Module-global mutable static pointer state makes Build/Contains non-reentrant, non-thread-safe, and leaks the prior allocation on re-Build.",
+   "currentCost": "Six mutable statics; calling Build twice overwrites _link/_len/_trans without freeing the previous AllocHGlobal (memory leak), and concurrent Build/Contains race. No Free method exists at all \u2014 every Build leaks three native blocks.",
+   "proposedChange": "Introduce an unmanaged `Oracle` struct holding the pointers and sizes; Build returns/initializes it, Contains takes it by pointer/ref. Add a Free(ref Oracle) that releases the three blocks. This matches the house unmanaged-struct convention and removes hidden global state.",
+   "rationale": "Makes the API pure/reentrant/deterministic and plugs a guaranteed native memory leak on repeated Build. No per-call cost change; structurally enables multiple oracles and Burst function-pointer use without shared statics.",
+   "risk": "API signature change (Build/Contains gain an Oracle parameter). Behavior of a single Build+Contains sequence is identical. Callers must be updated; add Free to release memory."
+  },
+  {
+   "file": "src/IAFahim.String.Parse/SuffixOracle.cs",
+   "symbol": "SuffixOracle.Build",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The _trans init loop writes states*sigma ints to -1 scalarly; clone copy and Extend loops index with repeated p*_sigma multiplies.",
+   "currentCost": "Init: `for i<states*sigma _trans[i]=-1` is a scalar store loop. In Extend, `_trans[p*_sigma + c]` recomputes p*_sigma multiple times per while iteration; the clone copy loops `_trans[clone*_sigma+i]` / `_trans[q*_sigma+i]` recompute the base each iteration.",
+   "proposedChange": "Hoist row bases: int* pRow = _trans + p*_sigma; reuse pRow[c]. For the clone copy use int* dst = _trans + clone*_sigma, src = _trans + q*_sigma and copy via a pointer loop (or Unsafe.CopyBlock since both are int rows of _sigma). For init, fill -1 in a vectorizable manner.",
+   "rationale": "Removes repeated multiplies from the SAM construction inner loops and turns the clone copy into a contiguous block copy that Burst can vectorize. Net fewer integer ops and better memory throughput during Build.",
+   "risk": "None functionally; pure address-arithmetic hoisting. Block-copy of _sigma ints is equivalent to the elementwise loop."
+  },
+  {
+   "file": "src/IAFahim.String.Parse/SuffixOracle.cs",
+   "symbol": "SuffixOracle.Contains",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist _sigma and _trans into locals to avoid reloading mutable statics each iteration.",
+   "currentCost": "Inside the loop `v = _trans[v*_sigma + pattern[i]]` reads two statics (_trans, _sigma) every iteration; since they are static fields the JIT may reload them (cannot prove they don't change).",
+   "proposedChange": "int sigma = _sigma; int* trans = _trans; before the loop, then v = trans[v*sigma + pattern[i]].",
+   "rationale": "Caches static-field loads in registers, removing two memory loads per pattern character and enabling the multiply to use a register operand. Tightens the dependency chain of the match loop.",
+   "risk": "Safe because Contains does not mutate these statics; values are loop-invariant. If the struct refactor (above) lands, this becomes reading struct fields once."
+  }
+ ]
+}

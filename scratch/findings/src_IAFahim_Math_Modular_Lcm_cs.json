@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.Modular/Lcm.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.Modular/Lcm.cs",
+   "symbol": "Lcm.Run(int,int) and Lcm.Run(long,long)",
+   "severity": "medium",
+   "category": "modular-sign",
+   "summary": "Lcm does not normalize the sign of its inputs and returns a negative value for negative operands. It calls Gcd (which returns a non-negative gcd for normal inputs) but computes `a / g * b` using the original signed a and b, so a single negative argument yields a negative 'lcm'.",
+   "triggeringInput": "Lcm.Run(-4, 6) returns -12 instead of 12. (Both int and long overloads.)",
+   "rootCause": "`a / g * b` preserves the sign of a*b; with one negative argument the product is negative. LCM is defined as non-negative, so the result is wrong.",
+   "suggestedFix": "Take absolute values of a and b before computing, e.g. compute on |a| and |b| (guarding against MinValue), so the returned lcm is always non-negative. If only positive inputs are intended, document that contract."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Modular/Lcm.cs",
+   "symbol": "Lcm.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Lcm recomputes gcd that the caller may already have, and does a/g then *b as two ops where order is already overflow-safe but division dominates.",
+   "currentCost": "Each Lcm call runs a full Gcd loop (its own chain of divisions) plus one division 'a / g'. When Lcm is used alongside an existing gcd, the gcd is recomputed.",
+   "proposedChange": "Provide an overload Lcm.Run(long a, long b, long precomputedGcd) that skips the Gcd.Run call, for callers (e.g. CRT-style accumulation) that already hold g. Keep the existing convenience overload.",
+   "rationale": "Avoids redundant recomputation of gcd (an entire O(log n) division loop) when the caller already knows it. Pure additive API; same result a/g*b.",
+   "risk": "Additive overload only \u2014 existing behavior unchanged. Caller must pass a correct gcd; document it as an unchecked Run-convention method. a/g*b ordering (divide before multiply) is retained to avoid the a*b overflow."
+  }
+ ]
+}

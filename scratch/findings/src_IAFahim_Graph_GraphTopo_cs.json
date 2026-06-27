@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Graph/GraphTopo.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph/GraphTopo.cs",
+   "symbol": "DetectCycleUndirected.Run",
+   "severity": "critical",
+   "category": "overflow",
+   "summary": "The explicit DFS stack is sized stackalloc int[n], but vertices are pushed every time they are seen as an unvisited neighbor (before being marked visited at pop time), so a vertex can be pushed many times and the stack index exceeds n, causing an out-of-bounds write (stack buffer overflow / UB).",
+   "triggeringInput": "Complete graph K4: n=4, undirected edges {0-1,0-2,0-3,1-2,1-3,2-3} stored as a forward-star (each undirected edge as two directed arcs). Start=0 pushes 1,2,3; popping 3 (still all of 1,2 unvisited) pushes 1 and 2 again, making top reach 4 and writing stack[4] out of the stackalloc int[4] buffer.",
+   "rootCause": "Marking visited[u]=true happens only when u is popped, not when it is pushed; combined with the for-loop pushing every currently-unvisited neighbor, a single vertex is enqueued multiple times, so the number of live stack entries can be O(m) >> n while the buffer is only n.",
+   "suggestedFix": "Mark a vertex visited at push time (set visited[v]=true and parent[v]=u immediately before stack[++top]=v) and skip pushing already-visited vertices, OR size the stack to hold the worst case. Marking-on-push also fixes the parallel/duplicate-push correctness issue. Keep the stack within [0,n)."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph/GraphTopo.cs",
+   "symbol": "Toposort.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Zero-init loop for indeg can be a single memset-style clear; q init loop can fuse with indeg pass partially.",
+   "currentCost": "for i: indeg[i]=0 is a manual scalar loop. Burst will likely vectorize it, but it is a separate pass over n before the edge-counting pass.",
+   "proposedChange": "Use Unsafe.InitBlock / a memclear over indeg (n*sizeof(int) bytes) for the zeroing, which Burst lowers to a vectorized/memset path. The subsequent 'find indeg==0' queue-seed pass is inherently separate and fine.",
+   "rationale": "A bulk clear is fewer instructions and better memory bandwidth utilization than a scalar store loop when Burst does not fully vectorize. Minor but free.",
+   "risk": "None; InitBlock(ptr, 0, n*sizeof(int)) is exactly equivalent to the per-element zero loop. Same pattern applies to the many for-loop initializations across these files."
+  },
+  {
+   "file": "src/IAFahim.Graph/GraphTopo.cs",
+   "symbol": "Kosaraju.FirstDfs / SecondDfs ; TarjanScc.Run",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "Recursive DFS risks stack overflow and is not the iterative pattern used elsewhere; Tarjan/Kosaraju recursion depth is O(n).",
+   "currentCost": "FirstDfs, SecondDfs, and TarjanScc.Run recurse to depth O(n). On a path graph of large n this overflows the (small, on mobile) native stack, and deep recursion defeats Burst inlining/optimization. IterativeDfs in GraphTraversal.cs already shows the explicit-stack pattern the codebase prefers.",
+   "proposedChange": "Convert these DFS routines to explicit-stack iterative form (stack + per-frame edge iterator), mirroring IterativeDfs.Run. For Tarjan, push (node, edgePointer) frames and emulate the post-order lowlink update.",
+   "rationale": "Eliminates O(n) native recursion depth (robustness on mobile), keeps everything in one Burst-compiled function with no call overhead per node, and matches the established iterative convention for ergonomics.",
+   "risk": "Iterative Tarjan must faithfully reproduce lowlink propagation order and SCC pop sequence; this is a nontrivial rewrite and must be validated against the recursive output (component ids/order). Higher correctness risk \u2014 gate behind tests."
+  },
+  {
+   "file": "src/IAFahim.Graph/GraphTopo.cs",
+   "symbol": "CondenseGraph.Run",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Duplicate-edge check scans the condensed adjacency list per edge -> O(E * avgCondDeg); could use a per-source visited stamp.",
+   "currentCost": "For every original edge crossing components, it walks the entire condensed adjacency list of cu looking for cv (the 'exists' linear scan). Worst case this is O(E * D) where D is condensed out-degree, i.e. quadratic in dense condensations.",
+   "proposedChange": "Use a stamp array seen[sccCount] (stackalloc int) and a monotonically increasing token per source component cu: when processing all edges grouped by cu, mark seen[cv]=token and skip if already == token. Avoids the inner adjacency walk. Requires iterating edges grouped by source component or resetting the stamp when cu changes.",
+   "rationale": "Replaces the per-edge linear adjacency scan with O(1) stamp test, dropping the dedup cost from O(E*D) to O(E). Classic visited-token trick, allocation-free.",
+   "risk": "Must reset/advance the token correctly when cu changes; since edges are iterated by u (not grouped by cu), need either a token keyed by cu or a 2D-free scheme. Output edge ordering must remain identical (first-seen insertion). Validate ordering."
+  }
+ ]
+}

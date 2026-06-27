@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Math.Quaternion/SwingTwistDecomposition.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.Quaternion/SwingTwistDecomposition.cs",
+   "symbol": "SwingTwistDecomposition.TwistAngle",
+   "severity": "high",
+   "category": "logic",
+   "summary": "TwistAngle uses math.length(projection) (always non-negative) as the y-argument to atan2, discarding the sign of the twist component. Twists about the axis in the negative direction are reported with the wrong sign (positive instead of negative), so the recovered angle is incorrect for any negative twist.",
+   "triggeringInput": "q = FromTwistAngle(-PI/2, axis=(0,1,0)) => quaternion(0, -0.7071, 0, 0.7071); TwistAngle(q, (0,1,0)). Expected ~ -PI/2 (-1.5708), actual returns +PI/2 (+1.5708).",
+   "rootCause": "projection = dot * twistAxis where dot = math.dot(qv, twistAxis) carries the sign of the twist, but twistLen = math.length(projection) takes the magnitude and drops the sign. atan2(twistLen, q.w) therefore always yields a non-negative half-angle, so 2*atan2(...) is always >= 0 regardless of the true twist direction. This is masked by the only round-trip test using a positive angle (PI*0.75).",
+   "suggestedFix": "Use the signed scalar projection instead of its length: float signedTwist = dot (= math.dot(qv, twistAxis), assuming unit twistAxis), then return Two * math.atan2(signedTwist, q.value.w). Equivalently compute twistLen with math.length but reapply math.sign(dot). For non-unit axes, divide dot by math.length(twistAxis) to get the signed component."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Quaternion/SwingTwistDecomposition.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Recompute of sqrt: twistLen = length(v) then twistLen*twistLen squares back what sqrt just rooted",
+   "currentCost": "twistLen = math.length(v) costs a sqrt; then line 30 computes twistLen*twistLen + w*w and another math.sqrt for twistMag. The first sqrt's result is squared away, so it is pure waste (one sqrt + one mul) on the hot path.",
+   "proposedChange": "Compute float twistLenSq = math.lengthsq(qv*dot-equivalent vector) once. Use twistLenSq < Epsilon*Epsilon for the early-out comparison, and twistMag = math.sqrt(twistLenSq + twist.value.w * twist.value.w). This removes the first math.length sqrt entirely; twistLen is never needed as a length, only as a squared term.",
+   "rationale": "Eliminates one sqrt (high-latency, ~12-20 cycle dependency) and one multiply per call. The squared early-out threshold Epsilon*Epsilon=1e-12f is a compile-time constant, so the comparison cost is unchanged.",
+   "risk": "twistLen < Epsilon becomes twistLenSq < Epsilon*Epsilon, which is exactly equivalent for non-negative lengths (length is always >= 0), so semantics are preserved. Note twistLenSq must be the squared length of the SAME vector (twistPart components), which equals dot*dot since twistAxis is assumed unit; but to be safe compute lengthsq of the twistPart float3 to avoid assuming twistAxis is normalized."
+  },
+  {
+   "file": "src/IAFahim.Math.Quaternion/SwingTwistDecomposition.cs",
+   "symbol": "TwistAngle",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "math.length(projection) for atan2 first arg incurs a sqrt that atan2 magnitude does not strictly need but is required by the formula",
+   "currentCost": "twistLen = math.length(projection) computes a sqrt; projection = dot*twistAxis. If twistAxis is unit, length(projection) == abs(dot), avoiding both the float3 scalar-multiply and the sqrt.",
+   "proposedChange": "If twistAxis is documented unit (precondition), replace twistLen = math.length(dot*twistAxis) with twistLen = math.abs(dot). This drops a float3 mul (3 muls) and a sqrt, leaving Two * atan2(abs(dot), w).",
+   "rationale": "length(dot * unitAxis) = |dot| * length(unitAxis) = |dot|. Removes 3 multiplies plus a sqrt per call.",
+   "risk": "Only valid if twistAxis is guaranteed unit-length by the API contract (same assumption FromTwistAngle already makes by not normalizing twistAxis). If twistAxis may be non-unit, keep length(projection). State the unit-axis precondition or guard."
+  }
+ ]
+}

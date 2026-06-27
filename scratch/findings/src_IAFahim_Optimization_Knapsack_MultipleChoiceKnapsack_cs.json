@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Optimization.Knapsack/MultipleChoiceKnapsack.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Optimization.Knapsack/MultipleChoiceKnapsack.cs",
+   "symbol": "MultipleChoiceKnapsack.Run",
+   "severity": "high",
+   "category": "wrong-recurrence",
+   "summary": "Multiple-choice knapsack DP treats infeasible states (no item from the group fits) as value 0 instead of -infinity, and uses dp[0]=0 as a 'free' base, so it returns positive values for selections that are over capacity or that skip groups entirely. MCKP requires picking exactly one item per group.",
+   "triggeringInput": "n=3 groups, each group has exactly one item with weight 3, value 5 (groupStart = {0,1,2,3}, itemW = {3,3,3}, itemV = {5,5,5}), cap=3. Correct: infeasible (one-per-group needs weight 9 > 3). Returns 5.",
+   "rootCause": "Inner loop initializes 'long best = 0' and unconditionally does dp[c] = best. When no item in group g satisfies itemW[idx] <= c, dp[c] is set to 0, which is indistinguishable from a legitimately-feasible value-0 state. Combined with dp being zero-initialized, the recurrence cand = dp[c - itemW[idx]] + itemV[idx] reads dp[0]=0 as if 'previous groups already satisfied with zero weight', allowing combinations whose true total weight exceeds c. The transition therefore counts selections that violate the must-pick-one-per-group / capacity constraints.",
+   "suggestedFix": "Use a sentinel for infeasibility: initialize dp to a large negative value (e.g. long.MinValue/2) for c>0 and dp[0]=0 only as the empty-prefix base BEFORE any group; inside the loop start best at the sentinel and only propagate cand when dp[c - itemW[idx]] is itself feasible (not sentinel). Clamp/translate the final answer back to 0 if the empty selection is allowed."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Knapsack/MultipleChoiceKnapsack.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Hoist groupStart[g] / groupStart[g+1] out of the capacity loop; they are reloaded for every c.",
+   "currentCost": "The inner 'for idx = groupStart[g]; idx < groupStart[g+1]' re-reads groupStart[g] and groupStart[g+1] from memory on every one of the (cap+1) iterations of the c-loop, an O(cap) redundant double load per group.",
+   "proposedChange": "Before the c-loop read 'int gs = groupStart[g]; int ge = groupStart[g + 1];' once and iterate 'for (int idx = gs; idx < ge; idx++)'.",
+   "rationale": "Removes two memory loads from each c iteration (cap+1 per group), and lets the compiler keep the bounds in registers, improving the inner loop that already loads itemW/itemV. Classic invariant hoist on the hottest loop.",
+   "risk": "None: groupStart is not modified during the loop; identical iteration bounds and output."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Knapsack/MultipleChoiceKnapsack.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Cache itemW[idx] into a local to avoid loading it twice per item, and hoist the early-exit when itemW > c.",
+   "currentCost": "Each item iteration loads itemW[idx] for the '<= c' test and again implicitly in 'dp[c - itemW[idx]]', two loads of the same value; itemV[idx] is loaded only when needed which is fine.",
+   "proposedChange": "Read 'int wIdx = itemW[idx];' once: 'if (wIdx <= c) { long cand = dp[c - wIdx] + itemV[idx]; if (cand > best) best = cand; }'.",
+   "rationale": "Eliminates a duplicate load of itemW[idx] in the innermost loop (group-size * (cap+1) * n iterations). Fewer loads, shorter chain.",
+   "risk": "None: itemW[idx] is invariant within the iteration; identical result."
+  }
+ ]
+}

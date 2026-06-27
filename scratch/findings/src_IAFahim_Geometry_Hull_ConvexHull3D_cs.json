@@ -1,0 +1,60 @@
+{
+ "file": "src/IAFahim.Geometry.Hull/ConvexHull3D.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Geometry.Hull/ConvexHull3D.cs",
+   "symbol": "ConvexHull3D.FixNeighbors",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "FixNeighbors no longer wires the adjacency between sibling new faces along the horizon. The real linking logic is commented out (lines 124-127), so the two non-horizon edges of every newly created face keep their default F0/F1/F2 = 0 (struct default), giving every new face a bogus neighbor pointing at face index 0. After the first incremental point insertion the face topology is corrupt, so ProcessPoint/TryCreateNewFace on later points read faces[neighbor].Deleted / call SetNeighbor on the wrong face, producing a wrong hull (and out-of-contract neighbor reads).",
+   "triggeringInput": "n=5 points forming a non-degenerate hull, e.g. xs={0,1,0,0,1}, ys={0,0,1,0,1}, zs={0,0,0,1,1}, n=5 with valid scratch buffers. The 5th point triggers ProcessPoint which walks F0/F1/F2 links that were never set by FixNeighbors.",
+   "rootCause": "During refactor the body of FixNeighbors that linked adjacent new faces via head[] (the commented-out 'SetNeighbor(faces, f, i, v, nextF)' using the new point p) was replaced by a no-op/incorrect call and left commented. TryCreateNewFace (line 109) creates faces with only the shared-horizon neighbor set; the two sibling-new-face neighbors default to 0 and are never fixed up.",
+   "suggestedFix": "Restore the horizon-stitching: in FixNeighbors, for each surviving new face f with apex p, use head[] indexed by its base vertices to find the adjacent new face and set the correct F-slot via SetNeighbor for both the (u,p) and (p,v) edges (the original quickhull horizon linking), instead of the commented-out no-op. Verify F0/F1/F2 of every new face are all assigned before the next point is processed."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Hull/ConvexHull3D.cs",
+   "symbol": "ConvexHull3D.TryCreateNewFace",
+   "severity": "high",
+   "category": "pointer-ub",
+   "summary": "New faces are created with explicit A,B,C but F0/F1/F2 left at struct-default 0; only the single shared-horizon neighbor is set via SetNeighbor. The other two neighbor fields stay 0, so any later access to those neighbors (ProcessPoint reading faces[neighbor].Deleted, or SetNeighbor matching) operates on face 0, an aliasing/topology error.",
+   "triggeringInput": "Any Build call with n>=5 non-coplanar points where a point is added that sees more than one new face along the horizon; e.g. xs={0,1,0,0,1}, ys={0,0,1,0,1}, zs={0,0,0,1,1}, n=5.",
+   "rootCause": "'new Face { A = v, B = u, C = p }' leaves F0/F1/F2 = 0. The design relies on FixNeighbors to set the remaining two, but that step is broken (see FixNeighbors finding), leaving them at 0.",
+   "suggestedFix": "Initialize F0/F1/F2 to a sentinel (e.g. -1) when creating new faces and ensure all three are assigned before the face is used; guard neighbor reads against the sentinel, and complete the horizon linking in FixNeighbors."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Hull/ConvexHull3D.cs",
+   "symbol": "FixNeighbors",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "FixNeighbors contains commented-out/dead reconstruction logic and a SetNeighbor call whose arguments do not match the documented original algorithm; it appears semantically broken/incomplete, which is both a correctness risk and dead-code cost.",
+   "currentCost": "The method iterates all faces (O(faceCount)) per inserted point and calls SetNeighbor with (faces[f].C, faces[f].A, nextF), while inline comments admit uncertainty ('Error in previous logic?', 'Re-checking original logic: u = faces[f].B; v = faces[f].A'). head is keyed by u via head[u]=newF in TryCreateNewFace but FixNeighbors reads head[faces[f].A] and head[faces[f].B], so the horizon-edge stitching likely links the wrong faces.",
+   "proposedChange": "Reconcile the head-map convention: TryCreateNewFace stores head[u]=newF for new face edge (u,v); FixNeighbors should, for each new face, look up the adjacent new face sharing the opposite directed edge (head[v]) and SetNeighbor accordingly, matching the standard incremental-hull horizon stitching. Remove the dead comment block. Verify against a unit test with a known polytope.",
+   "rationale": "Beyond perf: incorrect neighbor links corrupt the face adjacency used by subsequent ProcessPoint visibility deletion via Volume sign, which can either crash (out-of-range face index in SetNeighbor/TryCreateNewFace) or silently produce a non-convex result. Correct linking is a prerequisite before any micro-opt; the dead code also bloats the inlined body.",
+   "risk": "This is a semantics-changing fix, not a behavior-preserving micro-opt \u2014 flag for review and test coverage. Must validate that head is fully reset between points (it is reset in the second loop) and that no stale head entries leak across ProcessPoint calls."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Hull/ConvexHull3D.cs",
+   "symbol": "TryFindInitialTetrahedron",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "The collinearity test recomputes each cross-product component twice (squared inline) instead of storing it once.",
+   "currentCost": "Line 66 computes (dy1*dz2 - dz1*dy2), (dz1*dx2 - dx1*dz2), (dx1*dy2 - dy1*dx2) and then squares each by writing the full subexpression twice, doubling the multiply/subtract work for the magnitude test. Also dx1,dy1,dz1 (the p1-p0 delta) are recomputed every loop iteration though they are loop-invariant.",
+   "proposedChange": "Hoist dx1,dy1,dz1 out of the i-loop (they depend only on p0,p1). Compute cx,cy,cz once each, then return cx*cx+cy*cy+cz*cz > 1e-15. This halves the cross-product arithmetic and removes redundant per-iteration recomputation of the fixed edge vector.",
+   "rationale": "Fewer multiplies/subtracts per iteration and a shorter dependency chain; loop-invariant hoist of the p1-p0 delta removes 3 subtractions per iteration. Runs once at setup so impact is low, but it is a free, exact win.",
+   "risk": "None; squaring a precomputed value is bit-identical to squaring the inline subexpression, and hoisting an invariant is exact."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Hull/ConvexHull3D.cs",
+   "symbol": "Build",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "head[] is fully re-initialized to -1 over all n entries before the insertion loop, but only the entries touched by TryCreateNewFace need resetting; current FixNeighbors already resets touched entries, making the n-wide init partially redundant.",
+   "currentCost": "Line 41 writes -1 to head[0..n-1] (O(n) memory writes, cache-line traffic) once. FixNeighbors resets only faces' A/B entries after each point. The full n-wide clear is needed only for the very first point's correctness if any vertex index can exceed touched set.",
+   "proposedChange": "Keep the single initial clear (it is O(n) once and cheap relative to the build), but ensure FixNeighbors' reset covers exactly the entries set in this round so no second full clear is ever needed. This is mostly a verification item; the bigger concern is that head is indexed by vertex id (size n) yet new faces reference p which is also < n, so n entries are required \u2014 confirm no over/under-clear. No change if already correct.",
+   "rationale": "Avoids any redundant full-array clears across the n insertion iterations; touching only dirtied entries keeps head mostly hot in cache and avoids O(n) writes per point.",
+   "risk": "Must guarantee every head entry written during a point's processing is reset before the next point, otherwise stale newF indices cause mis-linking. Tie this to the FixNeighbors correctness fix; do not change clearing semantics without the adjacency fix landed."
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Math.Modular/Crt.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Modular/Crt.cs",
+   "symbol": "Crt.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "(r2 - r1) is recomputed and divided twice; the modulo check and the quotient can share one divrem.",
+   "currentCost": "Line 20 computes '(r2 - r1) % g' and line 29 computes '(r2 - r1) / g' \u2014 the subtraction is recomputed and two separate 64-bit divisions are issued on the same dividend/divisor pair (g, diff).",
+   "proposedChange": "Compute once: long delta = r2 - r1; long q = delta / g; if (q * g != delta) return -1; then use q as 'diff'. One division plus a multiply+compare replaces two divisions; the multiply (~3 cyc) is far cheaper than a second 64-bit division.",
+   "rationale": "Strength-reduces a 20-40 cycle division to a multiply for the divisibility test, and reuses the subtraction. Result identical: (delta % g == 0) iff (q*g == delta) for integer q = delta/g (truncating division).",
+   "risk": "q*g cannot overflow: q*g == delta (the exact original difference) which already fit in long, so the product is in range. Sign of truncating division is irrelevant since we only test equality against delta. Same guard semantics preserved."
+  }
+ ]
+}

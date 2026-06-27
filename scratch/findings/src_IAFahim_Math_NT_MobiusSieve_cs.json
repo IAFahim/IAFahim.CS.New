@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.NT/MobiusSieve.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/MobiusSieve.cs",
+   "symbol": "MobiusSieve.Run",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "isComposite stores only 0/1 in a 4-byte int per element; use byte* (or bool*) to cut the scratch buffer 4x and quarter its cache footprint.",
+   "currentCost": "stackalloc int[n+1] = 4*(n+1) bytes of stack/cache for a boolean flag; the sieve's random-access writes to isComposite[product] thrash 4x more cache lines than necessary.",
+   "proposedChange": "Change 'int* isComposite = stackalloc int[n+1]' to 'byte* isComposite = stackalloc byte[n+1]', set isComposite[product]=1 and test ==0 as before. Values are always 0/1, so byte is exact.",
+   "rationale": "Cuts the dominant scratch allocation 4x and packs 4x more flags per cache line, directly reducing cache misses on the hot isComposite[product] write/read which is the sieve's main random-access cost.",
+   "risk": "None semantically (only 0/1 stored). byte is blittable and Burst-friendly. Stack usage drops, lowering stack-overflow risk for large n."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/MobiusSieve.cs",
+   "symbol": "MobiusSieve.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The init loop zeroes mu[i] for all i, but the linear sieve assigns every mu[i] for i in [1,n]; only mu[0] needs explicit zeroing.",
+   "currentCost": "A full second pass writing mu[i]=0 over [0,n] (n+1 stores) that is almost entirely overwritten: primes get mu=-1, composites get mu set via mu[product]=..., and mu[1]=1.",
+   "proposedChange": "Merge the two init writes into one loop that only zeroes isComposite (now byte), set mu[0]=0 once, and drop mu[i]=0 from the loop. Every mu[i] for i>=1 is provably assigned by the sieve (prime -> -1, composite -> assigned at its product step, 1 -> mu[1]=1). Keep mu[0]=0.",
+   "rationale": "Removes ~n redundant 4-byte stores and lets the init loop touch only the small byte buffer, improving cache behavior and shortening the dependency-free prologue.",
+   "risk": "Must confirm every composite in [2,n] is reached as 'product' exactly once in the linear sieve (it is, by smallest-prime-factor construction). mu[0] must still be zeroed explicitly. If caller relies on mu[0]!=0 nothing changes since old code also set it to 0."
+  }
+ ]
+}

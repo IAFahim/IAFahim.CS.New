@@ -1,0 +1,104 @@
+{
+ "file": "src/IAFahim.Search.Selection/Selection.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Search.Selection/Selection.cs",
+   "symbol": "MedianMaintain.Run",
+   "severity": "high",
+   "category": "overflow",
+   "summary": "Even-count running median computed as (maxHeap[0]+minHeap[0])>>1 overflows signed long when the two middle values are large, producing a grossly wrong (often negative) median.",
+   "triggeringInput": "n=2, a=[long.MaxValue, long.MaxValue]. res[1] is computed as (long.MaxValue+long.MaxValue)>>1 which overflows to -1 instead of long.MaxValue.",
+   "rootCause": "Line 97 sums the two middle heap tops before halving: (maxHeap[0] + minHeap[0]) >> 1. The intermediate sum can exceed long range for representable inputs (e.g. two values near long.MaxValue, or two large negatives near long.MinValue), wrapping around. The returned/stored median for that step (and any step with an even prefix length whose two medians sum out of range) is then wrong.",
+   "suggestedFix": "Compute the midpoint without overflow: res[i] = (maxSize+minSize)%2==0 ? maxHeap[0] + ((minHeap[0] - maxHeap[0]) >> 1) : maxHeap[0]; (note maxHeap[0] <= minHeap[0] by the heap invariant, so minHeap[0]-maxHeap[0] is non-negative and cannot overflow)."
+  },
+  {
+   "file": "src/IAFahim.Search.Selection/Selection.cs",
+   "symbol": "MedianMaintain.Run",
+   "severity": "medium",
+   "category": "logic",
+   "summary": "Scalar return value is res[(n-1)/2] (median of only the first (n-1)/2+1 elements), not the median of all n elements; disagrees with the obvious intent of returning the final overall median.",
+   "triggeringInput": "n=4, a=[1,2,3,4]. The per-step output res[3]=2 is the correct median of all four elements, but the method returns res[(4-1)/2]=res[1]=1 (median of just [1,2]).",
+   "rootCause": "Line 99 returns res[(n-1)/2]. The res[] array stores the running median after each prefix; index (n-1)/2 selects the median of a strict prefix rather than index n-1 (the full-array median). For any even-length array, or any n>1 where the prefix median differs from the overall median, the scalar return is not the median of the input.",
+   "suggestedFix": "If the scalar result is meant to be the overall median, return res[n-1] instead of res[(n-1)/2]. If a prefix median is genuinely intended, document it; as written the return value contradicts the method's name and the fully-correct res[] output."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.Selection/Selection.cs",
+   "symbol": "MedianMaintain.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace `(maxSize + minSize) % 2 == 0` parity test with a bitwise AND on the low bit.",
+   "currentCost": "Each of the n-1 loop iterations computes an integer addition plus a signed `%` (modulo) against the constant 2 and compares to 0. Signed `%` against 2 emits an idiv-style sequence or sign-correction code; it runs every iteration in the hot loop.",
+   "proposedChange": "Use `((maxSize + minSize) & 1) == 0` (even when low bit is 0). Since maxSize+minSize is always >= 1 and non-negative, `& 1` is exactly equivalent to `% 2 == 0` here.",
+   "rationale": "`& 1` is a single ALU op with no sign-correction branch, vs the longer signed-modulo sequence. Sum is a count so it is always >= 0, making the mask provably equivalent. Saves a few cycles per iteration across n-1 iterations.",
+   "risk": "Equivalent only for non-negative operands; maxSize+minSize is a heap-size count >= 1, so the guard is satisfied. No semantic change."
+  },
+  {
+   "file": "src/IAFahim.Search.Selection/Selection.cs",
+   "symbol": "MedianMaintain.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Final `return res[(n - 1) / 2]` uses signed integer division; use `(n - 1) >> 1`.",
+   "currentCost": "One signed `/ 2` at function exit, which the JIT lowers to a shift plus a sign-fixup add (because dividend could be negative in general).",
+   "proposedChange": "Return `res[(n - 1) >> 1]`. This also matches the existing `(i - 1) >> 1` parent-index convention already used in SiftUp.",
+   "rationale": "For n >= 1, n-1 >= 0, so arithmetic shift equals the division with no sign correction. Consistent with the >> idiom used elsewhere in this struct.",
+   "risk": "n must be >= 1 for n-1 to be non-negative; the method already dereferences a[0] and writes res[0] unconditionally, so n >= 1 is a precondition. No behavior change for valid input."
+  },
+  {
+   "file": "src/IAFahim.Search.Selection/Selection.cs",
+   "symbol": "MedianMaintain.SiftDownMax / SiftDownMin",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Compute child indices with shift/OR instead of `2 * i + 1` and `2 * i + 2`.",
+   "currentCost": "Each sift-down step does two multiplies (`2 * i`) and two adds to form left/right child indices. SiftDown runs O(log n) per insertion across the whole stream.",
+   "proposedChange": "Compute `int l = (i << 1) + 1; int r = l + 1;` \u2014 one shift, one increment, and reuse l to derive r (r = l+1) instead of recomputing 2*i+2.",
+   "rationale": "Removes a redundant multiply and a redundant add: r is simply l+1, so the second child index needs no separate 2*i. Shorter dependency chain in the tight heap loop.",
+   "risk": "Pure index arithmetic; i is a non-negative heap index so the shift is safe. Identical results."
+  },
+  {
+   "file": "src/IAFahim.Search.Selection/Selection.cs",
+   "symbol": "SelectionShared.Partition / PartitionLong / InsertionSort",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "Add [MethodImpl(AggressiveInlining)] to the hot leaf partition/insertion helpers (and the sift helpers).",
+   "currentCost": "Partition/PartitionLong are the innermost workhorses of SelectTopK, TryGetKth and TopK.Run; SiftUp/SiftDown are the workhorses of MedianMaintain. As ordinary (non-inlined) static calls there is call overhead and the optimizer cannot fuse them with their single call sites or keep loop state in registers across the call boundary.",
+   "proposedChange": "Annotate Partition, PartitionLong, InsertionSort, SiftUpMax/Min and SiftDownMax/Min with [MethodImpl(MethodImplOptions.AggressiveInlining)], matching the convention already applied to MedianIndex.",
+   "rationale": "Inlining the partition into the quickselect loop lets Burst/LLVM keep left/right/idx and the pivot in registers and removes per-call stack setup; these are leaf methods so inlining has bounded code-size cost. Consistent with the AggressiveInlining already used on MedianIndex.",
+   "risk": "Pure inlining hint; no semantic change. Mild code-size growth (acceptable for leaf helpers); Burst generally honors and benefits from this."
+  },
+  {
+   "file": "src/IAFahim.Search.Selection/Selection.cs",
+   "symbol": "TopK.Run",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "Eliminate the full `stackalloc long[n]` copy of the input; partition the result region in place or copy only when caller aliasing is a concern.",
+   "currentCost": "Allocates n longs on the stack (8*n bytes) and does a full n-element copy loop before partitioning. For large n this is a large stack footprint (stack-overflow risk on mobile) plus an O(n) memcpy, when the algorithm only needs the first k elements out.",
+   "proposedChange": "If the contract allows mutating/consuming `a`, run PartitionLong directly on `a` and copy the first `count` results to `res`, dropping `temp` entirely. If `a` must be preserved but `res` has capacity n, partition into `res` instead of a separate `temp`. At minimum replace the manual copy loop with UnsafeUtility.MemCpy / Buffer.MemoryCopy.",
+   "rationale": "Removes an 8*n-byte stackalloc and an entire O(n) element-by-element copy pass; quickselect is in-place by nature, so the scratch buffer is pure overhead. Large stackalloc on mobile threads is a real overflow hazard.",
+   "risk": "Changes whether the caller's input array is mutated. The 'Run' convention here assumes valid caller input but not necessarily input immutability \u2014 gate behind the module's mutation contract. If preserving `a` is required, the partition-into-res variant keeps semantics identical while still removing temp."
+  },
+  {
+   "file": "src/IAFahim.Search.Selection/Selection.cs",
+   "symbol": "TopK.Run",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Missing k>=n short-circuit: when k >= n the quickselect loop does needless partitioning work to return the whole array.",
+   "currentCost": "When k >= n, the desired output is simply all n elements; yet the while loop still runs full quickselect partitions (O(n) work and swaps) before `count = Min(k,n)` clamps it. Also `if (idx == k)` can never trigger usefully when k == n since indices are < n.",
+   "proposedChange": "Add `if (k >= n) { for (int i=0;i<n;i++) res[i]=a[i]; return n; }` early-out (or copy and return before the loop). Mirrors the `k >= len` early return already present in Selection.SelectTopK.",
+   "rationale": "Avoids an entire quickselect pass plus its swaps when the result is trivially the whole input. Brings TopK.Run in line with the guard SelectTopK already has.",
+   "risk": "None for valid input; result set (first n elements) is identical. Order within the returned k is already unspecified by quickselect, so copying as-is preserves the contract."
+  },
+  {
+   "file": "src/IAFahim.Search.Selection/Selection.cs",
+   "symbol": "TopK.Run vs Selection.SelectTopK",
+   "dimension": "purity",
+   "impact": "medium",
+   "summary": "Inconsistent quickselect update rule: TopK.Run uses `left = idx` on the `idx < k` branch while SelectTopK/TryGetKth use `left = idx + 1`, which can cause non-termination/extra iterations.",
+   "currentCost": "In TopK.Run, on `idx < k` it sets `left = idx` (not `idx + 1`). Since element at `idx` is already in its final partitioned position, re-including it wastes an iteration and, in degenerate equal-key runs, can stall progress; the two code paths solving the same problem disagree.",
+   "proposedChange": "Use `left = idx + 1` on the `idx < k` branch to match SelectTopK/TryGetKth, since position `idx` is fixed after partitioning. Unify the three loops into one shared helper to keep them consistent.",
+   "rationale": "The pivot lands at its sorted index `idx`, so the next search range starts at idx+1; `left = idx` redundantly reconsiders a settled element and reduces progress guarantees. Sharing one implementation removes the divergence (also a maintainability/ergonomics win).",
+   "risk": "PartitionLong partitions in descending order and TopK currently never sets result via `idx==k` break path differently \u2014 verify the descending-partition invariant still places element idx finally (it does). Behavior for the top-k SET is preserved; only iteration count and worst-case progress improve. Validate against existing tests before applying."
+  }
+ ]
+}

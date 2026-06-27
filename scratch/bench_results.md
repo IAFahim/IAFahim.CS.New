@@ -59,6 +59,7 @@ O(n) confirmed. Old O(n²) inner scan at 4096 would be ~16M iterations
 vs 4096 now. Zero alloc.
 
 ## BallTree (spatial) — this session
+
 | Method | N | Mean | Alloc |
 |---|---|---|---|
 | Build | 1024 | 3.4 ms | - |

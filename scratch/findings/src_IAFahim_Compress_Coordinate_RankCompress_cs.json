@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Compress.Coordinate/RankCompress.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Compress.Coordinate/RankCompress.cs",
+   "symbol": "RankCompress.InsertionSort",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Replace InsertionSort (O(n^2)) called from Run with an O(n log n) sort.",
+   "currentCost": "InsertionSort (lines 25-38) is O(n^2); it dominates Run, since Unique and the final BinarySearch mapping loop are O(n) and O(n log u) respectively.",
+   "proposedChange": "Implement heapsort/introsort over tmpSorted[0..len) in place of InsertionSort. The signature InsertionSort(int* arr, int len) can stay; just swap the body, or rename to Sort for ergonomic accuracy. tmpSorted is already a dedicated scratch buffer so an in-place heapsort fits perfectly.",
+   "rationale": "Sorting is the asymptotic bottleneck of rank compression; O(n log n) makes the total Run cost O(n log n) (sort) + O(n log u) (mapping) instead of O(n^2). Largest single win for large len.",
+   "risk": "None to correctness: ranks come from BinarySearch over the sorted-unique array, independent of sort stability. Keep the comparison as plain int > to avoid sign/overflow issues."
+  },
+  {
+   "file": "src/IAFahim.Compress.Coordinate/RankCompress.cs",
+   "symbol": "RankCompress.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Use a bulk memcpy for the src->tmpSorted copy instead of a scalar loop.",
+   "currentCost": "Lines 12-13 copy len ints scalar-wise before sorting; a separate O(n) per-element store loop.",
+   "proposedChange": "Replace with Unsafe.CopyBlockUnaligned(tmpSorted, src, (uint)len * sizeof(int)).",
+   "rationale": "Single vectorized/rep-movs copy instead of a scalar store loop; constant-factor cycle reduction, no semantic change. src and tmpSorted are distinct buffers.",
+   "risk": "Confirm Unsafe.CopyBlockUnaligned is allowed under Burst/house rules (it is intrinsic and unmanaged). No overflow for realistic len."
+  },
+  {
+   "file": "src/IAFahim.Compress.Coordinate/RankCompress.cs",
+   "symbol": "RankCompress.BinarySearch",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The final mapping loop re-runs a full log(u) binary search per element; for inputs with many duplicates or near-sorted access this recomputation can be reduced, and the search itself can be made branchless.",
+   "currentCost": "Run's mapping loop (lines 18-19) calls BinarySearch len times, each O(log u) with a data-dependent branch (lines 59-62) that mispredicts ~50% of the time on random data, stalling the pipeline per iteration.",
+   "proposedChange": "Make BinarySearch branchless: replace the if/else updating lo/hi with a conditional-move form, e.g. lo += (arr[mid] < val ? (mid + 1 - lo) : 0) computed via a mask, so the loop body has no unpredictable branch. Optionally hoist len into a local (already a param) and keep the lo+((hi-lo)>>1) midpoint (good, overflow-safe).",
+   "rationale": "Branchless binary search converts a per-step mispredicting branch into a data-flow conditional move, removing pipeline flushes; over len*log(u) steps this is a real constant-factor win and vectorizes/predicts better under Burst.",
+   "risk": "Must keep first-occurrence (lower-bound) semantics: arr[mid] < val => lo=mid+1 else hi=mid yields the lower bound; the branchless mask must reproduce exactly this to preserve identical rank outputs. The midpoint formula is already overflow-safe; keep it."
+  }
+ ]
+}

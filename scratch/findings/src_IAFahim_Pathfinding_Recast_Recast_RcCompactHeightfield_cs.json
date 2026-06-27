@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Recast/RcCompactHeightfield.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/RcCompactHeightfield.cs",
+   "symbol": "Dispose",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Dispose nulls each pointer then assigns 'this = default', making the per-field null-out writes dead.",
+   "currentCost": "Four 'this.X = null;' stores followed by 'this = default;' which zeroes the entire struct (including the just-nulled pointers and Allocator). The intermediate null stores are redundant writes.",
+   "proposedChange": "Drop the four 'this.Field = null;' assignments; keep the null-checks to decide whether to Free, then a single 'this = default;' clears all pointers and scalars at once. Note 'this = default' also clears Allocator (a get-only auto-prop with a backing field), matching current behavior since the final 'this = default' already does so.",
+   "rationale": "Removes 4 redundant store instructions; 'this = default' is a single vectorizable block zero of the struct. Net fewer writes on the dispose path.",
+   "risk": "Behavior identical: the only observable post-state is an all-zero struct. Ensure Free is still called before zeroing (it is, inside each if). 'this = default' already runs today, so clearing Allocator is not a behavior change."
+  }
+ ]
+}

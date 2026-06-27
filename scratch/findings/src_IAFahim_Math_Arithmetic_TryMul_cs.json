@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.Arithmetic/TryMul.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Arithmetic/TryMul.cs",
+   "symbol": "TryMul.Run(long,long,out long)",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Fuse the two long.MinValue special-case branches into one and gate the expensive division behind it, reducing branch count and dependency-chain length on the common (non-overflow) path.",
+   "currentCost": "Two separate compare/branch pairs (a==-1&&b==MinValue, then b==-1&&a==MinValue) plus an unconditional 64-bit hardware divide (res/a, ~20-90 cycles) and a final compare. Every multiply pays the full divide latency.",
+   "proposedChange": "After the a==0/b==0 early-out and computing res=a*b, replace the two MinValue branches and the trailing compare with a single combined check. The only inputs that make res/a trap are res==long.MinValue && a==-1; the only overflow cases the divide cannot validate are (a==-1&&b==MinValue) and (b==-1&&a==MinValue). Combine as: if (((a==-1L)&(b==long.MinValue)) | ((b==-1L)&(a==long.MinValue))) return false; return res / a == b; This keeps one divide but collapses two branch pairs into one bitwise-or'd predicate (branchless condition, single branch).",
+   "rationale": "Fewer taken branches and a shorter dependency chain to the return on the hot path; the two near-identical MinValue tests share operands and fold into one branchless boolean, helping Burst emit straight-line code. Semantics identical: same set of inputs return false.",
+   "risk": "Must keep a!=0 guarantee (already ensured by the a==0/b==0 early-out) so res/a never divides by zero. The MinValue guard must run BEFORE res/a to avoid the long.MinValue/-1 trap. Using bitwise & / | on bool is legal in C# and avoids short-circuit branches but evaluates both comparands (cheap, no side effects), so it is safe here."
+  },
+  {
+   "file": "src/IAFahim.Math.Arithmetic/TryMul.cs",
+   "symbol": "TryMul.Run(long,long,out long)",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "The a==0/b==0 early-out adds two branches to every call to avoid one division; consider whether the divide-based check already tolerates a==0 via the existing guard, or keep early-out only for b.",
+   "currentCost": "Two compares + branches (a==0L, b==0L) on every invocation purely to sidestep res/a when a==0. For callers whose operands are rarely zero this is pure overhead on the common path.",
+   "proposedChange": "Only a==0 is dangerous for res/a (divide by zero); b==0 does not need its own early-out because if a!=0 then res=0 and 0/a==0==b validates correctly. Reduce to a single 'if (a==0L){res=0L;return true;}' guard and let the general path handle b==0. This removes one branch per call.",
+   "rationale": "Drops one comparison+branch from every call while preserving the divide-by-zero guard for a. b==0 with a!=0 flows through res/a==b correctly (0/a==0).",
+   "risk": "Must confirm a==0 is the only divisor-zero source for res/a; it is, since the divisor is a. Test TryMul.Run(0,100) and (100,0) must still return true with res=0 \u2014 both hold under the reduced guard."
+  }
+ ]
+}

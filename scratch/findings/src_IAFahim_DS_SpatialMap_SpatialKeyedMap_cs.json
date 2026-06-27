@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.DS.SpatialMap/SpatialKeyedMap.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.DS.SpatialMap/SpatialKeyedMap.cs",
+   "symbol": "SpatialKeyedMap.QuantizeJob.ValidatePosition",
+   "severity": "high",
+   "category": "off-by-one",
+   "summary": "The validator claims to reject any position 'outside the size of the world' but only checks the upper bound: `if (math.any(quantized >= this.QuantizeWidth))`. It never checks the lower bound (quantized < 0). A position below -halfSize on either axis produces a negative quantized coordinate, hence a negative Hash (quantized.x + quantized.y*width). NativeKeyedMap/UnsafeKeyedMap.RecalculateBuckets indexes buckets directly with `buckets[key]` (no & mask, no %), so a negative key is an out-of-bounds heap write (UB). The bounds check that would catch it (CheckKeyOutOfBounds) is itself only compiled under ENABLE_UNITY_COLLECTIONS_CHECKS, so in release builds this is silent memory corruption.",
+   "triggeringInput": "new SpatialKeyedMap<P>(quantizeStep:1, size:4) (halfSize=(2,2), quantizeWidth=4). Build over a position with Position=(-3f, 0f): quantized = floor((-3+2)/1, (0+2)/1) = (-1, 2); validation `any((-1,2) >= 4)` is false so it passes; Hash = -1 + 2*4 = 7 \u2014 but the negative x makes other inputs produce negative hashes too, e.g. Position=(-3f,-3f) \u2192 quantized=(-1,-1) \u2192 Hash=-1-4=-5 \u2192 buckets[-5] OOB write in RecalculateBuckets.",
+   "rootCause": "Lower-bound (negative coordinate) check is missing from ValidatePosition; only the high side is validated, so out-of-world positions on the low side slip through and yield negative bucket indices into a directly-indexed bucket array.",
+   "suggestedFix": "Validate both bounds: `if (math.any(quantized < int2.zero) || math.any(quantized >= this.QuantizeWidth))` throw/log. Same fix needed in LocalSpatialMap.QuantizeJob.ValidatePosition and SpatialHexMap is fine (it uses full IsWithinBounds)."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.SpatialMap/SpatialKeyedMap.cs",
+   "symbol": "SpatialKeyedMap<T>.QuantizeJob.Execute",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Same redundant tail modulo; assign end = Positions.Length on the last worker.",
+   "currentCost": "One integer modulo (Positions.Length % Workers) per last-worker Execute, ~20-40 cycles on mobile.",
+   "proposedChange": "end = (index == Workers - 1) ? Positions.Length : start + length; removing the modulo.",
+   "rationale": "Algebraic identity start+length+(total%Workers)==total on the last chunk makes the modulo redundant.",
+   "risk": "Exact for Workers>=1 (guaranteed by math.max(1, JobWorkerCount))."
+  }
+ ]
+}

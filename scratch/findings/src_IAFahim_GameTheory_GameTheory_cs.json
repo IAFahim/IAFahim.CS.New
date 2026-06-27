@@ -1,0 +1,48 @@
+{
+ "file": "src/IAFahim.GameTheory/GameTheory.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.GameTheory/GameTheory.cs",
+   "symbol": "GrundyDAG.FindMex",
+   "severity": "medium",
+   "category": "overflow",
+   "summary": "FindMex shifts 1 << mex with mex able to reach 31, producing int.MinValue (sign bit) and short-circuit ordering that tests the bit before the mex<31 guard.",
+   "triggeringInput": "A seenMask with bits 0..30 all set (e.g. seenMask = 0x7FFFFFFF). The loop reaches mex=30, sees bit 30 set, increments to mex=31, then evaluates (seenMask & (1<<31)); 1<<31 == int.MinValue. The intended cap of 31 is only enforced AFTER the bit test, so the bit test is performed with an undefined-intent shift amount.",
+   "rootCause": "The while condition is `(seenMask & (1 << mex)) != 0 && mex < 31`. C# evaluates the bit-test first; when mex==31 the shift 1<<31 yields the sign bit (int.MinValue) rather than a clean out-of-range guard. The mex<31 bound should gate the shift, not follow it.",
+   "suggestedFix": "Reorder the guard so the bound is checked first: `while (mex < 31 && (seenMask & (1 << mex)) != 0) mex++;`"
+  },
+  {
+   "file": "src/IAFahim.GameTheory/GameTheory.cs",
+   "symbol": "GameDp.Run",
+   "severity": "high",
+   "category": "edge-case",
+   "summary": "The mex extraction loop `while ((seen & (1L << g)) != 0) g++;` has no upper bound on g; when g reaches 64 the shift 1L<<g wraps (shift amount masked to 6 bits), so 1L<<64 == 1, producing a wrong mex / potential nonterminating-style misbehavior, and dp values >63 also corrupt the seen mask at line 93.",
+   "triggeringInput": "n=65, moveCount=64 with moves[j]=j+1 for j in 0..63 over a chain where the natural Grundy sequence forces a mex of 64 at some index i (all 64 low bits of seen set). At that index g increments to 64 and `1L << 64` evaluates to `1L << (64 & 63)` == 1, which is nonzero, so g keeps incrementing and dp[i] is computed from a wrapped, garbage mask instead of 64.",
+   "rootCause": "C# shift operators mask the shift count by 63 for long. dp values are Grundy numbers that can equal moveCount; with moveCount>=64 both the seen-construction shift `1L << (int)dp[prev]` (line 93) and the mex-extraction shift `1L << g` (line 95) overflow/wrap, yielding incorrect Grundy values.",
+   "suggestedFix": "Bound moveCount/Grundy values to <64, or detect g>=64 (and dp[prev]>=64) and handle explicitly; competitive Grundy on 64-move games needs a wider representation than a single ulong mask."
+  },
+  {
+   "file": "src/IAFahim.GameTheory/GameTheory.cs",
+   "symbol": "GameDp.Run",
+   "severity": "medium",
+   "category": "edge-case",
+   "summary": "For a move of size 0 (moves[j]==0), prev==i and the code reads dp[i] before it is assigned this iteration, using a stale/uninitialized value to build the mex mask, giving a wrong Grundy number.",
+   "triggeringInput": "n=2, moveCount=1, moves={0}, dp uninitialized. For i=0: prev = 0-0 = 0, which passes prev>=0 && prev<n, so seen |= 1L << (int)dp[0] reads dp[0] before line 96 sets it, mixing a stale value into its own mex.",
+   "rootCause": "The transition assumes each move strictly decreases the index (prev<i). A move size of 0 makes prev==i, and a negative move size makes prev>i (reading a not-yet-computed future cell). Neither case is filtered.",
+   "suggestedFix": "Require prev<i (not just prev>=0 && prev<n): `if (prev >= 0 && prev < i)` so the recurrence only consults already-finalized states."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.GameTheory/GameTheory.cs",
+   "symbol": "GrundyDAG.FindMex",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace the linear bit-scan loop for mex with a hardware trailing-zero-count of the complemented mask.",
+   "currentCost": "A data-dependent loop `while ((seenMask & (1 << mex)) != 0 && mex < 31) mex++` executes one branch + one shift + one AND per set low bit, with a serial dependency chain (mex feeds the next shift). For a dense mask this is up to 31 iterations of mispredictable branches in the hot BFS loop (called once per node).",
+   "proposedChange": "Compute mex branchlessly: `int mex = math.tzcnt(~seenMask);` (Unity.Mathematics) or `System.Numerics.BitOperations.TrailingZeroCount(~seenMask)`. The complement turns the lowest unset bit of seenMask into the lowest set bit, so tzcnt yields mex directly in 1-3 cycles. Because seenMask is a 32-bit int, ~seenMask always has at least the sign/high bits set when low 31 are full, so tzcnt returns 31 when bits 0..30 are all set \u2014 matching the original `mex < 31` cap exactly (original stops at mex==31; tzcnt(~mask) returns at most 31 here as well only if bit31 is the first zero \u2014 see risk).",
+   "rationale": "tzcnt is a single low-latency instruction and removes the per-bit branch and the serial shift dependency, collapsing an O(mex) loop into O(1). Burst lowers math.tzcnt to the native TZCNT/RBIT+CLZ instruction on x86/ARM.",
+   "risk": "Edge case at the 31 cap: original returns at most 31 (it stops incrementing once mex==31 regardless of bit 31). tzcnt(~seenMask) returns the index of the first zero bit, which could be 31 only if bits 0..30 are all 1; if bit 31 is also 1 then ~seenMask==0 and tzcnt returns 32, diverging from the original's 31. Guard: clamp with `math.min(math.tzcnt(~seenMask), 31)` to preserve the original ceiling. Grundy values that large are non-physical for valid DAGs, but the clamp keeps observable behavior identical."
+  }
+ ]
+}

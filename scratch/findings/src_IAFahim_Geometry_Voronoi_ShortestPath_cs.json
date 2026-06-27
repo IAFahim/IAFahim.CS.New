@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Geometry.Voronoi/ShortestPath.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Voronoi/ShortestPath.cs",
+   "symbol": "RelaxEdges / Push",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Dijkstra uses a lazy binary heap that pushes a new node on every relaxation without decrease-key, so the heap can grow to O(E) entries; combined with the stale-entry skip this is correct but does extra heap work.",
+   "currentCost": "Each successful relaxation does a fresh Push (O(log heapSize)) and the heap may hold up to E nodes, so pq must be sized E and Pop discards stale entries (the `top.Dist > dist[top.V]` continue).",
+   "proposedChange": "This lazy approach is the standard pointer-free choice and is fine; the only concrete win is documenting the required pq capacity (E+1) and short-circuiting Push when nd >= current best-known dist[dst] (goal-bounded pruning) since Run has a dst. Optionally stop pushing nodes whose tentative dist already exceeds dist[dst].",
+   "rationale": "Goal-bounded pruning skips heap insertions for paths already longer than the best known to dst, reducing heap operations on graphs where dst is found early.",
+   "risk": "Pruning on nd >= dist[dst] is only valid with non-negative weights (true for Euclidean visibility weights) and only after dst has been settled; before dst is reached dist[dst] is MaxValue so the prune is inert. Must keep weights non-negative; flag this assumption."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Voronoi/ShortestPath.cs",
+   "symbol": "Push / Pop / Swap",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Heap sift uses explicit Swap (3 moves per step) while sifting; a hole-based sift (carry the moving element, shift the path, write once) halves memory writes per level.",
+   "currentCost": "Each sift level executes Swap = 3 struct copies (PQNode is 16 bytes => 48 bytes moved/level). Over log n levels that is 3 log n copies of the moving node.",
+   "proposedChange": "Replace swap-based sift-up/sift-down with hole-based: hold the inserted/replacement PQNode in a register, shift parents/children into the hole, and write the held node once at the final position. Also `(i-1)/2` and `2*i+1/2*i+2` are already shift-friendly; leave as-is (compiler lowers to shifts).",
+   "rationale": "Hole-based heap moves the carried element once instead of swapping at every level, reducing 16-byte struct copies by ~2x in the heap hot path that dominates Dijkstra.",
+   "risk": "None functionally; standard heap transformation preserving the exact same node ordering and pop sequence (ties resolved identically as long as comparisons stay <= / <)."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Voronoi/ShortestPath.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Run returns dist[dst] after the loop, but if dst is unreachable dist[dst] stays double.MaxValue; the early `top.V == dst` return is good, but the trailing return reads dist[dst] redundantly when the early return already covers the reachable case.",
+   "currentCost": "Negligible, but the design relies on InitializeGraph rebuilding the CSR adjacency from the COO edge list on every Run call (O(n+e) setup per query).",
+   "proposedChange": "If Run is called repeatedly on the same graph with different src/dst, split InitializeGraph's adjacency construction (head/next/toEdge/weight) from the per-query dist reset, so the CSR is built once and reused; only dist[] needs reinitializing per query. Expose a BuildAdjacency + RunOnPrebuilt pair.",
+   "rationale": "Avoids rebuilding the entire edge adjacency O(e) on every shortest-path query, which is pure repeated work when the graph is static across queries (the common Voronoi/visibility-graph use case).",
+   "risk": "API change (ergonomics). Behavior identical per call; the split must reset dist[] each query to MaxValue. Flag as an API addition, not a replacement, to preserve the existing one-shot Run."
+  }
+ ]
+}

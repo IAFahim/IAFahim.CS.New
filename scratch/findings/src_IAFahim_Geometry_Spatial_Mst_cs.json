@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Geometry.Spatial/Mst.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Spatial/Mst.cs",
+   "symbol": "Mst.Manhattan / Mst.Euclidean",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Both run textbook O(n^2) Prim with a fresh inner loop that recomputes full pairwise distances; the two methods are ~95% duplicated and recompute xs[u],ys[u] each v-iteration.",
+   "currentCost": "Inner update loop reloads xs[u]/ys[u] every iteration (compiler may hoist, but under pointer aliasing it may not) and recomputes Math.Abs / multiply for every unvisited v each of n outer steps: O(n^2) distance evals. Code duplication doubles maintenance surface.",
+   "proposedChange": "Hoist 'double xu = xs[u]; double yu = ys[u];' above the v-loop so the per-v body uses locals (breaks aliasing assumptions, lets Burst keep them in registers and vectorize). Optionally unify the two methods via a metric flag or a templated inner distance to remove duplication while keeping the unchecked perf path.",
+   "rationale": "Hoisting kills two pointer loads per inner iteration (2*n^2 loads removed) and gives Burst alias-free locals it can SIMD-widen across v. The distance form (abs-sum vs squared) is the only real difference.",
+   "risk": "Pure constant-factor win, semantics identical. Unifying methods must not introduce a per-iteration branch on the metric inside the inner loop (use two specialized inner loops or a compile-time switch) or you trade the load saving for a branch."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Spatial/Mst.cs",
+   "symbol": "Mst.Manhattan / Mst.Euclidean",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "O(n^2) dense Prim is used even though MST in the plane under L1/L2 can be built from a sparse Delaunay/L1-Delaunay graph in O(n log n).",
+   "currentCost": "Selection of the next vertex (O(n) scan) times n iterations = O(n^2) time and the algorithm touches every pair. For large point sets this is the dominant cost.",
+   "proposedChange": "For Euclidean, the MST is a subgraph of the Delaunay triangulation (O(n) edges); build Delaunay (O(n log n)) then run Kruskal/Prim on the sparse graph for O(n log n) total. For Manhattan/rectilinear, use the classic 8-octant (Guibas-Stolfi / Zachariasen) sweep that yields O(n) candidate edges in O(n log n).",
+   "rationale": "Reduces an inherently O(n^2) all-pairs Prim to O(n log n) by exploiting planar MST sparsity \u2014 a genuine asymptotic improvement for the 2D case these functions target.",
+   "risk": "Large implementation effort and adds substantial code; ties/degenerate collinear points need careful handling to keep the exact same MST weight (MST weight is unique only when all edge weights distinct). If downstream relies on the specific edge set, the chosen-edge identity may differ even when total weight matches. Provide as opt-in rather than replacing the unchecked O(n^2) path."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Spatial/Mst.cs",
+   "symbol": "Mst.Euclidean",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "dist[] stores squared distances and Math.Sqrt is taken only once per accepted edge \u2014 already good; but totalWeight accumulation reads back outW[edgeCount] from memory after writing it.",
+   "currentCost": "'outW[edgeCount] = Math.Sqrt(dist[u]); totalWeight += outW[edgeCount];' writes then reloads through the pointer, a store-to-load that can stall and defeats keeping the value in a register.",
+   "proposedChange": "Compute into a local: 'double w = Math.Sqrt(dist[u]); outW[edgeCount] = w; totalWeight += w;'",
+   "rationale": "Removes a dependent load right after a store (store-forwarding stall / aliasing barrier) and lets the sqrt result stay in a register for the add.",
+   "risk": "None; identical result. Pure local-variable refactor."
+  }
+ ]
+}

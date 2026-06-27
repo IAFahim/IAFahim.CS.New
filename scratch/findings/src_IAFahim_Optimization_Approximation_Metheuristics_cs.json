@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Optimization.Approximation/Metheuristics.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Approximation/Metheuristics.cs",
+   "symbol": "Metheuristics.SimulatedAnnealing",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "The entire method body is dead: cur is unused, the loop only multiplies temp (a local) and returns best = state[0] regardless. The loop is pure waste.",
+   "currentCost": "Up to 1000 iterations of a double multiply (temp *= cooling) plus a double comparison per call, all of which are discarded. cur is computed and never used. Net effect: hundreds of wasted FP ops and a misleading API.",
+   "proposedChange": "If the intent is a placeholder, reduce to return state[0]; and delete the loop, cur, temp, cooling, target, n usage. If real annealing is intended, the loop must actually evaluate candidate states against target using temp/cooling; flag this as incomplete rather than micro-optimize.",
+   "rationale": "Eliminating provably-dead computation removes 100% of the loop cost. The compiler may already DCE the loop since temp is local and unused after the loop, but the source is misleading and the unused parameters defeat the stated API contract.",
+   "risk": "Behavior is observably unchanged (return value is always state[0]). The real risk is semantic: the function does not implement simulated annealing at all, so 'optimizing' it should be paired with confirming intended behavior before shipping."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Approximation/Metheuristics.cs",
+   "symbol": "Metheuristics.MonteCarlo",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "sum / n is a 64-bit signed division; if n is known/constant or a power of two it can be strength-reduced, and the running sum risks overflow for large n.",
+   "currentCost": "One 64-bit signed idiv per call (~20-90 cycles). Also sum can overflow long if n*max(sample) exceeds 2^63.",
+   "proposedChange": "Keep the divide (n is runtime-variable so general strength reduction is not possible), but document/guard overflow. If callers commonly pass power-of-two n, expose an overload taking a shift count. Otherwise leave as-is; this is near-optimal.",
+   "rationale": "A single trailing division over an O(n) accumulation is already optimal asymptotically; only the constant-factor idiv and overflow envelope are improvable, and only with caller-side knowledge.",
+   "risk": "Strength-reducing / to >> only valid when n is a known power of two AND sum is non-negative (signed >> rounds toward -inf, differing from / for negative sums). Do not apply blindly."
+  }
+ ]
+}

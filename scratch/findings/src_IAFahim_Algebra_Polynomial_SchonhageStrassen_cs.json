@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Algebra.Polynomial/SchonhageStrassen.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/SchonhageStrassen.cs",
+   "symbol": "SchonhageStrassen.Multiply",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "This class is a misnomer and a thin pass-through to ToomCook.Multiply; it adds an indirection layer and an inaccurate name with no algorithmic content.",
+   "currentCost": "Multiply just forwards to ToomCook.Multiply(a,n,b,n,result,MOD). The AggressiveInlining likely elides the call, so no runtime cost, but the name promises an O(n log n) Schonhage-Strassen / NTT path while delivering Toom-Cook (~O(n^1.46)). For large n this is an asymptotic gap hidden behind the API.",
+   "proposedChange": "Either (a) delete this wrapper and have callers use ToomCook directly, or (b) if the library intends an NTT-based multiplication for large n, implement a real number-theoretic transform here with a degree threshold that dispatches Toom-Cook below and NTT above. At minimum rename/comment so the name matches behavior.",
+   "rationale": "Removes a misleading indirection and, if a true NTT is added, gives genuine O(n log n) for large-degree products versus Toom-Cook's super-linear exponent \u2014 a real asymptotic improvement for the large-n regime this class name targets.",
+   "risk": "Pure pass-through removal is API-breaking for callers of SchonhageStrassen.Multiply; do behind a deprecation. Implementing real NTT is a larger change requiring a suitable prime/root and correctness validation; only pursue if large-n inputs are expected. No semantics change if merely renamed/documented."
+  }
+ ]
+}

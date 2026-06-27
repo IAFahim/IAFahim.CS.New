@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Graph.Flow/BfsLayerGraph.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Flow/BfsLayerGraph.cs",
+   "symbol": "BfsLayerGraph.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist level[u] into a local inside the per-node edge loop to avoid repeated dependent loads.",
+   "currentCost": "Inside the inner edge loop, level[u] is re-read (line 22) every time a frontier node is found, and level[u] cannot be cached across iterations by the JIT because the loop writes level[v] (alias-unknown through pointers).",
+   "proposedChange": "After 'int u = q[qh++];' add 'int lu = level[u] + 1;' and use 'level[v] = lu;'. u is the dequeued node, never written during its own expansion, so level[u] is loop-invariant for the inner loop.",
+   "rationale": "Removes one pointer load plus an add from the hot inner branch; Burst cannot prove level[u] is not aliased by the level[v] store, so it must reload without the manual hoist. The value is provably invariant because v != u for all reachable v in a simple BFS expansion.",
+   "risk": "None. u is dequeued once; its level is set before enqueue and never rewritten, so caching level[u]+1 is exact."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/BfsLayerGraph.cs",
+   "symbol": "BfsLayerGraph.Run",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Method takes 'flow' but the early-return semantics differ subtly from the duplicate BfsLayer in DynamicTreeMaxFlow; consolidate to one shared implementation.",
+   "currentCost": "BfsLayerGraph.Run, DynamicTreeMaxFlow.BfsLayer, and DinicBfs.Run are three near-identical BFS layer builders, tripling I-cache footprint and maintenance surface; they diverge only in the early-return-on-t and the it[] reset.",
+   "proposedChange": "Have DynamicTreeMaxFlow.BfsLayer and DinicBfs.Run delegate to a single core (the it[] reset can be a separate pre-pass), or document why three copies exist. BfsLayerGraph.Run additionally short-circuits at v==t (line 23) which the others do not, a behavioral inconsistency worth a comment.",
+   "rationale": "Single source reduces I-cache pressure and divergence risk; the v==t short-circuit is a real micro-win the other copies lack and could be ported.",
+   "risk": "Delegation must preserve each caller's auxiliary writes (it[] in DinicBfs). Keep Run unchecked-input contract. Low risk if signatures match."
+  }
+ ]
+}

@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Graph/TwoSat.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph/TwoSat.cs",
+   "symbol": "GraphArticulationPointAdapter.Run",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "The `s` (start) parameter is accepted but never used; BridgeAndArticulation.Find is called without it.",
+   "currentCost": "A dead parameter on a public API misleads callers into thinking start vertex is configurable and wastes an argument slot.",
+   "proposedChange": "Either remove `s` from the signature, or actually forward it to the underlying Find if single-source articulation from s is intended. Document which.",
+   "rationale": "Removes a misleading dead parameter, clarifying the contract; no behavioral change since s is currently ignored.",
+   "risk": "Signature change is API-breaking for callers passing s; if the library must stay binary-stable, keep the param but add an XML/comment noting it is reserved/ignored."
+  },
+  {
+   "file": "src/IAFahim.Graph/TwoSat.cs",
+   "symbol": "TwoSatSolve.Run",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Five separate stackalloc arrays of size nodes=2n for Tarjan scratch; they could share a single allocation block and the per-call layout is fine but tin/low/sccId are all int[2n].",
+   "currentCost": "Multiple stackalloc calls (tin,low,stack,sccId int[2n] + inStack byte[2n]) issue separate stack-pointer adjustments; minor but repeated per solve.",
+   "proposedChange": "Coalesce into one stackalloc byte block partitioned by offset, or accept caller-provided scratch buffers (matching the Run/Try convention used elsewhere) so repeated solves reuse one allocation.",
+   "rationale": "Fewer stack adjustments and contiguous scratch improves locality; caller-provided buffers remove per-call setup entirely for hot repeated solves.",
+   "risk": "Manual partitioning must respect alignment (place all int[] before byte[] or align offsets) to avoid misaligned long/int access; otherwise behavior is unchanged."
+  }
+ ]
+}

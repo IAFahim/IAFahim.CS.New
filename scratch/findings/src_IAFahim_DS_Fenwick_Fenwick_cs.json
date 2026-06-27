@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.DS.Fenwick/Fenwick.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.Fenwick/Fenwick.cs",
+   "symbol": "Fenwick.UpperBoundInt64",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Highest-set-bit loop is recomputed; can be derived branchlessly and the total can reuse it, but main win is replacing the O(log n) bit-find loop.",
+   "currentCost": "Lines 69-70 spin a 'while ((bitMask << 1) <= n) bitMask <<= 1;' loop to find the top power of two, costing ~log2(n) iterations/branches before the real descent. The same loop is duplicated in LowerBoundInt64 (line 44).",
+   "proposedChange": "Replace the while-loop with a single highest-bit computation: bitMask = 1 << (31 - lzcnt((uint)n)) when n>0 (Unity.Burst.Intrinsics.X86 / math.lzcnt or a portable de Bruijn). Factor it into a private static helper HighestPowerOfTwoLE(n) shared by both bound methods to remove the duplicated loop.",
+   "rationale": "Strength-reduces an O(log n) prologue loop to a single lzcnt-based O(1) op, and deduplicates identical code so Burst emits it once. lzcnt maps to a single hardware instruction on the targeted PC/mobile ISAs Burst supports.",
+   "risk": "Guard n==0 (lzcnt(0) is undefined / yields 32); current methods already handle small n. Must return identical bitMask for the descent. Use (uint) cast to avoid sign issues with 31-lzcnt; behavior identical for all n>=1."
+  },
+  {
+   "file": "src/IAFahim.DS.Fenwick/Fenwick.cs",
+   "symbol": "Fenwick.RangeSumInt64",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Duplicated implementation of FenwickRangeSum.RunLong; both walk two prefix sums independently though shared tree-walk could be fused for adjacent l,r (minor).",
+   "currentCost": "RangeSumInt64 calls SumInt64 twice (lines 28,30) doing two independent O(log n) ascents from r and l-1, recomputing 'idx & -idx' for overlapping high-order path segments.",
+   "proposedChange": "Leave as-is unless a fused dual-walk is desired; the existing two-call form is standard and branch-light. If fusion is wanted, walk both r and l-1 in a single loop subtracting where indices diverge, but the readability/Burst-vectorization tradeoff is marginal.",
+   "rationale": "Two separate descents share their common ancestor path; a fused walk avoids re-traversing it. However the saving is at most a few iterations and adds branches, so net win is small.",
+   "risk": "A fused implementation risks off-by-one on the divergence point; the current two-call version is provably correct. Recommend NOT changing unless profiled."
+  }
+ ]
+}

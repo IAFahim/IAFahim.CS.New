@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Graph.SCC/SccAugmentation.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.SCC/SccAugmentation.cs",
+   "symbol": "Dfs1",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Remove AggressiveInlining from recursive Dfs1 and Dfs2; recursion cannot be inlined and the hint only risks bloat.",
+   "currentCost": "Both Dfs1 and Dfs2 are self-recursive yet tagged AggressiveInlining, which the compiler cannot honor for the recursive edge.",
+   "proposedChange": "Delete the [MethodImpl(AggressiveInlining)] attribute on Dfs1 and Dfs2.",
+   "rationale": "Same as TarjanScc: inlining hints belong on small hot leaves, not recursive traversals; removal avoids speculative duplication.",
+   "risk": "None; compilation-hint-only change."
+  },
+  {
+   "file": "src/IAFahim.Graph.SCC/SccAugmentation.cs",
+   "symbol": "MinEdgesForStronglyConnected",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "inDegree and outDegree are two separate stackalloc int[sccCount] buffers initialized in one loop, but the per-edge update touches both; pack them as interleaved pairs (or a single int[2*sccCount]) to improve locality, or better, fuse the zero-init since both are already done in one loop.",
+   "currentCost": "Two distinct allocations and two distinct cache lines touched per cross-edge in the degree loop: inDegree[toComp]++ and outDegree[fromComp]++ hit unrelated addresses, doubling potential cache misses across the m-edge scan.",
+   "proposedChange": "Allocate int* degree = stackalloc int[2*sccCount]; store in/out for component k at degree[2*k] and degree[2*k+1]. Then the increments for a single edge's two components are still two lines, but the zero-init is one contiguous memset and component-local in/out share a line. Alternatively keep two arrays but this is the locality-oriented option.",
+   "rationale": "Interleaving keeps a component's in/out degree on the same cache line, and a single contiguous buffer zero-inits as one memset-shaped loop. Fewer distinct lines resident during the hot m-edge accumulation.",
+   "risk": "Index arithmetic (2*k) must be applied consistently in the accumulation and the final zeroIn/zeroOut scan. Behavior identical. Low risk; verify all four index sites updated."
+  },
+  {
+   "file": "src/IAFahim.Graph.SCC/SccAugmentation.cs",
+   "symbol": "MinEdgesForStronglyConnected",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The final degree-counting loop recomputes comp[u[i]] and comp[v[i]] for every edge, redoing the same indirection already available from the forward adjacency built earlier; also two init loops (head/revHead and a separate visited loop and a separate comp loop) can be fused.",
+   "currentCost": "Three separate O(n) init passes (head/revHead together, visited, comp) each re-walking 0..n; and an O(m) pass that does two dependent loads comp[u[i]] then comp[v[i]] per edge. Multiple passes over the same index range waste cache warmups.",
+   "proposedChange": "Fuse the visited[i]=false and comp[i]=-1 initializations into the existing head/revHead init loop (all are length-n) \u2014 one pass over 0..n setting head=-1, revHead=-1, visited=false, comp=-1. Leave the O(m) degree pass as is unless interleaving with the buildup; the main win is collapsing three n-length passes into one.",
+   "rationale": "One fused n-length pass replaces three, cutting loop overhead and cold-cache re-traversal of parallel arrays. Each array is still written once.",
+   "risk": "comp must be initialized before Dfs2 (it is, and fusing keeps it before). visited must be set before Dfs1 (also preserved). Order of independent stores is irrelevant. Safe."
+  },
+  {
+   "file": "src/IAFahim.Graph.SCC/SccAugmentation.cs",
+   "symbol": "MinEdgesForStronglyConnected",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Final return uses a branch for max(zeroIn, zeroOut); make it branchless.",
+   "currentCost": "return zeroIn > zeroOut ? zeroIn : zeroOut; is a single comparison/branch \u2014 trivial, but it is the one spot a branchless max trivially applies.",
+   "proposedChange": "Use a branchless max: int diff = zeroIn - zeroOut; return zeroOut + (diff & ~(diff >> 31)); or simply rely on math.max if available. Both zeroIn and zeroOut are small non-negative counts so no overflow.",
+   "rationale": "Avoids a (well-predicted) branch at the single return. Marginal, but real and free of correctness caveats given non-negative bounded counts.",
+   "risk": "Both operands are counts in [0, sccCount], so zeroIn - zeroOut cannot overflow int; sign-shift trick is valid. Negligible benefit \u2014 listed for completeness only."
+  }
+ ]
+}

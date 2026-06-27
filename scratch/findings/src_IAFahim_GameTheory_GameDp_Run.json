@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.GameTheory/GameDp.Run",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.GameTheory/GameDp.Run",
+   "symbol": "GameDp.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace the inner mex linear scan with trailing-zero-count of the complemented 64-bit mask.",
+   "currentCost": "`int g = 0; while ((seen & (1L << g)) != 0) g++;` is a serial, data-dependent loop run once per i (n times), up to 64 iterations each with a branch and 64-bit shift. This dominates the per-cell cost for dense reachability sets.",
+   "proposedChange": "Use `int g = math.tzcnt(~(ulong)seen);` (or `BitOperations.TrailingZeroCount((ulong)(~seen))`). This returns the smallest g with bit g unset, i.e. the mex, in one instruction.",
+   "rationale": "Collapses an O(mex) per-cell loop into O(1) branchless tzcnt; removes mispredicted branches and the serial shift chain in the hot DP loop. Burst vectorizes/lowers tzcnt natively.",
+   "risk": "If all 64 bits of seen are set, ~seen==0 and tzcnt(0)==64; the original loop would shift `1L << 64` which is undefined/UB (shift count masked to 0 in C#), so the original is already broken for the all-bits-set case. The proposed version returns 64 deterministically, which is strictly more correct; for all valid inputs (mex < 64) behavior is identical. Cast to ulong to avoid sign-extension of the complement."
+  }
+ ]
+}

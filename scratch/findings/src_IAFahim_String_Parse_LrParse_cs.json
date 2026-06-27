@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.String.Parse/LrParse.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Parse/LrParse.cs",
+   "symbol": "LrParse.Parse",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Cache state via top-1 read and avoid recomputing state*symbolCount; already tight but minor hoist possible.",
+   "currentCost": "Each loop iteration computes stack[top-1] then state*symbolCount + (terminal+1). On a shift, the next iteration reloads stack[top-1] (the just-pushed value). Small redundancy.",
+   "proposedChange": "Keep the current top-of-stack state in a local `int state` and update it on shift (state = action.Target) and on reduce (state = gotos[...]) instead of re-reading stack[top-1] each iteration. The stack still records states for reduce pops.",
+   "rationale": "Eliminates one dependent load (stack[top-1]) per LR step, shortening the per-token critical path in the hot driver loop.",
+   "risk": "On reduce, after `top -= rhsLen`, the new top state is stack[top-1] which must be re-read (it is older, not tracked) \u2014 so keep that read on the reduce path; only the shift path benefits from the cached local. Ensure state local is refreshed correctly on both paths to preserve semantics."
+  }
+ ]
+}

@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.Transform/PartitionConvolution.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Transform/PartitionConvolution.cs",
+   "symbol": "UpdateVal",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Per-call branch `isPart` and `sign` recompute, plus modular multiply, dominate the inner pentagonal loop; specialize and strength-reduce.",
+   "currentCost": "UpdateVal is called O(n*sqrt(n)) times. Each call: computes `j%2` branch, an `isPart` branch (loop-invariant per outer call but passed as a runtime bool), and two `sign * c[...] % mod` 64-bit multiplies+divisions. The `sign` and `isPart` logic is recomputed every call though it only depends on j parity and the fixed caller.",
+   "proposedChange": "Inline UpdateVal into each caller (it is a tiny leaf \u2014 add [MethodImpl(AggressiveInlining)] at minimum). Hoist `isPart` out (two specialized bodies, since ConvolveWithPartition always passes true and ConvolveWithPentagonal always passes false \u2014 the bool is a compile-time constant per caller). Track sign by toggling: start sign=1 and flip `sign = mod - sign` each j instead of recomputing parity. The pentagonal case can also avoid the multiply since sign is \u00b11: use add/subtract `(val + c[...]) ` vs `(val - c[...] + mod)` instead of `sign * c[...]`, eliminating a 64-bit multiply and division per term.",
+   "rationale": "sign is always 1 or mod-1, so `sign * c[k] % mod` is just \u00b1c[k] mod \u2014 replacing the multiply+div with a conditional add/subtract (already-reduced operands => conditional subtract) removes the single most expensive op in the loop. Toggling sign removes the parity branch. Constant-folding isPart removes a branch and a `(mod-sign)%mod`.",
+   "risk": "Must preserve the isPart sign convention exactly: ConvolveWithPentagonal flips sign via `(mod-sign)%mod`. Verify the toggled sign sequence matches the original parity mapping for the inner j and the additional flip. c[i-g1]/a[i-g1] are in [0,mod) only if inputs pre-reduced (a[i]%mod is taken; c is built reduced), enabling conditional-subtract; otherwise reduce first."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform/PartitionConvolution.cs",
+   "symbol": "ConvolveWithPartition / ConvolveWithPentagonal",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Recompute g1,g2 from scratch each (i,j); they are independent of i, so precompute the pentagonal offsets once.",
+   "currentCost": "Inside the i loop, for each j it recomputes `j*(3j-1)/2` and `j*(3j+1)/2` (two multiplies, two more multiplies, two divides) every time \u2014 but these generalized-pentagonal numbers depend only on j, not i, so they are recomputed n times each.",
+   "proposedChange": "Precompute the pentagonal offsets g1(j),g2(j) into a small stackalloc array (or generate incrementally) up to the max j where g<=n-1 (j ~ sqrt(2n/3)). Then the inner loop just indexes them. Alternatively generate g1/g2 incrementally with running deltas (g1 increases by 3j-2, etc.) to avoid the multiply/divide entirely.",
+   "rationale": "Moves O(n*sqrt n) pentagonal-number computations (each 4 mul + 2 div) down to O(sqrt n) precompute, replacing them with cheap array loads or incremental adds. The divides by 2 are exact (one of consecutive integers is even) and can already be a shift, but eliminating them entirely is better.",
+   "risk": "stackalloc size = number of valid j \u2248 sqrt(2n/3); must bound it safely (cap and assert). Incremental generation must reproduce exact g1/g2; the early-break condition `g1>i && g2>i` still applies per i. Division by 2 is exact only because j*(3j\u22131) is always even \u2014 true for all integer j, so >>1 is safe."
+  }
+ ]
+}

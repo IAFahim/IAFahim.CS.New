@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Physics.Xpbd/CollisionConstraint.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Physics.Xpbd/CollisionConstraint.cs",
+   "symbol": "CollisionConstraint.SolveSphere",
+   "severity": "high",
+   "category": "logic",
+   "summary": "Sphere-sphere velocity response never reflects or damps the normal (approach) velocity, and the 'restitution' parameter is accepted but never used. After positional overlap resolution, the code keeps the full inbound normal components: *velA = vnA + (1-friction)*vtA and *velB = vnB + (1-friction)*vtB. Because vnA/vnB (the normal projections) are written back unchanged, two colliding spheres retain their approaching normal velocities, so they immediately re-penetrate next step and the collision never resolves dynamically.",
+   "triggeringInput": "posA=(0,0,0), posB=(0.5,0,0), velA=(1,0,0), velB=(-1,0,0), invMassA=invMassB=1, radiusA=radiusB=0.5 (so dist=0.5 < minDist=1, overlap), restitution=1, friction=0. relVel.n = (velB-velA).n = -2 < 0 so it does not early-return. Expected: normal velocities reflect (with restitution=1, velA.x -> -1, velB.x -> +1, an elastic bounce). Actual: velA stays (1,0,0), velB stays (-1,0,0) \u2014 spheres keep approaching at full speed and interpenetrate again.",
+   "rootCause": "The impulse along the contact normal is missing: vnA and vnB are recomputed and written back verbatim instead of applying a restitution-scaled relative-velocity impulse distributed by inverse masses. restitution is therefore dead, and momentum exchange along the normal never happens.",
+   "suggestedFix": "Apply a normal impulse using relative velocity: j = -(1+restitution)*vn / (invMassA+invMassB); then *velA -= invMassA*j*n; *velB += invMassB*j*n; and apply the tangential friction separately. Use the existing 'vn' (already computed) and the 'restitution' parameter."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Physics.Xpbd/CollisionConstraint.cs",
+   "symbol": "SolveSphere",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "dist uses math.length (sqrt) but the early-out only needs dist vs minDist; and invMassA/totalInvMass plus invMassB/totalInvMass are two divisions where one reciprocal suffices.",
+   "currentCost": "math.length = sqrt; then two divisions invMassA/totalInvMass and invMassB/totalInvMass; n=delta/dist is another division.",
+   "proposedChange": "Compute invTotal = 1.0f/totalInvMass once and multiply (invMassA*invTotal, invMassB*invTotal), replacing 2 divisions with 1 division + 2 muls. The squared-distance early-out is not applicable since n and overlap need the true dist, but n=delta/dist can reuse invDist=1/dist: n=delta*invDist (1 division reused as reciprocal). Keep sqrt since overlap=minDist-dist needs real distance.",
+   "rationale": "Replaces 3 divisions (n, two mass splits) with 1 (dist) + 1 reciprocal(totalInvMass) + muls; division is the dominant-latency op here.",
+   "risk": "Reordering totalInvMass check: currently dist/minDist check happens before totalInvMass check, so reciprocal of totalInvMass is only taken after the <1e-12 guard \u2014 preserve that ordering to avoid div-by-zero. Reciprocal-mul is not bit-identical to division."
+  },
+  {
+   "file": "src/IAFahim.Physics.Xpbd/CollisionConstraint.cs",
+   "symbol": "SolvePlane/SolveSphere",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Files import System but none of these files use any System type; the using is dead across all five files.",
+   "currentCost": "'using System;' present in BendingConstraint, CollisionConstraint, DistanceConstraint, ShapeMatchingConstraint, VolumeConstraint with no System reference.",
+   "proposedChange": "Remove 'using System;' from all five files (only System.Runtime.CompilerServices and Unity.Mathematics are used).",
+   "rationale": "Pure hygiene; no runtime effect but reduces noise and avoids accidental reliance on System managed types in a Burst module.",
+   "risk": "None \u2014 if any file later needs System it can be re-added. Confirm no System.* usage (verified: none in the five files)."
+  },
+  {
+   "file": "src/IAFahim.Physics.Xpbd/CollisionConstraint.cs",
+   "symbol": "SolvePlane",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "vt (tangential) is computed unconditionally but only used inside the restitution branch.",
+   "currentCost": "float3 vn and float3 vt = *vel - vn computed before the 'if (dot(vn,planeNormal) < 0)' branch; when that branch is not taken (separating velocity), vt subtraction is wasted.",
+   "proposedChange": "Move the 'float3 vt = *vel - vn;' (and the vn build) inside the if-block, or compute vn lazily, so the tangential subtraction only runs when a velocity response is applied. The position correction *pos -= d*planeNormal does not need vn/vt.",
+   "rationale": "Avoids a float3 subtract (and the vn projection) on the common separating-velocity path; pure hoist-into-branch.",
+   "risk": "None \u2014 vn/vt are only read inside the branch; moving them in is semantics-preserving. Slight code-size increase but no behavior change."
+  }
+ ]
+}

@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Optimization.Exact/MaximumClique.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Optimization.Exact/MaximumClique.cs",
+   "symbol": "MaximumClique.ShouldStop",
+   "severity": "medium",
+   "category": "logic",
+   "summary": "ShouldStop aborts the search when timer > 100000000 and returns 0 without having explored the remaining subtree, leaving *best at whatever clique size was found before the cutoff. For an 'Exact' maximum-clique solver this can silently return a clique size smaller than the true maximum on large valid inputs, i.e. a wrong (non-maximum) result rather than the exact answer.",
+   "triggeringInput": "Any graph large/dense enough that the Tomita-style recursion performs more than 1e8 node visits before completing (e.g. a near-complete graph on ~80+ vertices). On such an input Run returns *best truncated to the partial search result instead of the true maximum clique size.",
+   "rootCause": "The timer guard is a hard step-count cutoff that returns 0 mid-search without signalling incompleteness, so callers cannot distinguish an exact answer from a truncated one; the reported *best may be below the true maximum.",
+   "suggestedFix": "Either remove the step cutoff for the exact contract, or surface an 'incomplete/timed-out' flag (e.g. return a sentinel or out bool) so the caller knows the result is not proven optimal, rather than returning a silently non-maximum best."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Exact/MaximumClique.cs",
+   "symbol": "ShouldStop / Search",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The bound check `solSize + candSize <= *best` is duplicated: once in ShouldStop (called at entry) and again inside the while loop; and timer++ runs every node via a ref-passed counter.",
+   "currentCost": "ShouldStop is a non-inlined call at every Search entry doing timer++ plus the same bound the while-loop re-checks. The redundant bound costs an extra load of *best and compare per node.",
+   "proposedChange": "Mark ShouldStop with [MethodImpl(MethodImplOptions.AggressiveInlining)] (the using is already imported). Optionally fold the entry bound into the existing while-loop guard `if (solSize + candSize <= *best) return 0;` which already runs first iteration, removing the duplicate compare at entry.",
+   "rationale": "Inlining removes call overhead on the hottest path of an exponential search; eliminating the duplicate *best load/compare shortens the per-node critical path. AggressiveInlining on hot leaf methods is exactly the prescribed pattern.",
+   "risk": "The timer cutoff (timer > 100000000) must still fire; if folding the bound, keep timer++ and the timer check intact. Note: candSize==0 path returns before the while loop, so the entry bound is needed only when candSize>0 -- which the while guard covers. Verify the candSize==0 success path is still reached before any bound return (it is: the `if (candSize == 0)` check precedes the loop)."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Exact/MaximumClique.cs",
+   "symbol": "RemoveCandidate",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "RemoveCandidate does an O(candSize) linear search for v, but v is always currentTmp[0] (the just-processed pivot), so removal is O(1).",
+   "currentCost": "After processing, v was read as currentTmp[0]. RemoveCandidate then scans the whole array to find v and swap-with-last, an O(candSize) pass per node, redundantly re-locating a known position 0.",
+   "proposedChange": "Since v == currentTmp[0] at the call site, replace RemoveCandidate's loop with `candSize--; currentTmp[0] = currentTmp[candSize];` (swap-remove index 0 with last). Pass the known index 0 instead of searching by value.",
+   "rationale": "Turns an O(k) removal into O(1), removing an entire linear pass per recursion node in an exponential algorithm -- a real asymptotic-per-node improvement of the maintenance cost.",
+   "risk": "Correctness hinges on v being exactly currentTmp[0] and unique. FilterNeighbors reads from currentTmp and writes to nextCand (cand), not modifying currentTmp, so currentTmp[0] is still v at removal time. Candidates are distinct vertex ids, so value v occurs once. Order of remaining candidates changes but the algorithm is order-insensitive (it just enumerates), so the visited set is identical. Safe."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Exact/MaximumClique.cs",
+   "symbol": "FilterNeighbors",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist the adjacency row base adj + v*n out of the loop.",
+   "currentCost": "adj[v*n + currentTmp[i]] recomputes v*n each iteration of the candidate-filter loop.",
+   "proposedChange": "`bool* row = adj + v * n;` before the loop, then `if (row[currentTmp[i]])`.",
+   "rationale": "Removes one multiply per inner iteration in a loop that runs for every recursion node; strengthens to a single base add + indexed load that Burst lowers cleanly.",
+   "risk": "None; adj is read-only and v is constant within the call."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Exact/MaximumClique.cs",
+   "symbol": "Run / Search",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "The dp parameter is never read or written anywhere in the file -- it is pure dead weight threaded through every recursive call.",
+   "currentCost": "long* dp is passed to Run and forwarded through every Search recursion but never dereferenced; extra register/stack slot per recursive frame.",
+   "proposedChange": "Remove dp from Search's parameter list (and from Run if the public API can change). If Run's signature must stay stable for callers, at least stop forwarding it into Search.",
+   "rationale": "One fewer pointer argument per recursive call reduces prologue/spill cost in the hot exponential recursion and clarifies the contract. Confirmed unused by full-file read.",
+   "risk": "dp is in the public Run signature; dropping it there is a breaking change. Dropping from the private Search is safe and behavior-preserving."
+  }
+ ]
+}

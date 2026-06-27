@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Geometry.Hull/StraightSkeleton.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Hull/StraightSkeleton.cs",
+   "symbol": "Build",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "O(n^3) total: every event does a full O(activeCount) scan recomputing all IntersectTime values; use an incremental candidate update or a min-heap of edge events.",
+   "currentCost": "The while(activeCount>2) loop runs O(n) times; each iteration scans `for i in 0..nextId` (which grows to ~2n) and calls IntersectTime for every non-deleted edge \u2014 O(n) per event -> O(n^2) total just for re-scanning, and nextId keeps growing so the scan walks deleted nodes too. Worst case work is quadratic-to-cubic in n.",
+   "proposedChange": "Maintain edge collapse times in a binary min-heap (stackalloc array) keyed by IntersectTime(i, next). After an event, only the two new edges (prevI->newNode and newNode->nextJ) change, so push just those and lazily skip stale/deleted heap entries on pop. This makes the algorithm O(n log n) instead of O(n^2/n^3). At minimum, avoid scanning [0,nextId): keep an explicit linked-list walk over only active nodes starting from any live head, giving O(activeCount) per event without touching deleted slots.",
+   "rationale": "Replaces a per-event full rescan (touching all created-and-deleted nodes up to 2n) with O(log n) heap maintenance. Removes the dominant asymptotic cost; also improves cache behavior by not streaming deleted entries.",
+   "risk": "Heap version changes tie-break ordering when multiple events share minT; original picks the lowest-index i. To preserve exact output, break heap ties by node index. The cheaper linked-list-only walk fully preserves semantics (same min selection) with no behavioral change and is the safe minimum."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Hull/StraightSkeleton.cs",
+   "symbol": "Build",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "IntersectTime is recomputed for every surviving edge on every event though only edges adjacent to the last collapse changed.",
+   "currentCost": "Even keeping the O(n) scan, IntersectTime (several abs/div/branches) is evaluated for all ~activeCount edges each of the ~n events. Only the new node's two incident edges change their collapse time between events; all others are invariant.",
+   "proposedChange": "Store the computed collapse time t on each Node (add a double field, e.g. CollapseT) when the node is created/updated. The per-event scan then just reads node.CollapseT to find the min instead of recomputing IntersectTime. Recompute only for prevI and the newly inserted node after each event.",
+   "rationale": "Turns O(events * activeCount) IntersectTime evaluations into O(events) recomputations plus O(activeCount) cheap field comparisons per scan \u2014 far fewer divides and branches in the hot loop.",
+   "risk": "Adds 8 bytes to Node (scratch buffer grows). Must invalidate/recompute the cached time for the two nodes whose Next pointer changed (prevI and newNode) so a stale time is never used; otherwise output diverges. Pairs naturally with the heap change."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Hull/StraightSkeleton.cs",
+   "symbol": "Node",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Node carries an unused `Id` field and a `bool Deleted` that wastes layout padding.",
+   "currentCost": "Node is { int Id; 8 doubles; int Prev; int Next; bool Deleted; }. Id is written (lines 76,138) but never read. The trailing bool forces 7 bytes of padding to 8-byte align the struct in the scratch array; over a 2n-sized scratch buffer that is wasted cache footprint.",
+   "proposedChange": "Drop the Id field entirely (the array index already identifies the node). Pack Deleted into a sentinel instead of a bool (e.g. set Next = -1 to mark deleted, or use the sign bit of Prev), eliminating the bool and its padding. This shrinks Node and improves the density of the scan over scratchNodes.",
+   "rationale": "Smaller Node => more nodes per cache line during the per-event scan (the bottleneck), fewer bytes to initialize, lower mobile memory pressure. Removing Id removes two dead stores per node creation.",
+   "risk": "Must add explicit StructLayout if relying on field order for the deleted-sentinel; check no caller reads Node.Id or Node.Deleted outside this file. The struct lacks [StructLayout(LayoutKind.Sequential)] though it imports InteropServices \u2014 add it to guarantee blittable layout for Burst."
+  }
+ ]
+}

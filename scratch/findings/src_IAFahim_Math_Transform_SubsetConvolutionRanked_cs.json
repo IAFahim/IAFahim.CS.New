@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Math.Transform/SubsetConvolutionRanked.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.Transform/SubsetConvolutionRanked.cs",
+   "symbol": "SubsetConvolutionRanked.Run",
+   "severity": "medium",
+   "category": "overflow",
+   "summary": "The rank-product step computes valF * valG as a 64-bit multiply where valF, valG can each be up to mod-1. For mod larger than about 3.04e9 (sqrt(2^63)), the product overflows Int64 before the % mod, producing wrong (and possibly negative) results.",
+   "triggeringInput": "mod = 4000000000 (~4e9, representable in long and a valid 'long mod' argument), with a[mask]=b[mask]=mod-1 for some overlapping masks; after the zeta transforms valF=valG~4e9, and valF*valG ~ 1.6e19 overflows Int64.",
+   "rootCause": "No 128-bit / __int128-style multiply or Montgomery reduction is used; the code relies on valF*valG fitting in long, which only holds for mod up to ~2^31.5. The signature accepts an arbitrary 'long mod' with no documented upper bound.",
+   "suggestedFix": "Document/enforce mod <= ~3e9, or use a 128-bit-safe modular multiply (e.g. Math.BigMul / unsigned mulhi reduction) for valF*valG % mod."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Transform/SubsetConvolutionRanked.cs",
+   "symbol": "SubsetConvolutionRanked.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Hoist (1 << i) in the rank-wise zeta/mobius inner loops",
+   "currentCost": "In the zeta loop (lines 39-49) and mobius loop (lines 70-79), '(1 << i)' is recomputed up to three times per mask iteration: once for the mask test and twice for 'mask ^ (1 << i)'. This runs across numRanks * logN * n iterations, the dominant work of the routine.",
+   "proposedChange": "Inside the 'for i' loop and before the 'for mask' loop, compute 'int bit = 1 << i;' once and reuse it in the '(mask & bit) != 0' test and the 'mask ^ bit' index.",
+   "rationale": "Eliminates O(numRanks*logN*n) redundant shift instructions and shortens the address-computation dependency chain in the hottest loops of the method.",
+   "risk": "None. bit is invariant within the mask loop and the value is identical to (1 << i)."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform/SubsetConvolutionRanked.cs",
+   "symbol": "SubsetConvolutionRanked.Run",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Branchless predication of the conditional add/subtract in the zeta/mobius rank loops to avoid masked-iteration waste and enable vectorization",
+   "currentCost": "The zeta and mobius loops iterate over all n masks but act on only half (those with bit i set), gated by a data-dependent branch 'if ((mask & bit) != 0)'. Half the iterations do nothing yet still pay loop overhead, and the branch defeats Burst vectorization.",
+   "proposedChange": "Restructure to iterate only over the relevant masks: 'for (int block = 0; block < n; block += bit << 1) for (int j = 0; j < bit; j++) { int hi = block + bit + j; fRow[hi] = (fRow[hi] + fRow[hi - bit]) % mod; ... }'. This visits exactly the n/2 active indices with no branch, the standard SOS-transform layout.",
+   "rationale": "Removes the n/2 idle iterations and the unpredictable branch, halving loop trip count for the active work and presenting straight-line contiguous-pair access that Burst can vectorize. Same asymptotic class but ~2x fewer iterations and branchless.",
+   "risk": "Must preserve modular semantics exactly (the % mod on each add/sub). The '+mod' before %mod in the mobius pass must be retained for the long-typed subtraction. Verify index arithmetic against the original mask^bit pairing; behavior identical for all valid inputs."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform/SubsetConvolutionRanked.cs",
+   "symbol": "SubsetConvolutionRanked.Run",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "Replace the magic-number modulus passed as 'long mod' usage and avoid repeated 64-bit modulo where the operand is known small",
+   "currentCost": "The rank-product loop (lines 52-65) does 'sum = (sum + valF*valG) % mod' for every (i,j,mask) triple: O(numRanks^2 * n) 64-bit multiplies and modulo. 64-bit idiv is ~20-40+ cycles and is the costliest op here. Each valF/valG is already reduced to [0,mod), so partial sums can be deferred.",
+   "proposedChange": "Hoist the modulo: accumulate into the 64-bit sum across the small j-range and reduce less often, or use a wider __int128-style split is not available \u2014 instead note that since valF,valG < mod and mod fits in 32 bits in typical usage, products fit in 63 bits and at most numRanks(<=~31) of them can be summed before overflow only if mod <= ~2^31.5/sqrt(numRanks). If the contract guarantees mod < 2^31 (common for NTT-style mods like 1e9+7), reduce 'sum %= mod' once after the inner j-loop instead of every term.",
+   "rationale": "Cuts the number of 64-bit idiv operations in the rank-product step from O(numRanks^2*n) to O(numRanks*n), replacing the dominant divide cost with cheap 64-bit mul-add accumulation.",
+   "risk": "Overflow-sensitive: valid only if (i+1)*(mod-1)^2 < 2^63 for the largest i (numRanks-1). For mod=1e9+7 and numRanks up to ~31, (mod-1)^2 ~ 1e18 already nears 2^63 (~9.2e18), so only ~9 terms are safe \u2014 guard by reducing every K terms where K*(mod-1)^2 < 2^63, or keep per-term modulo if mod can be large. Document the mod bound; reject if mod may exceed ~3e9."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform/SubsetConvolutionRanked.cs",
+   "symbol": "SubsetConvolutionRanked.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Precompute pc*n offset and replace per-element (long) index multiplies with running pointers in init/scatter/gather loops",
+   "currentCost": "Lines 31-32, 59-60, 63, 85 compute '(long)pc*n + mask' or '(long)j*n+mask' with a 64-bit multiply per element. The init loop (21-26) zeroes via three separate indexed writes.",
+   "proposedChange": "For the scatter (28-33) and gather (82-86) loops the pc*n term needs a multiply only because pc varies per mask, so that is unavoidable, but cast can be int when totalSize fits int. For the rank-product loop hoist 'long baseI = (long)i*n' style row pointers (f + j*n) once per row rather than recomputing j*n+mask each j. Replace the three-array zero loop with per-array pointer increments or a single memset-style clear per array (f,g,h are contiguous rows).",
+   "rationale": "Turns per-element 64-bit multiplies into pointer increments and lets the zero-init become a tight contiguous store loop (Burst can vectorize/store-wide), reducing instruction count in setup and the inner product loop.",
+   "risk": "Index type narrowing to int is only safe if numRanks*n <= int.MaxValue; logN<=26 keeps totalSize within int. Keep long indexing if logN can exceed ~26. Pointer-walking must preserve exact element order; no semantic change."
+  }
+ ]
+}

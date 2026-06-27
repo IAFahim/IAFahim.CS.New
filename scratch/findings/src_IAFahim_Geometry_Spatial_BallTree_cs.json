@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Geometry.Spatial/BallTree.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Geometry.Spatial/BallTree.cs",
+   "symbol": "BallTree.Build / BallTree.Nearest",
+   "severity": "high",
+   "category": "logic",
+   "summary": "Build links every node with Left=Right=-1, so the 'tree' has no edges; Nearest only ever examines the single root node and returns it regardless of the query, giving wrong nearest neighbors.",
+   "triggeringInput": "xs={0,10}, ys={0,10}, n=2, Build into nodes, then Nearest(nodes, root=0, qx=10, qy=10). NearestRec recurses on nodes[0].Left=-1 and nodes[0].Right=-1 (both no-ops), so only node 0 (0,0) is compared and index 0 is returned, even though node 1 (10,10) is an exact match.",
+   "rootCause": "Build never establishes Left/Right child links (it sets them all to -1 and R=0), so no actual ball-tree partitioning is built. Nearest traverses only via Left/Right, so from any root it can reach only that one node, making the nearest-neighbor result wrong whenever another point is closer.",
+   "suggestedFix": "Build must actually construct the tree (recursively split points, set centers/radii, and wire Left/Right children), or Nearest must scan all n nodes (and accept n as a parameter) instead of relying on child links that Build never populates."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Spatial/BallTree.cs",
+   "symbol": "BallTree.Build / Nearest",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "BallTree.Build never sets Left/Right (leaves all -1), so Nearest's recursion is dead and Nearest degenerates to inspecting only the root node \u2014 it is neither a ball tree nor a correct nearest search.",
+   "currentCost": "Build writes Left=Right=-1 for every node, so NearestRec returns immediately on both children; Nearest effectively returns root always. The radius field R is computed as 0 and never used. This is O(1) but returns wrong answers for n>1.",
+   "proposedChange": "Either build an actual ball-tree hierarchy (split on widest spread, set R to the bounding radius, populate Left/Right) and prune in NearestRec using 'if (sqrt(d_to_center) - R >= sqrt(bd)) return;', or if a linear scan is intended, loop i in [0,n) in Nearest. As-is the recursion and R are pure overhead.",
+   "rationale": "A real ball tree prunes subtrees via the triangle inequality giving expected O(log n) queries; current code is O(1)-but-wrong. If kept flat, removing R and the unused recursion shrinks Node from 40 to 32 bytes and removes two dead recursive calls per query.",
+   "risk": "Behavior-changing: fixes incorrect nearest results for n>1. Confirm with owner whether the flat/degenerate behavior is intended. R removal changes struct layout/ABI."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Spatial/BallTree.cs",
+   "symbol": "BallTree.NearestRec",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Nearest uses non-tail recursion (NearestRec on Left then Right) which Burst cannot tail-call optimize and which, given the dead links, is pure overhead today.",
+   "currentCost": "Two recursive calls per node create stack frames and a call dependency chain; with no pruning this is a full traversal when links exist.",
+   "proposedChange": "If a real ball tree is implemented, convert NearestRec to an explicit stackalloc'd index stack with triangle-inequality pruning (push the nearer child last); this is Burst-friendly (no recursion) and prunes subtrees. If the flat-scan interpretation is chosen, drop recursion entirely for a simple loop.",
+   "rationale": "Burst does not guarantee recursion optimization; an explicit stack avoids call overhead and enables pruning, turning a full O(n) traversal into expected O(log n) with the radius bound.",
+   "risk": "Tied to the Build fix above; only meaningful once Left/Right/R are populated. Explicit-stack version must reproduce the same nearest result (ties broken by first-seen as the current 'd < bd' does)."
+  }
+ ]
+}

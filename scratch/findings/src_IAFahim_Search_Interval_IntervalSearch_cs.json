@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Search.Interval/IntervalSearch.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Search.Interval/IntervalSearch.cs",
+   "symbol": "IntervalSearch.CountContained",
+   "severity": "high",
+   "category": "logic",
+   "summary": "Containment test casts signed interval coordinates to uint, so any interval with a negative Start (or a negative point) is compared with wrapped-around unsigned values, producing wrong counts.",
+   "triggeringInput": "starts=[-5], ends=[5], len=1, point=0",
+   "rootCause": "The check `(uint)starts[i] <= (uint)point && (uint)point < (uint)ends[i]` borrows the unsigned-range trick used for `0<=x<len`, but here the coordinates are arbitrary signed ints. A negative bound like starts[i]=-5 becomes (uint)-5 = 4294967291, so for point=0 the condition `4294967291u <= 0u` is false and the genuinely-contained point is not counted (and conversely a negative point can be falsely (un)matched). The other methods in this file use correct signed comparisons, confirming negative coordinates are valid inputs.",
+   "suggestedFix": "Use signed comparisons: `if (starts[i] <= point && point < ends[i])`. If a one-comparison form is desired, it only works after establishing non-negativity, which is not guaranteed here."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.Interval/IntervalSearch.cs",
+   "symbol": "IntervalSearch.SortByStart",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Insertion sort is O(n^2); the dependent searches (FindFirstOverlapping/CountOverlapping) and MergeIntervals all assume sorted-by-start input, so an O(n log n) sort would dominate cost on large arrays.",
+   "currentCost": "O(n^2) comparisons/moves worst case. For n in the thousands this is the dominant cost of any pipeline that sorts then searches.",
+   "proposedChange": "Replace the insertion sort with an in-place dual-array heapsort (or introsort) keying on starts[] and carrying ends[] in lockstep. Keep the signature identical (int* starts, int* ends, int len). Heapsort needs no scratch buffer, stays unmanaged/Burst-friendly, and is O(n log n) worst case.",
+   "rationale": "Asymptotic improvement from O(n^2) to O(n log n). For already-near-sorted input insertion sort wins, but as a general-purpose primitive the quadratic blowup is the real risk on adversarial/large inputs.",
+   "risk": "Heapsort is not stable; if any caller relies on stable ordering of equal-start intervals (e.g. a secondary order of ends), behavior changes. Insertion sort here is already not preserving end-order beyond start, so stability is likely not contractual \u2014 but confirm no caller depends on it. If stability is required, this opt must be rejected."
+  },
+  {
+   "file": "src/IAFahim.Search.Interval/IntervalSearch.cs",
+   "symbol": "IntervalSearch.CountOverlapping / FindFirstOverlapping",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Both are O(n) linear scans. If starts[]/ends[] are sorted by start (the SortByStart primitive in the same class implies this is the intended pre-state), overlap queries can be bounded by binary search.",
+   "currentCost": "O(n) per query. For repeated queries against a fixed sorted interval set this is wasteful.",
+   "proposedChange": "Add sorted variants (e.g. CountOverlappingSorted) that binary-search the upper bound i where starts[i] < targetEnd, scanning only the prefix, and for non-overlapping-set cases binary-search both ends. Keep the existing unsorted Run methods for the general case to preserve current semantics.",
+   "rationale": "When inputs are sorted, a binary-search bound turns O(n) per query into O(log n + k). This is additive API (new methods), not a behavior change to existing ones.",
+   "risk": "Only valid when the array is sorted by start; the unsorted methods must stay for general input. New method, so no observable change to existing callers. Must document the sorted precondition clearly to avoid silent wrong answers."
+  },
+  {
+   "file": "src/IAFahim.Search.Interval/IntervalSearch.cs",
+   "symbol": "IntervalSearch.CountOverlapping",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Branch-counting loop can be made branchless to help Burst auto-vectorize the SoA (separate starts[]/ends[]) layout.",
+   "currentCost": "One unpredictable conditional branch per element; count++ is control-dependent, blocking vectorization of the reduction.",
+   "proposedChange": "Accumulate without a branch: count += (-(starts[i] < targetEnd & targetStart < ends[i])) & 1, or count += (starts[i] < targetEnd ? 1 : 0) folded as a mask. In C# write it as: int hit = (starts[i] < targetEnd && targetStart < ends[i]) ? 1 : 0; count += hit; \u2014 Burst lowers the ternary to a setcc/mask and can vectorize the add-reduction over the SoA arrays.",
+   "rationale": "Removing the data-dependent branch turns the loop into a maskable reduction; Burst/LLVM can vectorize comparisons + masked add across the contiguous starts[]/ends[] arrays, cutting cycles several-fold and eliminating branch mispredicts.",
+   "risk": "Semantics identical for all inputs (same boolean condition). Note short-circuit && becomes non-short-circuit at the vector level, but both operands are pure pointer loads with no side effects, so no observable difference and no extra fault risk (same indices were already accessed)."
+  }
+ ]
+}

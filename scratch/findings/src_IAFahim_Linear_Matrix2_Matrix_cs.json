@@ -1,0 +1,83 @@
+{
+ "file": "src/IAFahim.Linear.Matrix2/Matrix.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Linear.Matrix2/Matrix.cs",
+   "symbol": "MatrixNew.Run / MatrixNew.RunSquare / MatrixAdd.Run / MatrixSub.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the n*m (n*n) loop-bound product out of the for-condition so it is computed once instead of every iteration.",
+   "currentCost": "The loop condition i < n * m re-evaluates an integer multiply on every iteration (n*m extra IMUL + compare per element across all four element-wise kernels).",
+   "proposedChange": "int total = n * m; for (int i = 0; i < total; i++) ... ; likewise int total = n * n; in RunSquare.",
+   "rationale": "The product is loop-invariant. Computing it once removes one multiply from the per-iteration dependency/instruction stream. Burst/LLVM often hoists this, but making it explicit guarantees it and shortens the trip-count expression so the vectorizer sees a clean affine bound, improving auto-vectorization of these trivially SIMD-able zero/add/sub loops.",
+   "risk": "None. Pure loop-invariant code motion; n*m overflow behavior is identical since the same product is what indexes a[i] today. Same observable output."
+  },
+  {
+   "file": "src/IAFahim.Linear.Matrix2/Matrix.cs",
+   "symbol": "MatrixNew.Run / MatrixNew.RunSquare",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Zero-fill via a byte memory clear (Unsafe.InitBlockUnaligned) instead of a scalar element store loop.",
+   "currentCost": "Per-element scalar store of 0L over n*m longs; relies on the JIT/Burst to recognize and widen the memset pattern, which it may not always do for raw pointer loops.",
+   "proposedChange": "System.Runtime.CompilerServices.Unsafe.InitBlockUnaligned(a, 0, (uint)(n * m) * (uint)sizeof(long)); (and n*n for RunSquare).",
+   "rationale": "InitBlockUnaligned lowers to a single optimized memset / vectorized clear, moving far more bytes per instruction than a long-at-a-time store loop and eliminating the loop overhead entirely. Burst supports Unsafe.InitBlock intrinsics.",
+   "risk": "Byte count (n*m)*8 must not overflow uint; for matrix sizes this holds but guard if n*m can exceed ~2^29 longs. Zeroing all-bits-0 equals 0L for two's-complement long, so semantics are identical."
+  },
+  {
+   "file": "src/IAFahim.Linear.Matrix2/Matrix.cs",
+   "symbol": "MatrixIdentity.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace the O(n^2) per-element (i==j) branch with an O(n^2) zero-fill followed by an O(n) diagonal write.",
+   "currentCost": "n*n iterations each doing an index multiply i*n+j and a conditional select (i==j)?1:0; the branch/select and the inner multiply run for every cell even though only n cells are nonzero.",
+   "proposedChange": "Zero the whole buffer (InitBlockUnaligned or the hoisted-bound loop), then for (int i = 0; i < n; i++) a[i * n + i] = 1; The diagonal index i*n+i can be carried as a running offset (idx += n + 1) to drop the multiply.",
+   "rationale": "The bulk zeroing becomes a memset/vectorizable pass with no per-cell branch, and only n diagonal stores remain. This removes n*n-n redundant branches/selects and replaces n inner multiplies with additions. Same asymptotic class but a much smaller constant and SIMD-friendly.",
+   "risk": "None. Output identical: off-diagonal zeros, diagonal ones. The running-offset trick is exact for the affine index i*(n+1)."
+  },
+  {
+   "file": "src/IAFahim.Linear.Matrix2/Matrix.cs",
+   "symbol": "MatrixMul.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Reorder loops to i-k-j (or transpose b) so the inner loop streams b row-contiguously instead of striding by p, and hoist row base pointers.",
+   "currentCost": "Inner loop reads b[k * p + j] which strides by p elements (p*8 bytes) per k step: a cache miss / TLB-unfriendly column walk, and recomputes i*m+k and k*p+j multiplies each inner iteration. For large matrices this column traversal dominates cost via cache misses.",
+   "proposedChange": "Swap to the i-k-j order: zero c first, then for i, for k { long aik = a[i*m+k]; long* brow = b + k*p; long* crow = c + i*p; for j: crow[j] += aik * brow[j]; }. Both a and b are now accessed contiguously in the inner loop, and a[i*m+k] is hoisted out of the j-loop. Row base pointers replace the per-iteration index multiplies with pointer adds.",
+   "rationale": "i-k-j makes every inner-loop access unit-stride, which is what Burst/LLVM auto-vectorizes (FMA over crow[j] += aik*brow[j]) and what the hardware prefetcher loves; the original i-j-k inner loop over b is column-major and defeats both. Hoisting aik and the row pointers removes p multiplies and a load from the inner loop. This is the single biggest win in the file for non-trivial n,m,p.",
+   "risk": "Semantics-preserving for integer long arithmetic (integer add/mul are associative/commutative, and i-k-j accumulates the same products into c[i*p+j]); requires c be zeroed first since accumulation is now incremental. Wrapping/overflow result is bit-identical because each c[i,j] still sums exactly the same set of products. Slightly more memory traffic on c (read-modify-write) but cache-resident per row."
+  },
+  {
+   "file": "src/IAFahim.Linear.Matrix2/Matrix.cs",
+   "symbol": "MatrixPow.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Skip the final redundant squaring of a, and replace the result/a copy-back loops with pointer swaps.",
+   "currentCost": "Each while iteration unconditionally squares a (MatrixMul over n^3) AND copies temp->a over n*n, even on the last iteration where exp becomes 0 and the squared a is never used again \u2014 a wasted O(n^3) multiply plus O(n^2) copy. The two copy-back loops also move n*n longs each iteration instead of swapping buffers.",
+   "proposedChange": "Guard the squaring: only square a when exp > 1 after the shift (i.e. compute exp >>= 1 first, then if (exp > 0) square). Replace 'MatrixMul into temp then copy temp back into result/a' with computing into temp and swapping the pointers (long* tmpPtr = result; result = temp; temp = tmpPtr;), so no O(n^2) copy is needed per multiply.",
+   "rationale": "Eliminates one full n^3 matrix multiply plus an n^2 copy on the final loop iteration, and removes up to 2 n^2 element copies per iteration by swapping pointers instead. For exp with B bits this saves ~B copies of n^2 longs. Pointer swap is O(1).",
+   "risk": "Caller passes result/a/temp as distinct buffers; swapping result/temp pointers means the final answer may end up in the buffer originally named temp. Must ensure the routine copies the final result back into the caller-provided result buffer (one final O(n^2) copy if the parity left it in temp) or document which buffer holds the output. The skip-final-square guard is exact: when exp becomes 0 the squared a is provably dead."
+  },
+  {
+   "file": "src/IAFahim.Linear.Matrix2/Matrix.cs",
+   "symbol": "MatrixVecMul.Run / MatrixMul.Run inner loops",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist the row base pointer (a + i*m) out of the inner loop to strength-reduce the i*m+j index multiply into a pointer add.",
+   "currentCost": "Inner loop computes a[i*m+j]: an i*m multiply (loop-invariant for the inner loop) plus +j each iteration. The i*m product is recomputed for every j.",
+   "proposedChange": "long* arow = a + i * m; then inner: sum += arow[j] * v[j];. Same pattern applies to MatrixMul's a-row.",
+   "rationale": "Lifts the invariant i*m out of the j-loop and turns the address computation into arow + j (single add / base+index addressing), shortening the per-iteration dependency chain and helping the vectorizer treat arow[j]*v[j] as a clean dot-product reduction.",
+   "risk": "None. Pure loop-invariant code motion; identical addresses and results."
+  },
+  {
+   "file": "src/IAFahim.Linear.Matrix2/Matrix.cs",
+   "symbol": "MatrixNew.Run / MatrixAdd.Run / MatrixSub.Run / MatrixVecMul.Run / MatrixMul.Run",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Add [MethodImpl(MethodImplOptions.AggressiveInlining)] to the hot leaf kernels (especially MatrixMul.Run and the copy/zero helpers called by MatrixPow).",
+   "currentCost": "MatrixPow calls MatrixMul.Run repeatedly across a call boundary; without inlining hints Burst may keep them as separate functions, preventing cross-call constant propagation of n and loop fusion.",
+   "proposedChange": "Annotate the small element-wise kernels and MatrixMul.Run with [MethodImpl(MethodImplOptions.AggressiveInlining)] (the using for System.Runtime.CompilerServices is already present).",
+   "rationale": "Inlining MatrixMul into MatrixPow lets Burst propagate that all three dimensions equal n (square case), specialize the loop bounds, and potentially fuse the multiply with the subsequent copy/swap, reducing call overhead and enabling better register allocation.",
+   "risk": "Inlining a triple-nested loop can increase code size / I-cache pressure; apply selectively. Behavior is unchanged. On mobile, weigh code-size growth \u2014 mark only the genuinely hot, small kernels."
+  }
+ ]
+}

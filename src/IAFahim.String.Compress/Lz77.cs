@@ -16,38 +16,84 @@ using System.Runtime.InteropServices;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Encode(byte* input, int len, Token* output, int windowSize)
         {
+            const int HashBits = 16;
+            const int HashMask = (1 << HashBits) - 1;
+            const int MinMatch = 2;
+            const int MaxMatch = 255;
+            const int MaxChain = 256;
+
             int outCount = 0;
-            int i = 0;
-            while (i < len)
+            if (len == 0) return 0;
+
+            int hashSize = 1 << HashBits;
+            int* head = (int*)Marshal.AllocHGlobal(sizeof(int) * hashSize);
+            int* prev = (int*)Marshal.AllocHGlobal(sizeof(int) * len);
+            try
             {
-                int bestLen = 0, bestPos = 0;
-                int start = Math.Max(0, i - windowSize);
-                for (int j = start; j < i; j++)
+                for (int h = 0; h < hashSize; h++) head[h] = -1;
+                for (int p = 0; p < len; p++) prev[p] = -1;
+
+                int i = 0;
+                while (i < len)
                 {
-                    int l = 0;
-                    while (i + l < len && input[j + l] == input[i + l])
+                    int bestLen = 0;
+                    int bestDist = 0;
+                    if (i + MinMatch <= len)
                     {
-                        l++;
-                        if (l > 255) break;
+                        int h = ((input[i] << 10) ^ (input[i + 1] << 5) ^ input[i + 2]) & HashMask;
+                        int cur = head[h];
+                        int windowStart = i - windowSize;
+                        if (windowStart < 0) windowStart = 0;
+                        int chain = MaxChain;
+                        while (cur >= windowStart && cur >= 0 && chain > 0)
+                        {
+                            int l = MatchLen(input, len, cur, i, MaxMatch);
+                            if (l > bestLen) { bestLen = l; bestDist = i - cur; }
+                            cur = prev[cur];
+                            chain--;
+                        }
                     }
-                    if (l > bestLen)
+
+                    if (bestLen >= MinMatch)
                     {
-                        bestLen = l;
-                        bestPos = i - j;
+                        output[outCount++] = new Token { Offset = bestDist, Length = bestLen, Literal = 0 };
+                        int end = i + bestLen;
+                        for (int k = i; k < end; k++) Insert(input, len, k, head, prev, HashMask);
+                        i = end;
                     }
-                }
-                if (bestLen >= 2)
-                {
-                    output[outCount++] = new Token { Offset = bestPos, Length = bestLen, Literal = 0 };
-                    i += bestLen;
-                }
-                else
-                {
-                    output[outCount++] = new Token { Offset = 0, Length = 0, Literal = input[i] };
-                    i++;
+                    else
+                    {
+                        output[outCount++] = new Token { Offset = 0, Length = 0, Literal = input[i] };
+                        Insert(input, len, i, head, prev, HashMask);
+                        i++;
+                    }
                 }
             }
+            finally
+            {
+                Marshal.FreeHGlobal((System.IntPtr)head);
+                Marshal.FreeHGlobal((System.IntPtr)prev);
+            }
             return outCount;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int MatchLen(byte* input, int len, int a, int b, int maxLen)
+        {
+            int l = 0;
+            int limit = len - b;
+            if (maxLen > limit) maxLen = limit;
+            while (l < maxLen && input[a + l] == input[b + l]) l++;
+            return l;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void Insert(byte* input, int len, int p, int* head, int* prev, int hashMask)
+        {
+            if (p + 2 >= len) return;
+            int h = ((input[p] << 10) ^ (input[p + 1] << 5) ^ input[p + 2]) & hashMask;
+            prev[p] = head[h];
+            head[h] = p;
         }
 
         public static int Decode(Token* input, int count, byte* output)

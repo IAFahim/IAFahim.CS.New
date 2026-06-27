@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Detour/DtNode.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/DtNode.cs",
+   "symbol": "DtNode",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Struct layout leaves DtPolyRef (likely 8 bytes) after a uint, risking padding; reorder for tighter packing and better cache density in the node pool.",
+   "currentCost": "Fields: float3 pos(12) + cost(4) + total(4) + packedData(4, uint) + id(DtPolyRef). If DtPolyRef is 8-byte (ulong, the non-DT_POLYREF32 default per HashRef), Sequential layout places it after a uint at offset 24 -> needs 8-byte alignment -> 4 bytes padding inserted, making the struct 40 bytes instead of 32. The node pool allocates maxNodes of these; padding wastes RAM and halves cache-line node density.",
+   "proposedChange": "Reorder to put the 8-byte `id` adjacent to the float3 block so the uint packedData lands at the end: e.g. `float3 pos; DtPolyRef id; float cost; float total; uint packedData;` \u2014 pos(12)+id(8) needs id at offset that respects 8-byte alignment; better: `DtPolyRef id; float3 pos; float cost; float total; uint packedData;` giving id@0, pos@8, cost@20, total@24, packed@28 = 32 bytes, no tail padding. Verify sizeof drops from 40 to 32 with a static assert.",
+   "rationale": "Removing 8 bytes of padding per node shrinks the nodes[] working set 20%, improving cache-line utilization during the A* open/closed scans and hash-chain walks that touch node.id/node.State frequently.",
+   "risk": "LayoutKind.Sequential is preserved; only field order changes, which does not affect managed access. Confirm DtPolyRef is actually 8 bytes (default build) \u2014 under DT_POLYREF32 it is 4 bytes and the current layout is already 32-byte with no padding, making this a no-op there. Behavior is identical; only sizeof/layout changes. Also confirm no external code memcpy's DtNode assuming a specific offset."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/DtNode.cs",
+   "symbol": "Clear",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Clear zeroes five fields individually; a single typed default-store lets Burst emit one vectorized clear.",
+   "currentCost": "`Clear` writes pos=zero, cost=0, total=0, packedData=0, id=0 as five separate stores. With the 32-byte layout that is several scalar/vector stores instead of one wide zeroing.",
+   "proposedChange": "Replace the body with `this = default;` (struct is blittable/unmanaged, all-zero is the desired cleared state). Burst lowers `this = default` to a single memset/vector store of sizeof(DtNode).",
+   "rationale": "`this = default` produces identical all-zero state (float3.zero==0, DtPolyRef 0, packedData 0) but compiles to one contiguous zero-store, which Burst vectorizes, reducing the per-node init cost in GetNode's allocate path.",
+   "risk": "Only valid if every field's zero bit-pattern equals its semantic 'cleared' value \u2014 true here (float zero, uint 0, DtPolyRef 0 == Null-ish). If DtPolyRef's logical 'none' were nonzero this would differ, but it is 0. Semantics preserved."
+  }
+ ]
+}

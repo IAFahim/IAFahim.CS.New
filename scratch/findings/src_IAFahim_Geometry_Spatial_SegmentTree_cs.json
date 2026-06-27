@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Geometry.Spatial/SegmentTree.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Spatial/SegmentTree.cs",
+   "symbol": "Build3D",
+   "dimension": "purity",
+   "impact": "high",
+   "summary": "Build3D/Query3D silently ignore the z coordinate and bounds, returning 2D results \u2014 a correctness/semantics trap rather than a perf win.",
+   "currentCost": "Build3D (line 101) forwards to Build2D dropping zs entirely; Query3D (line 107) drops z1/z2. Any caller treating this as a real 3D interval/segment structure gets wrong results \u2014 and the unused z parameters mislead the API.",
+   "proposedChange": "Either implement true 3D (carry z interval into Node and test z overlap in Query) or rename/remove the 3D entry points so the API does not advertise unsupported behavior. If 3D is intentionally out of scope, drop the methods to avoid dead-parameter confusion.",
+   "rationale": "Purity/ergonomics: the function is not doing what its name promises; fixing or removing it prevents silent wrong answers and clarifies the API contract.",
+   "risk": "This is a semantics correction, not a behavior-preserving micro-opt \u2014 flag for owner decision. If callers currently rely on the 2D-forwarding behavior, removing it is breaking."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Spatial/SegmentTree.cs",
+   "symbol": "BuildRec",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Child Min/Max merge re-loads nodes[Left]/nodes[Right] up to four times each through repeated indexing.",
+   "currentCost": "Lines 62-71 access nodes[rootIdx].Left and nodes[nodes[rootIdx].Left].Min/.Max via chained indexing multiple times (e.g. nodes[nodes[rootIdx].Left].Min appears in both the compare and the assign). Each is a dependent pointer-add + load; the compiler may not prove no-alias to fold them.",
+   "proposedChange": "Cache `int lft = nodes[rootIdx].Left;` then `Node* lc = &nodes[lft];` and read `lc->Min`/`lc->Max` once into locals before the compares. Same for Right. Also hoist `nodes[rootIdx]` into `Node* self = &nodes[rootIdx];`.",
+   "rationale": "Collapses repeated address computations and loads into single local reads, shortening the dependency chain of the bottom-up merge done at every internal node.",
+   "risk": "Pointers are stable for the duration (no reallocation), so caching addresses is safe. Semantics identical."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Spatial/SegmentTree.cs",
+   "symbol": "BuildRec",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Inner partition loop reloads xs[idx[i]]/xs[idx[j]] with double indirection per comparison; same hoist as RangeTree applies.",
+   "currentCost": "Lines 35,39,41 do nested gather xs[idx[*]] each comparison. The double indirection (idx then xs) per compare is a long dependency chain repeated O(n) per level.",
+   "proposedChange": "Within this single-axis build, the values being partitioned are always xs[idx[*]]; this is already minimal, but the pivot `xs[idx[k]]` is reloaded as the loop may move idx[k]. Hoisting pivot into a local `double pivot` (already done) is fine; ensure idx[i]/idx[j] indices are read into locals once per swap rather than re-indexed. Minor.",
+   "rationale": "Reduces redundant array indexing in the partition swap; small constant-factor.",
+   "risk": "Low impact; only worth it alongside the RangeTree change for consistency. Semantics-preserving."
+  }
+ ]
+}

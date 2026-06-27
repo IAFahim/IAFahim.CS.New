@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Graph.DAG/IncrementalCycleDetection.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.DAG/IncrementalCycleDetection.cs",
+   "symbol": "IncrementalCycleDetection.AddEdge / Dfs",
+   "severity": "critical",
+   "category": "off-by-one",
+   "summary": "Edge index 0 collides with the linked-list null sentinel, so the first edge added is never traversed and cycles through it are missed.",
+   "triggeringInput": "head[] zero-initialized and *edgeCount==0 (the natural/empty state). AddEdge(1,2,...) stores edge 1->2 at index 0 and returns true. Then AddEdge(2,1,...) creates cycle 1->2->1 but returns true (reports acyclic) instead of false.",
+   "rootCause": "The DFS adjacency loop uses 'for (int e = head[curr]; e != 0; e = next[e])', i.e. it treats edge slot 0 as the 'no edge' sentinel. But AddEdge writes the first edge at to[*edgeCount] with *edgeCount==0 and sets head[u]=0. head[u]==0 is then indistinguishable from 'empty adjacency list', so the DFS terminates immediately at curr=u and never visits the first-stored edge. The cycle test Dfs(v,u,...) therefore cannot reach u through that edge and AddEdge wrongly reports the edge as acyclic. (The sibling module OnlineScc.cs uses head[i]=-1 and 'e != -1' with edgeCount starting at 0, which is the consistent convention this file violates.)",
+   "suggestedFix": "Use -1 as the sentinel: callers initialize head[] to -1 and the loop condition becomes 'e != -1'; OR reserve edge index 0 by having callers start *edgeCount at 1 and zero-initialize head[]. Make the sentinel choice consistent between head initialization, edgeCount start, and the loop condition."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.DAG/IncrementalCycleDetection.cs",
+   "symbol": "Dfs",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Recursive DFS uses the call stack; for Burst/mobile an explicit stack avoids per-edge call overhead and deep-recursion stack-overflow risk on long DAG paths.",
+   "currentCost": "Each forward edge to an unvisited node is a function call (frame setup, register spill, return). On a path graph of length L this recurses L deep, risking stack overflow and incurring call overhead per node; Burst does not always inline/flatten recursion well.",
+   "proposedChange": "Convert Dfs to an iterative search over an explicit `int* stack` (caller-provided, like visited). Push curr, on pop iterate its adjacency list pushing unvisited targets; early-out when target found. Mark visited[curr]=runId on push. Same reachability test (does v reach u).",
+   "rationale": "Eliminates recursive call frames -> fewer cycles per node and bounded, predictable stack usage (cache-friendly contiguous stack buffer) instead of native call stack. Burst optimizes flat loops far better than recursion.",
+   "risk": "Requires adding an `int* stack` parameter (API change) and a capacity assumption (size n) \u2014 acceptable under the unchecked-Run convention. Must preserve visited semantics: mark before exploring to avoid revisiting. The `head[curr]!=0` sentinel relies on edge index 0 being unused; ensure the iterative version keeps the same e!=0 terminator. Behavior (returns true iff v reaches u) preserved."
+  },
+  {
+   "file": "src/IAFahim.Graph.DAG/IncrementalCycleDetection.cs",
+   "symbol": "AddEdge",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Dereference `*edgeCount` once into a local; it is read three times and written once via the pointer.",
+   "currentCost": "`*edgeCount` is loaded for `to[*edgeCount]`, `next[*edgeCount]`, `head[u]=*edgeCount`, then `(*edgeCount)++` \u2014 four pointer dereferences where aliasing may force reloads.",
+   "proposedChange": "`int ec = *edgeCount; to[ec]=v; next[ec]=head[u]; head[u]=ec; *edgeCount = ec+1;`",
+   "rationale": "Pointers may alias (to/next/head/edgeCount are all int*); the compiler must conservatively reload *edgeCount after each pointer store. Caching in a local guarantees a single load and a single store, removing 3 redundant memory accesses.",
+   "risk": "None unless edgeCount aliases to/next/head (it must not for correctness \u2014 they are distinct buffers by contract). Identical observable behavior."
+  }
+ ]
+}

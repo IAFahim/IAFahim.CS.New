@@ -1,0 +1,72 @@
+{
+ "file": "src/IAFahim.Math.Spline/UniformBSpline.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Spline/UniformBSpline.cs",
+   "symbol": "Evaluate",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Apply Horner factoring to the cubic B-spline basis to shorten the scalar dependency chain before the SIMD combine.",
+   "currentCost": "ttt computed (2 mul), then b0,b1,b2 each rebuild powers with explicit Three*tt, Six*tt etc. (~9 scalar muls). The OneSixth scale is applied once at the end (good).",
+   "proposedChange": "Evaluate b0..b3 in Horner form, e.g. b0 = One + t*(-Three + t*(Three - t)), b1 = Four + ttt*Three - tt*Six, b2 = One + t*(Three + t*(Three - ... )). Reuses t-products and reduces independent multiplies feeding the accumulate.",
+   "rationale": "Horner form replaces repeated power reconstruction with fused multiply-adds, trimming a few scalar muls and shortening latency before the four scalar*float3 FMAs that Burst vectorizes.",
+   "risk": "Reassociation of float arithmetic changes last-ULP rounding versus the current expanded form; not bit-exact. Acceptable for spline sampling but reject if bit-reproducibility across the expanded form is contractually required."
+  },
+  {
+   "file": "src/IAFahim.Math.Spline/UniformBSpline.cs",
+   "symbol": "UniformSample",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace per-iteration (float)i*step in the LUT build and the resample loop with additive accumulators, and snap endpoint t to exact 1.0.",
+   "currentCost": "LUT loop and resample loop each do an int->float cast plus a multiply per iteration to form t / targetDist. The endpoint position is computed separately (good) but the interior t and targetDist recompute the cast+mul every step.",
+   "proposedChange": "In the LUT loop use `t += step` (init t=step). In the resample loop use `targetDist += targetStep` (init = targetStep). Removes int->float conversion and converts a mul into an add per iteration.",
+   "rationale": "Drops one conversion and turns a multiply into an add on each loop's scalar critical path; over lutSamples + count iterations this is a real constant-factor saving feeding the dependent Evaluate/distance/FindT chain.",
+   "risk": "Accumulator drifts from i*step by accumulated float rounding, slightly perturbing LUT distances and resampled t values; for an arc-length resampler this is within tolerance but not bit-identical. The exact endpoints (indices 0 and count-1) already use literal 0.0/1.0 so they are unaffected."
+  },
+  {
+   "file": "src/IAFahim.Math.Spline/UniformBSpline.cs",
+   "symbol": "UniformSample",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist redundant endpoint Evaluate/EvaluateTangent: outPositions[0] and its tangent are computed twice.",
+   "currentCost": "Evaluate(...,0.0f) is called at line 62 (prev) and again at line 74 (outPositions[0]); EvaluateTangent(...,0.0f) once. The line-62 result equals the line-74 result, so one full B-spline Evaluate (4 scalar*float3 FMAs + basis polynomial) is recomputed.",
+   "proposedChange": "Reuse `prev` for outPositions[0]: set `outPositions[0] = prev;` instead of recomputing Evaluate(...,0.0f) at line 74. prev already holds Evaluate(p0,p1,p2,p3,0.0f).",
+   "rationale": "Eliminates one full Evaluate call (basis poly + four float3 FMAs) per UniformSample invocation by reusing an already-computed identical value. Bit-exact since it is the same expression with the same inputs.",
+   "risk": "None: prev is assigned Evaluate(p0,p1,p2,p3,0.0f) at line 62 and not mutated before line 74, so outPositions[0]=prev is bit-identical to the recompute."
+  },
+  {
+   "file": "src/IAFahim.Math.Spline/UniformBSpline.cs",
+   "symbol": "UniformSample",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "stackalloc of lutSamples+1 floats is unbounded by caller-supplied lutSamples and risks stack overflow on mobile; document/bound it.",
+   "currentCost": "float* lut = stackalloc float[lutSamples + 1] allocates 4*(lutSamples+1) bytes on the stack with no upper bound. A large lutSamples (e.g. 100k) overflows the thread stack, especially on mobile where Burst job stacks are small.",
+   "proposedChange": "Document a hard precondition/named-constant cap (e.g. MaxLutSamples) on lutSamples, or accept the LUT as a caller-provided float* buffer so allocation strategy is the caller's choice (consistent with outPositions/outTangents already being caller pointers).",
+   "rationale": "Moving the buffer out to the caller removes an unbounded per-call stack allocation and lets the caller reuse a pooled buffer, reducing stack pressure and matching the existing pointer-out API style.",
+   "risk": "API signature change (add a float* lut parameter) breaks callers; if only documenting a cap, no signature change but the precondition must be enforced by the caller. No numerical behavior change either way."
+  },
+  {
+   "file": "src/IAFahim.Math.Spline/UniformBSpline.cs",
+   "symbol": "FindT",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "The binary search recomputes lut[low]/lut[high] after the loop and the comparison reloads lut[mid]; loads are fine but the segmentLength guard branch can be made branchless.",
+   "currentCost": "factor = segmentLength > 1e-6f ? (targetDist-d0)/segmentLength : 0.0f uses a branch per FindT call (count-2 calls). The division is already guarded, which is correct.",
+   "proposedChange": "Keep the divide-by-zero guard but compute it branchlessly with math.select on the condition, or rcp with select. Burst can compile the ternary to a select already, so verify codegen; if it does, no change needed. Primary real win here is ensuring `lut` reads hit L1 (LUT is contiguous, already good).",
+   "rationale": "Removing a data-dependent branch in a per-sample inner function reduces mispredict risk; math.select maps to a blend on SIMD/scalar select on the target. Low impact because lutSamples is typically small so the search is short.",
+   "risk": "math.select evaluates both operands, so (targetDist-d0)/segmentLength would execute even when segmentLength<=1e-6f, producing Inf/NaN that select then discards. This is safe only if the NaN is never used (it is selected away), but generating NaN can raise FP exceptions if traps are enabled. Keep the guarded divide unless Burst already emits a branchless select for the ternary."
+  },
+  {
+   "file": "src/IAFahim.Math.Spline/UniformBSpline.cs",
+   "symbol": "EvaluateTangent",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Constant-fold the compile-time products (Two*Three, Three*Three) into named float constants instead of leaving them as source multiplies.",
+   "currentCost": "db0 uses `Two * Three * t`, db2 uses `-Three * Three * tt` and `Two * Three * t`. These are constant*constant that the compiler should fold, but they read as runtime multiplies and rely on the JIT/Burst folding them.",
+   "proposedChange": "Introduce named constants (e.g. Six already exists for Two*Three; add Negative... or reuse Nine for Three*Three) and write db0 = -Three*tt + Six*t - Three; db2 = -Nine*tt + Six*t + Three. Nine and Six already exist as constants in this class.",
+   "rationale": "Uses the already-defined Six and Nine constants directly, guaranteeing the fold and improving readability/consistency without relying on the compiler to collapse Two*Three and Three*Three.",
+   "risk": "None: Two*Three==Six and Three*Three==Nine exactly in float; bit-identical, purely a source-clarity and fold-guarantee change."
+  }
+ ]
+}

@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.NT/LinearSieveMinPrime.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/LinearSieveMinPrime.cs",
+   "symbol": "LinearSieveMinPrime.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Cache primes[j] in the inner loop and hoist the array load out of the product and modulo.",
+   "currentCost": "primes[j] is loaded multiple times per inner iteration (in the product, the store, and the i%primes[j] test). Each is a pointer load the JIT may not fully CSE across the long multiply.",
+   "proposedChange": "long pj = primes[j]; long prod = (long)i * pj; if (prod > n) break; minPrime[(int)prod] = (int)pj; if (i % pj == 0) break; Also AggressiveInlining is already present; consider hoisting (long)i once.",
+   "rationale": "Removes 2 redundant loads of primes[j] per inner iteration in the linear sieve's hottest loop (executed ~n times total), shortening the load/use dependency chain.",
+   "risk": "None \u2014 pj is loop-invariant within the iteration; pure CSE. Storing (int)pj instead of primes[j] is identical since primes[j] <= n fits int."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/LinearSieveMinPrime.cs",
+   "symbol": "LinearSieveMinPrime.Run",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "The i%primes[j] division can be avoided by tracking when primes[j] divides i via the minPrime array already being computed.",
+   "currentCost": "The inner loop does a 64/32-bit modulo (i % primes[j]) every iteration \u2014 a multi-cycle division on the hot path, executed ~n times.",
+   "proposedChange": "In a min-prime linear sieve, the standard break condition 'primes[j] divides i' is equivalent to 'primes[j] == minPrime[i]' once minPrime[i] is known (i's smallest prime factor). Replace the division-based test with an equality test: break when primes[j] == minPrime[i] (the loop only proceeds while primes[j] < minPrime[i]).",
+   "rationale": "Replaces an integer division (~20-40 cycles) with a register compare (1 cycle) in the innermost loop. minPrime[i] is already set for composite i during this pass (it was written when i was first crossed off), and for prime i minPrime[i]==i.",
+   "risk": "Requires that minPrime[i] is fully resolved before the inner loop runs for i \u2014 true in the linear sieve since i's smallest factor is set when it is first marked. Must verify ordering for prime i (set to i at top of iteration). If verified, exactly semantics-preserving and a real division elimination."
+  }
+ ]
+}

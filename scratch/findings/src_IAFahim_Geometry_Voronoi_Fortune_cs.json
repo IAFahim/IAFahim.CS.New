@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Geometry.Voronoi/Fortune.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Voronoi/Fortune.cs",
+   "symbol": "Build",
+   "dimension": "ergonomics",
+   "impact": "medium",
+   "summary": "Fortune.Build is a non-functional skeleton: it copies inputs to outputs and returns n with no Voronoi/sort logic, despite AggressiveInlining and an O(N log N) claim in comments.",
+   "currentCost": "Ships an inlined no-op that misleads callers (returns vertices == input points) and the [MethodImpl(AggressiveInlining)] forces a copy loop to be inlined into every caller with zero benefit.",
+   "proposedChange": "Either implement the actual sweep or drop AggressiveInlining (a loop-of-n copy should never be force-inlined) and mark the method clearly as unimplemented. If kept as a passthrough, replace the manual copy loop with two Buffer.MemoryCopy calls for xs->outX and ys->outY.",
+   "rationale": "Buffer.MemoryCopy on blittable doubles is a single vectorized memcpy versus an element-wise scalar loop; removing AggressiveInlining avoids code-bloat at call sites for a non-hot copy.",
+   "risk": "MemoryCopy preserves exact bytes for the n doubles; behavior identical. Removing AggressiveInlining has no observable effect."
+  }
+ ]
+}

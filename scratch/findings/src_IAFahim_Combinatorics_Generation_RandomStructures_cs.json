@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Combinatorics.Generation/RandomStructures.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Combinatorics.Generation/RandomStructures.cs",
+   "symbol": "EdgeExists",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Linear edge-existence scan makes every duplicate-rejecting graph builder O(E^2); use an adjacency bitset for O(1) membership.",
+   "currentCost": "EdgeExists scans all `count` existing edges per probe. RandomConnectedGraph/RandomDAG/RandomBipartiteGraph/RandomRegular call it inside their add loops, so building m edges costs O(m^2) (or worse under rejection). For dense graphs this dominates.",
+   "proposedChange": "Maintain an adjacency presence structure: for n up to a few thousand a stackalloc bit array of n*n bits (or a packed upper-triangular bitset of n*(n-1)/2 bits) gives O(1) EdgeExists and O(1) insert. Index undirected edge (u,v) with u<v into the triangular bitset. Pass the bitset pointer through the builders.",
+   "rationale": "Turns O(m^2) construction into O(m) amortized plus O(n^2/8) bytes for the bitset \u2014 a large asymptotic win for medium/dense graphs, the regime where these builders are slow.",
+   "risk": "Extra n^2/8-byte working set (bound n to keep stackalloc safe, or require caller-supplied buffer per house convention). Must mirror the exact undirected/directed matching logic (EdgeExists treats (u,v)==(v,u) for undirected but RandomDAG is directed u<v) \u2014 use separate triangular vs full indexing per builder. Preserve the same accept/reject decisions so the emitted graph for a given seed is unchanged."
+  },
+  {
+   "file": "src/IAFahim.Combinatorics.Generation/RandomStructures.cs",
+   "symbol": "RandomRegular",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace per-element division i/d in the points-fill with an incremental counter, and guard n*d overflow.",
+   "currentCost": "`for (i=0;i<total;i++) pts[i] = i/d;` does a division each iteration. Also `int total = n*d;` and `n*d % 2` can overflow int for large n,d (silent wrong result / negative stackalloc size).",
+   "proposedChange": "Fill without division: `int val=0, cnt=0; for(int i=0;i<total;i++){ pts[i]=val; if(++cnt==d){cnt=0;val++;} }`. Compute total as `long` for the overflow check, and clamp/early-return if total exceeds a safe stackalloc bound.",
+   "rationale": "Removes a div (10-40 cycles) per of total=n*d elements, replacing it with a compare+increment. Overflow guard prevents negative stackalloc size and UB.",
+   "risk": "Division replacement is exact (i/d increments every d steps). The parity test n*d%2 must be done in long to match intended math; behavior changes only for inputs that currently already overflow (undefined today), so this is a strict robustness improvement. Keep the existing `n*d%2!=0` early-return semantics for valid inputs."
+  },
+  {
+   "file": "src/IAFahim.Combinatorics.Generation/RandomStructures.cs",
+   "symbol": "RandomErdosRenyi",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist the *edgeCount dereference and writeback out of the inner loop.",
+   "currentCost": "Inner loop dereferences `*edgeCount` repeatedly (`outFrom[*edgeCount]`, `outTo[(*edgeCount)++]`). Through a pointer the compiler may not keep this in a register across the n^2 iterations, adding load/store traffic on the hottest loop.",
+   "proposedChange": "Use a local `int ec = 0;` for the loop body and write `*edgeCount = ec;` once at the end: `if(XorShift(...)<threshold){ outFrom[ec]=i; outTo[ec]=j; ec++; }`.",
+   "rationale": "Keeps the counter in a register across the O(n^2) loop, removing a pointer load+store per accepted edge and aiding Burst vectorization/scheduling of the inner test.",
+   "risk": "None for single-threaded use (edgeCount is caller output, written once at end gives same final value). Identical emitted edges and order."
+  }
+ ]
+}

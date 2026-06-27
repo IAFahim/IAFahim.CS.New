@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Geometry.Spatial/CoverTree.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Geometry.Spatial/CoverTree.cs",
+   "symbol": "CoverTree.Nearest",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Nearest scans node indices 0..root (treating the root NODE INDEX as if it were a node count) and additionally caps the scan at index 1024, so it returns a wrong nearest neighbor for most inputs.",
+   "triggeringInput": "xs={0,5,10}, ys={0,0,0}, n=3, Build into nodes, then Nearest(nodes, root=0, qx=10, qy=0). Loop runs i<root+1=1, so only node 0 (0,0) is examined and index 0 is returned, even though node 2 (10,0) is an exact match. Likewise for n>1024 the '&& i<1024' cap silently drops all nodes at index>=1024.",
+   "rootCause": "The loop bound 'i < root + 1' assumes 'root' is a count of nodes, but the parameter is a node index (Build returns n, and callers pass a root index analogous to BallTree.Nearest). When root is the conventional root index 0, only node 0 is ever compared. The extra '&& i < 1024' literal cap is an unconditional correctness limit that truncates the search for any structure with >=1024 nodes.",
+   "suggestedFix": "Pass the node count explicitly (e.g. int n) and iterate 'for (int i = 0; i < n; i++)' with no 1024 cap, or implement an actual cover-tree descent using the Level/Next fields. Do not use the root index as a loop count."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Spatial/CoverTree.cs",
+   "symbol": "CoverTree.Nearest",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Nearest is a brute-force linear scan mislabeled as a cover-tree query; it also ignores the actual tree links (Next/Level) and silently caps at 1024 nodes, producing WRONG results beyond that.",
+   "currentCost": "O(n) scan but loop bound is 'i < root + 1', tying the search range to the numeric value of the root index rather than the node count n, plus a hard '&& i < 1024' cap. For root!=n-1 or n>1024 the answer is incorrect, not just slow.",
+   "proposedChange": "Pass the real node count n into Nearest (or iterate i<n) and remove the 1024 cap, OR implement an actual cover-tree descent using Level/Next so the query becomes sub-linear. At minimum fix the loop bound to scan all n candidates so semantics are correct before optimizing.",
+   "rationale": "A genuine cover tree gives expected O(c^12 log n) nearest-neighbor queries vs the current O(min(root+1,1024)). Even keeping brute force, scanning n instead of root+1 removes a correctness-vs-index coupling bug and the magic cap.",
+   "risk": "This changes observable output for inputs where root != n-1 or n > 1024. If the cap/root-coupling is considered 'by-design valid input', this is a behavior change; flag to owner. The Level/Next fields are currently dead (Build sets Level=0, Next=-1 and Nearest never reads them), so the struct also wastes 8 bytes/node."
+  }
+ ]
+}

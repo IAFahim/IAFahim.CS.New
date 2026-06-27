@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Graph/GraphBasic.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph/GraphBasic.cs",
+   "symbol": "AddEdge.Run / AddDirectedEdge.Run / AddWeightedEdge.Run",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Edge-add helpers take an unused `int* edgeCount` parameter, and AddEdge/AddDirectedEdge are byte-identical; AggressiveInlining is missing on these tiny hot leaves.",
+   "currentCost": "The unused `edgeCount` parameter forces callers (BuildAdjacency passes `&m`) to materialize an address and occupies an argument register on every call. Without inlining, BuildAdjacency pays a call per edge.",
+   "proposedChange": "Drop the unused edgeCount parameter, collapse AddDirectedEdge into AddEdge (identical bodies), and mark Run with [MethodImpl(MethodImplOptions.AggressiveInlining)] so BuildAdjacency's per-edge call is inlined into a few pointer writes.",
+   "rationale": "Removes a dead parameter and a redundant address-of in the build loop, and inlining a 4-statement leaf eliminates call overhead across all m edges.",
+   "risk": "Signature change is an API break for callers; mechanical. Inlining a tiny pointer-only leaf is safe and Burst-friendly. Outputs identical."
+  }
+ ]
+}

@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Math.Combinatorics/Counting.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Combinatorics/Counting.cs",
+   "symbol": "BellNumbers.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Replace per-k StirlingSecond recomputation with the O(n^2) Bell triangle.",
+   "currentCost": "Loops k=0..n calling StirlingSecond.Run(n,k,...), and each call is itself an O(n*k) DP over a stackalloc array. Net cost is roughly O(n^3) and it rebuilds the same Stirling table n+1 times.",
+   "proposedChange": "Use the Bell triangle: stackalloc one row of length n+1, row[0]=prevLast; B(n) via the recurrence row[j] = (row[j-1] + prev[j-1]) % mod. Yields all Bell numbers up to n in O(n^2) time, O(n) space.",
+   "rationale": "Drops an entire factor of n and removes n+1 redundant full DP reconstructions plus n+1 stackalloc/zeroing passes. Same modular result.",
+   "risk": "Bell triangle arithmetic is all additions mod mod, no inverses, so it is valid for any mod (broader than current). Need one row buffer of n+1 longs via stackalloc, consistent with house rules."
+  },
+  {
+   "file": "src/IAFahim.Math.Combinatorics/Counting.cs",
+   "symbol": "Catalan.Run / MultisetPermutations.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Defer modular inversion: divide once at the end instead of per loop iteration.",
+   "currentCost": "Catalan calls MathHelper.ModInverse (ExtGcd, O(log mod)) every k from 2..n; MultisetPermutations calls it once per group but builds factC redundantly. Both interleave O(log mod) inversions into otherwise O(1) steps.",
+   "proposedChange": "Catalan: accumulate num = prod(n+k) and den = prod(k) mod mod, then result = num * ModInverse(den,mod) % mod once. MultisetPermutations: accumulate the product of all per-group factorials into one denominator, then a single ModInverse.",
+   "rationale": "Reduces n (resp. k) modular inversions to exactly one, cutting an O(n log mod) loop to O(n) plus one inversion. Shorter dependency chain, less recursion.",
+   "risk": "Requires den coprime to mod (mod prime), which these prime-mod APIs already assume. Products stay reduced mod mod each step so no overflow beyond existing result*x pattern for mod < 2^31."
+  },
+  {
+   "file": "src/IAFahim.Math.Combinatorics/Counting.cs",
+   "symbol": "StirlingFirst.Run / StirlingSecond.Run / PartitionNumbers.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Drop the explicit zeroing loop after stackalloc by combining with init, and hoist invariant (i-1)/j multiplier handling.",
+   "currentCost": "Each does a full `for i<=k: s[i]=0` pass before seeding s[0]=1; the inner DP then reads s[j-1]. The zeroing pass is a separate O(k) sweep over the buffer.",
+   "proposedChange": "stackalloc then a single init that sets s[0]=1 and s[1..k]=0 in one pass (or use Unsafe.InitBlock-style clear), and in StirlingFirst hoist the loop-invariant (i-1) into a local once per i (already a local via i, but ensure (i-1)%mod isn't recomputed). Reuse one cleared buffer.",
+   "rationale": "Removes a redundant pass over the working set (better cache behavior) and avoids recomputing invariants; minor but free.",
+   "risk": "Must preserve s[0] reset to 0 inside the i-loop (the recurrence relies on s[0]=0 for i>=1 except the seed). Keep that semantics exactly."
+  }
+ ]
+}

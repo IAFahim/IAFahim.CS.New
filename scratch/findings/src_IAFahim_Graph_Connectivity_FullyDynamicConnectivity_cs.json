@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Graph.Connectivity/FullyDynamicConnectivity.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Connectivity/FullyDynamicConnectivity.cs",
+   "symbol": "EdgeEvent.CompareTo",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "CompareTo calls int.CompareTo four times (each a method call returning -1/0/1) inside the quicksort hot path.",
+   "currentCost": "Each int.CompareTo is a branch returning a normalized sign; the sort calls CompareTo O(q log q) times and only ever checks <0 / >0, so the normalization is wasted work and the four sub-calls add call overhead Burst may not fully inline.",
+   "proposedChange": "Inline the comparisons with plain subtraction-free branch chain: 'if (U != o.U) return U < o.U ? -1 : 1;' etc., avoiding the nested int.CompareTo calls. Better: since the sort only needs ordering, provide a branch-lean comparator. Also note SortEdgeEvents could compare on a packed key. If U,V,Type,Time all fit known bit-widths, pack into a single long key (e.g. (U<<48)|(V<<32)|(Type<<? )...) and compare longs in one instruction, eliminating the four-field chain entirely.",
+   "rationale": "Removing four method calls per comparison and replacing the multi-field chain with a single packed-long compare cuts the comparator to one or two instructions, directly reducing the dominant cost of an O(q log q) sort.",
+   "risk": "Packing requires that each field fits its allotted bits (e.g. node ids < 2^16, Time < 2^32); must assert/guarantee bounds or the key ordering breaks. Inlining U<o.U is exact and signed-safe for int. Time tie-break must remain last in the packed order to preserve the existing total order."
+  },
+  {
+   "file": "src/IAFahim.Graph.Connectivity/FullyDynamicConnectivity.cs",
+   "symbol": "SortEdgeEvents",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Plain quicksort with median-of-one (middle element) pivot has O(q^2) worst case and recurses on both partitions without tail-elimination on the larger side.",
+   "currentCost": "Adversarial or already-sorted-with-duplicates inputs (common here: many equal U,V keys) can degrade toward O(q^2); recursion depth can reach O(q) causing stack pressure on mobile.",
+   "proposedChange": "Recurse into the smaller partition and loop on the larger (tail-call elimination) to bound stack depth to O(log q). Optionally add an insertion-sort cutoff for small subranges (<= 16) to cut overhead. Since the data is keyed and bounded, an LSD radix sort on the packed long key would give O(q) deterministic time and is fully Burst-vectorizable/branchless.",
+   "rationale": "Tail elimination caps recursion stack; insertion-sort cutoff removes quicksort overhead on tiny ranges; radix on a packed key removes comparison branches entirely and is linear, which matters when q is large and keys are dense/duplicated (the worst case for this pivot).",
+   "risk": "Radix needs a scratch buffer (RAM) and a stable pass to preserve the Time tie-break ordering; must verify stability to keep identical output order where keys tie. Tail-elimination and insertion cutoff are behavior-preserving."
+  },
+  {
+   "file": "src/IAFahim.Graph.Connectivity/FullyDynamicConnectivity.cs",
+   "symbol": "MatchEvents",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "MatchEvents repeatedly dereferences sorted[i].U/.V/.Id inside the inner scan and reloads sorted[i] fields each j iteration.",
+   "currentCost": "Inner loop condition reloads sorted[i].U and sorted[i].V every iteration and indexes sorted[j] plus match[sorted[j].Id]; the struct is 20 bytes so each access is a non-trivial load.",
+   "proposedChange": "Hoist 'int ui=sorted[i].U, vi=sorted[i].V, idi=sorted[i].Id;' before the inner loop and compare against those locals. Cache 'EdgeEvent ej = sorted[j];' once per inner iteration to avoid multiple pointer-indexed field loads.",
+   "rationale": "Hoisting loop-invariant field loads removes redundant memory reads from the inner comparison chain; register-resident comparands shorten the dependency chain and help Burst keep the loop tight.",
+   "risk": "None; sorted[i] is not modified inside the loop, so caching its fields is exact."
+  },
+  {
+   "file": "src/IAFahim.Graph.Connectivity/FullyDynamicConnectivity.cs",
+   "symbol": "EdgeEvent",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "EdgeEvent stores Time and Id as separate ints but InitializeEvents always sets Time==Id (both = i).",
+   "currentCost": "20-byte struct with a redundant field; the sort copies q*20 bytes (scratchE -> scratchS) and the comparator carries an extra field. Id and Time are identical at construction.",
+   "proposedChange": "Drop the duplicate field and use the single index for both roles (it is set to i in both places and MatchEvents/BuildIntervals use them interchangeably as the original query index). Struct shrinks to 16 bytes, improving cache density and halving... reducing the memcopy and making EdgeEvent a clean 16-byte (4xint) blittable that may pack into SIMD lanes.",
+   "rationale": "16 bytes vs 20 improves array density (more events per cache line: 4 vs 3 per 64B line) and cuts the Buffer.MemoryCopy volume; fewer fields also simplifies the comparator. Confirm Time and Id are never assigned different values anywhere before removing.",
+   "risk": "Must verify no code path sets Time != Id; in the shown code both are i. If any caller or helper relies on them diverging this breaks \u2014 guard by auditing all writers before merging the fields."
+  }
+ ]
+}

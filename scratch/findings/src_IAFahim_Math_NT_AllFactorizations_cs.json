@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Math.NT/AllFactorizations.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/AllFactorizations.cs",
+   "symbol": "AllFactorizations.Generate",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The trial-division loop uses 'd*d <= currentN' and a separate '%' then '/'; combine and strength-reduce, and reuse the quotient to avoid a redundant division.",
+   "currentCost": "Each candidate d does a multiply (d*d) for the bound, a modulo (currentN % d), and on a hit a separate division (currentN / d) \u2014 i.e. a divide plus a separate modulo (two expensive 64-bit div ops) for divisors that hit.",
+   "proposedChange": "Compute long q = currentN / d; long r = currentN - q*d; once per d (single div + mul-sub gives both quotient and remainder), test r==0, and pass q directly into the recursive call. Keep d*d bound or precompute the loop limit via an integer sqrt to avoid the per-iteration multiply.",
+   "rationale": "64-bit integer division is the dominant cost; fusing div+mod into one division plus a multiply-subtract removes one full divide on every successful factor, and reusing q removes the second division in the recursion argument. Optionally hoisting an isqrt bound removes the per-iteration multiply.",
+   "risk": "currentN and d are positive here (n>1, minFactor>=2), so q*d cannot overflow within range and r==0 test is exact. Pure refactor preserving outputs and traversal order."
+  }
+ ]
+}

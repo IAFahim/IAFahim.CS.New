@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.String.Compress/MoveToFront.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Compress/MoveToFront.cs",
+   "symbol": "MoveToFront.Encode / MoveToFront.Decode",
+   "dimension": "burst",
+   "impact": "high",
+   "summary": "Replace Marshal.AllocHGlobal/FreeHGlobal scratch list with stackalloc; the P/Invoke heap calls defeat Burst and add per-call overhead",
+   "currentCost": "Two managed P/Invoke transitions (AllocHGlobal + FreeHGlobal) per call. These are managed-runtime calls that Burst cannot compile, forcing the whole method onto the non-Burst path. Also a heap allocation + free on every invocation (latency, fragmentation, no caller pooling).",
+   "proposedChange": "Since `list` holds values `(byte)i` for i in [0,sigma) and is indexed by byte symbols, sigma is provably <= 256. Use `byte* list = stackalloc byte[256];` (or stackalloc byte[sigma] if Burst allows variable-length; fixed 256 is safest/blittable) and drop both Marshal calls. The list never escapes the function.",
+   "rationale": "stackalloc is a single stack-pointer bump (effectively free) versus a heap alloc/free pair, and it keeps the method Burst-compilable and branch/exception-free. 256 bytes on the stack is trivial and fully within one cache line set, improving locality vs. a fresh heap block.",
+   "risk": "sigma must be <= 256 (guaranteed: list values are byte and inputs index it as byte, so any sigma>256 is already semantically broken/truncating in current code). Using a fixed 256 wastes a few bytes when sigma is smaller but is fully safe and avoids variable-length-stackalloc concerns under Burst."
+  },
+  {
+   "file": "src/IAFahim.String.Compress/MoveToFront.cs",
+   "symbol": "MoveToFront.Encode / MoveToFront.Decode (inner shift loop)",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace the byte-at-a-time backward shift loop with a single overlapping memmove (Buffer.MemoryCopy)",
+   "currentCost": "`for (int j = pos; j > 0; j--) list[j] = list[j-1];` is `pos` dependent load/store iterations with a per-byte loop branch and a serial dependency chain; for large alphabets and high positions this dominates.",
+   "proposedChange": "Shift `list[0..pos-1]` up by one with a single overlapping move: `Buffer.MemoryCopy(list, list + 1, sigma - 1, pos);` then `list[0] = symbol;`. (Direction is high-to-low / non-overlapping-destructive but MemoryCopy handles overlap correctly for dst>src copying low->... use the overlap-safe move semantics.)",
+   "rationale": "Collapses `pos` scalar iterations into one bulk move the JIT/Burst can vectorize, removing the per-element loop branch and shortening the dependency chain. For typical MTF where recently-used symbols cluster near front pos is small, but the worst case (cold symbols, pos~sigma) becomes a single SIMD-friendly copy.",
+   "risk": "Buffer.MemoryCopy is a managed BCL method and may not be Burst-intrinsic; under Burst prefer UnsafeUtility.MemMove. Overlap direction must be handled (dst = src+1 overlapping forward); use a guaranteed overlap-safe memmove, not memcpy. If neither memmove intrinsic is available under Burst, keep the scalar loop. Net: only apply if an overlap-safe, Burst-friendly move primitive exists in the project."
+  },
+  {
+   "file": "src/IAFahim.String.Compress/MoveToFront.cs",
+   "symbol": "MoveToFront.Encode",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Inconsistent AggressiveInlining: Encode is marked, Decode is not, and neither is a hot leaf",
+   "currentCost": "Encode carries [MethodImpl(AggressiveInlining)] but is a multi-loop, allocation-bearing method \u2014 inlining it bloats the caller with no benefit and is asymmetric with Decode which has no attribute. Inconsistent API surface.",
+   "proposedChange": "Either remove AggressiveInlining from Encode (it is not a small leaf), or add it to Decode for symmetry. Recommended: remove from both; let the compiler decide for these larger routines.",
+   "rationale": "Inlining large bodies increases instruction-cache pressure at every call site without speeding the inner loops (the cost is in the O(len*sigma) loops, not call overhead). Consistency aids discoverability and avoids surprising codegen.",
+   "risk": "None semantically; purely codegen-size/consistency. Verify no caller relies on inlining for a measured win (unlikely given the body size)."
+  },
+  {
+   "file": "src/IAFahim.String.Compress/MoveToFront.cs",
+   "symbol": "MoveToFront.Encode (init + search)",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "List-initialization loop is loop-invariant per call and the linear search rescans from 0 each symbol; both are inherent O(sigma) but the init can use a fill primitive",
+   "currentCost": "`for (i=0;i<sigma;i++) list[i]=(byte)i;` is a scalar identity fill each call. The encode search `while (list[pos]!=input[i]) pos++;` is an unavoidable O(pos) probe but the cast `(byte)pos` and reload of input[i] in the shift epilogue are minor redundancies.",
+   "proposedChange": "Hoist `byte sym = input[i];` once per outer iteration and reuse it for the compare, output, and `list[0]=sym` (avoids reloading input[i] after pointer-aliasing the compiler may not prove non-aliased with output). The identity-fill is fundamental; leave as-is or keep scalar (Burst vectorizes the simple `(byte)i` pattern poorly anyway).",
+   "rationale": "Caching `input[i]` in a local removes a potential reload that the compiler cannot elide because `output` and `input` are unrelated pointers it must assume may alias `list` writes; the local breaks that conservative reload.",
+   "risk": "None \u2014 `input[i]` does not change within the iteration (input and list/output are distinct buffers by contract). Purely removes a redundant load."
+  }
+ ]
+}

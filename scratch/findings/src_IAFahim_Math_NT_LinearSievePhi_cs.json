@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Math.NT/LinearSievePhi.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/LinearSievePhi.cs",
+   "symbol": "LinearSievePhi.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist primes[j] and replace the i%primes[j] division with the smallest-prime-factor equality test, mirroring the min-prime sieve.",
+   "currentCost": "Inner loop reloads primes[j] up to 3 times and performs i%primes[j] every iteration (~n total divisions).",
+   "proposedChange": "long pj = primes[j] cached; and track minPrime separately or note that the break occurs exactly when pj is the smallest prime factor of i. If a min-prime array isn't maintained here, at minimum cache pj to remove redundant loads. Optionally fuse with the min-prime variant to share the spf to drop the division.",
+   "rationale": "Eliminates redundant loads and (if spf tracked) a division per inner iteration in the hot loop.",
+   "risk": "The division-elimination requires tracking spf which adds an int* array; if not maintained, only the load-CSE part applies (zero risk). The pj caching is unconditionally safe."
+  }
+ ]
+}

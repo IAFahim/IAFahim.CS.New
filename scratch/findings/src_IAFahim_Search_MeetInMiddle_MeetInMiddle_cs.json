@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Search.MeetInMiddle/MeetInMiddle.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.MeetInMiddle/MeetInMiddle.cs",
+   "symbol": "SortLongs",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Replace O(n^2) insertion sort of the right half with an O(n log n) sort; it is the asymptotic bottleneck of the whole algorithm.",
+   "currentCost": "Insertion sort is O(rightCount^2) = O(4^(len-half)). For len=40, rightCount=2^20 (~1.05M) and the sort performs on the order of 10^12 comparisons/moves, dwarfing the O(2^(len-half)*(len-half)) enumeration and O(2^half*log) query phases. Meet-in-the-middle's entire value (turning 2^n into ~2^(n/2)) is destroyed by an O(4^(n/2)) sort, making it effectively O(2^n) again.",
+   "proposedChange": "Implement an in-place iterative (non-recursive, to stay Burst/stack-friendly) heapsort or bottom-up mergesort over long*. Heapsort needs no scratch buffer and is fully in-place: sift-down to build the heap, then repeatedly swap arr[0] with arr[i--] and sift-down. This keeps the stackalloc layout unchanged and restores true O(rightCount*log rightCount).",
+   "rationale": "O(n log n) vs O(n^2): for n=2^20 that is ~20*n vs n^2, a ~50000x reduction in the dominant term. This single change moves the method from impractical to practical for len in the 30-40 range, which is exactly the regime meet-in-the-middle targets.",
+   "risk": "Must produce a fully ascending order identical to insertion sort so the subsequent LowerBoundLong/UpperBoundLong binary searches remain valid (they require sorted input). Heapsort/mergesort are not stable, but stability is irrelevant here since only values (not original indices) are compared. Use iterative heapsort (no recursion) to avoid Burst stack-depth/recursion concerns. No signed/overflow caveats."
+  },
+  {
+   "file": "src/IAFahim.Search.MeetInMiddle/MeetInMiddle.cs",
+   "symbol": "SubsetSumCount",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Build the left and right subset-sum tables incrementally (DP over the lowest set bit) instead of recomputing each subset sum from scratch.",
+   "currentCost": "For each of 2^k masks the inner loop scans all k bits (testing (mask & (1<<i)) and branching), giving O(k*2^k) adds/branches per half, with a data-dependent branch per bit that mispredicts often.",
+   "proposedChange": "Set sums[0]=0, then for mask=1..count-1: long low = mask & (-mask); int bit = trailing-zero-count(low); sums[mask] = sums[mask ^ (int)low] + values[base + bit];. mask ^ low < mask so the dependency is already filled. Get the bit index via Unity.Mathematics math.tzcnt or a 64-entry De Bruijn lookup table (constant, blittable) to stay Burst-friendly.",
+   "rationale": "Reduces table construction from O(k*2^k) to O(2^k): exactly one load, one add, one store per mask, with no per-bit inner loop and no data-dependent branch. Removes the (1<<i) shift and the masked-branch entirely, shrinking the dependency chain and eliminating branch mispredicts. Applies to both the left and right enumeration loops.",
+   "risk": "mask & (-mask) is the standard lowest-set-bit idiom and is correct for the positive int range used here (mask>=1, count<=2^(len-half) fits in int as long as len<=~60). tzcnt of a power of two is exact. Semantics identical (same multiset of subset sums, just produced in a different mask order, which does not matter because the right table is sorted and the left table is only iterated). De Bruijn table must be marked const/static readonly blittable to avoid managed access under Burst."
+  },
+  {
+   "file": "src/IAFahim.Search.MeetInMiddle/MeetInMiddle.cs",
+   "symbol": "HasSubsetSum",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Same incremental subset-sum table construction as SubsetSumCount, and the two methods duplicate the entire enumeration+sort body.",
+   "currentCost": "Identical O(k*2^k) per-bit recomputation as SubsetSumCount, plus full source duplication of the left/right build and sort across both public methods (maintenance/code-size cost, and Burst compiles two large copies).",
+   "proposedChange": "Apply the same lowest-set-bit incremental DP. Additionally factor the shared 'enumerate halves + sort right' work into one private static helper (e.g. BuildTables(int* values,int len,long** leftOut,int* leftCountOut,long** rightOut,int* rightCountOut) operating on caller-provided stackalloc, since stackalloc cannot be returned across frames) so both Count and Has reuse one implementation.",
+   "rationale": "Cuts table build to O(2^k) as above, and removes a full duplicate of the hot enumeration/sort path. Since stackalloc must live in the public method's frame, the helper should take the two buffers as parameters and only fill them, preserving the no-heap/no-managed contract.",
+   "risk": "Refactor must keep the buffers stackalloc'd in the public caller (stackalloc cannot escape its frame). Observable behavior unchanged; HasSubsetSum still short-circuits on first match. No overflow/signedness change."
+  },
+  {
+   "file": "src/IAFahim.Search.MeetInMiddle/MeetInMiddle.cs",
+   "symbol": "SubsetSumCount",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Per-left-element double binary search (LowerBound + UpperBound) can be merged, and the equal-range count can avoid two independent O(log n) descents.",
+   "currentCost": "For each of 2^half left masks the code does TWO full binary searches over rightSums (LowerBoundLong then UpperBoundLong), i.e. 2*log2(rightCount) comparisons per left element.",
+   "proposedChange": "Either (a) compute lo once with LowerBoundLong, then run UpperBoundLong restricted to the subrange [lo,len) so the second search is over a smaller window; or (b) since target-leftSums[i] is monotonic as leftSums is also sorted, sort leftSums too and sweep both arrays with two monotone pointers in O(2^half + 2^(len-half)) total instead of O(2^half * log).",
+   "rationale": "Option (b) replaces the O(2^half * log(2^(len-half))) query phase with a single linear two-pointer merge after sorting both halves, removing the log factor entirely and turning random binary-search memory access (cache-unfriendly) into two sequential streaming scans (cache- and prefetch-friendly, Burst-vectorizable comparisons).",
+   "risk": "Two-pointer requires leftSums sorted ascending; since rem = target - leftSums[i] decreases as leftSums increases, the matching window in rightSums moves monotonically, so a classic descending/ascending sweep is valid. Must handle duplicate sums on both sides correctly when counting (multiply run-lengths). Adds an O(2^half log) sort of the left side, which is still asymptotically below the right-side sort, so net complexity does not regress."
+  },
+  {
+   "file": "src/IAFahim.Search.MeetInMiddle/MeetInMiddle.cs",
+   "symbol": "SubsetSumCount",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "AggressiveInlining on the two large public methods (and on the loop-heavy SortLongs) is counterproductive.",
+   "currentCost": "[MethodImpl(AggressiveInlining)] on SubsetSumCount/HasSubsetSum forces inlining of methods containing stackalloc and nested loops into every call site, bloating caller code size, hurting i-cache, and providing no leaf-call benefit. SortLongs is a loop body, not a leaf, so inlining it is also wasted.",
+   "proposedChange": "Remove AggressiveInlining from SubsetSumCount, HasSubsetSum, and SortLongs. Keep it only on the genuine hot leaves LowerBoundLong/UpperBoundLong (and any new tzcnt helper), where inlining into the per-element query loop actually removes call overhead.",
+   "rationale": "Inlining helps tiny hot leaves called in tight loops; it hurts large frames (code bloat, register pressure, i-cache pressure). Stackalloc-bearing methods especially should not be force-inlined into callers. Right-sizing inlining improves overall i-cache behavior under Burst without changing semantics.",
+   "risk": "Pure compilation-hint change; no observable behavior change. Burst may already ignore the attribute, but removing it documents intent and avoids pessimization on the managed/Mono path used in tests."
+  }
+ ]
+}

@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Graph.Matching/AssignmentHungarianRectangular.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Matching/AssignmentHungarianRectangular.cs",
+   "symbol": "AssignmentHungarianRectangular.Run",
+   "severity": "high",
+   "category": "logic",
+   "summary": "Run is an unimplemented stub: it only initializes matchLeft[]/matchRight[] to -1 and computes no assignment. For any cost matrix it returns an empty matching, which is wrong whenever an assignment of positive size exists.",
+   "triggeringInput": "cost (n*m row-major) = {1,2, 2,1}, n=2, m=2, matchLeft=stackalloc int[2], matchRight=stackalloc int[2]. Expected optimal assignment matchLeft[0]=0, matchLeft[1]=1; actual leaves all entries -1.",
+   "rootCause": "The rectangular Hungarian algorithm body is missing; only the -1 initialization loops are present.",
+   "suggestedFix": "Implement the O(n^2 m) Hungarian (Jonker-Volgenant style) on the n x m cost matrix, padding to square or handling the rectangular case, and write the resulting assignment into matchLeft/matchRight."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Matching/AssignmentHungarianRectangular.cs",
+   "symbol": "Run",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Stub: only initializes matchLeft/matchRight to -1; the Hungarian rectangular algorithm body is unimplemented.",
+   "currentCost": "Two O(n)/O(m) init loops and no solving work; cost parameter unused.",
+   "proposedChange": "Implement the Jonker-Volgenant / Hungarian core, or document as init-only. The two init loops are over different lengths (n vs m) and cannot be fused unless min/max handled; leave as-is.",
+   "rationale": "Primary signal is the missing algorithm; no micro-opt available on a pure two-loop initializer beyond what Burst already does.",
+   "risk": "Implementing changes observable outputs by design; nothing to optimize in the current no-op safely."
+  }
+ ]
+}

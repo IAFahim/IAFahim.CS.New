@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Detour/DtNavMeshData.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/DtNavMeshData.cs",
+   "symbol": "Polygons / Links / DetailMeshes / ... section accessors",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Each section pointer getter re-reads this.Header and re-derives all prior section offsets, so chained access in AddTile recomputes the same prefix repeatedly.",
+   "currentCost": "Properties chain: Polygons reads Vertices (which reads Header), Links reads Polygons, DetailMeshes reads Links+Header, etc. In AddTile (DtNavMesh.cs ~310-318) eight section pointers are fetched in sequence; because each getter recomputes the whole prefix from data+header fields, the same header field loads and pointer arithmetic are repeated O(sections^2) times. Header is `(DtMeshHeader*)data` re-cast each time.",
+   "proposedChange": "Add a single method `void GetSections(out float3* verts, out DtPoly* polys, ...)` (or have AddTile compute the running offset once) that walks the layout linearly with one accumulating pointer, assigning all eight tile fields in one pass. Keep the individual properties for ergonomic single-field access. AddTile is one-shot per tile load, so impact is small but it removes quadratic offset recompute and repeated header dereferences.",
+   "rationale": "Single linear pass computes each section base from the previous one with one add, instead of re-deriving the prefix per property. Fewer header loads, fewer multiplies, smaller code at the call site.",
+   "risk": "Layout order must match exactly the existing property chain (verts, polys, links, detailMeshes, detailVerts, detailTris, bvTree, offMeshCons). Any mismatch corrupts tile pointers \u2014 mechanical but verify against the property definitions."
+  }
+ ]
+}

@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Math.SphericalHarmonics/SHEvaluation.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.SphericalHarmonics/SHEvaluation.cs",
+   "symbol": "ProjectL2",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Fuse basis evaluation directly into the accumulation loop to eliminate the stackalloc scratch buffer round-trip and the redundant constant store.",
+   "currentCost": "Per sample: EvaluateL2 writes 9 floats to a stackalloc buffer, then an inner j-loop reads them back and does 9 FMAs. That's an extra 9 stores + 9 loads per sample plus a store/load dependency chain that blocks the FMA from issuing until the basis store retires. For sampleCount samples this is 9*sampleCount redundant memory ops.",
+   "proposedChange": "Drop 'float* basis = stackalloc float[9]'. Inside the per-sample loop, compute v = values[i], x/y/z from directions[i], then directly accumulate: outCoeffs[0] += v*0.28209479f; outCoeffs[1] += v*(-0.48860251f*y); ... outCoeffs[8] += v*0.54627421f*(x*x - y*y). This inlines BasisLxMy without the scratch buffer.",
+   "rationale": "Removes 9 stores + 9 loads per sample and the store-to-load forwarding stall, letting the FMA chain issue from registers. Same float arithmetic in the same order preserves bit-exact results.",
+   "risk": "Must preserve evaluation order of the multiply (value*basis) and the exact float constants to keep bit-identical output. The constant BasisL0M0 term 0.28209479f*v replaces the buffered constant; identical result. No semantic change."
+  },
+  {
+   "file": "src/IAFahim.Math.SphericalHarmonics/SHEvaluation.cs",
+   "symbol": "EvalL2",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Inline basis evaluation into the dot product to remove the stackalloc buffer and store/load round-trip on this AggressiveInlining hot leaf.",
+   "currentCost": "Writes 9 basis floats to stackalloc, then loops reading them back for 9 FMAs. This is a hot, inlined evaluation path (typical per-pixel/per-probe shading); the scratch buffer adds 9 stores + 9 loads and a store-to-load dependency before the dot product can begin.",
+   "proposedChange": "Compute x/y/z once and form the result directly: float result = coeffs[0]*0.28209479f + coeffs[1]*(-0.48860251f*y) + coeffs[2]*(0.48860251f*z) + coeffs[3]*(-0.48860251f*x) + coeffs[4]*(1.09254843f*x*y) + coeffs[5]*(-1.09254843f*y*z) + coeffs[6]*(0.31539157f*(3.0f*z*z-1.0f)) + coeffs[7]*(-1.09254843f*x*z) + coeffs[8]*(0.54627421f*(x*x-y*y)); No stackalloc needed.",
+   "rationale": "Eliminates the scratch buffer entirely so the whole evaluation stays in registers, shortens the dependency chain, and lets Burst fold/vectorize the FMA tree. With AggressiveInlining at call sites this removes a stack frame's scratch traffic per call.",
+   "risk": "Floating point is not associative; to stay bit-exact keep the same left-to-right accumulation order as the current i-loop (result += coeffs[i]*basis[i] for i=0..8). Writing it as a single + expression must respect that ordering, or accept the tiny ULP difference. State as left-associative sum to be safe."
+  },
+  {
+   "file": "src/IAFahim.Math.SphericalHarmonics/SHEvaluation.cs",
+   "symbol": "ProjectL2",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Replace magic literals/loop bounds with named constants for the L2 coefficient count and the 4*Pi normalization.",
+   "currentCost": "The literal 9 appears in four loops and 4.0f*Pi is recomputed inline; the coefficient count is implicit and the normalization constant is unnamed.",
+   "proposedChange": "Add private const int CoeffCountL2 = 9; and private const float FourPi = 12.5663706f; (or 4.0f*Pi folded by the compiler). Use CoeffCountL2 in all loop bounds and weight = FourPi / (float)sampleCount.",
+   "rationale": "Improves discoverability and prevents drift if higher SH bands are added later; the compiler already folds 4.0f*Pi so no perf change, this is purely clarity within house style (named constants).",
+   "risk": "None \u2014 pure refactor, identical codegen. 4.0f*Pi already constant-folds so the float value is unchanged."
+  },
+  {
+   "file": "src/IAFahim.Math.SphericalHarmonics/SHEvaluation.cs",
+   "symbol": "BasisL1M1",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "The per-band Basis* helpers accept unused x/y/z parameters (e.g. BasisL1M1 uses only y, BasisL2M0 uses only z), passed by value every call.",
+   "currentCost": "Each call passes 3 floats even when 1-2 are unused. With AggressiveInlining the dead args are optimized away at the EvaluateL2 call site, so cost is effectively zero there; but the uniform signature can mislead and prevents using these as function pointers efficiently.",
+   "proposedChange": "Keep the uniform (x,y,z) signature ONLY if function-pointer dispatch over a table is intended; otherwise these helpers are already fully inlined by EvaluateL2 and the unused params are free. No change needed unless a fn-pointer table is desired \u2014 in which case the uniform signature is correct and this is optimal.",
+   "rationale": "Documents that the apparent redundancy is harmless under inlining; flags it as already-optimal rather than inventing a rewrite. Burst/JIT drops unused inlined args.",
+   "risk": "None. Changing signatures would break the uniform table-dispatch use case; leaving as-is is correct. Reported for completeness, not as an action item."
+  }
+ ]
+}

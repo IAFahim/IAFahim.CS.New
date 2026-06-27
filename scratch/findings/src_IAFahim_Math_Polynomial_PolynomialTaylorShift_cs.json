@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Math.Polynomial/PolynomialTaylorShift.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.Polynomial/PolynomialTaylorShift.cs",
+   "symbol": "PolynomialTaylorShift.Run",
+   "severity": "high",
+   "category": "edge-case",
+   "summary": "For n == 0 the convolution buffer is allocated as `stackalloc long[2 * n - 1]` = `stackalloc long[-1]`, a negative stackalloc size which is undefined behavior / crash. An empty polynomial (n==0) is a natural, representable input that the rest of the polynomial suite handles as a no-op (e.g. PolynomialAdd Empty_NoOp), but here it produces UB before any work is done.",
+   "triggeringInput": "a = (any pointer, e.g. null), n = 0, c = 5, mod = 1000000007, fact/invFact = valid pointers. Line 19 evaluates `stackalloc long[2*0 - 1]` = `stackalloc long[-1]`.",
+   "rootCause": "The output/convolution length `2 * n - 1` is only valid for n >= 1; for n == 0 it underflows to -1, and `stackalloc` with a negative element count is undefined behavior (typically StackOverflow/AccessViolation rather than a clean empty allocation).",
+   "suggestedFix": "Guard the empty case at the top of the method: `if (n <= 0) return;` (the function is a no-op for an empty polynomial). This also protects line 11's `stackalloc long[n]` is fine for 0, but line 19 must never see a negative size."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Polynomial/PolynomialTaylorShift.cs",
+   "symbol": "PolynomialTaylorShift.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "The core of the Taylor shift is an O(n^2) schoolbook convolution (lines 21-23). The standard, well-known result is that a Taylor shift reduces to a single polynomial multiplication, which can be computed in O(n log n) via NTT under the modulus. For any non-trivial n this is the dominant cost and the single biggest win available.",
+   "currentCost": "Nested i,j loop over n*n iterations, each doing one 64-bit multiply, one add, and one `% mod`. ~n^2 multiplies plus n^2 modulo operations (the most expensive integer op on most targets).",
+   "proposedChange": "Replace the double loop with an NTT-based convolution: forward-transform `a[0..n)` and `b[0..n)` (zero-padded to the next power of two >= 2n-1), pointwise-multiply, inverse-transform, then read res[n-1+i]. Requires `mod` to be NTT-friendly (e.g. 998244353) or a Montgomery/Barrett-reduced NTT; gate behind a separate RunNtt entry if `mod` is not guaranteed friendly so the existing Run stays a fallback for arbitrary mod.",
+   "rationale": "O(n^2) -> O(n log n). For n in the hundreds-to-thousands this is 1-2 orders of magnitude fewer multiplies and modulos; the inner loop's data-dependent `res[i+j]` accumulation (which also serializes) is replaced by vectorizable transform passes.",
+   "risk": "Correctness depends on `mod` being NTT-amenable and on the convolution length not overflowing the chosen NTT prime; arbitrary `mod` would need CRT with multiple primes or stay on the schoolbook path. Behavior must remain identical for all valid inputs, so this should be an additional method, not a silent replacement of Run."
+  },
+  {
+   "file": "src/IAFahim.Math.Polynomial/PolynomialTaylorShift.cs",
+   "symbol": "PolynomialTaylorShift.Run",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "The result buffer `res` is sized 2*n-1 (line 19) but only indices [0 .. 2n-2] are written and only [n-1 .. 2n-2] are ever read back (line 26). The convolution only needs the high half. By restricting the convolution to the indices that contribute to res[n-1 .. 2n-2], you halve both the scratch buffer and the inner-loop work.",
+   "currentCost": "stackalloc of (2n-1) longs = ~16n bytes of stack, fully zeroed (line 20, n*2 stores), and the full triangular convolution computes the entire low half [0..n-2] that is then discarded.",
+   "proposedChange": "Only compute output indices s = n-1 .. 2n-2. For each output s, accumulate sum over i+j=s of a[i]*b[j]. This needs no separate res buffer of size 2n-1; use a single `long acc` per output index and write directly: `a[i] = (acc % mod) * invFact[i] % mod` after the inner accumulation, or a scratch of only n longs. Halves stack to ~8n bytes and skips the zeroing pass.",
+   "rationale": "Roughly halves the modulo/multiply count (only the upper triangle that reaches s>=n-1 matters) and halves stack working set, improving cache residency on mobile where stack pressure and L1 footprint matter. Also removes the n*2-store zero-init pass entirely.",
+   "risk": "Must keep the running accumulator from overflowing 64 bits before reduction: a[i]*b[j] with both reduced mod `mod` can be up to (mod-1)^2; summing up to n of them overflows int64 if mod is large. Add a `% mod` (or 128-bit/__int128-style reduction) inside the accumulation exactly as the current code reduces every step, to preserve both correctness and the no-overflow guarantee."
+  },
+  {
+   "file": "src/IAFahim.Math.Polynomial/PolynomialTaylorShift.cs",
+   "symbol": "PolynomialTaylorShift.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Loop-bound `2 * n - 1` is recomputed in both the zero-init loop header (line 20) and the convolution-size expression (line 19). Hoist `2*n-1` and `n-1` into named locals once; minor but real, and clarifies intent.",
+   "currentCost": "`2 * n - 1` evaluated in the stackalloc size and again as the loop condition each iteration of the zero-init loop; `n - 1 + i` and `n - 1 - i` recomputed per iteration in lines 15, 26.",
+   "proposedChange": "Introduce `int m = 2 * n - 1;` and `int nm1 = n - 1;` once at the top and reuse. The compiler/Burst likely already does loop-invariant code motion, so treat this as a clarity/consistency change with at most a tiny cycle benefit.",
+   "rationale": "Removes repeated address/index arithmetic from loop headers; mostly defensive since Burst usually hoists these. Low cycle value on its own.",
+   "risk": "None; purely arithmetic-equivalent. If the bigger complexity/ram changes are adopted this becomes moot."
+  },
+  {
+   "file": "src/IAFahim.Math.Polynomial/PolynomialTaylorShift.cs",
+   "symbol": "PolynomialTaylorShift.Run",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Run takes precomputed `fact`/`invFact` pointers but has no AggressiveInlining attribute and no Try*/guard variant, inconsistent with PolynomialShift which annotates its methods. Also `n <= 0` is unguarded: n==0 makes `2*n-1` = -1, an invalid stackalloc size.",
+   "currentCost": "No inlining hint on a leaf-ish numeric routine; potential stackalloc with negative/zero length if a caller passes n<=0 (the sibling file guards its inputs).",
+   "proposedChange": "Add `[MethodImpl(MethodImplOptions.AggressiveInlining)]` for consistency (or document why not, since it allocates and is large), and add an early `if (n <= 0) return;` guard to match the defensive style of PolynomialShift.RunLeft/RunRight.",
+   "rationale": "Consistency with the module's Run convention and the sibling file's guard style; prevents an invalid `stackalloc long[2*n-1]` with n==0 (size -1) / n<0.",
+   "risk": "Run is a large method, so forced inlining may bloat callers and is arguably wrong here; the high-value part is the n<=0 guard. Per house rules these are 'Unchecked Run' methods that assume valid input, so the guard is optional \u2014 flag it rather than assume it must change."
+  }
+ ]
+}

@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.String.Match/Runs.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.String.Match/Runs.cs",
+   "symbol": "Runs.Count",
+   "severity": "high",
+   "category": "logic",
+   "summary": "Count iterates every index i and increments runs for each i lying inside an equal-LCP block, so a single run with a plateau of k equal LCP values is counted k times instead of once. The returned count is grossly inflated.",
+   "triggeringInput": "n=4, sa=[0,1,2,3] (any), lcp=[0,3,3,3]. Expected number of runs for this single plateau is 1, but Count returns 3 (it increments for i=1,2,3, each finding h>0 and block width>=2).",
+   "rootCause": "The loop has no de-duplication: for every i with lcp[i]>0 it re-expands the same maximal plateau and does runs++. Each of the (right-left+1) indices in one plateau triggers an independent increment, multiplying the count by the plateau width.",
+   "suggestedFix": "Count each maximal plateau once, e.g. only increment when i is the left boundary of its plateau (lcp[i-1] < h), or skip i past 'right' after counting a block. Concretely: after expanding, require i==left (i.e. lcp[left-1] < h) before runs++, or set i = right to advance past the counted block."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Match/Runs.cs",
+   "symbol": "Runs.Compare",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Caller only tests Compare(...)==0, so the subtraction a[i]-b[i] and full lexical ordering are wasted work; an equality-only scan is cheaper and vectorizable.",
+   "currentCost": "Compare returns a[i]-b[i] computing a signed difference (an extra subtract per mismatch), but its only caller FindLyndonRuns does `Compare(...) == 0`. The byte-at-a-time equality loop also defeats wide-load vectorization that Burst could apply to a memcmp-style equality test.",
+   "proposedChange": "Add a dedicated `private static bool Equals(byte* a, byte* b, int len)` that returns false on first mismatch (no subtraction) and have FindLyndonRuns call it. Internally compare in machine-word chunks (read ulong via *(ulong*)(a+i) vs *(ulong*)(b+i)) for the bulk, with a byte tail, since only equality (not ordering) is needed. Keep the ordering-returning Compare only if some external caller needs it; otherwise replace it.",
+   "rationale": "Removes a per-mismatch subtract and, more importantly, enables 8-bytes-per-iteration equality comparison instead of 1, cutting the inner-loop trip count ~8x for the (common) long-match case inside the O(n*p) Lyndon scan. Equality via word loads is exactly what Burst vectorizes well.",
+   "risk": "Word-wide loads require the comparison to be pure equality (it is) and that reads of up to 7 bytes past the logical end stay within the allocated buffer; since a/b point inside s+i and s+i+p with i+2p<=n guaranteed by the guard, a word read at offset i may overrun the p-length window into valid in-bounds bytes only if i+p+8<=n \u2014 guard the word path with a length check and fall back to the byte loop for the tail/short cases. Endianness does not matter for equality. Behavior is identical because only ==0 is observed."
+  },
+  {
+   "file": "src/IAFahim.String.Match/Runs.cs",
+   "symbol": "Runs.Count",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Count is O(n^2): for every i it linearly expands left/right over the LCP array; this can be reduced to O(n) with a monotonic-stack / nearest-smaller-value precomputation.",
+   "currentCost": "For each i in [1,n), two inner while-loops walk outward over lcp[] as long as neighbors are >= h = lcp[i]. On a flat or slowly-decreasing LCP array (e.g. lcp all equal), each i scans O(n), giving O(n^2) total time and O(n^2) memory traffic over lcp[].",
+   "proposedChange": "Precompute, in O(n) using a monotonic stack, the nearest index to the left with lcp < h (prevSmaller[i]) and nearest to the right with lcp < h (nextSmaller[i]). Then left = prevSmaller[i]+1, right = nextSmaller[i]-1, and the maximal interval width is (right-left+1) in O(1) per i. Note the current code uses strict bounds (left>1, right<n-1) \u2014 the stack version must replicate those exact boundary conditions and the `>= h` vs `< h` tie-breaking to stay identical.",
+   "rationale": "Reduces the asymptotic from O(n^2) to O(n) time and O(n) extra scratch, the classic 'largest rectangle / NSV' transformation. For large suffix arrays this is the dominant cost and the single biggest win in this module.",
+   "risk": "Tie handling is subtle: the original expands while neighbors are `>= h`, meaning equal-height neighbors are absorbed into the interval for EVERY i sharing that height, so multiple i's report overlapping/duplicate intervals and the result counts those repeats. The NSV reformulation must keep the same counting semantics (it counts per-i, not per-distinct-interval), so use a consistent strict-on-one-side / non-strict-on-the-other convention that reproduces `>= h` outward expansion exactly; otherwise the returned `runs` count changes. Needs two int* scratch buffers (allowed under house rules via caller-provided pointers or stackalloc). Verify against the existing NUnit tests before shipping."
+  }
+ ]
+}

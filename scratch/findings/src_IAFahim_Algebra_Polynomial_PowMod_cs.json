@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Algebra.Polynomial/PowMod.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/PowMod.cs",
+   "symbol": "PowMod.Run",
+   "severity": "high",
+   "category": "overflow",
+   "summary": "Stack buffer overflow when the base polynomial's degree is >= the modulus polynomial's degree (lenPoly close to or larger than lenModPoly). The base/temp/q/r buffers are sized `lenModPoly*2+1`, but the base polynomial is copied in and squared at its original (unreduced) length `lenPoly` before any reduction, so ToomCook writes `2*lenPoly-1` entries into `temp` (size lenModPoly*2+1) and copies lenPoly entries into `basePoly` (same size).",
+   "triggeringInput": "poly = degree-4 polynomial, lenPoly=5 (e.g. {1,0,0,0,1} = x^4+1), modPoly = degree-2, lenModPoly=3 (e.g. {1,0,1} = x^2+1), exponent=3, any MOD. basePoly is stackalloc long[3*2+1=7] and lenBase=lenPoly=5; the first squaring ToomCook.Multiply(basePoly,5,basePoly,5,temp) writes 2*5-1=9 entries into temp of size 7 -> out-of-bounds write.",
+   "rootCause": "The initial base polynomial is never reduced modulo modPoly before entering the square-and-multiply loop, and the buffers are sized assuming the base is already reduced (degree < deg modPoly). Computing p(x)^e mod m(x) with deg p >= deg m is a valid contract, so this overflows for representable inputs.",
+   "suggestedFix": "Reduce the base modulo modPoly before the loop: run DivMod.Run(poly, lenPoly, modPoly, lenModPoly, ...) into basePoly so lenBase < lenModPoly, then size buffers as lenModPoly*2+1 (which is then sufficient). Alternatively size the temp/base buffers to max(lenPoly, lenModPoly*2+1)."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/PowMod.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Skip the final redundant base-squaring after the top exponent bit is consumed.",
+   "currentCost": "The loop unconditionally squares basePoly (ToomCook.Multiply + ComputeEffectiveLength + DivMod.Run) every iteration including the last, after the highest set bit has already been multiplied into result. That final square-and-reduce is a full polynomial multiply + division whose output is never used.",
+   "proposedChange": "Guard the squaring step: after exponent >>= 1, only square if exponent > 0L. e.g. exponent >>= 1; if (exponent == 0L) break; before the basePoly self-multiply, or move the squaring to the top of the next iteration. Equivalent: restructure to multiply-into-result first, test/shift, break when exponent hits 0, square only when more bits remain.",
+   "rationale": "Eliminates one of the most expensive operations in the whole routine (a ToomCook multiply plus a polynomial DivMod) on every PowMod call. For exponents with the top bit anywhere, the last square is pure waste; this is a guaranteed full-multiply saving per call.",
+   "risk": "Must ensure result has already absorbed the final bit before breaking. The odd-bit multiply happens at loop top using current basePoly, so breaking after the shift when exponent==0 is safe and preserves output exactly. No semantic change for any exponent >= 1."
+  },
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/PowMod.cs",
+   "symbol": "Run",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Reuse a single scratch buffer instead of separate q and temp where lifetimes do not overlap.",
+   "currentCost": "Four stackalloc buffers of (lenModPoly*2+1) longs each: basePoly, q, r, temp. q and temp are both transient scratch within each step; q holds a quotient that is discarded immediately (only r is used as the reduced result).",
+   "proposedChange": "Since the quotient q is never read after DivMod (only r feeds back), q and temp can share storage if DivMod does not need them simultaneously distinct \u2014 but DivMod.Run takes temp(dividend), q(quotient out), r(remainder out) concurrently, so they must be distinct during the call. Keep distinct. Instead, narrow buffer sizing: temp only needs lenResult+lenBase-1 and lenBase+lenBase-1 worst cases, both <= 2*lenModPoly-1, so size 2*lenModPoly (drop the +1) is sufficient \u2014 saves 4 longs total and is clearer.",
+   "rationale": "Minor stack reduction on a hot recursive-ish routine; the main value is correct tight sizing on mobile stack.",
+   "risk": "Confirm DivMod/ToomCook never write the +1 guard slot. If any writes the index 2*lenModPoly (e.g., a degree-2k product term), the +1 is load-bearing \u2014 in that case leave as-is. Low confidence without ToomCook output-length contract; flag rather than apply blindly."
+  },
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/PowMod.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "ComputeEffectiveLength after every multiply scans from the top for trailing zeros; pass the known exact product length to avoid the scan when no reduction needed.",
+   "currentCost": "After each ToomCook.Multiply the code calls ComputeEffectiveLength over the full product span (lenResult+lenBase-1), a backward scan that in the common dense case finds no leading zeros and walks at most a few elements, but is invoked twice per loop iteration.",
+   "proposedChange": "If ToomCook guarantees a normalized (no trailing-zero high coefficient) product for nonzero operands, the trim is unnecessary and the exact length lenResult+lenBase-1 can be used directly. Otherwise keep it. Confirm ToomCook's normalization contract.",
+   "rationale": "Removes a redundant O(degree) trailing-zero scan per multiply when the product is structurally dense (high coeff = product of two nonzero leading coeffs mod MOD, which is nonzero unless a zero-divisor arises mod composite MOD).",
+   "risk": "Mod a composite MOD, leading-coeff product can be 0 even with nonzero factors, so trimming IS needed there. Only safe to drop when MOD is prime. Since MOD is a runtime int (possibly composite), keep the trim. Reject for general MOD; viable only behind a prime-MOD precondition."
+  }
+ ]
+}

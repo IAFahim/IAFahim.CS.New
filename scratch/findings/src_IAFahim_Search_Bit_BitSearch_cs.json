@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Search.Bit/BitSearch.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Search.Bit/BitSearch.cs",
+   "symbol": "KthElement.Run",
+   "severity": "critical",
+   "category": "overflow",
+   "summary": "Binary search over the full int range computes a wrong/overflowing midpoint on the very first iteration, causing no progress and an infinite loop (and a wrong midpoint generally).",
+   "triggeringInput": "Any valid call, e.g. arr=[5], n=1, k=1. With lo=int.MinValue, hi=int.MaxValue: hi-lo overflows to -1, (hi-lo)>>1 = -1, so mid = int.MinValue + (-1) = int.MaxValue instead of ~0.",
+   "rootCause": "mid = lo + ((hi - lo) >> 1) assumes (hi - lo) is non-negative, but with lo=int.MinValue and hi=int.MaxValue the subtraction overflows to -1 in two's-complement int arithmetic. The first mid evaluates to int.MaxValue; cnt = (#elements <= MaxValue) = n >= k, so hi = mid = int.MaxValue (unchanged), lo stays int.MinValue. State never changes -> infinite loop. Even when not looping it picks a midpoint at the wrong end of the range.",
+   "suggestedFix": "Use 64-bit arithmetic for the midpoint over the full int range: long lo = int.MinValue, hi = int.MaxValue; long mid = lo + ((hi - lo) >> 1); compare arr[i] <= (int)mid; or use mid = (int)(((long)lo + hi) >> 1). Ensure the search interval contracts each iteration."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.Bit/BitSearch.cs",
+   "symbol": "InversionCount.Run / MergeSortCount",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "temp buffer is long[n] but only ever holds int values copied back as int \u2014 use int[n] to halve scratch RAM.",
+   "currentCost": "stackalloc long[n] = 8*n bytes of stack; values written are arr[i]/arr[j] (int) and read back via (int)temp[i]. Doubles the working set and halves cache-line density (4 ints/line vs 8), increasing cache misses on the merge passes for large n.",
+   "proposedChange": "Change temp to int* temp = stackalloc int[n]; store temp[k++] = arr[...]; copy back arr[i] = temp[i] (no cast). The inversion counter cnt stays long (return type unchanged).",
+   "rationale": "Halves stack footprint and doubles elements per cache line, reducing cache misses across the O(n log n) merge copies. The cast to long was never needed since stored values are ints; cnt's long-ness is independent of buffer width.",
+   "risk": "Semantics-preserving: stored values are the original int array elements, round-tripped through (int) anyway. cnt += m - i + 1 remains long-accumulated, so the inversion total still cannot overflow. No signedness change."
+  },
+  {
+   "file": "src/IAFahim.Search.Bit/BitSearch.cs",
+   "symbol": "KthElement.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Counting loop body has a branch per element; make it branchless and the inner loop is the dominant cost.",
+   "currentCost": "Inner loop runs n times per binary-search step (~32 steps over the int32 value range), each iteration doing a compare + conditional increment (data-dependent branch that mispredicts on unsorted data).",
+   "proposedChange": "Replace 'if (arr[i] <= mid) cnt++;' with cnt += -(arr[i] <= mid ? 1 : 0) style or 'cnt += (int)((uint)(mid - arr[i]) >> 31 ^ 1)'-type branchless predicate; simplest portable form: cnt += (arr[i] <= mid) ? 1 : 0 compiles branchless, but force it via integer mask. Burst vectorizes the branchless compare-and-add over the array.",
+   "rationale": "Removes a per-element mispredictable branch from a loop executed ~32*n times; branchless compare+add lets Burst SIMD-accumulate counts (e.g. 8 lanes), cutting the dominant cost several-fold.",
+   "risk": "Must avoid signed overflow in any (mid - arr[i]) trick since both are int and can span the full range; the safe form is the ternary-to-mask (arr[i] <= mid) which has no arithmetic overflow. Result identical."
+  }
+ ]
+}

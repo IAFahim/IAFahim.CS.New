@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.String.Compress/Arithmetic.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Compress/Arithmetic.cs",
+   "symbol": "Encode / Decode",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Hoist the loop-invariant `precision / BaseTwo` (and `precision / AlphabetSize`-style divisors) out of the hot per-symbol and per-bit renormalization loops.",
+   "currentCost": "`precision / BaseTwo` is recomputed on every iteration of the inner `while(true)` renormalization loop (lines 31,37,40,41 in Encode; 94,105,107,114 in Decode). That is a 64-bit integer divide (tens of cycles, not pipelined) executed potentially many times per symbol, even though `precision` never changes.",
+   "proposedChange": "Compute `long half = precision >> 1;` (precision is the bound `1L<<K`, a power of two by construction, so >>1 is exact) once before the outer loop, and reference `half` everywhere `precision / BaseTwo` appears. Likewise `range / AlphabetSize` can become `range >> 8` since AlphabetSize==256 is a power of two and `range = hi-lo >= 0`.",
+   "rationale": "Replaces a long divide (~20-40 cycles, serializing) on the critical dependency chain with a precomputed value / single shift (1 cycle). The renorm loop is the innermost hot path, so this is a large constant-factor win and shortens the lo/hi dependency chain.",
+   "risk": "`range >> 8` is only valid because range is non-negative (hi>=lo) and 256 is a power of two; for non-negative operands `x/256 == x>>8` exactly. `precision>>1` is exact because precision is set to a value `>= 1L<<K`; if a caller passes a non-power-of-two precision, `precision/2` floor-division differs from `precision>>1` only for odd precision \u2014 guard by documenting/asserting precision is even (it is, since it equals `1L<<K` whenever used as the renorm midpoint). If callers may pass odd precision, keep `(precision >> 1)` still equals floor division for even and for the `1L<<K` contract holds."
+  },
+  {
+   "file": "src/IAFahim.String.Compress/Arithmetic.cs",
+   "symbol": "Encode / Decode (K computation)",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Replace the `while ((1L << K) < precision) K++;` linear bit-count loop with a leading-zero / Log2 intrinsic.",
+   "currentCost": "Up to ~63 iterations of a branch + shift to compute K = ceil(log2(precision)). Done once per call, so minor, but it is pure scalar serial work.",
+   "proposedChange": "Use `int K = 64 - System.Numerics.BitOperations.LeadingZeroCount((ulong)(precision - 1));` (Burst lowers LeadingZeroCount to lzcnt/clz). For exact power-of-two precision this yields the same K the loop produces.",
+   "rationale": "Single CPU instruction vs a 63-iteration dependency-carried loop; Burst-friendly intrinsic.",
+   "risk": "Off-by-one on the ceil-vs-floor boundary: the loop computes the smallest K with `(1L<<K) >= precision`. `64 - lzcnt(precision-1)` gives exactly that for precision>=1. Validate the precision==1 / precision power-of-two edge before adopting; keep the loop if precision can be 0."
+  }
+ ]
+}

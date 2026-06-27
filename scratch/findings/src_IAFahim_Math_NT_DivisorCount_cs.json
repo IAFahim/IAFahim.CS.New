@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Math.NT/DivisorCount.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/DivisorCount.cs",
+   "symbol": "DivisorCount.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Trial-division loop only needs to test 2 then odd numbers, halving the iteration count.",
+   "currentCost": "The loop `for (long p = 2; p*p <= n; p++)` steps through every integer up to sqrt(n), including all even p >= 4 which can never divide n once factor 2 is removed. About half the iterations (the even ones >=4) each cost a multiply for the guard `p*p<=n` plus a `% p` test that can never succeed.",
+   "proposedChange": "Peel off p=2 with a dedicated `while (n % 2 == 0)` loop accumulating its exponent, then iterate `for (long p = 3; p*p <= n; p += 2)`. This skips all even candidates >=4. Optionally also use a 2-3-5 wheel (increments 4,2,4,2,4,6,2,6) for a further ~2x on the candidate count.",
+   "rationale": "Cuts trial-division iterations from ~sqrt(n) to ~sqrt(n)/2 (or ~sqrt(n)/3.75 with a 2-3 wheel). Each removed iteration eliminates one 64-bit multiply (the p*p guard) and one 64-bit modulo (the dominant cost; idiv is tens of cycles). Asymptotic class is unchanged but the constant factor on the hottest path drops by ~2x.",
+   "risk": "Must hoist the p*p guard correctly: `p*p` can overflow for n near long.MAX. The original already has this latent issue; keep the same domain assumption (n where sqrt(n) fits the model). Reusing `p*p` recomputation each iteration is unavoidable unless you maintain a running square; the +=2 stride does not change overflow behavior versus the original."
+  }
+ ]
+}

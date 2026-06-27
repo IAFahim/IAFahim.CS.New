@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Math.Combinatorics/LinearCongruence.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Combinatorics/LinearCongruence.cs",
+   "symbol": "LinearCongruence.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Reuse the gcd's Bezout coefficient instead of computing a second ModInverse from scratch.",
+   "currentCost": "Run computes Gcd(a,m) via a plain Euclid loop, then ModInverse(a_,m_) runs ExtGcd AGAIN over essentially the same numbers \u2014 two full Euclid descents where one suffices.",
+   "proposedChange": "Call ExtGcd(a, m, out x, out y) once to get g and the coefficient x; then if b%g==0 set result = ( (x % m_) * (b/g) ) % m_, normalized positive. This fuses the gcd computation and the inverse into a single Euclid pass.",
+   "rationale": "Halves the Euclidean work (one descent instead of two) and removes a redundant division chain. Same x.",
+   "risk": "Must reduce x modulo m_ (= m/g) since ExtGcd gives the inverse of a modulo m, and a_*x \u2261 g (mod m) implies x is inverse of a_ mod m_. Normalize x to [0,m_) before multiplying. Verify sign normalization matches the existing `if (x<0) x += m_` path."
+  }
+ ]
+}

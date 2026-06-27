@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.String.Palindrome/OccurrenceCount.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Palindrome/OccurrenceCount.cs",
+   "symbol": "Count",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "Two separate stackalloc int[n] scratch buffers and two separate sum loops; reuse one buffer and fuse the accumulation into Manacher to avoid the buffer entirely.",
+   "currentCost": "Allocates 2*n ints on the stack (8*n bytes) and runs four O(n) passes: Odd fill, sum, Even fill, sum. On mobile, 8*n stack bytes risks stack overflow for large n and doubles the working set; the two sum loops re-stream the just-written arrays (cache reload).",
+   "proposedChange": "1) Reuse a single int* d = stackalloc int[n]: run Odd into d, accumulate count, then run Even into the SAME d and accumulate again \u2014 halving stack to 4*n bytes. 2) Better: add Manacher overloads (or a SumOdd/SumEven) that accumulate sum(d[i]) inline as they compute each d[i], eliminating the scratch buffer and the second pass entirely \u2014 O(n) time, O(1) extra space.",
+   "rationale": "Halves (or eliminates) the stackalloc footprint, removes two full O(n) re-read passes by fusing the sum into the producer loop, cutting cache traffic roughly in half and removing stack-overflow risk on mobile for large n.",
+   "risk": "Fusing requires Manacher to expose a sum-accumulating variant; the standalone d[] is still needed internally by Manacher because each d[i] depends on previously written d[] (mirror reads). So the buffer cannot be fully removed without restructuring \u2014 but a single shared buffer (option 1) is safe and trivially equivalent. The fused-sum variant must keep writing d[] for the mirror reads; only the extra summation pass is removed."
+  },
+  {
+   "file": "src/IAFahim.String.Palindrome/OccurrenceCount.cs",
+   "symbol": "Count",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "int accumulator may overflow for large n; total palindrome count can be ~n^2/2 which exceeds int.MaxValue around n~65536.",
+   "currentCost": "count is int and sums sum(odd[i]) + sum(even[i]) which equals the total number of palindromic substrings (with multiplicity of radii), bounded by ~n*(n+1)/2. For n >= ~92682 this overflows int silently, producing wrong results.",
+   "proposedChange": "Change return type and accumulator to long. count becomes long count = 0; return long. Matches PalindromicTree.Occ being long and is the only overflow-safe type for this quantity.",
+   "rationale": "Correctness for large inputs; the sum of palindrome radii is quadratic in n, so int is provably insufficient. This is a semantics-preservation fix for valid large inputs, not a slowdown (one extra register width).",
+   "risk": "Changes the public return type int->long, an API break. If callers depend on int, provide a long-returning method and keep int as a checked/documented small-n variant. Strictly, current behavior is buggy for n>~92k so this restores intended semantics."
+  }
+ ]
+}

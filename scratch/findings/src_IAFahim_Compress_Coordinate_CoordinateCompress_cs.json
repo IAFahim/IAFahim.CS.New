@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Compress.Coordinate/CoordinateCompress.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Compress.Coordinate/CoordinateCompress.cs",
+   "symbol": "CoordinateCompress.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Replace O(n^2) insertion sort with an O(n log n) sort (heapsort/introsort) for the coordinate-compression sort phase.",
+   "currentCost": "The inner while-loop (lines 14-24) is insertion sort: worst-case and average O(n^2) comparisons/moves. For n in the thousands this dominates everything else and grows quadratically; a reverse-sorted input on n=10000 is ~50M element moves.",
+   "proposedChange": "Implement an in-place heapsort (or median-of-3 introsort) over tmp[0..len) instead of the insertion-sort while-loop. Heapsort needs no extra buffer, is branch-light, and is fully Burst-friendly with raw pointers. Keep insertion sort only as the small-n base case (e.g. len <= 16) of an introsort to retain its cache-friendliness for tiny arrays.",
+   "rationale": "Lowers asymptotic cost from O(n^2) to O(n log n). For any non-trivial len this is the single biggest win in the module; the dedup pass and the initial copy are already O(n) and negligible by comparison.",
+   "risk": "Heapsort is not stable, but coordinate compression only needs sorted unique values, so stability is irrelevant here -> behavior preserved. Must ensure the comparison stays a simple > on int (no overflow). Only worthwhile if len can realistically exceed a few dozen; for guaranteed-tiny len insertion sort is fine."
+  },
+  {
+   "file": "src/IAFahim.Compress.Coordinate/CoordinateCompress.cs",
+   "symbol": "CoordinateCompress.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Fuse the src->tmp copy into the sort/first pass, or use a memcpy intrinsic instead of a scalar element loop.",
+   "currentCost": "Lines 12-13 do a scalar element-by-element copy of len ints before sorting, a separate full O(n) pass that the compiler may or may not vectorize.",
+   "proposedChange": "Replace the scalar copy loop with Unsafe.CopyBlockUnaligned(tmp, src, (uint)len * sizeof(int)) (or Buffer.MemoryCopy). This issues a single vectorized/rep-movs copy instead of a per-element store loop.",
+   "rationale": "A bulk memcpy moves multiple ints per instruction (SIMD/rep movs) and has a tighter dependency profile than a scalar loop, cutting the copy phase cost by a constant factor with no behavior change.",
+   "risk": "None semantically: tmp and src are distinct caller buffers (tmp is scratch). Must confirm Unsafe.CopyBlockUnaligned is permitted under the project's Burst/house rules (it is unmanaged and intrinsic). len*4 cannot overflow uint for any realistic len."
+  }
+ ]
+}

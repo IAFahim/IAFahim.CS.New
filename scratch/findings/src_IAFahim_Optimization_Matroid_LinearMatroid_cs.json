@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Optimization.Matroid/LinearMatroid.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Matroid/LinearMatroid.cs",
+   "symbol": "EliminateOtherRows",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Vectorize the GF(2) row XOR (a[r*m+j] ^= a[pivot*m+j]) over wider words; it is the inner hot loop and is trivially SIMD-able.",
+   "currentCost": "The inner 'for j: a[r*m+j] ^= a[pivot*m+j]' runs over the full width m for every eliminated row, giving O(n*m) int XORs per pivot and O(rank*n*m) overall. As written, int-at-a-time XOR is one operation per 4 bytes; Burst can auto-vectorize but the row-major int layout wastes 31/32 of each int when the matrix is over GF(2) (entries are 0/1).",
+   "proposedChange": "Hoist the row base pointers out of the inner loop: int* rowR = a + r*m; int* rowP = a + pivotRow*m; then loop 'rowR[j] ^= rowP[j]'. This removes the repeated r*m and pivotRow*m multiplies/address computations from every iteration and gives Burst a clean two-pointer XOR loop it vectorizes cleanly. Higher-impact (separate, larger-API change): pack GF(2) rows as bitsets (ulong words, m/64 words) so each XOR processes 64 entries at once, cutting the inner loop length by 64x and shrinking RAM 32x.",
+   "rationale": "Pointer hoisting removes two integer multiplies and an add from the address calculation of every inner iteration, shortening the address-gen dependency chain and helping the vectorizer prove contiguity. The bitset packing is an asymptotic constant-factor win (64x fewer word ops, 32x less memory, far fewer cache lines touched) \u2014 decisive for large matroids.",
+   "risk": "Pointer hoisting is purely semantics-preserving. The bitset repacking changes the public matrix representation (a[] layout and the basis/Rank contract) and the FindPivotRow/SwapRows code, so it is an API-level change, not a drop-in; flag as a larger refactor. Both keep GF(2) XOR semantics identical."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Matroid/LinearMatroid.cs",
+   "symbol": "Rank",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Add AggressiveInlining to the tiny leaf helpers (FindPivotRow, SwapRows, EliminateOtherRows) and drop the unused 'using' directives.",
+   "currentCost": "FindPivotRow, SwapRows, EliminateOtherRows are private leaf helpers called inside the column loop. Without an inlining hint the JIT/Burst may keep call overhead (frame setup, parameter marshaling of the many int args). Also 'using System;' is unused in both files and System.Runtime.CompilerServices is unused unless attributes are added.",
+   "proposedChange": "Annotate the three private helpers with [MethodImpl(MethodImplOptions.AggressiveInlining)] so the hot column loop inlines them and the compiler can keep n,m,a in registers across the merged body, exposing the inner XOR/pivot loops to fusion. Remove the unused 'using System;'.",
+   "rationale": "Inlining these small, frequently-called helpers removes call overhead and lets the optimizer hoist invariants (e.g., a+pivotRow*m) across what are currently separate function boundaries. Burst already inlines aggressively, so impact is low, but the hint is free and the using cleanup reduces noise.",
+   "risk": "Inlining a leaf with two nested loops (EliminateOtherRows) can grow code size; Burst may already do this. Purely a hint \u2014 no semantic change. Removing an unused using is safe."
+  }
+ ]
+}

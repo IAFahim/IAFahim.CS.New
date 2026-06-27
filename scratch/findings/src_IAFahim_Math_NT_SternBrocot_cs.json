@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.NT/SternBrocot.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.NT/SternBrocot.cs",
+   "symbol": "SternBrocot.Run",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Integer division by zero in the step-count formulas crashes (DivideByZeroException) on essentially every input, including the very first iteration for simple fractions.",
+   "triggeringInput": "Run(0, 1, num, den, depth): a=0,b=1,c=1,dd=0 -> medNum=1,medDen=1,cmp=1*1-0*1=1>0 -> denom = n*b - a*d = 0*1 - 0*1 = 0 -> division by zero on iteration 1. Also Run(2,1,...) crashes on the second iteration (denom n*b-a*d = 2*1-2*1 = 0). A brute-force over n,d in 0..10 shows division by zero for every pair.",
+   "rootCause": "When cmp>0 the code divides by (n*b - a*d) and when cmp<0 it divides by (c*d - n*dd). These quantities equal the cross-product distance from the current left/right boundary fraction to the target n/d, which becomes exactly 0 whenever the boundary coincides with (a rational multiple of) the target \u2014 which happens routinely, e.g. immediately when n=0 or after the first jump lands a boundary on the target. The accelerated step count uses the wrong denominator (it should divide by the distance of the OPPOSITE boundary / mediant, never one that can be zero) and there is no guard against a zero denominator.",
+   "suggestedFix": "Guard each division: if the denominator is 0 (or use the standard Stern-Brocot/continued-fraction stepping where the divisor is the cross product against the moving boundary that is strictly nonzero), fall back to a single mediant step. Concretely, compute steps only when the denominator != 0, otherwise take steps=1; and verify the formula divides by (c*d - n*dd) consistently in BOTH branches with sign handling, since that term is the one bounded away from zero until cmp==0."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/SternBrocot.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Recompute c*d-n*dd and n*b-a*d once per iteration instead of in both the cmp test and the step formula.",
+   "currentCost": "Each iteration computes medNum*d - n*medDen for cmp, then separately recomputes (n*b-a*d) and (c*d-n*dd) inside the branch divisions. Some of these subexpressions overlap and are 64-bit multiplies (3-5 cycles each), and the divisions are the loop's dominant cost.",
+   "proposedChange": "Compute t1 = n*b - a*d and t2 = c*d - n*dd once at the top of the loop. Then cmp = medNum*d - n*medDen equals (a+c)*d - n*(b+dd) = (c*d - n*b) + (a*d - n*dd)... verify the algebra and express cmp, and both step divisions, from the shared t1/t2, eliminating duplicate multiplies.",
+   "rationale": "Cuts the number of 64-bit multiplies per iteration and shortens the dependency chain feeding the divisions, the critical path of the loop.",
+   "risk": "Must verify the algebraic identity exactly (sign conventions) so cmp and steps are bit-identical; overflow profile is unchanged since the same products are formed. Low impact because the integer divisions dominate regardless."
+  }
+ ]
+}

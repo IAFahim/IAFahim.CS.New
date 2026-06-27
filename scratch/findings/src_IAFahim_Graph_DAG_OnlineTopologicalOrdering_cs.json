@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Graph.DAG/OnlineTopologicalOrdering.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.DAG/OnlineTopologicalOrdering.cs",
+   "symbol": "AddEdge",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Cache `*edgeCount` in a local for the same aliasing reason as IncrementalCycleDetection.AddEdge.",
+   "currentCost": "`*edgeCount` dereferenced 4 times across to/next/head stores and the increment, with potential reloads due to pointer aliasing.",
+   "proposedChange": "`int ec = *edgeCount; to[ec]=v; next[ec]=head[u]; head[u]=ec; *edgeCount = ec+1;`",
+   "rationale": "Single load + single store instead of repeated dereferences the compiler cannot prove non-aliasing for.",
+   "risk": "None under the contract that edgeCount points to a distinct location from to/next/head. The function is a stub (reordering not implemented), so this is the only live path."
+  }
+ ]
+}

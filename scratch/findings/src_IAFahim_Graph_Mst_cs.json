@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Graph/Mst.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph/Mst.cs",
+   "symbol": "MstMinHeap.PushOrUpdate / MstMinHeap.Pop",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace parent/child index arithmetic (idx-1)/2 and idx*2+1 with shifts.",
+   "currentCost": "Each sift step computes (idx - 1) / 2 (signed integer division, ~20+ cycle latency, not strength-reduced because idx is signed and div semantics differ for negatives) and idx*2+1 / idx*2+2 (a multiply). In a binary heap these run O(log n) times per push/pop, and Prim does O(m) pushes plus O(n) pops.",
+   "proposedChange": "parent = (idx - 1) >> 1; left = (idx << 1) + 1; right = left + 1. idx is always >= 0 here (heap indices), so >>1 is identical to /2 and right=left+1 avoids a second multiply.",
+   "rationale": "Signed /2 emits an extra add+shift sequence to handle the rounding-toward-zero of negatives; an unsigned-safe >>1 on a known-nonnegative value is a single shift. Multiplies become shifts. Shortens the dependency chain on the hot heap path.",
+   "risk": "idx is provably >= 0 throughout (it starts at Size++ or 0 and only moves to parent/child indices), so >>1 == /2 exactly. No signed-negative hazard. Pure micro-opt, semantics preserved."
+  },
+  {
+   "file": "src/IAFahim.Graph/Mst.cs",
+   "symbol": "SecondBestMst.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "O(m^2 * alpha) recomputation of MST-minus-one-edge; replace with single MST + max-edge-on-path queries.",
+   "currentCost": "The second loop reruns a full Kruskal-style union pass for every one of m skipped edges: O(m) edges each doing Find, giving O(m^2 alpha(n)). For dense graphs this is the dominant cost of the whole function.",
+   "proposedChange": "Compute the MST once, build the tree, and for each non-tree edge (u,v) find the maximum-weight tree edge on the u-v path (via the already-present DFS/LCA-style max-edge query used elsewhere in MstVariants). Second-best MST weight = best + min over non-tree edges of (w(e) - maxPathEdge). This is O(m log n) or O(m + n) versus O(m^2).",
+   "rationale": "Standard second-best-MST algorithm. Removes a full Union-Find rebuild per candidate edge, turning a quadratic outer loop into a single linear/near-linear pass.",
+   "risk": "Must replace the max tree edge being removed (not just any), and handle the case where the candidate edge connects same path correctly. Need to ensure ties and the 'exactly one different edge' semantics match the current brute-force result. Behavior must be validated against existing tests; if equivalence is uncertain, keep brute force. Correctness-sensitive change."
+  },
+  {
+   "file": "src/IAFahim.Graph/Mst.cs",
+   "symbol": "SecondBestMst.Run (first sort)",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Insertion-sort comparator uses ew[i] instead of ew[idx[j]] consistently; also key indexes the wrong array vs Kruskal's SortEdges.",
+   "currentCost": "In the first block the insertion sort sets key = ew[i] (raw index i) while comparing ew[idx[j]] and placing idx[j+1]=i. This sorts by original positions' weights, not by a stable permutation the way MinimumSpanningTreeKruskal.SortEdges does (key = ew[idx[i]]). It still produces a valid sorted order here because it inserts i directly, but the comparison key ew[i] vs ew[idx[j]] mixes indexing conventions and is fragile.",
+   "proposedChange": "Use key = ew[idx[i]] and ki = idx[i] exactly as MinimumSpanningTreeKruskal.SortEdges does, for consistency and to avoid an extra indirection mismatch. No asymptotic change but removes a correctness-adjacent inconsistency.",
+   "rationale": "Consistency with the proven SortEdges path; the current mixed indexing happens to work only because idx[i]==i at the start of each insertion, which is an implicit invariant easy to break.",
+   "risk": "Behavior-preserving only if idx[i]==i holds when the comparison starts (it does, since idx is identity-initialized and insertion sort processes left-to-right). Confirm before applying; this is an ergonomics/robustness fix, not a speedup."
+  },
+  {
+   "file": "src/IAFahim.Graph/Mst.cs",
+   "symbol": "MinimumSpanningTreeKruskal.Run / ProcessKruskalEdge",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Dead 'if (ProcessKruskalEdge(...)) { }' wrapper and a bool return that is never used.",
+   "currentCost": "ProcessKruskalEdge returns bool but the caller does `if (ProcessKruskalEdge(...)) { }` \u2014 an empty if with an unused result. Costs nothing at runtime after JIT/Burst but is misleading and the bool return forces the method not to be a clean void.",
+   "proposedChange": "Make ProcessKruskalEdge return void and call it directly: ProcessKruskalEdge(idx[i], ...). Cleaner API, no behavior change.",
+   "rationale": "Pure readability/ergonomics; removes a confusing empty-branch idiom. Burst already elides it so no perf delta, but it improves maintainability without touching the perf model.",
+   "risk": "None \u2014 the return value is provably unused."
+  },
+  {
+   "file": "src/IAFahim.Graph/Mst.cs",
+   "symbol": "SecondBestMst.Find / MstVariants (many local Find functions)",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "SecondBestMst.Find lacks path compression and union-by-rank; repeated Find on long chains is O(n) each.",
+   "currentCost": "SecondBestMst.Find walks parent pointers with no compression, and its Union is `parent[pu]=pv` with no rank/size \u2014 chains can degrade to O(n) per Find. Within the O(m) inner rebuild (already quadratic), this adds another factor on pathological inputs.",
+   "proposedChange": "Use the path-halving Find + union-by-rank/size already implemented elsewhere (MstVariants uses path-compressing Find local functions). At minimum apply path halving: while(parent[x]!=x){parent[x]=parent[parent[x]]; x=parent[x];}.",
+   "rationale": "Brings amortized Find to near-O(alpha(n)) instead of worst-case O(n), reducing the constant on the already-heavy second-best loop.",
+   "risk": "None for correctness \u2014 DSU with compression yields identical connectivity results; only performance changes. If SecondBestMst is replaced per the complexity finding above, this becomes moot."
+  }
+ ]
+}

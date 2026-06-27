@@ -1,0 +1,126 @@
+{
+ "file": "src/IAFahim.DP/Dp.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.DP/Dp.cs",
+   "symbol": "ConvexHullTrickAdd.AddLine/Query",
+   "severity": "high",
+   "category": "logic",
+   "summary": "AddLine only appends lines and never removes lines that are no longer part of the lower envelope, but Query performs a binary search that assumes the stored lines form a valid convex lower hull (Eval(idx,x) is unimodal in idx). With lines added purely via the provided AddLine, Eval over indices is generally not unimodal, so the binary search converges to a non-optimal line and returns a wrong (non-minimal) value.",
+   "triggeringInput": "AddLine in order: (m=0,b=0), (m=2,b=0), (m=1,b=0) into ms/bs/sz; then Query(x=-1). True minimum at x=-1 is line m=2 giving -2, but the binary search compares Eval(0)= 0 vs Eval(1)= -2: 0<=-2 is false so lo=mid+1=1, then compares Eval(1)=-2 vs Eval(2)=-1: -2<=-1 true so hi=1, returns Eval(1)=-2 here by luck; with order (m=1),(m=0),(m=2): Eval(0)=-1,Eval(1)=0,Eval(2)=-2 -> binary search picks index based on -1<=0 (hi=0) returning -1 instead of the true min -2.",
+   "rootCause": "A Li Chao / sorted-slope CHT requires AddLine to pop dominated lines (or to insert in slope order) so the line array represents the lower envelope. This AddLine does neither, yet Query relies on the envelope/unimodality invariant for its binary search, so the invariant the binary search depends on is never established.",
+   "suggestedFix": "Maintain the hull in AddLine: keep slopes monotonic and pop the last line while it is made redundant by the new line using the standard 'bad' cross-product/intersection test, or replace Query with a linear scan if no hull invariant is maintained. Document and require monotone-slope insertion if that is the intended contract."
+  },
+  {
+   "file": "src/IAFahim.DP/Dp.cs",
+   "symbol": "Smawk.UpdateSmawkRow",
+   "severity": "high",
+   "category": "wrong-recurrence",
+   "summary": "The row update only writes dp[j] for columns j that survive on the monotone stack; columns popped/never pushed keep their previous (row i-1) value. For i==1 in particular, only stacked columns are overwritten while all other dp[j] retain the row-0 initialization mat[j], so the returned row minimum / DP values are wrong. The routine also does not compute true row minima of a totally monotone matrix as the SMAWK name implies.",
+   "triggeringInput": "n=2, m=3, mat (row-major) = row0:[5,5,5], row1:[3,9,1]. After dp init dp=[5,5,5]. In row i=1 the stack keeps only columns where mat decreases: j=0 pushed; j=1 (9>3) not pushed; j=2 (1<=3) pops 0 then pushes 2 -> stack={2}. Only dp[2] is set to 1; dp[0] and dp[1] stay 5. Final ans=1, but a correct combined DP over the two rows would not leave dp[0],dp[1] equal to the stale row-0 values, giving incorrect dp[] for any subsequent consumer and wrong per-column results.",
+   "rootCause": "The stack-of-minima logic computes a decreasing prefix of column minima but never assigns the resulting minimum to the non-stack columns, so most dp entries are never updated for the current row. This is not the SMAWK row-minima algorithm and leaves stale values.",
+   "suggestedFix": "Implement the actual SMAWK reduce/interpolate to obtain the optimal column (argmin) for every row index, then set dp[j] (or row minima) for all j using the matrix plus carried dp, rather than only for stacked columns."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.DP/Dp.cs",
+   "symbol": "BranchAndBound.BranchRec / CanPrune",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "CanPrune recomputes the suffix-sum of remaining values in an O(n) loop at every node, making the bound computation O(n) per visited node and total O(n * 2^n).",
+   "currentCost": "CanPrune runs `for (int i = idx; i < n; i++) remaining += value[i];` once per BranchRec call. With up to 2^n nodes, this adds an O(n) factor purely for the bound.",
+   "proposedChange": "Precompute a suffix-sum array once in Run: `long* suffix = stackalloc long[n + 1]; suffix[n] = 0; for (int i = n - 1; i >= 0; i--) suffix[i] = suffix[i+1] + value[i];` then CanPrune becomes `return curV + suffix[idx] <= bestV;` (O(1)). Pass suffix down the recursion (or store as a pointer param).",
+   "rationale": "Strips an entire O(n) factor off the dominant recursion: total bound cost drops from O(n * nodes) to O(nodes), plus one O(n) precompute. The suffix sum is loop-invariant across the whole search, so recomputing it per node is pure redundant work.",
+   "risk": "Identical results: suffix[idx] equals the original loop sum exactly. Adds n+1 longs of stack (8(n+1) bytes); fine for the small n that branch-and-bound targets. No signedness/overflow change since the additions are the same."
+  },
+  {
+   "file": "src/IAFahim.DP/Dp.cs",
+   "symbol": "Knapsack01.Run / UpdateKnapsack01Row",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "The 2D tabulation recomputes `int cols = (int)capacity + 1` per row and recomputes `i*cols` and `(i-1)*cols` base offsets inside the inner loop for every column.",
+   "currentCost": "Inner loop over w does index math `dp[i * cols + (int)w]`, `dp[(i-1)*cols + (int)w]`, `dp[(i-1)*cols + (int)(w - weight[i-1])]` \u2014 multiple multiplies (i*cols) and (int) casts per cell across (n+1)*(capacity+1) cells.",
+   "proposedChange": "Hoist `long* row = dp + (long)i * cols;` and `long* prev = dp + (long)(i - 1) * cols;` once per row, then index `row[w]`, `prev[w]`, `prev[w - weight[i-1]]`. Also hoist `long wi = weight[i-1]; long vi = value[i-1];`. Since w fits the loop bound, index with the long w directly instead of (int) casting each access.",
+   "rationale": "Removes a multiply and an add per cell (base offsets become loop-invariant pointer adds computed once per row), shrinks the dependency chain, and lets Burst keep the row pointers in registers. Strictly fewer cycles per cell with no behavior change.",
+   "risk": "None for valid inputs: row/prev pointers index the same elements. Caller already guarantees capacity fits int (existing code casts to int), so (long)i*cols addressing is safe and equal."
+  },
+  {
+   "file": "src/IAFahim.DP/Dp.cs",
+   "symbol": "KnapsackBounded.UpdateKnapsackBoundedRow",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Bounded knapsack uses naive O(capacity * count) per item; this can be reduced to O(capacity * log(count)) via binary-decomposition into 0/1 items, or O(capacity) via monotonic-deque sliding-window max.",
+   "currentCost": "For each item, the double loop `for w in [capacity..0]` x `for k in [1..count] while k*weight<=w` costs O(capacity*count) and recomputes `k*weight` and `k*value` every iteration.",
+   "proposedChange": "Replace with binary splitting: decompose count into powers (1,2,4,...,rem) and run the standard 0/1 backward update for each piece \u2014 O(capacity * log count). For best asymptotics use the monotone-deque grouped-by-residue method to get O(capacity) per item. As a cheap interim win, at least hoist/strength-reduce k*weight and k*value to running adds (`kw += weight; kv += value;`).",
+   "rationale": "Lowers the dominant factor from count to log(count) (or to 1 with the deque), a genuine asymptotic improvement. The interim strength-reduction alone removes two multiplies from the innermost loop.",
+   "risk": "Binary decomposition yields identical reachable (count,value) combinations as the naive loop, so results match. The deque method needs careful residue handling but is a known equivalent. The interim k*weight->running-add must guard against the same loop bounds (k*weight<=w) \u2014 keep kw as the running product to compare."
+  },
+  {
+   "file": "src/IAFahim.DP/Dp.cs",
+   "symbol": "SubsetSum.Run / UpdateSubsetSum",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "SubsetSum uses a bool[] DP at O(n*target) bytes/ops while the file already contains BitsetSubsetSum doing the same in O(n*target/64). The bool variant's inner loop is also not strength-reduced.",
+   "currentCost": "bool* dp of size target+1, inner loop `for s in [target..val] if(dp[s-val]) dp[s]=true` \u2014 one byte per state, branchy, no word-level parallelism; total O(n*target) byte ops.",
+   "proposedChange": "For the boolean reachability question, prefer the existing BitsetSubsetSum path (64x fewer iterations and RAM). If the bool API must stay for ergonomics, at minimum document it as the slow path and consider implementing Run via the bitset internally. Within the bool loop, `(int)val` is recomputed each iteration \u2014 hoist `int v = (int)val;` once.",
+   "rationale": "Bitset packs 64 states per word and the OR-shift does 64 transitions per instruction: ~64x fewer cycles and ~8x less RAM than the bool array for identical output. Hoisting the cast removes a per-iteration conversion.",
+   "risk": "Output is the same boolean reachability. If callers rely on the bool* buffer being filled (full reachability table), bitset only gives the target bit \u2014 so either keep both APIs or expose the table. Treat as ergonomics/dedup suggestion, not a forced replacement."
+  },
+  {
+   "file": "src/IAFahim.DP/Dp.cs",
+   "symbol": "DivideConquerDp.DcRec",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The inner search bound `Math.Min(mid, optR)` is recomputed every loop iteration, and `dp[k-1]` / `cost[k+mid]` use casts/index math that can be hoisted.",
+   "currentCost": "`for (int k = optL; k <= Math.Min(mid, optR); k++)` calls Math.Min on every iteration of the search loop, and indexes cost[k+mid] with a recomputed mid offset.",
+   "proposedChange": "Hoist `int kEnd = mid < optR ? mid : optR;` before the loop and use `k <= kEnd`. Optionally hoist `long* costBase = cost + mid;` so the body is `costBase[k]`. Replace Math.Min with the branchless/inlined ternary already used elsewhere in the file for consistency.",
+   "rationale": "Removes a function-call/compare from each iteration of the hot search loop (the loop bound is loop-invariant) and turns cost[k+mid] into a single-add index. Pure constant-factor cycle reduction.",
+   "risk": "kEnd equals Math.Min(mid, optR) exactly, so iteration range is unchanged. Math.Min(long? no, int) \u2014 both int, no overflow on the compare."
+  },
+  {
+   "file": "src/IAFahim.DP/Dp.cs",
+   "symbol": "AlienDp.Run / CountGroups",
+   "dimension": "burst",
+   "impact": "high",
+   "summary": "AlienDp takes a managed delegate `Func<long,long,long> dist`, which is a managed type invoked in the innermost loop \u2014 this defeats Burst compilation and prevents inlining of the distance function.",
+   "currentCost": "`Func<long,long,long>` is a managed reference type; calling dist(cur, arr[i]) is a virtual delegate invoke per element inside a binary-search-driven O(n log range) loop, with no inlining and a managed allocation/GC dependency. Burst cannot compile methods taking System.Func.",
+   "proposedChange": "Replace Func<long,long,long> with an unmanaged function pointer `delegate*<long,long,long>` (Burst/function-pointer-friendly), or make AlienDp generic over an unmanaged struct implementing the distance via a constrained interface-free pattern (struct with a static method). This keeps it blittable and Burst-compilable while allowing inlining.",
+   "rationale": "Removes the only managed type on the hot path of this class, enabling Burst codegen and inlining of dist \u2014 turning a non-Burstable method into a Burstable one and eliminating per-call delegate dispatch overhead in the innermost loop.",
+   "risk": "delegate*<...> requires callers to pass an unmanaged function pointer (semantics identical for the same function). This is an API change but aligns with house constraints (no interfaces/managed types). Same numeric results."
+  },
+  {
+   "file": "src/IAFahim.DP/Dp.cs",
+   "symbol": "SubsetDp.UpdateSubsetDp / SosDp.UpdateSosDp",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Both recompute `(1 << n)` (the mask upper bound) and `(1 << i)` every iteration of the inner mask loop, and iterate all masks while only half have bit i set.",
+   "currentCost": "`for (int mask = 0; mask < (1 << n); mask++) if ((mask & (1 << i)) != 0) ...` \u2014 recomputes 1<<n per loop test and 1<<i per iteration; processes 2^n masks but skips half via branch, so half the iterations are pure overhead plus a branch misprediction source.",
+   "proposedChange": "Hoist `int full = 1 << n; int bit = 1 << i;`. Then iterate only masks with bit set without branching: `for (int high = bit; high < full; high = (high + bit) | bit)` is fiddly; simpler is the standard SOS form `for (int mask = 0; mask < full; mask++) if ((mask & bit) != 0) f[mask] += f[mask ^ bit];` with bit hoisted \u2014 or iterate blocks: outer over high bits, inner over low bits stepping by bit, touching only set-bit masks (eliminates the branch entirely and halves loop trips).",
+   "rationale": "Hoisting removes two shifts per iteration; the block-iteration form removes the per-mask branch and halves the loop count for the set-bit work, improving both cycle count and branch predictor behavior with identical results.",
+   "risk": "Standard SOS block iteration visits exactly the masks where bit is set, same as the branch, so f[] updates are identical. Must keep f[mask] += f[mask ^ bit] order (in-place, current bit only) \u2014 unchanged."
+  },
+  {
+   "file": "src/IAFahim.DP/Dp.cs",
+   "symbol": "IntervalDp.FindBestIntervalSplit",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "cost[i*n+j] is loop-invariant across the k split loop but is re-read (and re-indexed) every iteration; row base pointers for dp can also be hoisted.",
+   "currentCost": "Inner loop `for k: val = (i<k?dp[i*n+k-1]:0) + (k<j?dp[(k+1)*n+j]:0) + cost[i*n+j]` recomputes cost[i*n+j] index+load each k, and recomputes i*n base each iteration.",
+   "proposedChange": "Hoist `long c = cost[i * n + j];` and `long* dpRowI = dp + (long)i * n;` before the loop; inside use `dpRowI[k-1]` for the left term and add `c` once. The right term dp[(k+1)*n+j] still varies by k but its base can be incremented.",
+   "rationale": "Removes a redundant load+multiply-add per k iteration (cost term is constant for fixed i,j) and strength-reduces the left index. Constant-factor win in an O(n^3) hot loop, so the absolute saving scales with n^3.",
+   "risk": "c equals cost[i*n+j] for all k, so the sum is identical. Boundary ternaries (i<k, k<j) preserved. No overflow change."
+  },
+  {
+   "file": "src/IAFahim.DP/Dp.cs",
+   "symbol": "MinPlusConvolution.FindMinPlusVal / MaxPlusConvolution.FindMaxPlusVal",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The k-loop indexes a[i*n+k] (row, stride 1, good) but b[k*n+j] (column, stride n) causing a cache miss roughly every iteration; a[i*n+k] base and b column base can be hoisted, and the access pattern is cache-hostile.",
+   "currentCost": "b[k*n+j] strides by n longs (8n bytes) each k, so for n beyond a cache-line worth it touches a new line every iteration -> ~n cache misses per (i,j), O(n^3) misses total. a[i*n+k] base i*n is recomputed conceptually each call.",
+   "proposedChange": "Hoist `long* aRow = a + (long)i * n;` (then aRow[k]) and `long* bCol = b + j;` (then bCol[(long)k*n]). For the cache problem, transpose b once into b^T (O(n^2) one-time, O(n^2) scratch) so the inner loop reads bT[j*n+k] sequentially \u2014 turning the strided column walk into a linear scan and making it vectorizable by Burst.",
+   "rationale": "Transposing b converts O(n^3) strided/cache-missing accesses into sequential ones (huge cache-miss reduction and enables SIMD min/max+add), and pointer hoisting removes per-iteration base multiplies. Asymptotically same O(n^3) compute but dramatically better memory behavior.",
+   "risk": "Transpose needs an n^2 scratch buffer (caller-provided per house rules, no managed alloc) and produces identical sums (a[i,k]+b[k,j] unchanged). If no scratch is acceptable, the pointer-hoist alone is still a safe, smaller win. Behavior identical."
+  }
+ ]
+}

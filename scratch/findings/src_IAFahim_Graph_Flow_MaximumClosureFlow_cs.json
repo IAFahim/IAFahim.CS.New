@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Graph.Flow/MaximumClosureFlow.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Flow/MaximumClosureFlow.cs",
+   "symbol": "MaximumClosureFlow.Run",
+   "severity": "critical",
+   "category": "off-by-one",
+   "summary": "Edge IDs start at 1 instead of 2, so the XOR-pairing e^1 used by DinicMaxFlow/DinicDfs maps the first forward edge's reverse to slot 0 (the 'no edge' sentinel) instead of slot 2, corrupting residual capacities and producing a wrong max-flow / wrong closure weight.",
+   "triggeringInput": "n=1, nodeWeight[0]=5, no original edges (head[0]=0), s=1, t=2 region; the single source->node0 edge gets edgeId=1 and reverse edgeId=2. DinicDfs augments flow[1] and writes flow[1^1=0] instead of flow[2], so the reverse residual is wrong. Any non-empty graph mis-augments.",
+   "rootCause": "The edge/reverse-edge convention used throughout this library (see Flow.cs line 217 'edgeId = 2') requires edge ids to begin at an even value so that e^1 pairs (2,3),(4,5),... and never collides with the head[] sentinel 0. Here edgeId is initialized to 1, so the first pair is (1,2) and 1^1==0 aliases the sentinel slot, while slot 2's residual is never updated correctly.",
+   "suggestedFix": "Initialize 'int edgeId = 2;' (matching the convention in Flow.cs) and size the newTo/newNext/newCap/newFlow arrays to account for the unused index-0/1 slots."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Flow/MaximumClosureFlow.cs",
+   "symbol": "Run",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Edge arrays are over-allocated at n*4 but the e^1 pairing convention plus AddEdge's 1-based edgeId means index space must be sized to the true max edge id; verify/right-size and avoid the separate newFlow zeroing pass.",
+   "currentCost": "newTo/newNext/newCap/newFlow are each stackalloc int[n*4] (16 bytes/element * 4 arrays = up to 64n bytes of stack). The actual edge count is: up to n source/sink edges (2 ids each) plus up to (number of original edges) graph edges (2 ids each). For dense graphs original edges can exceed n, so n*4 may be an under-bound, while for sparse graphs it over-allocates stack. Separately, DinicMaxFlow internally zeroes flow, yet newFlow is allocated uninitialized here (good) \u2014 no redundant zero here, but newCap region beyond used ids is never written.",
+   "proposedChange": "Size the edge arrays from a named constant derived from the true upper bound: 2*(n + originalEdgeCount) + 2 (the +2 for the 1-based/paired-id slack of AddEdge starting at edgeId=1). If originalEdgeCount is not passed, document that n*4 assumes at most n original edges. Prefer adding an explicit maxEdges parameter to make the bound caller-controlled and avoid silent stack overflow on dense inputs.",
+   "rationale": "Correct, caller-controlled sizing prevents both stack overrun (dense graphs) and wasted stack/cache footprint (sparse graphs), keeping the working set tight for Burst. This is the dominant RAM concern in the file.",
+   "risk": "Changing the signature to take maxEdges is an API/ergonomics change (breaks callers) \u2014 flag as ergonomics-coupled. If signature must stay fixed, at minimum the n*4 bound should be documented as 'requires original edge count <= n'. No behavior change for inputs already within bound."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/MaximumClosureFlow.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Fuse the final two O(n) passes and reuse visited/BFS to accumulate maxWeight in one sweep.",
+   "currentCost": "After the min-cut BFS, line 43 does a separate O(n) loop testing `visited[u]==1 && nodeWeight[u]>0`. The BFS (lines 32-42) already visits exactly the source-side nodes; nodeWeight[u]>0 nodes are precisely those connected to s by a positive-weight edge. The result is two passes plus a reload of nodeWeight[u].",
+   "proposedChange": "Accumulate maxWeight during the BFS dequeue: when a node u (0<=u<n) is popped and nodeWeight[u]>0, add it then. This removes the trailing O(n) scan and one full nodeWeight re-read. Guard u<n since s,t are nn-1,nn-2 style sentinels outside [0,n).",
+   "rationale": "One fused pass over reachable nodes instead of BFS + full [0,n) rescan; fewer nodeWeight loads and better temporal locality (process node weight while the node id is already in a register).",
+   "risk": "Must ensure every reachable node in [0,n) is dequeued exactly once (BFS visited-guard guarantees this) and that s itself is excluded by the u<n / nodeWeight test (s has no nodeWeight entry; s index must be outside [0,n)). If s/t indices overlap [0,n) the guard must match the existing line-43 condition exactly. Result identical otherwise."
+  }
+ ]
+}

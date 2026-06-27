@@ -1,0 +1,122 @@
+[
+  {
+    "file": "src/IAFahim.Search.Bit/BitSearch.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_Search_Bit_BitSearch_cs.json"
+  },
+  {
+    "file": "src/IAFahim.Search.ExactCover/ExactCover.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_Search_ExactCover_ExactCover_cs.json"
+  },
+  {
+    "file": "src/IAFahim.Search.Imos/Imos.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_Search_Imos_Imos_cs.json"
+  },
+  {
+    "file": "src/IAFahim.Search.Numerical/Numerical.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_Search_Numerical_Numerical_cs.json"
+  },
+  {
+    "file": "src/IAFahim.Search.RangeQueries/RangeQueries.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_Search_RangeQueries_RangeQueries_cs.json"
+  },
+  {
+    "file": "src/IAFahim.Search.Subset/EnumerateSupersets.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_Search_Subset_EnumerateSupersets_cs.json"
+  },
+  {
+    "file": "src/IAFahim.Sort.QuickSort/QuickSort.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_Sort_QuickSort_QuickSort_cs.json"
+  },
+  {
+    "file": "src/IAFahim.Sort.RadixSort/RadixSort.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_Sort_RadixSort_RadixSort_cs.json"
+  },
+  {
+    "file": "src/IAFahim.String.Automata/SubsequenceAutomaton.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_String_Automata_SubsequenceAutomaton_cs.json"
+  },
+  {
+    "file": "src/IAFahim.String.Compress/Huffman.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_String_Compress_Huffman_cs.json"
+  },
+  {
+    "file": "src/IAFahim.String.FMIndex/Bwt.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_String_FMIndex_Bwt_cs.json"
+  },
+  {
+    "file": "src/IAFahim.String.Grammar/Slp.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_String_Grammar_Slp_cs.json"
+  },
+  {
+    "file": "src/IAFahim.String.Match/EditDistance.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_String_Match_EditDistance_cs.json"
+  },
+  {
+    "file": "src/IAFahim.String.Palindrome/DynamicPalindromicTree.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_String_Palindrome_DynamicPalindromicTree_cs.json"
+  },
+  {
+    "file": "src/IAFahim.String.Palindrome/PalindromicTree.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_String_Palindrome_PalindromicTree_cs.json"
+  },
+  {
+    "file": "src/IAFahim.String.Parse/Earley.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_String_Parse_Earley_cs.json"
+  },
+  {
+    "file": "src/IAFahim.String.SuffixAutomaton/KthSubstring.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_String_SuffixAutomaton_KthSubstring_cs.json"
+  },
+  {
+    "file": "src/IAFahim.String.SuffixTree/SuffixTree.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_String_SuffixTree_SuffixTree_cs.json"
+  },
+  {
+    "file": "src/IAFahim.Algebra.GraphPoly/Tutte.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_Algebra_GraphPoly_Tutte_cs.json"
+  },
+  {
+    "file": "src/IAFahim.Algebra.Polynomial/Berlekamp.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_Algebra_Polynomial_Berlekamp_cs.json"
+  },
+  {
+    "file": "src/IAFahim.Algebra.Polynomial/Gcd.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_Algebra_Polynomial_Gcd_cs.json"
+  },
+  {
+    "file": "src/IAFahim.Algebra.Polynomial/PowMod.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_Algebra_Polynomial_PowMod_cs.json"
+  },
+  {
+    "file": "src/IAFahim.Algebra.Polynomial/ToomCook.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_Algebra_Polynomial_ToomCook_cs.json"
+  },
+  {
+    "file": "src/IAFahim.Algebra.Sequence/GeneratingFunction.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_Algebra_Sequence_GeneratingFunction_cs.json"
+  },
+  {
+    "file": "src/IAFahim.Algebra.Sequence/Transform.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_Algebra_Sequence_Transform_cs.json"
+  },
+  {
+    "file": "src/IAFahim.Collections.NoDeps/Memory.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_Collections_NoDeps_Memory_cs.json"
+  },
+  {
+    "file": "src/IAFahim.Collections.NoDeps/NativeArray.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_Collections_NoDeps_NativeArray_cs.json"
+  },
+  {
+    "file": "src/IAFahim.Collections.NoDeps/NativeList.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_Collections_NoDeps_NativeList_cs.json"
+  },
+  {
+    "file": "src/IAFahim.Collections.NoDeps/UnsafeList.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_Collections_NoDeps_UnsafeList_cs.json"
+  },
+  {
+    "file": "src/IAFahim.Combinatorics.Generation/NecklacesAndBracelets.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_Combinatorics_Generation_NecklacesAndBracelets_cs.json"
+  }
+]

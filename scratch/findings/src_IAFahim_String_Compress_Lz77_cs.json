@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.String.Compress/Lz77.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Compress/Lz77.cs",
+   "symbol": "Encode",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Replace the O(n * window * matchLen) brute-force window scan with a hash-chain (or 3-byte rolling-hash bucket) match finder to get near-O(n) average behavior.",
+   "currentCost": "For every position i, it rescans all up to `windowSize` prior positions and re-extends each match byte-by-byte: worst/typical cost is O(n \u00b7 windowSize \u00b7 avgMatchLen). On highly repetitive input this is quadratic-ish and dominates runtime.",
+   "proposedChange": "Maintain a hash table keyed on the next 3 (or 4) bytes mapping to a chain of recent positions; at each i, only probe positions in that chain (bounded by a max-chain constant), extending matches from there. All buffers are stackalloc/native \u2014 fits house constraints.",
+   "rationale": "Standard LZ77 acceleration: cuts candidate positions from O(window) to O(chain-length constant), turning the encoder from quadratic to near-linear on real data \u2014 the single biggest win in this module.",
+   "risk": "Greedy match selection can differ from the exhaustive 'longest of all window positions' if chain depth is capped, changing which equally/less-optimal token is chosen \u2014 output stays a valid LZ77 stream and decodes identically, but the exact tokenization may differ from the brute-force version. If bit-exact output is a contract, cap-chain must be unbounded (still faster via hashing) to preserve 'first longest' selection."
+  },
+  {
+   "file": "src/IAFahim.String.Compress/Lz77.cs",
+   "symbol": "Encode",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Branchless window start and early-out when a match already reaches the 255 cap; also hoist `len`/`input` and lift the `l>255` cap test.",
+   "currentCost": "`Math.Max(0, i - windowSize)` is a call/branch per outer iteration. The inner match loop re-checks `l > 255` every byte. When `bestLen` already equals 255 (max), the outer loop keeps scanning remaining window positions pointlessly.",
+   "proposedChange": "Compute `int start = i - windowSize; if (start < 0) start = 0;` (or `start = (i - windowSize) & ~((i - windowSize) >> 31)` branchless). Add `if (bestLen == 255) break;` after updating bestLen to stop scanning once the cap is hit. Bound the inner loop with `int maxL = (len - i) < 256 ? len - i : 256;` so the per-byte `if (l>255) break;` disappears.",
+   "rationale": "Removes a per-byte branch from the innermost loop, removes a per-position call, and prunes the candidate scan once the maximum encodable length is found \u2014 fewer comparisons on the hottest loop.",
+   "risk": "Early-out on bestLen==255 changes which position wins ties only among matches all of length 255 (Offset differs); if exact bestPos tie-breaking is a contract this alters output. The original keeps the first j giving 255 too (since `l > bestLen` is strict), so breaking on first 255 preserves the same bestPos \u2014 behavior-preserving."
+  },
+  {
+   "file": "src/IAFahim.String.Compress/Lz77.cs",
+   "symbol": "Token",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Shrink the Token struct: Length is capped at 255 (fits byte) and Literal is already byte; pack to reduce per-token footprint and improve cache density of the output stream.",
+   "currentCost": "Token is two `int` (8 bytes) + `byte` + 3 padding = 12 bytes. Length never exceeds 255 by the encoder's own cap, so 4 bytes of it are wasted; Offset is bounded by windowSize.",
+   "proposedChange": "If windowSize <= 65535, use `ushort Offset; byte Length; byte Literal` (4 bytes) \u2014 a 3x reduction. Otherwise keep Offset int but make `Length` a byte. Decode reads the same fields.",
+   "rationale": "Smaller tokens mean the Decode pass (and any serialization) touches 3x fewer cache lines; the token array is the primary output working set.",
+   "risk": "Narrowing Offset to ushort breaks if windowSize>65535; gate on a const or keep int Offset + byte Length (still 8->? saves padding). Changes the public struct layout \u2014 an API/ABI change for callers reading Token fields, so it is a breaking change to weigh against the ergonomic contract."
+  },
+  {
+   "file": "src/IAFahim.String.Compress/Lz77.cs",
+   "symbol": "Decode",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The byte-by-byte copy loop for matches can be widened, and when Offset >= Length the run is non-overlapping and can use a bulk memmove/word copy.",
+   "currentCost": "`for j in [0,Length): output[pos+j] = output[pos-Offset+j]` copies one byte per iteration with a load-store dependency, even when source and dest don't overlap (Offset >= Length), where a vectorized/word copy is legal.",
+   "proposedChange": "When `input[i].Offset >= input[i].Length`, copy via `Buffer.MemoryCopy(output+pos-Offset, output+pos, Length, Length)` or an 8-byte-at-a-time loop. Keep the byte loop only for the overlapping (Offset < Length) RLE case. Hoist `input[i]` into a local Token to avoid re-deref of the struct fields each iteration.",
+   "rationale": "Removes the per-byte dependency chain for the common non-overlapping case, letting Burst emit wide loads/stores; loading the Token once avoids repeated pointer arithmetic into the input array.",
+   "risk": "Overlapping copies (Offset < Length, i.e. RLE-style self-reference) MUST stay byte-sequential \u2014 memmove semantics would corrupt them, so the `Offset >= Length` guard is mandatory. With the guard, output is identical."
+  }
+ ]
+}

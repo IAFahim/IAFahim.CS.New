@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.DS.SegmentTree/SegTreeOnTree.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.SegmentTree/SegTreeOnTree.cs",
+   "symbol": "PersistentMergeableSegmentTree.Query / SegmentTreeOnTreeMerge.Run",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "sumArr is int; on accumulation-heavy DSU-on-tree merges int sums can overflow \u2014 consider widening or documenting bound.",
+   "currentCost": "sumArr is int*. Merge accumulates sumArr[aRoot] += sumArr[bRoot] and Update adds val repeatedly. For large n with many merges the running sum can exceed int range, silently wrapping (Burst has no overflow checks).",
+   "proposedChange": "If counts/sums can exceed 2^31, switch sumArr to long* (as PersistentLazySeg already does). If the design guarantees sums fit in int, document the invariant with a named constant/comment so callers know the safe bound; otherwise widen.",
+   "rationale": "Prevents silent wraparound corruption on large inputs \u2014 a correctness concern, not just perf. Matches the long-based design already used in PersistentLazySeg for the same family of structures.",
+   "risk": "Widening to long doubles sumArr memory traffic and cache footprint; only do it if overflow is actually reachable for intended n. This is a semantics/correctness flag, not a guaranteed speedup \u2014 keep int if the caller contract bounds sums to int range."
+  }
+ ]
+}

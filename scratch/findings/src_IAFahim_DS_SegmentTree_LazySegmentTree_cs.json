@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.DS.SegmentTree/LazySegmentTree.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.SegmentTree/LazySegmentTree.cs",
+   "symbol": "LazySegmentBuild.RunInt32 / LazySegment* (node*2 indexing)",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Repeated `node * 2` and `node * 2 + 1` recomputation; compute `int lc = node << 1; int rc = lc + 1;` once per call.",
+   "currentCost": "RunInt32 computes `node * 2` 3x and `node * 2 + 1` 3x (lines 16-18). RangeAddInt32, RangeSetInt32, PushInt32, PushSetInt32, LazySegmentUpdate all recompute these multiple times per node, every recursion level over the whole tree.",
+   "proposedChange": "At the top of each method (after leaf check) compute `int lc = node << 1; int rc = lc + 1;` and reuse for both tree[] indexing and lazy[] indexing. Replace all `node * 2`/`node * 2 + 1`.",
+   "rationale": "Removes 2-4 redundant integer multiplies/adds per node visited; on a full O(n) build and O(log n) per update this is a constant-factor across every node. Shifts also avoid imul latency where the JIT/Burst doesn't strength-reduce inside complex expressions.",
+   "risk": "node*2 == node<<1 for all non-negative node ids (1-based tree, always positive). Safe; no overflow vs original since identical arithmetic."
+  },
+  {
+   "file": "src/IAFahim.DS.SegmentTree/LazySegmentTree.cs",
+   "symbol": "LazySegmentApply (PushInt32/PushSetInt32) vs LazySegmentPush.Run",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Duplicated push logic across LazySegmentApply.PushInt32 and LazySegmentPush.Run (byte-identical); and lazy[node] is reloaded ~5 times.",
+   "currentCost": "PushInt32 (lines 67-78) and LazySegmentPush.Run (lines 98-109) are identical code maintained twice. Inside, lazy[node] is loaded 5 times (lines 72,73,74,75 + the !=0 check). The `* (mid-l+1)` and `* (r-mid)` recompute segment widths.",
+   "proposedChange": "Cache `int lz = lazy[node];` once; branch `if (lz != 0 && l != r)`; reuse lz for all four updates. Consolidate the two duplicate push implementations into a single call so only one is maintained and inlined. Optionally cache `int lc=node<<1, rc=lc+1`.",
+   "rationale": "Cuts 4 redundant memory loads of lazy[node] to 1 register read per push; removes duplicated code reducing icache footprint and maintenance risk. Push is on every update/query descent, so this is hot.",
+   "risk": "Identical results; lazy[node] is not mutated between reads except the final reset, so caching is safe."
+  },
+  {
+   "file": "src/IAFahim.DS.SegmentTree/LazySegmentTree.cs",
+   "symbol": "LazySegment* (l + r) >> 1 mid computation",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "`(l + r) >> 1` can overflow for large indices; ChairmanTree uses the safe `l + ((r - l) >> 1)`. Inconsistent and a latent bug, not slower.",
+   "currentCost": "Lines 15,38,61,71,84,102,126,148 use `(l + r) >> 1`. For l,r near int.MaxValue/2 this overflows to a negative mid, corrupting recursion. Not a perf issue but a correctness/consistency divergence from ChairmanTree's `lo + ((hi-lo)>>1)`.",
+   "proposedChange": "If segment indices can ever exceed ~2^30, switch to `l + ((r - l) >> 1)` to match ChairmanTree and avoid overflow; otherwise document the bounded-input assumption. Same cycle count either way.",
+   "rationale": "Same instruction count (add+shift vs sub+shift+add is one extra add, negligible) but removes a latent overflow. Consistency with the rest of the module.",
+   "risk": "For typical segment-tree sizes (l,r < 2^30) current code is correct; only flag/guard if large-index use is intended. No behavior change for in-range inputs."
+  },
+  {
+   "file": "src/IAFahim.DS.SegmentTree/LazySegmentTree.cs",
+   "symbol": "LazySegmentApply.RangeSetInt32 / RangeAddInt32",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "bool* hasLazy uses 1 byte per node; acceptable, but recursive Run methods lack inlining hints on the small leaf helpers (Pull).",
+   "currentCost": "LazySegmentPull.Run is a tiny leaf (one add) called once per internal node on every update but is a separate non-inlined static method (no attribute). LazySegmentPush.Run likewise.",
+   "proposedChange": "Add [MethodImpl(MethodImplOptions.AggressiveInlining)] to LazySegmentPull.Run and LazySegmentPush.Run so the trivial pull/push fold into the recursive updater, removing call overhead per node.",
+   "rationale": "Pull is a single memory add; the call/return overhead dominates the work. Inlining it eliminates that overhead at every internal node of the update path.",
+   "risk": "None functionally. Push is small enough that inlining its branch is a net win; verify it does not bloat the recursive method past Burst inline thresholds (it is small)."
+  }
+ ]
+}

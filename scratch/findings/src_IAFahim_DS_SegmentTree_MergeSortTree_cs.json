@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.DS.SegmentTree/MergeSortTree.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.SegmentTree/MergeSortTree.cs",
+   "symbol": "MergeSortTreeBuild.Build",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Per-node insertion sort makes build O(n log n * n) worst case; replace with bottom-up merge of children.",
+   "currentCost": "Each internal node copies its sub-range from arr then runs MergeSortTreeShared.Sort (insertion sort, O(len^2)). For a leaf-segment of length len the parent re-sorts len elements from scratch. Across all levels this is O(sum over nodes of len^2). For the root node alone that is O(n^2), dominating everything; total build is Theta(n^2) worst case (reverse-sorted input).",
+   "proposedChange": "Build bottom-up: leaves are single elements (already sorted), and each internal node's sorted array is the merge of its two already-sorted children's arrays (standard 2-way merge, O(len)). Recurse to children first, then merge nodes[2*node+1] and nodes[2*node+2] into nodes[node]. This makes per-level work O(n) and total O(n log n).",
+   "rationale": "Merge-sort-tree construction is canonically O(n log n) via merging sorted children. The current code throws that away by re-sorting each node from the raw array with an O(len^2) insertion sort, turning the whole build into O(n^2). Merging two sorted runs is a linear single pass with sequential memory access (cache-friendly, Burst-vectorizable).",
+   "risk": "Output arrays must be identical (each node holds the multiset of its range, sorted ascending). Merge must be stable-equivalent for equal keys but since values are plain ints and only sortedness matters, any merge order is fine. Must ensure the merge writes into nodes[node] which is a distinct pool region from the children, so no aliasing. Recursion order changes (children before parent merge) but Run's contract (final node arrays sorted) is preserved."
+  },
+  {
+   "file": "src/IAFahim.DS.SegmentTree/MergeSortTree.cs",
+   "symbol": "MergeSortTreeShared.Sort",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Insertion sort is O(len^2); if kept, only needed for leaves (len==1) \u2014 otherwise unused after bottom-up merge.",
+   "currentCost": "O(len^2) comparisons/moves per call. Called once per node on the full range length, including the root with len==n.",
+   "proposedChange": "After switching Build to bottom-up merge, Sort is no longer called on multi-element ranges and can be deleted (leaves of length 1 are trivially sorted). If a general sort is still desired elsewhere, replace insertion sort with a non-recursive heapsort or introsort for O(n log n) worst case.",
+   "rationale": "Removes the quadratic primitive entirely from the hot build path; dead-code elimination also shrinks the Burst-compiled module.",
+   "risk": "Only safe to delete if Build no longer depends on it. If any external caller uses MergeSortTreeShared.Sort it must be retained; it is internal so callers are confined to this module."
+  },
+  {
+   "file": "src/IAFahim.DS.SegmentTree/MergeSortTree.cs",
+   "symbol": "MergeSortTreeShared.UpperBound/LowerBound",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Branchy binary search has a data-dependent branch per step; a branchless variant cuts mispredicts in the hot Kth loop.",
+   "currentCost": "Each loop iteration has an unpredictable `if (a[mid] <= val)` branch (~log2(len) per call). MergeSortTreeKth.Run calls CountLessEqual ~30 times (1<<30 range), each doing UpperBound at every covered node \u2014 so this branch executes O(30 * log n * log n) times per Kth query, with high misprediction rate on random data.",
+   "proposedChange": "Use a branchless lower/upper-bound over a half-open window: maintain `int* base = a; int len = n;` and loop `while (len > 1) { int half = len >> 1; base += (base[half-1] <= val ? half : 0); len -= half; }` with the conditional add expressed via a mask (`int take = -(base[half-1] <= val); base += take & half;`). Keep AggressiveInlining.",
+   "rationale": "Converts a hard-to-predict branch into a data-dependent pointer add the compiler can render as a cmov/select, removing pipeline flushes. Burst/LLVM lowers the masked add to branchless code. Memory access pattern is unchanged.",
+   "risk": "Must reproduce exact UpperBound (first index with a[i] > val) and LowerBound (first index with a[i] >= val) semantics including empty (n==0) and all-elements-match cases. The masked form `take & half` relies on take being 0 or -1 (all-ones); verify the comparison yields a full mask. Off-by-one in the window reduction is the main correctness hazard \u2014 needs careful unit coverage against the current versions."
+  },
+  {
+   "file": "src/IAFahim.DS.SegmentTree/MergeSortTree.cs",
+   "symbol": "MergeSortTreeKth.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Value-space binary search over a fixed 1<<30 range re-walks the whole segment tree ~30 times; persistent-tree / fractional-cascading walk would cut a log factor.",
+   "currentCost": "Run does ~30 iterations of value bisection, each calling CountLessEqual which descends O(log n) tree nodes doing an UpperBound (O(log n)) each. Total ~30 * log n * log n binary searches per Kth query, all re-decomposing the same [ql,qr] into the same O(log n) canonical nodes every iteration.",
+   "proposedChange": "Hoist the [ql,qr] canonical-node decomposition out of the value-bisection loop: precompute once the up-to-2*log n covering node indices into a small stackalloc int buffer, then each value-bisection step only does UpperBound on that fixed set instead of re-running the recursive CountLessEqual decomposition. This removes the repeated range-overlap branching and recursion overhead (the dominant constant factor).",
+   "rationale": "The set of canonical segment-tree nodes covering [ql,qr] is invariant across the 30 value-bisection iterations. Computing it once and reusing eliminates ~29 redundant tree descents and their qr<l / r<ql comparison branches, replacing recursion with a flat loop over <=2*log n cached node ids \u2014 better ILP and no call overhead.",
+   "risk": "Requires a stackalloc buffer sized to 2*ceil(log2 n) ints; bound must be guaranteed by caller's n. The decomposition must enumerate exactly the same nodes CountLessEqual's full-cover branch hits. Behavior identical; only intermediate work removed."
+  }
+ ]
+}

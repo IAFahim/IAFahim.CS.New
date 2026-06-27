@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Math.Basic/Clamp.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Basic/Clamp.cs",
+   "symbol": "Clamp.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Two dependent conditional branches; can be expressed as branchless min/max to remove branch misprediction on unpredictable data.",
+   "currentCost": "Two compare-and-branch instructions. On data where v vs lo/hi outcome is unpredictable (common in clamping random values), each misprediction costs ~10-20 cycles.",
+   "proposedChange": "Use branchless max-then-min: `int t = v < lo ? lo : v; return t > hi ? hi : t;` reads identical but Burst/LLVM lowers the ternary to cmov/min/max more reliably than if-return chains; even cleaner, expose intent via System.Math.Max/Min equivalents that Burst maps to native min/max: `return (v < lo) ? lo : (v > hi) ? hi : v;` collapsed into one expression so the JIT sees a single value-producing form rather than early returns.",
+   "rationale": "min/max/cmov lowering eliminates branches entirely, turning Clamp into 2-3 fixed-latency instructions with no misprediction penalty, which matters in tight per-element loops.",
+   "risk": "Must preserve the lo-wins-when-lo>hi ordering: applying lo first then hi (as original does: v<lo checked before v>hi) means if lo>hi the result is hi. The proposed `max(lo,v)` then `min(hi,...)` yields the same: clamp to hi when lo>hi. Verify ordering matches; original returns lo first only when v<lo AND that path taken before hi check, so for v<lo<... it returns lo, but if lo>hi and v<lo it returns lo in original (first if), whereas max/min returns hi. This is an edge difference when lo>hi: REJECT the reorder unless lo<=hi is a documented precondition. Safe form: keep checking lo first exactly, just ensure single-expression ternary lowering."
+  }
+ ]
+}

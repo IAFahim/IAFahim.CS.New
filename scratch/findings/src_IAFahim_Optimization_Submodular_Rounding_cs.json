@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Optimization.Submodular/Rounding.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Optimization.Submodular/Rounding.cs",
+   "symbol": "Rounding.Dependent",
+   "severity": "medium",
+   "category": "logic",
+   "summary": "Dependent rounding destructively zeroes the caller-owned 'frac' input array (frac[j] = 0) while sampling, so on return the input is corrupted and any second call / reuse by the caller operates on all-zero fractions, and it can also select fewer than k=round(sum) items.",
+   "triggeringInput": "n=3, frac={0.5,0.5,1.0} (sum=2, k=2). After the call frac is mutated to e.g. {0,0,1.0} or {0.5,0,0}; a caller that reads frac afterward (or calls Dependent again) gets wrong probabilities. Also if rng draws make 'r' fall past all remaining mass, an iteration sets nothing, yielding fewer than k ones.",
+   "rootCause": "The routine mutates its input 'frac' (sets frac[j]=0 and decrements sum) instead of using a scratch copy, and relies on a break that can be skipped when r>=acc for all j, so some of the k iterations select no element.",
+   "suggestedFix": "Operate on a local stackalloc copy of frac instead of mutating the input, and guard the final iteration to pick the last remaining nonzero element when the cumulative sum check fails so exactly k items are chosen."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Submodular/Rounding.cs",
+   "symbol": "Dependent",
+   "dimension": "burst",
+   "impact": "high",
+   "summary": "`new Random(42)` allocates a managed System.Random inside the method, defeating Burst and breaking the unmanaged/no-managed-types house rule.",
+   "currentCost": "System.Random is a managed reference type; constructing it on the hot path causes a heap allocation, is not blittable, and cannot be Burst-compiled. It also hardcodes seed 42, making the method non-configurable and hiding mutable RNG state inside the function.",
+   "proposedChange": "Replace with an unmanaged xorshift/PCG state passed in by the caller (e.g. `ulong* rngState` or a `ref Xorshift rng` unmanaged struct) consistent with how Rounding.Random already takes an rng. Provide a small static `NextDouble(ref ulong state)` helper. This keeps the method Burst-compatible and pure w.r.t. a caller-owned seed.",
+   "rationale": "Eliminates a managed allocation and makes the routine Burst-jittable and deterministic via an explicit seed argument. xorshift NextDouble is a few ALU ops vs. System.Random's heavier managed implementation.",
+   "risk": "Changes the exact random sequence (different RNG), so outputs differ from the current seed-42 sequence \u2014 acceptable since the result is already random, but it is an observable change for fixed-seed reproducers. Signature change is a public API change; mirror the existing `Random(...)` rng-parameter convention to stay consistent."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Submodular/Rounding.cs",
+   "symbol": "Dependent",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Outer k-loop rescans the full frac array each pick (O(k*n)) and recomputes a prefix sum from scratch every time.",
+   "currentCost": "For each of k picks it walks all n elements accumulating `acc` until r<acc. Each pick is O(n) -> O(k*n) total, and the running `acc` prefix is rebuilt from index 0 every pick even though earlier zeroed entries contribute nothing.",
+   "proposedChange": "Maintain the prefix structure incrementally: since a chosen j sets frac[j]=0 and sum-=frac[j], you can skip already-zeroed entries, or use a Fenwick/BIT (the repo already has a Fenwick module) over frac to do each weighted draw in O(log n), giving O(k log n). For small n keep the linear scan but break early and start accumulation from the first nonzero index to cut constant factor.",
+   "rationale": "Replaces O(k*n) with O(k log n) for the weighted sampling without replacement, reusing existing Fenwick infrastructure; for the linear fallback, skipping zeroed prefixes reduces redundant additions.",
+   "risk": "A Fenwick-based draw must reproduce the same selection probabilities/semantics as the linear `r<acc` scan (first index where cumulative exceeds r). Floating-point cumulative-sum order differs between linear scan and tree query, so the exact element chosen for a given r can differ at tie boundaries \u2014 acceptable for a randomized rounding but technically an observable change at FP boundaries; note this if exact reproducibility is required."
+  }
+ ]
+}

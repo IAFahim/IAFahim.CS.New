@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Geometry.Hull/MaximumInscribedCircle.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Hull/MaximumInscribedCircle.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Redundant Intersect recomputation inside the deque maintenance loops; the same (prev,curr) intersection at a fixed mid is recomputed multiple times per iteration.",
+   "currentCost": "For each of 60 binary-search iterations and each i, both the pop-back and pop-front while-loops call Intersect (2 muls + 1 div + abs + 2 divs) on (q[tail-2],q[tail-1]) / (q[head],q[head+1]) repeatedly. The final trailing while-loop likewise. A division (~20-40 cycles latency) dominates, multiplied by 60 * n * (loop iterations).",
+   "proposedChange": "Cache the intersection point for the current back-pair and front-pair so it is computed once per deque change rather than once per predicate evaluation. More importantly, hoist invariant work: c[prev]+mid and c[curr]+mid are recomputed; precompute c[i]+mid once per i. Consider that nx,ny,c do not change across iterations, only mid shifts c uniformly, so the intersection x,y for a fixed pair scales predictably \u2014 but at minimum, avoid recomputing Intersect for an unchanged pair within the same while-loop body.",
+   "rationale": "Removes repeated expensive divisions inside the innermost loop. Division has the longest latency of the ops here and sits on the critical dependency chain of the predicate.",
+   "risk": "Must preserve exact floating-point results; caching the computed (x,y) for a given (prev,curr,mid) is bit-identical, so semantics are preserved. Reordering of c[i]+mid additions is exact since it is the same single addition hoisted, not a reassociation."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Hull/MaximumInscribedCircle.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Strength-reduce (i + 1) % n in the normal-precompute loop to a branchless/incremental next-index.",
+   "currentCost": "The modulo runs n times in the setup loop. Integer division/modulo is ~20-40 cycle latency and n is not generally a power of two, so & cannot be used.",
+   "proposedChange": "Replace nxt = (i + 1) % n with an incremental counter: process i in 0..n-1 with nxt starting at 1 and wrapping to 0 only on the last iteration (nxt = i + 1; if (nxt == n) nxt = 0;), or special-case the last edge (i = n-1 -> nxt = 0) outside the loop. Branchless: int nxt = i + 1 - ((i + 1 == n ? 1 : 0) * n) is unnecessary; the single compare-and-set is cheaper than a div.",
+   "rationale": "Replaces a hardware divide with a single predicted compare/conditional-move per iteration, shortening the dependency chain in the setup pass.",
+   "risk": "None; produces identical indices for all i in [0,n-1]. Setup loop is O(n) and runs once, so impact is bounded, hence medium not high."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Hull/MaximumInscribedCircle.cs",
+   "symbol": "Intersect",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The det near-zero guard branch (Math.Abs(det) < 1e-12) sits on the hot path of a method called many times per binary-search iteration.",
+   "currentCost": "Each call evaluates Math.Abs and a compare/branch before the divisions. In the inner deque loops this branch is evaluated O(60 * n * loop) times. For well-conditioned convex polygons det is essentially never near zero, so the branch is almost always not taken but still costs a compare and a poorly-predictable guard.",
+   "proposedChange": "If callers guarantee non-degenerate adjacent edges (convex, distinct normals), provide an unchecked Intersect variant for the hot deque path and keep the guarded version for setup/extraction. Alternatively compute 1.0/det once and multiply (replaces two divides with one divide + two multiplies), since both x and y divide by the same det.",
+   "rationale": "Reciprocal-and-multiply turns 2 divisions into 1 division + 2 multiplications (div ~20-40c vs mul ~3-5c), a clear win on the critical chain. The unchecked variant removes a branch from the hottest loop.",
+   "risk": "Reciprocal multiply slightly changes rounding vs two separate divides (1 ulp), so it is NOT bit-identical; acceptable only if the binary-search tolerance (60 iterations) absorbs sub-ulp differences. State this explicitly: propose the reciprocal form only if exact bit-reproducibility is not contractually required. The unchecked variant requires the caller-guarantees-valid-input convention to hold."
+  }
+ ]
+}

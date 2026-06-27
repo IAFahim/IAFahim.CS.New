@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Recast/RcCompactCell.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/RcCompactCell.cs",
+   "symbol": "Index/Count",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hot loops recompute cell.Index and cell.Count separately (each a mask/shift of packedData) and frequently form (Index + Count); the two getters reload and re-mask the same word.",
+   "currentCost": "Loops like 'for (int i=(int)c.Index, ni=(int)(c.Index+c.Count); ...)' call Index twice and Count once, each performing a mask (Index) or shift+mask (Count) on packedData. Pattern repeats for every cell across Width*Height in Area/Region/Contour passes.",
+   "proposedChange": "Add an inlined helper 'public void GetSpanRange(out uint index, out uint count)' (or 'out int start, out int end') that reads packedData once and derives both fields, so callers do a single field load: 'cell.GetSpanRange(out uint start, out uint count); int ni = (int)(start+count);'. Mark Index/Count getters [MethodImpl(AggressiveInlining)] regardless.",
+   "rationale": "Reads packedData once instead of 2-3 times per cell and lets the JIT/Burst keep it in a register; removes a redundant masked load per loop header across O(Width*Height) iterations.",
+   "risk": "None to layout or semantics \u2014 purely a convenience accessor over the same bits; existing Index/Count remain. Caller refactors are mechanical. AggressiveInlining on trivial getters is safe."
+  }
+ ]
+}

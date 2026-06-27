@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.NT/PrimePiMeissel.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/PrimePiMeissel.cs",
+   "symbol": "PrimePiMeissel.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Same Math.Pow(n,1.0/3.0) and Math.Pow(n,0.5) transcendental-root issue as Lehmer; replace with Math.Cbrt/Math.Sqrt plus integer correction.",
+   "currentCost": "Two fractional Math.Pow calls per recursion level invoke the generic pow (log+exp). Meissel recurses, so this is on the hot path.",
+   "proposedChange": "b = isqrt(n) with correction loop; a = picbrt: compute icbrt(n) via Math.Cbrt then +/-1 correction, then a = pi(icbrt). Drop both Math.Pow calls.",
+   "rationale": "Cbrt/Sqrt are cheaper single intrinsics; integer correction removes FP boundary error and the log/exp latency.",
+   "risk": "Same floor-rounding caveat as Lehmer: fractional Pow may already mis-round perfect cubes/squares; integer correction fixes it but could change output where the prior code was wrong. Confirm against tests."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/PrimePiMeissel.cs",
+   "symbol": "PrimePiMeissel.Run / Phi",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "The leading-prime-count base case re-runs a binary search over the full primes array on every recursion; the binary-search threshold and Phi recursion both lack memoization of repeated pi(n/p_i) values.",
+   "currentCost": "For each i in (a,b], Run(n/primes[i-1]) recurses fully; many n/p_i collide to the same pi value bucket but are recomputed. Phi recursion without the cache (when m>=PhiCacheSize) branches exponentially in a-PhiCachePrimes.",
+   "proposedChange": "Hoist hi bound of the binary search: since values n shrink across recursion, pass an upper index hint to bound hi; and clamp the binary-search hi to the first prime > sqrt-region. For Phi, ensure the a<=PhiCachePrimes && m<PhiCacheSize fast path is hit maximally by ordering recursion to reduce a before m crosses the cache bound.",
+   "rationale": "Tightening hi reduces binary-search depth (log primeCount -> log of a smaller window). Maximizing cache hits caps Phi's branching factor.",
+   "risk": "Index-bound hints must be provably >= true answer or results undercount; needs careful proof. Lower confidence \u2014 verify before applying."
+  }
+ ]
+}

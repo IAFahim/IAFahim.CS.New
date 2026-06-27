@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Graph.Bridges/DynamicBridges.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Bridges/DynamicBridges.cs",
+   "symbol": "PushAll",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Convert recursive root-to-node push into an iterative two-phase walk to remove call overhead and stack growth.",
+   "currentCost": "PushAll recurses up to the splay-tree root before pushing down, one stack frame per ancestor. Called at the start of every Splay (the hottest LCT primitive), so recursion depth equals the access path length and adds call/return overhead per node on every splay.",
+   "proposedChange": "Walk up collecting the path into a stackalloc int buffer (sized to log-bounded splay depth, or reuse a caller-provided scratch), then PushDown in reverse order. Alternatively, since AggressiveInlining cannot inline self-recursion, an explicit loop removes the un-inlinable recursive call entirely.",
+   "rationale": "Self-recursive methods are never inlined despite the attribute, so each PushAll level pays a real call. An iterative version keeps everything in one frame, shortens the dependency chain, and avoids per-frame prologue/epilogue. Same node visitation order is preserved (collect upward, apply downward).",
+   "risk": "Must preserve exact order: PushDown applied from topmost ancestor down to x (current recursion does parent-first then self). A stackalloc inside a hot leaf called per-splay could be costly if re-allocated; better to thread a reusable scratch pointer or bound with a fixed small buffer. Splay depth is amortized O(log n) but worst-case O(n); buffer must be sized n to stay safe, or keep recursion if stack scratch is unacceptable."
+  },
+  {
+   "file": "src/IAFahim.Graph.Bridges/DynamicBridges.cs",
+   "symbol": "Node",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Pack the struct: the single `byte Rev` forces padding, inflating each node from a tight layout and worsening cache density.",
+   "currentCost": "Sequential layout is Parent,Left,Right (int x3 =12), Rev (byte), Val,Sum,LazyCover (int x3). The byte at offset 12 is followed by an int needing 4-byte alignment, so 3 bytes pad after Rev -> struct size 28 bytes with a wasted padding slot. With per-node random access in splay/access, fewer bytes per node means more nodes per cache line.",
+   "proposedChange": "Reorder so the byte sits at the end after all ints: Parent,Left,Right,Val,Sum,LazyCover (24 bytes) then byte Rev -> still padded to 28 for array stride, but consider folding Rev and LazyCover into a single byte flags field (Rev bit0, LazyCover bit1) reducing logical state and enabling 24-byte stride, or store Rev/LazyCover as bytes adjacent so both share the same padding window.",
+   "rationale": "Both Rev and LazyCover are 0/1 flags; merging them into one byte bitfield removes a 4-byte int (LazyCover) and clusters the flag byte, allowing a 24-byte struct (3 cache lines per 8 nodes vs current). Smaller stride = fewer cache misses in the pointer-chasing splay loop, which dominates LCT cost.",
+   "risk": "PushDown/ApplyCover/MakeRoot read/write Rev and LazyCover independently; bitfield merge requires masking (`flags & 1`, `flags ^= 1`, `flags |= 2`) which is cheap but must preserve the other bit. Rev^=1 toggling must mask to bit0 only. Verify no code assumes LazyCover is a full int. Blittability preserved (still unmanaged)."
+  },
+  {
+   "file": "src/IAFahim.Graph.Bridges/DynamicBridges.cs",
+   "symbol": "AddEdge",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Redundant Splay(v) after Access(v) in the cycle branch.",
+   "currentCost": "In the else branch: `Access(nodes, v); Splay(nodes, v);`. Access already ends with `Splay(nodes, u)` on its argument (Access splays its parameter as its final step), so v is already at the root of its splay tree; the explicit Splay(v) repeats work.",
+   "proposedChange": "Remove the explicit `Splay(nodes, v)` line; Access(v) already leaves v splayed (root of its auxiliary tree) so nodes[v].Sum is valid.",
+   "rationale": "Access's final statement is `Splay(nodes, u)` on the accessed node, guaranteeing v is splayed to the top with PushUp applied. The second Splay is a no-op walk plus a PushAll/PushUp pass, pure overhead on every cycle-closing edge.",
+   "risk": "Must confirm Access(v) leaves v as the splay-root with Sum aggregated over the represented root path to v \u2014 it does, since the loop's final Splay(u) and PushUp establish that. If any future change makes Access not splay its argument, this breaks. Behavior currently identical; low risk but verify against the LCT invariant that Sum on v reflects the whole path."
+  }
+ ]
+}

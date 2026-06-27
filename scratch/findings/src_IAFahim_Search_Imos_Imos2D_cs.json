@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Search.Imos/Imos2D.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.Imos/Imos2D.cs",
+   "symbol": "Imos2D.Build",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Fuse the initial copy pass into the horizontal prefix-sum pass to eliminate one full O(width*height) sweep over the array.",
+   "currentCost": "Three full passes: (1) a copy loop dst[i]=diff[i] over width*height elements, (2) horizontal prefix, (3) vertical prefix. The copy pass is a redundant read+write of the whole grid (2*width*height memory ops) plus loop overhead, and it streams the whole array through cache once before the horizontal pass re-reads it.",
+   "proposedChange": "Drop the standalone copy loop. In the horizontal pass, for each row do dst[r*width+0]=diff[r*width+0]; then for c=1..width-1 dst[r*width+c]=dst[r*width+c-1]+diff[r*width+c]. This reads diff once and writes dst once, computing the row prefix in the same sweep. The vertical pass stays as-is reading/writing dst.",
+   "rationale": "Removes an entire width*height read+write pass and one cache traversal of the array; the horizontal accumulation becomes the first writer of dst, so total memory traffic drops from ~ (copy:2N) + (horiz:read+write of dst ~2N) to a single read of diff + write of dst (~2N) for the horizontal stage. Fewer instructions retired and fewer cache lines touched, especially impactful for large grids on mobile where bandwidth is scarce.",
+   "risk": "Semantics identical: dst still ends as the 2D prefix sum of diff, and diff is read-only so reading diff[c] instead of the just-copied dst[c] yields the same value. Requires width>=1 (already implied by the loops). No overflow change."
+  },
+  {
+   "file": "src/IAFahim.Search.Imos/Imos2D.cs",
+   "symbol": "Imos2D.Build",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the row-base index r*width out of the inner horizontal and vertical loops to strength-reduce repeated multiplies into pointer/offset increments.",
+   "currentCost": "Inner loops recompute r*width+c (and (r-1)*width+c) each iteration: a multiply plus adds per element. width*height multiplies in the horizontal pass and another width*height in the vertical pass.",
+   "proposedChange": "Hoist int rowBase = r * width; before each inner loop and index dst[rowBase + c]; in the vertical pass also hoist int prevBase = (r-1)*width; (or keep a moving pointer long* row = dst + rowBase). This converts the per-element multiply into a single multiply per row plus an add.",
+   "rationale": "Replaces O(width*height) multiplies with O(height) multiplies; the inner step becomes pure additions/increments that Burst can fold into addressing and vectorize. Shortens the dependency chain on the index computation.",
+   "risk": "None; identical addresses computed. Burst/JIT may already hoist this, but making it explicit guarantees it and aids readability."
+  }
+ ]
+}

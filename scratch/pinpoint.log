@@ -1,0 +1,15 @@
+pass  Bfs_TwoNodes_Connected
+pass  Toposort_Basic
+pass  DsuComponents_Connected
+pass  TarjanScc_Basic
+HANG  Bridges_Simple
+HANG  ArticulationPoints_Linear
+pass  Dijkstra_TwoNodes
+pass  Mst_Kruskal_Basic
+pass  BellmanFord_NegativeCycle
+HANG  Solve_XOrNotX_Unsatisfiable
+HANG  Solve_ThreeVariablesContradiction_Unsatisfiable
+HANG  Solve_FiveClausesAllSatisfiable_Satisfiable
+HANG  Solve_LargeFormula_ConsistentAssignment
+HANG  Solve_EdgeCaseSingleVariableSelfImplication_Satisfiable
+=== PINPOINT DONE ===

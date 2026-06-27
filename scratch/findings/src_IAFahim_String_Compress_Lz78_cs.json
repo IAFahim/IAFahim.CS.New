@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.String.Compress/Lz78.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.String.Compress/Lz78.cs",
+   "symbol": "Lz78.Encode",
+   "severity": "high",
+   "category": "overflow",
+   "summary": "Out-of-bounds read of input when the best matching phrase extends to the end of the buffer. When a dictionary phrase of length pLen fully matches the remaining input but there is no following literal byte (i + pLen >= len), bestLen is still set to pLen+1, and line 46 reads input[i + bestLen - 1] = input[i + pLen], which is past the end of the valid input range.",
+   "triggeringInput": "input = {'a','a'} as bytes, len=2. First step emits phrase 0 with literal 'a' (i becomes 1). Second step: dictionary entry j=0 has pLen=1; inner loop runs k=0 (matches 'a'), k=1 has i+k=2 not < len so loop stops with match still true, so bestLen=pLen+1=2; then output[1].Literal = input[i + bestLen - 1] = input[1 + 1] = input[2], an out-of-bounds read; also i += 2 overshoots.",
+   "rootCause": "The match loop (lines 34-38) breaks on the `i + k < len` guard without distinguishing 'ran out of input' from 'matched a following literal'. A match that consumes the whole remaining input is still accepted as bestLen = pLen+1, but there is no real (pLen+1)-th literal byte, so input[i+pLen] is read out of range.",
+   "suggestedFix": "Only accept a phrase extension when the following literal actually exists: require `i + pLen < len` before setting bestLen = pLen+1 / bestPhrase = j+1. When the phrase matches to end-of-input with no trailing literal, do not extend (or emit the phrase without a literal via a distinct token)."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Compress/Lz78.cs",
+   "symbol": "Encode",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Encode is O(outCount^2 \u00b7 phraseLen) due to walking the phrase chain for every dictionary entry at every position, with repeated GetByte chain re-walks; replace with a trie-based dictionary.",
+   "currentCost": "For each position it loops over all `outCount` phrases (line 23); for each it walks the parent chain to compute pLen (lines 28-32), then for each byte calls `GetByte` (line 36) which itself re-walks the chain from scratch up to 256 deep with a fresh stackalloc[256]. This is roughly O(outCount \u00b7 phraseLen^2) per position \u2014 cubic-ish overall.",
+   "proposedChange": "Maintain an explicit LZ78 trie (children keyed by byte) in stackalloc native arrays: at each position, descend the trie matching input bytes in O(matchLen) and emit the (phrase, literal) at the first miss. This is the textbook LZ78 encoder.",
+   "rationale": "Reduces per-position work from O(outCount \u00b7 phraseLen^2) to O(matchLen), turning a cubic algorithm into linear. By far the dominant cost in this file.",
+   "risk": "LZ78 dictionary construction order must match so phrase indices are identical; a correct trie reproduces the same phrase numbering and thus the same token stream \u2014 behavior-preserving when implemented faithfully. The current `GetByte` stackalloc[256] inside a double loop also means a fresh 1KB stackalloc per inner iteration (see separate item)."
+  },
+  {
+   "file": "src/IAFahim.String.Compress/Lz78.cs",
+   "symbol": "GetByte",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "`GetByte` does a `stackalloc int[256]` on every single call, and it is called inside the Encode double loop's inner byte loop \u2014 enormous redundant stack traffic and repeated chain re-walks.",
+   "currentCost": "Each GetByte call allocates 256 ints (1 KiB) of stack and re-walks the phrase chain from the leaf to compute the byte at a given offset. It is invoked per (phrase, k) inside the per-position loop, so the same chain is rebuilt O(phraseLen) times per phrase per position.",
+   "proposedChange": "Eliminate GetByte entirely by adopting the trie (previous item), which yields bytes directly during descent. If keeping the chain approach short-term, hoist one scratch buffer outside the loops and pass it in, and reverse-index without re-walking (precompute the phrase's byte sequence once per phrase candidate).",
+   "rationale": "Removes repeated 1 KiB stackallocs (stack pointer churn, no reuse) and O(phraseLen) re-walks per byte access, collapsing redundant work.",
+   "risk": "Behavior identical: GetByte returns the byte at `chainLen-1-offset` (0 if out of range); the trie/precompute must reproduce the same out-of-range->0 semantics. stackalloc inside a method called in a loop is allocated once per call (not leaked) but still wasteful."
+  },
+  {
+   "file": "src/IAFahim.String.Compress/Lz78.cs",
+   "symbol": "Decode",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "`stackalloc int[count]` is performed inside the per-token loop and uses int (4 bytes) to store byte values; hoist it out and narrow to byte.",
+   "currentCost": "Line 64 allocates `int[count]` on every iteration where idx>=0 \u2014 O(count) stack per token, and the chain holds only byte literals yet stores them as 4-byte ints (4x the needed RAM, worse cache use).",
+   "proposedChange": "Hoist a single `byte* chain = stackalloc byte[maxPhraseLen]` (or `byte[count]`) before the loop and reuse it across tokens; store `input[cur].Literal` directly as byte. Bound the size by the max possible phrase length rather than `count` if known.",
+   "rationale": "One stackalloc instead of per-token; 4x smaller scratch (byte vs int) improves cache footprint and reduces stack pointer adjustment in the hot decode loop.",
+   "risk": "Reused buffer is fully overwritten each token (chainLen reset), so no cross-token contamination \u2014 behavior preserved. `(byte)chain[j]` cast already implies byte values; narrowing the storage type is safe since literals are bytes."
+  }
+ ]
+}

@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.String.Palindrome/DynamicPalindromicTree.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.String.Palindrome/DynamicPalindromicTree.cs",
+   "symbol": "DynamicPalindromicTree.Add",
+   "severity": "critical",
+   "category": "pointer-ub",
+   "summary": "The per-node transition table is addressed at `(IntPtr)_node + cur*sizeof(Node) + sizeof(int)`, which points at the `Len` field (offset 4), not at the transition storage. Indexing `[c]` therefore aliases the node's own fields and adjacent nodes: c=0 overlaps `Len`, c=1 overlaps `Link`, c>=1 overlaps `Occ` / spill into the next node. SetNext(cur,c,state) overwrites Len/Link, corrupting the tree, and the -1 'no edge' sentinel is never actually stored in those slots (Init only sets `Next0` at offset 0, which transitions never read). Result: wrong distinct-palindrome counts and infinite loops on ordinary input.",
+   "triggeringInput": "Init(8) then Add(1) on an empty tree: returns 0 distinct palindromes, expected 1. A flat-memory simulation matching the exact pointer arithmetic gives wrong counts for inputs like [1] (got 0, exp 1), [0,0] (got 1, exp 2), and infinite loops for [0,1].",
+   "rootCause": "The base of the transition array adds an extra `sizeof(int)`, shifting the implicit transition slot from `Next0` (offset 0) to `Len` (offset 4). The transition slot for character c=0 thus IS the `Len` field, and higher c values overrun into `Link`, `Occ`, and neighboring nodes. Writing a transition value (a node index) into `Len`/`Link` corrupts the automaton, and reads of the transition return stale Len/Link/Occ values instead of -1, so existing-edge detection and the suffix-link walk both misbehave (wrong result or non-terminating while-loops). The node struct also reserves only a single int slot (`Next0`) for transitions, so any alphabet larger than 1 symbol writes out of the node and, near the end of the buffer, out of the `sizeof(Node)*(maxLen+3)` allocation.",
+   "suggestedFix": "Store transitions in a proper per-node array (e.g. give Node an `int Next[ALPHABET]` inline buffer or a separate `int* transitions` of size size*alphabet) and index it without the spurious `+ sizeof(int)` offset; initialize every transition slot to -1 in Init/when a node is created. At minimum, remove the `+ sizeof(int)` so the c=0 slot uses `Next0`, dedicate enough storage for the full alphabet, and set all slots to -1."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Palindrome/DynamicPalindromicTree.cs",
+   "symbol": "Add",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Recomputed transition-slot address pointer arithmetic up to 3 times per Add; hoist into a local.",
+   "currentCost": "The expression ((int*)((IntPtr)_node + cur * sizeof(PalindromicTree.Node) + sizeof(int))) is computed once on line 42, then identically again on line 44, and a structurally identical one on line 70. Each is an int->IntPtr mul/add chain. The line 42 read and line 44 read recompute the same base and re-index [c].",
+   "proposedChange": "Compute int* curTrans = (int*)((byte*)_node + cur * sizeof(PalindromicTree.Node) + sizeof(int)); once after the first while-loop, then use int next = curTrans[c]; for the existence check, reuse next in the early-return branch, and curTrans[c] = state; on line 70. This removes one full address computation and one redundant load of curTrans[c].",
+   "rationale": "Eliminates a redundant memory load (the value read on line 42 is re-read on line 44) and one duplicate multiply/add address computation, shortening the dependency chain on the hot per-character path. Burst/JIT may not CSE through the IntPtr cast reliably.",
+   "risk": "None; identical addresses and identical reads. Prefer (byte*) over (IntPtr) cast for clarity but arithmetic is the same."
+  },
+  {
+   "file": "src/IAFahim.String.Palindrome/DynamicPalindromicTree.cs",
+   "symbol": "Add",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Cast Link to int redundantly; Link is already int in the Node struct.",
+   "currentCost": "Lines 40, 60, 66 do cur = (int)_node[cur].Link and link = (int)_node[cur].Link / (int)_node[link].Link. PalindromicTree.Node.Link is declared as int, so the (int) cast is a no-op that adds visual noise and signals a possible type-confusion that could mask a future widening bug.",
+   "proposedChange": "Drop the (int) casts: cur = _node[cur].Link; and link = _node[link].Link; since Link is int.",
+   "rationale": "No cycle change but removes dead casts; improves readability and prevents accidental reliance on truncation semantics. House style requires explicit types, which are already satisfied.",
+   "risk": "None \u2014 Link field type is int; cast is identity."
+  },
+  {
+   "file": "src/IAFahim.String.Palindrome/DynamicPalindromicTree.cs",
+   "symbol": "Add",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Two near-identical suffix-link walk loops (lines 35-41 and 61-67) recompute _pos-1-checkLen each iteration; hoist _pos-1 and cache _s[].",
+   "currentCost": "Both walk loops compute _pos - 1 - checkLen and load _node[cur].Len then index _s each iteration. _pos is a static field reloaded each iteration; the subtraction base (_pos-1) is loop-invariant.",
+   "proposedChange": "Hoist int posM1 = _pos - 1; before each loop and test posM1 - checkLen >= 0 && _s[posM1 - checkLen] == c. Optionally factor the shared walk into a private static AggressiveInlined helper int FindLink(int start, int posM1, byte c) to remove duplicated code and let the JIT inline one tight version.",
+   "rationale": "Removes a per-iteration reload of the _pos static and a redundant decrement from the dependency chain inside the hottest inner loop; factoring also shrinks I-cache footprint and code duplication.",
+   "risk": "None; _pos is not modified inside either walk loop, so _pos-1 is invariant there."
+  },
+  {
+   "file": "src/IAFahim.String.Palindrome/DynamicPalindromicTree.cs",
+   "symbol": "Add",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "No AggressiveInlining attribute and no Try/Run naming; transition addressing duplicated instead of using PalindromicTree.GetNext/SetNext style helpers.",
+   "currentCost": "Add manually inlines the GetNext/SetNext pointer math that PalindromicTree already encapsulates in helpers, duplicating the addressing logic and the risk of one diverging from the other.",
+   "proposedChange": "Introduce private static AggressiveInlined GetNext(int v, int c)/SetNext(int v, int c, int x) mirroring PalindromicTree, and call them from Add. This deduplicates the addressing trick and centralizes the Next0-overlay convention in one place.",
+   "rationale": "Same codegen after inlining but eliminates copy-paste of the overlay arithmetic, reducing maintenance/correctness risk and matching the sibling class's API shape.",
+   "risk": "None if helpers compile to identical arithmetic and are AggressiveInlined under Burst."
+  }
+ ]
+}

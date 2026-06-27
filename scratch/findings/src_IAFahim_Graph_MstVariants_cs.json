@@ -1,0 +1,72 @@
+{
+ "file": "src/IAFahim.Graph/MstVariants.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph/MstVariants.cs",
+   "symbol": "MstVariants.KargerSteinMinCut",
+   "severity": "high",
+   "category": "pointer-ub",
+   "summary": "cutU/cutV are allocated with stackalloc int[m] inside the body of the iterations loop (run Math.Max(5,n*n) times). C# does not release stackalloc memory per loop iteration; it accumulates until the method returns, so the stack grows by 2*m ints per iteration and overflows for moderate n and m.",
+   "triggeringInput": "n=200, m=2000: iterations = n*n = 40000, each allocating cutU+cutV = 2*2000 ints = 16000 bytes, accumulating to ~640 MB of stack space, far beyond the thread stack limit -> stack overflow.",
+   "rootCause": "stackalloc inside a loop allocates fresh stack space each iteration without freeing previous iterations' allocations; placing the per-iteration scratch buffers (cutU, cutV) inside the loop makes total stack usage proportional to iterations*m.",
+   "suggestedFix": "Hoist the cutU/cutV stackalloc above the iterations loop (allocate once, reuse each iteration), or allocate them via the heap/Marshal so loop-iteration stack growth is bounded."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph/MstVariants.cs",
+   "symbol": "MstVariants.DegreeConstrainedMst / MinimumBottleneckSpanningTree / MaximumCapacitySpanningTree / LexicographicMst",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "O(m^2) selection/bubble sorts of edges; replace with the O(m^2 worst but typically far better) insertion sort already used in Kruskal, or a real O(m log m) sort.",
+   "currentCost": "These methods sort edges with a nested-for selection sort: for i, for j>i, compare and swap. That is always Theta(m^2) comparisons regardless of input. For m edges this dominates and does not vectorize.",
+   "proposedChange": "Replace each selection sort with an index-based insertion sort (matching MinimumSpanningTreeKruskal.SortEdges) for small m, or better, a non-recursive radix/heaps-free in-place heapsort over a stackalloc index buffer for O(m log m). At minimum, insertion sort is O(m) on already-near-sorted data and never worse in constant factor than this selection sort.",
+   "rationale": "Selection sort always does ~m^2/2 comparisons AND up to m^2/2 swaps; insertion sort does ~m^2/4 comparisons and far fewer writes on partially ordered data; heapsort gives a true asymptotic win for large m. Fewer memory writes = fewer store-buffer stalls.",
+   "risk": "Sort must remain stable/total-order-equivalent for the lexicographic variant (LexicographicMst uses a 3-key comparator: weight, min(u,v), max(u,v)). Any replacement must preserve that exact tie-break ordering or Kruskal picks different edges. For plain-weight variants any correct sort is fine."
+  },
+  {
+   "file": "src/IAFahim.Graph/MstVariants.cs",
+   "symbol": "MstVariants.MaximumBranching",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "O(n*m) linear edge search to recover each chosen parent edge; precompute a (parent,child)->edge map once.",
+   "currentCost": "After ChuLiuEdmonds, for each of up to n result vertices it scans all m original edges (inner for e=0..m) to find the matching (parent,child) edge. That is O(n*m) just for output reconstruction.",
+   "proposedChange": "Build the adjacency once (or a hash-free bucket: head/next arrays keyed by parent node, like the rest of the codebase) so each result[i] lookup is O(deg) instead of O(m). Total becomes O(m + sum deg) = O(m).",
+   "rationale": "Turns the reconstruction from O(n*m) to O(m). Reuses the head/to/next CSR pattern already pervasive in this module, so it stays Burst-friendly with raw pointers.",
+   "risk": "Must pick the same edge the original linear scan would (first matching by edge index) to preserve identical resultEdges output when parallel edges exist. Bucket build should insert in ascending edge order or iterate to keep first-match semantics."
+  },
+  {
+   "file": "src/IAFahim.Graph/MstVariants.cs",
+   "symbol": "MstVariants.ArborescenceCount",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Recomputes (n-1)*(n-1) and i*dim repeatedly; hoist dim and row offsets out of inner loops.",
+   "currentCost": "The init loop bound (n-1)*(n-1) is recomputed every iteration of the for-condition. Matrix accesses laplacian[i*dim+k], laplacian[pivot*dim+k], laplacian[j*dim+k] recompute the row-base multiply i*dim, pivot*dim, j*dim inside k-loops. Power() (modular inverse) is called once per pivot row.",
+   "proposedChange": "Hoist int total=(n-1)*(n-1) before the init loop. In Gaussian elimination cache long* rowI=laplacian+i*dim, rowJ=laplacian+j*dim, rowPivot=laplacian+pivot*dim and index by [k] so the multiply is done once per row, not once per element.",
+   "rationale": "Removes a multiply from each inner-loop iteration (O(dim) saved multiplies per row -> O(dim^2) per elimination step). Pointer-walking the row is also more vectorization/prefetch friendly under Burst.",
+   "risk": "None \u2014 pure addressing reassociation, identical results. Note the modular arithmetic and Power(...Mod-2...) Fermat inverse already assume Mod prime, which holds (1e9+7)."
+  },
+  {
+   "file": "src/IAFahim.Graph/MstVariants.cs",
+   "symbol": "MstVariants.Power",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "exp%2 and exp/=2 on a known-nonnegative long; use &1 and >>1.",
+   "currentCost": "Loop does exp % 2 == 1 and exp /= 2 each iteration. Signed long % and / are expensive and not auto-strength-reduced because exp is signed.",
+   "proposedChange": "(exp & 1L) == 1L and exp >>= 1. exp is always >= 0 (starts as Mod-2 > 0, only halved), so shifts are exact.",
+   "rationale": "& and >> are single-cycle versus multi-cycle signed div/rem. Runs ~30 iterations per call, called once per pivot row in ArborescenceCount.",
+   "risk": "exp is provably nonnegative for all callers (Mod-2). If a future caller passes negative exp the behavior would differ, but current usage is safe; note the guard in risk."
+  },
+  {
+   "file": "src/IAFahim.Graph/MstVariants.cs",
+   "symbol": "MstVariants.DegreeConstrainedMst",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Per-iteration stackalloc of head/next/to/edgeId/cycleEdges inside the while(deg<k) and inner eAdd loops risks stack growth and re-zeroing every pass.",
+   "currentCost": "Inside the while loop, for each candidate eAdd, the code stackallocs head[n], next[2n], to[2n], edgeId[2n], cycleEdges[n] and rebuilds the tree adjacency from scratch (O(n) zero + O(m) build) for every candidate edge every improvement round. stackalloc inside a loop in C# does NOT free per-iteration; it accumulates until method return, so this can blow the stack for large n*k.",
+   "proposedChange": "Hoist these buffers to a single stackalloc before the loops and re-init only the needed prefix each pass. Build the tree adjacency once per while-iteration (it only changes when an edge is swapped), not once per eAdd candidate.",
+   "rationale": "Avoids unbounded stack accumulation (correctness/robustness on mobile with small stacks) and removes redundant O(m) adjacency rebuilds per candidate edge \u2014 large constant-factor and a real stack-overflow risk reduction.",
+   "risk": "Must re-zero the reused buffers' used prefix each pass to preserve semantics. Hoisting the adjacency build requires confirming inTree only changes between while-iterations, not within the eAdd scan (it does not). Local functions capturing pointers must still see the hoisted buffers."
+  }
+ ]
+}

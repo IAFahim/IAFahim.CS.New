@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.DS.Grid/Shuffle.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.Grid/Shuffle.cs",
+   "symbol": "Shuffle.Run",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Replace the 2-int stackalloc RNG state with two local ints to avoid pointer-indirected loads/stores on every iteration.",
+   "currentCost": "rng = stackalloc int[2] forces every RNG read/write (rng[0], rng[1]) through memory (stack slot via pointer) inside the hot loop, defeating register allocation. rng[1] is a loop-invariant constant (1103515245) yet stored in a slot.",
+   "proposedChange": "Use plain locals: uint state = (uint)seed; const uint MUL = 1103515245u; const uint A = 134775813u; per iteration: state = (MUL*MUL + 12345u) ^ (state*A + 1u)... \u2014 but note rng[1] never changes, so its term (rng[1]*1103515245+12345) is a compile-time constant. Precompute it once: const int CONST_TERM = unchecked(1103515245 * 1103515245 + 12345); then rng[0] = CONST_TERM ^ (rng[0]*134775813 + 1). Keep rng[0] in a register-resident local int.",
+   "rationale": "Keeps RNG state in registers (no stack pointer indirection per iteration), and folds the entire rng[1]-dependent expression into one named constant since rng[1] is invariant \u2014 removing a multiply and an add from every loop iteration. Strictly fewer ops on the hot path.",
+   "risk": "Must reproduce the exact same int sequence to preserve shuffle output. rng[1] is initialized to 1103515245 and never written, so 1103515245*1103515245+12345 (evaluated unchecked, wrapping in int) is bit-identical to the original each iteration. Use 'unchecked' for the constant to match overflow-wrapping. The (int)((uint)x>>16)%(uint)(i+1) modulo must remain unchanged."
+  }
+ ]
+}

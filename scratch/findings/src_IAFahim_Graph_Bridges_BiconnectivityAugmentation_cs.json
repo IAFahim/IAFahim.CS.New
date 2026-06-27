@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Graph.Bridges/BiconnectivityAugmentation.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Bridges/BiconnectivityAugmentation.cs",
+   "symbol": "MinEdgesFor2EdgeConnected",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Fuse the three-array init loop and combine the leaves/isolated scan with degree computation.",
+   "currentCost": "Init loop writes tin,low,comp in one pass (already fused) but comp degree pass plus a separate scan over compCount to count leaves/isolated is two passes over component data. Also degree[] is zeroed in its own loop.",
+   "proposedChange": "Zero degree[] inside the same allocation-adjacent loop, and after ComputeComponentDegrees the leaves/isolated counting loop is unavoidable, but `leaves / 2` and `(leaves + 1) / 2` divides by 2 on a provably non-negative int can be `leaves >> 1` and `(leaves + 1) >> 1`.",
+   "rationale": "Signed `/2` emits an extra add-of-sign-bit sequence (test sign, conditionally add 1, then shift) because the compiler must round toward zero for negatives. leaves and isolated are counts (>=0), so `>>1` is one instruction and identical for non-negative operands.",
+   "risk": "Strength reduction `x/2 -> x>>1` only matches for x>=0; leaves is a count incremented from 0 so always >=0, and leaves+1>=1>=0. Safe. Burst/Roslyn may already do this; if leaves were ever negative the results would differ, but it cannot be."
+  },
+  {
+   "file": "src/IAFahim.Graph.Bridges/BiconnectivityAugmentation.cs",
+   "symbol": "ComputeComponentDegrees",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist comp[u] out of the inner edge loop.",
+   "currentCost": "Inner loop reads comp[u] on every edge via `comp[u] != comp[to[e]]` and `degree[comp[u]]++`, dereferencing comp[u] up to 3 times per edge though u is loop-invariant in the inner loop.",
+   "proposedChange": "In the outer loop body load `int cu = comp[u]; int hu = head[u];` once, then inner loop: `if (cu != comp[to[e]]) degree[cu]++;`.",
+   "rationale": "comp[u] is invariant across the entire inner edge traversal; hoisting removes a load and an address computation per edge, and `degree[cu]` indexes off a register instead of re-loading comp[u]. Fewer cache touches of comp[] in the hot adjacency walk.",
+   "risk": "None: comp[u] and head[u] are not modified inside the inner loop. Pure hoist."
+  }
+ ]
+}

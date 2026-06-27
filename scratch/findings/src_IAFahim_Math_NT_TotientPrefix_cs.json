@@ -1,0 +1,16 @@
+{
+ "file": "src/IAFahim.Math.NT/TotientPrefix.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.NT/TotientPrefix.cs",
+   "symbol": "TotientPrefix.Run",
+   "severity": "medium",
+   "category": "overflow",
+   "summary": "The linear-sieve inner-loop guard `i * primes[j] <= n` and the subsequent index `isPrime[i * p]` compute `i * primes[j]` in 32-bit int. For large valid int n, this product overflows int before the comparison, wraps to a negative value that passes the `<= n` guard, and is then used as an array index, causing an out-of-bounds/negative-index pointer write (UB) and a corrupted sieve.",
+   "triggeringInput": "n = 2_100_000_000 (a valid int). When i = 1_100_000_000, i * primes[0] = i*2 = 2_200_000_000 overflows int32 to -2_094_967_296, which is <= n, so the loop body runs and writes isPrime[-2_094_967_296] (out-of-bounds write).",
+   "rootCause": "i, primes[j], p and n are all int; the multiplication i*primes[j] (and i*p) is performed in 32-bit arithmetic and can exceed int.MaxValue for n within the int contract, overflowing before the bound check and before being used as an index.",
+   "suggestedFix": "Perform the guard in 64-bit: `(long)i * primes[j] <= n`, and compute the index once as `long idx = (long)i * p;` using it for isPrime/phi only when idx <= n (and confirm phi multiplications also stay in range)."
+  }
+ ],
+ "perf": []
+}

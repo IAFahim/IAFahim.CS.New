@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Permutation/CartesianProduct.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Permutation/CartesianProduct.cs",
+   "symbol": "CartesianProduct.GetAt",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Fuse the div/mod pair so the divisor is read once and the quotient computed once.",
+   "currentCost": "Per loop iteration: one load of setSizes[i], plus a separate '%' and '/' on the same operands. Even with CSE most JITs/Burst will emit one IDIV and derive the remainder, but writing them separately can leave a redundant load and risks two divides if the loads are not proven identical.",
+   "proposedChange": "int s = setSizes[i]; int q = index / s; dst[i] = index - q * s; index = q;  (one load, one divide, remainder via mul/sub).",
+   "rationale": "IDIV is ~20-40 cycles and is the loop bottleneck; computing remainder as index - q*s replaces a second potential divide with a cheap IMUL+SUB and guarantees the divisor load is hoisted into a register once.",
+   "risk": "Semantics identical for non-negative index and positive setSizes (the only valid inputs for an index into a Cartesian product). For negative index the truncated-division identity index = q*s + r still holds in C#, so no signed edge case is introduced."
+  },
+  {
+   "file": "src/IAFahim.Permutation/CartesianProduct.cs",
+   "symbol": "CartesianProduct.ComputeCount",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Return type int silently overflows; document or widen to long to match the index space used by GetAt.",
+   "currentCost": "total is int; product of setSizes overflows past 2^31 with no signal, yet GetAt walks an index that could exceed int range only if count exceeds int.",
+   "proposedChange": "Either keep int (consistent with GetAt's int index) and add a named-constant comment that caller guarantees product < int.MaxValue, or provide a long-returning ComputeCountInt64 overload for large product spaces. No code-path change required if int is the intended contract.",
+   "rationale": "Consistency of the index width across ComputeCount and GetAt avoids silent truncation bugs; this is an API clarity issue, not a cycle cost.",
+   "risk": "Pure documentation/overload addition; does not alter existing behavior."
+  }
+ ]
+}

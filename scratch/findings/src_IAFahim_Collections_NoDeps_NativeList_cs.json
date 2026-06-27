@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Collections.NoDeps/NativeList.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Collections.NoDeps/NativeList.cs",
+   "symbol": "NativeList<T>.this[int].get/set (and Add, RemoveAt, RemoveRange, Resize offset math)",
+   "severity": "high",
+   "category": "overflow",
+   "summary": "Byte-offset computation uses 32-bit int multiplication (index * ElementSize), which overflows for valid in-range indices once index*sizeof(T) exceeds 2^31 bytes, producing a wrong (often negative) pointer offset and reading/writing the wrong memory.",
+   "triggeringInput": "NativeList<long> list with Length ~ 300_000_000 (a valid ~2.4GB allocation); list[300_000_000] -> 300000000 * 8 = 2_400_000_000 overflows Int32 to a negative value, so this.state->Buffer + (negative) points before the buffer.",
+   "rootCause": "this.state->Buffer + index * ElementSize (lines 151,157,193,212-214,235-236,258) and similarly the Add/RemoveAt/RemoveRange pointer math evaluate index * ElementSize in int arithmetic before widening to IntPtr. The product silently overflows Int32. Unity's real NativeList widens via (long)index * size. Affects every element access for sufficiently large but contractually valid lists.",
+   "suggestedFix": "Cast index (or ElementSize) to long before multiplying: this.state->Buffer + (IntPtr)((long)index * ElementSize), and likewise for (index+1), (index+cnt), oldLength*ElementSize, and Length*ElementSize offsets."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Collections.NoDeps/NativeList.cs",
+   "symbol": "NativeList(int,Allocator)",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Constructor always MemClears the initial buffer even though List contents below Length are never read until written.",
+   "currentCost": "Every NativeList allocation pays a full MemClear of initialCapacity*ElementSize bytes, even though indices [0,Length) start at 0 and elements are only observable after Add/explicit set. This is wasted bandwidth proportional to capacity at every construction (including the default 16-cap ctor used widely).",
+   "proposedChange": "Drop the unconditional MemClear in the ctor. Length starts at 0, so no element in [0,Length) is observable; Add writes before incrementing Length; Resize(...,ClearMemory) already zero-fills the grown region explicitly (lines 256-261). Only paths that expose uninitialized memory are direct this[index] reads beyond Length, which are out-of-contract for an unchecked Run-style API.",
+   "rationale": "Removes an O(capacity) memory write from every construction. The buffer is logically empty (Length=0) so clearing it has no observable effect under the documented contract.",
+   "risk": "Behavior changes ONLY if a caller reads this[index] for index>=Length on a freshly constructed list and relies on it being zero - that is reading uninitialized/out-of-range data, outside the unchecked contract. If the library guarantees zero-init like Unity's NativeList does NOT (NativeList is always empty at length 0), this matches Unity semantics. Verify no test depends on pre-zeroed capacity; if it must stay, leave as-is."
+  },
+  {
+   "file": "src/IAFahim.Collections.NoDeps/NativeList.cs",
+   "symbol": "ElementSize",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "ElementSize is a static readonly field (non-const), so every index/Add/Remove reads it from a static field with a beforefieldinit guard rather than a compile-time constant.",
+   "currentCost": "Each this[index] get/set, Add, RemoveAt, RemoveRange, Resize multiplies by ElementSize loaded from a static readonly field. Burst can usually constant-fold UnsafeUtility.SizeOf<T>() since T is known at compile time, but routing it through a static readonly field can defeat that folding and adds a static-ctor dependency / potential memory load per use.",
+   "proposedChange": "Replace the static readonly field with direct sizeof(T) (legal since T:unmanaged) at each use, or a local const-folded expression. e.g. IntPtr byteOffset = this.state->Buffer + index * sizeof(T); Burst/IL will constant-fold sizeof(T) per specialization.",
+   "rationale": "sizeof(T) on an unmanaged generic is a compile-time constant per specialization, enabling strength reduction (index*const becomes a shift when const is a power of two) and removing the static field load and its lazy-init class constructor check. NativeArray already uses UnsafeUtility.SizeOf<T>() inline; this makes NativeList consistent and lets the JIT/Burst fold.",
+   "risk": "sizeof(T) for unmanaged T equals UnsafeUtility.SizeOf<T>() in all blittable cases; identical values. No semantic change. Pure win unless the field was deliberately cached to avoid an intrinsic call - under Burst the intrinsic folds away entirely."
+  }
+ ]
+}

@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.NT/Bsgs.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/Bsgs.cs",
+   "symbol": "Bsgs.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist i*m out of the giant-step loop and remove the redundant scratch initialization pass.",
+   "currentCost": "ans = i * m + scratchVals[pos] recomputes i*m via multiply each probe-hit, and a separate O(m) loop pre-fills both scratchKeys and scratchVals with -1 before the baby-step fill loop (two O(m) passes over scratch, ~2 sqrt(mod) writes of extra traffic).",
+   "proposedChange": "Maintain long giantBase = 0; add m each iteration (giantBase += m) instead of i*m. scratchVals only needs initialization where scratchKeys==-1; since lookups gate on scratchKeys[pos]==key, scratchVals[i]=-1 init is dead \u2014 drop the scratchVals[i]=-1 store, halving the init pass writes.",
+   "rationale": "Replaces a per-hit 64-bit multiply with an add and a loop-carried accumulator (shorter dependency, cheaper op); eliminating the scratchVals clear removes m streaming writes (cache/store-port pressure) since vals are only read after a key match.",
+   "risk": "scratchVals init removal is safe only because every read of scratchVals[pos] is guarded by scratchKeys[pos]==key (an actual stored key), so uninitialized vals slots are never read. Confirmed by the two probe loops. i*m -> running sum is exact for the same iteration order (no overflow change; identical values)."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/Bsgs.cs",
+   "symbol": "Bsgs.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "factor = ModPow(am, mod-2, mod) computes a^(-m) via Fermat inverse (a full modpow, ~log2(mod) ModMuls) and assumes mod is prime; if mod is prime this is fine but am^(mod-2) can be replaced by ModPow(a, mod-2, mod) reused, or by computing the inverse of a once.",
+   "currentCost": "One ModPow over ~60 squarings of ModMul (each ModMul itself non-trivial) on the critical path before the giant-step loop.",
+   "proposedChange": "If a's modular inverse aInv is computed once (ModPow(a, mod-2, mod)), then factor = ModPow(aInv, m, mod) costs ~log2(m) (~30) ModMuls instead of ~log2(mod) (~60) since m\u2248sqrt(mod); or fold via giant step using aInv^m. Net: roughly halve the exponent bit length for the setup modpow.",
+   "rationale": "log2(m) \u2248 log2(mod)/2, so exponentiating aInv to m instead of am to mod-2 halves the squaring count in the setup; fewer ModMul calls on a serial dependency chain.",
+   "risk": "Both rely on mod prime (Fermat) \u2014 already an existing assumption since mod-2 inverse is used. Values are identical only when mod is prime; the algorithm already requires that, so semantics are preserved under the existing precondition."
+  }
+ ]
+}

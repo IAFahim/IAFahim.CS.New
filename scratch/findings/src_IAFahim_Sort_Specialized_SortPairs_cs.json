@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Sort.Specialized/SortPairs.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Sort.Specialized/SortPairs.cs",
+   "symbol": "SortPairs.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "O(n^2) insertion sort over 8-byte Pair structs; each shift moves the whole 8-byte struct. Radix sort on the Key with a parallel value array, or sorting an index, gives O(n) and moves less data.",
+   "currentCost": "O(n^2) struct moves; each ptr[j+1]=ptr[j] copies 8 bytes (Key+Value). Doubles the memory traffic of a key-only sort and keeps the serial dependency chain.",
+   "proposedChange": "For non-tiny len, LSD radix sort by Key (4 passes) writing whole Pair entries into a scratch Pair buffer; sign-flip the top byte of Key for signed correctness. Alternatively radix-sort an int[] permutation of indices to avoid moving the 8-byte payload during intermediate passes, applying the permutation once at the end.",
+   "rationale": "O(4n) vs O(n^2). The index-permutation variant moves only 4-byte indices during the 4 passes and writes the final 8-byte payload exactly once, halving payload memory traffic versus shuffling Pairs every pass.",
+   "risk": "Signed Key ordering via top-byte XOR 0x80000000. Radix is not stable across the chosen byte order unless implemented LSD (it is) so equal Keys retain input order \u2014 actually LSD radix IS stable, which insertion sort also is on Key, so behavior is preserved for ties (good). Needs scratch buffer: additive overload, do not break unchecked Run."
+  },
+  {
+   "file": "src/IAFahim.Sort.Specialized/SortPairs.cs",
+   "symbol": "SortPairs.Pair",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Pair is implicitly auto-layout; add [StructLayout(LayoutKind.Sequential)] (and it is already naturally 8-byte aligned/blittable) to lock layout for interop and Burst SoA reasoning.",
+   "currentCost": "Default struct layout is sequential for blittable structs in practice, but unannotated layout can theoretically be reordered and is less self-documenting for a type passed via raw pointers.",
+   "proposedChange": "Annotate `[StructLayout(LayoutKind.Sequential)] public struct Pair`. No size change (two ints = 8 bytes, no padding).",
+   "rationale": "Guarantees Key-then-Value byte order so callers can blit/upload buffers and so radix passes can index the Key field by known offset. Documents blittability for Burst.",
+   "risk": "None semantically; layout is already what callers expect. Purely a hardening/clarity change."
+  }
+ ]
+}

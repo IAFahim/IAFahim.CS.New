@@ -1,0 +1,72 @@
+{
+ "file": "src/IAFahim.DS.SpatialMap/SpatialMap3.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.DS.SpatialMap/SpatialMap3.cs",
+   "symbol": "SpatialMap3.QuantizeJob.Execute",
+   "severity": "high",
+   "category": "edge-case",
+   "summary": "Bounds check only rejects upper bound (math.any(quantized >= QuantizeWidth)), never the lower bound. Positions below the world's lower extent (-halfSize) produce negative quantized components that pass the check and are hashed, where Hash(x,y,z)=x+y*width+z*width*depth aliases them onto a different cell's key, returning wrong neighbors and corrupting/colliding map entries.",
+   "triggeringInput": "size=20, quantizeStep=1 => halfSize=10, quantizeSize=20 (width=depth=20). Entity A at Position=(5,0,0) quantizes to (15,10,10)? Concretely: width=10 illustration: cell (5,0,0)->hash 5; an entity whose Position yields quantized (-5,1,0) (e.g. Position component just below -halfSize) -> hash = -5 + 1*10 = 5. Both pass math.any(q>=10) and collide on key 5 despite being different cells.",
+   "rootCause": "The validity range of a quantized coord is [0, width); the code only filters quantized >= QuantizeWidth and omits the symmetric quantized < 0 check, so out-of-(lower)-range cells are not skipped and the linear Hash maps distinct (negative) coordinates to keys that collide with valid in-range cells (and can be negative).",
+   "suggestedFix": "Reject out-of-range cells on both sides, e.g. `if (math.any(quantized < 0) || math.any(quantized >= this.QuantizeWidth)) continue;` before computing the hash (and likewise guard the read path)."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.SpatialMap/SpatialMap3.cs",
+   "symbol": "SpatialMap3<T>.QuantizeJob.Execute",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "GetUnsafeBucketData() is invoked twice to fetch keys and values from the same bucket struct.",
+   "currentCost": "Two calls to Map.GetUnsafeBucketData() (lines 120-121), each returning the full UnsafeBucketData struct, before the hot loop. The struct fetch and its internal pointer copies are duplicated.",
+   "proposedChange": "Cache the struct once: 'UnsafeParallelHashMapBucketData bucketData = this.Map.GetUnsafeBucketData(); long* keys = (long*)bucketData.keys; int* values = (int*)bucketData.values;'",
+   "rationale": "Removes a redundant property/method evaluation that copies a multi-pointer struct. One fetch instead of two; both pointers come from the same snapshot, identical result.",
+   "risk": "None. The bucket data does not change between the two calls; both reads return the same pointers. Behavior identical."
+  },
+  {
+   "file": "src/IAFahim.DS.SpatialMap/SpatialMap3.cs",
+   "symbol": "SpatialMapUtility3.Hash",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hash recomputes width*depth every call; it is loop-invariant within QuantizeJob.",
+   "currentCost": "'(long)quantized.z * width * depth' performs an extra 64-bit multiply (width*depth) per entity. In QuantizeJob the width/depth pair is constant for the whole job.",
+   "proposedChange": "Precompute the slab stride once. Either pass a single 'long widthDepth' (= QuantizeWidth*QuantizeDepth as long) into the job and add a Hash overload 'Hash(int3 q, int width, long widthDepth)' returning 'q.x + (long)q.y*width + (long)q.z*widthDepth', or compute 'long widthDepth = (long)QuantizeWidth * QuantizeDepth;' once before the loop in Execute.",
+   "rationale": "Eliminates one 64-bit multiply per entity by hoisting the invariant stride. Same arithmetic result.",
+   "risk": "None if widthDepth is computed as (long)width*depth to match current promotion order. Current expression is '((long)z * width) * depth' \u2014 ensure the precomputed stride uses 64-bit math to avoid 32-bit overflow for large width*depth; (long)QuantizeWidth*QuantizeDepth preserves the value range and ordering."
+  },
+  {
+   "file": "src/IAFahim.DS.SpatialMap/SpatialMap3.cs",
+   "symbol": "SpatialMap3<T>.QuantizeJob.Execute",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Per-element division and modulo to compute the worker's [start,end) range; these are loop-setup constants but use div/mod that could be moved into job scheduling.",
+   "currentCost": "'Positions.Length / Workers' and 'Positions.Length % Workers' execute once per Execute call (once per worker), plus the 'index == Workers-1' branch. Minor, but the chunking math is recomputed for every worker invocation.",
+   "proposedChange": "Compute base length and remainder once when building the job (store them as fields, e.g. ChunkLength and Remainder) so Execute only does 'start = index*ChunkLength; end = start + ChunkLength + (index==Workers-1 ? Remainder : 0)'. Alternatively distribute the remainder across the first 'Remainder' workers to balance load instead of dumping it all on the last worker.",
+   "rationale": "Removes a div and a mod from each Execute. The remainder-on-last-worker scheme also creates a load imbalance (last worker does up to Workers-1 extra items); spreading it improves parallel wall-clock for large counts.",
+   "risk": "Low. Precomputing div/mod is semantics-preserving. The load-balancing variant changes which worker processes which index but not the final map contents (values are written by absolute index). Verify the IJobFor index range (workerCount, 1) still maps one Execute per worker."
+  },
+  {
+   "file": "src/IAFahim.DS.SpatialMap/SpatialMap3.cs",
+   "symbol": "SpatialMap3<T>.QuantizeJob.Execute",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Upper-bound cull only checks quantized >= QuantizeWidth; negative quantized components (positions below -halfSize) are not culled and produce negative-component hashes.",
+   "currentCost": "'math.any(quantized >= this.QuantizeWidth)' guards the high edge only. A position with any component < -halfSize yields a negative quantized lane, a negative/colliding hash, and a written entry that escapes the intended grid.",
+   "proposedChange": "If out-of-low-bound positions are possible, extend the cull to 'math.any(quantized < 0) || math.any(quantized >= this.QuantizeWidth)' (or 'math.any(quantized >= QuantizeWidth | quantized < 0)' as a single branchless mask). If callers guarantee positions are always within [-halfSize, halfSize), leave as-is and document the precondition.",
+   "rationale": "Branchless combined bound mask is one comparison pair feeding math.any; prevents malformed keys without adding a second branch. Improves robustness with no extra branch when fused into one any().",
+   "risk": "This CHANGES behavior for currently-unguarded negative inputs (they would now be skipped instead of stored with a bad hash). Only adopt if the current acceptance of negative cells is a latent bug; if Build is treated as unchecked/valid-input-only, reject to preserve observable behavior."
+  },
+  {
+   "file": "src/IAFahim.DS.SpatialMap/SpatialMap3.cs",
+   "symbol": "SpatialMap3<T>.QuantizeJob.Positions indexer",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Positions[entityInQueryIndex] uses the safe NativeArray indexer in the hot loop, incurring bounds/safety overhead in editor and an extra layer Burst must elide.",
+   "currentCost": "Each iteration indexes NativeArray<T> via the managed-style indexer reading .Position. In safety builds this is a bounds check; even with safety off it is an indirection Burst must lower.",
+   "proposedChange": "Obtain the raw pointer once: 'T* pos = (T*)this.Positions.GetUnsafeReadOnlyPtr();' then 'float3 position = pos[entityInQueryIndex].Position;'. Job is already unsafe, so this fits the existing pattern (mirrors the keys/values raw-pointer usage).",
+   "rationale": "Removes per-iteration safety-check indirection and gives Burst a clean linear pointer access it can vectorize/prefetch, consistent with the raw keys/values writes already in this loop.",
+   "risk": "Loses the safety-system bounds check in editor builds; correct only because start/end are derived from Positions.Length. Requires Unity.Collections.LowLevel.Unsafe using. Behavior identical for valid ranges."
+  }
+ ]
+}

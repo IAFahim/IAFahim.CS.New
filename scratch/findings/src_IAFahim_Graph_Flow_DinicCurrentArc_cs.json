@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Graph.Flow/DinicCurrentArc.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Flow/DinicCurrentArc.cs",
+   "symbol": "DinicCurrentArc.Init",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Init takes 'ptr' and 's' parameters that are never used; drop them.",
+   "currentCost": "Dead parameters 'int* ptr' and 'int s' (line 9) force callers to pass and the ABI to pass extra register/stack slots; they also mislead readers about what the function touches.",
+   "proposedChange": "Change signature to Init(int n, int* head, int* currentArc) and update callers. Loop body only uses head and currentArc.",
+   "rationale": "Fewer argument slots per call (this is AggressiveInlining so likely free post-inline, but the signature clarity and avoidance of accidental aliasing assumptions matter). Pure cleanup.",
+   "risk": "Breaking signature change; must update all callers. Behavior identical."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/DinicCurrentArc.cs",
+   "symbol": "DinicCurrentArc.Advance",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist level[u]+1 out of the scan loop and reorder the && so the cheaper level test still gates first but the invariant is precomputed.",
+   "currentCost": "level[u] (line 20) is reloaded and incremented on every edge probed in the current-arc scan; under pointers Burst cannot hoist it because flow/level writes elsewhere defeat alias analysis at the call boundary, and this is the hottest loop in Dinic.",
+   "proposedChange": "At entry compute 'int want = level[u] + 1;' once, then test 'if (level[v] == want && cap[e] - flow[e] > 0)'. u is fixed for the whole call.",
+   "rationale": "Removes a load+add from every edge examined across the entire Dinic DFS, which dominates runtime on dense layered graphs. Strict invariant: u does not change within Advance.",
+   "risk": "None; u is a by-value parameter, level[u] is not written inside Advance."
+  }
+ ]
+}

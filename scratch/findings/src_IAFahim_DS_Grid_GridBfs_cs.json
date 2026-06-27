@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.DS.Grid/GridBfs.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.Grid/GridBfs.cs",
+   "symbol": "GridBfs.ProcessNeighbors",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Hoist dist[r*w+c] out of the neighbor loop; it is loop-invariant and recomputed up to 4 times per node.",
+   "currentCost": "Inside the d-loop, 'dist[r * w + c] + 1' recomputes the multiply r*w+c and reloads dist[...] on every successful neighbor (up to 4x per node), creating a redundant load-add-multiply chain.",
+   "proposedChange": "Before the loop compute 'int cur = r * w + c; int nd = dist[cur] + 1;' then use 'dist[idx] = nd;'. The caller in Run also computes node/width and node%width then re-derives r*w+c == node, so pass 'node' (the original index) into ProcessNeighbors as 'cur' to avoid recomputing r*w+c entirely.",
+   "rationale": "r*w+c is exactly the original 'node' index already known in Run, so the multiply and the modulo/division round-trip is fully redundant. Hoisting removes up to 4 multiplies and 4 dist loads per node and shortens the dependency chain.",
+   "risk": "None \u2014 dist[node] is set once and not modified during the node's own expansion, so the hoisted value equals every in-loop read. Pure refactor."
+  },
+  {
+   "file": "src/IAFahim.DS.Grid/GridBfs.cs",
+   "symbol": "GridBfs.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Avoid node/width and node%width by enqueuing/storing row and column (or passing node directly) to remove a division+modulo per dequeued node.",
+   "currentCost": "Per dequeued node, 'node / width' and 'node % width' perform an integer divide and a modulo (each ~20-40 cycles, not strength-reducible since width is runtime). Then ProcessNeighbors recomputes nr*w+nc anyway.",
+   "proposedChange": "Decode once: 'int r = node / width; int c = node - r * width;' (replaces modulo with a multiply+subtract, cheaper than a second division). Better, pass 'node' as the precomputed center index into ProcessNeighbors so dist[node] needs no recompute, and only the divide for r remains needed for bounds via nr/nc.",
+   "rationale": "div/mod on the same operands: computing c = node - r*width reuses the quotient and avoids a second hardware division. Combined with passing node through, removes one full divide-equivalent per node.",
+   "risk": "None; node = r*width + c exactly for all enqueued indices, so node - r*width == c. Identical results."
+  },
+  {
+   "file": "src/IAFahim.DS.Grid/GridBfs.cs",
+   "symbol": "GridBfs.Run dr/dc stackalloc",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "The dr/dc stackalloc tables are constant offsets that, with ProcessNeighbors inlined and unrolled, can be eliminated entirely.",
+   "currentCost": "dr/dc are 4-int stackalloc tables loaded each iteration inside ProcessNeighbors (dr[d], dc[d]) \u2014 extra loads on the hot path though stack-local.",
+   "proposedChange": "Since ProcessNeighbors is AggressiveInlining and the 4 directions are compile-time constants, fully unroll the 4 neighbor checks with literal +/-1 offsets and remove dr/dc plus the stackalloc in Run.",
+   "rationale": "Removes 8 stack loads per node and the loop counter; constant offsets fold into address computation. Frees a few bytes of stack and shortens the inner dependency chain.",
+   "risk": "None \u2014 same four neighbors in the same order. Keep emission order to preserve BFS expansion order (matters only if a caller depends on queue order, which is deterministic either way)."
+  },
+  {
+   "file": "src/IAFahim.DS.Grid/GridBfs.cs",
+   "symbol": "GridBfs visited (long*)",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "visited is used as a 0/1 flag stored in 8-byte long; a byte* (or bit-packed) visited array cuts the visited working set 8x and reduces cache misses.",
+   "currentCost": "visited is long* but only ever holds 0 or 1. For an HxW grid this is 8*H*W bytes of scratch \u2014 8x larger than needed, hurting cache residency on large grids (the dominant BFS cost is random-access memory traffic).",
+   "proposedChange": "Change visited to byte* (1 byte/cell), or fold visited into dist using a sentinel (dist initialized to -1 means unvisited), eliminating the visited buffer entirely. The dist==-1 sentinel approach removes one whole array's worth of random-access traffic per neighbor.",
+   "rationale": "BFS is memory-bound; shrinking visited 8x (or removing it) directly reduces cache misses and bandwidth, the actual bottleneck. Using dist sentinel fuses the visited-check and dist-write into the dist array already being touched.",
+   "risk": "Signature change (ergonomics/API break) \u2014 flag for caller review. The dist-sentinel variant requires callers to pre-init dist to -1; document as a Try/Run precondition. Behavior of returned count is unchanged."
+  },
+  {
+   "file": "src/IAFahim.DS.Grid/GridBfs.cs",
+   "symbol": "RotateGrid.Run / CopyGrid / Rotate180",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "CopyGrid and Rotate180 recompute h*w each iteration / use scalar copy; CopyGrid should use a bulk memcpy and h*w should be hoisted.",
+   "currentCost": "CopyGrid loops 'i < h*w' recomputing the product every iteration (h*w not hoisted) and copies long-by-long; a bulk Buffer/Unsafe.CopyBlock moves 8*h*w bytes far faster. Rotate180 already hoists len.",
+   "proposedChange": "In CopyGrid hoist 'int len = h*w;' and replace the scalar loop with Unsafe.CopyBlockUnaligned(dst, src, (uint)(len*sizeof(long))). Rotate90/270 are inherently strided (transpose) and are correct as-is, though blocking/tiling the transpose would cut cache misses on large grids.",
+   "rationale": "Bulk copy saturates bandwidth and removes loop overhead; hoisting h*w removes a redundant multiply per iteration. Tiled transpose (e.g. 16x16 blocks) for Rotate90/270 would dramatically reduce TLB/cache misses on the strided dst writes.",
+   "risk": "CopyBlock semantics identical for non-overlapping src/dst (rotate assumes distinct buffers already). Tiling adds complexity \u2014 propose only if grids are large; keep simple version for small grids."
+  }
+ ]
+}

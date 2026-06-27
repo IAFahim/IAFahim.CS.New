@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Sort.Merge/Merge.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Sort.Merge/Merge.cs",
+   "symbol": "MergeSorted.RunInPlaceCore",
+   "severity": "medium",
+   "category": "overflow",
+   "summary": "In the bottom-up merge loop, the segment-boundary expression `l + 2 * width` (and `l + width`, `l += 2 * width`) overflows signed int once `width` reaches 2^30, corrupting the merge for very large `len`.",
+   "triggeringInput": "ptr to an array of len = 1073741825 (2^30 + 1) elements, e.g. T = byte (~1 GB allocation, valid under the unchecked contract). The width loop runs widths 1,2,...,2^30 (2^30 < len). At width = 2^30, l = 0: `l + 2*width` = 2147483648 overflows to int.MinValue (-2147483648).",
+   "rootCause": "`width` is an int that doubles up to the largest power of two below `len`. When `len > 2^30`, `width` becomes 2^30 and the arithmetic `Math.Min(l + 2 * width, len)` computes `0 + 2147483648`, which overflows int to -2147483648. Then `r = -2147483648`, `segLen = r - l` is negative (copy loop skipped, tmp left unfilled), `bEnd = r - l` negative while `aEnd = width = 2^30`, so the merge writes 2^30 uninitialized/garbage tmp entries back into ptr (wrong result, reading tmp beyond what was copied). Additionally `l += 2*width` overflows and the subsequent `width <<= 1` makes width = 2^31 (negative), so `while (width < len)` mis-iterates. This produces wrong output and out-of-range/uninitialized reads (UB).",
+   "suggestedFix": "Compute boundaries in 64-bit and clamp, e.g. `int m = (int)Math.Min((long)l + width, (long)len); int r = (int)Math.Min((long)l + 2L * width, (long)len);` and advance with `l = (int)Math.Min((long)l + 2L * width, (long)len);`, and guard the width doubling against overflow (use long for width or break when width >= len before shifting)."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Sort.Merge/Merge.cs",
+   "symbol": "RunInPlaceCore<T>",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Copy only the left run into scratch instead of the whole segment, halving copy traffic per merge across all log2(n) passes.",
+   "currentCost": "For every merge of two adjacent runs the code copies the entire segment [l,r) into tmp (segLen = r-l elements, line 49) before merging back. Across the whole sort this is n copies per pass * log2(n) passes = n*log2(n) extra element copies, and tmp is read on both the A and B sides.",
+   "proposedChange": "Copy only the left run [l,m) into tmp (m-l elements). Merge by reading A from tmp[0..aLen) and B directly from ptr[m..r) in place, writing into ptr starting at ic=l: while(ia<aLen && ib<r) ptr[ic++] = tmp[ia].CompareTo(ptr[ib])<=0 ? tmp[ia++] : ptr[ib++]; then drain remaining A from tmp (the B tail is already in correct position so its drain loop is a no-op and can be dropped). Use named locals leftLen=m-l.",
+   "rationale": "The classic bottom-up in-place merge needs only the left half buffered: the write cursor ic never overtakes the B read cursor ib because each step that consumes B writes the consumed B element's slot, so ic<=ib invariant holds; A lives in a separate buffer so it is never clobbered. This cuts scratch writes+reads from 2*(r-l) to (m-l) per merge \u2014 roughly a 2x reduction in memory traffic in the dominant inner loop, fewer cache lines touched, lower bandwidth on mobile.",
+   "risk": "Semantics-preserving and stable: ties still resolve to the left (tmp) side via <=0, matching current behavior. Must keep the B-side read as ptr[ib] (in-place) and only drain the A remainder; the B remainder is already in place. Standard, well-known invariant \u2014 no overlap hazard. tmp allocation in RunInPlace can be shrunk to len/2 rounded up to match (only left runs are buffered), saving ~half the scratch RAM."
+  },
+  {
+   "file": "src/IAFahim.Sort.Merge/Merge.cs",
+   "symbol": "RunInPlace<T>",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Scratch buffer can be sized to the largest left run (ceil(len/2)) rather than len once only the left run is copied.",
+   "currentCost": "Marshal.AllocHGlobal allocates len*sizeof(T) bytes; combined with the segment-copy approach the full buffer is used.",
+   "proposedChange": "Adopt the left-run-only merge (see RunInPlaceCore opportunity), then allocate ((len+1)/2)*sizeof(T) bytes. The maximum left run buffered is ceil(len/2) elements (the last left run at the top width).",
+   "rationale": "Halves the off-heap scratch allocation, reducing peak RAM and improving locality (smaller buffer stays hotter in cache). On mobile the reduced AllocHGlobal footprint matters for memory-constrained scenes.",
+   "risk": "Only valid if RunInPlaceCore is changed to buffer just the left run; the largest left run is exactly ceil(len/2). Keep the (long) cast in the size computation to avoid int overflow for large len*sizeof(T)."
+  },
+  {
+   "file": "src/IAFahim.Sort.Merge/Merge.cs",
+   "symbol": "RunInPlaceCore<T>",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist the loop-invariant step value 2*width out of the inner loop.",
+   "currentCost": "2*width is recomputed at line 47 (Math.Min(l + 2*width, len)) and again at line 58 (l += 2*width) for every iteration of the inner l-loop; width is constant across that loop.",
+   "proposedChange": "Compute int twoWidth = width << 1; once per outer pass and reuse it for both r = Math.Min(l + twoWidth, len) and l += twoWidth. Optionally compute the outer width step as width = twoWidth at end of pass.",
+   "rationale": "Removes one shift/add from the inner loop body and clarifies the stride; trivial but free strength reduction with zero risk.",
+   "risk": "None. width is bounded < len <= int.MaxValue at loop entry, but twoWidth = width<<1 could overflow int when width >= 2^30. Guard: the outer loop condition width<len already bounds width<len<=int.MaxValue; if len can exceed 2^30, compute twoWidth as long or clamp via the existing Math.Min(l+..,len). Use long for the stride if len near int.MaxValue is supported, otherwise int is safe for realistic sizes."
+  }
+ ]
+}

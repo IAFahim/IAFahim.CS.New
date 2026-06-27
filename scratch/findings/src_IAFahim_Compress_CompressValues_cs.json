@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Compress/CompressValues.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Compress/CompressValues.cs",
+   "symbol": "RunUnique",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Cache src[i-1] in a register across iterations instead of re-loading the previous element each pass.",
+   "currentCost": "Each loop iteration reads src[i] and src[i-1] from memory (2 loads), where src[i-1] was already loaded as src[i] in the prior iteration. The data-dependent branch (src[i] != src[i-1]) also serializes the compare against a redundant load.",
+   "proposedChange": "Hoist the previous value into a local: 'int prev = src[0]; for (int i = 1; i < len; i++) { int cur = src[i]; if (cur != prev) { dst[count++] = cur; } prev = cur; }'. This carries 'prev' in a register and issues one load per iteration instead of two.",
+   "rationale": "Halves the number of loads in the loop body (1 instead of 2) and shortens the compare's dependency chain, since 'prev' is register-resident rather than reloaded. Removes the i-1 address computation. Constant-factor win on a tight scan loop.",
+   "risk": "Semantics-preserving: 'prev' exactly tracks the value previously compared. len<=1 early-out is unchanged. No signedness/overflow concerns since these are plain int copies and comparisons."
+  }
+ ]
+}

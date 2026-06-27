@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Memory.Allocators/UnsafeFixedPoolAllocator.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Memory.Allocators/UnsafeFixedPoolAllocator.cs",
+   "symbol": "UnsafeFixedPoolAllocator<T>",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Replace the UnsafeParallelHashSet<Ptr> free-list with an intrusive stack-of-free-indices (or embedded free-list inside the buffer), turning Alloc/Free into O(1) pointer arithmetic and removing all hashing/iterator overhead.",
+   "currentCost": "Alloc() does freeIndex.Count()==0 check, allocates an Enumerator (GetEnumerator + MoveNext over an open-addressed hash table that may probe many empty buckets to find the first occupied slot), reads Current, then Remove() which re-hashes the pointer and re-probes. Free() Add() re-hashes. Each op is several hash computations + random-access probes into a separate heap-allocated bucket array = guaranteed cache misses, far more than a pool needs. Construction also inserts maxItems pointers one-by-one into the hash set (maxItems hash+probe), and the set itself is a second large allocation duplicating information already implied by the contiguous buffer.",
+   "proposedChange": "Store a free list as an int* stack (size maxItems) allocated once, plus a freeCount int. Constructor fills stack[i]=i for i in [0,maxItems) and sets freeCount=maxItems (a tight, vectorizable/sequential write). Alloc(): if(freeCount==0) return null; return (T*)buffer + stack[--freeCount];. Free(p): stack[freeCount++] = (int)((T*)p - (T*)buffer);. Alternatively, since the slots themselves are free when not in use, embed an intrusive singly-linked free list head index inside the unused T slots (store next-index in the first 4 bytes of each free slot) and keep only an int freeHead \u2014 zero extra allocation. Both make Alloc/Free branch-light, allocation-free, and cache-friendly.",
+   "rationale": "An index/pointer stack or intrusive free list is the canonical O(1) pool design with no hashing, no probing, and sequential memory access. It eliminates the Enumerator object churn on every Alloc, removes two hash computations and two random-probe sequences per Alloc and one per Free, and (for the intrusive variant) removes the entire second heap allocation (UnsafeParallelHashSet bucket array), halving the allocator's working set and cache footprint. Construction drops from maxItems hash inserts to a single linear fill.",
+   "risk": "Behavior preserved for valid callers (Alloc still returns a distinct free slot or null when exhausted; Free returns a slot). Edge: a plain LIFO stack returns the most-recently-freed pointer rather than hash-set iteration order, but no documented ordering contract exists, so observable behavior to valid callers is preserved. Double-free / foreign-pointer detection currently provided by freeIndex.Contains must be reimplemented in the ENABLE_UNITY_COLLECTIONS_CHECKS-guarded ValidatePtr (e.g. a separate per-slot in-use bitset under checks only) so debug diagnostics are not lost; release builds are unaffected since ValidatePtr is [Conditional]."
+  },
+  {
+   "file": "src/IAFahim.Memory.Allocators/UnsafeFixedPoolAllocator.cs",
+   "symbol": "Alloc",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Even keeping the hash set, drop the redundant freeIndex.Count()==0 pre-check \u2014 the subsequent e.MoveNext() already reports emptiness.",
+   "currentCost": "Alloc() calls Count() (a full field/derived read) then constructs an Enumerator and calls MoveNext(); when the set is empty both report empty, so Count() is pure redundant work on every call, and when non-empty Count() is wasted entirely. Two emptiness checks for one decision.",
+   "proposedChange": "Remove the leading `if (this.freeIndex.Count() == 0) return null;` block and rely solely on `if (!e.MoveNext()) return null;` inside the using. This collapses two emptiness tests into one.",
+   "rationale": "Fewer instructions and one fewer dependent load on the hot Alloc path; MoveNext()==false is exactly the empty condition, so the Count() call is strictly redundant.",
+   "risk": "None \u2014 observable result identical (returns null iff no free slot). This is moot if the intrusive-free-list rewrite above is adopted, but it is a safe standalone micro-win otherwise."
+  }
+ ]
+}

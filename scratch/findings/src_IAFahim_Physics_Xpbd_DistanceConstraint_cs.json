@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Physics.Xpbd/DistanceConstraint.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Physics.Xpbd/DistanceConstraint.cs",
+   "symbol": "Solve",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "n=delta/dist divides a vector by sqrt; lambda then multiplies n. The division and normalization can fuse using a reciprocal, and alpha/(dt*dt) division is loop-invariant per call only.",
+   "currentCost": "sqrt (length) + 1 vector division (delta/dist) + scalar division (compliance/(dt*dt)) + scalar division (-c/(w+alpha)).",
+   "proposedChange": "correction = lambda * n = (-c/(w+alpha)) * (delta/dist). Combine into scalar k = -c / ((w+alpha)*dist) then correction = k*delta, removing the separate vector normalization division (delta/dist) \u2014 one scalar division instead of a vector division plus reuse. invDt2 could be passed precomputed by caller, but within one call dt*dt is cheap.",
+   "rationale": "Folds the vector divide-by-dist and the lambda scalar divide into a single scalar division k, then a vector*scalar \u2014 fewer divisions, shorter dependency chain.",
+   "risk": "Not bit-identical (reassociation of divisions). w+alpha and dist are both already guarded > small epsilon, so no new div-by-zero. dist>=1e-8 guard already present."
+  },
+  {
+   "file": "src/IAFahim.Physics.Xpbd/DistanceConstraint.cs",
+   "symbol": "DistanceConstraint.Solve",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace length()+divide-by-dist with a single rsqrt to normalize delta, avoiding one sqrt and one vector divide.",
+   "currentCost": "math.length(delta) = sqrt(dot(delta,delta)) (one sqrt), then n = delta / dist is a 3-component divide (reciprocal + 3 muls, or 3 divides). The high-latency sqrt feeds directly into the divide, forming a long dependency chain. c = dist - restLength also needs the actual dist.",
+   "proposedChange": "float lenSq = math.dot(delta, delta); guard if (lenSq < 1e-16f) return; float invDist = math.rsqrt(lenSq); float dist = lenSq * invDist; float3 n = delta * invDist; This produces n with one rsqrt + muls instead of sqrt + divide, and still yields dist for c = dist - restLength.",
+   "rationale": "rsqrt is lower-latency than sqrt+div on most targets and lets normalization use multiplies (vectorizable) instead of a divide. Shortens the critical dependency chain delta->dist->n into delta->invDist->{dist,n} computed in parallel.",
+   "risk": "rsqrt may be slightly less precise than 1/sqrt on some hardware; for a relaxation solver this is acceptable but is NOT bit-identical to math.length, so it is a semantics-approximating change, not strictly bit-preserving. The early-out threshold must be squared (1e-16f vs 1e-8f) to keep the same cutoff. On mobile some GPUs/CPUs differ in rsqrt accuracy; if exact parity with the current build is required, reject this opt."
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.DS.Grid/Reverse.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.Grid/Reverse.cs",
+   "symbol": "Reverse.Run",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Already optimal two-pointer in-place reverse; no algorithmic change. Only a minor note on unused 'using System'.",
+   "currentCost": "Loop body does len/2 swaps, each a 3-temp exchange \u2014 minimal. 'using System;' is unused (no System type referenced).",
+   "proposedChange": "Leave the algorithm as-is (optimal). Optionally remove the unused 'using System;' to keep the file clean (no codegen impact). For T of size 1/2/4/8 Burst already handles the swap well; no manual SIMD needed since reverse-swap has an inherent cross dependency.",
+   "rationale": "The two-pointer reverse is O(n) with the minimum n/2 swaps and a tight branchless-friendly body. There is no faster approach; flagging it as already-optimal per the high-signal rule.",
+   "risk": "None \u2014 no change proposed beyond an optional cosmetic using-removal."
+  }
+ ]
+}

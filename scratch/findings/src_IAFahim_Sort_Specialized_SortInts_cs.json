@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Sort.Specialized/SortInts.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Sort.Specialized/SortInts.cs",
+   "symbol": "SortInts.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Same O(n^2) insertion sort on int keys; a 4-pass LSD radix sort sorts 32-bit ints in O(n) and dominates for non-tiny len.",
+   "currentCost": "O(n^2) average/worst, serial move chain that defeats Burst vectorization and stresses the store-forwarding pipeline.",
+   "proposedChange": "Threshold dispatch: insertion sort for small len, else 4-pass LSD radix (256-bucket counting sort per byte) with sign-bit flip on the high byte for signed correctness, using a caller-supplied scratch buffer.",
+   "rationale": "4*n vs n^2. Histograms live in stackalloc int[256] (1 KiB, fits L1). Sequential scatter/gather is cache-predictable. Branchless counting passes Burst-vectorizes far better than the data-dependent insertion inner loop.",
+   "risk": "Signed key handling via top-byte XOR 0x80000000 as above. Additive overload to pass scratch; do not break existing unchecked Run signature. Stability not currently guaranteed so reordering equal keys is acceptable."
+  },
+  {
+   "file": "src/IAFahim.Sort.Specialized/SortInts.cs",
+   "symbol": "SortInts.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Inner loop does two index computations (ptr[j+1], ptr[j]) per iteration; walk with two running pointers/indices to cut address arithmetic and shorten the move-store dependency.",
+   "currentCost": "Each inner iteration recomputes ptr+j and ptr+j+1 and re-reads ptr[j]; the compiler usually folds this but it is not guaranteed under Burst with aliasing assumptions.",
+   "proposedChange": "Hoist key's insertion as a memmove-style shift: cache the value being shifted in a register pattern, or restructure to `long t = ptr[j]; ptr[j+1] = t;` reusing the load. Minor; main win is the algorithmic change above.",
+   "rationale": "Removes a redundant load of ptr[j] (it is loaded once for the compare and could be reused for the store), trimming one memory op per inner iteration.",
+   "risk": "Pure micro-opt, semantics-identical. Low impact because Burst/LLVM likely already CSEs the load; only worth doing if profiling the IR shows the redundant load survives."
+  }
+ ]
+}

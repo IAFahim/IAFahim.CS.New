@@ -1,0 +1,71 @@
+{
+ "file": "src/IAFahim.Sort.QuickSort/QuickSort.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Sort.QuickSort/QuickSort.cs",
+   "symbol": "QuickSort.Run<T>",
+   "severity": "critical",
+   "category": "off-by-one",
+   "summary": "Hoare-partition quicksort excludes the returned boundary index p from both recursive halves. Partition returns j (the Hoare boundary), but the pivot in Hoare's scheme is NOT necessarily placed at its final sorted position at index j, so the correct recursion must include j in the left half ([lo, p] and [p+1, hi]). This code recurses on [lo, p-1] and [p+1, hi], dropping the element at index p from sorting. Result: array is left unsorted for many inputs.",
+   "triggeringInput": "int array {5,4,3,2,1,0}, Run(ptr,0,5). Produces 0 2 3 4 1 5 (not sorted). Also {3,1,2,3,3,3} -> 2 1 3 3 3 3.",
+   "rootCause": "Hoare partition (pivot = ptr[lo], returns j) guarantees ptr[lo..j] <= ptr[j+1..hi] but does NOT fix the pivot at index j. The standard correct recursion is Run(lo, j) / Run(j+1, hi). Here both branches treat p (=j) as a fixed pivot like Lomuto and exclude it: left branch uses Run(ptr, lo, p-1) then lo=p+1 (skips p), right branch uses Run(ptr, p+1, hi) then hi=p-1 (skips p).",
+   "suggestedFix": "For Hoare partition, include the boundary index in the left subarray. Change the introspective loop to: if (p - lo < hi - p) { Run(ptr, lo, p); lo = p + 1; } else { Run(ptr, p + 1, hi); hi = p; }. (Recurse on [lo, p] and [p+1, hi] instead of [lo, p-1] and [p+1, hi].)"
+  },
+  {
+   "file": "src/IAFahim.Sort.QuickSort/QuickSort.cs",
+   "symbol": "QuickSort.RunInt32",
+   "severity": "critical",
+   "category": "off-by-one",
+   "summary": "Same Hoare-partition off-by-one as Run<T>. PartitionInt32 returns the Hoare boundary j, but RunInt32 recurses on [lo, p-1] and [p+1, hi], excluding index p from both halves even though the pivot is not guaranteed to be in final position at p. Array is left unsorted on many inputs.",
+   "triggeringInput": "int* ptr over {5,4,3,2,1,0}, RunInt32(ptr,0,5) -> 0 2 3 4 1 5 (not sorted). Also {3,1,2,3,3,3} -> 2 1 3 3 3 3.",
+   "rootCause": "PartitionInt32 is a Hoare partition (pivot = ptr[lo], returns j) which does not place the pivot at its final position at j. The correct recursion must include j on the left: RunInt32(lo, j) / RunInt32(j+1, hi). The code instead excludes p in both branches (Run(lo, p-1) with lo=p+1, and Run(p+1, hi) with hi=p-1).",
+   "suggestedFix": "Change the loop to: if (p - lo < hi - p) { RunInt32(ptr, lo, p); lo = p + 1; } else { RunInt32(ptr, p + 1, hi); hi = p; } so the boundary index p is included in the left subarray."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Sort.QuickSort/QuickSort.cs",
+   "symbol": "Partition<T> / PartitionInt32 (pivot selection)",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Hoare partition uses the first element (ptr[lo]) as pivot, which degrades to O(n^2) and O(n) recursion/iteration on already-sorted or reverse-sorted input \u2014 a very common case for game/engine data.",
+   "currentCost": "For sorted or nearly-sorted arrays every partition splits off one element, giving O(n^2) comparisons and worst-case O(n) recursion depth before the smaller-side recursion guard helps. Sorted data is a realistic hot path (re-sorting mostly-sorted lists each frame).",
+   "proposedChange": "Use median-of-three pivoting: compute mid = lo + ((hi - lo) >> 1), sort {ptr[lo], ptr[mid], ptr[hi]} into order, and use the median as the pivot (e.g. swap it to ptr[lo] or use it directly). This keeps the Hoare scheme intact but makes worst case statistically unlikely.",
+   "rationale": "Median-of-three turns the adversarial sorted/reverse-sorted inputs into well-balanced splits, restoring expected O(n log n) and keeping recursion depth O(log n) in practice. The smaller-side-recursion tail-call already bounds stack to O(log n) worst case, but median-of-three also slashes comparison count on common data.",
+   "risk": "Pivot value changes the exact swap sequence, so for inputs with equal keys the final permutation of equal elements differs (sort is not stable anyway, so observable sorted output is unchanged). mid = lo + ((hi-lo)>>1) avoids lo+hi overflow; do not use (lo+hi)>>1."
+  },
+  {
+   "file": "src/IAFahim.Sort.QuickSort/QuickSort.cs",
+   "symbol": "Run<T> / RunInt32 (small-subarray cutoff)",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "No insertion-sort cutoff for small partitions; quicksort recurses/partitions down to size 1, paying function-call and partition overhead on tiny ranges where insertion sort is cheaper.",
+   "currentCost": "Each leaf partition of size 2-16 still does the full Hoare two-pointer scan plus loop bookkeeping and a recursive/iterative dispatch; for small n the constant factors dominate and branch mispredicts are frequent.",
+   "proposedChange": "When (hi - lo) < THRESHOLD (e.g. 16), break out of the quicksort loop and run a simple in-place insertion sort over [lo,hi] using pointer reads. Keep THRESHOLD as a named const int.",
+   "rationale": "Insertion sort has lower constant factors and is near-optimal for small, partially-ordered ranges; it is branch-predictable and cache-friendly (sequential access already in L1). Standard introsort/quicksort hybrids gain a measurable constant-factor speedup this way.",
+   "risk": "Insertion sort must use the same comparison direction (CompareTo<0 / <) to preserve identical ascending output. Pure constant-factor change, no asymptotic or semantic risk; equal-key ordering may differ but sort is unstable regardless."
+  },
+  {
+   "file": "src/IAFahim.Sort.QuickSort/QuickSort.cs",
+   "symbol": "Run<T>(T*,int,int) / RunInt32 \u2014 recursion depth on degenerate pivots",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "The smaller-half recursion guard bounds stack to O(log n) for balanced splits, but combined with first-element pivot a fully sorted input still recurses on the empty/size-1 smaller side O(n) times, risking deep call frames under Burst.",
+   "currentCost": "With ptr[lo] pivot on sorted input, p-lo is 0 each step so 'Run(ptr, lo, p-1)' recurses on an empty range while the loop walks the large side. The empty-range recursion returns immediately but still incurs n call frames over the lifetime (depth stays shallow only because p-1<lo). This is mostly call overhead, mitigated once median-of-three lands.",
+   "proposedChange": "Add an early guard at method entry: 'if (hi - lo < 1) return;' so empty/singleton ranges never enter the while/Partition path, and pair with the median-of-three fix so the recursed side is always the genuinely smaller, non-trivial half.",
+   "rationale": "Eliminates redundant call frames and Partition setup for trivial ranges; reduces dependency-chain and call overhead in the recursion. Burst inlines poorly across recursion, so trimming trivial recursive entries reduces instruction count.",
+   "risk": "Behavior-preserving: ranges with hi<=lo already do no work inside the loop; the guard only short-circuits earlier. No correctness change."
+  },
+  {
+   "file": "src/IAFahim.Sort.QuickSort/QuickSort.cs",
+   "symbol": "Partition<T> (generic IComparable<T> path)",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "The generic Partition calls ptr[i].CompareTo(pivot); for unmanaged T this is a constrained call that Burst can devirtualize, but it reads the struct via the indexer twice-ish and relies on CompareTo returning a normalized int.",
+   "currentCost": "ptr[i].CompareTo(pivot) loads ptr[i] into a temporary to invoke the interface method; for larger structs this copies the whole element on every comparison in the inner do-while. The Int32 specialization avoids this, which is why it exists.",
+   "proposedChange": "For the generic path, load the compared element once into a local T (T a = ptr[i];) before the CompareTo when T is large, or document that callers of large structs should provide a specialized comparator path like RunInt32. At minimum keep the specialized numeric overloads (already done) and consider adding RunInt64/RunSingle to avoid the constrained-call copy for common primitives.",
+   "rationale": "Constrained interface calls on value types are devirtualized by Burst but still copy the receiver struct; for primitive-keyed sorts the specialized overloads compile to register comparisons with no struct copy, fewer loads, and better vectorizable inner loops.",
+   "risk": "Adding overloads is purely additive (no behavior change). Caching ptr[i] into a local before CompareTo is semantics-preserving since ptr[i] is not mutated between the read and the compare within one do-while iteration."
+  }
+ ]
+}

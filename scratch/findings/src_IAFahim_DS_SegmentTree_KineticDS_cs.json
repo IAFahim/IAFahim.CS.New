@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.DS.SegmentTree/KineticDS.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.SegmentTree/KineticDS.cs",
+   "symbol": "KineticDS (all methods)",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "All methods are empty stubs \u2014 no implementation to optimize; unused `using` directives present.",
+   "currentCost": "KineticTournamentBuild/Update/Winner, KineticSegmentTreeBuild/Query are empty bodies. `using System;` and `using System.Runtime.CompilerServices;` are unused. No optimization possible until implemented.",
+   "proposedChange": "No perf action. Remove the two unused usings for cleanliness, or implement the data structure. Flagging that this module is non-functional, not a hot path.",
+   "rationale": "Cannot optimize absent code; reporting state so the orchestrator knows the file is a stub.",
+   "risk": "None."
+  }
+ ]
+}

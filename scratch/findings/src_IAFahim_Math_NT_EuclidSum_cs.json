@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Math.NT/EuclidSum.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/EuclidSum.cs",
+   "symbol": "EuclidSum.SumCoPrime",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Convert the tail-recursive SumCoPrime into an explicit iterative loop so Burst does not rely on tail-call optimization.",
+   "currentCost": "SumCoPrime recurses once per Euclidean step (O(log m) deep). C#/Burst does not guarantee tail-call elimination, so each step pushes a stack frame and the result is built on the return path, adding call overhead and stack traffic in a hot leaf.",
+   "proposedChange": "Rewrite as a loop accumulating the result: 'long acc = 0; while (m != 0) { acc += n*(m-1) - m*(n-1); long t = n % m; n = m; m = t; } return acc;'. This matches the recurrence sum_{steps} (n*(m-1) - m*(n-1)).",
+   "rationale": "Removes O(log m) call frames and lets the value accumulate in a register instead of unwinding a recursion chain, shortening the dependency chain and improving Burst codegen.",
+   "risk": "Must preserve exact summation order/value; the additive recurrence is order-independent for integers so the loop yields the identical total. Overflow behavior is unchanged (same products n*(m-1), m*(n-1) computed). Verify the loop's (n,m) update mirrors SumCoPrime(m, n%m): the second arg becomes n%m and first becomes m, matching the code."
+  }
+ ]
+}

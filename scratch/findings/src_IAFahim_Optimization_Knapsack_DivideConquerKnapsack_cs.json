@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Optimization.Knapsack/DivideConquerKnapsack.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Knapsack/DivideConquerKnapsack.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist (int)w[i], w[i], v[i] out of both branches' inner loops and hoist (int)tw out of the binary-split inner loop.",
+   "currentCost": "In the unbounded branch 'dp[j - (int)w[i]] + v[i]' re-reads w[i] (with a long->int cast) and v[i] every iteration. In the bounded branch 'dp[j - (int)tw]' casts tw to int each j. The class name says DivideConquer but the body is plain binary-splitting; no D&C optimization is present.",
+   "proposedChange": "At top of the i-loop read 'int wi = (int)w[i]; long vi = v[i];'. Unbounded branch: 'for (int j = wi; j <= cap; j++) { long cand = dp[j - wi] + vi; ... }'. Bounded branch: hoist 'int itw = (int)tw;' before the inner for and use dp[j - itw].",
+   "rationale": "Removes a per-iteration long->int narrowing and two long loads from each inner-loop body, the dominant O(cap) cost. Identical to the BoundedKnapsack hoist; shortens the load-add-compare-store chain.",
+   "risk": "None: w[i]/v[i] are invariant across j; the cast result is invariant. Same outputs."
+  }
+ ]
+}

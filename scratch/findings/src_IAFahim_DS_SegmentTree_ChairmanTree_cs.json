@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.DS.SegmentTree/ChairmanTree.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.SegmentTree/ChairmanTree.cs",
+   "symbol": "ChairmanTreeUpdate.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Recompute of `prev != 0` and the four `prev != 0 ? x[prev] : 0` ternaries hoist to a single branch.",
+   "currentCost": "Each Run call evaluates `prev != 0` 5-6 times (lines 27,28,29,30,36/39). On the hot O(n log n) build path this is 5-6 dependent compares + selects per node, plus redundant `leftChild[prev]`/`rightChild[prev]` loads that are reloaded again inside the recursive branch.",
+   "proposedChange": "Compute `int hasPrev = prev; int pl = prev != 0 ? leftChild[prev] : 0; int pr = prev != 0 ? rightChild[prev] : 0;` once at top, then `leftChild[node]=pl; rightChild[node]=pr; cnt[node]=(prev!=0?cnt[prev]:0)+addCount; ...`. Reuse pl/pr in the recursive call: `leftChild[node]=Run(pl, lo, mid, ...)`. This removes the duplicate `leftChild[prev]` load and folds the repeated branch.",
+   "rationale": "Reduces the per-node dependency chain (one compare feeding many selects) and eliminates a redundant memory load (leftChild[prev]/rightChild[prev] read twice). Fewer loads = fewer chances of cache stalls along the recursion spine of length log(hi-lo).",
+   "risk": "Semantics identical: prev==0 path already yields 0 for child reads. No signed/overflow concern."
+  },
+  {
+   "file": "src/IAFahim.DS.SegmentTree/ChairmanTree.cs",
+   "symbol": "ChairmanTreeUpdate.Run",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Recursive persistent update can be converted to an iterative loop, removing log-depth call overhead and stack spills.",
+   "currentCost": "Recursion of depth ceil(log2(hi-lo+1)) per inserted element; each frame passes 10 pointer/scalar args, causing register spill/reload and call/return overhead in Burst-compiled code.",
+   "proposedChange": "Rewrite as a while loop walking lo/hi/mid, allocating each node and linking parent->child as it descends, since the recursion is purely tail-structured (only one of left/right recurses). Keep a running `parentChildSlot` pointer to patch.",
+   "rationale": "Eliminates per-level function-call prologue/epilogue and argument marshaling; the path is strictly linear (single child recursion), so no real recursion is needed. Burst will keep all state in registers.",
+   "risk": "Must preserve allocation order (node ids must match recursive version if any caller depends on ids) \u2014 node allocation order is identical when iterating top-down, so ids match. Verify no caller relies on call-stack ordering."
+  },
+  {
+   "file": "src/IAFahim.DS.SegmentTree/ChairmanTree.cs",
+   "symbol": "ChairmanTreeCount.Run / ChairmanTreeSum.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Redundant `lRoot != 0`/`rRoot != 0` re-evaluation across recursion; precompute child indices once.",
+   "currentCost": "Lines 70-71 / 83-84 evaluate `lRoot != 0` and `rRoot != 0` twice each (once for left child, once for right child) plus the loads leftChild[lRoot], rightChild[lRoot] etc. The compare result is recomputed per branch.",
+   "proposedChange": "Hoist `int ll = lRoot!=0?leftChild[lRoot]:0; int lr = lRoot!=0?rightChild[lRoot]:0; int rl = rRoot!=0?leftChild[rRoot]:0; int rr = rRoot!=0?rightChild[rRoot]:0;` after the leaf/cover checks, then pass ll/rl to the left recursion and lr/rr to the right.",
+   "rationale": "Halves the number of `!=0` compares per internal node and groups the four child loads so the compiler can issue them without interleaved branches, shortening the dependency chain on the dual-tree descent.",
+   "risk": "Behavior-preserving; both children are always visited here (no short-circuit savings lost). No overflow concern."
+  },
+  {
+   "file": "src/IAFahim.DS.SegmentTree/ChairmanTree.cs",
+   "symbol": "ChairmanTree* (all classes)",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Hot leaf-ish recursive Run methods lack [MethodImpl(AggressiveInlining)] and `using System.Runtime.CompilerServices` is imported but unused.",
+   "currentCost": "The CompilerServices using is present (line 3) but no attribute is applied, unlike DualSegment which uses it consistently. Recursive methods cannot be fully inlined, but small wrappers (Kth/Count/Sum entry) called once per query benefit from inlining into callers.",
+   "proposedChange": "Either remove the unused `using System.Runtime.CompilerServices;` to match house cleanliness, or apply [MethodImpl(AggressiveInlining)] where it actually helps (it will not help self-recursive methods, so prefer removal for the recursive ones).",
+   "rationale": "Dead using adds noise; recursion defeats inlining so attribute would be cargo-cult here. Removing keeps signal high and matches the no-dead-import convention.",
+   "risk": "None; purely cosmetic / does not change codegen for recursive methods."
+  }
+ ]
+}

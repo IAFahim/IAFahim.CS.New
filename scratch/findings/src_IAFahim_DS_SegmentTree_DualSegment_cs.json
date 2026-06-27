@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.DS.SegmentTree/DualSegment.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.SegmentTree/DualSegment.cs",
+   "symbol": "DualSegmentApply.AddInt64 / AddInt32",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "`idx & -idx` lowest-set-bit isolation is already optimal; the only win is removing the redundant `using System` (unused) \u2014 code is otherwise tight.",
+   "currentCost": "BIT update/query loops are O(log n) with `idx & -idx` which lowers to a single neg+and. The `using System;` (line 3) is unused. AggressiveInlining is correctly applied.",
+   "proposedChange": "Remove `using System;`. No algorithmic change \u2014 the Fenwick walk is already canonical and branch-minimal.",
+   "rationale": "This file is essentially optimal: power-of-two-free, branchless inner loop, narrow Int32 variants provided. Only the dead using is removable.",
+   "risk": "None."
+  }
+ ]
+}

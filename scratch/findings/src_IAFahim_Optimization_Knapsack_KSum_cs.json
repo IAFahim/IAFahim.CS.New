@@ -1,0 +1,59 @@
+{
+ "file": "src/IAFahim.Optimization.Knapsack/KSum.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Optimization.Knapsack/KSum.cs",
+   "symbol": "KSum.Count",
+   "severity": "high",
+   "category": "overflow",
+   "summary": "Two-pointer pair sum computes s = a[l] + a[r] as int + int into an int; with large in-range int values the sum overflows, corrupting the < / > comparisons and skipping valid pairs (or matching wrong ones).",
+   "triggeringInput": "k=2, sorted a = {1000000000, 1100000000, 2000000000}, n=3, target=2100000000. The valid pair (1000000000,1100000000)=2100000000 exists, but s=a[0]+a[2]=3000000000 overflows to a negative int < target, so l advances past index 1 and the pair is missed. Returns 0 instead of 1.",
+   "rootCause": "int s = a[l] + a[r] overflows for sums exceeding int.MaxValue even when each element and the target are representable ints. The wrapped (negative) sum makes the monotone two-pointer comparison move the wrong pointer.",
+   "suggestedFix": "Compute the sum in a wider type, e.g. long s = (long)a[l] + a[r]; and compare against (long)target. Same pattern needed throughout the two-pointer comparisons."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Knapsack/KSum.cs",
+   "symbol": "KSum.FourSum",
+   "severity": "high",
+   "category": "overflow",
+   "summary": "FourSum computes s = a[i]+a[j]+a[l]+a[r] as a 4-way int addition; in-range int values overflow the int accumulator, breaking the two-pointer comparison and giving wrong counts.",
+   "triggeringInput": "n=4, sorted a = {500000000, 600000000, 700000000, 800000000}, target=2600000000 is not representable, but even for representable targets: a={1,2,3,2000000000}? Concretely a={600000000,700000000,800000000,900000000}, target sum of all four = 3000000000 overflows int to negative, so s < target falsely and the quadruple summing to a representable target is mis-handled. E.g. target=2100000000 with a={300000000,400000000,500000000,900000000}: pair sums overflow when combined, l/r move incorrectly and the valid quadruple is missed.",
+   "rootCause": "int s = a[i] + a[j] + a[l] + a[r] overflows because four ints near 1e9 exceed int.MaxValue; the wrapped value corrupts the s<target / s>target branch and the pointer advancement.",
+   "suggestedFix": "Accumulate in long: long s = (long)a[i] + a[j] + a[l] + a[r]; compare to (long)target."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Knapsack/KSum.cs",
+   "symbol": "KSum.Count",
+   "severity": "medium",
+   "category": "logic",
+   "summary": "On a match the two-pointer does count++; l++; r-- once, which undercounts the number of index pairs when the array contains duplicate values; it counts at most one pair per distinct (value-from-left, value-from-right) boundary rather than all qualifying index pairs.",
+   "triggeringInput": "k=2, sorted a = {1,1,1,1}, n=4, target=2. There are C(4,2)=6 index pairs summing to 2, but the method returns 2 (matches at (l=0,r=3) then (l=1,r=2)).",
+   "rootCause": "When a[l]+a[r]==target and there are runs of equal values, the correct count is (number of equal lefts) * (number of equal rights), or C(run,2) when both runs coincide. The single count++; l++; r-- only registers one pair and collapses the duplicate block, so the multiplicity of equal elements is lost.",
+   "suggestedFix": "On a match, count the length of the equal run at l (cl) and at r (cr); if a[l]==a[r] add cl*(cl-1)/2 and break, else add cl*cr and advance l by cl and r by cr. (FourSum has the same duplicate-undercount issue in its inner two-pointer.)"
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Knapsack/KSum.cs",
+   "symbol": "FourSum",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist partial sums a[i] and a[i]+a[j] out of the two-pointer inner loop so the hot test is a single add.",
+   "currentCost": "The innermost while recomputes 's = a[i] + a[j] + a[l] + a[r]' fully each step, redundantly re-reading a[i] and a[j] (loop-invariant for the inner while) and re-adding them every iteration.",
+   "proposedChange": "Before the j-loop body's while, compute 'int ai = a[i];' (outside j-loop) and 'int aij = ai + a[j];'. Inner test becomes 's = aij + a[l] + a[r];'.",
+   "rationale": "Removes two redundant memory loads and one add from each two-pointer step (the hottest loop, O(n^2) outer with O(n) inner). Shorter dependency chain and fewer loads improve throughput; a[i] hoist also lets it stay in a register across the whole j/while nest.",
+   "risk": "None: a[i], a[j] are invariant within the inner while; same arithmetic, same count. Assumes sorted input as the algorithm already requires."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Knapsack/KSum.cs",
+   "symbol": "Count",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Count(...,k,...) only handles k==2 and silently returns 0 for all other k \u2014 misleading API; split into TwoSumCount or guard/document.",
+   "currentCost": "The 'k' parameter and the 'if (k == 2)' branch imply general k-sum support but every k != 2 returns 0 with no signal, a correctness/discoverability trap. The branch on k is also dead overhead on the hot path.",
+   "proposedChange": "Rename to 'TwoSumCount(int* a, int n, int target)' dropping the k parameter (matching the concrete behavior and the FourSum naming convention), or keep k but follow the Try* convention to indicate unsupported k. Removes the per-call k branch.",
+   "rationale": "Improves API honesty/discoverability and removes a dead branch; aligns with the existing FourSum naming so callers know exactly what is supported.",
+   "risk": "Signature change \u2014 breaking for callers passing k. Pure ergonomics; numeric behavior for k==2 unchanged."
+  }
+ ]
+}

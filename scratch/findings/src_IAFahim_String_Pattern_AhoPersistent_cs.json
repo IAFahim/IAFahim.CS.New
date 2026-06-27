@@ -1,0 +1,72 @@
+{
+ "file": "src/IAFahim.String.Pattern/AhoPersistent.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Pattern/AhoPersistent.cs",
+   "symbol": "AhoPersistentQuery.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Iterate only set bits of activeMask instead of scanning all 32 bit positions, and hoist the per-bit work out of the wasted iterations.",
+   "currentCost": "The outer loop runs a fixed 32 iterations regardless of how many patterns sets are active; each does a (1<<bit) shift and a branch. When only a few doubling-levels are active (typical: log2(numPatterns) <= ~20 active bits, often far fewer), most of the 32 iterations are pure branch overhead.",
+   "proposedChange": "Replace `for (int bit=0; bit<32; bit++){ if((activeMask&(1<<bit))!=0){...}}` with a popcount-style walk over set bits: `int m = activeMask; while (m != 0){ int bit = math.tzcnt(m) (or Unity Burst intrinsic / De Bruijn); m &= m-1; int u = roots[bit]; ... }`. This visits exactly popcount(activeMask) levels with no shift/AND per skipped slot.",
+   "rationale": "Reduces outer-loop trip count from constant 32 to popcount(activeMask), removing wasted branch+shift work. `m &= m-1` clears the lowest set bit branchlessly; tzcnt is a single instruction under Burst. Inner per-character work is unchanged so the asymptotic text scan cost is identical, but constant overhead per query drops.",
+   "risk": "Behavior-identical: same set of roots processed, order of summation into totalMatches is commutative (long addition), no overflow change. Must ensure tzcnt/De Bruijn handles only nonzero m (loop guard m!=0 guarantees it)."
+  },
+  {
+   "file": "src/IAFahim.String.Pattern/AhoPersistent.cs",
+   "symbol": "AhoPersistentQuery.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist baseChar into a local and strength-reduce the per-character dependency chain; consider passing/using a row pointer base to cut the `u * sigma` multiply.",
+   "currentCost": "Inner loop body `int c = text[i]-baseChar; u = nexts[u*sigma+c]; totalMatches += counts[u];` has a multiply `u*sigma` on the serial dependency chain (each u depends on the previous load). With sigma=26 (non-power-of-two) this is a real IMUL feeding directly into the load address, lengthening the loop-carried latency.",
+   "proposedChange": "Compute the row base once per step: `int* row = nexts + u*sigma; u = row[c];`. This does not remove the multiply but lets the compiler fold it into the load's addressing (base+index*1) and keeps c off the multiply path. Alternatively, if a row-major layout with a precomputed `int* nextRow = nexts + u*sigma` stored per node were available it would eliminate the multiply entirely, but within current layout the framing as `nexts + u*sigma` plus `[c]` is the cleanest hint to the JIT/Burst address generator.",
+   "rationale": "`u*sigma` is loop-carried (u from previous iteration). Expressing the access as a pointer add + scaled index helps Burst emit a single addressing-mode load and overlaps the `counts[u]` load. The text[i]-baseChar subtraction is independent of u and can be computed ahead. Net: shorter critical path per character.",
+   "risk": "Semantics identical (same index arithmetic). No bounds change. Only an addressing-form hint; if Burst already does this the win is zero, so impact is medium not high."
+  },
+  {
+   "file": "src/IAFahim.String.Pattern/AhoPersistent.cs",
+   "symbol": "AhoPersistentBuild.Insert",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Cache `nexts[u*sigma+c]` index once instead of recomputing `u*sigma+c` three times per trie-descent step.",
+   "currentCost": "Lines 34/40/42: the expression `nexts[u * sigma + c]` (i.e. the index `u*sigma+c`) is evaluated up to 3 times in one iteration \u2014 twice in the `if` condition (34) and again on line 42, plus the store on 40. Each is a multiply + add and a separate load.",
+   "proposedChange": "Compute `int idx = u*sigma + c;` once, load `int cur = nexts[idx];` once, then test `if (cur == root || cur == 0){ ... nexts[idx] = v; cur = v; } u = cur;`. This collapses three index computations and up to two reloads to a single index calc and load.",
+   "rationale": "Removes redundant IMUL+add and redundant memory loads of the same cell on the build hot path. The cell value can't change between the test and the use except via the store we control, so one load suffices.",
+   "risk": "Behavior-identical. The original re-reads nexts[idx] on line 42 after possibly storing v on line 40; the rewrite assigns cur=v in that branch so u gets the same value. No aliasing concern since idx is a single fixed cell."
+  },
+  {
+   "file": "src/IAFahim.String.Pattern/AhoPersistent.cs",
+   "symbol": "AhoPersistentBuild.Insert",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Fuse the node-initialization loop with the structure by hoisting `root*sigma`, `u*sigma`, `v*sigma` base pointers; also reuse a single `1<<bit` value.",
+   "currentCost": "Lines 24, 37 init loops compute `root*sigma+i` / `v*sigma+k` inside the loop (multiply hoistable to a base add). Lines 18/20/77 recompute `1<<bit` multiple times. The fail-link BFS (50-74) recomputes `u*sigma+i`, `fails[u]*sigma+i`, `nexts[root*sigma+i]` repeatedly.",
+   "proposedChange": "Hoist `int rootBase = root*sigma;` and iterate `int* rrow = nexts+rootBase;` filling `rrow[i]=root`. In the create branch use `int* vrow = nexts + v*sigma;` for the fill. In BFS hoist `int uBase=u*sigma; int fBase=fails[u]*sigma;` once per node so `nexts[u*sigma+i]` becomes `urow[i]` and `nexts[fails[u]*sigma+i]` becomes `frow[i]`. Compute `int onebit = 1<<bit;` once and reuse on lines 20 and 77.",
+   "rationale": "Each multiply hoisted out of a sigma-length inner loop saves sigma-1 multiplies per node. fails[u] is loaded once per node instead of sigma times. These are constant-factor wins over the whole trie (O(total nodes * sigma)).",
+   "risk": "Semantics identical \u2014 pure loop-invariant code motion. fails[u] is not modified inside the i-loop of the BFS body (only fails of children are written), so hoisting fBase=fails[u]*sigma is safe."
+  },
+  {
+   "file": "src/IAFahim.String.Pattern/AhoPersistent.cs",
+   "symbol": "AhoPersistentBuild.Insert",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "`int* q = stackalloc int[nodeCount - root + 1]` sizes the BFS queue to the global node count delta but the queue only needs the nodes in THIS level's trie; verify and tighten to avoid large stack frames on mobile.",
+   "currentCost": "After the trie-build, nodeCount-root+1 equals exactly the number of nodes created in this Insert (root was ++nodeCount before the build, nodeCount after). That is correct and tight here, so the size is fine \u2014 but note this stackalloc grows with the merged-level pattern-set size (up to total length of all patterns in the doubling group). On a deep merge (largest bit) this can be a large stack allocation on mobile.",
+   "proposedChange": "Document the worst-case bound (sum of pattern lengths in the largest doubling group) so callers can budget stack; or accept an external scratch buffer pointer (Try*/Run convention) instead of stackalloc so the queue memory is caller-controlled and reusable across inserts, eliminating per-call stack-frame growth and stack-overflow risk on mobile for large pattern sets.",
+   "rationale": "Burst/mobile stacks are limited; a stackalloc whose size scales with input can overflow. Passing a reusable scratch pointer removes the unbounded stack frame and avoids re-zeroing/realloc per call.",
+   "risk": "Changing the signature to take a scratch buffer is an API/ergonomics change (breaking). The stackalloc itself is correctly sized; this is a robustness/RAM-locality note, hence low impact. No correctness bug in current code."
+  },
+  {
+   "file": "src/IAFahim.String.Pattern/AhoPersistent.cs",
+   "symbol": "AhoPersistentQuery.Run",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Add [MethodImpl(AggressiveInlining)] is already imported but unused; mark hot leaf accessors / keep Run non-inlined but ensure the per-char step can inline. Also follow Try*/Run naming consistently (Build.Insert vs Query.Run).",
+   "currentCost": "`using System.Runtime.CompilerServices;` is imported but no [MethodImpl] attributes are applied. Run is the hot entry; Insert is named Insert not Run despite both being the public 'do-it' methods, a minor API inconsistency.",
+   "proposedChange": "Either remove the unused CompilerServices using, or apply [MethodImpl(MethodImplOptions.AggressiveInlining)] where a small helper is extracted (e.g. a step function). For API consistency consider AhoPersistentBuild.Run mirroring AhoPersistentQuery.Run, or document why Insert keeps its name.",
+   "rationale": "Removes a dead import (clarity) and aligns with the house Run convention, improving discoverability without affecting the perf model.",
+   "risk": "None functionally. Naming change would be source-breaking for callers, so treat as optional/low."
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Recast/RcContourSet.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/RcContourSet.cs",
+   "symbol": "RcContourSet.Dispose",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Loop/local uses 'var' instead of an explicit type, violating the house 'explicit types' rule used elsewhere in the library.",
+   "currentCost": "`for (var i = 0; i < this.Nconts; i++)` uses inferred type. Not a perf cost, but inconsistent with the explicit-type house constraint and with the rest of the codebase.",
+   "proposedChange": "Use `for (int i = 0; i < this.Nconts; i++)` (explicit int).",
+   "rationale": "Consistency with the stated house constraint (explicit types only). No codegen change \u2014 purely stylistic/discoverability.",
+   "risk": "None. Identical IL; int is the inferred type already."
+  }
+ ]
+}

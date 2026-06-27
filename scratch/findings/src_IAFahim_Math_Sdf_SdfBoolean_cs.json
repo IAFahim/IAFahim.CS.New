@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Math.Sdf/SdfBoolean.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Sdf/SdfBoolean.cs",
+   "symbol": "SmoothUnion",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The three Smooth* functions divide by k each call; if k is constant across many evaluations the reciprocal cannot be hoisted at this granularity, but the (d2-d1)/k pattern can use rcp once per call.",
+   "currentCost": "Each Smooth* does (d2 - d1) / k (one divide) plus a math.lerp and k*h*(1-h). The divide is the highest-latency op in the body.",
+   "proposedChange": "Add an overload (or expose) that takes 'float invK' precomputed by the caller when k is loop-invariant (common: same blend factor for a whole scene). Inside the existing functions, leaving as-is is fine for single calls, but document/offer Run-style variants taking invK to let callers hoist the 1/k out of hot march loops. Keeps current signature for ergonomics.",
+   "rationale": "In ray-march loops the same k is reused thousands of times; hoisting 1/k to an invK passed in removes one divide per SDF evaluation per blend node. Pure caller-side hoist \u2014 no numeric change when invK == 1/k.",
+   "risk": "Adding an overload changes API surface only (additive). Numeric: (d2-d1)*invK rounds identically enough; if strict bit-match to /k is required, note the rounding caveat."
+  }
+ ]
+}

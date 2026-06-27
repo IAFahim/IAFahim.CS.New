@@ -1,0 +1,11 @@
+PASS(test)  IAFahim.Graph.Flow
+PASS(test)  IAFahim.Graph
+PASS(build) IAFahim.Math.Gauss
+PASS(test)  IAFahim.Math.PoissonDisk
+PASS(test)  IAFahim.Graph.SCC
+PASS(build) IAFahim.Optimization.Games
+PASS(test)  IAFahim.Search.ExactCover
+PASS(build) IAFahim.Geometry.Triangulation
+PASS(build) IAFahim.Algebra.Polynomial
+PASS(build) IAFahim.String.SuffixTree
+=== SWEEP DONE ===

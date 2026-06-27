@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Detour/DtPolyRef.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/DtPolyRef.cs",
+   "symbol": "DtPolyRef.GetHashCode",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "In the 64-bit branch, inline the hash instead of calling ulong.GetHashCode().",
+   "currentCost": "The else branch returns this.Value.GetHashCode(), which for ulong does (int)(value ^ (value >> 32)) but goes through a framework call that Burst/JIT must inline; the 32-bit branch already inlines as (int)Value.",
+   "proposedChange": "Return (int)(this.Value ^ (this.Value >> 32)); directly to mirror the manual folding and avoid relying on the BCL call being inlined.",
+   "rationale": "Direct xor-fold is two ALU ops and matches the documented ulong hash; removing the method-call boundary helps when DtPolyRef is used as a dictionary/hashset key in managed test/build code (not Burst hot path, hence low impact).",
+   "risk": "Must reproduce ulong.GetHashCode's exact algorithm to preserve hash distribution behavior; .NET's ulong.GetHashCode is (int)(m_value ^ (m_value >> 32)), so the inline is bit-identical. Safe."
+  }
+ ]
+}

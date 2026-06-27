@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Collections.NoDeps/CollectionHelper.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Collections.NoDeps/CollectionHelper.cs",
+   "symbol": "CollectionHelper.Align",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Align is correct for power-of-two alignment but has no overflow guard; for the unchecked-Run convention this is fine, otherwise note size+alignment-1 can overflow int.",
+   "currentCost": "(size + alignment - 1) & ~(alignment - 1): if size is near int.MaxValue the addition overflows and wraps to a negative/wrong value. No extra cycles spent, but correctness depends on caller staying in range.",
+   "proposedChange": "No code change recommended if this follows the unchecked-Run convention (assume valid input). If a checked variant is desired, document the precondition size <= int.MaxValue - alignment + 1 and that alignment must be a power of two, rather than adding a runtime branch on the hot path.",
+   "rationale": "The masking approach is already the optimal branchless power-of-two round-up (single add + and). No strength reduction or further simplification is possible; flagging only the overflow precondition for documentation.",
+   "risk": "None to behavior \u2014 this is a documentation/precondition note. Adding a guard would cost a branch on a hot inlined leaf, so it should NOT be added under the perf model."
+  }
+ ]
+}

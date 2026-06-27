@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.String.SuffixAutomaton/GeneralizedSam.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.SuffixAutomaton/GeneralizedSam.cs",
+   "symbol": "Build",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Inner copy loop reloads lengths[i] and strings[i] each iteration and does scalar element copies that could be hoisted/widened.",
+   "currentCost": "`for (j; j<lengths[i]; j++) intText[pos++]=strings[i][j]` re-reads lengths[i] (bounds the loop) and indexes strings[i] each iteration; widening byte->int is inherently scalar here but the base pointer and length are loop-invariant and reloaded.",
+   "proposedChange": "Hoist `int len = lengths[i]; byte* s = strings[i]; int* dst = intText + pos;` before the inner loop, copy with `for (j=0;j<len;j++) dst[j]=s[j];` then advance pos += len. This gives the JIT/Burst a clean invariant base+count loop it can vectorize (byte->int widening unpack).",
+   "rationale": "Removes repeated indirect loads of lengths[i]/strings[i] from the dependency chain and exposes a contiguous widening copy that Burst can SIMD-vectorize, instead of a pos-carried scalar store chain.",
+   "risk": "None \u2014 identical output. Pure loop-invariant hoisting and induction-variable cleanup; pos arithmetic stays equivalent."
+  }
+ ]
+}

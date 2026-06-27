@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Graph.DAG/DagPathCoverRestore.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.DAG/DagPathCoverRestore.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Branchless path count avoids a data-dependent branch per node.",
+   "currentCost": "Per node: nextInPath[i] = match[i]; if (match[i] == -1) numPaths++; \u2014 the increment is a data-dependent conditional branch over n nodes, mispredicting on irregular match patterns.",
+   "proposedChange": "Read int m = match[i] once (avoids two loads of match[i]); set nextInPath[i] = m; accumulate numPaths += (m == -1) ? 1 : 0 (or numPaths -= (m >> 31) style is unsafe for general -1; use the comparison-to-int form which Burst lowers to a branchless setcc add).",
+   "rationale": "Removes a mispredictable branch and one redundant load of match[i] per iteration, turning the loop into a straight-line accumulate that Burst can vectorize (sum of (m==-1) predicates). Constant-factor but the loop is pure n work.",
+   "risk": "(m==-1) as int is well-defined and equals the branch's effect. Avoid bit-hacks on the sign bit since only the exact value -1 should count, not all negatives."
+  }
+ ]
+}

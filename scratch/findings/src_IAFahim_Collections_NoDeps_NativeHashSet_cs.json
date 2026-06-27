@@ -1,0 +1,72 @@
+{
+ "file": "src/IAFahim.Collections.NoDeps/NativeHashSet.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Collections.NoDeps/NativeHashSet.cs",
+   "symbol": "NativeHashSet<T>.Capacity.set / Reallocate",
+   "severity": "critical",
+   "category": "overflow",
+   "summary": "Setting Capacity to a value smaller than the current Length writes past the freshly allocated, smaller Keys/Next buffers, corrupting the heap. The Capacity setter only clamps value<0 to 0 and never clamps to >= Length, and Reallocate(newCapacity) unconditionally MemCpy's state->Length elements into the new buffers.",
+   "triggeringInput": "NativeHashSet<int> set = new NativeHashSet<int>(0, allocator); for (int i=0;i<10;i++) set.Add(i); // Length==10, Capacity grows. Then: set.Capacity = 5;",
+   "rootCause": "In Reallocate (lines 278-285) newKeys/newNext are allocated with size newCapacity (=5), but the copy uses (long)this.state->Length (=10) elements: UnsafeUtility.MemCpy(newKeys, Keys, Length*sizeof(T)) and the same for Next. When newCapacity < Length this writes 10 elements into a 5-slot buffer -> out-of-bounds heap write. Additionally state->Length is never reduced to fit newCapacity, so subsequent reads/Contains/ToNativeArray index Keys[5..9] which are now outside the allocation. NativeList handles the analogous case (it copies min(Length,newCapacity) and clamps Length afterwards); NativeHashSet does neither.",
+   "suggestedFix": "In the Capacity setter clamp val to be at least state->Length (or refuse to shrink below Length), and in Reallocate copy only min(Length, newCapacity) elements and set state->Length = min(state->Length, newCapacity) before rehashing."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Collections.NoDeps/NativeHashSet.cs",
+   "symbol": "Hash",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace the 4-iteration byte-wise FNV loop over a single int with a branchless integer-mix hash, or at least unroll it.",
+   "currentCost": "Per call: 4 loop iterations, each doing a byte load from a stack address (&h), an XOR, and a multiply, with a loop counter and compare. This is on the hottest path (called by Add, Remove, Contains, Reallocate per element, ToNativeArray indirectly). The byte-by-byte read through a pointer to a stack local also forces h to be address-taken, defeating register allocation.",
+   "proposedChange": "Compute the FNV over the 4 bytes with a fully unrolled fixed sequence (no loop, no pointer): uint hash = FnvOffsetBasis; uint u = (uint)h; hash = (hash ^ (u & 0xFF)) * FnvPrime; hash = (hash ^ ((u >> 8) & 0xFF)) * FnvPrime; hash = (hash ^ ((u >> 16) & 0xFF)) * FnvPrime; hash = (hash ^ (u >> 24)) * FnvPrime; return hash; Or, since the only consumer masks with (BucketCount-1), substitute a single-step integer finalizer (e.g. Knuth multiplicative or an xorshift-multiply mix) which is one multiply instead of four.",
+   "rationale": "Removes the loop overhead (counter, compare, branch x4) and removes taking the address of a stack local, letting h stay in a register. The unrolled version is identical bit-for-bit to the current output so it is provably semantics-preserving; the integer-mix variant changes hash distribution but not correctness (still deterministic, still masked into bucket range).",
+   "risk": "Unrolled FNV variant: zero semantic change, byte order matches the little-endian pointer walk only on little-endian targets - the current pointer-based code is ALSO little-endian-dependent, so the unrolled (u>>0,8,16,24) form reproduces the exact same values on LE and is therefore strictly equivalent on all real Burst targets (x64/ARM LE). Integer-mix variant changes which bucket a key lands in (still correct, just different distribution) - only adopt if exact hash-value compatibility is not required."
+  },
+  {
+   "file": "src/IAFahim.Collections.NoDeps/NativeHashSet.cs",
+   "symbol": "Add",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Add calls Contains (computes hash + walks chain) then recomputes Hash and the bucket index again for insertion.",
+   "currentCost": "On every successful Add: Hash(item) computed twice and the bucket index (hash & (BucketCount-1)) computed twice. Hash is a 4-iteration loop, so this doubles the most expensive part of the operation on the common insert path.",
+   "proposedChange": "Inline the containment scan into Add: compute uint hash = Hash(item) and int bucket once, walk Buckets[bucket] chain checking Equals; if found return false; otherwise (after a possible Reallocate, which must recompute bucket because BucketCount changes) insert. Note the existing code already has the reallocation hazard handled because it computes bucket AFTER the resize - preserve that ordering: scan first, then if(Length>=Capacity) Reallocate, then recompute bucket from the (possibly new) BucketCount, then insert.",
+   "rationale": "Eliminates one full Hash computation and one chain walk per Add (Contains walks the chain, then Add does nothing with that work). Roughly halves the per-insert cost in the no-resize case.",
+   "risk": "Must recompute bucket = hash & (BucketCount-1) after Reallocate since BucketCount may grow; the current separate-Contains code accidentally gets this right by computing bucket after the resize. Keep that invariant. hash itself is stable across resize so it can be hoisted; bucket cannot. No observable behavior change."
+  },
+  {
+   "file": "src/IAFahim.Collections.NoDeps/NativeHashSet.cs",
+   "symbol": "NativeHashSet(int,Allocator)",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "The power-of-two rounding loop is duplicated in the ctor and Reallocate and uses an O(log n) shift loop instead of a closed-form.",
+   "currentCost": "while(powerOf2<bucketCount) powerOf2<<=1; runs ceil(log2(bucketCount)) iterations, duplicated in two methods. Minor, but it is branchy startup/resize cost and code duplication.",
+   "proposedChange": "Factor a private static int NextPow2(int v) using a branchless bit-twiddle (v--; v|=v>>1; v|=v>>2; v|=v>>4; v|=v>>8; v|=v>>16; return v+1;) or lzcnt-based form, and call it from both the ctor and Reallocate. Guard v<=1 to return MinBucketCount path.",
+   "rationale": "Constant-time, branchless pow2 rounding replaces an O(log n) loop and removes duplicated logic, improving both cycles on resize and maintainability without changing the resulting BucketCount.",
+   "risk": "NextPow2(0) must be guarded (the bit-twiddle yields 1 for input 1 after decrement of 0 underflowing) - inputs here are always >= MinBucketCount(16) before rounding, so it is safe, but add the guard if MinBucketCount logic is folded in. Output values identical to the loop for all in-range inputs."
+  },
+  {
+   "file": "src/IAFahim.Collections.NoDeps/NativeHashSet.cs",
+   "symbol": "NativeHashSet(int,Allocator)",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The two EmptyBucket init loops (Next over capacity, Buckets over BucketCount) are scalar -1 fills that MemSet/MemClear cannot do but a tighter fill or wider stores can.",
+   "currentCost": "Two element-by-element int writes of -1. For large capacities this is a long scalar loop that Burst may or may not vectorize well because the value is -1 (not 0, so MemClear is unusable).",
+   "proposedChange": "Use UnsafeUtility.MemSet(ptr, 0xFF, byteCount) to fill int arrays with -1 in one call (0xFFFFFFFF == -1 for int). This applies to both the Next init and Buckets init here and the Buckets re-init in Reallocate (lines 287-290, 319-322) and Clear (lines 221-224).",
+   "rationale": "0xFF byte-fill produces -1 for every int, so a single memset replaces the scalar loops with an optimized, vectorized/SIMD bulk fill. Fewer instructions, better memory bandwidth utilization, especially in Clear which is called frequently.",
+   "risk": "MemSet fills bytes; for int* the byte 0xFF gives exactly -1, semantics-preserving. Confirm UnsafeUtility.MemSet exists in the target API (it does in Unity.Collections.LowLevel.Unsafe); if not, a fallback to a manual byte-fill or keep the loop. No behavior change."
+  },
+  {
+   "file": "src/IAFahim.Collections.NoDeps/NativeHashSet.cs",
+   "symbol": "Enumerator.Current",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Enumerator stores a copy of T current plus a full NativeHashSet value (which is just a pointer) - the cached current duplicates Keys[entryIndex].",
+   "currentCost": "Enumerator holds a T current field updated in MoveNext, duplicating the value already reachable via set.state->Keys[entryIndex]. For large T this enlarges the enumerator struct and adds a copy per MoveNext.",
+   "proposedChange": "Make Current read through directly: public readonly T Current => this.set.state->Keys[this.entryIndex]; and drop the current field (and its assignments in MoveNext/Reset/ctor).",
+   "rationale": "Removes sizeof(T) bytes from the enumerator struct and removes a value copy on every MoveNext, shrinking the working set and dependency chain. NativeList's enumerator already does this (reads list[index] on demand).",
+   "risk": "Current would reflect the live backing store; for a foreach that does not mutate during iteration this is identical. If a caller reads Current after Remove/Add mid-iteration the lazy read could differ - but mutating during enumeration is already undefined for this container. Match NativeList's on-demand pattern for consistency."
+  }
+ ]
+}

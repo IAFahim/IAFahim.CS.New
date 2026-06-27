@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Detour/DtNodeQueue.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/DtNodeQueue.cs",
+   "symbol": "BubbleUp",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace signed (i-1)/2 parent computation with unsigned shift to drop the signed-division sign-correction sequence in the A* heap hot path.",
+   "currentCost": "`parent = (i - 1) / 2` divides a signed int by 2. Because the compiler cannot prove (i-1) is non-negative, it emits the full signed-divide-by-constant idiom (shift + sign-bit add/cmov), roughly 3-4 extra ops per loop iteration, executed once per heap level on every Push and every Pop's final BubbleUp.",
+   "proposedChange": "Compute the parent as `int parent = (int)((uint)(i - 1) >> 1);` (or keep `i` and write `(i - 1) >> 1` only once i>0 is guaranteed). Since the loop body only runs while `i > 0`, `i - 1 >= 0`, so an unsigned `>> 1` is exactly `(i-1)/2`. Hoist the first `parent` computation inside/after the `i>0` guard so the initial pre-loop computation (where i could be 0 -> (i-1) = -1) is never division-corrected.",
+   "rationale": "For non-negative operands, arithmetic `/2` and logical `>>1` produce identical results, but `>>1` is a single-cycle op versus the multi-op signed-division-by-constant lowering. This runs O(log n) times per heap operation and the heap operation count dominates A* search.",
+   "risk": "Pre-loop `parent = (i-1)/2` with i==0 yields (-1)/2 == 0 in signed, but `(uint)(-1)>>1` == 0x7FFFFFFF. That value is only consumed inside the loop guarded by `i>0`, so it is never dereferenced \u2014 still, to be safe, only compute parent after confirming i>0 (move it to loop end / use the guarded form). With that guard the change is exactly semantics-preserving."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/DtNodeQueue.cs",
+   "symbol": "TrickleDown",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace signed (i*2)+1 child index with unsigned shift, and reduce the dependency chain on heap[child]->total reloads.",
+   "currentCost": "`child = (i * 2) + 1` uses signed multiply (cheap) but pairs with the BubbleUp signed-div issue; more importantly each iteration does two pointer-chasing loads `heap[child]->total` and `heap[child+1]->total` that feed a branch. Runs O(log n) per Pop.",
+   "proposedChange": "Use `int child = ((int)((uint)i << 1)) | 1;` (i>=0 so `i<<1` cannot overflow into sign within valid heap sizes). Cache `float tChild = this.heap[child]->total;` once and compare against `this.heap[child+1]->total` so the chosen child's total is reused by the subsequent `BubbleUp(i, node)` comparison path where possible; at minimum avoid recomputing `i*2+1` twice by reusing a local.",
+   "rationale": "`<<1 | 1` is branch-free integer arithmetic matching `i*2+1` for non-negative i. Caching the total of the selected child removes a redundant dependent load before the swap store. Both shave fixed cycles per heap level on the Pop critical path.",
+   "risk": "Multiplication semantics are identical for in-range i; the only caveat is overflow if i were near int.MAX, which is impossible since child<size<=capacity (a reasonable node count). No observable behavior change."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/DtNodeQueue.cs",
+   "symbol": "BubbleUp,TrickleDown,Push,Pop,Top,Modify",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Mark the private heap helpers (and Push/Pop) AggressiveInlining so the hot A* loop avoids call overhead.",
+   "currentCost": "`BubbleUp` and `TrickleDown` are private leaf-ish methods called from Push/Pop/Modify with no inlining hint. Top() has the hint but Push/Pop/BubbleUp/TrickleDown do not. Each Push/Pop incurs a call frame plus the helper call frame.",
+   "proposedChange": "Add `[MethodImpl(MethodImplOptions.AggressiveInlining)]` to `BubbleUp` and `TrickleDown` (and optionally Push/Pop). Under Burst these become straight-line code with the loop bodies inlined into the caller, enabling register allocation of `size`/`heap` across the boundary.",
+   "rationale": "Removing the call boundary lets Burst/LLVM keep `this.heap`, `this.size`, and the node pointer in registers and fuse the BubbleUp tail-call inside TrickleDown, cutting prologue/epilogue and spill traffic on the search hot path.",
+   "risk": "Pure inlining hint; no semantic change. Slight code-size growth, acceptable on the A* hot path."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/DtNodeQueue.cs",
+   "symbol": "Modify",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Modify is an O(n) linear scan over the heap to locate a node before re-bubbling; flag as a structural cost.",
+   "currentCost": "`for i in 0..size: if heap[i]==node` is O(n) per call. In A* with node re-relaxation this is called per improved neighbor, making the queue-update path O(n) instead of O(log n).",
+   "proposedChange": "Store the heap slot index back into the DtNode (it already has spare reserved bits in packedData, or use State-adjacent storage) so Modify can jump directly to the node's slot and call BubbleUp in O(log n). Maintaining the index requires updating it on every store in BubbleUp/TrickleDown. If the API/struct cannot change, leave as-is \u2014 this is a design tradeoff, not a free win.",
+   "rationale": "Reduces Modify from O(n) to O(log n), turning the dominant re-relaxation cost in dense graphs from linear to logarithmic.",
+   "risk": "Requires writing the slot index on every heap store (extra writes in BubbleUp/TrickleDown) and a free bit in DtNode; if those stores outweigh the scan for small heaps it can regress. Not semantics-preserving for the struct layout \u2014 only viable if DtNode gains/uses a heap-index field. Propose only as an opt-in design change."
+  }
+ ]
+}

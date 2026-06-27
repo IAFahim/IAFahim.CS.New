@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Optimization.DivideConquer/MatrixSearch.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.DivideConquer/MatrixSearch.cs",
+   "symbol": "Run",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Precompute m*n once and guard against int overflow of the flattened index for large matrices.",
+   "currentCost": "`m * n - 1` is computed once (fine), but the search index `mid` is int; for m*n near or above 2^31 the multiply `m*n` overflows int silently. Not a perf issue but a correctness ceiling; also `lo + ((hi-lo)>>1)` is already optimal.",
+   "proposedChange": "Either document the m*n < 2^31 precondition explicitly (matching the 'Unchecked Run assumes valid input' convention) or, if large matrices are in scope, widen the index arithmetic to long for the bound while keeping the pointer offset computation correct. No change needed if precondition is acceptable.",
+   "rationale": "Avoids a latent silent-overflow correctness bug on very large flattened arrays; otherwise the binary search is already optimal (branchless-friendly, single load per step).",
+   "risk": "If m*n is guaranteed < 2^31 by caller contract, leave as-is \u2014 this is informational. Do not widen to long if it forces 64-bit index math on mobile where 32-bit indices are cheaper. State the precondition rather than changing code."
+  },
+  {
+   "file": "src/IAFahim.Optimization.DivideConquer/MatrixSearch.cs",
+   "symbol": "RunSortedColumns",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Maintain a running row-base pointer to avoid the `row * n` multiply each iteration.",
+   "currentCost": "Inner loop computes `a[row * n + col]` every step, doing a multiply `row*n` on each iteration even though row changes by at most +1 per loop.",
+   "proposedChange": "Track `int base = 0;` (= row*n) and update `base += n;` when incrementing row, indexing `a[base + col]`. Replaces a per-iteration multiply with an occasional add.",
+   "rationale": "Strength-reduces the multiply to an add along the staircase walk (O(m+n) iterations). Multiplies are cheap on PC but this removes a dependency on the multiplier unit per step, marginally better on mobile cores.",
+   "risk": "base must update only on the row++ branch, not the col-- branch, to stay equal to row*n. Index a[base+col] equals a[row*n+col] exactly. Behavior identical."
+  }
+ ]
+}

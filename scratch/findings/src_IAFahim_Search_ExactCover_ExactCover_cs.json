@@ -1,0 +1,113 @@
+{
+ "file": "src/IAFahim.Search.ExactCover/ExactCover.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Search.ExactCover/ExactCover.cs",
+   "symbol": "ExactCover.MagicBacktrack",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Magic-square solver only prunes diagonal sums that OVERSHOOT target; it never enforces that the two diagonals actually REACH target, so it can return a non-magic square whose diagonals sum to less than the target.",
+   "triggeringInput": "n=3 (MagicSquareSolve(3, sq))",
+   "rootCause": "The backtracking accepts a completed square as soon as r==n. Row and column sums are forced to equal target because the full permutation of 1..n^2 has total n*target and each row/col is only allowed to be <= target (so they must all equal target). But the two diagonals are not constrained by the global sum: the code only rejects placements where d1+v>target or d2+v>target, and there is no check that the final d1 and d2 equal target. Thus a square with under-target diagonals is accepted.",
+   "suggestedFix": "When the square is complete (r==n) verify d1==target && d2==target before returning true, or add forward-checking that the diagonal still can reach target. For n=3 the produced square [[1,6,8],[9,2,4],[5,7,3]] has main diagonal 1+2+3=6 != 15."
+  },
+  {
+   "file": "src/IAFahim.Search.ExactCover/ExactCover.cs",
+   "symbol": "ExactCover.NQueensSymmetry",
+   "severity": "high",
+   "category": "wrong-recurrence",
+   "summary": "NQueensSymmetry returns NQueensCount(n)/8 as the number of distinct/fundamental solutions, but the total solution count is generally NOT 8 times the fundamental count (symmetric solutions have smaller orbits), so the result is wrong for almost every n except the hardcoded n=4 and n=8.",
+   "triggeringInput": "n=5 (also n=6,7,9,10,11,...)",
+   "rootCause": "Distinct solutions up to the 8 symmetries of the board do not partition into orbits of exactly 8; some boards are fixed by rotations/reflections and form smaller orbits, so total != 8*fundamental. Integer division count/8 therefore gives wrong values. Actual fundamental counts: n=5->2, n=6->1, n=7->6, n=9->46, n=10->92, n=11->341, while count/8 yields 1,0,5,44,90,335 respectively.",
+   "suggestedFix": "Compute fundamental solutions correctly by canonicalizing each found solution under the 8 dihedral symmetries and counting unique canonical forms, or use Burnside's lemma; remove the count/8 shortcut. The n==4 and n==8 special cases are a symptom that the formula is invalid."
+  },
+  {
+   "file": "src/IAFahim.Search.ExactCover/ExactCover.cs",
+   "symbol": "ExactCover.KenKenSolve/KenKenBacktrack",
+   "severity": "high",
+   "category": "overflow",
+   "summary": "The internally stackalloc'd cage-values buffer cvs has size numCages*n, allotting only n slots per cage, but a valid KenKen cage may contain more than n cells, causing out-of-bounds writes (stack buffer overflow / UB) at cvs[id*n + cvc[id]].",
+   "triggeringInput": "A 3x3 KenKen (n=3) whose last cage (id=numCages-1) contains 4 cells, e.g. an addition cage covering 4 squares; on placing the 4th value, the write index becomes id*n+3 = numCages*n, one past the buffer.",
+   "rootCause": "Per-cage storage is hard-coded to n slots (cvs[id*n + cvc[id]++]), but cage sizes are unbounded by n in real KenKen puzzles (cages frequently span more than n cells). When cvc[id] reaches n the next write is at offset n within the cage's region, overrunning into the next cage or, for the last cage, past the end of the stackalloc.",
+   "suggestedFix": "Size cvs by the maximum possible cage size (n*n) or compute the actual maximum cage size up front, e.g. stackalloc int[numCages * (n*n)] and index with the matching stride, or store per-cage offsets dynamically."
+  },
+  {
+   "file": "src/IAFahim.Search.ExactCover/ExactCover.cs",
+   "symbol": "ExactCover.ArcConsistencyAc3",
+   "severity": "medium",
+   "category": "off-by-one",
+   "summary": "AC-3 fixpoint loop is capped at numVars*2 sweeps; for domains with maxDomain>2 this cap can stop before reaching arc-consistency, leaving inconsistent values in the domains while the method returns true claiming completion.",
+   "triggeringInput": "numVars=2, maxDomain=10 with a constraint chain that requires more than 4 revision sweeps to remove all unsupported values (e.g. a long supporting-chain where each sweep removes only one value).",
+   "rootCause": "AC-3 reaches a fixpoint after at most O(numVars*maxDomain) full constraint sweeps in the worst case (one value removed per sweep in a chain), but the loop bound is the constant numVars*2. When fewer than the required sweeps are allowed, the loop exits via the iteration cap (not via !changed) with domains not yet arc-consistent, yet the method unconditionally returns true.",
+   "suggestedFix": "Iterate until no change (the if(!changed) break already provides termination) without the numVars*2 cap, or set the cap to numVars*maxDomain. Removing the artificial low cap guarantees a true fixpoint."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.ExactCover/ExactCover.cs",
+   "symbol": "SudokuBitmaskBacktrack / NQueensBacktrackWithSol / KillerBacktrack / KenKenBacktrack",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace the variable-length 'val' bit-position loop with a single trailing-zero-count intrinsic.",
+   "currentCost": "Each iteration of every backtracking inner loop runs `int val = 0; int tmp = lsb; while (tmp > 1) { tmp >>= 1; val++; }` \u2014 a data-dependent loop of up to ~9 (n) iterations (shift + compare + increment + branch each step), on the hottest path of the solver. Identical code is duplicated in 4 methods (lines 34, 39, 94, 97).",
+   "proposedChange": "Since `lsb = allowed & -allowed` is always exactly `1 << val`, compute `int val = System.Numerics.BitOperations.TrailingZeroCount(lsb);` (or `Log2(lsb)`). This is one `tzcnt`/`bsf` machine instruction. Factor it into a private `[MethodImpl(MethodImplOptions.AggressiveInlining)] static int BitIndex(int x) => BitOperations.TrailingZeroCount(x);` reused by all four sites.",
+   "rationale": "Strength-reduces an O(val) dependency-chained loop with a per-step branch into a single fixed-latency instruction Burst lowers to native tzcnt. Removes a hard-to-predict loop branch from the hottest recursion and shrinks the dependency chain feeding the recursive call's `col|lsb` etc.",
+   "risk": "lsb is guaranteed a single set bit (isolated low bit of a non-negative mask), so TrailingZeroCount(lsb)==old val exactly; TrailingZeroCount(0) is never hit because lsb!=0 inside the while(allowed!=0) body. BitOperations is Burst-intrinsic; if BitOperations is disallowed by the managed-type policy, use Unity.Mathematics math.tzcnt((uint)lsb). No semantic change."
+  },
+  {
+   "file": "src/IAFahim.Search.ExactCover/ExactCover.cs",
+   "symbol": "CryptarithmSolve",
+   "dimension": "burst",
+   "impact": "high",
+   "summary": "Managed `int[]` literal violates house constraints and defeats Burst; replace with direct unrolled writes.",
+   "currentCost": "Line 47 allocates a managed array `int[] res = { 9,5,6,7,1,0,8,2 };` on the GC heap every call, then copies it element-by-element into resultDigits. Managed array allocation is not Burst-compilable and not blittable, so this method cannot run under Burst at all and incurs a heap allocation + GC pressure.",
+   "proposedChange": "Write the 8 constants straight into resultDigits: `resultDigits[0]=9; resultDigits[1]=5; ... resultDigits[7]=2;` (or stackalloc + loop). Remove the managed array entirely.",
+   "rationale": "Eliminates the only managed allocation in the file, making the method Burst/unmanaged-compatible and removing per-call GC allocation. Direct stores are also fewer instructions than allocate+initialize+copy.",
+   "risk": "None \u2014 output is identical for the (numLetters==8,numWords==2) case; all other inputs still return false. Note this function is a hard-coded stub regardless, so behavior is unchanged."
+  },
+  {
+   "file": "src/IAFahim.Search.ExactCover/ExactCover.cs",
+   "symbol": "SolveSudokuDlx",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Zeroing the full 729*324 dense matrix dominates cost while the matrix is sparse.",
+   "currentCost": "Line 28 runs `for (int i=0;i<729*324;i++) m[i]=0;` clearing 236,196 ints (~921 KB) on every call before BuildSudokuMatrix writes at most 4 ones per row. The clear is the dominant memory-bandwidth cost and thrashes L2/L3, especially on mobile.",
+   "proposedChange": "Either (a) use the existing zero-init guarantee of stackalloc-with-no-explicit-init under Burst is NOT available, so instead clear only the rows actually built: after BuildSudokuMatrix, only `rc` rows are used, and only 4 columns per row are set \u2014 but the unset columns within used rows must be 0. Better: clear per-row lazily inside AddSudokuMatrixRow by memset-ing the `324` ints of that row to 0 right before setting its 4 ones, so only `rc*324` (rc<=729, typically far fewer when many cells are pre-filled... actually rc can be up to 729) \u2014 so the real win is using Unsafe.InitBlockUnaligned / a SIMD-friendly clear instead of the scalar element loop.",
+   "rationale": "Replacing the scalar `for` clear with a block-clear (Unsafe.InitBlockUnaligned over rc*324 ints) lets Burst/runtime emit vectorized stores (8-16 ints/instruction) instead of one store per iteration, cutting the clear instruction count ~8-16x. Clearing only `rc*324` instead of `729*324` further skips untouched tail rows when fewer than 729 candidate rows exist.",
+   "risk": "Must clear exactly the bytes that BuildSudokuMatrix will read as columns of valid rows; clearing rc*324 is safe only if SolveDlx reads only rows [0,rc). It does (BuildDlxMatrix loops r in [0,rows)). InitBlockUnaligned size must be rc*324*sizeof(int). If house policy forbids Unsafe, keep the loop but bound it to rc*324 instead of 729*324 (still a strict win when rc<729)."
+  },
+  {
+   "file": "src/IAFahim.Search.ExactCover/ExactCover.cs",
+   "symbol": "AddSudokuMatrixRow",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Recompute repeated subexpressions r*9 and r*9+c once.",
+   "currentCost": "Line 30 computes `r*9+c` (cell index) and `r*9+v`, `c*9+v` with `r*9` evaluated twice and the box index recomputes `(r/3)*3 + c/3`. Per candidate row (up to 729) these are redundant multiplies/divides.",
+   "proposedChange": "Hoist `int rc9 = r*9; int cell = rc9 + c; int box = (r/3)*3 + c/3;` and reuse: `rm[rc] = cell*9 + v` is wrong layout (keep r*81+c*9+v), but reuse box for the 4th constraint and cell for the 1st. Pass `box` in from the caller (BuildSudokuMatrix already iterates r,c) to avoid recomputing the two integer divisions per call.",
+   "rationale": "Removes redundant integer multiply and two integer divisions (div is ~20+ cycle latency on some mobile cores) from a loop executed up to 729 times per solve. Box index is loop-invariant per (r,c) and can be computed once in the caller.",
+   "risk": "Pure index-arithmetic refactor; identical addresses written. No overflow concern (max index 729*324 fits int). Verify the 4th-constraint offset still uses (r/3)*3+c/3 exactly."
+  },
+  {
+   "file": "src/IAFahim.Search.ExactCover/ExactCover.cs",
+   "symbol": "SudokuBitmaskBacktrack",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Strength-reduce cell/9 and cell%9 using a shared quotient.",
+   "currentCost": "Line 34 computes `r = cell/9` and `c = cell%9` as two separate integer division operations per cell visit, plus `box=(r/3)*3+c/3` (two more divisions). Backtracking visits cells extremely frequently.",
+   "proposedChange": "Compute one division: `int r = cell/9; int c = cell - r*9;` (replaces the %9 div with a mul+sub). Likewise reuse r for box. Optionally pass r,c,box as recursion parameters incremented along the fixed cell order instead of recomputing from `cell` each call.",
+   "rationale": "`%` after `/` is a redundant second division; `cell - r*9` reuses the already-computed quotient with a cheap imul+sub, removing one ~20-cycle integer division per visited cell. Carrying r/c/box through recursion would eliminate all four divisions per node.",
+   "risk": "cell is always in [0,81), so quotient/remainder identities hold exactly; no signed-edge issue since cell>=0. Passing precomputed indices changes signature only on a private method \u2014 verify all four backtrackers stay consistent if generalized."
+  },
+  {
+   "file": "src/IAFahim.Search.ExactCover/ExactCover.cs",
+   "symbol": "Cover / Uncover / SelectBestColumn / SearchDlx",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Mark the tiny hot leaf helpers AggressiveInlining to cut call overhead in the DLX inner loops.",
+   "currentCost": "Cover/Uncover/CoverRow/UncoverRow/SelectBestColumn are small, called in tight per-node loops inside SearchDlx, with many pointer args passed by value on each call (12 pointer parameters). Without inlining hints the JIT/Burst may keep them as calls, paying prologue/epilogue + argument shuffling per invocation.",
+   "proposedChange": "Add `[MethodImpl(MethodImplOptions.AggressiveInlining)]` to Cover, Uncover, CoverRow, UncoverRow, SelectBestColumn, and the BitIndex helper. (System.Runtime.CompilerServices is already imported.)",
+   "rationale": "Inlining these leaf routines removes per-call argument marshaling of the 8-12 pointers and lets Burst keep the shared pointer base values in registers across the cover/uncover sweeps, shortening dependency chains and enabling cross-call optimization.",
+   "risk": "Inlining is a hint; only risk is code-size growth (Cover/Uncover contain nested loops, so the compiler may decline \u2014 acceptable). No semantic change. Keep recursive SearchDlx un-inlined (recursion can't inline)."
+  }
+ ]
+}

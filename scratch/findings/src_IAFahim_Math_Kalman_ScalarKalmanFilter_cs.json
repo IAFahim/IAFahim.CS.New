@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Math.Kalman/ScalarKalmanFilter.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Kalman/ScalarKalmanFilter.cs",
+   "symbol": "Predict / PredictCovariance / Update",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Unused processNoise parameter in Predict, and unused System/Unity.Mathematics usings in scalar file.",
+   "currentCost": "Predict(state, velocity, processNoise, dt) ignores processNoise entirely; the argument is loaded/passed at every call site in the hot loop (though Burst will likely elide it after inlining). 'using System;' and 'using Unity.Mathematics;' are unused in the scalar file.",
+   "proposedChange": "Drop the processNoise parameter from Predict (or document that it is intentionally reserved). Remove the two unused using directives. Keep PredictCovariance's processNoise (it is genuinely used).",
+   "rationale": "Smaller signature removes a dead argument from the call frame and clarifies intent; dead usings are pure noise. After AggressiveInlining Burst already removes the dead load, so this is mainly an ergonomics/clarity win with at most a marginal pre-inline cycle saving.",
+   "risk": "Changing Predict's public signature is an API break. If callers depend on the current signature, keep the parameter and instead mark it reserved. Removing usings is fully safe."
+  },
+  {
+   "file": "src/IAFahim.Math.Kalman/ScalarKalmanFilter.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Peel the first loop iteration to remove the per-iteration 'if (i > 0)' branch and the redundant outStates[i-1] load.",
+   "currentCost": "Every iteration evaluates 'if (i > 0)' (a branch that is false exactly once) and, when true, reloads outStates[i-1] from memory even though that value equals the previous loop's 'state' already in a register. So per iteration: one predictable-but-present branch plus one redundant memory load.",
+   "proposedChange": "Process i==0 outside the loop (no velocity update), then run i from 1..count with no branch and compute velocity from the register-held previous state: float prev = state; ... velocity = (state - prev) / dt; prev = state; outStates[i] = state. This drops both the branch and the outStates[i-1] load.",
+   "rationale": "Eliminates count branch evaluations and count-1 redundant loads from outStates; shortens the dependency chain since velocity now depends on a register value rather than a memory round-trip. Better for Burst vectorization/scheduling of the straight-line body.",
+   "risk": "Must guard count<=0 (loop currently does via i<count; the peeled prologue needs an explicit 'if (count <= 0) return;' or 'if (count > 0)'). Observable outputs are identical because outStates[i-1] always equals the prior iteration's state."
+  },
+  {
+   "file": "src/IAFahim.Math.Kalman/ScalarKalmanFilter.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist the loop-invariant 'processNoise * dt' increment for the covariance prediction.",
+   "currentCost": "PredictCovariance computes 'covariance + processNoise * dt' each iteration; processNoise and dt are loop-invariant so 'processNoise * dt' is recomputed count times (one multiply per iter).",
+   "proposedChange": "Precompute 'float covInc = processNoise * dt;' once before the loop and use 'predictedCov = covariance + covInc;' inline, or pass covInc in.",
+   "rationale": "Removes count-1 multiplies from the loop. Burst's optimizer usually hoists this already, but making it explicit guarantees it and shortens the per-iteration critical path slightly.",
+   "risk": "None for finite inputs; floating-point result is bit-identical since the same single multiply is performed (just once). No reassociation involved."
+  },
+  {
+   "file": "src/IAFahim.Math.Kalman/ScalarKalmanFilter.cs",
+   "symbol": "Update",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "updatedCovariance = (1 - K)*P can be reduced to K*measurementNoise, removing a subtract.",
+   "currentCost": "updatedCovariance = (1.0f - kalmanGain) * predictedCovariance: one subtract + one multiply, with the subtract adding a dependency-chain stage after kalmanGain is known.",
+   "proposedChange": "Since kalmanGain = P/(P+R), algebraically (1-K)*P = P*R/(P+R) = kalmanGain * R. Compute updatedCovariance = kalmanGain * measurementNoise. Saves the 1-K subtract.",
+   "rationale": "Replaces (sub, mul) with a single (mul), trimming one op and one dependency-chain stage per call.",
+   "risk": "NOT bit-identical: (1-P/(P+R))*P and (P/(P+R))*R round differently in float, so observable outputs change in the last ULPs. Reject if exact byte-reproducibility of updatedCovariance is required; acceptable only if the filter tolerates ULP-level differences. State this caveat explicitly before adopting."
+  }
+ ]
+}

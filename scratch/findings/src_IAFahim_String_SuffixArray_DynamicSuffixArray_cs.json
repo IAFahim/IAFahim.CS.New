@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.String.SuffixArray/DynamicSuffixArray.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.SuffixArray/DynamicSuffixArray.cs",
+   "symbol": "DynamicSuffixArray.Pull",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "rightSize is computed via GetSize(node->Right) after rightHash already dereferenced node->Right; redundant null-check and field reload.",
+   "currentCost": "GetSize(node->Right) reloads node->Right and re-tests it for null even though GetHash(node->Right) just did the same dereference; an extra load + branch on the hottest treap primitive (Pull runs on every Split/Merge step).",
+   "proposedChange": "Hoist the right pointer once: `DynamicStringNode* r = node->Right; ulong rightHash = r == null ? 0 : r->Hash; int rightSize = r == null ? 0 : r->Size;` and likewise cache node->Left for GetSize(node->Left). Lets the compiler share the single null test.",
+   "rationale": "Pull is called on every treap rotation/split/merge; shaving a redundant pointer load and branch per call compounds over O(log n) recursion per operation. Caching the child pointer also shortens the dependency chain feeding the Hash multiply.",
+   "risk": "None \u2014 single-threaded treap, node->Left/Right are not mutated between the reads within Pull. Same arithmetic, same result."
+  },
+  {
+   "file": "src/IAFahim.String.SuffixArray/DynamicSuffixArray.cs",
+   "symbol": "DynamicSuffixArray.Lcp",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The `mid == 0` special-case is re-tested every binary-search iteration though it can only fire when low==0; restructure so the loop never evaluates mid==0.",
+   "currentCost": "Per iteration: a branch `if (mid == 0)` plus a `continue` that wastes the whole iteration when it fires. More importantly each non-trivial iteration does TWO full O(log n) GetSubstringHash calls (each = two Splits + two Merges + Pull chain), so the binary search itself is the cost driver.",
+   "proposedChange": "Start the search at low=1 (lcp of length 0 always matches, ans stays 0 as the base case) so `mid` is never 0, removing the in-loop check and the wasted iteration. Additionally, hoist `int n = GetSize(root)` already done; consider caching that GetSubstringHash(i..i+mid-1) shares prefixes across iterations \u2014 but at minimum drop the mid==0 guard.",
+   "rationale": "Removes a per-iteration branch and an entirely wasted loop iteration (when mid==0 it just sets low=1 and recomputes). Fewer treap traversals directly cut the dominant cost since each iteration triggers four Split/Merge passes.",
+   "risk": "Must preserve ans=0 when no common prefix: initializing ans=0 and low=1 keeps that base case. high=Min(n-i,n-j) bound unchanged. Behavior identical for all i,j."
+  },
+  {
+   "file": "src/IAFahim.String.SuffixArray/DynamicSuffixArray.cs",
+   "symbol": "DynamicSuffixArray.Lcp",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Each Lcp binary-search step calls GetSubstringHash, which Splits the treap out and Merges it back (O(log n) restructuring with Pull on every node) \u2014 O(log^2 n) treap mutations per Lcp, and the splits churn the structure.",
+   "currentCost": "GetSubstringHash performs two Splits + two Merges (each O(log n) with a Pull allocation-free but pointer-rewriting chain) per call, called O(log n) times in the binary search => O(log^2 n) full treap rebuilds, mutating the tree repeatedly just to read a hash.",
+   "proposedChange": "Add a non-mutating range-hash query that walks the treap by accumulated subtree sizes and combines precomputed subtree hashes without Split/Merge (a read-only `RangeHash(root, l, r, powers)` using the stored Size/Hash fields). Use it inside Lcp/CompareSuffix instead of GetSubstringHash. Splits are only needed for Insert/Erase.",
+   "rationale": "Turns each hash query from O(log n) structural mutation into an O(log n) read-only descent with no pointer writes and no Pull recomputation, and removes the repeated tear-down/rebuild of the tree per binary-search step. Far fewer writes, better cache behavior, lower constant factor and no transient structural churn.",
+   "risk": "Requires writing a correct order-statistics range-hash descent that reproduces GetSubstringHash's polynomial combination exactly (same BASE/powers convention). Must match the existing hash formula bit-for-bit to preserve CompareSuffix results. Higher implementation effort; verify against the Split-based version on a fuzz corpus."
+  }
+ ]
+}

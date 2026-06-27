@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Collections.NoDeps/NativeParallelMultiHashMap.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Collections.NoDeps/NativeParallelMultiHashMap.cs",
+   "symbol": "SetAllocatedIndexLength",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace the two byte-at-a-time zeroing loops over Keys and Values with a single bulk memclear.",
+   "currentCost": "Two scalar loops iterate keysSize and valuesSize BYTES individually (e.g. length*sizeof(TKey) iterations), each a load/store/branch. For length=10000 and 16-byte keys that is 160000 single-byte store iterations that Burst will not auto-collapse to wide stores because the loop bound is a runtime byte count and aliasing is opaque.",
+   "proposedChange": "Replace the `for (long i...) keysPtr[i]=0;` and the equivalent values loop with `Unsafe.InitBlockUnaligned(keysPtr, 0, (uint)keysSize)` (or a memset helper). Since the very next block also writes Next[i]=EmptyBucket in a separate loop, that loop is fine as-is (it writes int sentinels), but the two byte loops should be bulk clears.",
+   "rationale": "A single InitBlock/memset is implemented as wide vectorized stores (SIMD/`rep stos`) and is memory-bandwidth bound, vs. the current 1-byte-per-iteration loop which is branch/throughput bound at ~1 byte/cycle. Order of magnitude fewer retired instructions and far better store-port utilization.",
+   "risk": "Semantically identical (fills the same byte ranges with 0). keysSize/valuesSize already computed as long; cast to uint is safe only if a single allocation never exceeds 4GB \u2014 guard by clearing in a loop chunked to uint, or use a 64-bit memset helper. Otherwise none."
+  },
+  {
+   "file": "src/IAFahim.Collections.NoDeps/NativeParallelMultiHashMap.cs",
+   "symbol": "RecalculateBuckets / TryGetFirstValue / TryGetNextValue",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "BucketCount is forced even (length*2 or 16) but bucket index uses %; make BucketCount a power of two and replace % with & (mask).",
+   "currentCost": "`(hashCode & 0x7FFFFFFF) % this.state->BucketCount` executes a hardware integer division (~20-40 cycle latency, not pipelined) on every insert during RecalculateBuckets (O(AllocatedLength) divisions) and on every TryGetFirstValue lookup.",
+   "proposedChange": "Round bucketCount up to the next power of two in SetAllocatedIndexLength (it is already a free-chosen `length*2`), store `bucketMask = bucketCount-1`, and compute `bucketIndex = hashCode & bucketMask` everywhere (drop the &0x7FFFFFFF since masking with a positive mask already yields a non-negative in-range index).",
+   "rationale": "AND is 1 cycle and fully pipelined vs. a multi-cycle non-pipelined DIV. On the hot lookup path and the O(n) rehash this removes the single most expensive instruction. Power-of-two bucket counts keep load factor identical (~2x slots).",
+   "risk": "Changes which bucket a key lands in, but observable map semantics (membership, value retrieval, iteration via Next chains) are unchanged. Must store the mask alongside or derive bucketCount-1; only valid because bucketCount is internally chosen, not caller-supplied."
+  },
+  {
+   "file": "src/IAFahim.Collections.NoDeps/NativeParallelMultiHashMap.cs",
+   "symbol": "TryGetFirstValue / TryGetNextValue",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist this.state->Next into a local pointer before the probe loop to cut repeated double-indirection through state.",
+   "currentCost": "The probe loop reads `this.state->Next[entryIndex]` each iteration: a load of state->Next (pointer chase through state) plus the indexed load. keysPtr/valuesPtr are already hoisted but Next is not.",
+   "proposedChange": "Add `int* nextPtr = this.state->Next;` before the while loop and use `nextPtr[entryIndex]`. Same in TryGetNextValue and RecalculateBuckets.",
+   "rationale": "Removes one dependent load (state->Next) from the per-iteration dependency chain of a linked-list walk that is already latency-bound on cache misses; shortens the critical path.",
+   "risk": "None; state is not mutated inside the loop. Pure read hoist."
+  },
+  {
+   "file": "src/IAFahim.Collections.NoDeps/NativeParallelMultiHashMap.cs",
+   "symbol": "HashKey / CompareKeys",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Specialize the byte-wise FNV hash and compare for common small power-of-two key sizes to avoid the per-byte loop.",
+   "currentCost": "HashKey loops sizeof(TKey) times with a dependent multiply chain (hash depends on previous hash) \u2014 for a 4- or 8-byte key that is 4-8 serialized iterations. CompareKeys does sizeof(TKey) byte compares with early-out branches; for an 8-byte key that is up to 8 branchy compares vs one 64-bit compare.",
+   "proposedChange": "In CompareKeys, when sizeof(TKey) is 4/8/16, do a single `*(uint*)`/`*(ulong*)` (or two ulong) equality test instead of the byte loop. sizeof(TKey) is a compile-time constant under Burst so the branch folds away. HashKey is harder to keep bit-identical, so leave its value semantics but consider it lower priority.",
+   "rationale": "Burst evaluates sizeof(TKey) at compile time, so the size-dispatch is free and only the matching widened-compare path is emitted: one 64-bit compare replaces an 8-iteration branchy loop, cutting both instruction count and mispredict risk on the hot lookup path.",
+   "risk": "CompareKeys with widened loads is bit-identical to byte compare for blittable keys (no padding concerns since the same bytes are compared). Do NOT change HashKey's arithmetic if any persisted/cross-call hash identity is assumed; the bucket mapping is internal so a different-but-consistent hash is acceptable, but keep it deterministic."
+  }
+ ]
+}

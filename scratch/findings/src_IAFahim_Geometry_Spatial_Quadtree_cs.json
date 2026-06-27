@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Geometry.Spatial/Quadtree.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Spatial/Quadtree.cs",
+   "symbol": "BuildRecursive",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "Allocates four full-size stackalloc child buffers (4*count ints) at every recursion level, compounding stack along the deepest path.",
+   "currentCost": "Lines 83-86 stackalloc c0..c3 each of size `count` ints = 16*count bytes per frame. Along a recursion path these live frames sum; with degenerate splits (all points to one quadrant) the deepest path can allocate ~16*count bytes at many levels, a mobile stack-overflow risk and heavy stack touching.",
+   "proposedChange": "Partition in place into the existing indices buffer using counting/offsets (compute the 4 quadrant counts, prefix-sum to 4 offsets, scatter into a single shared scratch of size count, then recurse on contiguous sub-ranges) \u2014 mirrors the Octree PartitionOctants pattern. One scratch buffer of size n total instead of 4*count per frame.",
+   "rationale": "Cuts scratch from 4*count-per-frame to a single n-sized buffer reused across the recursion, removing the quadratic-ish stack growth and improving cache locality of the index stream.",
+   "risk": "Must compute quadrant of each point once and reuse for scatter (store a 2-bit/byte tag) to keep one pass; partition is consumed before child recursion so a shared buffer is safe. Semantics-preserving if quadrant test matches lines 91-94 exactly (note the <= / > boundary handling)."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Spatial/Quadtree.cs",
+   "symbol": "BuildRecursive",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Quadrant classification uses an if/else-if chain that re-tests xs[p]<=midX and ys[p]<=midY redundantly.",
+   "currentCost": "Lines 91-94: the chain tests (x<=midX && y<=midY), then (x>midX && y<=midY), then (x<=midX && y>midY). xs[p] and ys[p] are loaded and compared to midX/midY up to 2-3 times per point across the branch chain.",
+   "proposedChange": "Compute each comparison once: `int q = (xs[p] > midX ? 1 : 0) | (ys[p] > midY ? 2 : 0);` then index by q (0..3) to select the child bucket, matching the branchless GetOctIdx pattern already used in Octree.",
+   "rationale": "One load+compare per axis per point and a branchless bucket index instead of a re-testing if/else cascade; consistent with the Octree design and friendlier to Burst.",
+   "risk": "Must map q to the same buckets as the original: original c0 = (x<=midX,y<=midY), c1=(x>midX,y<=midY), c2=(x<=midX,y>midY), c3=(x>midX,y>midY). With q = (x>midX)|((y>midY)<<1) the mapping is exactly c[q]; boundary (<= vs >) preserved. Semantics-identical."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Spatial/Quadtree.cs",
+   "symbol": "Build",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "AggressiveInlining on the recursive BuildRecursive and on Build is ineffective and may bloat code.",
+   "currentCost": "BuildRecursive (line 42) is self-recursive; the JIT/Burst cannot inline a recursive method, so the attribute is a no-op at best and can mislead. Build itself is large and called once per tree, so inlining yields no benefit.",
+   "proposedChange": "Remove [MethodImpl(AggressiveInlining)] from BuildRecursive and from the top-level Build/Build2D/Build3D entry points across these files; reserve it for small hot leaf helpers (GetOctIdx-style) only.",
+   "rationale": "Avoids code-size bloat / icache pressure from forcing inline on large or recursive methods where it cannot help; keeps inlining where it actually reduces call overhead (leaf classifiers).",
+   "risk": "Purely an attribute cleanup; no semantic change. Verify no caller depends on inlining for a measured win (none expected for build entry points)."
+  }
+ ]
+}

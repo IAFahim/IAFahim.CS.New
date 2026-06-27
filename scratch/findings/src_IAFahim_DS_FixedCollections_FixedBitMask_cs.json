@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.DS.FixedCollections/FixedBitMask.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.FixedCollections/FixedBitMask.cs",
+   "symbol": "Length",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "`Length` calls `UnsafeUtility.SizeOf<T>()` at runtime instead of using `sizeof(T)` which Burst/IL can fold to a compile-time constant.",
+   "currentCost": "`UnsafeUtility.SizeOf<T>() << 3` is a method call returning a value Burst may not constant-fold as aggressively as the `sizeof` operator; Length is used inside CheckArgs on every Set/IsSet.",
+   "proposedChange": "Use `sizeof(T) << 3` (the struct is already `unsafe` and T is `unmanaged`, so `sizeof(T)` is legal and compile-time constant). Matches the pattern already used in FixedArray.Length (`sizeof(TS)/sizeof(T)`).",
+   "rationale": "`sizeof` on an unmanaged generic resolves to a constant per specialization, letting the bounds check fold to a constant comparison; method-call form can defeat that.",
+   "risk": "Behaviorally identical; both yield the byte size of T. Reset() already uses UnsafeUtility.SizeOf<T>() \u2014 could likewise switch to sizeof(T) for consistency but no semantic change."
+  },
+  {
+   "file": "src/IAFahim.DS.FixedCollections/FixedBitMask.cs",
+   "symbol": "Set, IsSet",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Set/IsSet re-pin `&this.data` and reload through byte* on every call; for the common case where T is a single integer this could index the value directly, and these leaf methods lack AggressiveInlining.",
+   "currentCost": "Each Set/IsSet does a `fixed` pin and byte addressing even though pos>>Idx / pos&Shift are cheap; no inlining hint means call overhead on hot bit-twiddling paths.",
+   "proposedChange": "Add `[MethodImpl(AggressiveInlining)]` to Set and IsSet (consistent with FixedArray's accessors). Keep the byte* addressing (it is endian-correct and generic over T), but the inline hint lets Burst fold the pin away when the caller's `this` is a local.",
+   "rationale": "Inlining these tiny methods removes call/pin overhead and exposes the constant idx/shift to the caller for folding; matches the established inlining convention in the module.",
+   "risk": "None for inlining. Do NOT change byte* to typed indexing without preserving little-endian bit ordering \u2014 Reset uses MemClear and Set/IsSet use byte addressing, which is consistent; a typed rewrite could change observable bit positions on big-endian, so leave addressing as-is."
+  },
+  {
+   "file": "src/IAFahim.DS.FixedCollections/FixedBitMask.cs",
+   "symbol": "Idx / Shift constants",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "`Shift` is misnamed \u2014 it is a bit MASK (7), not a shift amount; rename for clarity without perf change.",
+   "currentCost": "`Shift = (1<<Idx)-1 = 7` is used as `pos & Shift`, i.e. it is a mask. The name invites confusion with the actual shift `pos >> Idx`.",
+   "proposedChange": "Rename `Shift` to `Mask` (or `BitMask`). Pure naming/ergonomics; the value and codegen are unchanged.",
+   "rationale": "Improves discoverability and correctness-of-intent; aligns with house preference for named constants reflecting their role.",
+   "risk": "None; rename only."
+  }
+ ]
+}

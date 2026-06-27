@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.String.SuffixTree/SuffixTree.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.String.SuffixTree/SuffixTree.cs",
+   "symbol": "SuffixTreeUkkonen.Build",
+   "severity": "critical",
+   "category": "wrong-algorithm",
+   "summary": "Build does not implement Ukkonen's (or any correct) suffix-tree construction. The active point (activeNode/activeEdge/activeLen) is declared but never advanced \u2014 activeNode is hardwired to 0 (root) for the entire run, and matching only ever inspects the root's outgoing edge list by first character (edges[nextEdge].Char==c). The tree therefore can never branch below depth 1, no internal nodes / suffix links are created, and most suffixes are never inserted. The result is not a suffix tree for any string whose suffixes share a prefix.",
+   "triggeringInput": "s = {97,98,97} (\"aba\"), len=3. Trace: i=0 creates root edge Char=97 (suffix at 0); i=1 creates root edge Char=98 (suffix at 1); i=2 finds existing root edge with Char=97 so added=1 and i jumps to 3 WITHOUT inserting any node/edge for the suffix \"a\". The single-character suffix \"a\" (position 2) is silently dropped, and no internal node splitting \"aba\"/\"a\" is created. Querying the tree for the suffix \"a\" / position 2 fails. A correct suffix tree must represent all 3 suffixes \"aba\",\"ba\",\"a\".",
+   "rootCause": "The construction loop never walks down existing edges or updates the active point. It treats every position from the root and matches only the first character of root edges, so it builds a flat star of at-most-one-per-distinct-first-character edges instead of a proper trie/suffix tree. Edge.Min/Max are set to [i,len) (whole remaining suffix) on every new edge, and Edge.To/Node.Link/the activeEdge/activeLen machinery are never used to split or branch. Suffixes that share an initial character with an earlier-created edge are skipped entirely.",
+   "suggestedFix": "Replace the body with an actual Ukkonen implementation: maintain remainder count, advance (activeNode,activeEdge,activeLen) each step, walk-down along edges when activeLen exceeds the current edge length, split edges by creating an internal node when the next character mismatches, and set suffix links between the internal nodes created during the same phase. Alternatively, if only a suffix trie is intended, descend the current node's edge list character-by-character along the path (not just from the root) and create branching internal nodes on mismatch."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.SuffixTree/SuffixTree.cs",
+   "symbol": "SuffixTreeUkkonen.Edge",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "Edge.Min and Edge.Max are dead fields \u2014 written but never read; remove them to shrink Edge from 20 to 12 bytes.",
+   "currentCost": "Edge is 5 ints = 20 bytes. Build() writes edges[newEdge].Min = i and edges[newEdge].Max = len every insertion, but no code in the file (or struct consumer pattern) ever reads Min/Max. These are 2 dead stores per node insertion and 8 wasted bytes per edge in the edge array.",
+   "proposedChange": "Drop Min and Max from the Edge struct: 'public struct Edge { public int To; public int Char; public int Next; }'. Delete the corresponding edges[newEdge].Min = i; and edges[newEdge].Max = len; assignments on lines 48-49.",
+   "rationale": "Edge array shrinks 40% (20B -> 12B). The hot inner scan loop (lines 26-30) walks the Next linked list reading Char and Next; a 12-byte Edge packs ~5.3 edges per 64B cache line vs 3.2 today, cutting cache misses during the per-character edge scan that dominates Build cost. Also removes 2 stores/insertion.",
+   "risk": "Must confirm no external caller reads Edge.Min/Max \u2014 they are public fields. Within this file they are write-only. If Min/Max are part of a documented public API for downstream queries (substring offsets), removing them changes the API surface; in that case keep them but at minimum hoist them out of being recomputed. Given Min==edge insertion index i and Max==len are trivially derivable, they appear vestigial."
+  },
+  {
+   "file": "src/IAFahim.String.SuffixTree/SuffixTree.cs",
+   "symbol": "SuffixTreeUkkonen.Build",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Dead/unused locals: 'int c = s[i]' on line 19 is immediately overwritten, and activeEdge/activeLen (and effectively activeNode) are never used.",
+   "currentCost": "Line 19 'int c = s[i]' performs a load that is always overwritten by line 23 'c = s[i + added]' on the first iteration of the inner while (added==0, i+0<len is always true since i<len). activeEdge=-1 and activeLen=0 are declared and never read; activeNode is initialized to 0 and never reassigned, so nodes[activeNode] is always nodes[0].",
+   "proposedChange": "Delete line 19 entirely (move declaration into the inner loop: 'int c = s[i + added];'). Remove activeEdge and activeLen declarations. Replace nodes[activeNode].FirstEdge with nodes[0].FirstEdge (3 sites) and drop activeNode, or keep activeNode as a named constant 0 if clarity is preferred.",
+   "rationale": "Eliminates a redundant memory load per outer iteration and removes dead register pressure. Hard-coding root index 0 lets Burst fold nodes[0] address computation as a constant base instead of an indexed load through a variable, shortening the dependency chain in the insertion path.",
+   "risk": "None for the dead-load removal \u2014 behavior is identical. Replacing activeNode with literal 0 is safe only because this code never descends the tree (it is a root-only suffix trie, not true Ukkonen with active points); confirm no future intent to make activeNode mutable before hard-coding. If preserving the Ukkonen skeleton for later work, keep activeNode but still remove activeEdge/activeLen which are unambiguously dead."
+  },
+  {
+   "file": "src/IAFahim.String.SuffixTree/SuffixTree.cs",
+   "symbol": "SuffixTreeUkkonen.Build",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Per-character edge lookup is an O(alphabet/degree) linear linked-list scan; the root node accumulates one edge per distinct starting character, making total build O(n * sigma) worst case.",
+   "currentCost": "Inner loop lines 26-30 walks nodes[0].FirstEdge -> Next chain comparing Char==c. Since every insertion adds an edge off root, the root fan-out grows up to sigma (distinct chars). Each of the n outer steps scans this list, giving O(n*sigma) and a long pointer-chasing dependency chain (each Next load depends on the previous).",
+   "proposedChange": "If the input alphabet is a small bounded range (e.g. mapped to [0,K)), replace the per-node edge linked list with a direct child index table: a K-wide int* children block indexed by char, giving O(1) child lookup. Lookup becomes children[node*K + c] != -1 \u2014 branchless, no pointer chasing. Allocate via stackalloc/caller buffer to stay unmanaged.",
+   "rationale": "Converts the inner O(degree) scan into a single indexed load, removing the serial Next-chain dependency that stalls the pipeline, and drops asymptotic build cost from O(n*sigma) to O(n*K) with K a compile-time-friendly constant. For DNA/ASCII workloads this is a large constant-factor and latency win.",
+   "risk": "Only valid when sigma is small and bounded (otherwise the K-wide table blows up RAM). For arbitrary 32-bit int chars this is infeasible \u2014 keep the linked list but consider sorting/hashing edges. Requires caller to provide alphabet bound K; changes the API/buffer-sizing contract, so gate behind a documented precondition."
+  },
+  {
+   "file": "src/IAFahim.String.SuffixTree/SuffixTree.cs",
+   "symbol": "SuffixTreeUkkonen.Build",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Hot leaf is fine for Burst but the method lacks [MethodImpl(AggressiveInlining)] hints and the inner Char-match break could be hoisted; node Len/Link writes are dead-store candidates.",
+   "currentCost": "nodes[newNode].Len = len - i and nodes[newNode].Link = 0 are written on every insertion. Link is never read in this file (root-only trie has no suffix links used). Len = len-i is also unread here. These are stores Burst cannot elide because the buffers are externally visible through pointers.",
+   "proposedChange": "If Node.Link/Len are not consumed by downstream queries, drop them from Node (mirror of the Edge change), shrinking Node from 16 to 8 bytes and removing 2 stores/insertion. Keep Start and FirstEdge which are load-bearing for tree structure.",
+   "rationale": "Smaller Node struct improves node-array cache density and removes dead stores in the insertion hot path. Node array halves in size if both fields go.",
+   "risk": "Node.Start/Len/Link are public and may be the public substring-decoding contract (Start+Len describe the suffix span; Link supports future Ukkonen). Removing them is only safe if no consumer reads them. Lower confidence than the Edge.Min/Max case because Start/Len are the natural substring accessor. Verify external usage before removing; default to keeping if a public tree-query API depends on them."
+  }
+ ]
+}

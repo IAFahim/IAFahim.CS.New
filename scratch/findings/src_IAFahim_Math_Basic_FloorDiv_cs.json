@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.Basic/FloorDiv.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Basic/FloorDiv.cs",
+   "symbol": "FloorDiv.Run(int,int)",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Derive the floor correction from the remainder instead of recomputing a second modulo, removing one of the two expensive divide-class operations and the branch.",
+   "currentCost": "Computes a/b AND a%b as two separate expressions (potentially two integer-divide-latency ops, ~20-40 cycles each on typical cores if the compiler does not fuse them), then a logical-AND of two tests feeding a data-dependent ternary (branch or cmov).",
+   "proposedChange": "Compute the remainder once and derive both quotient correction and value from it: int q = a / b; int r = a - q * b; return q - (((r != 0) & ((r ^ b) < 0)) ? 1 : 0);  Here r has the same sign behavior as a%b, and (r^b)<0 is true exactly when r and b differ in sign, i.e. when truncated division rounded toward zero in the wrong direction. This replaces the second idiv (a%b) with one multiply and one subtract (r = a - q*b), which are far cheaper than a divide, and reuses q.",
+   "rationale": "Integer remainder via a*%*b is a divide-latency operation; reconstructing r = a - q*b costs one IMUL (~3 cycles) + one SUB instead of a second ~20-40 cycle divide. Burst/LLVM frequently already fuses div+mod into a single idiv, but it cannot always prove the two operands are identical when written as separate a/b and a%b expressions; making q explicit and using a-q*b guarantees a single divide. The `&` (bitwise, non-short-circuit) instead of `&&` also removes a branch, leaving a single cmov/select.",
+   "risk": "Semantics preserved for all valid inputs: r = a - q*b equals a%b exactly (C# truncated division guarantees a == (a/b)*b + a%b), and (r^b)<0 is equivalent to (a^b)<0 when r!=0 because r carries a's sign. Overflow caveat: a - q*b for a=int.MinValue,b=-1 overflows just as a%b would already be undefined/throwing there (int.MinValue/-1 itself overflows), so no NEW edge case is introduced versus the existing code. Burst runs unchecked so overflow wraps consistently. Using `&` is safe because neither side has side effects. Reject if the team requires bit-identical behavior to a literal a%b under checked arithmetic; under Burst (unchecked) it is identical."
+  },
+  {
+   "file": "src/IAFahim.Math.Basic/FloorDiv.cs",
+   "symbol": "FloorDiv.Run(long,long)",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Same remainder-reuse transform for the 64-bit overload; 64-bit idiv is even more expensive, so avoiding the second divide matters more here.",
+   "currentCost": "Two 64-bit divide-class ops (a/b and a%b) plus a branchy ternary. 64-bit integer division is notably slower than 32-bit on most cores (often 40-90+ cycles) and is not vectorizable, so paying it twice is the dominant cost of this function.",
+   "proposedChange": "long q = a / b; long r = a - q * b; return q - (((r != 0) & ((r ^ b) < 0L)) ? 1L : 0L);  identical structure to the int version, guaranteeing one 64-bit divide instead of two and a branchless select.",
+   "rationale": "64-bit IMUL + SUB to reconstruct the remainder is dramatically cheaper than a second 64-bit divide. Replacing && with & removes the branch on the floor-correction, shortening the dependency chain to q -> select.",
+   "risk": "Same correctness guarantee as the int overload: r == a%b exactly under truncated division, and (r^b)<0 == (a^b)<0 when r!=0. No new overflow edge versus existing code (long.MinValue/-1 already overflows in the original). Safe under Burst unchecked arithmetic."
+  }
+ ]
+}

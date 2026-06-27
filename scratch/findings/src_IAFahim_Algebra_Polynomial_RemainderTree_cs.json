@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Algebra.Polynomial/RemainderTree.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/RemainderTree.cs",
+   "symbol": "RemainderTree.Build",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Use Horner's method for the per-value polynomial remainder instead of accumulating xPow.",
+   "currentCost": "Inner loop over polyLen does two multiplies (poly[j]*xPow, xPow*v) and two mods per coefficient, with two serial mod dependency chains, across n outer iterations -> O(n*polyLen) with a 2x constant on the expensive mod.",
+   "proposedChange": "For each value v compute r via Horner: long r = 0; for (int j = polyLen-1; j >= 0; j--) r = (r * v + poly[j]) % MOD; This drops the xPow register and one multiply+mod per inner step.",
+   "rationale": "Halves multiply and mod count in the hottest inner loop and eliminates a parallel dependency chain plus a live register, improving ILP and cache/register pressure under Burst. Same asymptotics, ~2x constant-factor win on the mod-bound path.",
+   "risk": "poly[j] is multiplied into r before reduction; products must fit in long, identical overflow envelope to current xPow*v and poly[j]*xPow products. v is pre-normalized to [0,MOD) as before. Output identical for valid inputs."
+  },
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/RemainderTree.cs",
+   "symbol": "RemainderTree.Build",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "MOD parameter is int but arithmetic promotes to long repeatedly; widen MOD to long for consistency with sibling APIs (RootFind, RationalInterpolation use mixed int/long).",
+   "currentCost": "Each (r + poly[j]*xPow) % MOD and xPow*v % MOD promotes the int MOD to long every iteration (sign-extend), and the API is inconsistent with RationalInterpolation which takes long MOD.",
+   "proposedChange": "Change signature to take long MOD (matching RationalInterpolation.Run), removing the repeated int->long conversions and unifying the module's modulus type.",
+   "rationale": "Eliminates per-iteration implicit widening and makes the module's modular-arithmetic APIs uniform, aiding discoverability and reducing accidental int-overflow when callers pass a near-2^31 modulus.",
+   "risk": "Pure signature change; callers must pass long. No behavioral change for moduli that already fit in int. Verify all call sites updated."
+  }
+ ]
+}

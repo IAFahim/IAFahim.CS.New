@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Region.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Region.cs",
+   "symbol": "BoxBlur",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace the per-span integer division `(d + 5) / 9` with a multiply-shift reciprocal, and hoist the 4x repeated GetCon(s,dir) calls.",
+   "currentCost": "`dst[i] = (ushort)((d + 5) / 9)` runs one integer division per processed span (SpanCount span divisions). Integer div is ~20-40 cycles on mobile ARM. Additionally GetCon(s,dir) is recomputed (shift+mask) for the same span/dir more than once across the inner logic.",
+   "proposedChange": "d is bounded: d = cd + sum of up to 8 neighbor contributions, each <= 0xffff blurred distance, so d < 9*65535 < 2^20. Use the standard div-by-9 magic: `(uint)((d + 5) * 0x1C71C71Du >> 32) >> 1` after verifying the constant over the full [0, 9*0xffff+5] range, or precompute `const uint InvNine` multiply. Also cache `int c0=GetCon(s,dir)` once per dir.",
+   "rationale": "Strength-reduces a div to a 32x32->high-multiply plus shift (single-cycle MUL + shift on modern cores), removing the long-latency divider from the inner loop over every span. Caching GetCon avoids redundant shift/mask.",
+   "risk": "Magic-number division must be proven exact across the full input domain (0 .. 9*65535+5 = 589820); pick a 33-bit-safe constant/shift or do the multiply in 64-bit to avoid overflow. If unsure, reject \u2014 but the range is small and well within a 64-bit intermediate, so it is safe with a 64-bit mul."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Region.cs",
+   "symbol": "RcRegion",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Reorder/pack RcRegion fields to reduce padding and improve cache density of the regions[] array used in tight merge loops.",
+   "currentCost": "Field order is int, ushort, byte, bool, bool, bool, bool, ushort, ushort, then two NativeList<int>. The four bools after the byte and the interleaved ushorts cause suboptimal packing; on 64-bit the two NativeLists force 8-byte alignment, leaving padding around the scalar block. MergeAndFilterRegions/MergeAndFilterLayerRegions scan regions[] repeatedly (O(nreg^2) fixup loops), so struct size directly affects cache footprint.",
+   "proposedChange": "Group all pointer-sized members (the two NativeList<int>) together, then the int SpanCount, then ushort ID/Ymin/Ymax, then byte AreaType, then pack the 5 bools into a single byte bitfield (Remap/Visited/Overlap/ConnectsToBorder). This shrinks the struct by several bytes and removes interior padding.",
+   "rationale": "Smaller struct => more RcRegion entries per cache line => fewer misses in the repeated O(nreg) and O(nreg^2) scans (Compress IDs, fixup neighbours). Packing 4 bools into bits saves 3 bytes and reduces false-sharing-free linear scan cost.",
+   "risk": "Bools become bit accesses (slightly more ALU per read) \u2014 net win only because the scans are memory-bound. Must keep field semantics identical; the struct is private so no external layout contract. Verify Burst still treats it as blittable (it does; bytes/ushorts/NativeList are unmanaged)."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Region.cs",
+   "symbol": "CalculateDistanceField",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Cache the per-direction GetCon results and the neighbor cell Index lookups instead of recomputing GetCon(s,dir) multiple times per span in the boundary, Pass1 and Pass2 loops.",
+   "currentCost": "In the boundary-marking loop GetCon(s,dir) is called inside the dir loop and the value is immediately reused; in Pass1/Pass2 GetCon(s,0)/GetCon(s,3) etc. are each computed twice (once in the != RCNotConnected test, once to form `ai`). Each GetCon is a shift+mask; doing it twice per edge across 2 passes x SpanCount x 4 dirs is a measurable constant factor.",
+   "proposedChange": "Hoist `int con = GetCon(s, dir);` once, branch on `con != RCNotConnected`, and reuse `con` to compute `ai = cellIndex + con`. Same for the diagonal @as GetCon(@as, dir2). This is a pure local-variable hoist.",
+   "rationale": "Halves the GetCon shift/mask work on the diagonal-stencil hot path and shortens the dependency chain feeding the `ai` address computation, helping the load issue earlier.",
+   "risk": "None \u2014 pure CSE of a side-effect-free function; identical results. Just ensure the hoisted variable is recomputed per dir."
+  }
+ ]
+}

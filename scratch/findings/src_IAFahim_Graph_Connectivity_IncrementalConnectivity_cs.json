@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Graph.Connectivity/IncrementalConnectivity.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Connectivity/IncrementalConnectivity.cs",
+   "symbol": "Find",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Find does full path compression in two passes (find root, then rewrite), doubling pointer traversals; path-halving achieves near-identical amortized bounds in one pass.",
+   "currentCost": "First while-loop walks to root, second while-loop walks the same chain again rewriting parents: two traversals of the path per Find call.",
+   "proposedChange": "Replace with single-pass path halving: 'while (i != parent[i]) { parent[i] = parent[parent[i]]; i = parent[i]; } return i;'. One traversal, each node points to its grandparent.",
+   "rationale": "Path halving gives the same O(alpha(n)) amortized complexity as full compression but in a single pass with half the memory traffic and a shorter dependency chain per Find \u2014 a measurable win since Find is the hottest leaf across all connectivity operations.",
+   "risk": "Path halving does not fully flatten to the root immediately, so the exact parent[] contents differ from full compression \u2014 but Find/Connected/Union outputs (root identity, connectivity answers) are identical for all inputs. Only matters if a caller inspects intermediate parent[] structure, which it should not."
+  },
+  {
+   "file": "src/IAFahim.Graph.Connectivity/IncrementalConnectivity.cs",
+   "symbol": "Init",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Init writes parent and size in one loop with two stores; size is a constant fill that could be memset-vectorized, and parent is an iota that Burst can vectorize.",
+   "currentCost": "n iterations doing parent[i]=i and size[i]=1 interleaved; the constant size fill is not expressed as a bulk memset.",
+   "proposedChange": "Keep parent[i]=i in its own tight loop (Burst can vectorize an iota with a base+index vector add), and fill size via a single bulk fill of 1s. Splitting the two stores avoids interleaving a varying store with a constant store and lets each loop vectorize cleanly.",
+   "rationale": "Separating the iota write from the constant write gives Burst two homogeneous, vectorizable loops instead of one mixed-store loop; the constant size fill becomes a streamable broadcast store.",
+   "risk": "None; final parent/size contents identical."
+  }
+ ]
+}

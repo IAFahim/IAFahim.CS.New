@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Detour/DtPolyQuery.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/DtPolyQuery.cs",
+   "symbol": "DtFindNearestPolyQuery.Process",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist tile->header->walkableClimb out of the per-polygon loop and reduce the inner branch's dependency chain.",
+   "currentCost": "Each iteration dereferences tile->header->walkableClimb (two pointer chases) only on the posOverPoly branch, but the value is loop-invariant across the whole batch. The branch also keeps a data dependency between the distance computation and the comparison.",
+   "proposedChange": "Read 'float walkableClimb = tile->header->walkableClimb;' once before the for loop and use the local inside. Optionally compute 'float dy = math.abs(diff.y) - walkableClimb; float over = dy > 0f ? dy * dy : 0f;' and 'float d = posOverPoly ? over : math.lengthsq(diff);' so the select is branchless on the hot accept path.",
+   "rationale": "Hoisting removes two redundant dependent loads (header pointer chase + field load) from every over-poly iteration; the value cannot change within a single tile batch. A branchless select removes a hard-to-predict conditional in the inner loop, shortening the dependency chain and helping Burst keep the pipeline full.",
+   "risk": "walkableClimb is per-tile and Process receives a single tile pointer, so it is invariant for the whole call - safe. The branchless select recomputes both branches; math.lengthsq and the dy*dy are cheap and side-effect-free, so semantics are identical (same float result selected by posOverPoly)."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/DtPolyQuery.cs",
+   "symbol": "DtFindNearestPolyQuery.Process",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Mark Process (and DtCollectPolysQuery.Process) AggressiveInlining so the IDtPolyQuery callback inlines into queryPolygons.",
+   "currentCost": "Process is an interface-implementing struct method invoked once per polygon batch from the query loop; without an inline hint Burst may emit a call and re-load 'this' fields through the struct each batch.",
+   "proposedChange": "Add [MethodImpl(MethodImplOptions.AggressiveInlining)] to both Process implementations (consistent with DtQueryFilter's accessors which already use it).",
+   "rationale": "When the concrete struct type is known at the call site (generic-constrained or direct struct dispatch), inlining lets Burst keep nearestDistanceSqr/numCollected in registers across the batch and eliminates call overhead in the per-batch hot path.",
+   "risk": "Pure hint; no semantic change. If dispatch is through the boxed interface this has no effect but does no harm."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/DtPolyQuery.cs",
+   "symbol": "DtCollectPolysQuery.Process",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Replace the element-by-element copy loop with a bulk UnsafeUtility.MemCpy.",
+   "currentCost": "The loop copies DtPolyRef values one at a time (this.polys[this.numCollected + i] = refs[i]), recomputing the base index each iteration and preventing wide vectorized stores.",
+   "proposedChange": "Use UnsafeUtility.MemCpy(this.polys + this.numCollected, refs, (long)toCopy * sizeof(DtPolyRef)); then this.numCollected += toCopy. DtPolyRef is a blittable readonly struct over a single ulong/uint so MemCpy is valid.",
+   "rationale": "MemCpy on contiguous blittable data issues wide aligned copies and removes per-element index arithmetic and bounds-free pointer math, lowering cycles for large batches.",
+   "risk": "Source and destination ranges do not overlap (different buffers), so MemCpy (not MemMove) is correct. Behavior identical for toCopy==0 (zero-length copy). DtPolyRef must remain a plain value over its integer field (it is)."
+  }
+ ]
+}

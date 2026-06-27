@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.NT/PrimePi.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/PrimePi.cs",
+   "symbol": "PrimePi.PerformPiSieveStep",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "The first loop recomputes (long)i*p twice per iteration and the second loop does a full division small[i/p] every step; both can be strength-reduced and the multiplies hoisted/incremented.",
+   "currentCost": "Per iteration of loop1: two 64-bit multiplies (long)i*p (once inside n/(i*p), once inside large[(long)i*p]) plus a division. Loop2 does small[i] -= small[i/p]-pcnt with a 64-bit division per i across [p2,sq].",
+   "proposedChange": "Loop1: maintain long ip = p; and increment ip += p each iteration instead of recomputing (long)i*p, and compute n/ip once into a local reused for both the comparison and the large[ip] index. Loop2: the divisor p is fixed; iterate i downward but note i/p changes only every p steps \u2014 walk a secondary counter so small[i/p] is recomputed only when the quotient actually decrements, replacing most divisions with a decrement+compare.",
+   "rationale": "Replaces a 64-bit multiply with an add (ip+=p) and collapses two i*p evaluations into one; in loop2 amortizes the division to ~1 per p iterations. Division is ~20-40 cycles on mobile, so removing the bulk of them in the largest loop is a real win.",
+   "risk": "ip += p can overflow long only if i*p exceeds 2^63 which the algorithm's bounds (i<=sq, p<=sq, sq~n^0.5) preclude for n in long range \u2014 safe. The loop2 quotient-walk must reproduce integer floor division exactly at each boundary; off-by-one in when-to-decrement would corrupt the sieve, so derive the boundary from i%p==0 carefully."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/PrimePi.cs",
+   "symbol": "PrimePi.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "isqrt correction loop only rounds up; if Math.Sqrt over-estimates for large n it is never corrected down.",
+   "currentCost": "sq=(int)Math.Sqrt(n); while((sq+1)*(sq+1)<=n) sq++; \u2014 handles undershoot but not the rare double-rounding overshoot where (int)cast already exceeds true isqrt.",
+   "proposedChange": "Add a while((long)sq*sq > n) sq--; after the increment loop to clamp overshoot, making isqrt exact in both directions.",
+   "rationale": "For n near long range, double has insufficient mantissa and (int)Math.Sqrt can land one above the true root; the missing down-correction would make sq too large and read large[i]/small[i] out of the intended range or miscount.",
+   "risk": "Pure correctness/robustness improvement; adds 0-1 iterations. For the n ranges actually exercised (int sq) this may never trigger, but it removes a latent overshoot bug. Confirm intended max n."
+  }
+ ]
+}

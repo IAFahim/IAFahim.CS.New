@@ -1,0 +1,15 @@
+IAFahim.Graph.TreeQueries
+IAFahim.Graph
+IAFahim.Linear.Matrix
+IAFahim.Math.BigInt
+IAFahim.Math.NT
+IAFahim.Math.Polynomial
+IAFahim.Math.Transform.AnyMod
+IAFahim.Math.Transform
+IAFahim.Optimization.DivideConquer
+IAFahim.Optimization.Exact
+IAFahim.Optimization.Games
+IAFahim.Optimization.Geometric
+IAFahim.Optimization.Knapsack
+IAFahim.Optimization.Treewidth
+IAFahim.Physics.Xpbd

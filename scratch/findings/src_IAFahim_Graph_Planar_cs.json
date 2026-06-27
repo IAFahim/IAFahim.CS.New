@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Graph/Planar.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph/Planar.cs",
+   "symbol": "Planar.PlanarShortestPath / FacePotentialSolve / Lexicographic-style O(n*m) Dijkstra",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Dijkstra implemented as O(n^2 + n*m) with linear min-scan and full edge rescan per settle; use the existing MstMinHeap-style binary heap.",
+   "currentCost": "PlanarShortestPath and FacePotentialSolve do an O(n) linear scan to pick the min unvisited vertex each of n iterations, and inside settle they scan ALL m edges to find incident ones (since there is no adjacency list). That is O(n^2 + n*m).",
+   "proposedChange": "Build a CSR adjacency (head/to/next/weight) once like the rest of the module, and use the indexed binary heap (MstMinHeap is internal but the pattern is reusable) to get O((n+m) log n). For planar graphs (m = O(n)) this is O(n log n) versus O(n^2).",
+   "rationale": "Removes both the O(n) min-scan and the O(m) per-vertex edge rescan, giving a genuine asymptotic improvement on the planar (sparse) graphs this file targets.",
+   "risk": "Heap operates on long distances; FacePotentialSolve uses double potentials and would need a double-keyed heap variant. Must preserve tie-break/visit order if any downstream logic depends on it (Dijkstra distances are order-independent, so safe). Adding adjacency build must not change which equal-distance node is 'settled' in a way that affects outputs (it does not for distances)."
+  }
+ ]
+}

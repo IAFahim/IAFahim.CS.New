@@ -1,0 +1,23 @@
+[
+  {
+    "file": "src/IAFahim.Search.Numerical/Numerical.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_Search_Numerical_Numerical_cs.json"
+  },
+  {
+    "file": "src/IAFahim.String.Parse/Earley.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_String_Parse_Earley_cs.json"
+  },
+  {
+    "file": "src/IAFahim.String.SuffixAutomaton/KthSubstring.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_String_SuffixAutomaton_KthSubstring_cs.json"
+  },
+  {
+    "file": "src/IAFahim.Combinatorics.Generation/NecklacesAndBracelets.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_Combinatorics_Generation_NecklacesAndBracelets_cs.json"
+  },
+  {
+    "file": "src/IAFahim.Search.Subset/EnumerateSupersets.cs",
+    "findingsPath": "scratch/findings/src_IAFahim_Search_Subset_EnumerateSupersets_cs.json",
+    "reason": "fix broke test (HEAD 5/5 -> fix 4/5); judges missed regression"
+  }
+]

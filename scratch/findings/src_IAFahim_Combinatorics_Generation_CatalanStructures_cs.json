@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Combinatorics.Generation/CatalanStructures.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Combinatorics.Generation/CatalanStructures.cs",
+   "symbol": "TryGenerateDyckWord",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Evaluate a[i] once per iteration and hoist the 2*n loop bound / endpoint.",
+   "currentCost": "Each iteration of the descending loop reads a[i] for the `a[i] == 1` decrement test, then reads it AGAIN in `a[i] == 1 && ones >= zeros + 1`. The endpoint 2*n is recomputed as the loop init `2*n - 1` and passed again to UpdateDyckSuffix as `2*n`; n-ones is recomputed.",
+   "proposedChange": "Compute `int two_n = n << 1;` once. In the loop read `byte v = a[i];` into a local, branch on `v`. Replace `a[i] == 1` tests with `v == 1`. Pass `two_n` to UpdateDyckSuffix.",
+   "rationale": "Removes one redundant memory load per iteration (2n-1 loads saved over the scan) and removes redundant multiply/add of 2*n; fewer dependent loads shortens the per-iteration dependency chain.",
+   "risk": "None. n<<1 == 2*n for all valid n>=1 (no overflow since 2*n indexes a valid buffer). Observable behavior identical."
+  },
+  {
+   "file": "src/IAFahim.Combinatorics.Generation/CatalanStructures.cs",
+   "symbol": "PrecomputeCatalanDp",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Drop the full O(size^2) zero-fill; only the lower triangle the recurrence reads needs init.",
+   "currentCost": "`for (int i = 0; i < size*size; i++) dp[i] = 0;` zeroes the entire (n+2)^2 table even though the recurrence only writes/reads cells with i>=j in 0..n. The zero pass duplicates work the recurrence loop already overwrites, and touches the unused (n+1)-row/column padding.",
+   "proposedChange": "Remove the blanket zero loop. Instead, within the existing i/j double loop, the cells skipped by `if (i < j ...) continue;` must read 0 from neighbors: guard the two reads with their existing `i+1<=n` / `j+1<=i` conditions (already present) AND zero only the boundary cells actually read out of range. Simplest safe form: zero just row index n and column index referenced via (i+1)*size+j when i+1>n \u2014 i.e., memset only the cells dp[(n+1-based) padding] the recurrence can read, which are the i==n row above-diagonal and j just past i. Concretely keep correctness by zeroing only dp cells for i in [0..n], j in [0..n] with i<j before the recurrence (a triangular ~n^2/2 fill) instead of the full (n+2)^2.",
+   "rationale": "size^2 = (n+2)^2 stores vs ~n^2/2 needed halves-to-quarters the init traffic; for repeated Rank/Unrank calls this is on the hot path. Fewer stores, fewer cache lines dirtied.",
+   "risk": "Medium correctness risk: the recurrence reads dp[(i+1)*size+j] when i+1<=n and dp[i*size+(j+1)] when j+1<=i; any cell read must be pre-zeroed or previously written. Must prove every read target is either written by an earlier iteration or explicitly zeroed. If unsure, keep the full zero \u2014 only adopt with a verified read-set. Triangular fill is the conservative correct subset."
+  },
+  {
+   "file": "src/IAFahim.Combinatorics.Generation/CatalanStructures.cs",
+   "symbol": "PrecomputeCatalanDp",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "DP table is identical for every rank with the same n; recomputing it per Rank/Unrank call is wasteful when ranking many objects.",
+   "currentCost": "Both RankCatalanObject and UnrankCatalanObject allocate a (n+2)^2 stackalloc and run an O(n^2) PrecomputeCatalanDp on EVERY call. Ranking M objects costs O(M*n^2) plus M table builds, even though the table depends only on n.",
+   "proposedChange": "Add public Rank/Unrank overloads that accept a caller-supplied precomputed `long* dp` (built once via a public PrecomputeCatalanDp), turning the per-call cost into O(n). Keep the current self-contained methods as convenience wrappers. This matches the library's explicit-buffer convention.",
+   "rationale": "Amortizes the O(n^2) build across many objects: M*O(n) + 1*O(n^2) instead of M*O(n^2). Large asymptotic win for batch ranking/unranking, the common combinatorics use case.",
+   "risk": "None to existing callers (additive API). Caller must size dp as (n+2)^2 and build it for the right n; document the contract. Pure/deterministic preserved."
+  }
+ ]
+}

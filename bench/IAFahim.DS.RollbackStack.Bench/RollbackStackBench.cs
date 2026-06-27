@@ -41,6 +41,7 @@ namespace IAFahim.DS.RollbackStack.Bench
         [Benchmark]
         public void UnionWithSnapshot()
         {
+            Reset();
             Random rng = new Random(42);
             fixed (int* pHistSize = &_histSize)
             {

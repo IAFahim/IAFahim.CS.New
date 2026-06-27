@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Geometry.Spatial/Octree.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Geometry.Spatial/Octree.cs",
+   "symbol": "Octree.RangeQuery",
+   "severity": "high",
+   "category": "logic",
+   "summary": "Leaf nodes emit ALL contained point indices when the node's region merely OVERLAPS the query box, never testing individual point coordinates. This returns false positives \u2014 indices of points that lie outside the query rectangle.",
+   "triggeringInput": "Build with xs/ys/zs = {(0,0,0),(10,0,0)}, n=2, maxDepth large enough that these two points share a leaf only if they cannot be separated; simplest: points (0,0,0) and (9,9,9) with maxDepth=0 so the single root is a leaf containing both. Then RangeQuery with box x1=y1=z1=-1, x2=y2=z2=1 (contains only the first point). The root region overlaps the box (passes line 56), the root is a leaf (all C<0), so it emits BOTH index 0 and index 1, even though point (9,9,9) is outside the query box. Returns count=2 with a wrong index.",
+   "rootCause": "In the leaf branch (line 57) the code does `for (int i = 0; i < n->Count; i++) outIdx[i] = n->FirstIndex + i;` emitting every point in the leaf unconditionally. The node-region test on line 56 only rejects nodes whose bounding region is DISJOINT from the query box; a partially-overlapping leaf still contains points outside the box. Unlike RangeTree.QueryRec / SegmentTree which test each point, Octree never filters individual points against (x1,y1,z1)-(x2,y2,z2).",
+   "suggestedFix": "In the leaf branch, test each point against the query box before emitting: for each i in [0,Count), let g = FirstIndex+i and only append g if xs[g]>=x1 && xs[g]<=x2 && ys[g]>=y1 && ys[g]<=y2 && zs[g]>=z1 && zs[g]<=z2. This requires RangeQuery to also receive xs/ys/zs pointers (currently it does not), so the signature must be extended to pass the coordinate arrays for per-point filtering."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Spatial/Octree.cs",
+   "symbol": "PartitionOctants",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Octant index computed twice per point (count pass + scatter pass); cache it in a stackalloc byte buffer and reuse.",
+   "currentCost": "GetOctIdx is called once in the counting loop (line 33) and again in the scatter loop (line 35) for every point in [start,end). That is 2 calls x (3 compares + 3 ORs) per point per recursion level, i.e. O(n) redundant index recomputation at every tree level (O(n log n) total wasted GetOctIdx evaluations and 2x redundant loads of xs/ys/zs).",
+   "proposedChange": "Allocate `byte* oct = stackalloc byte[n];` alongside tx/ty/tz. In the first loop store `byte o = (byte)GetOctIdx(...); oct[i-start]=o; counts[o]++;`. In the scatter loop read `int idx = oct[i-start];` instead of recomputing. This also removes the second set of xs[i]/ys[i]/zs[i] loads needed only for the index.",
+   "rationale": "Halves the GetOctIdx work and eliminates one full re-read of the three coordinate streams per node, trading 6 FP compares/point for one byte load/store. Fewer cycles and fewer dependent loads in the hottest build loop; byte buffer is tiny and stays in L1.",
+   "risk": "None to semantics \u2014 identical partition. Adds n bytes of stack per recursion frame; n shrinks down the tree so peak extra stack is bounded by root n. Keep `byte` (0..7 fits)."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Spatial/Octree.cs",
+   "symbol": "PartitionOctants",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "stackalloc of tx/ty/tz uses the full [start,end) span at every recursion level, compounding stack usage along the deepest path.",
+   "currentCost": "Each BuildRec frame that partitions allocates 3*n doubles (24*n bytes) of scratch where n=end-start. Along a recursion path the live frames stack their scratch; worst case the sum over the path can approach 24*N*maxDepth bytes of stack in pathological splits, risking stack overflow for large N on mobile (small thread stacks).",
+   "proposedChange": "Allocate the tx/ty/tz scratch once in Build() sized to the root n (or accept a caller-provided scratch pointer per the Try*/Run convention) and pass it down, reusing the same buffer at each level since partition is done before recursing into children.",
+   "rationale": "Caller-provided or once-allocated scratch caps scratch RAM at 24*N bytes total instead of growing per recursion frame, removing a mobile stack-overflow hazard and reducing stack-probe/touch cost.",
+   "risk": "Scratch is consumed before BuildChildren recurses, so a single shared buffer is safe (no overlap between a parent's partition and its children's). Must size to root n. Changes Build signature if exposed as a scratch param (ergonomics tradeoff)."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Spatial/Octree.cs",
+   "symbol": "BuildChildren",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Recomputes mx,my,mz which were already computed (as x+size/2 etc.) by the caller for PartitionOctants.",
+   "currentCost": "PartitionOctants is called with x+size/2, y+size/2, z+size/2 (line 25), then BuildChildren recomputes mx=x+half, my=y+half, mz=z+half (line 41) where half==size/2. Two extra adds (size/2 already equals half). Minor but per-node.",
+   "proposedChange": "Compute `double half = size/2, mx = x+half, my = y+half, mz = z+half;` once in BuildRec and pass mx/my/mz into both PartitionOctants and BuildChildren, dropping the recompute and the inner `x + size/2` expressions.",
+   "rationale": "Removes 3 redundant adds and a divide-vs-half mismatch per internal node; tightens the per-node dependency chain.",
+   "risk": "size/2 and half are bit-identical (same double divide), so midpoints are identical \u2014 fully semantics-preserving."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Spatial/Octree.cs",
+   "symbol": "RangeQuery",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Leaf detection does 8 child-pointer compares even though the build already stores Count; recursion also re-checks each child >=0 after the all-negative test.",
+   "currentCost": "Every visited node runs an 8-way `Ci<0` AND chain (line 57) to detect a leaf, then on internal nodes re-tests each `Ci>=0` (lines 59-66). A leaf node here is exactly one with end-start<=1 or depth>=maxDepth; the node already carries Count and could carry an explicit leaf flag, avoiding the 8-compare scan on the hot query path.",
+   "proposedChange": "Mark leaves at build time (e.g. set C0=-2 sentinel or a dedicated IsLeaf via reusing sign of Count) and test a single condition for the leaf fast-path; for internal nodes the per-child `>=0` guard is still needed but the leaf scan is removed.",
+   "rationale": "Replaces an 8-term boolean reduction at every node with one branch on the common leaf path, shortening the query's per-node critical path in a recursive hot loop.",
+   "risk": "Must pick a sentinel that cannot collide with valid node indices (>=0). Adds one store at build time. Behavior identical if the leaf predicate matches the original all-children-negative condition exactly."
+  }
+ ]
+}

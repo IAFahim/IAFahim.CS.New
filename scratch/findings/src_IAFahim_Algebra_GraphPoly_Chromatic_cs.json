@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Algebra.GraphPoly/Chromatic.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Algebra.GraphPoly/Chromatic.cs",
+   "symbol": "Chromatic.Subset (y[k] computation)",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Replace per-k ModPow(F[mask], k, MOD) with an incrementally maintained power array, removing the log(k) factor from the dominant loop.",
+   "currentCost": "The k-loop computes ModPow(F[mask], k, MOD) for every k in [0,n] and every mask in [0,2^n): O(n * 2^n * log n) modular multiplications. ModPow does b%=mod, a branch, and a square-and-multiply loop of ~log2(k) iterations each with two 64-bit muls and two %.",
+   "proposedChange": "Allocate long* curPow = stackalloc long[size] initialised to 1 (this is F[mask]^0). For each k from 0..n, use curPow[mask] directly as F[mask]^k inside the sum loop, then after using it multiply curPow[mask] = (curPow[mask]*F[mask]) % MOD to advance to exponent k+1. This computes F[mask]^k with one mul/mod per (k,mask) instead of a full ModPow.",
+   "rationale": "Drops the inner exponentiation from O(log k) modular muls to amortised O(1) per (k,mask), turning the block from O(n * 2^n * log n) to O(n * 2^n). This is the asymptotically dominant phase of Subset, so the win is real and large for the typical n up to ~20.",
+   "risk": "Semantics-preserving: F[mask]^0 = 1 even when F[mask] is 0 (0^0 is treated as 1 here, matching ModPow(0,0,MOD)=1), and ModPow(F[mask],k>0,MOD) with F[mask]=0 gives 0 which the running product also produces. Needs size*8 extra bytes of stackalloc; size = 2^n so memory matches existing F buffer and is fine for the n this brute-force method already requires."
+  },
+  {
+   "file": "src/IAFahim.Algebra.GraphPoly/Chromatic.cs",
+   "symbol": "Chromatic.PopCount",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace the bit-by-bit PopCount loop with System.Numerics.BitOperations.PopCount (single popcnt instruction under Burst).",
+   "currentCost": "PopCount shifts and tests one bit per iteration: up to 31 iterations, each a branch, AND, increment, and shift. Called once per mask inside the y[k] loop: n * 2^n invocations.",
+   "proposedChange": "Return (int)System.Numerics.BitOperations.PopCount((uint)mask). Cast to uint is safe because mask is a non-negative subset index < 2^n.",
+   "rationale": "BitOperations.PopCount lowers to a single hardware popcnt on x86/ARM under Burst, replacing an ~O(bits) data-dependent branch chain with one instruction; removes a long dependency chain and unpredictable branch.",
+   "risk": "Cast to uint required since the intrinsic is defined on unsigned types; mask is always >= 0 here so the bit pattern is identical. No semantic change."
+  },
+  {
+   "file": "src/IAFahim.Algebra.GraphPoly/Chromatic.cs",
+   "symbol": "Chromatic.PopCount / y[k] parity",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist popcount out of the k-loop and precompute the (n-pop) sign per mask once, instead of recomputing PopCount for every k.",
+   "currentCost": "PopCount(mask) and the (n-pop)%2 parity test are recomputed for every (k,mask) pair = n * 2^n times, though pop depends only on mask.",
+   "proposedChange": "Before the k-loop, precompute a sign per mask once (e.g. a byte/sbyte buffer or fold the +/- into curPow handling) using popcount of mask, then in the k-loop just branch on the precomputed sign. Even simpler: track parity incrementally is unnecessary if PopCount is hoisted to a one-time pass over masks.",
+   "rationale": "Removes (n-1)*2^n redundant popcount+modulo computations. The sign of each mask is loop-invariant in k.",
+   "risk": "Adds a small per-mask buffer (2^n bytes). Behaviour identical. If combined with the curPow change above, ensure the precompute pass runs once before the k-loop."
+  },
+  {
+   "file": "src/IAFahim.Algebra.GraphPoly/Chromatic.cs",
+   "symbol": "Chromatic.Interpolate (nextPoly stackalloc in loop)",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "stackalloc inside the for-i loop allocates a fresh buffer every iteration; hoist a single max-sized scratch buffer outside the loop.",
+   "currentCost": "long* nextPoly = stackalloc long[polyLen + 1] executes on every iteration of the i-loop (n+1 times). Stack-pointer growth inside a loop is not reclaimed until method return in C#, so this can grow the frame by sum(polyLen+1) ~ O(n^2) longs rather than O(n), and re-zeroes each time.",
+   "proposedChange": "Allocate one long* nextPoly = stackalloc long[n + 2] before the loop and reuse it each iteration, zeroing only the [0..polyLen] prefix actually used. Same for any other in-loop stackallocs.",
+   "rationale": "Caps stack usage at O(n) longs instead of O(n^2) cumulative, reduces frame size and the risk of stack overflow for larger n, and avoids repeated allocation setup. Burst/IL keeps in-loop stackalloc live for the whole method, so this is a genuine working-set reduction.",
+   "risk": "Must zero exactly the prefix that the algorithm reads (0..polyLen) each iteration to preserve the current zero-initialised semantics. polyLen grows to n+1, so buffer size n+2 covers nextPoly[j+1] for j up to polyLen-1."
+  },
+  {
+   "file": "src/IAFahim.Algebra.GraphPoly/Chromatic.cs",
+   "symbol": "Chromatic.IsIndependentSet",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Iterate only over set bits of mask and drop the unnecessary long index arithmetic for the adjacency lookup.",
+   "currentCost": "Double loop over all i,j in [0,n) testing (mask & (1<<i)) each time, recomputing 1<<i and 1<<j; index computed as (long)i*(long)n+(long)j with three long casts and a 64-bit multiply.",
+   "proposedChange": "Loop over set bits: for a copy m=mask, extract lowest set bit i via BitOperations.TrailingZeroCount, then inner-iterate remaining higher set bits; compute index as int i*n+j (no long). Since the whole method requires size=1<<n to fit a positive int (n<=30), i*n+j < n*n <= ~900M fits in int.",
+   "rationale": "Skips all clear-bit iterations (work proportional to popcount^2 instead of n^2), eliminates recomputed shifts, and replaces 64-bit index math with 32-bit. Fewer cycles and a shorter dependency chain that Burst handles better.",
+   "risk": "int index is safe only while n*n stays within int range; n is already bounded by 1<<n being a valid positive int (n<=30), but for n in (23,30] n*n can exceed int max \u2014 guard: keep int index only for n<=46340, which always holds here since n<=30 gives max 900M < 2^31. So safe across the entire valid input domain. Same applies to the identical IsIndependentSet in Independence.cs and the adj index in Matching.cs."
+  }
+ ]
+}

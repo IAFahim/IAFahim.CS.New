@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.String.Match/MainLorentz.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.String.Match/MainLorentz.cs",
+   "symbol": "MainLorentz.Find",
+   "severity": "high",
+   "category": "logic",
+   "summary": "Find records at most ONE run per period value. After recording (or even just matching) the first occurrence of a given period, the unconditional 'break' at the end of the matched-branch exits the entire 'start' loop, so all later non-overlapping runs of the same period are silently dropped. A method named after Main-Lorentz is expected to enumerate all maximal repetitions, but it misses many.",
+   "triggeringInput": "s={97,97,98,98} (\"aabb\"), n=4. Period 1 has two distinct runs: \"aa\" at start 0 (length 2) and \"bb\" at start 2 (length 2). Find returns count=1 with only {Start=0,Period=1,Length=2}; the \"bb\" run at Start=2 is never reported.",
+   "rootCause": "The 'break;' on line 54 is inside the 'for (start ...)' loop and runs after the first match for the current period, terminating the start scan. The subsumption-check loop was clearly intended to dedup overlapping runs of the same period across many starts, but the break prevents those later starts from ever being examined.",
+   "suggestedFix": "Remove the unconditional 'break;' (line 54) so the start loop continues scanning all positions for the current period; rely on the subsumption check (and/or advancing start past the found run) to avoid duplicate/overlapping reports. Optionally skip start forward to start+len-period after recording a run to avoid re-reporting the same maximal run from interior offsets."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Match/MainLorentz.cs",
+   "symbol": "Find",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "The whole routine is O(n^2) per period (O(n^3) total in the worst case) plus an O(count) subsumption scan; the genuine Main-Lorentz algorithm finds all maximal repetitions in O(n log n).",
+   "currentCost": "Outer period loop O(n), inner start loop O(n), inner k-compare O(period), and an extra O(count) subsumption scan per found run. Worst case approaches O(n^3).",
+   "proposedChange": "Replace the brute-force scan with the actual Main-Lorentz divide-and-conquer using Z-function / prefix-function on prefix and reversed suffix to find runs crossing the midpoint, giving O(n log n). At minimum, replace the O(count) linear subsumption check with an indexing keyed by period.",
+   "rationale": "This file is named MainLorentz but implements brute force; the named algorithm is asymptotically far better and is the intended contract. Massive cycle reduction for large n.",
+   "risk": "Significant rewrite; must preserve the exact set/ordering of Run outputs the current code emits (it emits the first non-subsumed run per period via the `break`). The true algorithm enumerates maximal repetitions which may differ in count/representation \u2014 confirm the intended output contract before changing."
+  },
+  {
+   "file": "src/IAFahim.String.Match/MainLorentz.cs",
+   "symbol": "Find",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The extension loop computes `len % period` every iteration; since len starts at 2*period it equals len-period region and can be tracked with a running index instead of a modulo.",
+   "currentCost": "`s[start + len % period]` performs an integer division/modulo per extension step \u2014 div is ~20+ cycles and is on the hot extension path.",
+   "proposedChange": "Maintain a cyclic index `int m = period` (since at len==2*period, len%period==0... actually track `int m = (2*period) % period == 0`), incrementing m each step and resetting to 0 when m==period: `if (++m == period) m = 0;` then compare `s[start+len] == s[start+m]`.",
+   "rationale": "Replaces a hardware division with an increment-and-compare (branch predictable, ~1 cycle), removing the div from the inner extension loop.",
+   "risk": "Must seed m correctly: at len==2*period the index is len%period==0, so start m at 0 before the first compare. Strength reduction of % to a counter is exact for non-negative len."
+  },
+  {
+   "file": "src/IAFahim.String.Match/MainLorentz.cs",
+   "symbol": "Find",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "`period * 2` and `2 * period` are recomputed in loop headers/bodies; minor invariant hoist.",
+   "currentCost": "`period * 2 <= n` in the outer header and `start + 2 * period <= n` plus `len = 2 * period` each recompute the doubling.",
+   "proposedChange": "Hoist `int twoP = period << 1;` once per outer iteration and reuse for the header bound, the inner start bound, and the initial len.",
+   "rationale": "Shift instead of multiply and a single CSE per period; trims a few ops from inner-loop bound checks.",
+   "risk": "None \u2014 period is positive, period<<1 == period*2 exactly with no overflow for valid n."
+  }
+ ]
+}

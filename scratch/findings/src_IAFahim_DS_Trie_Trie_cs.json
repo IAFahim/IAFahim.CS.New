@@ -1,0 +1,72 @@
+{
+ "file": "src/IAFahim.DS.Trie/Trie.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.DS.Trie/Trie.cs",
+   "symbol": "PersistentTrieInsert.Run",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Persistent trie insert never copies the non-followed (sibling) child pointer of each node, so every value previously inserted that differs from the new value at some bit is dropped from the new version. The new path nodes have their off-branch child left at 0 instead of pointing to the shared old subtree, breaking the core persistence/sharing invariant and producing a version that contains only the newly inserted value along its single path.",
+   "triggeringInput": "bits=1. Build version v1 by inserting val=0 (root child[0] -> leaf). Then call Run(oldTrie=v1Trie, oldNode=v1Root, val=1, bits=1, newTrie) to make v2. v2's root gets child[1] set to the new leaf, but child[0] is left 0, so v2 no longer contains val=0. A subsequent max-xor / membership query over v2 cannot find value 0 even though it must persist from v1.",
+   "rootCause": "The loop only writes the followed branch: newTrie[newCur*3+1+b] = newNext, and advances cur = oldTrie[cur*3+1+b]. It never copies oldTrie[cur*3+1+(1-b)] into newTrie[newCur*3+1+(1-b)]. A persistent (path-copy) trie must, at each created node, copy the unchanged sibling pointer from the old node so the new version shares the old subtree; omitting it loses all data branching off the un-followed direction. (Also, because newTrie is a separate array from oldTrie, even copying the raw index would not share correctly \u2014 the design requires the new and old structures to live in one array so the copied sibling index is valid.)",
+   "suggestedFix": "At each level, after creating newNext, also copy the sibling: newTrie[newCur*3+1+(1-b)] = oldTrie[cur*3+1+(1-b)]; and copy the count from the old node (newTrie[newCur*3+3] = oldTrie[cur*3+3]) before descending, with the final node's count incremented. Persistent path-copy also requires old and new nodes to share one backing array so the copied sibling indices remain valid (pass a single trie pointer rather than separate oldTrie/newTrie)."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.Trie/Trie.cs",
+   "symbol": "TrieInsert.Run / TrieFind.Run / TrieDelete.Run / TriePrefixCount.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the per-node base index `cur * 27` into a local instead of recomputing `cur * 27 + c` (and `cur * 27 + 26`) multiple times per iteration.",
+   "currentCost": "Each loop body computes `cur * 27 + c` at least once, and on the insert path computes `cur * 27 + c` twice (read at line 14, write at line 18). 27 is not a power of two, so each is a full imul + add. TrieDelete recomputes `p * 27 + c` 26 times in the child-scan plus `p * 27 + pc` again.",
+   "proposedChange": "Compute `int base = cur * 27;` once at the top of each iteration and index `trie[base + c]`, `trie[base + 26]`. In TrieDelete's inner scan, hoist `int pbase = p * 27;` before the `for (c...)` loop so the multiply is done once per path node instead of once per child.",
+   "rationale": "Removes redundant imul instructions from the hot per-character loop and the 26-iteration child scan. The base address is a loop invariant within each node visit; computing it once shortens the dependency chain feeding every array access.",
+   "risk": "None. Pure CSE of an integer expression; identical results. `cur`/`p` are non-negative node ids so no overflow concern beyond what already exists."
+  },
+  {
+   "file": "src/IAFahim.DS.Trie/Trie.cs",
+   "symbol": "BinaryTrieInsert.Run / BinaryTrieErase.Run / BinaryTrieMaxXor.Run / BinaryTrieMinXor.Run / PersistentTrieInsert.Run / PersistentTrieQuery.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist `cur * 3 + 1` (the children base) into a local; currently `cur * 3 + 1 + b` / `+ 3` are recomputed and several loads are issued twice.",
+   "currentCost": "Stride-3 means `cur * 3` is a lea/imul recomputed per access. BinaryTrieMaxXor loads `trie[cur*3+1+want]` twice (test at line 159, use at line 162); MinXor loads `trie[cur*3+1+want]` twice (lines 183 and 185). BinaryTrieErase recomputes `path[i] * 3 + 1 + b` for both the read (line 142) and the conditional write (line 144), and re-derives the bit with `(val >> (bits-1-i)) & 1`.",
+   "proposedChange": "Per iteration compute `int childBase = cur * 3 + 1;`, then index `trie[childBase + b]`. In Max/MinXor, load `int chosen = trie[childBase + want];` once into a local and branch on `chosen != 0`, reusing `chosen` for the assignment to `cur`. In BinaryTrieErase, hoist `int pbase = path[i] * 3 + 1;` and load the child node id once.",
+   "rationale": "Eliminates a redundant memory load (the same trie slot read twice) and redundant address arithmetic in the bit-walk loops. Halving the load count on the chosen branch shortens the critical dependency chain that determines the next `cur`, which is the loop's latency bottleneck.",
+   "risk": "None for the address hoist. For the double-load elimination: the trie array is not aliased/modified between the two reads within these query methods, so caching the value is semantics-preserving."
+  },
+  {
+   "file": "src/IAFahim.DS.Trie/Trie.cs",
+   "symbol": "TriePrefixCount.SumSubtree",
+   "dimension": "burst",
+   "impact": "high",
+   "summary": "Convert the recursive subtree sum into an explicit stack-based (or pointer-stack) iterative DFS to make it Burst-friendly and avoid call-frame overhead.",
+   "currentCost": "Recursion across up to N nodes incurs a call/return per visited node, with the trie row spilled to the stack frame; Burst does not inline/optimize recursion well and recursive functions defeat its vectorization and can blow the stack on deep/wide tries. Each call also recomputes `cur * 27`.",
+   "proposedChange": "Replace recursion with an explicit `int* stack = stackalloc int[STACK_CAP];` worklist DFS: push `cur`, while stack non-empty pop `n`, add `trie[n*27+26]` to sum, and push each non-zero child `trie[n*27+c]`. Hoist `int base = n*27;` per pop. Document STACK_CAP as a named constant sized to max trie node count, consistent with the stackalloc[256]/[64] pattern already used in this file.",
+   "rationale": "Removes per-node call/return overhead, turns the traversal into a tight loop Burst can compile cleanly, and bounds stack usage to an explicit named cap rather than implicit recursion depth. Same total work, far lower constant factor and no recursion hazard.",
+   "risk": "Must size STACK_CAP for the worst-case live frontier (a worklist can hold more than tree depth). Caller-provided trie node count bounds it; if unbounded, this is a behavioral constraint to document. Output sum is identical."
+  },
+  {
+   "file": "src/IAFahim.DS.Trie/Trie.cs",
+   "symbol": "TrieDelete.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Reuse the already-stored child index instead of rescanning all 26 child slots to test 'has any child', and reuse the bit/char already known.",
+   "currentCost": "The cleanup loop scans up to 26 slots per path node (`for c in 0..26`) to detect any remaining child. After deleting one child this is an O(26) scan per level; across a full backtrack it is O(26 * pathLen).",
+   "proposedChange": "Track, alongside `path[i]`, the child slot index that was descended into (store `c` per level in a parallel `int* pathC = stackalloc int[256];`). When pruning, you still must confirm no OTHER child exists, so the 26-scan cannot be fully removed \u2014 but you can early-skip the slot just zeroed and avoid re-deriving `pc = s[i]-'a'` (already known as pathC[i]). Hoist `int pbase = p*27;` (see first item) so the scan indexes `trie[pbase+c]`.",
+   "rationale": "Removes the redundant `s[i]-'a'` recomputation and the redundant multiply per scanned slot; storing the descended slot avoids recomputing it. The 26-scan itself is required for correctness (need to know if a sibling subtree survives), so only constant-factor cleanup is available here.",
+   "risk": "Low. Must keep the existing semantics: prune only when the node has zero children. Storing pathC adds 1KB of stackalloc (256 ints) \u2014 acceptable given path[] is already 256 ints; ensure total stackalloc stays within budget."
+  },
+  {
+   "file": "src/IAFahim.DS.Trie/Trie.cs",
+   "symbol": "TrieInsert.Run / TrieFind.Run / TrieDelete.Run / TriePrefixCount.Run",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Document/exploit that the alphabet stride is 27 (not 32); a 26-wide alphabet padded to 32 (power-of-two stride) would turn `cur * 27` into `cur << 5` and `+ 26` slot handling, trading 5 wasted ints/node for branchless shift indexing.",
+   "currentCost": "Stride 27 forces an integer multiply on every node access across all trie operations. The count slot lives at index 26.",
+   "proposedChange": "If memory budget allows, change the node stride to 32 (children 0..25, count at slot 26 or 31) so `cur * 32` strength-reduces to `cur << 5`. This converts every `cur * 27` in the file into a shift. Gate behind a named constant `NODE_STRIDE` so the choice is explicit and the +26/+31 count index is consistent across all five classes.",
+   "rationale": "Replaces a multiply with a single shift on the hottest address computation in every trie operation. Cache cost: 32 vs 27 ints per node is +18% node size, which may increase cache misses on large tries \u2014 hence this is a tradeoff, not a free win.",
+   "risk": "Changes the on-array layout, so the trie buffer size and `++trie[0]` node-allocation accounting must be updated coherently across ALL classes (Insert/Delete/Find/PrefixCount) and any caller. Behavior is preserved only if every accessor uses the same stride. Marked low impact because the multiply may already be folded into a lea on the target ISA and the extra RAM can hurt mobile cache."
+  }
+ ]
+}

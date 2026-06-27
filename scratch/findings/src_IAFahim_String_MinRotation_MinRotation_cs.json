@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.String.MinRotation/MinRotation.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.MinRotation/MinRotation.cs",
+   "symbol": "Booth.Run(byte*, int)",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "The stackalloc int[len*2] failure buffer 'f' is allocated and zero-initialized but never read or written after init; remove it entirely.",
+   "currentCost": "8*len bytes of stack per call plus a len*2-iteration zeroing loop (2*len stores). For large len this can overflow the limited stack on mobile and pollutes cache with a buffer that is pure dead state.",
+   "proposedChange": "Delete the lines 'int* f = stackalloc int[len * 2];' and the following 'for (int i = 0; i < len * 2; i++) f[i] = 0;'. The algorithm as written (Booth's with i2/j/k pointers) never references f.",
+   "rationale": "Eliminates an entire O(len) memory write pass and 8*len bytes of stack working set with zero behavioral change, since f is write-once-dead. Fewer cache misses, no stack-overflow risk on mobile.",
+   "risk": "None. f is provably never read. The int* overload (line 26) already omits this buffer, confirming it is vestigial. Pure dead-code removal, semantics identical."
+  },
+  {
+   "file": "src/IAFahim.String.MinRotation/MinRotation.cs",
+   "symbol": "Booth.Run(byte*, int)",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace the two modulo operations (i2+k)%len and (j+k)%len in the hot loop with branchless conditional subtraction.",
+   "currentCost": "Two integer div/mod per loop iteration. Idiv on x86/ARM is ~20-40 cycles and cannot be vectorized; this is the dominant cost in the inner loop and Burst cannot strength-reduce a non-constant len.",
+   "proposedChange": "Both indices are in [0, 2*len-2). Compute 'int ia = i2+k; if (ia>=len) ia-=len;' and 'int jb=j+k; if (jb>=len) jb-=len;' then index s[ia], s[jb]. Equivalently branchless: 'ia -= (ia>=len ? len : 0)'. Since i2,j,k each < len, the sum is < 2*len so a single subtraction always normalizes.",
+   "rationale": "A single compare-and-subtract (predicated, ~1-2 cycles) replaces a full integer division (~20-40 cycles), removing the longest dependency-chain operation from the hot path. len need not be a power of two for this to be valid.",
+   "risk": "Valid only because each of i2,j,k is strictly < len at the point of use (loop guard ensures it), so i2+k and j+k are < 2*len, meaning one subtraction suffices. If invariants changed (k could reach len), a while/loop would be needed; here single subtraction is provably sufficient."
+  },
+  {
+   "file": "src/IAFahim.String.MinRotation/MinRotation.cs",
+   "symbol": "Booth.Run(int*, int)",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Same modulo-to-conditional-subtraction strength reduction as the byte* overload for (i2+k)%len and (j+k)%len.",
+   "currentCost": "Two non-constant idiv per inner-loop iteration dominate the loop; Burst cannot turn a runtime len into a multiply-shift.",
+   "proposedChange": "Replace s[(i2+k)%len] / s[(j+k)%len] with normalized indices: 'int ia=i2+k; ia-=(ia>=len?len:0); int jb=j+k; jb-=(jb>=len?len:0);' then s[ia], s[jb].",
+   "rationale": "Eliminates the heaviest arithmetic op (division) from the hot loop, shortening the per-iteration dependency chain by ~20-40 cycles each.",
+   "risk": "Same guard: i2,j,k < len so sums < 2*len, one subtraction normalizes. Behavior identical."
+  },
+  {
+   "file": "src/IAFahim.String.MinRotation/MinRotation.cs",
+   "symbol": "Booth.Run (both overloads)",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Add [MethodImpl(MethodImplOptions.AggressiveInlining)] is NOT warranted for these (they contain loops), but the unused 'using System;' should be removed and the missing attribute on a future leaf helper noted; primarily flag that System import is dead.",
+   "currentCost": "'using System;' (line 3) is unused after the dead f-buffer removal; no runtime cost but signals leftover scaffolding. AggressiveInlining on a looped method gives no benefit.",
+   "proposedChange": "Remove 'using System;' (nothing from System namespace is referenced). Keep 'using System.Runtime.CompilerServices;' only if an inlining attribute is actually added elsewhere; otherwise it is also unused and can be removed.",
+   "rationale": "Both using directives are currently unused (no Math, no MethodImpl attribute present). Removing dead imports is a zero-risk cleanup; neither method should be force-inlined since both contain a while loop.",
+   "risk": "None \u2014 purely removing unreferenced imports. Confirm no attribute usage before removing System.Runtime.CompilerServices."
+  }
+ ]
+}

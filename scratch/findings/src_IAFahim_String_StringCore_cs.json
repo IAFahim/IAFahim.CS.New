@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.String/StringCore.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String/StringCore.cs",
+   "symbol": "MinCyclicShift.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace the two per-iteration `% len` modulo operations (integer divisions) with subtraction-based wraparound.",
+   "currentCost": "Each loop iteration computes `s[(i + k) % len]` and `s[(j + k) % len]`. `len` is a runtime value (not a compile-time power of two), so each `%` is a full hardware integer division. Booth's/duval's min-cyclic-shift loop runs O(len) iterations, so this is 2 divisions per hot iteration \u2014 divisions are 20-40+ cycles each on mobile ARM and not pipelined well.",
+   "proposedChange": "Index can be reduced by subtraction rather than modulo because `i < len`, `j < len`, and `k < len` are loop invariants, so `i + k` and `j + k` are each strictly less than `2*len`. Compute e.g. `int ik = i + k; if (ik >= len) ik -= len;` and likewise `int jk = j + k; if (jk >= len) jk -= len;`, then index `s[ik]` / `s[jk]`. A single conditional subtraction (or branchless `ik - (len & -(ik >= len ? 1 : 0))`) replaces each division.",
+   "rationale": "`a + b < 2*len` with `0 <= a,b < len` means `(a+b) % len` equals `(a+b) - len` when `a+b >= len`, else `a+b`. One compare + conditional subtract (~1-3 cycles, branch-predictable since the wrap is infrequent within a run) replaces a 20-40 cycle division, cutting the dominant cost of the inner loop roughly in half.",
+   "risk": "Correctness depends on the invariants `i<len`, `j<len`, `k<len` which are exactly the loop guard `while (i < len && j < len && k < len)`. Since the indexing only happens inside that guarded body, `i+k < 2*len` and `j+k < 2*len` always hold, so a single subtraction is provably equivalent to `% len`. No signed-negative concern: all of i,j,k are non-negative. Pure constant-factor, no semantic change."
+  },
+  {
+   "file": "src/IAFahim.String/StringCore.cs",
+   "symbol": "MinPeriod.Run",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "MinPeriod.Run is a pure forwarding wrapper over StringPeriod.Run; mark it AggressiveInlining (or document it as an alias) so the call is elided.",
+   "currentCost": "`MinPeriod.Run` only does `return StringPeriod.Run(s, len);`. Under Burst/IL2CPP the JIT/AOT will usually inline a trivial forwarder, but it is not guaranteed, leaving a redundant call frame and an extra symbol that duplicates intent.",
+   "proposedChange": "Add `[MethodImpl(MethodImplOptions.AggressiveInlining)]` to `MinPeriod.Run` (the `System.Runtime.CompilerServices` using is already present) to force the forward to collapse, or consolidate to a single public name to remove the duplicate API surface.",
+   "rationale": "Guarantees zero call-frame overhead for the alias and removes ambiguity about which entry point is canonical, with no behavior change.",
+   "risk": "None functionally \u2014 identical inputs/outputs. Only an API-surface/discoverability consideration: if both names are intentionally public for clarity, keep both but inline the wrapper."
+  },
+  {
+   "file": "src/IAFahim.String/StringCore.cs",
+   "symbol": "StringPeriod.Run / Borders.Run / CountOccurrences.Run",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "The KMP prefix-function build is duplicated verbatim across three classes; factor it into one AggressiveInlining helper to avoid divergent maintenance and enable a single optimization point.",
+   "currentCost": "The identical loop `for (int i=1,j=0; i<len; i++){ while(j>0 && s[i]!=s[j]) j=fail[j-1]; if(s[i]==s[j]) j++; fail[i]=j; }` appears three times (StringPeriod lines 134-139, Borders 159-164, CountOccurrences 184-189). Triplicated code triples the surface for bugs and means any future micro-opt (e.g. caching `s[j]`) must be applied three times.",
+   "proposedChange": "Extract `static void BuildFailure(byte* s, int len, int* fail)` marked `[MethodImpl(MethodImplOptions.AggressiveInlining)]` and call it from all three sites. This is a refactor only; with AggressiveInlining the generated code for each caller is unchanged.",
+   "rationale": "DRY without cost: inlining keeps the hot loop in-place per caller while collapsing three copies into one canonical, individually-optimizable definition. Lowers complexity/maintenance risk at zero runtime cost.",
+   "risk": "Must keep the helper AggressiveInlining and pointer-typed so Burst still vectorizes/inlines exactly as today; otherwise a non-inlined call could add overhead. Semantics identical since the code is copied verbatim."
+  },
+  {
+   "file": "src/IAFahim.String/StringCore.cs",
+   "symbol": "StringPeriod.Run / Borders.Run / CountOccurrences.Run (failure loop)",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "In the KMP failure-build inner loop, cache `s[i]` once per outer iteration to cut repeated loads in the while/if comparisons.",
+   "currentCost": "Inside the build loop, `s[i]` is re-read in both `while (j>0 && s[i]!=s[j])` and `if (s[i]==s[j])`. `s` is a raw pointer the compiler cannot prove is alias-free against the `fail`/`radii` writes, so each `s[i]` may be reloaded from memory rather than kept in a register.",
+   "proposedChange": "Hoist `byte ci = s[i];` at the top of the outer loop body and compare `ci != s[j]` / `ci == s[j]`. Same for the matching loops in CountOccurrences (`byte ti = text[i];`).",
+   "rationale": "Removes a potential redundant memory load per iteration (the compiler may not hoist it due to pointer-aliasing uncertainty between `s` and `fail`). Saves a load and shortens the dependency chain in the tightest string-processing loops.",
+   "risk": "Provably equivalent: `s[i]` does not change within one outer iteration (the body writes only to `fail[i]`/`radii`/output, never to `s`). No aliasing hazard since `s` is read-only by contract. Pure micro-opt."
+  }
+ ]
+}

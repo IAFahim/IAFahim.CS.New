@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.DS.Grid/MakeGrid.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.Grid/MakeGrid.cs",
+   "symbol": "MakeGrid.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace per-cell multiply (y*width+x) with a running counter; the value being stored equals the linear index itself.",
+   "currentCost": "Each inner iteration computes y*width+x (1 IMUL + 1 ADD) plus index++ (separate counter). The stored value y*width+x is, by construction, identical to the running index that walks the buffer.",
+   "proposedChange": "Drop the nested loops and the multiply entirely: int total = width * height; for (int i = 0; i < total; i++) ptr[i] = i; Since cells are written in row-major order, ptr[index] always receives the value 'index'. This is a single tight loop Burst vectorizes trivially (store of an incrementing vector).",
+   "rationale": "Eliminates one IMUL per cell and the outer-loop bookkeeping, collapsing two nested loops into one linear pass with a self-incrementing store value. Lower dependency chain and SIMD-friendly (broadcast iota).",
+   "risk": "Semantics-preserving only because the write order is row-major and value == linear index. width*height must not overflow int (already implied: index is int and ptr[index++] uses the same range, so no new overflow risntroduced). Empty grid (total==0) handled by loop guard."
+  }
+ ]
+}

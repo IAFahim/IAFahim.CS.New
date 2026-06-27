@@ -1,0 +1,94 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Area.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Area.cs",
+   "symbol": "ErodeWalkableArea",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Redundant GetCon recomputation in Pass 1 and Pass 2 of the distance transform.",
+   "currentCost": "In Pass 1, GetCon(span, 0) is computed at the branch guard (line 98) and again to index aIndex (line 102); likewise GetCon(span, 3) at lines 123 and 127. Pass 2 repeats this for dirs 2 and 1 (lines 162/166, 187/191). GetCon does a shift+mask each call and takes RcCompactSpan by value (8-byte copy). Over SpanCount*2 passes this is ~4 extra shift/mask ops plus extra struct copies per span.",
+   "proposedChange": "Hoist each connection once: int con0 = GetCon(span, 0); if (con0 != RCNotConnected) { aIndex = (int)Cells[...].Index + con0; ... }. Do the same for con3 in Pass 1 and con2/con1 in Pass 2. Optionally load span.Con into a local uint once and shift directly instead of passing span by value repeatedly.",
+   "rationale": "Eliminates one shift+mask and one 8-byte struct copy per direction per span; shortens the dependency chain feeding the array index. Constant-factor win on the two hottest loops of erosion.",
+   "risk": "None. GetCon is a pure function of (span, direction); span is not mutated between the two calls, so the hoisted value is identical. Behavior preserved exactly."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Area.cs",
+   "symbol": "ErodeWalkableArea",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Per-neighbor saturating-min then compare-and-store can be fused into branchless min-of-mins with a single store per span.",
+   "currentCost": "Each neighbor relaxation computes newDistance = (byte)math.min(dist+K, 255) then a separate 'if (newDistance < distanceToBoundary[spanIndex]) distanceToBoundary[spanIndex] = newDistance'. That is one min, one load, one compare-branch, one conditional store per neighbor, up to 4 neighbors per span per pass, with distanceToBoundary[spanIndex] reloaded each time.",
+   "proposedChange": "Load cur = distanceToBoundary[spanIndex] once per span into a local, then for each neighbor do cur = math.min(cur, math.min(dist+K, 255)) keeping cur as int during accumulation; write (byte)cur back once at the end of the span. Collapses saturating add + clamp + compare into nested branchless min and removes repeated reload/conditional store.",
+   "rationale": "Turns 4 conditional stores into 1 store plus branchless mins. math.min lowers to vminps/cmov on Burst, removing mispredictable branches and shortening the dependency chain. The 255 clamp is still required because dist+K can exceed byte range.",
+   "risk": "Must preserve the +2 (axis) vs +3 (diagonal) distinction and the 255 saturation. min is associative/commutative so the final value equals the original sequential result. Keep cur in a wider int during accumulation to avoid byte wrap before the clamp."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Area.cs",
+   "symbol": "OffsetPoly",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Three integer modulo operations per loop iteration can be strength-reduced to increment/wrap.",
+   "currentCost": "Per vertex: vertIndexA = (vertIndex + numVerts - 1) % numVerts and vertIndexC = (vertIndex + 1) % numVerts execute two idiv-class operations per iteration. numVerts is runtime so Burst cannot turn these into shifts; integer mod is ~20-40 cycles each and long-latency.",
+   "proposedChange": "Walk indices incrementally: maintain int a = numVerts - 1, b = 0; in the loop compute c = b + 1; if (c == numVerts) c = 0; use a,b,c; then at end a = b; b = c. Replaces 2 modulos with one compare + conditional reset.",
+   "rationale": "Polygons are small but each modulo is far costlier than the surrounding float work; removing 2 idiv per iteration removes a long-latency op from the critical path. Real constant-factor win.",
+   "risk": "Indices must stay in [0,numVerts). The incremental wrap reproduces the exact same indices for the only valid range (numVerts>=1). Behavior preserved."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Area.cs",
+   "symbol": "MarkConvexPolyArea",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Per-span recomputation of cell-center world coordinates that are invariant across the inner span loop.",
+   "currentCost": "Inside the innermost span loop 'point' is built (lines 623-626) reloading compactHeightfield->BMin.x, BMin.z and CellSize and doing two FMAs for every span, but point.x/point.z depend only on (x,z), not spanIndex. For columns with many spans this recomputes identical values through pointer derefs each time.",
+   "proposedChange": "Hoist point.x/point.z (and the BMin/CellSize loads) out of the spanIndex loop into the x-loop body, computing 'point' once per cell. Since PointInPoly is pure in (x,z), the containment test can also be hoisted per cell, keeping only the per-span y-extent and RCNullArea checks in the inner loop. Also hoist BMin/CellSize/CellHeight into function-entry locals.",
+   "rationale": "Moves 2 pointer-deref loads + 2 FMAs (and potentially the whole PointInPoly call) from O(spans) to O(cells). Fewer dependent loads through the heightfield pointer.",
+   "risk": "None for the coordinate hoist. If PointInPoly is hoisted per cell, the y-extent test still varies per span and must remain in the inner loop; the polygon containment result is span-independent so hoisting it is safe."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Area.cs",
+   "symbol": "MarkBoxArea",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Heightfield scalar fields reloaded through the pointer for the 6 footprint divisions; divisions could be reciprocal-multiplies.",
+   "currentCost": "minX..maxZ each do '(value - compactHeightfield->BMin.x) / compactHeightfield->CellSize', issuing 6 pointer-deref loads of BMin components and CellSize/CellHeight plus 6 float divisions (~10-20 cycles each, not pipelined). The same fields are reloaded in MarkCylinderArea and MarkConvexPolyArea footprints.",
+   "proposedChange": "Load BMin, CellSize, CellHeight into locals once; precompute invCellSize = 1f/CellSize and invCellHeight = 1f/CellHeight and multiply for the 6 footprint conversions (reuse in the per-cell center calcs of the cylinder/poly variants).",
+   "rationale": "Replaces 6 dependent float divisions with 2 reciprocals + 6 multiplies and collapses repeated pointer loads into register-resident locals. Applies across all three Mark* functions.",
+   "risk": "Reciprocal-then-multiply is not bit-identical to direct division. Results are immediately truncated to int grid coords and inputs are well within float precision for typical voxel grids, so the truncated index is normally identical; if exact division parity is required, hoist only the pointer loads and keep the divides (still a win). Flag for maintainer."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Area.cs",
+   "symbol": "MedianFilterWalkableArea",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Full 9-element insertion sort used only to read the median (index 4); repeated Areas[spanIndex] reloads.",
+   "currentCost": "Per walkable span it sorts 9 bytes (up to ~36 data-dependent compares/swaps) only to read element 4, and reloads compactHeightfield->Areas[spanIndex] through the pointer in the 9-iteration init loop (line 264) and at lines 256/258.",
+   "proposedChange": "Hoist byte selfArea = compactHeightfield->Areas[spanIndex] into a local and use it to fill neighborAreas. Optionally replace the full sort with a verified median-of-9 selection network (~19 min/max comparators, branchless) that yields the median without fully sorting.",
+   "rationale": "Removes 9 redundant pointer loads per span; a median-of-9 network is fixed-length and branchless (Burst lowers min/max to cmov/vmin), avoiding the data-dependent mispredicting inner loop of insertion sort. Same median value.",
+   "risk": "The 5th-smallest of 9 is identical between a correct sort and a correct median network, so output is preserved. The network must be a verified median-of-9; if not adopted, the Areas[spanIndex] hoist alone is zero-risk."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Area.cs",
+   "symbol": "MedianFilterWalkableArea",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "The 0xff MemSet of the scratch areas buffer is dead initialization \u2014 every span is overwritten before read.",
+   "currentCost": "MedianFilterWalkableArea MemSets the SpanCount-byte 'areas' buffer to 0xff, then every spanIndex in [cell.Index, cell.Index+cell.Count) is written exactly once (RCNullArea copy branch or median result) and the buffer is MemCpy'd back. The initial 0xff fill is never observed.",
+   "proposedChange": "Drop 'UnsafeUtility.MemSet(areas, 0xff, SpanCount)' after confirming the compact-heightfield invariant that sum of cell.Count == SpanCount (every span covered by exactly one cell).",
+   "rationale": "Eliminates a full SpanCount-byte streaming write (cache-line eviction) on every MedianFilter call. Pure removal of dead initialization.",
+   "risk": "Correct only if every span is covered by exactly one cell range, which holds for a valid compact heightfield (the unchecked-input contract). If a span could be uncovered, its byte would be uninitialized; guard by confirming the invariant before removing the MemSet."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Area.cs",
+   "symbol": "GetDirOffsetX/GetDirOffsetY (callsites)",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "Hot loops call GetDirOffsetX/Y which index managed static int[] arrays \u2014 a Burst-hostile pattern hit many times per erosion/filter/mark pass.",
+   "currentCost": "DirOffsetX/DirOffsetY are 'static readonly int[]' managed arrays (Recast.cs:19-20). Every GetDirOffsetX/Y call in ErodeWalkableArea, MedianFilterWalkableArea and the Mark* functions performs a managed array load, which is bounds-checked outside Burst and blocks blittable/Burst-job compilation without a readonly-static workaround.",
+   "proposedChange": "Replace the managed arrays with an unmanaged form: a private static readonly Unity.Mathematics int4 DirOffsetX4 = new int4(-1,0,1,0) and int4 DirOffsetY4 = new int4(0,1,0,-1), with GetDirOffsetX returning DirOffsetX4[direction & 3]; or compute the offsets arithmetically. The masking already present keeps the index in range.",
+   "rationale": "int4 indexing is a blittable register shuffle Burst vectorizes, versus a managed int[] load that forces a GC-object reference and defeats Burst-job usage. Same values, removes a managed dependency from every direction lookup in these hot functions.",
+   "risk": "The declaration to change lives in Recast.cs, not the assigned files, but the cost is incurred at these callsites. Values must remain {-1,0,1,0} and {0,1,0,-1}; the int4 indexer returns the same element. Verify direction is masked to [0,3] (GetDirOffset* already does)."
+  }
+ ]
+}

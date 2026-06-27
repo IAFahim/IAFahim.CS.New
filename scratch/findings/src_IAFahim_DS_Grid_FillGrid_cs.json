@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.DS.Grid/FillGrid.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.Grid/FillGrid.cs",
+   "symbol": "FillGrid.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Element-wise scalar fill leaves vectorization to chance; for blittable T this can dispatch to a bulk memset-style fill when value bit-pattern is uniform.",
+   "currentCost": "Scalar loop 'ptr[i] = value' over width*height. Burst may auto-vectorize, but for 1-byte value patterns or zero a Unsafe bulk fill / memset is unconditionally faster and not dependent on the autovectorizer.",
+   "proposedChange": "For sizeof(T)==1 (or when value==default) call a memset equivalent (e.g., Unsafe.InitBlockUnaligned for zero). Otherwise keep the loop but mark it clearly vectorizable. At minimum, hoist 'int len = width*height' is already done; consider widening writes for common T sizes.",
+   "rationale": "memset/InitBlock saturates memory bandwidth and avoids the per-element store loop; for large grids fill is bandwidth-bound and a bulk primitive removes loop overhead and improves write-combining.",
+   "risk": "InitBlock only valid for byte-uniform patterns (zero, or T where all bytes equal). Guard on sizeof(T)==1 or value bit-pattern; general T must keep the loop. Keep AggressiveInlining."
+  },
+  {
+   "file": "src/IAFahim.DS.Grid/FillGrid.cs",
+   "symbol": "FillGrid.RunXY",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "index++ is already linear; minor: the unused 'value' parameter signals dead state and the getValue.Get could be hoisted per-row if it depends only on y.",
+   "currentCost": "'value' parameter is accepted but never used in RunXY \u2014 dead parameter, mild API confusion and a wasted register/arg slot. The double loop with index++ is fine.",
+   "proposedChange": "Remove the unused 'value' parameter from RunXY (ergonomics/purity). No behavioral change since it is never read.",
+   "rationale": "Removes a dead argument, clarifying the API and matching the functor-driven intent; no caller relies on its value.",
+   "risk": "Signature change \u2014 API break for callers passing value positionally. Cosmetic/ergonomic only; verify call sites before removing."
+  }
+ ]
+}

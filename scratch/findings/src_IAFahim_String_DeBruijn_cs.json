@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.String/DeBruijn.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String/DeBruijn.cs",
+   "symbol": "GraphBuild",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The adjacency build does a % numVertices per edge even though (u*k+i) is monotonic and wraps at most once per row.",
+   "currentCost": "Inner loop computes adj[u*k+i] = (u*k+i) % numVertices for every edge: numVertices*k modulo operations. Since numVertices = k^(n-1), u*k+i ranges in [0, k^n), and (u*k+i) % k^(n-1) is exactly the low n-1 digits.",
+   "proposedChange": "Note that v = (u*k+i) % numVertices = (u*k+i) - (((u*k+i)/numVertices))*numVertices, and since u<numVertices, u*k+i < numVertices*k, the quotient is in [0,k). Precompute base = u*k; for each i the value (base+i) wraps when it reaches a multiple of numVertices. Replace the per-edge division with an incremented counter v that increments alongside and is reset by subtracting numVertices when it reaches it (single compare+conditional-subtract instead of division).",
+   "rationale": "Replaces numVertices*k divisions with a running counter and one branch (or branchless conditional subtract) per edge. For DeBruijn where numVertices grows exponentially this removes the dominant per-edge division cost.",
+   "risk": "Must reset the running v=0 at the start of each u-row correctly and handle the wrap: since base+i increases by 1 each inner step and numVertices is the modulus, conditional subtract when v==numVertices is exact. Use unsigned-safe compare; all values non-negative so no signed-% pitfall."
+  },
+  {
+   "file": "src/IAFahim.String/DeBruijn.cs",
+   "symbol": "EulerianPath",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Same per-edge % numVertices in the Hierholzer loop as GraphBuild, plus numVertices is recomputed by a multiply loop already computed by GraphBuild's caller.",
+   "currentCost": "Inner step v = (u*k + nextEdge) % numVertices runs once per edge traversal (numEdges times) with a 64-bit modulo. numVertices is also recomputed via an n-1 iteration multiply loop at entry.",
+   "proposedChange": "Since nextEdge = edgeIdx[u] is in [0,k) and u in [0,numVertices), u*k+nextEdge < numVertices*k, so v = (u*k+nextEdge) - (u*k+nextEdge >= numVertices ? ... ). The quotient is in [0,k); compute v with a single division-free form: v = (u*k+nextEdge); while loop unnecessary \u2014 at most quotient<k so a multiply by k could overflow. Simpler: precompute numVertices via pow with exponentiation-by-squaring or accept the multiply loop (cheap, runs once). Focus: replace per-edge % with the standard De Bruijn successor (u % (numVertices/k))*k ... \u2014 but cleanest safe win is hoisting and noting numVertices is small. Recommend leaving % if numVertices not power-of-k-friendly; primary win is replacing the modulo with the identity v = (u*k+nextEdge) - numVertices*((u*k+nextEdge)/numVertices) only if a cheaper successor exists.",
+   "rationale": "The modulo is the hottest op in Hierholzer. A De Bruijn successor edge can be computed as nextVertex = (u * k + symbol) mod k^(n-1); when k is a power of two this is a mask/shift. Strength-reduce to shift/mask in the common k=2 (binary De Bruijn) case.",
+   "risk": "Power-of-two specialization only valid when k is a power of two (then % numVertices == & (numVertices-1) since numVertices=k^(n-1) is also a power of two and non-negative operands). Guard with a k-is-power-of-two check or a separate Run path; for general k keep the division. Signed operands are all non-negative so &-mask is exact under the guard."
+  },
+  {
+   "file": "src/IAFahim.String/DeBruijn.cs",
+   "symbol": "EulerianPath",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Dead 'allocated'/branch structure: the stackalloc-vs-AllocHGlobal split with a 1024 threshold mixes heap allocation into an otherwise pointer-pure API and adds a try/finally on the hot path.",
+   "currentCost": "The 1024-element threshold triggers Marshal.AllocHGlobal (managed interop, not Burst-friendly) and wraps the whole traversal in try/finally, which Burst cannot compile and which defeats the no-exceptions house rule on the hot path.",
+   "proposedChange": "Follow the house pattern used elsewhere (callers pass pre-sized buffers): take int* stack as a caller-provided parameter sized numEdges+1, removing the AllocHGlobal/try/finally entirely. This makes the method Burst-compilable and allocation-free, matching the rest of the module's pointer-buffer convention.",
+   "rationale": "Marshal.AllocHGlobal and try/finally are not Burst-compatible and introduce managed interop + exception scaffolding on the hot path. Moving the buffer to a caller parameter restores purity, removes runtime allocation, and matches the established API style (e.g. SuffixArrayBuild-style caller buffers).",
+   "risk": "API change: adds a parameter, so callers must supply the buffer (numEdges+1 ints). This is a signature break but aligns with house constraints (no heap alloc, no exceptions). Behavior of the traversal is unchanged."
+  }
+ ]
+}

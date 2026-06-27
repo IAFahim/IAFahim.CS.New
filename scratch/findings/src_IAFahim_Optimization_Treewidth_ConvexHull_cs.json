@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Optimization.Treewidth/ConvexHull.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Treewidth/ConvexHull.cs",
+   "symbol": "ConvexHull.CheckMonge",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Row bases i*n and (i+1)*n are recomputed for all four array accesses every inner iteration; column index j+1 recomputed.",
+   "currentCost": "Per (i,j): two multiplies (i*n, (i+1)*n) folded into four index expressions plus repeated +j / +(j+1) address arithmetic, and four dependent loads feeding two adds and a compare.",
+   "proposedChange": "Hoist long* row0 = a + (long)i*n; long* row1 = a + (long)(i+1)*n; outside the j loop. Inner: `long lhs = row0[j] + row1[j+1]; long rhs = row0[j+1] + row1[j]; if (lhs > rhs) return false;`. row1 for iteration i becomes row0 for i+1, so you can carry the pointer and avoid one multiply per outer step.",
+   "rationale": "Eliminates the i*n / (i+1)*n multiplies from the inner loop, reducing address-generation work and shortening the index dependency chain; pointer-walking is friendlier to Burst's addressing and SIMD recognition.",
+   "risk": "None; identical loads and comparison. Use long for the base offset to avoid int overflow if m*n exceeds int range (matches the existing implicit widening)."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Treewidth/ConvexHull.cs",
+   "symbol": "ConvexHull.CheckQuadrangle",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Same row-base recomputation as CheckMonge: i*n and (i+1)*n folded into four index expressions per inner iteration.",
+   "currentCost": "Per (i,j): two row-base multiplies and four address computations feeding a 3-operation arithmetic chain plus a sign compare.",
+   "proposedChange": "Hoist long* row0 = a + (long)i*n; long* row1 = a + (long)(i+1)*n; before the j loop; inner becomes `long d = row0[j] - row1[j] - row0[j+1] + row1[j+1]; if (d < 0) return false;`. Carry row1 into the next outer iteration's row0 to save one multiply per row.",
+   "rationale": "Removes the per-inner-iteration multiplies and tightens address generation; pure load/arith pattern auto-vectorizes better under Burst.",
+   "risk": "None; identical arithmetic and branch. Widen base offset to long to preserve indexing semantics for large m*n."
+  }
+ ]
+}

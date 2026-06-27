@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Graph.Flow/MinCostFlowCancelCycle.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Flow/MinCostFlowCancelCycle.cs",
+   "symbol": "Run",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "Hoist the four per-iteration stackalloc buffers (parent, parentEdge, dist, inqueue) out of the while(true) augmentation loop.",
+   "currentCost": "Lines 14-17 allocate 4 stack buffers (parent: n*4B, parentEdge: n*4B, dist: n*8B, inqueue: n*1B = ~17n bytes) on every single augmenting-path iteration. There can be O(V*E) augmentations; the stack pointer churns each loop and the buffers are re-zeroed/re-filled anyway at line 18 (and dist again inside Spfa at line 33).",
+   "proposedChange": "Move the four `stackalloc` declarations above `while (true)` (line 12). Keep the per-iteration reset loop at line 18 as-is (it already reinitializes all of dist/parent/inqueue each pass). Spfa's cnt and q buffers can likewise be allocated once and passed in, or Spfa's internal dist re-init (line 33) can be dropped since Run already sets dist on line 18 immediately before the call.",
+   "rationale": "stackalloc in a loop does not free per iteration in C#; the frame grows only once, but emitting the localloc/zeroing pattern each iteration adds instructions and defeats the JIT/Burst hoisting it could do if declared once. One allocation + a tight reset loop is strictly fewer instructions and a smaller, stable working set that stays hot in L1.",
+   "risk": "None for buffer hoisting: every element is unconditionally rewritten by the line-18 reset loop before use. If also removing the duplicate dist init at line 33, confirm Spfa is only ever called right after the line-18 reset (it is) \u2014 otherwise keep it. Stack frame size is unchanged or smaller."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/MinCostFlowCancelCycle.cs",
+   "symbol": "Run / Spfa",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Eliminate the duplicate dist[] initialization performed in both Run (line 18) and Spfa (line 33).",
+   "currentCost": "dist[i] = long.MaxValue is written for all i at line 18, then immediately overwritten with the identical value for all i at line 33 inside Spfa. That is a redundant O(n) pass over an 8n-byte buffer every augmentation, plus a second streaming write that evicts nothing useful.",
+   "proposedChange": "Remove the loop `for (int i = 0; i < n; i++) dist[i] = long.MaxValue;` at line 33 in Spfa (Run already initialized dist on line 18). Alternatively remove the dist part of line 18 and keep line 33. Keep exactly one.",
+   "rationale": "Halves the dist-initialization memory traffic per augmentation (one 8n-byte streaming write instead of two). On mobile with limited bandwidth this is a measurable constant-factor win in the hot augmentation loop.",
+   "risk": "Must guarantee Spfa is always invoked immediately after the line-18 reset with no intervening dist mutation. In this file Spfa is called only on line 19 right after line 18, so safe. dist[s]=0 is set in Spfa (line 34) after, so ordering is preserved."
+  }
+ ]
+}

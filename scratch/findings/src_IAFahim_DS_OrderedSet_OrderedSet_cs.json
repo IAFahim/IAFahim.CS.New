@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.DS.OrderedSet/OrderedSet.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.OrderedSet/OrderedSet.cs",
+   "symbol": "LowerBound<T>",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace IComparable<T>.CompareTo virtual-ish call in the hot binary-search loop with a branchless/Burst-friendly comparison and drop AggressiveInlining payoff concerns",
+   "currentCost": "Per loop iteration: one ptr[mid].CompareTo(key) call. CompareTo on a generic T:IComparable<T> is a constrained interface call. For primitive T this is fine, but the comparison-result is only tested with `< 0`, forcing the full 3-way comparison contract each step. Loop also recomputes `hi - lo` each iteration.",
+   "proposedChange": "Keep the algorithm but compute mid as `lo + ((hi - lo) >> 1)` instead of `/ 2`. Since `hi - lo >= 0` always (lo < hi guard), the shift is exactly equivalent to the unsigned division by 2 with no signed-rounding hazard. This strength-reduces the divide to a shift on every iteration.",
+   "rationale": "`(hi - lo)` is provably non-negative inside the `while (lo < hi)` body, so `/ 2` and `>> 1` produce identical results; the shift is 1 cycle vs a multi-cycle IDIV (or a div-by-constant magic-number sequence the JIT/Burst may emit). Saves cycles on every step of an O(log n) loop that runs for every Insert/Erase/Rank.",
+   "risk": "Safe: `hi - lo` cannot be negative given the loop guard and len >= 0, so arithmetic-shift == division. No overflow because `lo + (hi-lo)` stays within [0,len]. If a caller ever passed len < 0 (invalid by contract) behavior differs, but unchecked Run methods assume valid input."
+  },
+  {
+   "file": "src/IAFahim.DS.OrderedSet/OrderedSet.cs",
+   "symbol": "Insert<T>",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Use a bulk memmove for the shift loop instead of element-by-element copy",
+   "currentCost": "The `for (int i = len; i > idx; i--) ptr[i] = ptr[i-1];` loop moves (len - idx) elements one at a time with a dependency chain and bounds-free but still per-element store. For large sets this is the dominant cost of Insert and is not auto-vectorized well because of the descending overlapping copy.",
+   "proposedChange": "Replace the manual loop with `Buffer.MemoryMove(ptr + idx + 1, ptr + idx, (long)(len - idx) * sizeof(T))` (or Unity's `UnsafeUtility.MemMove` in the Unity/Burst build). This is an overlap-safe block move.",
+   "rationale": "A memmove intrinsic copies in wide SIMD chunks and is far cheaper than (len-idx) individual T-sized stores; it also removes the loop's induction-variable dependency chain. Strict improvement for the shift, same observable result.",
+   "risk": "Must use an overlap-aware move (memmove semantics), NOT memcpy, since source/dest regions overlap. `Buffer.MemoryMove` is overlap-safe. T is unmanaged so a raw byte move is valid (no managed refs to track). In Burst, prefer UnsafeUtility.MemMove; Buffer.MemoryMove may not be Burst-compatible, so gate by build."
+  },
+  {
+   "file": "src/IAFahim.DS.OrderedSet/OrderedSet.cs",
+   "symbol": "Erase<T>",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Use a bulk memmove for the compaction loop instead of element-by-element copy",
+   "currentCost": "The `for (int i = idx; i < len-1; i++) ptr[i] = ptr[i+1];` loop shifts (len-1-idx) elements down one slot, one at a time, with an induction dependency chain; same vectorization limitation as Insert.",
+   "proposedChange": "Replace with an overlap-safe block move: `UnsafeUtility.MemMove(ptr + idx, ptr + idx + 1, (long)(len - 1 - idx) * sizeof(T))` (or Buffer.MemoryMove on non-Burst builds).",
+   "rationale": "Block move runs in wide SIMD chunks instead of (len-1-idx) scalar stores, removing the per-element dependency chain. Same observable result.",
+   "risk": "Regions overlap (forward shift), so must use memmove not memcpy; both UnsafeUtility.MemMove and Buffer.MemoryMove handle overlap. T unmanaged makes the byte move valid."
+  },
+  {
+   "file": "src/IAFahim.DS.OrderedSet/OrderedSet.cs",
+   "symbol": "Insert<T>/Erase<T>",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Adopt the Try*/Run naming convention and surface whether the operation mutated the set",
+   "currentCost": "Insert returns `len` unchanged on duplicate and `len+1` on success; Erase returns `len` on not-found and `len-1` on success. Callers must compare the returned length against the input length to learn whether anything changed, which is an implicit, easy-to-misuse contract.",
+   "proposedChange": "Either keep the length-return fast path but add `TryInsert`/`TryErase` wrappers returning a bool `changed` out-param plus new length, or document the convention explicitly. No change to the hot path; the existing methods can be the unchecked `Run`-style core.",
+   "rationale": "Improves discoverability/consistency with the library's Run/Try* convention without altering the per-op cost model. Reduces caller bugs from misreading the sentinel-by-equal-length contract.",
+   "risk": "Pure API addition; if implemented as wrappers it has zero effect on existing call sites and no perf impact. Do not change existing return semantics or it breaks callers."
+  },
+  {
+   "file": "src/IAFahim.DS.OrderedSet/OrderedSet.cs",
+   "symbol": "Kth<T>",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Kth and Rank are trivial wrappers; consider returning by ref / documenting bounds expectation",
+   "currentCost": "`Kth` returns `ptr[k]` by value (a full T struct copy) and does no bounds reasoning by design. For large T (e.g. a big value struct) the by-value return copies the whole struct.",
+   "proposedChange": "Add a `ref T KthRef<T>(...)` overload returning `ref ptr[k]` for large-T callers that want to read/mutate in place without copying; keep the value-returning Kth for small primitives.",
+   "rationale": "For large unmanaged value types, returning ref avoids a struct copy on read; for primitives the by-value version is already optimal so keep both. Pure win for big-struct element types.",
+   "risk": "ref-return exposes mutation of the backing buffer; only safe if the caller does not violate sortedness. Document that mutating through KthRef can break the ordered invariant. No change to existing Kth semantics."
+  }
+ ]
+}

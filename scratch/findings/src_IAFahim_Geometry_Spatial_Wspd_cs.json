@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Geometry.Spatial/Wspd.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Spatial/Wspd.cs",
+   "symbol": "Build",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Computes Math.Sqrt for every one of the O(n^2) pairs; if S is used only for separation comparisons the sqrt can be deferred or avoided.",
+   "currentCost": "Inner loop runs Math.Sqrt(dx*dx+dy*dy) for all n(n-1)/2 pairs. sqrt is ~15-20+ cycle latency and serializes the loop; for n=1000 that is ~500k sqrts.",
+   "proposedChange": "If downstream consumers compare/threshold distances, store squared distance (dx*dx+dy*dy) in S and compare against squared thresholds, eliminating sqrt entirely. If the true distance is required, at least the loop is embarrassingly parallel \u2014 structure dx/dy as SoA spans so Burst can vectorize the multiply-add, and only sqrt the surviving pairs.",
+   "rationale": "Dropping sqrt removes the dominant per-pair latency in an O(n^2) kernel; squared-distance comparisons are monotonic so thresholding is exact without the root.",
+   "risk": "Changing S to squared distance changes the observable field value \u2014 only valid if all consumers are updated to expect squared (state guard: confirm no caller reads S as Euclidean distance). If S must remain true distance, keep sqrt but vectorize."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Spatial/Wspd.cs",
+   "symbol": "Build",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "This is a brute-force all-pairs enumeration (O(n^2) pairs), not a Well-Separated Pair Decomposition, which produces O(n) pairs via a split-tree.",
+   "currentCost": "Emits every pair: count = n(n-1)/2 = O(n^2) pairs and O(n^2) work and output RAM. A real WSPD over a fair-split tree yields O(n) pairs for fixed separation s in O(n log n) build time.",
+   "proposedChange": "Implement the actual WSPD: build a fair-split / kd tree, then recursively emit well-separated node pairs using the separation ratio s, producing O(s^d * n) pairs. This matches the class name Wspd and slashes both time and the pairs[] output size from quadratic to near-linear.",
+   "rationale": "Genuine asymptotic improvement (O(n^2)->O(n log n) time, O(n^2)->O(n) output) and correct WSPD semantics; the separation parameter s is currently stored but never used to prune, confirming the current code is a placeholder.",
+   "risk": "Large algorithmic change and changes output (set of pairs and their meaning) \u2014 flag for owner. Current code ignores s for pruning, so output differs from a true WSPD; treat as feature-completion, not a behavior-preserving micro-opt."
+  }
+ ]
+}

@@ -1,0 +1,60 @@
+{
+ "file": "src/IAFahim.Optimization.Games/MinCostFlow.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Optimization.Games/MinCostFlow.cs",
+   "symbol": "MinCostFlow.MinMeanCycle",
+   "severity": "critical",
+   "category": "overflow",
+   "summary": "The candidate-cycle filter `if (cycle < minCycle * len)` multiplies the running minimum by the cycle length. On the FIRST candidate `minCycle == long.MaxValue`, so for any `len >= 2` the product `long.MaxValue * len` overflows long and wraps to a negative value. The comparison `cycle < (negative)` then fails for every real cycle, so `minCycle` is never updated and the method returns long.MaxValue (the sentinel) even when a negative/min cycle exists. Independently, `len = cnt[v] - cnt[u] + 1` is not guaranteed positive, so `cycle / len` can divide by zero (long DivideByZeroException) or flip sign.",
+   "triggeringInput": "n=2, m=2, edges: from={0,1}, to={1,0}, w={-1,-1} (a 2-node negative cycle 0->1->0). On the first detected candidate, len>=2 makes long.MaxValue*len overflow negative, so `cycle < minCycle*len` is false and the genuine cycle is discarded; result returned as long.MaxValue instead of the true min mean (-1).",
+   "rootCause": "Comparing `cycle/len < minCycle` was reformulated as `cycle < minCycle*len` to avoid division, but the sentinel initial value long.MaxValue makes the multiplication overflow, and len is not validated to be positive. The whole detection is also not Karp's exact-edge-count DP, so cnt-based lengths are unreliable.",
+   "suggestedFix": "Track the best ratio as a fraction (bestNum/bestDen with bestDen>0) and compare via cross-multiplication using checked/Int128 or 128-bit math, e.g. `(long)cycle * bestDen < (long)bestNum * len`, only after verifying len>0; initialize with the first valid candidate instead of long.MaxValue, or implement Karp's algorithm with a d[k][v] exact-edge-count table and compute min over v of max over k of (d[n][v]-d[k][v])/(n-k)."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Games/MinCostFlow.cs",
+   "symbol": "MinCostFlow.MinCostArborescence",
+   "severity": "high",
+   "category": "logic",
+   "summary": "This claims to compute a minimum-cost arborescence (Chu-Liu/Edmonds) but only greedily selects the cheapest incoming edge per non-root vertex and sums them. It never contracts cycles formed by those chosen edges, so the selected edge set can contain cycles that are unreachable from the root, which is not a valid arborescence, and the returned sum is below the true optimum (or otherwise wrong).",
+   "triggeringInput": "n=3, root=0, m=4, edges (from,to,w): (0->1,10),(2->1,1),(1->2,1),(0->2,10). Greedy picks inEdge[1]=(2->1,1) and inEdge[2]=(1->2,1) forming the cycle 1<->2 disconnected from root; method returns total=2. The true minimum arborescence is 0->1(10)+1->2(1)=11.",
+   "rootCause": "Missing the core Edmonds step: detect cycles among the chosen min-in-edges, contract each cycle into a supernode, reweight, and recurse. The plain min-in-edge-per-vertex greedy is only correct when those edges happen to form a tree.",
+   "suggestedFix": "Implement the full Chu-Liu/Edmonds algorithm: after selecting min in-edges, find cycles; if none, the selection is the arborescence; otherwise contract each cycle, subtract the in-edge weight from edges entering cycle members, recurse, and expand. Until then the function should not be presented as MinCostArborescence."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Games/MinCostFlow.cs",
+   "symbol": "MinCostFlow.MinMeanCycle",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "The min-mean-cycle comparison `cycle < minCycle * len` is both a correctness hazard (overflow) and does integer division per candidate; the algorithm also relabels via a non-standard test.",
+   "currentCost": "`if (cycle < minCycle * len)` multiplies minCycle by len (line 68) and then `minCycle = cycle / len` divides (line 69). `minCycle` starts at long.MaxValue, so `minCycle * len` overflows for any len>1 on the first candidate, producing undefined ordering. The per-candidate `cycle / len` is also a 64-bit integer division (tens of cycles) inside the edge loop.",
+   "proposedChange": "Compare ratios without overflow by cross-multiplying with the running best stored as a fraction (bestNum/bestDen): replace `cycle < minCycle*len` with `cycle * bestDen < bestNum * len` using __int128-style widening or a guard `len>0 && bestDen>0`, and seed best lazily on the first valid candidate instead of long.MaxValue. Defer the single division to the very end (compute minCycle = bestNum/bestDen once after the loop). This removes the per-candidate division and the overflowing multiply.",
+   "rationale": "Eliminates a 64-bit idiv from the O(m) candidate loop and removes the long.MaxValue*len overflow that can corrupt the result, while keeping one final division. Fewer cycles and actually correct.",
+   "risk": "This touches correctness: the current `minCycle*len` overflow means the existing output is already wrong for the general case, so 'semantics-preserving' here means preserving the INTENDED min-mean-cycle value, not the buggy one. Cross-multiplication needs an overflow-safe widening (cycle and bestNum can be large); guard len>0 and handle the no-cycle sentinel (return long.MaxValue when no candidate found). Flag this for a correctness review, not a blind micro-opt."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Games/MinCostFlow.cs",
+   "symbol": "MinCostFlow.MinMeanCycle",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "dist/cnt init loop can use InitBlock, and the dist array is never seeded to +inf so all-zero init is intentional (Karp); fine, but the clear can vectorize.",
+   "currentCost": "`for(i<n){dist[i]=0;cnt[i]=0;}` is a scalar two-store loop over n.",
+   "proposedChange": "Zero both buffers with `Unsafe.InitBlockUnaligned(dist,0,(uint)(n*sizeof(long)))` and likewise for cnt, replacing the scalar loop with a vectorized memset.",
+   "rationale": "One vectorized fill instead of n scalar iterations; trivial but free cycle reduction at setup.",
+   "risk": "None \u2014 zeroing long/int buffers via InitBlock is bit-identical to assigning 0. Only valid because the intended init value is 0 (which it is)."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Games/MinCostFlow.cs",
+   "symbol": "MinCostFlow.MinCostArborescence",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Cache w[inEdge[v]] to avoid a double indirect load in the relaxation comparison.",
+   "currentCost": "`if (inEdge[v] < 0 || w[e] < w[inEdge[v]])` performs two dependent loads (inEdge[v] then w[inEdge[v]]) per edge in the selection loop. The same indirect load recurs.",
+   "proposedChange": "Maintain a parallel `long* bestW = stackalloc long[n]` initialized to a sentinel, so the comparison is `inEdge[v] < 0 || w[e] < bestW[v]` (one direct load) and update bestW[v]=w[e] alongside inEdge[v]=e. The summation loop then reads bestW[v] directly instead of w[inEdge[v]].",
+   "rationale": "Removes a level of pointer indirection (the dependent w[inEdge[v]] load) from the per-edge comparison and from the final sum, shortening the load dependency chain at the cost of n longs of scratch.",
+   "risk": "Adds n*8 bytes of stack. Behavior identical provided bestW is kept perfectly in sync with inEdge and the no-incoming-edge case (inEdge[v]<0) still returns long.MaxValue. Note this is a simplified arborescence (no contraction of cycles, just min-incoming-edge per vertex) \u2014 the opt does not change that semantics, correct or not."
+  }
+ ]
+}

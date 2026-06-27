@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Graph.Flow/DynamicTreeMaxFlow.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Flow/DynamicTreeMaxFlow.cs",
+   "symbol": "DinicWithLinkCut.Run",
+   "severity": "critical",
+   "category": "wrong-recurrence",
+   "summary": "The blocking-flow phase is broken: the inner BFS eagerly commits flow on every admissible tree edge (flow[e]+=add while building the parent tree), stranding excess at non-ancestors of t, and then Augment pushes additional flow only along the single parent path. Because the BFS already saturated those edges, Augment frequently computes add=0, so result is not increased even though augmenting paths exist. Flow conservation is also violated by stranded excess.",
+   "triggeringInput": "n=3, s=0, t=2 with edges s->a (cap 5) and a->t (cap 3); true max flow = 3. Phase BFS pushes 5 into a (flow[s->a]=5) and 3 into t (flow[a->t]=3), leaving excess 2 stranded at a. Augment then finds residual cap[a->t]-flow[a->t]=0, so add=0 and returns 0. Next BfsLayer sees both edges saturated and exits. Run returns 0 instead of 3.",
+   "rootCause": "The inner pseudo-push (lines 30-33) mutates flow during tree construction, but Augment (lines 63-73) only augments one root-to-t path and adds flow on top, so the eager pushes are never reconciled and dead-end excess is never returned to the source.",
+   "suggestedFix": "Do not mutate flow during the BFS tree build; only record parent/parentEdge, then in Augment compute the bottleneck over the path and apply flow once. Or implement a proper blocking-flow/current-arc DFS that retreats and returns unused excess."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Flow/DynamicTreeMaxFlow.cs",
+   "symbol": "DinicWithLinkCut.Run",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "stackalloc for q is inside the outer while loop, re-allocating n ints every BFS phase.",
+   "currentCost": "Line 19 'int* q = stackalloc int[n];' executes once per phase of the outer while loop (line 15..39). stackalloc inside a loop does not free per-iteration; the C# spec keeps it for the method lifetime, so repeated phases can grow the frame unboundedly and risk stack overflow on graphs with many phases (up to O(V) phases -> O(V^2) ints reserved).",
+   "proposedChange": "Hoist 'int* q = stackalloc int[n];' above the while loop (alongside level/parent/parentEdge/excess at lines 11-14). Reuse the same buffer each phase.",
+   "rationale": "Eliminates per-phase frame growth and a real stack-overflow hazard; identical contents since q is fully overwritten each phase (qh=qt=0 then refilled). Pure RAM and safety win.",
+   "risk": "None functionally. This is a correctness/robustness fix: leaving it in-loop is a latent stack-overflow bug on large phase counts."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/DynamicTreeMaxFlow.cs",
+   "symbol": "DinicWithLinkCut.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Fuse the three reset loops over n into one, and cache level[u]+1 in the inner BFS.",
+   "currentCost": "Line 17 resets parent/parentEdge/excess in one pass (already fused, good), but BfsLayer (line 45) does a separate full pass to set level=-1; per phase that is two O(n) passes. Inner loop re-reads level[u] (line 28) per edge.",
+   "proposedChange": "Cache 'int lu1 = level[u] + 1;' after dequeue and compare against it. The BfsLayer level-reset cannot trivially fuse with parent reset since BfsLayer runs first in the while condition; leave that, but note the level[to[e]] is read twice (lines 54,56) \u2014 hoist 'int w = to[e]; int* pl = level + w;' to read once.",
+   "rationale": "Removes redundant level[u] reload and the double to[e] indexing in BfsLayer's inner loop, both in the hottest BFS path.",
+   "risk": "None; u and to[e] values are stable within the iteration."
+  }
+ ]
+}

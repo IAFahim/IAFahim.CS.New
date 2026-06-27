@@ -1,0 +1,49 @@
+{
+ "file": "src/IAFahim.Graph/GraphTraversal.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph/GraphTraversal.cs",
+   "symbol": "ZeroOneBfs.Run",
+   "severity": "critical",
+   "category": "overflow",
+   "summary": "The 0-1 BFS deque dq is a circular buffer of fixed size n, but vertices are (re)inserted on every distance improvement with no visited/finalized guard, so the number of simultaneously queued elements (cnt) can exceed n; the circular indices then wrap and overwrite still-pending entries, corrupting the queue and producing wrong distances.",
+   "triggeringInput": "n=3, start=0, edges (forward-star): 0->1 w=0, 0->2 w=0, 1->2 w=0, 2->1 w=0 (a small graph where multiple zero-weight relaxations re-enqueue 1 and 2). Repeated front-insertions/back-insertions drive cnt above n=3, wrapping dh/dt over live slots.",
+   "rootCause": "Standard 0-1 BFS may push a vertex more than once; a circular array sized exactly n cannot hold more than n live entries. With only dist-improvement checks (no 'is finalized' check) the deque can hold more than n pending items, so dh/dt wraparound overwrites unprocessed vertices.",
+   "suggestedFix": "Either guard relaxation with a finalized[] flag and skip stale pops (each vertex finalized once), or size the deque to a safe upper bound (e.g. 2*m+1) instead of n so wraparound cannot overwrite live entries."
+  },
+  {
+   "file": "src/IAFahim.Graph/GraphTraversal.cs",
+   "symbol": "IterativeDfs.Run",
+   "severity": "high",
+   "category": "logic",
+   "summary": "Visited state is tracked via parent[v]==-1, but the start vertex keeps parent[start]==-1 for the whole run, so any edge pointing back to start treats start as unvisited and re-pushes it, causing re-traversal (and potential stack overflow on cycles through start).",
+   "triggeringInput": "n=2, start=0, adjacency containing edge 0->1 and 1->0. Processing node 1's edge to 0 finds parent[0]==-1, so it sets parent[0]=1 and pushes 0 again, re-running the DFS subtree and overwriting depth[0].",
+   "rootCause": "parent[start] is left at the sentinel -1 that doubles as the 'unvisited' marker; the start vertex is therefore indistinguishable from an unvisited vertex, so back-edges into start re-enqueue it.",
+   "suggestedFix": "Use a dedicated visited[] array (or set parent[start]=start as a self-sentinel and test for that) so the start vertex is recognized as visited and never re-pushed."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph/GraphTraversal.cs",
+   "symbol": "Dfs.Run",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "Recursive DFS with O(n) depth; prefer the iterative variant already present.",
+   "currentCost": "Recursive Run recurses to depth O(n); same native-stack-overflow and Burst-inlining concerns as the Kosaraju/Tarjan note. The codebase already ships IterativeDfs.Run which is the safe equivalent.",
+   "proposedChange": "Either document Dfs.Run as small-graph-only, or provide the timer (discovery/finish time) semantics inside IterativeDfs so callers can use the iterative version exclusively. Avoid recursion on the hot/large-n path.",
+   "rationale": "Removes O(n) recursion depth, avoids per-call frame setup, keeps Burst happy.",
+   "risk": "IterativeDfs currently does not produce the in/out 'time' stamps that Dfs.Run does; adding them must replicate the pre/post increment timing exactly. Behavior parity required."
+  },
+  {
+   "file": "src/IAFahim.Graph/GraphTraversal.cs",
+   "symbol": "ZeroOneBfs.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Deque wrap-around uses branchy if(dh>=n)dh=0 / if(dh<0)dh=n-1; fine, but dist[u]+w recomputed and compared twice.",
+   "currentCost": "Inside the relax loop, dist[u] is reloaded and dist[u]+w computed; the comparison dist[v] > dist[u]+w then the assignment dist[v]=dist[u]+w recomputes the sum. Minor redundant add. The circular-buffer index wrap is branchy but predictable.",
+   "proposedChange": "Hoist long du = dist[u] before the edge loop (loop-invariant), and compute long nd = du + w once, compare and store nd. Keeps the add off the critical path's second use.",
+   "rationale": "Removes a redundant add and a redundant load of dist[u] across all out-edges of u. dist[u] is invariant for the whole inner loop since u is popped and not relaxed against itself.",
+   "risk": "None \u2014 dist[u] is not modified within its own out-edge relaxation loop (no self-loops would change it before use in a way that affects correctness since we use the popped snapshot). Standard SPFA/0-1 BFS hoist."
+  }
+ ]
+}

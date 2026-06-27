@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Recast/RcCompactSpan.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/RcCompactSpan.cs",
+   "symbol": "Con/H setters",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Con and H setters do a read-modify-write of packedData even when SetCon already maintains the invariant; H setter's '(value & 0xFF) << 24' on a uint is fine but the Con write path is exercised once per SetCon call.",
+   "currentCost": "SetCon (Recast.cs) already computes the full new 24-bit con value with its own masking, then assigns span->Con = ..., which re-enters the Con setter and does '(packedData & 0xFF000000) | (value & 0x00FFFFFF)' \u2014 a second load of packedData and a second mask, redundant with the masking SetCon just performed.",
+   "proposedChange": "Expose an internal raw accessor (e.g. internal uint Packed { get; set; }) on RcCompactSpan so SetCon can do a single read-modify-write on the raw word: 'span->Packed = (packed & ~(0x3fu<<shift) & ~0... )' keeping the H byte intact, instead of round-tripping through the Con property which re-masks. The Con property assignment currently reloads packedData and re-applies a 24-bit mask SetCon's value already satisfies.",
+   "rationale": "Collapses two read-modify-write sequences (SetCon's compute + the property setter's mask/merge) into one, removing a redundant load and two AND/OR ops per SetCon. SetCon runs once per (span,direction) during BuildCompactHeightfield neighbor linking.",
+   "risk": "Must preserve that the high byte (H, bits 24-31) is never clobbered. The single-RMW form must AND-clear only the 6 target bits within the low 24 and OR the new value, leaving bits 24-31 untouched \u2014 exactly what the current two-step does. Keep the public Con/H properties unchanged for API/interop; only add an internal raw path. Memory layout is unaffected (still one uint)."
+  }
+ ]
+}

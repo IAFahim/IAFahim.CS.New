@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Math.Noise/SimplexNoise.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Noise/SimplexNoise.cs",
+   "symbol": "Grad2D",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Same cos/sin gradient as Perlin: replace trig-based Grad2D with trig-free hash-to-direction or math.sincos+folded scale.",
+   "currentCost": "Grad2D is called up to 3x per Noise2D, each doing math.cos + math.sin plus the Hash2D float divide and a double-promoted 2.0f*math.PI multiply (math.PI is double). Up to 6 transcendentals per sample dominate the cost.",
+   "proposedChange": "Either (a) select from a precomputed power-of-two-sized unit gradient table via (h & (N-1)) to remove trig entirely, or (b) keep angles but use math.sincos(angle, out s, out c), fold (h&0x7fffffff)*((float)(2.0*Math.PI/2147483647.0)) into one float multiply, and store the scale as a named float constant to kill the divide and the double promotion.",
+   "rationale": "Strength-reduces two transcendentals + a divide per gradient. Option (a) removes trig completely; option (b) halves the transcendental dependency chains and removes the double-precision arithmetic. Largest cycle lever in the file.",
+   "risk": "Option (a) changes exact output (different gradient set) - only valid if the noise identity may change; table must be unit-length and Burst-blittable (no managed float2[]). Option (b)'s constant folding alters last-ULP rounding vs the divide-then-multiply form; if bit-exactness is required, keep the divide but still use sincos and a float Pi2 constant to avoid the double promotion."
+  },
+  {
+   "file": "src/IAFahim.Math.Noise/SimplexNoise.cs",
+   "symbol": "Noise2D",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Make the corner-offset selection branchless and precompute 2*G2 as a named constant.",
+   "currentCost": "The if (v0.x > v0.y) branch sets i1x/i1y (1,0) or (0,1); this is a data-dependent branch in the hot path that Burst may not always flatten, and the result feeds an int->float conversion plus a float2 construct. Also 2.0f * G2 in v2 is recomputed each call (and 2.0f*G2 == Unskew2D*2; G2==Unskew2D here so it is literally 2*Unskew2D).",
+   "proposedChange": "Compute branchlessly: float xGreater = math.select(0.0f, 1.0f, v0.x > v0.y); float i1xf = xGreater; float i1yf = 1.0f - xGreater; build v1 = v0 - new float2(i1xf, i1yf) + G2. Keep integer i1x/i1y for the Grad2D index via int i1x = (int)i1xf; or use math.select on ints. Add private const float TwoG2 = 0.422649731f; (= 2*0.211324865) and use it in v2 instead of 2.0f * G2.",
+   "rationale": "Removes a hard-to-predict data branch (noise is sampled over many cells with near-50/50 outcomes, worst case for the branch predictor) and turns it into a compare+select that Burst vectorizes. Precomputing TwoG2 removes a redundant multiply and documents intent. Bit-exact: math.select on the same comparison yields identical values, and 0.422649731f equals the folded 2*G2 to float precision.",
+   "risk": "Must verify 2.0f * 0.211324865f rounds identically to the literal 0.422649731f; if not bit-equal, keep writing G2 + G2 (exact) instead of a separate literal. The > comparison tie-break (v0.x == v0.y) must map to the same branch as before (original takes the else/(0,1) path on equality, so use strictly > in select to match)."
+  },
+  {
+   "file": "src/IAFahim.Math.Noise/SimplexNoise.cs",
+   "symbol": "Skew2D",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Fix the misleading comment on Skew2D and the duplicate Unskew2D/G2 constants.",
+   "currentCost": "Skew2D = 0.366025403f is commented (Sqrt(3)-1)/2 which is correct, but Unskew2D and G2 hold the identical value 0.211324865f under two names, and G2 is used where Unskew2D's role overlaps - duplicate named constants for the same quantity invite drift and waste a reader's time.",
+   "proposedChange": "Collapse Unskew2D and G2 into a single named constant (they are the same (3-Sqrt(3))/6 value) and reference that one everywhere; keep the comment accurate. This is documentation/clarity only.",
+   "rationale": "Removes a duplicate constant and the risk of the two diverging in a future edit; no codegen change since both are compile-time constants.",
+   "risk": "None at codegen level (consts fold identically); purely a readability/maintenance change. Ensure every use site references the surviving constant."
+  }
+ ]
+}

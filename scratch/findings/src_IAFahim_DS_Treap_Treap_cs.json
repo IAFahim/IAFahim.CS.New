@@ -1,0 +1,72 @@
+{
+ "file": "src/IAFahim.DS.Treap/Treap.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.DS.Treap/Treap.cs",
+   "symbol": "Treap.Reverse",
+   "severity": "medium",
+   "category": "logic",
+   "summary": "Reverse(node) toggles the Rev (sub-tree reversal) flag, which reverses the in-order sequence and therefore destroys the binary-search-tree key ordering that the key-based operations in the same class (Find, Insert, Erase, Split, Rank, RangeQuery) rely on. Push only swaps children one level at a time during a later traversal, so after a Reverse the deeper sub-trees have their in-order reversed relative to key order; a subsequent key-comparison descent navigates the wrong way and returns wrong results. Reverse/Rev/Sum is the canonical implicit-treap (position-indexed) feature set, but here it is grafted onto a key-ordered treap whose other public methods navigate by key comparison, with no comment or separate type excluding the combination.",
+   "triggeringInput": "Insert keys 1,2,3 (in-order 1,2,3). Call Treap.Reverse(root) (toggles root->Rev so logical in-order becomes 3,2,1). Then call Treap.Find(root, 1): after the first Push swaps the root's children and propagates Rev one level down, the key-comparison descent follows the wrong branch in the still-reversed deeper subtree and can return null even though key 1 is present (or return the wrong node). Likewise RangeQuery(&root, l, r) after a Reverse returns a sum over the wrong set of keys.",
+   "rootCause": "Mixing a sub-tree reversal lazy flag (which is only meaningful for position/implicit-index ordering) with key-ordered search/split operations in the same struct/class. Reversal makes the in-order sequence inconsistent with the BST key invariant, so any later ordered key operation is operating on a structure that no longer satisfies its precondition.",
+   "suggestedFix": "Either (a) remove Reverse/Rev from the key-ordered Treap (reversal belongs only in the implicit/position-indexed treaps such as TreapImplicit/TreapRangeReverse), or (b) clearly document and enforce that Reverse and the key-ordered operations (Find/Insert/Erase/Split/Rank/RangeQuery) are mutually exclusive and must never be used on the same tree. If positional reversal is desired, expose it through a size-based split/merge API instead of key-based Split."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.Treap/Treap.cs",
+   "symbol": "Update",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Update calls SizeOf(Left)/SumOf(Left) and SizeOf(Right)/SumOf(Right) as four separate calls, each re-loading the same child pointer and re-doing the null check twice per child.",
+   "currentCost": "Per Update: 2 loads of node->Left, 2 loads of node->Right, 4 null-compares. Update is called on every Merge/Split/Insert/Erase recursion frame, so this is the hottest leaf in the library.",
+   "proposedChange": "Cache the child pointers once and fold size+sum: `TreapNode* l = node->Left; TreapNode* r = node->Right; int ls = l == null ? 0 : l->Size; long lsum = l == null ? 0 : l->Sum;` (same for r). Reading l->Size and l->Sum off one already-loaded l also keeps both fields in the same cache line.",
+   "rationale": "Halves the child-pointer loads and null branches (4 compares -> 2), and l->Size / l->Sum share a 64B cache line so the second access is free once l is dereferenced. Fewer dependency-chain stalls on the pointer chase. Burst will fold the two null checks into one predicated load.",
+   "risk": "None. Pure local CSE; identical results including the node==null early-out which is preserved. node==0 case unchanged."
+  },
+  {
+   "file": "src/IAFahim.DS.Treap/Treap.cs",
+   "symbol": "TreapNode",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "bool Rev sits between int Size and long Sum, causing alignment padding before Sum, inflating the node and reducing nodes-per-cache-line.",
+   "currentCost": "Key(4),Priority(4),Size(4),Rev(1)+3pad,Sum(8),Left(8),Right(8): the Rev byte forces 3 pad bytes before the 8-byte Sum, wasting space on the hottest pointer-chasing struct.",
+   "proposedChange": "Reorder fields to put all 4-byte ints together and the bool last (or as a packed byte): Key,Priority,Size, then Sum,Left,Right, then bool Rev at the end. This eliminates the mid-struct padding.",
+   "rationale": "Tighter packing = more nodes per 64B line during Merge/Split traversal, directly cutting cache misses on the dominant cost of a treap.",
+   "risk": "Reorders public struct layout (ABI change). Semantics unchanged. Only safe if external initializers use named-field init, not positional/blittable-copy that assumes current order."
+  },
+  {
+   "file": "src/IAFahim.DS.Treap/Treap.cs",
+   "symbol": "Kth",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Kth is recursive but is a strict downward traversal (tail-recursive in both branches), so it needlessly consumes stack frames per level.",
+   "currentCost": "One call frame per tree level (O(log n) frames); recursion prevents Burst from keeping state in registers.",
+   "proposedChange": "Rewrite as an iterative loop like Rank/Find: `while (root != null){ Push(root); int ls = SizeOf(root->Left); if (k<ls) root=root->Left; else if (k==ls) return root; else { k -= ls+1; root=root->Right; } } return null;`",
+   "rationale": "Eliminates call/return overhead and stack frame setup per level; keeps k and root in registers. Same O(log n) work, lower constant factor and no recursion depth pressure. Matches the iterative convention already used by Find/Rank.",
+   "risk": "None. Identical traversal and Push order. Note Push mutates (lazy reversal), so the iterative version must Push each visited node exactly as the recursion did \u2014 preserved."
+  },
+  {
+   "file": "src/IAFahim.DS.Treap/Treap.cs",
+   "symbol": "Split",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Split (key-ordered) is recursive only down one spine; it can be iterated, but more impactfully it recomputes Update on the way back which is unavoidable. The recursion itself is single-path and could be unrolled to a loop with pointer-to-pointer threading.",
+   "currentCost": "One frame per level; Update per level on return. Recursion frames add call overhead Burst cannot always elide.",
+   "proposedChange": "Leave Split recursive ONLY if Burst fails to flatten it; otherwise convert to iterative top-down split threading TreapNode** cursors, then a single bottom-up Update pass. Lower priority than the Update CSE above.",
+   "rationale": "Removes per-level call overhead. Marginal vs the Update CSE win, included for completeness.",
+   "risk": "Iterative split with lazy Push is subtle; the recursive form is correct and clear. Only refactor if measured frame overhead matters \u2014 house style and correctness favor leaving as-is. Low confidence, low impact."
+  },
+  {
+   "file": "src/IAFahim.DS.Treap/Treap.cs",
+   "symbol": "RangeQuery",
+   "dimension": "purity",
+   "impact": "low",
+   "summary": "RangeQuery is a read (returns Sum) but mutates the tree via two Splits/Merges and re-roots *root; it is not pure and does O(log n) structural writes per read.",
+   "currentCost": "Same split/merge write churn as TreapRangeMin.QueryMin for a read-only operation.",
+   "proposedChange": "Provide a non-destructive sum-fold over the key range [l,r] (BST-ordered descent accumulating SumOf over fully-covered subtrees), Pushing lazy only along the path. Keep the existing split/merge version if callers depend on the re-root.",
+   "rationale": "Eliminates structural mutation on reads, lowers write traffic and cache pressure, and makes the query deterministic/purer (no topology change).",
+   "risk": "Lazy (Rev) must be pushed along the descent to read correct subtree sums; result identical. Larger refactor; verify with tests. Low-medium confidence."
+  }
+ ]
+}

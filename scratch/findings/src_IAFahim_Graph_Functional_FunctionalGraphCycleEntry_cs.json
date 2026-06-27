@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Graph.Functional/FunctionalGraphCycleEntry.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Functional/FunctionalGraphCycleEntry.cs",
+   "symbol": "FunctionalGraphCycleEntry.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Cache f[u] to avoid loading it twice when seeding slow/fast.",
+   "currentCost": "Lines 10-11 read f[u] twice from memory (slow = f[u]; fast = f[f[u]]). The second f[u] is a redundant dependent load that the JIT/Burst may or may not CSE through a raw pointer because aliasing with the comp/output is not provable in general; the value is also re-fetched for the inner f[...] step.",
+   "proposedChange": "int fu = f[u]; int slow = fu; int fast = f[fu]; This computes f[u] once and reuses it for both seeds.",
+   "rationale": "Removes one dependent load on the hot setup path and shortens the dependency chain for the first fast step. f[u] is loop-invariant for the seed.",
+   "risk": "None. f is read-only here; no writes occur between the two reads of f[u], so the value is identical. Pure semantics preserved."
+  },
+  {
+   "file": "src/IAFahim.Graph.Functional/FunctionalGraphCycleEntry.cs",
+   "symbol": "FunctionalGraphCycleEntry.Run",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Unused parameter n in the signature.",
+   "currentCost": "n is accepted but never used. It costs an extra argument register/stack slot at the call site and misleads callers into thinking bounds are checked or used.",
+   "proposedChange": "Drop the int n parameter, or keep it only for signature symmetry with the other Functional* Run methods if the family must stay uniform. If kept for consistency, document that it is intentionally unused (unchecked Run).",
+   "rationale": "Fewer arguments marshalled; clearer contract. Burst/JIT will already discard it, so this is purely an API/clarity win.",
+   "risk": "Removing it breaks signature uniformity across the FunctionalGraph* family. If the family relies on a common signature shape (e.g. dispatch tables), keep n and just note it. No behavior change either way."
+  }
+ ]
+}

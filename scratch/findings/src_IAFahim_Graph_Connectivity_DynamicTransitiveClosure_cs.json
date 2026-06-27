@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Graph.Connectivity/DynamicTransitiveClosure.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Connectivity/DynamicTransitiveClosure.cs",
+   "symbol": "Init",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Init fills an n*n byte matrix with a per-element branch (i==j) instead of bulk-zeroing then setting the diagonal.",
+   "currentCost": "n*n iterations each with a branch and a recomputed i*n+j index; the inner j-loop recomputes i*n each iteration unless the compiler hoists it.",
+   "proposedChange": "Use Unsafe.InitBlockUnaligned(reach, 0, (uint)(n*n)) to zero the whole matrix in one vectorized memset, then a single loop 'for(int i=0;i<n;i++) reach[i*n+i]=1;' to set the diagonal. Replace inner index i*n+j by maintaining a running 'int row=i*n;' pointer.",
+   "rationale": "Bulk memset is SIMD/rep-stos fast and branchless; the diagonal pass is O(n) instead of folding a branch into all n^2 elements. Removes n^2 conditional moves and the multiply from the inner loop.",
+   "risk": "InitBlock requires byte fill value semantics (0 is fine). Behavior identical: zero everywhere then diagonal=1 equals (i==j) pattern."
+  },
+  {
+   "file": "src/IAFahim.Graph.Connectivity/DynamicTransitiveClosure.cs",
+   "symbol": "AddEdge",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "AddEdge recomputes the row base index i*n / v*n inside hot loops and uses byte comparisons that prevent wide vectorization of the inner OR-merge.",
+   "currentCost": "Inner loop indexes reach[i*n+j] and reach[v*n+j] recomputing bases each element; the j-loop is a scalar byte conditional store that Burst struggles to vectorize because of the branch.",
+   "proposedChange": "Hoist 'byte* rowV = reach + v*n;' once before the i-loop, and 'byte* rowI = reach + i*n;' once per i. Replace the branchy inner loop 'if(rowV[j]!=0) rowI[j]=1;' with a branchless merge 'rowI[j] |= rowV[j];' (since reach values are 0/1, OR equals the union and never sets a false bit). This is vectorizable. Even better: pack the reachability matrix as ulong* bitsets (n bits per row, ceil(n/64) words) and do word-wise 'rowI[w] |= rowV[w];' over only the v-row's set columns, cutting the inner loop by ~64x and shrinking RAM 8x.",
+   "rationale": "Branchless OR over contiguous rows is the textbook Burst-vectorizable pattern (SIMD OR + store). Bitset packing reduces both memory traffic (8x fewer bytes) and inner iterations (64x) and is the standard transitive-closure representation; it also speeds the outer reach[i*n+u] test via bit indexing.",
+   "risk": "Branchless OR is exact because operands are guaranteed 0/1 and union is monotonic. Bitset packing changes the storage layout, so Init/AddEdge/CanReach must all switch to bit indexing (reach[row + (col>>6)] & (1UL<<(col&63))); the (col&63) mask is valid since shift counts are unsigned-bounded. CanReach return becomes a bit test. This is an API/layout change but observable reachability answers are identical."
+  },
+  {
+   "file": "src/IAFahim.Graph.Connectivity/DynamicTransitiveClosure.cs",
+   "symbol": "AddEdge",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Inner j-loop runs over all n columns even when the v-row is sparse.",
+   "currentCost": "For each predecessor i, the loop scans all n columns of rowV testing each; columns where rowV[j]==0 do nothing yet still cost a load+branch.",
+   "proposedChange": "Precompute the list (or bitset) of columns j where reach[v*n+j]!=0 once before the i-loop, then for each qualifying i only iterate that column set. With the bitset representation this falls out naturally (iterate set words). Without bitsets, build a small int* colList of length k once and loop k instead of n per i.",
+   "rationale": "Turns the per-i inner cost from O(n) to O(k) where k = out-reach count of v; the v-row is constant across the i-loop so its nonzero columns are a loop invariant that is currently re-scanned for every i.",
+   "risk": "Needs a caller-provided scratch buffer for the column list (RAM/API change). Result identical since the set of j with rowV[j]!=0 is fixed during the call."
+  }
+ ]
+}

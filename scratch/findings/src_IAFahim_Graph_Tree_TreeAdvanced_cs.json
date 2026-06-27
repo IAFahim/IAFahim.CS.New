@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Graph.Tree/TreeAdvanced.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Tree/TreeAdvanced.cs",
+   "symbol": "TreeCentroids.Run",
+   "severity": "critical",
+   "category": "pointer-ub",
+   "summary": "BFS over the undirected adjacency list has no visited/parent guard, so every node re-enqueues its parent (and every neighbor) endlessly, overflowing the stackalloc q[n] buffer and corrupting the stack (undefined behavior / crash) for any tree with an edge.",
+   "triggeringInput": "n=2, root=0, an undirected edge 0<->1 represented in head/to/next (edge stored in both directions), removed all false. q starts [0]; popping 0 pushes 1; popping 1 pushes 0 again; this never terminates and writes far past q[2].",
+   "rootCause": "The traversal at line 51 enqueues to[e] guarded only by !removed[to[e]]; there is no visited array nor parent comparison, so in an undirected tree (each edge stored twice) the parent of u is re-enqueued, and subsequently u again, producing unbounded writes into the size-n stackalloc queue. Additionally size[u] is set to 1 but subtree sizes are never accumulated, so even without the overflow the centroid test size[to[e]] > total/2 (always 1 > total/2) is wrong.",
+   "suggestedFix": "Track the BFS parent (e.g. int* par = stackalloc int[n]; par[root]=root) and skip to[e]==par[u]; only enqueue unvisited neighbors. Then compute subtree sizes bottom-up over the BFS order before testing the centroid condition (max child subtree <= total/2 and total-size[u] <= total/2). Also replace the centroids |= (1<<u) bitmask, which cannot represent nodes u>=31, with an output array or list."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Tree/TreeAdvanced.cs",
+   "symbol": "TreeCentroids.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the loop-invariant `total / 2` out of the centroid scan and precompute it once.",
+   "currentCost": "Inside the for-i loop, `size[to[e]] > total / 2` (in the inner edge loop) and `(total - size[u]) <= total / 2` both recompute the integer division `total/2` repeatedly \u2014 once per edge examined plus once per node \u2014 over potentially many nodes/edges.",
+   "proposedChange": "Compute `int half = total / 2;` once after the BFS sizing pass, then compare against `half` everywhere. Division is one of the most expensive integer ops; this removes O(edges) redundant divides.",
+   "rationale": "Integer division is ~20-40 cycles on many targets and cannot be folded by the JIT/Burst since `total` is runtime. Hoisting it to a single divide removes it from the hot inner edge loop entirely.",
+   "risk": "None \u2014 total is unchanged inside the loop, so total/2 is loop-invariant; identical result."
+  },
+  {
+   "file": "src/IAFahim.Graph.Tree/TreeAdvanced.cs",
+   "symbol": "TreeCentroids.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The `size[u]=1` BFS sizing pass writes size for every reachable node but the subtree-size semantics are never actually computed (all sizes stay 1), making the > total/2 child test trivially false; verify intent \u2014 if sizes are meant to be subtree sizes a post-order accumulation is missing, otherwise the inner child-size loop can be dropped.",
+   "currentCost": "Lines 51 sets size[u]=1 for all nodes; the inner loop at line 56 then compares size[to[e]] (always 1) > total/2. For total>2 this branch is always false, so the entire inner edge scan is dead work unless subtree sizes were intended to be filled elsewhere.",
+   "proposedChange": "If subtree sizes are required, add a reverse-order accumulation `for(i=qt-1;i>0;i--) size[parent[q[i]]] += size[q[i]];` (needs a parent array like CentroidFind) before the centroid scan. If single-size semantics are truly intended, delete the inner `for(e...)` child check as provably-false and keep only `(total-size[u])<=total/2`.",
+   "rationale": "Either removes an entire O(edges) dead inner loop, or fixes a latent correctness gap. As written the child-mass test contributes nothing for total>2, so it is pure wasted cycles.",
+   "risk": "This changes observable output ONLY if the current result is already wrong; must confirm against tests/intended centroid definition before removing. Flag as needs-verification rather than a blind micro-opt. Standard centroid definition requires true subtree sizes, so the accumulation fix is the likely-correct path."
+  },
+  {
+   "file": "src/IAFahim.Graph.Tree/TreeAdvanced.cs",
+   "symbol": "TreeCentroids.Run",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Returning the centroid set as `centroids |= (1 << u)` in a single int caps usable node indices at 31 and silently corrupts for u>=32; this is both a RAM/encoding and correctness limitation.",
+   "currentCost": "`1 << u` is undefined/wrapping for u>=32 (shift count masked mod 32), so any tree where a centroid has index >=32 produces wrong bits. The whole API is implicitly limited to n<=31 nodes.",
+   "proposedChange": "Change the contract to write centroids into a caller-provided `int* outCentroids` (and return count), matching the TreeCenter pattern in TreeBasic.cs. This both removes the 32-node ceiling and aligns ergonomics with the existing center/center-count convention.",
+   "rationale": "Removes an undefined-behavior shift and a hidden node-count cap; consistent Run(... int* out)->count signature improves discoverability and matches TreeCenter.",
+   "risk": "API/signature change (breaking) \u2014 observable output representation changes from bitmask to array+count. Not a drop-in micro-opt; propose as an API correction. For n<=31 the bitmask values currently match, so a guard/comment is the minimum if the signature must stay."
+  },
+  {
+   "file": "src/IAFahim.Graph.Tree/TreeAdvanced.cs",
+   "symbol": "HldPathQuery.Run",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "The parameter `n` and array `depth`/`parent` are fine, but the unused parameter `n` aside, note `0, n-1` segment bounds are recomputed per call into SegmentTreeQuery; cache the segment root span once and mark the method AggressiveInlining-friendly leaf for the hot path loop.",
+   "currentCost": "Inside the while loop, each SegmentTreeQuery.RunInt64 call re-passes `1, 0, n-1` constants; the while loop walking chains is the hot path of HLD queries and the cross-class call may not inline.",
+   "proposedChange": "Add `[MethodImpl(MethodImplOptions.AggressiveInlining)]` to SegmentTreeQuery.RunInt64 (in its own file) so the per-chain query inlines into this loop, removing call overhead on the O(log n) chain hops. No change here beyond ensuring the callee is inlinable.",
+   "rationale": "HLD path queries do O(log n) chain hops each issuing a segment-tree query; inlining the leaf query removes call/return and argument-marshaling overhead on a hot path that runs per query.",
+   "risk": "Inlining a recursive segment-tree query may bloat code; verify the callee is iterative or that Burst handles it. If RunInt64 is recursive, inlining the entry frame only is still a minor win. No semantic change."
+  }
+ ]
+}

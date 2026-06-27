@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Optimization.Treewidth/RankTransform.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Treewidth/RankTransform.cs",
+   "symbol": "RankTransform.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Uses an O(n^2) selection-style sort to rank-transform; can be O(n log n) or, if value domain is bounded, O(n + range) counting sort.",
+   "currentCost": "n(n-1)/2 compares and up to that many 3-assignment swaps for the sort phase \u2014 quadratic, dominating for larger n.",
+   "proposedChange": "Replace the nested-loop sort with an in-place heapsort or insertion-into-sorted over the stackalloc 'sorted' buffer for O(n log n) worst case (heapsort needs no extra RAM, stays unmanaged/Burst-friendly). If x values fit a known small int range, prefer counting sort: stackalloc int[range+1], tally, prefix-sum, assign ranks directly without sorting \u2014 O(n+range) and branch-light.",
+   "rationale": "Lower asymptotic complexity is the single biggest win here; the current sort is the bottleneck. Heapsort keeps the no-extra-allocation property; counting sort additionally vectorizes the tally/prefix passes well under Burst.",
+   "risk": "Heapsort changes element movement but produces the same sorted order, so identical ranks. Counting sort requires a known/bounded value range and nonnegative-or-offset indices; if x can be arbitrary int, use heapsort instead. Must preserve stable rank assignment for duplicates (rank increments only on value change), which both alternatives respect since ranks are assigned from the sorted sequence."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Treewidth/RankTransform.cs",
+   "symbol": "RankTransform.Run",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "stackalloc int[n] copy buffer 'sorted' could be avoided if x is allowed to be mutated, or kept but is fine; the i==0 special-case in the ranking loop is a per-iteration branch.",
+   "currentCost": "n ints of stack scratch plus an `i == 0 || ...` branch evaluated every iteration of the ranking pass.",
+   "proposedChange": "Peel the first iteration: r=1; rank[sorted[0]]=1; then loop i from 1 with only the sorted[i]!=sorted[i-1] test, dropping the i==0 disjunct. Optionally, if callers don't need x preserved, sort x in place and drop the 'sorted' stackalloc entirely.",
+   "rationale": "Loop-peeling removes a per-iteration branch; dropping the scratch buffer halves stack working set and removes the initial copy pass (n stores). Smaller working set reduces stack cache pressure on mobile.",
+   "risk": "In-place sort destroys input x \u2014 only safe if the API contract permits it; otherwise keep the copy. Loop-peel is always safe (n>=1 must be guaranteed by caller, which the unchecked Run convention assumes)."
+  }
+ ]
+}

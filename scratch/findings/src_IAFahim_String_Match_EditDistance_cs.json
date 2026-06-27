@@ -1,0 +1,83 @@
+{
+ "file": "src/IAFahim.String.Match/EditDistance.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.String.Match/EditDistance.cs",
+   "symbol": "EditDistance.Ukkonen",
+   "severity": "critical",
+   "category": "wrong-recurrence",
+   "summary": "Ukkonen 'edit distance <= k' is fundamentally broken: the core loop in PerformUkkonenIteration compares a[j] to b[j] at the SAME index (no diagonal offset) and never references lenA at all (only m = lenB is used). It does not compute Levenshtein distance. It returns wrong answers for almost all inputs: identical strings return false (distance reported > k even for k=0), and distant strings return true.",
+   "triggeringInput": "a={97,97} (\"aa\"), lenA=2, b={97,97} (\"aa\"), lenB=2, k=0 -> returns false, but true edit distance is 0 (<=0 should be true). Also a={97,98} (\"ab\"), b={98,97} (\"ba\"), k=1 -> returns true, but true edit distance is 2 (>1, should be false).",
+   "rootCause": "The diagonal extension uses 'a[j] != b[j]' with a single index j = i-1-v[i] for both strings, instead of advancing two distinct indices along a Myers/Ukkonen diagonal (e.g. a[x] vs b[x-diag]). lenA is never used, so the algorithm cannot account for differing string contents or lengths. The DP/greedy-extend recurrence does not correspond to edit distance.",
+   "suggestedFix": "Replace with a correct banded Levenshtein (the existing Levenshtein method already works) thresholded by k, or implement Myers' O(ND) diagonal algorithm properly: track furthest-reaching point on each diagonal h in [-d..d], compare a[x] vs b[x-h] while extending, and check x>=lenA && (x-h)>=lenB to declare distance d. As written it must use both lenA and lenB and a real diagonal offset."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Match/EditDistance.cs",
+   "symbol": "Levenshtein",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "Two heap allocations (AllocHGlobal) per call defeat Burst and add syscall-level overhead; the unchecked/Run convention in this library uses caller-provided scratch buffers instead.",
+   "currentCost": "Two Marshal.AllocHGlobal calls + try/finally with two FreeHGlobal per invocation. Marshal interop and try/finally are not Burst-compatible and serialize on the allocator.",
+   "proposedChange": "Change the signature to accept two caller-provided int* scratch buffers (prev, curr) of size lenB+1, matching the buffer-passing convention used by DynamicKmp/PatternMatch/PrefixFunction. Drop the try/finally entirely. Caller can stackalloc.",
+   "rationale": "Removes per-call heap allocation and the managed Marshal/try-finally path, making the method Burst-compilable and eliminating allocator dependency chains. Same numeric result.",
+   "risk": "API change (adds parameters) \u2014 breaks existing callers. Behavior identical for all valid inputs; caller must supply buffers of at least lenB+1 ints, consistent with the unchecked Run convention."
+  },
+  {
+   "file": "src/IAFahim.String.Match/EditDistance.cs",
+   "symbol": "Levenshtein",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "The early-break on row-min > maxDist returns prev[lenB] from a stale (partially computed) row, which can return a distance that is not the true value but is also not consistently maxDist+1; the band can also be shrunk to O(lenA*maxDist).",
+   "currentCost": "Inner row is full width O(lenB) even when only the diagonal band of width 2*maxDist+1 can hold values <= maxDist. Columns outside the band are wasted work.",
+   "proposedChange": "Restrict the inner j-loop to the band [max(1, i-maxDist), min(lenB, i+maxDist)], initializing out-of-band cells to maxDist+1. This yields O(lenA*maxDist) instead of O(lenA*lenB).",
+   "rationale": "When maxDist << lenB this is a large asymptotic reduction in cycles and touches far fewer cache lines per row.",
+   "risk": "Must initialize band boundary cells to maxDist+1 so min() never reads uninitialized/out-of-band neighbors. Preserves the clamped result (return value capped at maxDist+1 semantics) only if the existing early-break semantics are also tightened; verify intended return contract first."
+  },
+  {
+   "file": "src/IAFahim.String.Match/EditDistance.cs",
+   "symbol": "UpdateLevenshteinRow",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "cost is computed with a branch and Math.Min nesting builds a longer dependency chain than necessary.",
+   "currentCost": "Ternary `a[i-1]==b[j-1]?0:1` is a data-dependent branch per cell; three-way Math.Min nests sequentially.",
+   "proposedChange": "Compute cost branchlessly: `int cost = (a[i - 1] != b[j - 1]) ? 1 : 0` can be `(int)(a[i-1] != b[j-1])`-style via subtraction trick, or hoist `a[i-1]` out of the j-loop into a local since it is loop-invariant across j.",
+   "rationale": "Hoisting a[i-1] removes one redundant load per inner iteration; branchless cost lets Burst vectorize the comparison. Inner loop runs lenA*lenB times so per-cell savings compound.",
+   "risk": "Branchless cost must produce exactly 0/1; the bool-to-int cast is well-defined. Hoisting a[i-1] is purely a CSE with no semantic change."
+  },
+  {
+   "file": "src/IAFahim.String.Match/EditDistance.cs",
+   "symbol": "Ukkonen",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "AllocHGlobal/FreeHGlobal + try/finally per call defeats Burst and allocates; should take a caller-provided v buffer.",
+   "currentCost": "One Marshal.AllocHGlobal + try/finally + FreeHGlobal per call; managed interop path blocks Burst.",
+   "proposedChange": "Pass `int* v` (size m+1) as a parameter like the other methods; remove try/finally. Caller stackallocs.",
+   "rationale": "Eliminates heap allocation and managed Marshal path, enabling Burst compilation and removing allocator serialization.",
+   "risk": "Signature change breaks callers. Numerically identical; caller must size v to lenB+1."
+  },
+  {
+   "file": "src/IAFahim.String.Match/EditDistance.cs",
+   "symbol": "PerformUkkonenIteration",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Loop-invariant `m + 1` (trace row stride) is recomputed each iteration, and the `d > 0` test inside the while is loop-invariant.",
+   "currentCost": "`d * (m + 1) + i` recomputes m+1 and the multiply each iteration; `d > 0` re-evaluated every while step though it cannot change within the call.",
+   "proposedChange": "Hoist `int stride = m + 1; int rowBase = d * stride;` before the i-loop and index `trace[rowBase + i]`. Lift the `d > 0` guard out of the while by skipping the extend loop entirely when d == 0.",
+   "rationale": "Removes a multiply and add from the trace store path and removes an invariant compare from the hot extend loop, shortening the dependency chain.",
+   "risk": "None \u2014 pure invariant hoisting. d does not change during the call."
+  },
+  {
+   "file": "src/IAFahim.String.Match/EditDistance.cs",
+   "symbol": "Hamming",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Branchful per-byte mismatch count prevents wide vectorization; a branchless accumulate lets Burst SIMD it.",
+   "currentCost": "`if (a[i] != b[i]) dist++;` is a data-dependent branch per byte, serializing and hard to vectorize.",
+   "proposedChange": "Accumulate branchlessly: `dist += (a[i] != b[i]) ? 1 : 0;` (bool-to-int) so Burst can vectorize the compare-and-sum, or process in word-sized chunks comparing 8 bytes via XOR and popcount of nonzero byte lanes.",
+   "rationale": "Removes the per-byte branch, enabling SIMD horizontal sum over the comparison mask; on long inputs this is several-x fewer cycles.",
+   "risk": "Branchless form yields identical count. Word-chunk variant needs careful tail handling and byte-lane nonzero detection to match exact per-byte count."
+  }
+ ]
+}

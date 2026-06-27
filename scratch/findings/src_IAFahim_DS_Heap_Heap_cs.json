@@ -1,0 +1,72 @@
+{
+ "file": "src/IAFahim.DS.Heap/Heap.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.Heap/Heap.cs",
+   "symbol": "HeapPush.Run<T>",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Sift-up does a full 3-way swap each level; replace with hole-carry insertion to halve writes per level.",
+   "currentCost": "Per level: one CompareTo plus a 3-assignment swap (read parent, write parent, write child). Each swap moves the inserted value down and back up repeatedly.",
+   "proposedChange": "Hold val in a register, only shift the parent down into the child slot when it is greater, and write val once at the final resting position: `T val=...; int i=len; while(i>0){int p=Parent(i); if(ptr[p].CompareTo(val)<=0) break; ptr[i]=ptr[p]; i=p;} ptr[i]=val;`",
+   "rationale": "Eliminates the redundant write of val into ptr[i] at every level (and the tmp read) \u2014 each level becomes one CompareTo + one copy instead of CompareTo + three copies. For a sift of depth d this saves ~2d element copies, shortening the dependency chain (each iteration depends only on ptr[p], not on a completed swap).",
+   "risk": "Semantics preserved exactly: standard hole-carry heap insertion produces an identical final array. val must be a local copy taken before the loop (it is the argument, already a copy). No signed/overflow concerns; Parent uses >>1 on non-negative i."
+  },
+  {
+   "file": "src/IAFahim.DS.Heap/Heap.cs",
+   "symbol": "HeapRemove.Run<T>",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Both the sift-up and sift-down phases use full 3-way swaps; convert to hole-carry to halve element copies.",
+   "currentCost": "Sift-up loop and sift-down loop each perform a 3-assignment swap per level (tmp read + 2 writes), plus re-reading ptr[cur]/ptr[smallest].",
+   "proposedChange": "Cache `T moved = ptr[len-1]` once, run sift-up comparing parent against `moved` and shifting parents down (ptr[cur]=ptr[p]), then in the sift-down phase compare children against `moved` and shift the smaller child up, writing `moved` to the final hole once. Avoid re-reading ptr[smallest] via a temp holding the current min child value.",
+   "rationale": "Same dependency-chain and write-count reduction as HeapPush: one copy per level instead of three. Also removes the repeated ptr[smallest]/ptr[cur] loads since the candidate value is kept in a register across the inner comparisons.",
+   "risk": "Behavior identical to swap-based sift. Must preserve the existing guard `if (cur != i) return;` that skips sift-down when the element bubbled up. moved must be read before the array is logically shortened. No overflow/signedness issues."
+  },
+  {
+   "file": "src/IAFahim.DS.Heap/Heap.cs",
+   "symbol": "HeapPop.Left / HeapPop.Right",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Dead code: HeapPop declares private Left and Right helpers that are never used.",
+   "currentCost": "Two unused private static methods (Left, Right) in HeapPop add source/IL surface and maintenance noise; they duplicate HeapFix's helpers.",
+   "proposedChange": "Delete HeapPop.Left and HeapPop.Right (lines 29-33). HeapPop.Run only computes ptr[0], ptr[len-1] and delegates to HeapFix.Run.",
+   "rationale": "Removes dead code; no runtime cost change but reduces complexity and the chance of divergence from the canonical helpers in HeapFix. Cleaner, more discoverable API.",
+   "risk": "None \u2014 the methods are private and unreferenced within the class. Pure deletion, no behavior change."
+  },
+  {
+   "file": "src/IAFahim.DS.Heap/Heap.cs",
+   "symbol": "DequePush/DequePop.* (PushFrontInt32, PushBackInt32, PopFrontInt32, PopBackInt32)",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Modulo by runtime cap on every push/pop; if cap is constrained to a power of two, replace % with & (cap-1).",
+   "currentCost": "Each deque op executes an integer division (`% cap`) \u2014 ~20-40 cycles on mobile ARM, and the worst single instruction in these otherwise trivial ring-buffer ops.",
+   "proposedChange": "Add power-of-two-capacity variants (or document cap as power-of-two and pass a mask): `*front = (*front - 1 + cap) & (cap - 1)` and `*back = (*back + 1) & (cap - 1)`. Alternatively branchless wrap without division: `int f=*front-1; *front = f<0 ? f+cap : f;` and `int b=*back+1; *back = b==cap ? 0 : b;`.",
+   "rationale": "Power-of-two & is a single-cycle AND vs a multi-cycle DIV; the conditional-wrap form is branchless (cmov) and avoids division entirely while supporting arbitrary cap. Both eliminate the per-op divide that dominates these functions.",
+   "risk": "The `& (cap-1)` form REQUIRES cap to be a power of two \u2014 must be enforced/documented (House 'Run' contract assumes valid caller input, so a power-of-two precondition is acceptable for a new variant). The conditional-wrap form is fully general and preserves semantics for all cap>=1 since each op changes the index by at most 1 (it can never under/overshoot by more than cap)."
+  },
+  {
+   "file": "src/IAFahim.DS.Heap/Heap.cs",
+   "symbol": "MonotonicQueueMin.Run",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "stackalloc int[len] for the deque can blow the stack for large len; the ring never needs more than windowSize entries.",
+   "currentCost": "Allocates `len` ints on the stack (4*len bytes). For large len (e.g. 100k) this is 400KB of stack \u2014 risks stack overflow on mobile thread stacks (often 512KB-1MB) and wastes cache footprint.",
+   "proposedChange": "Size the scratch to the window: `int* deque = stackalloc int[windowSize]` and index modulo windowSize (mask if power-of-two), since a monotonic deque for a sliding window of size w holds at most w indices. Or cap the stackalloc and document a max.",
+   "rationale": "Bounds working set by windowSize instead of len, which is typically far smaller. Smaller scratch improves L1 residency and removes the stack-overflow hazard for large inputs.",
+   "risk": "Requires converting the linear `deque[back]` indexing into ring indexing (front/back modulo windowSize), changing the `deque[front] <= i - windowSize` staleness check accordingly. Logic must be re-derived carefully; behavior must remain identical. If left linear, the only safe minimal change is asserting len fits the stack."
+  },
+  {
+   "file": "src/IAFahim.DS.Heap/Heap.cs",
+   "symbol": "MonotonicStackProcess.NextGreaterInt32",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "dst is left unwritten for indices that remain on the stack (no next-greater element), leaving caller-visible garbage.",
+   "currentCost": "Indices still on the stack at loop end never get a dst value assigned, so dst[those] retain prior memory contents \u2014 an implicit, undocumented contract that the caller must pre-clear dst.",
+   "proposedChange": "Either document that unmatched positions are untouched and the returned count identifies how many remain, or explicitly write a sentinel (e.g. -1 or len) for remaining stack entries in a final drain loop: `while(top>0) dst[stack[--top]] = SENTINEL;`.",
+   "rationale": "Removes hidden caller obligation / nondeterministic output, improving purity and ergonomics. A sentinel drain is O(top) with no asymptotic change and makes output fully determined by input.",
+   "risk": "Adds writes; if existing callers rely on dst being untouched for unmatched entries (current behavior), introducing a sentinel changes observable output. Should be a new/explicit variant or documented choice rather than a silent change."
+  }
+ ]
+}

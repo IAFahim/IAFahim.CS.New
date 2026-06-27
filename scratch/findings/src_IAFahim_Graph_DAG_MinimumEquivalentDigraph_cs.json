@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Graph.DAG/MinimumEquivalentDigraph.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.DAG/MinimumEquivalentDigraph.cs",
+   "symbol": "MinimumEquivalentDigraph.Run",
+   "severity": "high",
+   "category": "wrong-algorithm",
+   "summary": "Transitive reduction is computed with a single Floyd-style pass that only removes length-2 redundancies; it gives a non-minimal result for DAGs whose redundant edges span paths of length >= 3.",
+   "triggeringInput": "n=4 (bool adjMatrix row-major) with edges 0->1, 1->2, 2->3, and the redundant edge 0->3. After Run, edge 0->3 is still present (adjMatrix[0*4+3] stays true), so the output is not the minimum equivalent digraph; the correct transitive reduction is {0->1,1->2,2->3}.",
+   "rootCause": "The algorithm only deletes edge i->k when there exists a direct j with i->j and j->k present in the matrix. For the redundant edge 0->3, no single intermediate j satisfies both adj[0][j] and adj[j][3] (0->2 and 1->3 are not edges), so 0->3 is never removed. The method is correct only when adjMatrix is already the full transitive closure of the DAG, but the comment/contract states the input is 'a DAG', for which this single pass is incomplete.",
+   "suggestedFix": "Either document that the input must be the transitive closure, or first compute the transitive closure (e.g. Floyd-Warshall reachability) and then remove edge i->k whenever there is an intermediate j (j != i, j != k) with reach[i][j] && reach[j][k]; equivalently perform transitive reduction over reachability rather than direct adjacency."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.DAG/MinimumEquivalentDigraph.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "This is not a correct transitive reduction and the row/column access pattern is cache-hostile; hoist row base pointers and fix iteration to be cache-friendly.",
+   "currentCost": "Inner loop writes `adjMatrix[i*n + k]` and reads `adjMatrix[j*n + k]` while the i loop strides by n (column-major-ish on i*n+j read). `i*n`, `j*n` recomputed; `adjMatrix[i*n+k]` indexed with a multiply-add per element. The single-step transitive removal also only removes length-2 shortcuts, which is a correctness concern for a general transitive reduction (needs reachability closure), but treating it as the intended length-2 reduction: the memory access pattern is the perf issue.",
+   "proposedChange": "Hoist `bool* rowI = adjMatrix + i*n;` and `bool* rowJ = adjMatrix + j*n;` outside the k loop. Reorder loops to i outer, j middle, k inner so rowI and rowJ are sequential and the k loop streams two contiguous rows (`rowI[k] = rowI[k] && !rowJ[k]` style) \u2014 vectorizable by Burst. Replace the branch `if (rowJ[k]) rowI[k]=false;` with branchless `rowI[k] = (bool)(rowI[k] & ~(byte)rowJ[k]);` to let Burst SIMD it.",
+   "rationale": "Streaming two contiguous rows is cache-line friendly and SSE/NEON-vectorizable; removing the data-dependent branch removes mispredicts and enables Burst to emit packed AND-NOT over the row. Hoisting i*n/j*n removes a multiply per inner iteration.",
+   "risk": "Loop reorder changes the order writes happen but each `adjMatrix[i*n+k]=false` is idempotent and independent across (i,k) for fixed pass, so result is identical for the length-2 removal semantics. NOTE: flag separately that single-pass removal is not a full transitive reduction for chains longer than 2 \u2014 verify intended semantics before relying on it."
+  }
+ ]
+}

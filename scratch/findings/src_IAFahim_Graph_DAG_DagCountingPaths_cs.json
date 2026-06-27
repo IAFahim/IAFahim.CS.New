@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Graph.DAG/DagCountingPaths.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.DAG/DagCountingPaths.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Accumulate into a local long and branchlessly saturate, instead of read-modify-write on pathCount[u] each edge.",
+   "currentCost": "Each edge does a load of pathCount[u], an overflow-guard compare/branch, and a store back to pathCount[u]. The store-to-load dependency on the same memory location each iteration serializes the inner loop and adds a hard-to-predict branch per edge.",
+   "proposedChange": "Hoist accumulation: 'long acc = pathCount[u]; for (e...) { long add = pathCount[v]; long sum = unchecked(acc + add); acc = (acc > long.MaxValue - add) ? long.MaxValue : sum; } pathCount[u] = acc;'. Better, since pathCount values are non-negative, detect saturation branchlessly via 'sum < 0' (sign-bit of overflow for non-negative operands) using a select: 'acc = sum < 0 ? long.MaxValue : sum;'.",
+   "rationale": "Keeping the running sum in a register removes the per-edge memory store and its store-forwarding dependency, and 'sum < 0' is a correct overflow test when both operands are non-negative (two non-negative longs overflow exactly when their wrapped sum becomes negative), turning the guard into a branchless cmov. Shorter dependency chain and one store at the end instead of per edge.",
+   "risk": "Requires that pathCount[v] and the running acc stay non-negative and never reach exactly long.MaxValue from a legitimate (non-saturated) sum boundary; since inputs are counts >=1 and saturation clamps at MaxValue, the 'sum < 0' test matches the original semantics. The original clamps to MaxValue once exceeded and stays there because further adds keep overflowing \u2014 identical behavior preserved. Use unchecked to avoid Burst overflow traps."
+  }
+ ]
+}

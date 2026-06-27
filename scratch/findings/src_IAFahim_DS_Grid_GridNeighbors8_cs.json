@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.DS.Grid/GridNeighbors8.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.Grid/GridNeighbors8.cs",
+   "symbol": "GridNeighbors8.DR/DC (static readonly int[])",
+   "dimension": "burst",
+   "impact": "high",
+   "summary": "Same as GridNeighbors4: replace managed static int[] tables with inline constants / stackalloc to be Burst-safe and drop per-access bounds checks.",
+   "currentCost": "8 iterations each load DR[d] and DC[d] from managed static int[] arrays \u2014 Burst-incompatible managed references, bounds-checked loads, static-field indirection; violates house no-managed-array rule.",
+   "proposedChange": "Remove DR/DC arrays; either stackalloc the 8 offsets locally or fully unroll the 8 neighbor checks with literal offsets. Center cell is skipped by construction so no extra branch needed.",
+   "rationale": "Eliminates managed access (Burst can compile), removes 16 array bounds checks per call, removes static indirection, enables constant folding and removes loop overhead via unrolling.",
+   "risk": "None to semantics; preserve the same 8-direction emission order so packed output order is unchanged."
+  }
+ ]
+}

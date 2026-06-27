@@ -1,0 +1,690 @@
+==================================================
+PACKAGE: IAFahim.Linear.Matrix2
+==================================================
+File: Matrix.cs
+     6: public static unsafe class MatrixNew
+     8: public static void Run(int n, int m, long* a)
+    13: public static void RunSquare(int n, long* a)
+    19: public static unsafe class MatrixIdentity
+    21: public static void Run(int n, long* a)
+    33: public static unsafe class MatrixAdd
+    35: public static void Run(int n, int m, long* a, long* b, long* c)
+    41: public static unsafe class MatrixSub
+    43: public static void Run(int n, int m, long* a, long* b, long* c)
+    49: public static unsafe class MatrixMul
+    51: public static void Run(int n, int m, int p, long* a, long* b, long* c)
+    68: public static unsafe class MatrixPow
+    70: public static void Run(int n, long* a, long* result, long* temp, long exp)
+    88: public static unsafe class MatrixVecMul
+    90: public static void Run(int n, int m, long* a, long* v, long* result)
+
+==================================================
+PACKAGE: IAFahim.Math.Arithmetic
+==================================================
+File: TryMul.cs
+     6: public static unsafe class TryMul
+     9: public static bool Run(int a, int b, out int res)
+    17: public static bool Run(long a, long b, out long res)
+File: TryDiv.cs
+     6: public static unsafe class TryDiv
+     9: public static bool Run(int a, int b, out int res)
+    21: public static bool Run(long a, long b, out long res)
+File: TrySub.cs
+     6: public static unsafe class TrySub
+     9: public static bool Run(int a, int b, out int res)
+    16: public static bool Run(long a, long b, out long res)
+File: TryAdd.cs
+     6: public static unsafe class TryAdd
+     9: public static bool Run(int a, int b, out int res)
+    16: public static bool Run(long a, long b, out long res)
+
+==================================================
+PACKAGE: IAFahim.Math.Barycentric
+==================================================
+File: BarycentricCoords.cs
+     7: public static unsafe class BarycentricCoords
+    12: public static float3 Compute(float3 a, float3 b, float3 c, float3 p)
+    40: public static float3 Interpolate(float3 a, float3 b, float3 c, float3 bary)
+    46: public static float InterpolateScalar(float va, float vb, float vc, float3 bary)
+    52: public static bool IsInside(float3 bary)
+    58: public static float2 Compute2D(float2 a, float2 b, float2 c, float2 p)
+    65: public static float3 ProjectOntoTriangle(float3 a, float3 b, float3 c, float3 p)
+   125: public static float SignedArea(float3 a, float3 b, float3 c)
+
+==================================================
+PACKAGE: IAFahim.Math.Basic
+==================================================
+File: AbsInt64.cs
+     6: public static unsafe class AbsInt64
+     9: public static long Run(long v)
+File: MinInt.cs
+     6: public static unsafe class MinInt
+     9: public static int Run(int a, int b)
+File: CeilDiv.cs
+     6: public static unsafe class CeilDiv
+     9: public static int Run(int a, int b)
+    15: public static long Run(long a, long b)
+File: Basic.cs
+     6: public static unsafe class FastPow
+     8: public static long Run(long a, long e, long mod)
+    16: public static unsafe class IntegerSqrt
+    18: public static long Run(long x)
+    27: public static unsafe class NthRoot
+    29: public static long Run(long x, int n)
+    39: public static unsafe class IntegerCbrt
+    41: public static long Run(long x)
+    50: public static unsafe class IsPerfectSquare { public static bool Run(long x) => x >= 0 && IntegerSqrt.Run(x) * IntegerSqrt.Run(x) == x; }
+    51: public static unsafe class IsPowerOfTwo { public static bool Run(long x) => x > 0 && (x & (x - 1)) == 0; }
+    53: public static unsafe class NextPowerOfTwo
+    55: public static long Run(long x) { if (x <= 0) return 1; x--; x |= x >> 1; x |= x >> 2; x |= x >> 4; x |= x >> 8; x |= x >> 16; x |= x >> 32; return x + 1; }
+    58: public static unsafe class PrevPowerOfTwo
+    61: public static long Run(long x) { if (x <= 0) return 0; x |= x >> 1; x |= x >> 2; x |= x >> 4; x |= x >> 8; x |= x >> 16; x |= x >> 32; return x - (x >>> 1); }
+    64: public static unsafe class FloorLog2
+    67: public static int Run(long x)
+    80: public static unsafe class CeilLog2
+    83: public static int Run(long x) { if (x <= 0) return 0; int floor = FloorLog2.Run(x); return (x & (x - 1)) == 0 ? floor : floor + 1; }
+    86: public static unsafe class SafeMulMod
+    88: public static long Run(long a, long b, long mod)
+   100: public static unsafe class NormalizeModulo { [MethodImpl(MethodImplOptions.AggressiveInlining)] public static long Run(long x, long mod) { x %= mod; return x < 0 ? x + mod : x; } }
+   101: public static unsafe class Minimize { [MethodImpl(MethodImplOptions.AggressiveInlining)] public static void Run(long* a, long b) { if (b < *a) *a = b; } }
+   102: public static unsafe class Maximize { [MethodImpl(MethodImplOptions.AggressiveInlining)] public static void Run(long* a, long b) { if (b > *a) *a = b; } }
+   103: public static unsafe class RelaxMin { [MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool Run(long* ptr, long val) { if (val < *ptr) { *ptr = val; return true; } return false; } }
+   104: public static unsafe class RelaxMax { [MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool Run(long* ptr, long val) { if (val > *ptr) { *ptr = val; return true; } return false; } }
+   105: public static unsafe class SwapInts { [MethodImpl(MethodImplOptions.AggressiveInlining)] public static void Run(int* a, int* b) { int tmp = *a; *a = *b; *b = tmp; } }
+   106: public static unsafe class SwapPairs { [MethodImpl(MethodImplOptions.AggressiveInlining)] public static void Run(long* a, long* b) { long tmp = *a; *a = *b; *b = tmp; } }
+File: MinInt64.cs
+     6: public static unsafe class MinInt64
+     9: public static long Run(long a, long b)
+File: Clamp.cs
+     6: public static unsafe class Clamp
+     9: public static int Run(int v, int lo, int hi)
+    17: public static long Run(long v, long lo, long hi)
+File: MaxInt.cs
+     6: public static unsafe class MaxInt
+     9: public static int Run(int a, int b)
+File: MaxInt64.cs
+     6: public static unsafe class MaxInt64
+     9: public static long Run(long a, long b)
+File: AbsInt.cs
+     6: public static unsafe class AbsInt
+     9: public static int Run(int v)
+File: FloorDiv.cs
+     6: public static unsafe class FloorDiv
+     9: public static int Run(int a, int b)
+    15: public static long Run(long a, long b)
+
+==================================================
+PACKAGE: IAFahim.Math.BigInt
+==================================================
+File: BigInt.cs
+     6: public static unsafe class BigIntAdd
+     9: public static int Run(int n, int* a, int m, int* b, int* res)
+    34: public static unsafe class BigIntSub
+    37: public static int Run(int n, int* a, int m, int* b, int* res)
+    54: public static unsafe class BigIntMul
+    56: public static int Run(int n, int* a, int m, int* b, int* res)
+    82: public static unsafe class BigIntPow
+    84: public static int Run(int n, int* a, int e, int* res)
+   103: public static unsafe class BigIntDiv
+   106: public static int Run(int n, int* a, int divisor, int* res)
+   116: public static unsafe class BigIntMod
+   119: public static int Run(int n, int* a, int mod) { long rem = 0; for (int i = 0; i < n; i++) rem = (rem * 10 + a[i]) % mod; return (int)rem; }
+
+==================================================
+PACKAGE: IAFahim.Math.Combinatorics
+==================================================
+File: Counting.cs
+     6: internal static unsafe class MathHelper
+     8: public static long ModInverse(long a, long mod)
+    16: public static long ExtGcd(long a, long b, out long x, out long y)
+    27: public static unsafe class PermuteCount
+    29: public static long Run(int n, long mod)
+    38: public static unsafe class MultisetPermutations
+    40: public static long Run(int n, int* counts, int k, long mod)
+    57: public static unsafe class Catalan
+    59: public static long Run(long n, long mod)
+    74: public static unsafe class StirlingFirst
+    76: public static long Run(long n, long k, long mod)
+    95: public static unsafe class StirlingSecond
+    97: public static long Run(long n, long k, long mod)
+   116: public static unsafe class BellNumbers
+   118: public static long Run(long n, long mod)
+   136: public static unsafe class PartitionNumbers
+   138: public static long Run(long n, long mod)
+   155: public static unsafe class Derangements
+   157: public static long Run(long n, long mod)
+   172: public static unsafe class StarsBars
+   174: public static long Run(long n, long k, long mod)
+File: Factorial.cs
+     6: public static unsafe class Factorial
+     8: public static void Run(long* fact, long* invFact, int n, long mod)
+    18: public static long Run(long n, long mod)
+File: LinearCongruence.cs
+     6: public static unsafe class LinearCongruence
+     8: public static bool Run(long a, long b, long m, out long x, out long g)
+File: Binom.cs
+     6: public static unsafe class Binom
+     8: public static long Run(long n, long k, long mod)
+    47: public static unsafe class BinomLucas
+    49: public static long Run(long n, long k, long p)
+    65: public static unsafe class BinomLarge
+    67: public static long Run(long n, long k, long mod)
+File: Sieve.cs
+     6: public static unsafe class SievePrimes
+     8: public static int Run(int* primes, bool* isPrime, int n)
+    22: public static unsafe class LinearSieve
+    24: public static int Run(int* primes, int* lp, int n)
+    37: public static unsafe class SegmentedSieve
+    39: public static int Run(long low, long high, int* primes, int primeCount, int* result)
+    61: public static unsafe class IsPrime
+    79: public static bool Run(long n)
+
+==================================================
+PACKAGE: IAFahim.Math.Gauss
+==================================================
+File: Gauss.cs
+     6: public static unsafe class GaussEliminationDouble
+    43: public static int Run(double* a, double* b, double* x, int n, int m)
+    64: public static unsafe class GaussModP
+    67: public static long ModPow(long a, long e, long mod)
+    75: public static long ModInv(long a, long mod) => ModPow((a % mod + mod) % mod, mod - 2, mod);
+   109: public static bool Run(long* a, long* b, long* x, int n, int m, long mod)
+   144: public static long Determinant(long* a, int n, long mod)
+
+==================================================
+PACKAGE: IAFahim.Math.Kalman
+==================================================
+File: ScalarKalmanFilter.cs
+     7: public static unsafe class ScalarKalmanFilter
+    10: public static float Predict(float state, float velocity, float processNoise, float dt)
+    16: public static float PredictCovariance(float covariance, float processNoise, float dt)
+    22: public static float Update(float predictedState, float predictedCovariance, float measurement, float measurementNoise, out float updatedCovariance)
+    29: public static void Run(float* measurements, int count, float processNoise, float measurementNoise,
+File: VectorKalmanFilter.cs
+     7: public static unsafe class VectorKalmanFilter
+    10: public static float3 Predict(float3 state, float3 velocity, float processNoise, float dt)
+    16: public static float3 PredictCovariance(float3 covariance, float processNoise, float dt)
+    22: public static float3 Update(float3 predictedState, float3 predictedCov, float3 measurement, float measurementNoise, out float3 updatedCov)
+    29: public static void Run(float3* measurements, int count, float processNoise, float measurementNoise,
+
+==================================================
+PACKAGE: IAFahim.Math.Modular
+==================================================
+File: ExtendedGcd.cs
+     6: public static unsafe class ExtendedGcd
+     9: public static long Run(long a, long b, out long x, out long y)
+File: ModSub.cs
+     6: public static unsafe class ModSub
+     9: public static long Run(long a, long b, long mod)
+File: ModMul.cs
+     6: public static unsafe class ModMul
+     9: public static long Run(long a, long b, long mod)
+File: Crt.cs
+     6: public static unsafe class Crt
+     9: public static long Run(long r1, long m1, long r2, long m2)
+File: ModPow.cs
+     6: public static unsafe class ModPow
+     9: public static long Run(long b, long e, long mod)
+File: Lcm.cs
+     6: public static unsafe class Lcm
+     9: public static long Run(long a, long b)
+    19: public static int Run(int a, int b)
+File: ModInv.cs
+     6: public static unsafe class ModInv
+     9: public static long Run(long a, long mod)
+File: ModNormalize.cs
+     6: public static unsafe class ModNormalize
+     9: public static long Run(long v, long mod)
+File: ModSqrt.cs
+     6: public static unsafe class ModSqrt
+     9: public static long Run(long a, long mod)
+File: Excrt.cs
+     6: public static unsafe class Excrt
+     8: public static long Run(long* remainders, long* moduli, int len)
+File: ModAdd.cs
+     6: public static unsafe class ModAdd
+     9: public static long Run(long a, long b, long mod)
+File: Gcd.cs
+     6: public static unsafe class Gcd
+     9: public static long Run(long a, long b)
+    23: public static int Run(int a, int b)
+File: ModDiv.cs
+     6: public static unsafe class ModDiv
+     9: public static long Run(long a, long b, long mod)
+
+==================================================
+PACKAGE: IAFahim.Math.NT
+==================================================
+File: PhiSieve.cs
+     6: public static unsafe class PhiSieve
+     8: public static void Run(int* phi, int n)
+File: PrimePiMeissel.cs
+     6: public static unsafe class PrimePiMeissel
+    11: public static long Run(long n, int* primes, int primeCount, int* phiCache)
+File: MoebiusPrefix.cs
+     7: public static unsafe class MoebiusPrefix
+     9: public static void Run(int n, int* result, int* mu, int* primes, bool* isPrime)
+File: LcmConvolution.cs
+     5: public static unsafe class LcmConvolution
+    14: public static void Forward(long* f, int n)
+    36: public static void Inverse(long* f, int n, int* mu)
+    50: public static void Run(long* a, long* b, long* result, int n, int* mu)
+File: DivisorSum.cs
+     6: public static unsafe class DivisorSum
+     8: public static long Run(long n)
+File: PrimitiveRoot.cs
+     6: public static unsafe class PrimitiveRoot
+    79: public static long Run(long n)
+File: PrimeFactorPower.cs
+     5: public static unsafe class PrimeFactorPower
+     8: public static int Run(int n, int* minPrime, int* outPrimes, int* outExponents)
+    24: public static int Run(long n, long* outPrimes, int* outExponents)
+    46: public static unsafe class PrimeFactorPowerSum
+    48: public static long Run(long n, delegate* managed<long, int, long> f)
+File: LinearSieveDivisorSum.cs
+     5: public static unsafe class LinearSieveDivisorSum
+     7: public static void Run(long* sigma, long* sp, int* primes, int n, out int primeCount)
+File: PowerfulNumbers.cs
+     6: public static unsafe class PowerfulNumbers
+     8: public static int Generate(long limit, long* result)
+File: Radical.cs
+     6: public static unsafe class Radical
+     8: public static long Run(long n)
+File: ContinuedFraction.cs
+     6: public static unsafe class ContinuedFraction
+     8: public static int Run(long a, long b, long* cf)
+File: DirichletPrefixSum.cs
+     6: public static unsafe class DirichletPrefixSum
+     8: public static void ConvolutionPrefixSum(int n, long* f, long* g, long* result)
+    21: public static long Hyperbola(long n, long* prefixF, long* prefixG)
+    42: public static unsafe class DirichletConvolution
+    44: public static void Run(int n, long* f, long* g, long* h)
+File: FloorSum.cs
+     6: public static unsafe class FloorSum
+     8: public static long Run(long n, long m, long a, long b)
+File: LegendreSymbol.cs
+     6: public static unsafe class LegendreSymbol
+    13: public static int Run(long a, long p)
+File: PollardRho.cs
+     6: public static unsafe class PollardRho
+    26: public static long Run(long n)
+File: JacobiSymbol.cs
+     6: public static unsafe class JacobiSymbol
+     8: public static int Run(long a, long n)
+File: RandomShuffle.cs
+     6: public static unsafe class RandomShuffle
+     8: public static void Run<T>(T* ptr, int len) where T : unmanaged
+File: TonelliShanks.cs
+     6: public static unsafe class TonelliShanks
+    60: public static long Run(long a, long p)
+File: Divisors.cs
+     6: public static unsafe class Divisors
+     8: public static int Run(long n, long* divs)
+File: AntiprimeGenerate.cs
+     6: public static unsafe class AntiprimeGenerate
+     8: public static void Run(int k, long* result, HighlyCompositeCandidate* scratch)
+File: FareyRank.cs
+     6: public static unsafe class FareyRank
+    17: public static long Run(long a, long b, long n)
+File: SquareFree.cs
+     6: public static unsafe class SquareFree
+     9: public static long Kernel(long n)
+    14: public static long Count(long n, int* mu)
+    36: public static void Prefix(int n, int* result)
+File: LinearSieveMinPrime.cs
+     5: public static unsafe class LinearSieveMinPrime
+     8: public static void Run(int* minPrime, int* primes, int n, out int primeCount)
+File: TotientPrefix.cs
+     7: public static unsafe class TotientPrefix
+     9: public static void Run(int n, long* result, int* phi, int* primes, bool* isPrime)
+File: BitOps.cs
+     6: public static unsafe class BitCount
+     9: public static int Run(int x)
+    19: public static int Run(long x)
+    29: public static unsafe class BitLength
+    32: public static int Run(int x)
+    47: public static int Run(long x)
+    63: public static unsafe class HighestBit
+    66: public static int Run(int x)
+    78: public static int Run(long x)
+    91: public static unsafe class LowestBit
+    94: public static int Run(int x)
+   100: public static long Run(long x)
+   106: public static unsafe class NextBit
+   109: public static int Run(int x)
+   115: public static long Run(long x)
+   121: public static unsafe class PrevBit
+   124: public static int Run(int x)
+   131: public static long Run(long x)
+   138: public static unsafe class BitReverse
+   141: public static int Run(int x)
+   152: public static long Run(long x)
+   164: public static unsafe class BitCompress
+   167: public static int Run(int* src, int* dst, int len, int bits)
+   189: public static unsafe class BitDecompress
+   192: public static int Run(int* src, int* dst, int srcLen, int bits, int len)
+File: Factorize.cs
+     6: public static unsafe class Factorize
+     8: public static int Run(long n, long* factors)
+File: DuJiao.cs
+     6: public static unsafe class DuJiao
+     8: public static long Phi(long n, long* preSumLarge, long* memo, bool* memoized)
+    33: public static long Mobius(long n, long* preSumLarge, long* memo, bool* memoized)
+File: MobiusSieve.cs
+     6: public static unsafe class MobiusSieve
+     8: public static void Run(int* mu, int* primes, int n, out int primeCount)
+File: PrimePiLehmer.cs
+     6: public static unsafe class PrimePiLehmer
+    11: public static long Run(long n, int* primes, int primeCount, int* phiCache)
+    49: public static long Phi(long m, int a, int* primes, int* phiCache)
+    60: public static void InitPhiCache(int* phiCache, int* primes, int primeCount)
+File: LinearSievePhi.cs
+     5: public static unsafe class LinearSievePhi
+     7: public static void Run(int* phi, int* primes, int n, out int primeCount)
+File: Mobius.cs
+     6: public static unsafe class Mobius
+     8: public static int Run(long n)
+File: DivisorCount.cs
+     6: public static unsafe class DivisorCount
+     8: public static long Run(long n)
+File: RandomInt.cs
+     6: public static unsafe class RandomInt
+    12: public static void SetSeed(long seed)
+    22: public static int Next(ref long state, int bound)
+    30: public static int Range(ref long state, int lo, int hi)
+    36: public static int Next(int bound)
+    42: public static int Range(int lo, int hi)
+    48: public static unsafe class RandomInt64
+    52: public static void SetSeed(long seed)
+    61: public static long Next(ref long state, long bound)
+    68: public static long Range(ref long state, long lo, long hi)
+    74: public static long Next(long bound)
+    80: public static long Range(long lo, long hi)
+    86: public static unsafe class SplitMix64
+    93: public static long Run(long x)
+File: EuclidSum.cs
+     6: public static unsafe class EuclidSum
+    21: public static long Run(long n, long m)
+File: Convergents.cs
+     6: public static unsafe class Convergents
+     8: public static int Run(long* cf, int cfLen, long* num, long* den)
+File: Min25Sieve.cs
+     6: public static unsafe class Min25Sieve
+     8: public static long PrimePi(long n, int* primes, bool* isPrime, long* w, long* g, int* map1, int* map2)
+    60: public static long PrimeSum(long n, long mod, int* primes, bool* isPrime, long* w, long* g, int* map1, int* map2)
+   104: public static long MultiplicativeSum(long n, long c0, long c1, delegate* managed<long, int, long> fPower, long mod, int* primes, bool* isPrime, long* w, long* g, long* g0, long* g1, int* map1, int* map2, long* gPrimeSum)
+File: MinPrimeFactor.cs
+     5: public static unsafe class MinPrimeFactor
+     8: public static long Run(long n)
+File: Phi.cs
+     6: public static unsafe class Phi
+     8: public static long Run(long n)
+File: HashInt.cs
+     6: public static unsafe class HashInt
+    12: public static int Run(int x)
+    21: public static int Run(long x)
+    31: public static unsafe class XorShift
+    35: public static void SetSeed(uint seed)
+    42: public static uint Next()
+    51: public static int Range(int lo, int hi)
+    57: public static unsafe class RngSeed
+    61: public static int Run()
+File: LinearSieveMaxPrime.cs
+     5: public static unsafe class LinearSieveMaxPrime
+     7: public static void Run(int* maxPrime, int* primes, int n, out int primeCount)
+File: AllFactorizations.cs
+     6: public static unsafe class AllFactorizations
+     8: public static int Run(long n, long* outBuffer, out int outOffset)
+File: SmoothNumbers.cs
+     6: public static unsafe class SmoothNumbers
+     8: public static int Generate(int b, long limit, long* result, int* primes)
+File: Bsgs.cs
+     6: public static unsafe class Bsgs
+   106: public static long Run(long a, long b, long mod, long* scratchKeys, long* scratchVals)
+File: GcdConvolution.cs
+     5: public static unsafe class GcdConvolution
+     7: public static void Forward(long* f, int n)
+    16: public static void Inverse(long* f, int n, int* mu)
+    23: public static void Run(long* a, long* b, long* result, int n, int* mu)
+File: DiscreteLog.cs
+     6: public static unsafe class DiscreteLog
+    18: public static long Run(long a, long b, long mod, long* scratchKeys, long* scratchVals)
+File: SternBrocot.cs
+     6: public static unsafe class SternBrocot
+     8: public static void Run(long n, long d, long* num, long* den, int* depth)
+File: LinearSieveDivisorCount.cs
+     5: public static unsafe class LinearSieveDivisorCount
+     7: public static void Run(int* d, int* e, int* primes, int n, out int primeCount)
+File: LinearSieveMultiplicative.cs
+     7: public static unsafe class LinearSieveMultiplicative
+     9: public static int Run(
+File: MinMaxDivisorTransform.cs
+     5: public static unsafe class MinMaxDivisorTransform
+     8: public static void RunMax(long* f, int n)
+    16: public static void RunMin(long* f, int n)
+    23: public static void RunMaxWithCounts(long* f, int* cnt, int n)
+    35: public static void RunMinWithCounts(long* f, int* cnt, int n)
+File: HighlyCompositeNumbers.cs
+     8: public struct HighlyCompositeCandidate
+    10: public long Value;
+    11: public int Divisors;
+    14: public static unsafe class HighlyCompositeNumbers
+    18: public static int Run(long limit, long* result, HighlyCompositeCandidate* scratch)
+File: MillerRabin.cs
+     6: public static unsafe class MillerRabin
+    10: public static bool Run(long n)
+    44: public static unsafe class ModMul
+    47: public static long Run(long a, long b, long mod)
+    69: public static unsafe class ModPow
+    72: public static long Run(long b, long e, long mod)
+File: PrimePi.cs
+     6: public static unsafe class PrimePi
+     8: public static long Run(long n, long* small, long* large)
+
+==================================================
+PACKAGE: IAFahim.Math.Noise
+==================================================
+File: SimplexNoise.cs
+     7: public static unsafe class SimplexNoise
+    31: public static float Noise2D(float2 p)
+File: PerlinNoise.cs
+     7: public static unsafe class PerlinNoise
+    37: public static float Noise2D(float2 p)
+
+==================================================
+PACKAGE: IAFahim.Math.PoissonDisk
+==================================================
+File: PoissonDisk3D.cs
+     7: public static unsafe class PoissonDisk3D
+    13: public static int Run(float3 min, float3 max, float minDistance, float3* output, int maxPoints, int seed)
+File: PoissonDisk2D.cs
+     7: public static unsafe class PoissonDisk2D
+    75: public static int Run(float2 min, float2 max, float minDistance, float2* output, int maxPoints, int seed)
+
+==================================================
+PACKAGE: IAFahim.Math.Polynomial
+==================================================
+File: PolynomialMultipointEval.cs
+     5: public static unsafe class PolynomialMultipointEval
+     7: public static void Run(long* poly, int n, long* points, long* values, int m, long mod)
+    19: public static void RunInterpolate(long* xs, long* ys, int n, long* poly, long mod)
+File: OnlineNttConvolution.cs
+     5: public static unsafe class OnlineNttConvolution
+     7: public static void Run(
+File: PolynomialTaylorShift.cs
+     5: public static unsafe class PolynomialTaylorShift
+     7: public static void Run(long* a, int n, long c, long mod, long* fact, long* invFact)
+File: PolynomialComposition.cs
+     5: public static unsafe class PolynomialComposition
+    27: public static void Run(int n, long* f, int m, long* g, long* res, long mod, long* tmp)
+    44: public static void RunNaive(int n, long* f, int m, long* g, long* res, long mod)
+File: PolynomialShift.cs
+     5: public static unsafe class PolynomialShift
+     8: public static void RunLeft(long* a, int n, int k)
+    16: public static void RunRight(long* a, int n, int k)
+File: Polynomial.cs
+     6: public static unsafe class PolynomialAdd
+     9: public static int Run(int n, long* a, int m, long* b, long* res)
+    21: public static unsafe class PolynomialSub
+    24: public static int Run(int n, long* a, int m, long* b, long* res)
+    36: public static unsafe class PolynomialMul
+    38: public static int Run(int n, long* a, int m, long* b, long* res)
+    47: public static int RunMod(int n, long* a, int m, long* b, long* res, long mod)
+    60: public static unsafe class PolynomialDiv
+    62: public static int Run(int n, long* a, int m, long* b, long* q, long* r)
+    83: public static unsafe class PolynomialMod
+    85: public static int Run(int n, long* a, int m, long* b, long* r)
+   107: public static unsafe class PolynomialDerivative
+   110: public static int Run(int n, long* a, long* res)
+   119: public static unsafe class PolynomialIntegral
+   121: public static int Run(int n, long* a, long* res, long mod)
+   151: public static unsafe class PolynomialInverse
+   153: public static int Run(int n, long* a, long* res, long mod)
+   203: public static unsafe class PolynomialLog
+   205: public static int Run(int n, long* a, long* res, long mod)
+   223: public static unsafe class PolynomialExp
+   225: public static int Run(int n, long* a, long* res, long mod)
+   251: public static unsafe class PolynomialPow
+   253: public static int Run(int n, long* a, long k, long* res, long mod)
+   282: public static unsafe class PolynomialSqrt
+   284: public static int Run(int n, long* a, long* res, long mod)
+   309: public static unsafe class PolynomialEval
+   312: public static long Run(int n, long* a, long x, long mod)
+   324: public static unsafe class PolynomialInterpolate
+   326: public static int Run(int n, long* x, long* y, long* res, long mod)
+   380: public static unsafe class LagrangeInterpolate
+   382: public static long Run(long* x, long* y, long n, long t, long mod)
+File: KaratsubaMultiply.cs
+     6: public static unsafe class KaratsubaMultiply
+    10: public static int Run(int n, long* a, int m, long* b, long* res, long* scratch)
+
+==================================================
+PACKAGE: IAFahim.Math.Polynomial.Eval
+==================================================
+File: PolynomialEval.cs
+     6: public static unsafe class MultiPointEval
+     8: public static void Run(int n, long* poly, int m, long* x, long* res, long mod)
+    27: public static unsafe class ChirpZTransform
+    35: public static int Run(int n, long* a, long c, long d, long* res, long mod)
+
+==================================================
+PACKAGE: IAFahim.Math.Polynomial.Fps
+==================================================
+File: FormalPowerSeriesSqrt.cs
+     6: public static unsafe class FormalPowerSeriesSqrt
+     9: public static int Run(int n, long* a, long* res, long mod)
+File: Fps.cs
+     6: internal static unsafe class FpsShared
+     9: public static long ModInverse(long a, long m)
+    17: public static long FastPow(long a, long e, long mod)
+    25: public static unsafe class FormalPowerSeriesInverse
+    27: public static int Run(int n, long* a, long* res, long mod)
+    43: public static unsafe class FormalPowerSeriesLog
+    45: public static int Run(int n, long* a, long* res, long mod)
+    66: public static unsafe class FormalPowerSeriesExp
+    68: public static int Run(int n, long* a, long* res, long mod)
+    88: public static unsafe class FormalPowerSeriesPow
+   138: public static int Run(int n, long* a, long k, long* res, long mod)
+
+==================================================
+PACKAGE: IAFahim.Math.PotentialField
+==================================================
+File: PotentialField3D.cs
+     7: public static unsafe class PotentialField3D
+    10: public static float3 Attractive(float3 position, float3 target, float strength)
+    24: public static float3 Repulsive(float3 position, float3 obstacle, float radius, float strength)
+    38: public static void ComputeGradient(
+    57: public static int GradientDescent(
+File: PotentialField2D.cs
+     7: public static unsafe class PotentialField2D
+    10: public static float2 Attractive(float2 position, float2 target, float strength)
+    24: public static float2 Repulsive(float2 position, float2 obstacle, float radius, float strength)
+    39: public static float2 Tangential(float2 position, float2 obstacle, float radius, float strength)
+    53: public static void ComputeGradient(
+    78: public static int GradientDescent(
+
+==================================================
+PACKAGE: IAFahim.Math.Quaternion
+==================================================
+File: QuaternionSlerp.cs
+     7: public static unsafe class QuaternionSlerp
+    13: public static quaternion Run(quaternion from, quaternion to, float t)
+File: QuaternionOps.cs
+     7: public static unsafe class QuaternionOps
+    17: public static quaternion FromAxisAngle(float3 axis, float angleRadians)
+    32: public static void ToAxisAngle(quaternion q, out float3 axis, out float angle)
+    49: public static quaternion FromEuler(float3 eulerRadians)
+    63: public static float3 ToEuler(quaternion q)
+    83: public static quaternion LookRotation(float3 forward, float3 up)
+   141: public static float3 RotateVector(quaternion q, float3 v)
+   150: public static quaternion Conjugate(quaternion q)
+   156: public static float Dot(quaternion a, quaternion b)
+   162: public static float Length(quaternion q)
+   168: public static quaternion Normalize(quaternion q)
+   181: public static float AngleBetween(quaternion a, quaternion b)
+File: SwingTwistDecomposition.cs
+     7: public static unsafe class SwingTwistDecomposition
+    14: public static void Run(quaternion q, float3 twistAxis, out quaternion swing, out quaternion twist)
+    45: public static float TwistAngle(quaternion q, float3 twistAxis)
+    53: public static quaternion FromTwistAngle(float angle, float3 twistAxis)
+
+==================================================
+PACKAGE: IAFahim.Math.Sdf
+==================================================
+File: SdfPrimitive.cs
+     7: public static unsafe class SdfPrimitive
+    14: public static float Sphere(float3 p, float radius)
+    20: public static float Box(float3 p, float3 halfExtents)
+    27: public static float Capsule(float3 p, float3 a, float3 b, float radius)
+    35: public static float Torus(float3 p, float majorRadius, float minorRadius)
+    42: public static float Cylinder(float3 p, float radius, float halfHeight)
+    49: public static float Plane(float3 p, float3 n, float distance)
+    55: public static float Ellipsoid(float3 p, float3 radii)
+    65: public static float Cone(float3 p, float2 dimensions)
+    77: public static float Octahedron(float3 p, float size)
+File: SdfBoolean.cs
+     7: public static unsafe class SdfBoolean
+    12: public static float Union(float d1, float d2)
+    18: public static float Intersection(float d1, float d2)
+    24: public static float Difference(float d1, float d2)
+    30: public static float SmoothUnion(float d1, float d2, float k)
+    37: public static float SmoothIntersection(float d1, float d2, float k)
+    44: public static float SmoothDifference(float d1, float d2, float k)
+File: SdfRayMarch.cs
+     7: public static unsafe class SdfRayMarch
+    14: public delegate float SdfFunction(float3 p);
+    17: public static float3 EstimateNormal(SdfFunction sdf, float3 p)
+    27: public static bool March(SdfFunction sdf, float3 origin, float3 direction, float maxDistance, int maxSteps, out float t, out float3 hitPoint)
+    54: public static float AmbientOcclusion(SdfFunction sdf, float3 p, float3 normal, int steps, float stepSize)
+    71: public static float3 SafeNormalize(float3 v)
+File: SdfTransform.cs
+     7: public static unsafe class SdfTransform
+    10: public static float3 Translate(float3 p, float3 offset)
+    16: public static float3 RotateX(float3 p, float angle)
+    23: public static float3 RotateY(float3 p, float angle)
+    30: public static float3 RotateZ(float3 p, float angle)
+    37: public static float3 Scale(float3 p, float3 scale)
+    43: public static float ScaleDistance(float d, float3 scale)
+    49: public static float3 Repeat(float3 p, float3 cellSize)
+    55: public static float3 MirrorX(float3 p)
+    62: public static float3 MirrorY(float3 p)
+    69: public static float3 MirrorZ(float3 p)
+
+==================================================
+PACKAGE: IAFahim.Math.SphericalHarmonics
+==================================================
+File: SHEvaluation.cs
+     7: public static unsafe class SHEvaluation
+    13: public static float BasisL0M0()
+    19: public static float BasisL1M1(float x, float y, float z)
+    25: public static float BasisL1M0(float x, float y, float z)
+    31: public static float BasisL1P1(float x, float y, float z)
+    37: public static float BasisL2M2(float x, float y, float z)
+    43: public static float BasisL2M1(float x, float y, float z)
+    49: public static float BasisL2M0(float x, float y, float z)
+    55: public static float BasisL2P1(float x, float y, float z)
+    61: public static float BasisL2P2(float x, float y, float z)
+    66: public static void EvaluateL2(float3 direction, float* outCoeffs)
+    80: public static void ProjectL2(float3* directions, float* values, int sampleCount, float* outCoeffs)
+   106: public static float EvalL2(float3 direction, float* coeffs)
+   119: public static void ConvolveWithCosineKernelL2(float* irradianceCoeffs, float* radianceCoeffs)

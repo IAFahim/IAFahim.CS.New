@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Graph.Connectivity/OfflineDynamicConnectivity.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Connectivity/OfflineDynamicConnectivity.cs",
+   "symbol": "Solve",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "activeIndices stackalloc stays live on the stack during both recursive subcalls even though it is dead after the nextEdges copy, doubling peak stack working set per recursion level.",
+   "currentCost": "At each of O(log T) recursion levels, two arrays are stackalloc'd: activeIndices (int[edgeCount]) on line 26 and nextEdges (EdgeInterval[activeEdges], 16 bytes/elem) on line 37. activeIndices is only used to build nextEdges (lines 37-38) and is never read again, yet because it is allocated in the same stack frame as the two recursive Solve calls (lines 40-41), its memory cannot be reclaimed until the frame returns. Peak stack = sum over the active root-to-leaf path of (4*edgeCount + 16*activeEdges) bytes per frame, with the activeIndices portion being pure waste below the current level.",
+   "proposedChange": "Split the body so the descent (the two recursive Solve calls plus the final Rollback) lives in a separate helper method that takes nextEdges/activeEdges as parameters. Build activeIndices + nextEdges in the current frame, then tail-call the helper. Because activeIndices is local to the building frame and not to the recursing frame, its 4*edgeCount bytes are released before recursion descends. Concretely: private static void Descend(int l,int mid,int r, EdgeInterval* nextEdges,int activeEdges, ... ) { Solve(l,mid,...); Solve(mid+1,r,...); } and have the else-branch call Descend after building nextEdges. activeIndices can also be reduced from int[edgeCount] to building nextEdges directly (see separate item).",
+   "rationale": "Reduces peak stack depth on mobile (small thread stacks, e.g. 512KB-1MB) by eliminating the per-frame activeIndices array from every ancestor frame on the recursion path. With deep time ranges and large edgeCount this is the difference between fitting and a stack overflow, and it improves L1/L2 locality of the live working set.",
+   "risk": "Pure refactor; no semantic change. Must ensure the helper still calls Rollback for the current level \u2014 keep Rollback in Solve after Descend returns (initialHistory is captured in Solve's frame), not inside Descend, so rollback ordering is unchanged."
+  },
+  {
+   "file": "src/IAFahim.Graph.Connectivity/OfflineDynamicConnectivity.cs",
+   "symbol": "ProcessIntervalEdges",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "activeIndices is an indirection buffer used only to materialize nextEdges; the active EdgeInterval values can be written directly, eliminating one O(edgeCount) scratch buffer and one extra gather pass.",
+   "currentCost": "ProcessIntervalEdges fills activeIndices[activeEdges++]=i (line 54), then Solve does a second pass nextEdges[i]=edges[activeIndices[i]] (line 38) \u2014 a random-access gather through the index array. Two buffers (activeIndices int[edgeCount] + nextEdges EdgeInterval[activeEdges]) and two passes over the active set.",
+   "proposedChange": "In the partial-overlap branch, instead of recording the index, copy the struct directly into a caller-provided EdgeInterval* nextEdges buffer: nextEdges[activeEdges++] = edges[i]. Stackalloc nextEdges once as EdgeInterval[edgeCount] (upper bound) before calling ProcessIntervalEdges, pass it in, and drop activeIndices entirely. This removes the int[edgeCount] buffer and the gather loop on lines 37-38.",
+   "rationale": "Eliminates an O(edgeCount) stack buffer and a second O(activeEdges) random-access gather pass, replacing it with a single sequential streaming copy that Burst vectorizes and that has perfect spatial locality (sequential read of edges, sequential write of nextEdges). Fewer cache lines touched, fewer cycles.",
+   "risk": "nextEdges must be sized to edgeCount (the upper bound on active edges), not activeEdges, since activeEdges is not known until after the scan. Slightly larger single allocation, but it replaces the activeIndices allocation 1:1 and removes a separate buffer, so net stack use is lower. Behavior identical."
+  },
+  {
+   "file": "src/IAFahim.Graph.Connectivity/OfflineDynamicConnectivity.cs",
+   "symbol": "ProcessIntervalEdges",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Each loop iteration re-reads edges[i].StartTime/.EndTime/.U/.V via repeated indexed pointer dereferences; loading the struct once into a local reduces address computation and aliasing concerns for Burst.",
+   "currentCost": "Lines 51-54 dereference edges[i] up to four times (StartTime twice, EndTime twice, plus U/V on the Union path). The compiler may not prove edges does not alias parent/size/history (all int*), forcing reloads across the Union call boundary.",
+   "proposedChange": "Hoist once per iteration: EdgeInterval e = edges[i]; then test e.StartTime/e.EndTime and call Union(parent,size,e.U,e.V,...). The 16-byte struct loads into registers/stack once.",
+   "rationale": "Removes redundant indexed loads and breaks the aliasing dependency between the edges read and the parent/size writes inside Union, letting Burst keep the comparison operands in registers. Fewer address computations per iteration in the hottest loop of the algorithm.",
+   "risk": "None \u2014 edges[i] is not mutated in the loop, so reading once is equivalent. Copy is 16 bytes, cheaper than the repeated dereferences it replaces."
+  },
+  {
+   "file": "src/IAFahim.Graph.Connectivity/OfflineDynamicConnectivity.cs",
+   "symbol": "Solve",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "mid is recomputed but the real win is that full-span edges unioned at this level are needlessly reconsidered by children; they are already correctly excluded \u2014 confirming no change needed there. The genuine note is recursion base-case ordering.",
+   "currentCost": "Line 36 computes mid = l + (r-l)/2 \u2014 already overflow-safe and correct. No issue.",
+   "proposedChange": "No change to mid. (Documenting that the (r-l)/2 form is already the correct overflow-safe choice and should NOT be 'simplified' to (l+r)/2 or (l+r)>>1, which would overflow for large time indices.)",
+   "rationale": "Guards against a future cargo-cult 'optimization' to (l+r)>>1. Keep as-is.",
+   "risk": "None; this is a no-op recommendation to preserve the existing correct form."
+  }
+ ]
+}

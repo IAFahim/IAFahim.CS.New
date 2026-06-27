@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.DS.Treap/TreapImplicit.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.Treap/TreapImplicit.cs",
+   "symbol": "Update",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Update duplicates child pointer loads/null-checks across Size() and Sum() helpers for both children.",
+   "currentCost": "4 loads + 4 null compares per Update, on every Merge/SplitBySize frame.",
+   "proposedChange": "Cache `TreapImplicitNode* l = n->Left, r = n->Right;` once; derive size and sum from the cached pointers.",
+   "rationale": "Halves redundant loads/branches; Size and Sum of a child sit in one cache line so the fused read is near-free after the first deref.",
+   "risk": "None. Local CSE."
+  },
+  {
+   "file": "src/IAFahim.DS.Treap/TreapImplicit.cs",
+   "symbol": "ApplyLazy",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "ApplyLazy computes (long)n->Size * lazy with a sign-extending widening of an int that is always >= 1; fine, but the n->Lazy += lazy / HasLazy = true store happens even when accumulating onto a node that will be immediately overwritten by a deeper push. Minor: the cast is correct and needed.",
+   "currentCost": "One int->long widen + multiply + two stores per lazy application. Correct as-is.",
+   "proposedChange": "Keep the cast (it is required to avoid 32-bit overflow). No change to math. Optional: mark struct field ordering so HasLazy/Rev bytes pack (see layout opportunity) to keep Lazy/Sum on one line with Value for this read-modify-write.",
+   "rationale": "The arithmetic is already minimal; the only real lever here is struct packing addressed separately. Listing to confirm the (long) cast must stay.",
+   "risk": "Removing the (long) cast would overflow for Size*lazy beyond 2^31 \u2014 do NOT remove it."
+  },
+  {
+   "file": "src/IAFahim.DS.Treap/TreapImplicit.cs",
+   "symbol": "TreapImplicitNode",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Two separate bool fields (Rev, HasLazy) placed before the 8-byte-aligned pointers force 6+ bytes of padding; the struct is larger than necessary, hurting cache density of the node pool.",
+   "currentCost": "Layout (Sequential): int Priority(4), int Size(4), long Value(8), long Sum(8), long Lazy(8), bool Rev(1), bool HasLazy(1) -> 6 bytes pad to align Left -> Left(8), Right(8). Total 56B but with the two bools costing an aligned 8B slot. On a 64B line, fewer nodes per line than needed.",
+   "proposedChange": "Pack the two bools into a single byte flags field (bit0=Rev, bit1=HasLazy), or at minimum group both bools adjacent (already are) and move them to the very end after Right so the trailing pad is shared. Combining into one `byte Flags` removes one bool's footprint and lets Push test/set bits with masks.",
+   "rationale": "Smaller node -> more nodes per cache line -> fewer misses during the pointer-chasing Merge/Split. Bit flags also let Push check 'any lazy work pending' with a single nonzero test instead of two bool loads.",
+   "risk": "Changes field layout / public struct ABI. Bitwise flag access must preserve exact toggle semantics (Rev = !Rev becomes Flags ^= REV_BIT). Acceptable only if no external code reads .Rev/.HasLazy directly. Burst-blittable preserved."
+  }
+ ]
+}

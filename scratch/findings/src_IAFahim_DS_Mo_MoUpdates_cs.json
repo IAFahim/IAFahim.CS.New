@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.DS.Mo/MoUpdates.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.DS.Mo/MoUpdates.cs",
+   "symbol": "MoWithUpdates.Run",
+   "severity": "critical",
+   "category": "pointer-ub",
+   "summary": "stackalloc int[1000001] allocates ~3.8 MB on the stack, far exceeding the default 1 MB managed-thread stack, causing a StackOverflowException (uncatchable, process abort) on every single invocation regardless of input size.",
+   "triggeringInput": "Any valid call, e.g. n=1, qCount=1, uCount=0 with a single query {L=0,R=0,T=0,Id=0} on the default thread (1 MB stack). Run never returns; the process is torn down by stack overflow before the loop executes.",
+   "rootCause": "The frequency table is allocated with stackalloc int[1000001] = 1000001*4 = 4,000,004 bytes. The default .NET thread stack is 1 MB, so reserving ~3.8 MB for a single local guarantees a stack overflow at method entry. This is not a precondition the caller can satisfy (there is no parameter controlling the allocation size), so the method is unusable for all inputs, not just large value ranges.",
+   "suggestedFix": "Do not stackalloc a fixed million-entry table. Either (a) take the frequency buffer as an int* freq parameter supplied by the caller (heap/pooled), sized to the actual value range, or (b) size the allocation to the real maximum value present in arr (passed as maxVal+1) and heap-allocate when it is large. The value-range assumption should also be a documented contract on a caller-provided buffer rather than a hardcoded 1000001."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.Mo/MoUpdates.cs",
+   "symbol": "MoWithUpdates.SortQueries",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Replace O(q^2) selection-style sort with an O(q log q) quicksort like the one already in MoSort.",
+   "currentCost": "Nested i/j loops: for every i scans all j>i, swapping. That is q*(q-1)/2 comparisons = Theta(q^2). For q=1e5 this is ~5e9 CompareQueries calls, each doing 3 integer divisions and CompareTo \u2014 catastrophic vs the rest of the algorithm which is roughly O((n+q) * n^{2/3}).",
+   "proposedChange": "Implement an in-place iterative/recursive median-of-middle quicksort over the Query3D* array (mirroring MoAlgorithm.MoSort.QuickSort) using CompareQueries (made branch-comparison) as the predicate. Precompute block(L)=L/blk into the comparison via a Less() returning bool to avoid CompareTo. Optionally keep insertion sort only for sub-ranges < ~16 elements.",
+   "rationale": "Asymptotic improvement from Theta(q^2) to Theta(q log q). This is the single dominant cost for large q; the sort currently can dwarf the entire Mo traversal.",
+   "risk": "Quicksort is not stable, but Mo's sort does not require stability (ties broken fully by the comparator on L-block, R-block, T). Must ensure the comparator gives a total order (it does: L-block, then R-block, then T). Recursion depth worst-case O(q); use median-of-three or the existing left+(right-left)>>1 pivot plus tail recursion on the larger side to bound stack."
+  },
+  {
+   "file": "src/IAFahim.DS.Mo/MoUpdates.cs",
+   "symbol": "MoWithUpdates.Run",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "stackalloc int[1000001] (~4 MB) on the stack risks stack overflow and is not Burst/mobile-friendly; take freq as a caller-provided pointer.",
+   "currentCost": "int* freq = stackalloc int[1000001] allocates ~4,000,004 bytes on the stack per Run call. Default thread stack is ~1 MB; this overflows on most platforms, and on mobile (smaller stacks) it is guaranteed UB. It is also not zero-cost \u2014 the runtime zero-inits 4 MB every call.",
+   "proposedChange": "Remove the stackalloc and add an int* freq parameter (and a maxVal/freqLen) to Run, matching the rest of the library's convention where the caller owns buffers (MoAlgorithm passes int* freq everywhere). Caller allocates once and reuses, pre-zeroed. Document that freq length must exceed max array/update value.",
+   "rationale": "Eliminates a multi-megabyte per-call stack allocation and its mandatory zeroing, removes stack-overflow risk on PC and mobile, and makes the function reusable without re-zeroing 4 MB each call. Aligns with the house buffer-ownership pattern.",
+   "risk": "API change (adds parameters) \u2014 breaks existing callers, but the current form is effectively broken anyway due to overflow. Caller must guarantee freq is large enough and zeroed; this matches the 'Unchecked Run assumes valid input' convention."
+  },
+  {
+   "file": "src/IAFahim.DS.Mo/MoUpdates.cs",
+   "symbol": "MoWithUpdates.CompareQueries",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Per-comparison divisions and CompareTo calls are expensive in the hot sort comparator; precompute L/blk and R/blk once per query and compare branchlessly.",
+   "currentCost": "Each call does up to 4 integer divisions (a.L/blk, b.L/blk, a.R/blk, b.R/blk) plus int.CompareTo (a non-inlined-by-default method-call producing -1/0/1). In an O(q log q) sort this runs q log q times; divisions are ~20-40 cycles each on mobile ARM.",
+   "proposedChange": "Precompute each query's L-block once (store block index in Query3D.Id-adjacent scratch, or compute a parallel int* lblock array before sorting) so the comparator only compares precomputed ints. Replace a.X.CompareTo(b.X) with direct 'if (x!=y) return x<y' bool comparisons (return bool from a Less predicate). If blk is a power of two, L/blk becomes L>>log2(blk) (guard: L>=0, which holds for indices).",
+   "rationale": "Removes repeated divisions (compute L-block n times instead of ~n log n times) and replaces CompareTo call overhead with inlined integer compares, shortening the dependency chain in the innermost sort loop.",
+   "risk": "Shift replacement only valid when blk is a power of two and operands non-negative (array indices are >=0, so safe). Precomputing blocks needs a small parallel buffer or reuse of an existing field; must keep it in sync with any swaps (compute block-of-L, not block index, so it moves with the query)."
+  },
+  {
+   "file": "src/IAFahim.DS.Mo/MoUpdates.cs",
+   "symbol": "MoWithUpdates.Run",
+   "dimension": "purity",
+   "impact": "medium",
+   "summary": "Run mutates the caller's input arr in place via Apply/RevertUpdate, leaving arr in a non-deterministic final state; document or restore.",
+   "currentCost": "ApplyUpdate/RevertUpdate write arr[u.Pos] = NewVal/OldVal, so after Run the input array reflects whatever the last processed query's time was \u2014 a hidden side effect on caller data, not a pure query routine.",
+   "proposedChange": "Either document explicitly that arr is scratch/clobbered, or restore arr to its original state at the end by reverting curT back to 0 (the time-travel loop already supports this). For determinism, callers re-running Run on the same arr must reset it; making restoration explicit removes that footgun.",
+   "rationale": "Removes hidden mutable state leaking into caller buffers; makes Run idempotent/deterministic across repeated calls, which matters for a reusable library routine.",
+   "risk": "Restoring arr adds O(uCount) work at the end (cheap relative to the main loop). If callers intentionally rely on arr being updated, restoration changes observable behavior \u2014 so prefer documenting unless idempotency is desired. No correctness risk to ans[]."
+  }
+ ]
+}

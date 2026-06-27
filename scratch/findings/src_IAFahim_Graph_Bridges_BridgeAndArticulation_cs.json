@@ -1,0 +1,49 @@
+{
+ "file": "src/IAFahim.Graph.Bridges/BridgeAndArticulation.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Bridges/BridgeAndArticulation.cs",
+   "symbol": "BridgeAndArticulation.Dfs",
+   "severity": "critical",
+   "category": "off-by-one",
+   "summary": "The adjacency-list iteration uses the wrong empty/terminator sentinel: `for (int e = head[u]; e != 0; e = next[e])`. The caller convention (confirmed by the module's own sibling file BiconnectivityAugmentation.cs and by BridgeAndArticulationTests.cs) is 0-indexed edges with -1 as the empty marker. Using `e != 0` (a) terminates iteration prematurely whenever a real edge has index 0, silently dropping that edge, and (b) never recognizes the genuine -1 empty marker as a stopping condition.",
+   "triggeringInput": "Path graph on N=3 vertices, edges added in order Add(0,1) then Add(1,2) with head[i]=-1 init and 0-indexed edges (to[e],next[e]=head[u],head[u]=e++ for both directions), exactly as BridgeAndArticulationTests builds graphs. This yields head[0]=0 (edge id 0 = the half-edge 0->1).",
+   "rootCause": "When DFS visits vertex 0, head[0]==0, so the loop condition `0 != 0` is immediately false and vertex 0's entire adjacency list is skipped. Edge (0,1) is never traversed from vertex 0; vertex 0 is treated as its own component. The result reports only bridge (1,2) and misses bridge (0,1) \u2014 a wrong answer (both edges of a path are bridges). More generally any edge whose id is 0 prematurely ends a vertex's adjacency scan.",
+   "suggestedFix": "Change the loop terminator to match the -1 empty-marker convention used throughout the module: `for (int e = head[u]; e != -1; e = next[e])` (identical to BiconnectivityAugmentation.cs line 12)."
+  },
+  {
+   "file": "src/IAFahim.Graph.Bridges/BridgeAndArticulation.cs",
+   "symbol": "BridgeAndArticulation.Dfs",
+   "severity": "critical",
+   "category": "pointer-ub",
+   "summary": "Because the loop uses `e != 0` while the caller initializes head[u] = -1 to mark vertices with no edges (isolated vertices) and to start the loop, an isolated vertex (or any vertex whose adjacency list is empty) enters the loop body with e == -1 since `-1 != 0` is true. The code then evaluates `int v = to[e]` i.e. `to[-1]`, a negative-index pointer read out of the allocated buffer.",
+   "triggeringInput": "Any graph containing a vertex with no incident edges, e.g. N=2 with no edges so head[0]=head[1]=-1. Find() calls Dfs(0,-1); Dfs reads to[-1].",
+   "rootCause": "The -1 empty/no-more-edges marker satisfies `-1 != 0`, so the for-loop body executes with e=-1 and dereferences to[-1]/next[-1], reading memory before the edge arrays (undefined behavior / out-of-bounds pointer read). Correct sentinel handling would stop the loop at -1.",
+   "suggestedFix": "Use `e != -1` as the loop terminator so the -1 empty marker correctly ends iteration without dereferencing to[-1]. (Same fix as the previous finding.)"
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Bridges/BridgeAndArticulation.cs",
+   "symbol": "Find",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Fuse the three sequential init loops over [0,n) into one loop.",
+   "currentCost": "Three separate full passes over n elements (tin, low, isArticulation), three loop-counter setups and three traversals of the same index range, with poor locality since the three arrays are distinct.",
+   "proposedChange": "Replace the three loops with a single `for (int i = 0; i < n; i++) { tin[i] = 0; low[i] = 0; isArticulation[i] = 0; }`.",
+   "rationale": "One loop instead of three removes two branch/counter overheads per element fold and lets the compiler keep `i` in a single induction register; the stores still hit three arrays but the loop bookkeeping is amortized once. low[] does not even need zeroing for correctness (it is always written by Dfs before being read since tin[u]=low[u]=++timer runs first), so the low loop could be dropped entirely.",
+   "risk": "low[] is set in Dfs before any read, so zeroing it is dead work; removing it is safe only because every reachable vertex gets visited (the outer loop covers all components). Keep zeroing tin and isArticulation. No semantic change from fusing."
+  },
+  {
+   "file": "src/IAFahim.Graph.Bridges/BridgeAndArticulation.cs",
+   "symbol": "Dfs",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Collapse the two dependent `low[v]` comparisons against tin[u] into a nested branch to avoid re-comparing.",
+   "currentCost": "After the recursive call, the code does `if (low[v] > tin[u])` then independently `if (low[v] >= tin[u] && p != -1)`. Two compares of the same pair low[v]/tin[u] plus a separate p!=-1 test on every tree edge.",
+   "proposedChange": "Load `int lv = low[v]; int tu = tin[u];` once, then `if (lv >= tu) { if (lv > tu) { bridgesU[bridgeCount]=u; bridgesV[bridgeCount]=v; bridgeCount++; } if (p != -1) isArticulation[u] = 1; }`. Also hoist `int hu = head[u]` and read tin[u]/low[u] into locals reused across the loop, writing low[u] back once.",
+   "rationale": "Strict `>` implies `>=`, so nesting removes one redundant comparison on the common branch and shares the loaded operands, shortening the dependency chain. Caching tin[u]/low[u] in registers avoids repeated pointer dereferences of the same cell inside the hot edge loop.",
+   "risk": "Behavior identical: lv>tu still sets a bridge; lv>=tu with p!=-1 still sets articulation. Must write low[u] back to memory after the loop if cached, and re-read after the recursive call is unnecessary since recursion does not touch low[u] (only the caller does)."
+  }
+ ]
+}

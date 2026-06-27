@@ -1,0 +1,1148 @@
+========================================
+PACKAGE: IAFahim.Math.Spline
+--- File: CubicHermite.cs ---
+public static unsafe class CubicHermite
+public static float3 Evaluate(float3 p0, float3 m0, float3 p1, float3 m1, float t)
+public static float3 EvaluateTangent(float3 p0, float3 m0, float3 p1, float3 m1, float t)
+public static float IntegrateArcLength(float3 p0, float3 m0, float3 p1, float3 m1, int sampleCount)
+--- File: UniformBSpline.cs ---
+public static unsafe class UniformBSpline
+public static float3 Evaluate(float3 p0, float3 p1, float3 p2, float3 p3, float t)
+public static float3 EvaluateTangent(float3 p0, float3 p1, float3 p2, float3 p3, float t)
+public static void UniformSample(float3 p0, float3 p1, float3 p2, float3 p3,
+
+========================================
+PACKAGE: IAFahim.Math.Transform
+--- File: SubsetConvolutionRanked.cs ---
+public static unsafe class SubsetConvolutionRanked
+public static void Run(long* a, long* b, long* c, int logN, long mod, long* f, long* g, long* h)
+--- File: Fwht.cs ---
+public static unsafe class WalshHadamardXor
+public static void Forward(long* f, int n)
+public static void Inverse(long* f, int n)
+public static unsafe class WalshHadamardOr
+public static void Forward(long* f, int n)
+public static void Inverse(long* f, int n)
+public static unsafe class WalshHadamardAnd
+public static void Forward(long* f, int n)
+public static void Inverse(long* f, int n)
+public static unsafe class FwhtConvolution
+public static void Run(long* a, long* b, long* c, int n, FwhtType type)
+public enum FwhtType { Xor, Or, And }
+--- File: PosetTransforms.cs ---
+public static unsafe class PosetTransforms
+public static void ZetaTransform(long* f, long* g, int* topOrder, bool* relation, int n, long mod)
+public static void MobiusTransform(long* g, long* f, int* topOrder, bool* relation, int n, long mod, long* mu)
+public static int LatticeMeet(int x, int y, bool* relation, int n)
+public static int LatticeJoin(int x, int y, bool* relation, int n)
+public static int BooleanLatticeRank(int x) { int c = 0; while (x > 0) { x &= (x - 1); c++; } return c; }
+--- File: OrAndXorConvolution.cs ---
+public static unsafe class OrAndXorConvolution
+public static void RunOr(long* a, long* b, long* c, int logN, long mod, long* ta, long* tb)
+public static void RunAnd(long* a, long* b, long* c, int logN, long mod, long* ta, long* tb)
+public static void RunXor(long* a, long* b, long* c, int logN, long mod, long* ta, long* tb)
+--- File: PartitionConvolution.cs ---
+public static unsafe class PartitionConvolution
+public static void ConvolveWithPartition(long* a, long* c, int n, long mod)
+public static void ConvolveWithPentagonal(long* a, long* c, int n, long mod)
+--- File: XorBasis.cs ---
+public static unsafe class XorBasisInsert
+public static void Run(long* basis, int* size, long x)
+public static unsafe class XorBasisMax
+public static long Run(long* basis)
+public static unsafe class XorBasisMin
+public static long Run(long* basis)
+public static unsafe class XorBasisRank
+public static int Run(long* basis, long x)
+public static unsafe class XorBasisKth
+public static long Run(long* basis, int k, int size)
+--- File: SubsetTransform.cs ---
+public static unsafe class SubsetZeta
+public static void Run(long* f, int n)
+public static void RunInt32(int* f, int n)
+public static unsafe class SubsetMobius
+public static void Run(long* f, int n)
+public static void RunInt32(int* f, int n)
+public static unsafe class SupersetZeta
+public static void Run(long* f, int n)
+public static unsafe class SupersetMobius
+public static void Run(long* f, int n)
+public static unsafe class SubsetConvolution
+public static void Run(long* a, long* b, long* c, int n)
+--- File: MinMaxConvolution.cs ---
+public static unsafe class MinMaxConvolution
+public static void MinIndex(long* a, long* b, long* c, int n, long mod, long* sa, long* sb, long* sc)
+public static void MaxIndex(long* a, long* b, long* c, int n, long mod, long* pa, long* pb, long* pc)
+public static void MinPlusGeneral(long* a, int aLen, long* b, int bLen, long* c)
+public static void MaxPlusGeneral(long* a, int aLen, long* b, int bLen, long* c)
+public static void MinPlusConvexArbitrary(long* a, int n, long* b, int m, long* c)
+public static void MaxPlusConcaveArbitrary(long* a, int n, long* b, int m, long* c)
+public static void MinPlusConvexConvex(long* a, int n, long* b, int m, long* c)
+public static void MaxPlusConcaveConcave(long* a, int n, long* b, int m, long* c)
+
+========================================
+PACKAGE: IAFahim.Math.Transform.AnyMod
+--- File: AnyMod.cs ---
+public static unsafe class ArbitraryModConvolution
+public static int Run(long* a, int n, long* b, int m, long* res, long mod)
+
+========================================
+PACKAGE: IAFahim.Math.Transform.Fft
+--- File: Fft.cs ---
+public static unsafe class FftTransform
+public static void Forward(double* re, double* im, int n)
+public static void Inverse(double* re, double* im, int n)
+public static unsafe class FftConvolution
+public static int Run(double* a, int n, double* b, int m, double* res)
+
+========================================
+PACKAGE: IAFahim.Math.Transform.Ntt
+--- File: Ntt.cs ---
+public static unsafe class NttInit
+public static void Run(int logN, long mod, long g, long* roots, long* invRoots)
+public static unsafe class NttTransform
+public static void Forward(long* a, int n, long mod, long* roots)
+public static void Inverse(long* a, int n, long mod, long* invRoots)
+public static unsafe class NttConvolution
+public static int Run(long* a, int n, long* b, int m, long* res, long mod, long g)
+
+========================================
+PACKAGE: IAFahim.Memory.Allocators
+--- File: Ptr.cs ---
+public readonly unsafe struct Ptr : IEquatable<Ptr>
+public readonly void* Value;
+public static readonly Ptr Zero = default;
+public Ptr(void* value)
+public static implicit operator void*(Ptr ptr)
+public static implicit operator Ptr(void* ptr)
+public bool Equals(Ptr other)
+public override int GetHashCode()
+--- File: UnsafeFixedPoolAllocator.cs ---
+public unsafe struct UnsafeFixedPoolAllocator<T> : IDisposable
+public UnsafeFixedPoolAllocator(int maxItems, Allocator allocator)
+public bool IsCreated => this.buffer.Value != null;
+public T* Alloc()
+public void Free(T* p)
+public void Dispose()
+--- File: MemoryAllocator.cs ---
+public unsafe struct MemoryAllocator : IDisposable
+public MemoryAllocator(Allocator allocator)
+public Allocator Allocator { get; }
+public void* Allocate(int itemSizeInBytes, int alignmentInBytes, int items = 1)
+public T* Create<T>(int count = 1)
+public UnsafeList<T> CreateList<T>(int capacity)
+public void FreeAll()
+public void Dispose()
+--- File: UnsafeParallelPoolAllocator.cs ---
+public unsafe struct UnsafeParallelPoolAllocator<T> : IDisposable
+public UnsafeParallelPoolAllocator(int countPerChunk, Allocator allocator)
+public bool IsCreated => this.pools != null;
+public void Dispose()
+public T* Alloc()
+public void Free(T* p)
+public int Allocated()
+--- File: UnsafeSlabAllocator.cs ---
+public unsafe struct UnsafeSlabAllocator<T> : IDisposable
+public UnsafeSlabAllocator(int countPerSlab, AllocatorManager.AllocatorHandle allocator)
+public int AllocationCount => (int)((long)this.countPerSlab * (this.slabs->Length - 1)) + *this.count;
+public bool IsCreated => this.count != null;
+public T* Alloc()
+public void Clear()
+public void Dispose()
+public int Allocated()
+--- File: UnsafePoolAllocator.cs ---
+public unsafe struct UnsafePoolAllocator<T> : IDisposable
+public UnsafePoolAllocator(int countPerChunk, Allocator allocator)
+public bool IsCreated => this.slabAllocator.IsCreated;
+public void Dispose()
+public T* Alloc()
+public void Free(T* p)
+public int Allocated()
+--- File: NativeSlabAllocator.cs ---
+public unsafe struct NativeSlabAllocator<T> : IDisposable
+public NativeSlabAllocator(int countPerSlab, AllocatorManager.AllocatorHandle allocator)
+public int AllocationCount
+public bool IsCreated => this.slabAllocator.IsCreated;
+public T* Alloc()
+public void Clear()
+public void Dispose()
+
+========================================
+PACKAGE: IAFahim.Optimization.Approximation
+--- File: Metheuristics.cs ---
+public static unsafe class Metheuristics
+public static long SimulatedAnnealing(long* state, int n, long target, double temp, double cooling)
+public static long HillClimb(long* state, int n)
+public static long MonteCarlo(long* samples, int n)
+--- File: Freivalds.cs ---
+public static unsafe class Freivalds
+public static bool Verify(int n, int* a, int* b, int* c, int* r, int iters, uint* seed)
+--- File: SchwartzZippel.cs ---
+public static unsafe class SchwartzZippel
+public static bool Test(int* poly, int n, int* eval, int* points, int m, int prime)
+
+========================================
+PACKAGE: IAFahim.Optimization.DivideConquer
+--- File: SlopeTrick.cs ---
+public static unsafe class SlopeTrick
+public struct State
+public long L, R;
+public long Lc, Rc;
+public long Offset;
+public static void Init(State* s)
+public static void AddAbs(State* s, long a)
+public static void AddAbsWithHeaps(State* s, long a, long* leftHeap, ref int leftSize, long* rightHeap, ref int rightSize)
+public static void AddMaxZero(State* s)
+public static void Shift(State* s, long add) { s->L += add; s->R += add; }
+public static long Query(State* s)
+--- File: LagrangianRelaxation.cs ---
+public static unsafe class LagrangianRelaxation
+public static long Search(long* w, int n, int k, long lo, long hi)
+--- File: MatrixSearch.cs ---
+public static unsafe class MatrixSearch
+public static int Run(int m, int n, int* a, int target)
+public static int RunSortedColumns(int m, int n, int* a, int target)
+--- File: OnlineDp.cs ---
+public static unsafe class OnlineDp
+public static void Recompute(long* dp, int l, int r, int optL, int optR, int k, delegate*<int,int,long> calc)
+--- File: DequeOpt.cs ---
+public static unsafe class DequeOpt
+public struct Quad
+public long A, B, C;
+public static long Eval(Quad q, long x)
+public static long IntersectX(Quad p, Quad q)
+public static void Run(long* dp, int n, Quad* quads, int* deque, int* head, int* tail)
+
+========================================
+PACKAGE: IAFahim.Optimization.Exact
+--- File: MaxIndependentSet.cs ---
+public static unsafe class MaxIndependentSet
+public static int Run(int n, bool* adj, int* used, int* best, int* tmp)
+--- File: MinSetCover.cs ---
+public static unsafe class MinSetCover
+public static int Run(int m, int** sets, int* setSizes, int* covered, int* best, int* cur)
+--- File: MaximumClique.cs ---
+public static unsafe class MaximumClique
+public static int Run(int n, bool* adj, int* cand, int candSize, int* sol, long* dp, int* best, int* tmp)
+--- File: HamiltonianPath.cs ---
+public static unsafe class HamiltonianPath
+public static long Run(int n, long* w, long inf, long* dp, int* perm)
+--- File: TspHeldKarp.cs ---
+public static unsafe class TspHeldKarp
+public static long Run(int n, long* w, long inf, long* dp)
+--- File: MinDominatingSet.cs ---
+public static unsafe class MinDominatingSet
+public static int Run(int n, bool* adj, int* dom, int* best, int* tmp)
+--- File: HamiltonianCycle.cs ---
+public static unsafe class HamiltonianCycle
+public static long Run(int n, long* w, long inf, long* dp)
+--- File: TspBitonic.cs ---
+public static unsafe class TspBitonic
+public static long Run(int n, double* xs, double* ys, long* dp)
+--- File: GraphColoring.cs ---
+public static unsafe class GraphColoring
+public static int Run(int n, bool* adj, int* colors, int* sat)
+--- File: SteinerDreyfusWagner.cs ---
+public static unsafe class SteinerDreyfusWagner
+public static long Run(int n, int m, int* from, int* to, long* w, bool* terminals, long inf, long* dp)
+--- File: TspMeetInMiddle.cs ---
+public static unsafe class TspMeetInMiddle
+public static long Run(int n, long* w, long inf)
+
+========================================
+PACKAGE: IAFahim.Optimization.Games
+--- File: AttractorSet.cs ---
+public static unsafe class AttractorSet
+public static bool Solve(int n, bool* player, bool* adj, bool* even, int start, bool* inAttr, int* queue)
+--- File: MinCostFlow.cs ---
+public static unsafe class MinCostFlow
+public static long MinCostCirculation(int n, int m, int* from, int* to, long* cap, long* cost)
+public static long MinCostArborescence(int n, int* from, int* to, long* w, int m, int root)
+public static long MinMeanCycle(int n, int* from, int* to, long* w, int m)
+--- File: Grundy.cs ---
+public static unsafe class Grundy
+public static int Mex(int* values, int n)
+public static void SpragueGrundy(int* moves, int* counts, int n, int* g, int* scratch)
+--- File: Simplex.cs ---
+public static unsafe class Simplex
+public struct Result { public double Value; public int Status; }
+public static Result Run(int m, int n, double* a, double* b, double* c, double* x)
+--- File: Mdp.cs ---
+public static unsafe class Mdp
+public static void ValueIteration(int n, int m, double* trans, double* reward, double gamma, double* v, double* newV, int iters)
+public static void PolicyIteration(int n, int m, double* trans, double* reward, double gamma, int* policy, double* v, int* newPol)
+--- File: Retrograde.cs ---
+public static unsafe class Retrograde
+public static int Solve(int n, bool* win, bool* lose, int* from, int* to, int m)
+--- File: MeanPayoff.cs ---
+public static unsafe class MeanPayoff
+public static bool Solve(int n, int m, int* from, int* to, long* w, long* potential)
+
+========================================
+PACKAGE: IAFahim.Optimization.Geometric
+--- File: WelzlSphere.cs ---
+public static unsafe class WelzlSphere
+public struct Sphere
+public double X, Y, Z, R;
+public static Sphere Run(double* xs, double* ys, double* zs, int n)
+--- File: MinEnclosingBall.cs ---
+public static unsafe class MinEnclosingBall
+public struct Circle { public double X, Y, R; }
+public static Circle Welzl(double* xs, double* ys, int n, int* p)
+
+========================================
+PACKAGE: IAFahim.Optimization.Knapsack
+--- File: DivideConquerKnapsack.cs ---
+public static unsafe class DivideConquerKnapsack
+public static long Run(long* w, long* v, int* cnt, int n, int cap, long* dp)
+--- File: MultipleChoiceKnapsack.cs ---
+public static unsafe class MultipleChoiceKnapsack
+public static long Run(int* groupStart, int* itemW, long* itemV, int n, int cap, long* dp)
+--- File: MeetInMiddle.cs ---
+public static unsafe class MeetInMiddle
+public static long Run(long* w, long* v, int n, long cap, long* left)
+--- File: BoundedKnapsack.cs ---
+public static unsafe class BoundedKnapsack
+public static long BinarySplit(long* w, long* v, int* cnt, int n, int cap, long* dp)
+public static long MonotoneQueue(long* w, long* v, int* cnt, int n, int cap, long* dp, int* q)
+--- File: KSum.cs ---
+public static unsafe class KSum
+public static int Count(int* a, int n, int k, int target)
+public static int FourSum(int* a, int n, int target)
+--- File: SubsetSum.cs ---
+public static unsafe class SubsetSum
+public static bool Can(long* w, int n, long target)
+
+========================================
+PACKAGE: IAFahim.Optimization.Matroid
+--- File: MatroidGreedy.cs ---
+public static unsafe class MatroidGreedy
+public static long Run(int n, int* set, int setSize, long* weight, delegate*<int*, int, int, bool> independent)
+--- File: LinearMatroid.cs ---
+public static unsafe class LinearMatroid
+public static int Rank(int n, int m, int* a, int* basis)
+
+========================================
+PACKAGE: IAFahim.Optimization.Offline
+--- File: Offline.cs ---
+public static unsafe class ParallelBinarySearch
+public static void Init(int* lo, int* hi, int n)
+public static void InitWithRange(int* lo, int* hi, int n, int loVal, int hiVal)
+public static int Mid(int lo, int hi)
+public static void GroupByMid(int* lo, int* hi, int* queryIdx, int* bucketSize, int n, int* buckets)
+public static unsafe class DivideConquerAnswer
+public static void Solve<T>(
+public static unsafe class Cdq3DDominance
+public static void SortByX(int* x, int* y, int* z, int* idx, int* tmp, int l, int r)
+public static void Process(int* x, int* y, int* z, int* idx, int* tmp, int* count, int l, int r,
+public static unsafe class OfflineKthNumber
+public static int BuildPersistentSegTree(
+public static int QueryKth(int* leftChild, int* rightChild, int* sum,
+
+========================================
+PACKAGE: IAFahim.Optimization.Submodular
+--- File: MaxCut.cs ---
+public static unsafe class MaxCut
+public static long LocalSearch(int n, int* from, int* to, long* w, int m, int* partition)
+public static long GoemansWilliamson(int n, int* from, int* to, long* w, int m, double alpha)
+--- File: SubmodularGreedy.cs ---
+public static unsafe class SubmodularGreedy
+public static long Run(int n, long* gain, int k, int* selected)
+public static long GreedySetCover(int n, int* elemCounts, int** sets, int m, int* cover)
+--- File: Rounding.cs ---
+public static unsafe class Rounding
+public static void Random(int n, double* frac, int* result, Random rng)
+public static void Dependent(int n, double* frac, int* result)
+public static void Pipage(int n, double* frac, int* result)
+
+========================================
+PACKAGE: IAFahim.Optimization.Treewidth
+--- File: CutAndCount.cs ---
+public static unsafe class CutAndCount
+public static int Run(int n, bool* adj, int* bag, int bagSize, long* dp)
+--- File: ConvexHull.cs ---
+public static unsafe class ConvexHull
+public static bool CheckMonge(long* a, int m, int n)
+public static bool CheckQuadrangle(long* a, int m, int n)
+--- File: RankDp.cs ---
+public static unsafe class RankDp
+public static void ComputeOrder(int n, int* adj, int* order, int* parent, int* rank)
+public static void FillBag(int n, int v, int* adj, int* bag, int* bagSize)
+public static long Run(int n, long* edgeW, int* order, int* parent, long* dp)
+--- File: FastSubsetDp.cs ---
+public static unsafe class FastSubsetDp
+public static void Run(long* f, long* g, int n, int k)
+--- File: RankTransform.cs ---
+public static unsafe class RankTransform
+public static void Run(int* x, int n, int* rank)
+
+========================================
+PACKAGE: IAFahim.Pathfinding.Recast
+--- File: ushort3.cs ---
+public struct ushort3
+public ushort x;
+public ushort y;
+public ushort z;
+public ushort3(ushort x, ushort y, ushort z)
+public unsafe ushort this[int index]
+--- File: AssemblyInfo.cs ---
+--- File: byte4.cs ---
+public struct byte4
+public byte x;
+public byte y;
+public byte z;
+public byte w;
+public byte4(byte x, byte y, byte z, byte w)
+public unsafe byte this[int index]
+--- File: Recast/Recast.cs ---
+public static unsafe partial class Recast
+public static RcHeightfield* AllocHeightfield(Allocator allocator)
+public static void FreeHeightfield(RcHeightfield* heightfield)
+public static RcCompactHeightfield* AllocCompactHeightfield(Allocator allocator)
+public static void FreeCompactHeightfield(RcCompactHeightfield* chf)
+public static RcContourSet* AllocContourSet(Allocator allocator)
+public static void FreeContourSet(RcContourSet* cset)
+public static RcPolyMesh* AllocPolyMesh(Allocator allocator)
+public static void FreePolyMesh(RcPolyMesh* pmesh)
+public static RcPolyMeshDetail* AllocPolyMeshDetail(Allocator allocator)
+public static void FreePolyMeshDetail(RcPolyMeshDetail* dmesh)
+public static RcHeightfieldLayerSet* AllocHeightfieldLayerSet(Allocator allocator)
+public static void FreeHeightfieldLayerSet(RcHeightfieldLayerSet* lset)
+public static void CreateHeightfield(
+public static void MarkWalkableTriangles(float walkableSlopeAngle, float3* verts, int3* tris, byte* triAreaIDs, int numTris)
+public static void ClearUnwalkableTriangles(float walkableSlopeAngle, float3* verts, int3* tris, byte* triAreaIDs, int numTris)
+public static void CalcGridSize(in float3 minBounds, in float3 maxBounds, float cellSize, out int sizeX, out int sizeZ)
+public static void CalcBounds(float3* verts, int numVerts, out float3 minBounds, out float3 maxBounds)
+public static int GetHeightFieldSpanCount(RcHeightfield* heightfield)
+public static bool BuildCompactHeightfield(int walkableHeight, int walkableClimb, RcHeightfield* heightfield, RcCompactHeightfield* compactHeightfield)
+public static void SetCon(RcCompactSpan* span, int direction, int neighborIndex)
+public static int GetCon(RcCompactSpan span, int direction)
+public static int GetDirOffsetX(int direction)
+public static int GetDirOffsetY(int direction)
+public static int GetDirForOffset(int offsetX, int offsetZ)
+--- File: Recast/RcContour.cs ---
+public unsafe struct RcContour : IDisposable
+public int4* Verts;
+public int NVerts;
+public int4* RVerts;
+public int NRVerts;
+public ushort Reg;
+public byte Area;
+public RcContour(Allocator allocator)
+public Allocator Allocator { get; }
+public void Dispose()
+--- File: Recast/RcPolyMeshDetail.cs ---
+public unsafe struct RcPolyMeshDetail : IDisposable
+public uint4* Meshes;
+public float3* Verts;
+public byte4* Tris;
+public int NMeshes;
+public int NVerts;
+public int NTris;
+public RcPolyMeshDetail(Allocator allocator)
+public Allocator Allocator { get; }
+public void Dispose()
+--- File: Recast/Recast.Filter.cs ---
+public static unsafe partial class Recast
+public static void FilterLowHangingWalkableObstacles(int walkableClimb, RcHeightfield* heightfield)
+public static void FilterLedgeSpans(int walkableHeight, int walkableClimb, RcHeightfield* heightfield)
+public static void FilterWalkableLowHeightSpans(int walkableHeight, RcHeightfield* heightfield)
+--- File: Recast/RcContourSet.cs ---
+public unsafe struct RcContourSet : IDisposable
+public RcContour* Conts;
+public int Nconts;
+public float3 Bmin;
+public float3 Bmax;
+public float Cs;
+public float Ch;
+public int Width;
+public int Height;
+public int BorderSize;
+public float MaxError;
+public RcContourSet(Allocator allocator)
+public Allocator Allocator { get; }
+public void Dispose()
+--- File: Recast/Recast.Layers.cs ---
+public static unsafe partial class Recast
+public static bool BuildHeightfieldLayers(RcCompactHeightfield* compactHeightfield, int borderSize, int walkableHeight,
+public ushort Ns;   // number samples
+public byte ID;     // region id
+public byte Nei;    // neighbour id
+public fixed byte Layers[RCMaxLayers];
+public fixed byte Neis[RCMaxNeis];
+public ushort Ymin;
+public ushort Ymax;
+public byte LayerId;        // Layer ID
+public byte Nlayers;        // Layer count
+public byte Nneis;          // Neighbour count
+public byte Base;          // Flag indicating if the region is the base of merged regions
+--- File: Recast/Recast.Area.cs ---
+public static unsafe partial class Recast
+public static void ErodeWalkableArea(int erosionRadius, RcCompactHeightfield* compactHeightfield)
+public static bool MedianFilterWalkableArea(RcCompactHeightfield* compactHeightfield)
+public static void MarkBoxArea(in float3 boxMinBounds, in float3 boxMaxBounds, byte areaId,
+public static void MarkCylinderArea(in float3 position, float radius, float height, byte areaId,
+public static void MarkConvexPolyArea(float3* verts, int numVerts, float minY, float maxY, byte areaId,
+public static int OffsetPoly(float3* verts, int numVerts, float offset, float3* outVerts, int maxOutVerts)
+--- File: Recast/RcCompactSpan.cs ---
+public struct RcCompactSpan
+public ushort Y;
+public ushort Reg;
+public uint Con
+public uint H
+--- File: Recast/RcHeightField.cs ---
+public unsafe struct RcHeightfield : IDisposable
+public int Width;
+public int Height;
+public float3 Bmin;
+public float3 Bmax;
+public float Cs;
+public float Ch;
+public RcSpan** Spans;
+public RcSpanPool* Pools;
+public RcSpan* Freelist;
+public RcHeightfield(Allocator allocator)
+public Allocator Allocator { get; }
+public void Dispose()
+--- File: Recast/Recast.Region.cs ---
+public static unsafe partial class Recast
+public static void BuildDistanceField(RcCompactHeightfield* compactHeightfield)
+public static bool BuildRegions(RcCompactHeightfield* compactHeightfield, int borderSize, int minRegionArea, int mergeRegionArea)
+public static void BuildRegionsMonotone(RcCompactHeightfield* compactHeightfield, int borderSize, int minRegionArea, int mergeRegionArea)
+public static bool BuildLayerRegions(RcCompactHeightfield* compactHeightfield, int borderSize, int minRegionArea)
+public int X;
+public int Y;
+public int Index;
+public LevelStackEntry(int x, int y, int index)
+public int Index;
+public ushort Region;
+public ushort Distance2;
+public DirtyEntry(int index, ushort region, ushort distance2)
+public int SpanCount;                    // Number of spans belonging to this region
+public ushort ID;                        // ID of the region
+public byte AreaType;                    // Area type
+public bool Remap;
+public bool Visited;
+public bool Overlap;
+public bool ConnectsToBorder;
+public ushort Ymin;
+public ushort Ymax;
+public NativeList<int> Connections;
+public NativeList<int> Floors;
+public RcRegion(ushort i)
+public ushort Rid;   // row id
+public ushort ID;    // region id
+public ushort Ns;    // number samples
+public ushort Nei;   // neighbour id
+--- File: Recast/Recast.Constants.cs ---
+public enum RcBuildContoursFlags
+public static partial class Recast
+public const ushort RCMeshNullIdx = 0xffff;
+public const byte RCNullArea = 0;
+public const byte RCWalkableArea = 63;
+public const int RCNotConnected = 0x3f;
+public const int RCSpanHeightBits = 13;
+public const int RCSpanMaxHeight = (1 << RCSpanHeightBits) - 1;
+public const int RCSpansPerPool = 2048;
+public const ushort RCBorderReg = 0x8000;
+public const ushort RCMultipleRegs = 0;
+public const int RCBorderVertex = 0x10000;
+public const int RCAreaBorder = 0x20000;
+public const int RCContourRegMask = 0xffff;
+public const int RCSpanSize = 16;
+public const int RCSpanPoolItemsSize = RCSpansPerPool * RCSpanSize;
+--- File: Recast/RcHeightfieldLayer.cs ---
+public unsafe struct RcHeightfieldLayer : IDisposable
+public float3 BoundMin;
+public float3 BoundMax;
+public float CellSize;
+public float CellHeight;
+public int Width;
+public int Height;
+public int MinX;
+public int MaxX;
+public int MinY;
+public int MaxY;
+public int HeightMin;
+public int HeightMax;
+public byte* Heights;
+public byte* Areas;
+public byte* Cons;
+public RcHeightfieldLayer(Allocator allocator)
+public Allocator Allocator { get; }
+public void Dispose()
+--- File: Recast/RcSpan.cs ---
+public unsafe struct RcSpan
+public RcSpan* Next;
+public uint SMin
+public uint SMax
+public uint Area
+--- File: Recast/Recast.MeshDetail.cs ---
+public static unsafe partial class Recast
+public static void BuildPolyMeshDetail(
+public static bool MergePolyMeshDetails(RcPolyMeshDetail** meshes, int nmeshes, RcPolyMeshDetail* mesh)
+public ushort* Data;
+public int Xmin;
+public int Ymin;
+public int Width;
+public int Height;
+--- File: Recast/RcPolyMesh.cs ---
+public unsafe struct RcPolyMesh : IDisposable
+public ushort3* Verts;
+public ushort* Polys;
+public ushort* Regs;
+public ushort* Flags;
+public byte* Areas;
+public int NVerts;
+public int NPolys;
+public int MaxPolys;
+public int Nvp;
+public float3 BMin;
+public float3 BMax;
+public float CellSize;
+public float CellHeight;
+public int BorderSize;
+public float MaxEdgeError;
+public RcPolyMesh(Allocator allocator)
+public Allocator Allocator { get; }
+public void Dispose()
+--- File: Recast/Recast.Contour.cs ---
+public static unsafe partial class Recast
+public static void BuildContours(
+public int Vert;
+public int Dist;
+public RcContour* Contour;
+public int Minx;
+public int Minz;
+public int Leftmost;
+public RcContour* Outline;
+public ContourHole* Holes;
+public int Nholes;
+--- File: Recast/RcCompactCell.cs ---
+public struct RcCompactCell
+public uint Index
+public uint Count
+--- File: Recast/RcSpanPool.cs ---
+public unsafe struct RcSpanPool
+public RcSpanPool* Next;
+public fixed byte Items[Recast.RCSpanPoolItemsSize];
+public RcSpan* GetSpan(int index)
+--- File: Recast/RcCompactHeightfield.cs ---
+public unsafe struct RcCompactHeightfield : IDisposable
+public int Width;
+public int Height;
+public int SpanCount;
+public int WalkableHeight;
+public int WalkableClimb;
+public int BorderSize;
+public ushort MaxDistance;
+public ushort MaxRegions;
+public float3 BMin;
+public float3 BMax;
+public float CellSize;
+public float CellHeight;
+public RcCompactCell* Cells;
+public RcCompactSpan* Spans;
+public ushort* Dist;
+public byte* Areas;
+public RcCompactHeightfield(Allocator allocator)
+public Allocator Allocator { get; }
+public void Dispose()
+--- File: Recast/Recast.Rasterization.cs ---
+public static unsafe partial class Recast
+public static void RasterizeTriangles(float3* verts, int3* tris, byte* triAreaIDs, int numTris, RcHeightfield* heightfield, int flagMergeThreshold = 1)
+public static void RasterizeTriangles(
+public static void RasterizeTriangles(float3* verts, byte* triAreaIDs, int numTris, RcHeightfield* heightfield, int flagMergeThreshold = 1)
+public static void RasterizeTriangle(float3 v0, float3 v1, float3 v2, uint areaID, RcHeightfield* heightfield, int flagMergeThreshold = 1)
+public static void RasterizeTriangle(
+public static void AddSpan(RcHeightfield* heightfield, int x, int z, uint min, uint max, uint areaID, int flagMergeThreshold)
+--- File: Recast/RcHeightfieldLayerSet.cs ---
+public unsafe struct RcHeightfieldLayerSet : IDisposable
+public RcHeightfieldLayer* Layers;
+public int NLayers;
+public RcHeightfieldLayerSet(Allocator allocator)
+public Allocator Allocator { get; }
+public void Dispose()
+--- File: Recast/Recast.Mesh.cs ---
+public static unsafe partial class Recast
+public static bool BuildPolyMesh(RcContourSet* contourSet, int nvp, RcPolyMesh* mesh)
+public static bool MergePolyMeshes(RcPolyMesh** meshes, int nmeshes, RcPolyMesh* mesh)
+public fixed ushort Vert[2];
+public fixed ushort PolyEdge[2];
+public fixed ushort Poly[2];
+--- File: Detour/DtMeshTile.cs ---
+public unsafe struct DtMeshTile
+public uint salt; // Counter describing modifications to the tile
+public uint linksFreeList; // Index to the next free link
+public DtMeshHeader* header; // The tile header
+public DtPoly* polys; // The tile polygons
+public float3* verts; // The tile vertices
+public DtLink* links; // The tile links
+public DtPolyDetail* detailMeshes; // The tile's detail sub-meshes
+public float3* detailVerts; // The detail mesh's unique vertices
+public byte4* detailTris; // The detail mesh's triangles
+public DtBVNode* bvTree; // The tile bounding volume nodes
+public DtOffMeshConnection* offMeshCons; // The tile off-mesh connections
+public byte* data; // The tile data (not directly accessed under normal situations)
+public int dataSize; // Size of the tile data
+public DtTileFlags flags; // Tile flags
+public DtMeshTile* next; // The next free tile, or the next tile in the spatial grid
+--- File: Detour/DtPoly.cs ---
+public unsafe struct DtPoly
+public uint firstLink;
+public fixed ushort verts[Detour.DTVertsPerPolygon];
+public fixed ushort neis[Detour.DTVertsPerPolygon];
+public ushort flags;
+public byte vertCount;
+public void SetArea(byte area)
+public void SetType(byte type)
+public byte GetArea()
+public DtPolyTypes GetPolyType()
+--- File: Detour/DtNavMesh.cs ---
+public unsafe struct DtNavMesh : IDisposable
+public DtNavMeshParams parameters; // Current initialization params
+public float3 origin; // Origin of the tile (0,0)
+public float tileWidth;
+public float tileHeight; // Dimensions of each tile
+public int maxTiles; // Max number of tiles
+public int tileLookupSize; // Tile hash lookup size (must be pot)
+public int tileLookupMask; // Tile hash lookup mask
+public DtMeshTile** positionLookup; // Tile hash lookup
+public DtMeshTile* nextFreeTile; // Freelist of tiles
+public DtMeshTile* tiles; // List of tiles
+public uint saltBits; // Number of salt bits in the tile ID (32-bit mode only)
+public uint tileBits; // Number of tile bits in the tile ID (32-bit mode only)
+public uint polyBits; // Number of poly bits in the tile ID (32-bit mode only)
+public int2 Destination;
+public DtTileRef SourceTileRef;
+public int OffMeshConnectionIndex;
+public int Next;
+public static DtNavMesh* Alloc(AllocatorManager.AllocatorHandle allocator)
+public static void Free(DtNavMesh* navMesh)
+public DtNavMeshParams* GetParams()
+public void Init(in DtNavMeshParams param)
+public DtStatus InitSingleTile(byte* data, int dataSize, DtTileFlags flags)
+public DtStatus AddTile(byte* data, int dataSize, DtTileFlags flags, DtTileRef lastRef, out DtTileRef result)
+public DtStatus RemoveTile(DtTileRef tileRef, out byte* data, out int dataSize)
+public void CalculateTileLocation(in float3 position, out int tileX, out int tileY)
+public DtMeshTile* GetTileAt(int x, int y, int layer)
+public int GetTilesAt(int x, int y, DtMeshTile** tilesOut, int maxTilesOut)
+public DtTileRef GetTileRefAt(int x, int y, int layer)
+public DtMeshTile* GetTileByRef(DtTileRef tileRef)
+public int GetMaxTiles()
+public DtMeshTile* GetTile(int i)
+public DtStatus GetTileAndPolyByRef(DtPolyRef polyRef, out DtMeshTile* tile, out DtPoly* poly)
+public void GetTileAndPolyByRefUnsafe(DtPolyRef polyRef, out DtMeshTile* tile, out DtPoly* poly)
+public int GetNeighborTilesAt(int x, int y, int side, DtMeshTile** tiles, int maxTiles)
+public DtTileRef GetTileRef(DtMeshTile* tile)
+public DtPolyRef GetPolyRefBase(DtMeshTile* tile)
+public DtStatus GetOffMeshConnectionPolyEndPoints(DtPolyRef prevRef, DtPolyRef polyRef, float3* startPos, float3* endPos)
+public DtOffMeshConnection* GetOffMeshConnectionByRef(DtPolyRef polyRef)
+public DtStatus SetPolyFlags(DtPolyRef polyRef, ushort flags)
+public DtStatus GetPolyFlags(DtPolyRef polyRef, ushort* resultFlags)
+public DtStatus SetPolyArea(DtPolyRef polyRef, byte area)
+public DtStatus GetPolyArea(DtPolyRef polyRef, byte* resultArea)
+public int GetTileStateSize(DtMeshTile* tile)
+public DtStatus StoreTileState(DtMeshTile* tile, byte* data, int maxDataSize)
+public DtStatus RestoreTileState(DtMeshTile* tile, byte* data, int maxDataSize)
+public bool IsValidPolyRef(DtPolyRef polyRef)
+public DtPolyRef EncodePolyId(uint salt, uint tileIndex, uint polyIndex)
+public void DecodePolyId(DtPolyRef polyRef, out uint salt, out uint tileIndex, out uint polyIndex)
+public uint DecodePolyIdSalt(DtPolyRef polyRef)
+public uint DecodePolyIdTile(DtPolyRef polyRef)
+public uint DecodePolyIdPoly(DtPolyRef polyRef)
+public void ClosestPointOnPoly(DtPolyRef polyRef, in float3 pos, out float3 closest, out bool posOverPoly)
+public bool GetPolyHeight(DtMeshTile* tile, DtPoly* poly, in float3 pos, out float height)
+public void Dispose()
+public static byte GetDetailTriEdgeFlags(byte triFlags, byte edgeIndex)
+public int magic;
+public int version;
+public DtTileRef tileRef;
+public ushort flags;
+public byte area;
+--- File: Detour/DtRaycastHit.cs ---
+public unsafe struct DtRaycastHit
+public float t;
+public float3 hitNormal;
+public int hitEdgeIndex;
+public DtPolyRef* path;
+public int pathCount;
+public int maxPath;
+public float pathCost;
+--- File: Detour/DtNodeQueue.cs ---
+public unsafe struct DtNodeQueue : IDisposable
+public DtNodeQueue(int capacity, AllocatorManager.AllocatorHandle allocator)
+public void Dispose()
+public void Clear()
+public DtNode* Top()
+public DtNode* Pop()
+public void Push(DtNode* node)
+public void Modify(DtNode* node)
+public readonly bool Empty => this.size == 0;
+public readonly int Capacity => this.capacity;
+public readonly int Size => this.size;
+--- File: Detour/DtNavMeshQuery.cs ---
+public unsafe struct DtNavMeshQuery : IDisposable
+public DtNavMeshQuery(DtNavMesh* nav, int maxNodes, AllocatorManager.AllocatorHandle allocator)
+public static DtNavMeshQuery* Create(DtNavMesh* nav, int maxNodes, AllocatorManager.AllocatorHandle allocator)
+public static void Free(DtNavMeshQuery* query)
+public void Dispose()
+public void ReplaceNavMeshTarget(DtNavMesh* mesh)
+public DtStatus FindPath(
+public DtStatus FindRandomPoint(ref DtQueryFilter filter, ref Random frand, out DtPolyRef randomRef, out float3 randomPt)
+public DtStatus FindRandomPointAroundCircle(
+public readonly DtStatus ClosestPointOnPoly(DtPolyRef polyRef, in float3 pos, out float3 closest, out bool posOverPoly)
+public DtStatus ClosestPointOnPolyBoundary(DtPolyRef polyRef, in float3 pos, out float3 closest)
+public DtStatus GetPolyHeight(DtPolyRef polyRef, in float3 pos, out float height)
+public DtStatus FindNearestPoly(in float3 center, in float3 halfExtents, ref DtQueryFilter filter, ref DtPolyRef nearestRef, ref float3 nearestPt)
+public DtStatus FindNearestPoly(
+public DtStatus QueryPolygons(in float3 center, in float3 halfExtents, ref DtQueryFilter filter, DtPolyRef* polys, int* polyCount, int maxPolys)
+public DtStatus QueryPolygons<T>(in float3 center, in float3 halfExtents, ref DtQueryFilter filter, ref T query)
+public bool IsValidPolyRef(DtPolyRef polyRef, ref DtQueryFilter filter)
+public bool IsInClosedList(DtPolyRef polyRef)
+public DtNavMesh* GetAttachedNavMesh() => this.navMesh;
+public DtNodePool* GetNodePool() => this.nodePool;
+public DtStatus FindStraightPath(
+public DtStatus FindStraightPath(
+public DtStatus FindStraightPath(
+public DtStatus GetPortalPoints(DtPolyRef from, DtPolyRef to, out float3 left, out float3 right, out DtPolyTypes fromType, out DtPolyTypes toType)
+public DtStatus Raycast(
+public DtStatus Raycast(
+public DtStatus MoveAlongSurface(
+public DtStatus InitSlicedFindPath(
+public DtStatus UpdateSlicedFindPath(int maxIter, out int doneIters)
+public DtStatus FinalizeSlicedFindPath(DtPolyRef* path, out int pathCount, int maxPath)
+public DtStatus FinalizeSlicedFindPath(ref UnsafeList<DtPolyRef> path)
+public DtStatus FinalizeSlicedFindPathPartial(DtPolyRef* existing, int existingSize, DtPolyRef* path, out int pathCount, int maxPath)
+public DtStatus FindPolysAroundCircle(
+public DtStatus FindPolysAroundShape(
+public DtStatus GetPathFromDijkstraSearch(DtPolyRef endRef, DtPolyRef* path, out int pathCount, int maxPath)
+public DtStatus FindDistanceToWall(
+public DtStatus FindLocalNeighbourhood(
+public DtStatus GetPolyWallSegments(
+public DtPolyRef PolyRef;
+public short TMin;
+public short TMax;
+public DtStatus Status;
+public DtNode* LastBestNode;
+public float LastBestNodeCost;
+public DtPolyRef StartRef;
+public DtPolyRef EndRef;
+public float3 StartPos;
+public float3 EndPos;
+public DtQueryFilter* Filter;
+public DtFindPathOptions Options;
+public float RaycastLimitSqr;
+--- File: Detour/DtQueryFilter.cs ---
+public unsafe struct DtQueryFilter
+public static readonly DtQueryFilter IncludeAll = CreateDefault();
+public fixed float areaCost[Detour.DTMaxAreas];  // Cost per area type
+public ushort includeFlags;                        // Flags for polygons that can be visited
+public ushort excludeFlags;                        // Flags for polygons that should not be visited
+public static DtQueryFilter CreateDefault()
+public bool PassFilter(DtPolyRef polyRef, DtMeshTile* tile, DtPoly* poly)
+public float GetCost(in float3 pa, in float3 pb,
+public float GetAreaCost(int i)
+public void SetAreaCost(int i, float cost)
+public ushort GetIncludeFlags()
+public void SetIncludeFlags(ushort flags)
+public ushort GetExcludeFlags()
+public void SetExcludeFlags(ushort flags)
+--- File: Detour/DtLink.cs ---
+public struct DtLink
+public DtPolyRef polyRef;
+public uint next;
+public byte edge;
+public byte side;
+public byte bmin;
+public byte bmax;
+--- File: Detour/DtPolyRef.cs ---
+public readonly struct DtPolyRef : IEquatable<DtPolyRef>
+public static implicit operator uint(DtPolyRef polyRef)
+public static implicit operator DtPolyRef(uint polyRef)
+public static implicit operator DtPolyRef(int polyRef)
+public static implicit operator DtPolyRef(DtTileRef dtTileRef)
+public static bool operator ==(DtPolyRef left, DtPolyRef right)
+public static bool operator !=(DtPolyRef left, DtPolyRef right)
+public static ref DtPolyRef From(ref uint i)
+public override bool Equals(object obj)
+public bool Equals(DtPolyRef other)
+public override int GetHashCode()
+public override string ToString()
+public readonly struct DtPolyRef : IEquatable<DtPolyRef>
+public static implicit operator ulong(DtPolyRef polyRef)
+public static implicit operator DtPolyRef(ulong polyRef)
+public static implicit operator DtPolyRef(int polyRef)
+public static implicit operator DtPolyRef(DtTileRef dtTileRef)
+public static bool operator ==(DtPolyRef left, DtPolyRef right)
+public static bool operator !=(DtPolyRef left, DtPolyRef right)
+public static ref DtPolyRef From(ref ulong i)
+public override bool Equals(object obj)
+public bool Equals(DtPolyRef other)
+public override int GetHashCode()
+public override string ToString()
+--- File: Detour/DtNavMeshCreateParams.cs ---
+public unsafe struct DtNavMeshCreateParams
+public ushort3* Verts;
+public int VertCount;
+public ushort* Polys;
+public ushort* PolyFlags;
+public byte* PolyAreas;
+public int PolyCount;
+public int Nvp;
+public uint4* DetailMeshes;
+public float3* DetailVerts;
+public int DetailVertsCount;
+public byte4* DetailTris;
+public int DetailTriCount;
+public float3x2* OffMeshConVerts;
+public float* OffMeshConRad;
+public ushort* OffMeshConFlags;
+public byte* OffMeshConAreas;
+public byte* OffMeshConDir;
+public uint* OffMeshConUserID;
+public int OffMeshConCount;
+public uint UserId;
+public int TileX;
+public int TileY;
+public int TileLayer;
+public float3 Bmin;
+public float3 Bmax;
+public float WalkableHeight;
+public float WalkableRadius;
+public float WalkableClimb;
+public float Cs;
+public float Ch;
+public bool BuildBvTree;
+--- File: Detour/Detour.cs ---
+public enum DtStatus : uint
+public enum DtFindPathOptions : uint
+public enum DtRaycastOptions : uint
+public enum DtDetailTriEdgeFlags : byte
+public enum DtStraightPathFlags : byte
+public enum DtStraightPathOptions
+public static partial class Detour
+public static bool StatusSucceed(DtStatus status)
+public static bool StatusFailed(DtStatus status)
+public static bool StatusInProgress(DtStatus status)
+public static bool StatusDetail(DtStatus status, DtStatus detail)
+--- File: Detour/DtOffMeshConnection.cs ---
+public struct DtOffMeshConnection
+public float3 StartPos;
+public float3 EndPos;
+public float rad;
+public ushort poly;
+public byte flags;
+public byte side;
+public uint userId;
+--- File: Detour/DtNode.cs ---
+public enum DtNodeFlags : byte
+public struct DtNode
+public float3 pos;           // Position of the node
+public float cost;           // Cost from previous node to current node
+public float total;          // Cost up to the node
+public DtPolyRef id;         // Polygon ref the node corresponds to
+public uint ParentIndex
+public uint State
+public DtNodeFlags Flags
+public void Clear()
+--- File: Detour/Detour.NavMeshBuilder.cs ---
+public static unsafe partial class Detour
+public static bool CreateNavMeshData(DtNavMeshCreateParams* createParams, out DtNavMeshData outData, out int outDataSize,
+public static void FreeNavMeshData(DtNavMeshData outData, AllocatorManager.AllocatorHandle allocator)
+public ushort3 BMin;
+public ushort3 BMax;
+public int I;
+--- File: Detour/Detour.Common.cs ---
+public static partial class Detour
+--- File: Detour/DtNavMeshParams.cs ---
+public struct DtNavMeshParams
+public float3 orig;
+public float tileWidth;
+public float tileHeight;
+public int maxTiles;
+public int maxPolys;
+--- File: Detour/Detour.Math.cs ---
+public static unsafe partial class Detour
+--- File: Detour/DtPolyQuery.cs ---
+public unsafe interface IDtPolyQuery
+public unsafe struct DtCollectPolysQuery : IDtPolyQuery
+public DtCollectPolysQuery(DtPolyRef* polys, int maxPolys)
+public int NumCollected => this.numCollected;
+public bool Overflowed => this.overflow;
+public void Process(DtMeshTile* tile, DtPolyRef* refs, int count)
+public unsafe struct DtFindNearestPolyQuery : IDtPolyQuery
+public DtFindNearestPolyQuery(DtNavMeshQuery query, in float3 center)
+public DtPolyRef NearestRef => this.nearestRef;
+public float3 NearestPoint => this.nearestPoint;
+public bool IsOverPoly => this.overPoly;
+public void Process(DtMeshTile* tile, DtPolyRef* refs, int count)
+--- File: Detour/DtPolyDetail.cs ---
+public struct DtPolyDetail
+public uint vertBase;
+public uint triBase;
+public byte vertCount;
+public byte triCount;
+--- File: Detour/DtNodePool.cs ---
+public unsafe struct DtNodePool : IDisposable
+public const int DTNodeParentBits = 24;
+public const int DTNodeStateBits = 2;
+public const int DTMaxStatesPerNode = 1 << DTNodeStateBits; // 4
+public const int Null = 0xFFFF;
+public static readonly DtNodeIndex DTNullIDX = new(Null);
+public DtNodePool(int maxNodes, int hashSize)
+public void Clear()
+public DtNode* GetNode(DtPolyRef id, byte state = 0)
+public DtNode* FindNode(DtPolyRef id, byte state)
+public uint FindNodes(DtPolyRef id, DtNode** nodeArray, int maxNodes)
+public uint GetNodeIdx(DtNode* node)
+public readonly DtNode* GetNodeAtIdx(uint idx)
+public readonly int MaxNodes => this.maxNodes;
+public readonly int HashSize => this.hashSize;
+public readonly int NodeCount => this.nodeCount;
+public void Dispose()
+public readonly struct DtNodeIndex : IEquatable<DtNodeIndex>
+public readonly ushort Value;
+public DtNodeIndex(ushort value) => this.Value = value;
+public static implicit operator ushort(DtNodeIndex index) => index.Value;
+public static implicit operator DtNodeIndex(ushort value) => new(value);
+public bool Equals(DtNodeIndex other) => this.Value == other.Value;
+public override bool Equals(object obj) => obj is DtNodeIndex other && this.Equals(other);
+public override int GetHashCode() => this.Value.GetHashCode();
+public static bool operator ==(DtNodeIndex left, DtNodeIndex right) => left.Equals(right);
+public static bool operator !=(DtNodeIndex left, DtNodeIndex right) => !left.Equals(right);
+--- File: Detour/DtTileRef.cs ---
+public readonly struct DtTileRef
+public static implicit operator uint(DtTileRef dtTileRef)
+public static implicit operator DtTileRef(uint dtTileRef)
+public static implicit operator DtTileRef(DtPolyRef dtPolyRef)
+public readonly struct DtTileRef
+public static implicit operator ulong(DtTileRef dtTileRef)
+public static implicit operator DtTileRef(ulong dtTileRef)
+public static implicit operator DtTileRef(DtPolyRef dtPolyRef)
+--- File: Detour/DtNavMeshData.cs ---
+public unsafe readonly struct DtNavMeshData
+public DtNavMeshData(byte* data)
+public DtMeshHeader* Header
+public float3* Vertices
+public DtPoly* Polygons
+public DtLink* Links
+public DtPolyDetail* DetailMeshes
+public float3* DetailVertices
+public byte4* DetailTriangles
+public DtBVNode* BVTree
+public DtOffMeshConnection* OffMeshConnections
+public byte* RawData
+public bool IsValid
+public static implicit operator DtNavMeshData(byte* data) => new(data);
+public static implicit operator byte*(DtNavMeshData navMeshData) => navMeshData.data;
+--- File: Detour/DtBVNode.cs ---
+public struct DtBVNode
+public ushort3 bmin;
+public ushort3 bmax;
+public int i;
+--- File: Detour/Detour.Constants.cs ---
+public enum DtPolyTypes : byte
+public enum DtTileFlags
+public static partial class Detour
+public const ushort MeshNullIDX = 0xffff; // MESH_NULL_IDX
+public const int DTVertsPerPolygon = 6; // DT_VERTS_PER_POLYGON
+public const uint DTNullLink = 0xffffffff; // DT_NULL_LINK
+public const ushort DTNullLinkShort = 0xffff; // DT_NULL_LINK_SHORT
+public const ushort DTExtLink = 0x8000; // DT_EXT_LINK
+public const uint DTOffMeshConBidir = 1; // DT_OFFMESH_CON_BIDIR
+public const int DTMaxAreas = 64; // DT_MAX_AREAS
+public const int DTNavmeshMagic = ('D' << 24) | ('N' << 16) | ('A' << 8) | 'V'; // DT_NAVMESH_MAGIC
+public const int DTNavmeshVersion = 7; // DT_NAVMESH_VERSION
+public const int DTNavmeshStateMagic = ('D' << 24) | ('N' << 16) | ('M' << 8) | 'S'; // DT_NAVMESH_STATE_MAGIC
+public const int DTNavmeshStateVersion = 1; // DT_NAVMESH_STATE_VERSION
+public const float DTRayCastLimitProportions = 50.0f; // DT_RAY_CAST_LIMIT_PROPORTIONS
+public const int DTSaltBits = 16; // DT_SALT_BITS
+public const int DTTileBits = 28; // DT_TILE_BITS
+public const int DTPolyBits = 20; // DT_POLY_BITS
+--- File: Detour/DtMeshHeader.cs ---
+public struct DtMeshHeader
+public int magic; // Tile magic number
+public int version; // Tile data format version number
+public int x; // The x-position of the tile within the grid
+public int y; // The y-position of the tile within the grid
+public int layer; // The layer of the tile within the grid
+public uint userId; // The user defined id of the tile
+public int polyCount; // The number of polygons in the tile
+public int vertCount; // The number of vertices in the tile
+public int maxLinkCount; // The number of allocated links
+public int detailMeshCount; // The number of sub-meshes in the detail mesh
+public int detailVertCount; // The number of unique vertices in the detail mesh
+public int detailTriCount; // The number of triangles in the detail mesh
+public int bvNodeCount; // The number of bounding volume nodes
+public int offMeshConCount; // The number of off-mesh connections
+public int offMeshBase; // The index of the first polygon which is an off-mesh connection
+public float walkableHeight; // The height of the agents using the tile
+public float walkableRadius; // The radius of the agents using the tile
+public float walkableClimb; // The maximum climb height of the agents using the tile
+public float3 bmin; // The minimum bounds of the tile's AABB
+public float3 bmax; // The maximum bounds of the tile's AABB
+public float bvQuantFactor; // The bounding volume quantization factor
+
+========================================
+PACKAGE: IAFahim.Permutation
+--- File: Permutation.cs ---
+public static unsafe class ValidatePermutation
+public static bool Run(int n, int* p)
+public static unsafe class InversePermutation
+public static void Run(int n, int* p, int* inv) { for (int i = 0; i < n; i++) inv[p[i]] = i; }
+public static unsafe class ComposePermutation
+public static void Run(int n, int* a, int* b, int* result) { for (int i = 0; i < n; i++) result[i] = b[a[i]]; }
+public static unsafe class PermPower
+public static void Run(int n, int* p, int* result, long k)
+public static unsafe class CycleDecomposition
+public static int Run(int n, int* p, int* cycles, int* start, int* length)
+public static unsafe class KthPermutation
+public static void Run(int n, long k, int* result)
+public static unsafe class PermutationRank
+public static long Run(int n, int* perm)
+public static unsafe class GrayRank
+public static long Run(long n) => n ^ (n >> 1);
+public static unsafe class GrayUnrank
+public static long Run(long g) { long n = 0; while (g > 0) { n ^= g; g >>= 1; } return n; }
+--- File: PrevPermutation.cs ---
+public static unsafe class PrevPermutation
+public static bool Run<T>(T* ptr, int len) where T : unmanaged, IComparable<T>
+--- File: GrayCode.cs ---
+public static unsafe class GrayCode
+public static int ToGray(int n)
+public static int FromGray(int g)
+public static void Generate(int* dst, int bits)
+--- File: NextPermutation.cs ---
+public static unsafe class NextPermutation
+public static bool Run<T>(T* ptr, int len) where T : unmanaged, IComparable<T>
+--- File: CartesianProduct.cs ---
+public static unsafe class CartesianProduct
+public static int ComputeCount(int* setSizes, int setCount)
+public static void GetAt(int* setSizes, int setCount, int index, int* dst)
+
+========================================
+PACKAGE: IAFahim.Physics.Xpbd
+--- File: ShapeMatchingConstraint.cs ---
+public static unsafe class ShapeMatchingConstraint
+public static void Solve(
+--- File: CollisionConstraint.cs ---
+public static unsafe class CollisionConstraint
+public static void SolvePlane(
+public static void SolveSphere(
+--- File: DistanceConstraint.cs ---
+public static unsafe class DistanceConstraint
+public static void Solve(float3* posA, float3* posB, float3* velA, float3* velB,
+--- File: XpbdIntegrator.cs ---
+public static unsafe class XpbdIntegrator
+public static void PredictPosition(float3* pos, float3* vel, float3 externalForce, float invMass, float dt)
+public static void UpdateVelocity(float3* vel, float3* oldPos, float3* newPos, float dt)
+public static void ApplyDamping(float3* vel, float damping, float dt)
+public static void SolveDistanceConstraints(
+--- File: BendingConstraint.cs ---
+public static unsafe class BendingConstraint
+public static void Solve(float3* p0, float3* p1, float3* p2,
+--- File: VolumeConstraint.cs ---
+public static unsafe class VolumeConstraint
+public static void Solve(float3* p0, float3* p1, float3* p2, float3* p3,
+public static float ComputeRestVolume(float3 p0, float3 p1, float3 p2, float3 p3)

@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Search.Range/RangeMin.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.Range/RangeMin.cs",
+   "symbol": "RangeMin.BuildSparse",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist `(k-1)*len` and `k*len` row bases out of the inner loop (use pointer rows).",
+   "currentCost": "Inner loop recomputes `(k-1)*len` and `k*len` (two multiplies) per element even though `step` and `half` are already hoisted. The row bases are invariant across i.",
+   "proposedChange": "Add `int* prev = dst + (k-1)*len; int* cur = dst + k*len;` before the inner loop, then `int a = prev[i]; int b = prev[i+half]; cur[i] = a<b?a:b;`.",
+   "rationale": "Eliminates two multiplies per element and converts to contiguous pointer-relative loads, which Burst lowers to vectorized min on the strided row.",
+   "risk": "None; identical output. Same memory layout assumptions as current code."
+  },
+  {
+   "file": "src/IAFahim.Search.Range/RangeMin.cs",
+   "symbol": "RangeMin.Query",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Unused `int* src` parameter; remove for API consistency with RangeMax.Query.",
+   "currentCost": "`Query(int* sparse, int* src, int len, int start, int end)` never references `src`. It costs an extra argument register/stack slot at every call site and diverges from RangeMax.Query's signature, hurting discoverability and forcing callers to pass a redundant pointer.",
+   "proposedChange": "Drop the `src` parameter so the signature matches RangeMax.Query: `Query(int* sparse, int len, int start, int end)`.",
+   "rationale": "Cleaner, consistent API and one fewer argument to marshal; no behavioral change since src is dead.",
+   "risk": "Source-breaking signature change for existing callers \u2014 update call sites. Pure ergonomics; no runtime semantics change."
+  }
+ ]
+}

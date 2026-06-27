@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Math.Modular/Gcd.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.Modular/Gcd.cs",
+   "symbol": "Gcd.Run(long,long) and Gcd.Run(int,int)",
+   "severity": "medium",
+   "category": "overflow",
+   "summary": "Absolute-value negation overflows for MinValue inputs: `if (a < 0) a = -a;` leaves a == MinValue (negation of MinValue wraps to itself), so the Euclidean loop runs on a still-negative operand and returns a negative/wrong gcd. The code explicitly normalizes sign of negative inputs, so negative arguments (including MinValue) are within its claimed contract.",
+   "triggeringInput": "Gcd.Run(-6, int.MinValue) returns -2 instead of 2 (true gcd of -6 and -2^31). Likewise Gcd.Run(-6L, long.MinValue) returns a negative value instead of 2.",
+   "rootCause": "-int.MinValue (and -long.MinValue) is not representable in two's complement and wraps back to MinValue, so the sign-normalization `a = -a` silently fails, leaving a negative operand in the loop and producing a negative gcd.",
+   "suggestedFix": "Negate the OTHER operand for the MinValue case or compute gcd on unsigned magnitudes. E.g. cast to ulong/uint magnitudes (ulong ua = a < 0 ? (ulong)(-(a+1)) + 1UL : (ulong)a;) run the loop in unsigned space, and return the magnitude; or document that MinValue is excluded. The result must always be non-negative."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Modular/Gcd.cs",
+   "symbol": "Gcd.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Euclidean loop uses a 64-bit '%' every iteration; binary GCD (Stein) replaces division with shifts/subtracts, a real win on mobile ARM where integer division is slow.",
+   "currentCost": "Line 16 'b = a % b' executes a 64-bit modulo every loop iteration (O(log n) iterations). On ARM (mobile target) 64-bit integer division is microcoded and not pipelined (~20-40+ cycles), making '%' the dominant cost of the loop. The int overload has the same pattern with 32-bit '%'.",
+   "proposedChange": "Replace with binary GCD: strip common factors of two via System.Numerics.BitOperations.TrailingZeroCount (Burst-lowered to rbit+clz / tzcnt), then loop with branchless min/diff and shifts: while remaining, remove trailing zeros from the difference using TrailingZeroCount, no division at all. Final result shifted left by the common power of two.",
+   "rationale": "Stein's algorithm performs only shifts, subtractions, and tzcnt \u2014 all single-cycle / few-cycle ops \u2014 eliminating every division in the hot loop. On division-slow targets this is a substantial constant-factor reduction; iteration count is comparable (O(log n)).",
+   "risk": "Must guard the abs of long.MinValue (negating it overflows): keep the existing 'if (a<0) a=-a' only for in-range inputs, or operate on magnitudes via unchecked. The all-shifts core is branch-light and Burst-friendly. Verify TrailingZeroCount(0) handling at the entry (when one operand is 0, return the other's abs directly, as the current loop already does). Behavior must remain identical for the input domain the existing code supports (long.MinValue already UB under current -a, so no regression there)."
+  },
+  {
+   "file": "src/IAFahim.Math.Modular/Gcd.cs",
+   "symbol": "Gcd.Run",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "abs via if-negate creates two unpredictable branches before the loop.",
+   "currentCost": "Lines 11-12 (and 25-26) use 'if (a < 0) a = -a;' twice \u2014 two conditional branches that the branch predictor may mispredict for sign-mixed inputs.",
+   "proposedChange": "Use branchless abs: long mask = a >> 63; a = (a ^ mask) - mask; (and >> 31 for int). Burst/JIT may already do this, but writing it branchless guarantees it.",
+   "rationale": "Removes two data-dependent branches, replaced by 2 shifts + 2 xor + 2 sub \u2014 cheaper and predictable, better for SIMD/Burst if ever vectorized over arrays.",
+   "risk": "Branchless abs of long.MinValue still yields long.MinValue (same UB as current -a), so semantics are identical on the supported domain. Arithmetic shift of negative by 63 is implementation-defined in spec but well-defined in .NET/Burst (sign-extending), which is what's required."
+  }
+ ]
+}

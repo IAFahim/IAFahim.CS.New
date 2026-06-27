@@ -1,0 +1,94 @@
+{
+ "file": "src/IAFahim.Math.Transform.AnyMod/AnyMod.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.Transform.AnyMod/AnyMod.cs",
+   "symbol": "ArbitraryModConvolution.CombineCrt",
+   "severity": "critical",
+   "category": "overflow",
+   "summary": "Garner/CRT reconstruction computes the full big-integer value into a single long: `long x = x1 + MOD1*x2 + m12*x3;` where m12 = MOD1*MOD2 ~= 7.88e16 and x3 can be up to MOD3-1 ~= 1.22e9. The term m12*x3 alone reaches ~9.6e25, which overflows Int64 (max 9.22e18). The reconstructed CRT value lives in [0, MOD1*MOD2*MOD3) ~= [0, 9.6e25), so it cannot fit in a long. Therefore res[i] = ((x % mod) + mod) % mod is computed from a wrapped/garbage x for essentially any result whose true (un-modded) coefficient exceeds ~9.2e18 \u2014 which is exactly the regime arbitrary-mod NTT exists to handle. The whole point of the triple-prime CRT (correctly recovering coefficients up to ~9.6e25) is defeated; the final modular reduction must be folded into the reconstruction instead of being applied after a 64-bit overflow.",
+   "triggeringInput": "Run with n=1, m=1, a=[2000000000], b=[2000000000], mod=1000000007 (or any mod). True product = 4e18. The three NTT residues are x1=P%MOD1, x2=P%MOD2, x3=P%MOD3; Garner reconstructs the unique value ~9.03e25 in [0,M). Line 37 computes that into a long, overflowing 64-bit, so res[0] is wrong (correct answer is 4000000000000000000 % mod = 286500131, but the code yields a value derived from the wrapped x).",
+   "rootCause": "Line 37 builds the entire mixed-radix CRT integer (which spans up to ~85 bits) in a 64-bit long before taking it mod `mod`. m12*x3 overflows Int64 whenever x3 > ~117 (i.e. true coefficient > ~9.2e18), and the intended use case (coefficients up to MOD1*MOD2*MOD3) always overflows.",
+   "suggestedFix": "Reduce modulo `mod` while accumulating, using long-arithmetic-safe mulmod (or Int128/UInt128): res[i] = ( ( ( (x1 % mod) + (MOD1 % mod)*(x2 % mod) ) % mod ) + (m12 % mod)*(x3 % mod) ) % mod, then normalize to non-negative. Use a 128-bit intermediate (System.Int128 / UInt128) or a MulMod helper for the (m12 % mod)*(x3 % mod) and (MOD1 % mod)*(x2 % mod) products since those can still exceed 63 bits when mod is large."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Transform.AnyMod/AnyMod.cs",
+   "symbol": "ConvolveWithMod",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "Eliminate the ta/tb scratch buffers and the redundant second copy in InitializeNttArrays by reducing-mod directly into fa/fb.",
+   "currentCost": "ConvolveWithMod allocates ta[n]+tb[m] on the stack, fills them with a[i]%mod / b[i]%mod, then NttConvolutionSimple allocates fa[size]+fb[size] and InitializeNttArrays copies ta->fa, tb->fb again. That is two full passes over the data plus an extra n+m longs of stack per modulus, times 3 moduli.",
+   "proposedChange": "Drop ta/tb entirely. Pass the raw a,b,mod into NttConvolutionSimple and let InitializeNttArrays write fa[i]=a[i]%mod (i<n), 0 otherwise, and fb[i]=b[i]%mod (i<m), 0 otherwise. This fuses the modular reduction and the zero-padded copy into a single pass and removes the ta/tb stack allocation.",
+   "rationale": "Removes one full read/write pass over n+m elements and (n+m) longs of stackalloc per call. Fewer memory ops and a smaller working set improve cache behavior; the % is already paid once either way, just folded into the existing copy loop.",
+   "risk": "Semantics-preserving: a[i]%mod for the small NTT moduli (all < 2^31) on long inputs yields identical residues whether reduced in ta first or in fa directly. No signed-mod edge issue because results feed only into NTT arithmetic that already normalizes. Burst-friendly (still blittable pointers)."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform.AnyMod/AnyMod.cs",
+   "symbol": "PerformNtt",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Index the precomputed twiddle table instead of carrying the wn = wn*w%mod multiply chain inside the butterfly loop.",
+   "currentCost": "The inner loop maintains wn with 'wn = wn * w % mod' each iteration: a serial 64-bit multiply + modulo on the critical path per butterfly, plus 'long w = roots[n/len]' bootstrapping. This is a true dependency chain that serializes the inner loop and blocks vectorization.",
+   "proposedChange": "The full roots[] table of 'size' primitive-root powers is already built in NttConvolutionSimple. Inside PerformNtt use the stride form: for stage with 'half', the twiddle for column j is roots[j * (n/len)] (i.e. roots[j * step] where step = n/len). Compute step once per stage and index roots[j*step] (or carry an additive index 'idx += step') instead of multiplying/modding wn. This replaces a mul+mod dependency with a load + add.",
+   "rationale": "Removes a 64-bit multiply and 64-bit modulo from the inner-loop dependency chain, replacing them with a precomputed table load and an integer add. Shorter recurrence latency and friendlier to Burst/SIMD; the roots table is already resident.",
+   "risk": "roots[] must be sized >= n (it is built with 'size' entries == n here). Must ensure the precomputed table is passed/visible to every stage (it is). Numerically identical: roots[j*step] equals the wn produced by repeated multiplication. Only valid because the single shared roots table spans the whole transform length."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform.AnyMod/AnyMod.cs",
+   "symbol": "PerformInverseNtt",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Reuse/reverse the forward roots table for the inverse transform instead of recomputing invRoot powers via a fresh stackalloc + power chain.",
+   "currentCost": "PerformInverseNtt calls FastPow(root, mod-2, mod) (a full ~30-iteration modpow), then allocates invRoots[n] and rebuilds the entire inverse twiddle table with n multiply+mod operations. This duplicates the roots table work already done in the forward path.",
+   "proposedChange": "The inverse roots are just the forward roots in reverse order: invRoots[0]=roots[0]=1 and invRoots[i]=roots[n-i] for i>0 (since root^(n-i) == (root^-1)^i mod p for an n-th primitive root). Pass the existing forward roots[] into PerformInverseNtt and index roots[(n-i)&(n-1)] instead of building invRoots and computing invRoot. This removes the FastPow(root,mod-2) call and the n-element invRoots fill.",
+   "rationale": "Eliminates one modular exponentiation (~30 mul+mod) and an entire n-length table-build pass plus n longs of stackalloc, replacing them with O(1) index arithmetic against an already-resident table. n is a power of two so (n-i) wraps with & (n-1).",
+   "risk": "Requires roots[] be the size-length table from NttConvolutionSimple (it is, length == n). The identity root^(n-i) = invRoot^i holds because root is a primitive n-th root of unity mod p. invN scaling at the end is unchanged. Index 0 must map to roots[0]=1 (handle i==0 explicitly or rely on (n-0)&(n-1)==0)."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform.AnyMod/AnyMod.cs",
+   "symbol": "CombineCrt",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the loop-invariant 'm12 % MOD3' out of the per-element CRT loop.",
+   "currentCost": "Inside the for-loop, 'x3 = (r3[i] - x1 - (m12 % MOD3) * (x2 % MOD3)) * invM12Mod3 % MOD3' recomputes 'm12 % MOD3' every iteration. m12 and MOD3 are both compile-time-ish constants for the loop, so this is a redundant 64-bit modulo per element.",
+   "proposedChange": "Compute 'long m12ModM3 = m12 % MOD3;' once before the loop (next to the existing m12/invM1Mod2/invM12Mod3 setup) and use m12ModM3 inside the loop. Optionally also keep '(x2 % MOD3)' but x2 is already in [0,MOD2) so x2%MOD3 is still needed.",
+   "rationale": "Removes one 64-bit modulo from every iteration of the CRT combine loop (len iterations). The value is loop-invariant; JIT/Burst may not hoist a div/mod across a memory-dependent expression reliably, so do it manually.",
+   "risk": "None. Pure invariant hoist; identical results. m12=MOD1*MOD2 fits in long (167772161*469762049 ~ 7.9e16 < 9.2e18), so no overflow in the existing computation either."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform.AnyMod/AnyMod.cs",
+   "symbol": "Run",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Size the CRT scratch buffers r1/r2/r3 to n+m-1 instead of n+m.",
+   "currentCost": "r1,r2,r3 are stackalloc'd as long[n+m] but only indices [0, n+m-1) are ever written (by NttConvolutionSimple's final copy) and read (by CombineCrt with len=n+m-1). One extra long per buffer = 3 wasted longs of stack.",
+   "proposedChange": "Allocate 'stackalloc long[n + m - 1]' for r1, r2, r3 (guard n+m-1 >= 1, which holds for any valid n>=1,m>=1). Keeps stack footprint exactly at the used size.",
+   "rationale": "Minor stack working-set reduction; tightens the footprint for deep/recursive callers on mobile. Constant-factor only.",
+   "risk": "Must hold n>=1 and m>=1 (valid convolution inputs) so n+m-1>=1; for n==m==0 the size would be -1. The unchecked Run already assumes valid input. NttConvolutionSimple writes exactly n+m-1 entries, so no out-of-bounds."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform.AnyMod/AnyMod.cs",
+   "symbol": "ExtGcd",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Dead code: ExtGcd is never called; ModInverse uses its own iterative loop. Remove it.",
+   "currentCost": "ExtGcd is a private recursive method with out params that nothing in the file references (ModInverse implements extended Euclid inline). It is unused code that can confuse maintainers and, if ever Burst-compiled, recursion is undesirable.",
+   "proposedChange": "Delete the ExtGcd method entirely. If extended-gcd reuse is desired, refactor ModInverse to call a single iterative (non-recursive) gcd helper instead, but the minimal change is removal.",
+   "rationale": "Removes dead, recursive code from a Burst module (recursion is a Burst red flag and bloats IL). No behavioral change since it is never invoked.",
+   "risk": "None as long as it truly has no callers in the module (confirmed: only ModInverse's inline loop is used). Purely additive-removal."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform.AnyMod/AnyMod.cs",
+   "symbol": "FastPow",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Add AggressiveInlining to the hot leaf helpers (FastPow, ModInverse) and mark the small per-stage twiddle setup for inlining.",
+   "currentCost": "FastPow and ModInverse are small leaf methods called from setup paths (root computation, invN, invRoot, CRT inverses). Without an inlining hint the JIT/Burst may keep call overhead, and a call boundary can block constant propagation of 'mod'.",
+   "proposedChange": "Annotate FastPow and ModInverse with [MethodImpl(MethodImplOptions.AggressiveInlining)]. The using for System.Runtime.CompilerServices is already present.",
+   "rationale": "Enables Burst to propagate the constant mod and fuse the modpow into callers, shrinking call overhead on the setup path. Low impact since these are O(log mod) and not in the innermost butterfly, but free.",
+   "risk": "None functionally. Inlining a loop-containing method may not always be honored by the compiler, but the hint is harmless and cannot change semantics."
+  }
+ ]
+}

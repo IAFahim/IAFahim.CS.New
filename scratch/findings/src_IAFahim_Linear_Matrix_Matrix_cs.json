@@ -1,0 +1,72 @@
+{
+ "file": "src/IAFahim.Linear.Matrix/Matrix.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Linear.Matrix/Matrix.cs",
+   "symbol": "MatrixMul.Run / ComputeDotProduct",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "ikj loop reordering eliminates column-strided b[] access and per-element index recomputation, dramatically improving cache locality and enabling Burst vectorization.",
+   "currentCost": "Inner loop reads b[k*p+j] which strides by p longs per k step (column access) -> a cache miss roughly every iteration for large m, plus a multiply (k*p) per inner iteration. ComputeDotProduct recomputes i*m and i*p each call. The dependency chain through 'sum' also serializes the FMA chain.",
+   "proposedChange": "Replace the dot-product (ijk) formulation with an ikj loop: zero the c[i*p .. i*p+p) row once, then for each k load aik = a[i*m+k] once and do `for j: c[base_c+j] += aik * b[k*p+j]`. Hoist row bases (i*p, i*m, k*p) out of the inner loop into locals. Inline this fully into Run and drop the ComputeDotProduct helper.",
+   "rationale": "ikj makes both b[k*p+j] and c[i*p+j] sequential (unit-stride) over j, so the inner loop is a pure streaming SAXPY that Burst auto-vectorizes and the prefetcher handles. It removes one multiply per inner iteration (k*p computed once per k, not per j) and breaks the single accumulator dependency chain into p independent accumulators. Same integer arithmetic, same final values (integer add/mul are associative/commutative here, no rounding).",
+   "risk": "Observable result identical for two's-complement wrapping long arithmetic since reordering a sum of products of the same terms preserves the wrapped value (add/mul are associative and commutative mod 2^64). Requires c to be zero-initialized first; the row-zeroing step covers that. Caller-aliasing assumption (c distinct from a,b) is unchanged from current code."
+  },
+  {
+   "file": "src/IAFahim.Linear.Matrix/Matrix.cs",
+   "symbol": "MatrixPow.MultiplyInto",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "stackalloc inside a helper invoked repeatedly in the while loop allocates a fresh n*n scratch buffer per multiply; hoist a single scratch buffer to Run.",
+   "currentCost": "MultiplyInto is called up to 2*log2(exp) times; each call does `stackalloc long[n*n]`. Although stackalloc memory is reclaimed on return, Burst/IL may reserve frame space per call site and it adds a MemoryCopy(res->a) of n*n longs every call on top of the multiply's own copy.",
+   "proposedChange": "Allocate one `long* scratch = stackalloc long[n*n]` once in Run and pass it (plus temp) into MultiplyInto. Have MatrixMul write into scratch, then copy scratch back into the destination. Better: give MultiplyInto distinct src/dst so the result can be produced directly without the trailing MemoryCopy when the destination differs from the inputs (only the temp*temp self-square needs scratch).",
+   "rationale": "Removes per-iteration stack reservation churn and keeps the working set fixed and cache-resident across iterations. Reusing one buffer reduces stack pressure (important on mobile thread stacks) and lets the same hot lines stay warm.",
+   "risk": "Must preserve squaring correctness: MultiplyInto(temp,temp) aliases src==dst, so it still needs to compute into scratch before overwriting temp. The result-multiply MultiplyInto(result,temp) has distinct buffers and can avoid the copy only if MatrixMul output buffer != its inputs. Keep a scratch for the self-square case to preserve semantics."
+  },
+  {
+   "file": "src/IAFahim.Linear.Matrix/Matrix.cs",
+   "symbol": "MatrixPow.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The final iteration squares temp needlessly; `if (exp > 1)` already guards it, but the identity-init plus first multiply path can skip the redundant identity multiply when the lowest bit is set.",
+   "currentCost": "InitializeIdentity writes n*n, then the first loop iteration multiplies result(=I) by temp via a full MatrixMul (n^3) even though I*temp == temp, a wasted O(n^3) multiply and a MemoryCopy.",
+   "proposedChange": "Special-case the first set bit: instead of initializing result to identity and multiplying, copy temp into result on the first encountered set bit and set a 'started' flag; subsequent set bits do the real multiply. If exp==0 return identity. This removes one full O(n^3) matrix multiply.",
+   "rationale": "Multiplying by the identity is a guaranteed no-op costing a full cubic multiply plus copy. Skipping it saves ~n^3 long multiplies on the common path (any odd exp). Output is bit-identical since I*M == M exactly.",
+   "risk": "Must handle exp==0 (return identity) and the case where started never becomes true. Care that the 'copy temp on first set bit' happens before temp is squared in that same iteration. Pure integer equality, no rounding concerns."
+  },
+  {
+   "file": "src/IAFahim.Linear.Matrix/Matrix.cs",
+   "symbol": "MatrixInverse (FindPivot/SwapRowsAug/EliminateAug/Init/Extract)",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The augmented width 2*n and per-row base index i*2*n are recomputed all over the hot loops; precompute width=2*n and row bases once.",
+   "currentCost": "Every access like aug[k*2*n+j] recomputes 2*n (a shift) and the row-base multiply k*(2*n) inside the innermost loop (O(n^3) such index expressions in EliminateAug). FindPivot recomputes j*2*n+i each iteration.",
+   "proposedChange": "Introduce `int w = n << 1;` once. In EliminateAug hoist `long* rowPtr = aug + row*w;` and `long* kPtr = aug + k*w;` so the inner loop is `kPtr[j] -= factor * rowPtr[j]` over unit stride. Similarly precompute base offsets in Init/Extract/FindPivot/SwapRowsAug. Pass w down instead of recomputing.",
+   "rationale": "Converts repeated index arithmetic (mul + add per element) into pointer-walk with a single add per element, shrinks the dependency chain, and makes the inner loop unit-stride for Burst vectorization. n<<1 is free vs n*2 only marginally, but removing the k*w / row*w recomputation per inner iteration is the real win.",
+   "risk": "None semantically; pure index-arithmetic refactor producing identical addresses. w=n<<1 equals n*2 for all valid non-negative n."
+  },
+  {
+   "file": "src/IAFahim.Linear.Matrix/Matrix.cs",
+   "symbol": "GaussianElimination.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Math.Min(n,m) is re-evaluated in the loop condition every iteration; hoist it to a local.",
+   "currentCost": "`i < Math.Min(n, m)` calls Math.Min once per loop test. Math.Min on int is a cheap branch/cmov but it is a redundant recomputation of a loop-invariant bound.",
+   "proposedChange": "Compute `int lim = n < m ? n : m;` once before the loop and use `i < lim`.",
+   "rationale": "Hoists a loop-invariant out of the condition, removing one comparison/select per iteration and making the trip count obvious to the optimizer (helps unrolling/bounds reasoning).",
+   "risk": "None; n and m are not modified in the loop, so the bound is invariant. Identical behavior."
+  },
+  {
+   "file": "src/IAFahim.Linear.Matrix/Matrix.cs",
+   "symbol": "MatrixDeterminant.FindPivot / GaussianElimination.FindPivot / MatrixInverse.FindPivot",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Math.Abs(a[pivot-col]) of the current best is recomputed every comparison; cache the running max-abs in a local.",
+   "currentCost": "Inner loop does `Math.Abs(a[i*n+k]) > Math.Abs(a[pr*n+k])` -> two abs evaluations and two loads (one re-loading the pivot element) per iteration.",
+   "proposedChange": "Track `long best = Math.Abs(a[k*n+k]);` (or pr's value) and in the loop compute `long cand = Math.Abs(a[i*n+k]); if (cand > best) { best = cand; pr = i; }`.",
+   "rationale": "Eliminates the redundant re-load and re-abs of the current pivot element each iteration, halving abs ops and removing a strided reload, shortening the per-iteration dependency.",
+   "risk": "Math.Abs(long.MinValue) overflows to long.MinValue (negative) in both old and new code, so behavior is unchanged on that pathological input. Otherwise identical selection. Caching does not change tie-breaking (strict > keeps first-seen)."
+  }
+ ]
+}

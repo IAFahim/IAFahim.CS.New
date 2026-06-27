@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.DS.Treap/TreapRangeMin.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.Treap/TreapRangeMin.cs",
+   "symbol": "Update",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Update calls Size(Left), Min(Left), Size(Right), Min(Right) separately, loading each child pointer twice and null-checking twice; the min fold is already branchy.",
+   "currentCost": "4 child loads + 4 null compares, plus 3 compares for the nested-ternary min, every frame.",
+   "proposedChange": "Cache `TreapMinNode* l = n->Left, r = n->Right;`. Compute lmin = l==null?MaxVal:l->Min and rmin similarly from the cached pointer (reusing l->Size from the same line). Keep the existing nested-ternary min (it is already branchless-friendly for Burst's select), or write it as math.min-style chained selects.",
+   "rationale": "Removes duplicate pointer chasing and null branches; l->Size and l->Min share a cache line. Lower dependency-chain latency on the pointer load.",
+   "risk": "None. min semantics preserved (MaxVal sentinel for null children unchanged)."
+  },
+  {
+   "file": "src/IAFahim.DS.Treap/TreapRangeMin.cs",
+   "symbol": "QueryMin",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "QueryMin (read-only) performs two Splits and two Merges, mutating the whole tree spine (allocating lazy work, O(log n) writes) just to read a range min; a read query should not restructure the tree.",
+   "currentCost": "2 splits + 2 merges = ~4*O(log n) node writes and Update recomputations per query, plus Push side-effects, for a pure read.",
+   "proposedChange": "Add a non-destructive range-min walk: descend with implicit-index bounds [lo,hi] accumulating Min over fully-covered subtrees (classic order-statistic range fold), applying pending lazy along the path without splitting. Same idea applies to QuerySum in Treap/TreapImplicit/TreapAffine.",
+   "rationale": "Converts a structural O(log n)-write operation into an O(log n)-read walk: no Merge/Update churn, far fewer writes, better cache behavior, and it is purer (query no longer mutates topology). Same asymptotic depth but a large constant-factor and write-traffic reduction for the common read-heavy workload.",
+   "risk": "Must still Push lazy along the descent path to read correct values, so it is not fully side-effect-free unless lazies are applied read-only. Behavior (returned min) identical. Larger change; verify against existing NUnit tests. Medium confidence."
+  }
+ ]
+}

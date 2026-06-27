@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.NT/HighlyCompositeNumbers.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/HighlyCompositeNumbers.cs",
+   "symbol": "HighlyCompositeNumbers.Primes / Dfs",
+   "dimension": "burst",
+   "impact": "high",
+   "summary": "Replace the managed static int[] Primes with a Burst-friendly source (stackalloc passed into Dfs, or a switch/const ladder), since a managed array access on the recursive DFS hot path defeats Burst compilation.",
+   "currentCost": "Primes is a managed System.Int32[] (private static readonly int[]). Any access (Primes.Length, Primes[pIdx]) is a managed object dereference with a bounds check and is not compilable by Burst at all in unmanaged context; it also adds a length-load + bounds-check per recursion node.",
+   "proposedChange": "Make the prime set unmanaged: e.g. a const-indexed approach via a small readonly stackalloc int* allocated once in Run and threaded through Dfs (long* primes, int primeCount), or a static switch expression GetPrime(int i) returning the i-th of {2,3,5,7,11,13,17,19,23,29} with a const PrimeCount = 10. Replace Primes.Length with the named const and Primes[pIdx] with primes[pIdx]/GetPrime(pIdx).",
+   "rationale": "Removes the only managed allocation/reference in the file, making the whole class Burst-compilable and eliminating per-node bounds checks and the length load in the recursion. Aligns with the house rule of no managed arrays in src.",
+   "risk": "Behavior-preserving as long as the 10 primes and their order are kept identical. If threading a pointer, ensure the buffer outlives the recursion (allocate in Run with stackalloc, which it does)."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/HighlyCompositeNumbers.cs",
+   "symbol": "HighlyCompositeNumbers.QuickSort",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Recurse into the smaller partition and loop on the larger one to bound recursion depth to O(log count) and halve call overhead.",
+   "currentCost": "Two unconditional recursive QuickSort calls per node. Worst-case (already-sorted-ish DFS output, which is plausible since values cluster) gives O(count) stack depth and O(count) call-frame overhead; the DFS already produces a partially structured ordering, raising the chance of skewed pivots.",
+   "proposedChange": "Tail-eliminate: after partition, recurse on the shorter side only, then set left/right to the longer side and loop (while(left < right){ partition; if (j-left < right-i) { QuickSort(left,j); left=i; } else { QuickSort(i,right); right=j; } }). Optionally fall back to insertion sort for small (right-left) sub-ranges (e.g. < 16) to cut constant factor.",
+   "rationale": "Bounds stack to O(log n), removes half the call frames, and improves instruction-cache locality. Insertion-sort cutoff reduces overhead on the many tiny partitions typical of HCN candidate sets (a few thousand entries).",
+   "risk": "Sort result is identical (same comparison key Value). Must keep the i<=j swap and pointer math exactly; choose-smaller-side logic must not invert the partition boundaries."
+  }
+ ]
+}

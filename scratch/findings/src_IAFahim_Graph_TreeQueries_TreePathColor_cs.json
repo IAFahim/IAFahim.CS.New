@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Graph.TreeQueries/TreePathColor.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.TreeQueries/TreePathColor.cs",
+   "symbol": "Merge",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Make the boundary-segment-merge decrement branchless to shorten the dependency chain in the hot segment-tree merge.",
+   "currentCost": "Merge runs on every Build/Update/Query node combine (O(log n) per op, called heavily). The 'if (left.RightColor==right.LeftColor && left.RightColor!=0) res.SegCount--;' is a data-dependent branch that mispredicts on alternating-color inputs, stalling the merge dependency chain.",
+   "proposedChange": "Compute an int 0/1 decrement from comparison results and subtract unconditionally: int dec = (left.RightColor == right.LeftColor & left.RightColor != 0) ? 1 : 0; res.SegCount = left.SegCount + right.SegCount - dec; expressed so the codegen is cmp+and+sub with no conditional jump. The SegCount==0 neutral-element early returns stay as branches (they select a whole node).",
+   "rationale": "Converting the rare-decrement branch into an unconditional subtract of a 0/1 mask removes a potential mispredict per merge and keeps SegCount on a single straight-line dependency chain, which Burst/LLVM can fold into a cmp+sub.",
+   "risk": "Only the interior decrement becomes branchless; the SegCount==0 guards must remain branches. The mask must reproduce exactly: decrement iff RightColor==LeftColor AND RightColor!=0, and must yield 0/1 (not -1) before subtracting."
+  }
+ ]
+}

@@ -1,0 +1,71 @@
+{
+ "file": "src/IAFahim.Geometry.Voronoi/NearestNeighbor.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Geometry.Voronoi/NearestNeighbor.cs",
+   "symbol": "NearestNeighbor.QuickSort/Partition",
+   "severity": "medium",
+   "category": "complexity",
+   "summary": "QuickSort uses the last element as pivot with no randomization/median-of-three. On duplicate, sorted, or reverse-sorted coordinate values the partition degenerates to depth O(n), so BuildKD's per-level re-sort recurses ~n deep and overflows the native stack (crash) for large inputs.",
+   "triggeringInput": "BuildKD over n=200000 PointIdx all with identical X and Y (e.g. every point (0,0)). In Partition, 'less' (arr[j].X < pivot.X) is always false, so i stays left-1, pivot returns at position 'left', and QuickSort recurses on [left+1,right] reducing the range by exactly 1 each call -> recursion depth ~n -> StackOverflow.",
+   "rootCause": "Lomuto partition with fixed last-element pivot and strict-less comparison: equal or already-ordered keys never move, producing maximally unbalanced O(n)-deep recursion. The full subrange is re-sorted at every KD level, multiplying the effect.",
+   "suggestedFix": "Use median-of-three or randomized pivot selection, or switch to an introsort/iterative partition with a manual stack and recurse into the smaller side first to bound depth to O(log n). Alternatively use nth_element-style quickselect for the median instead of a full sort, and handle equal keys with a 3-way (Dutch-flag) partition."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Voronoi/NearestNeighbor.cs",
+   "symbol": "NearestNeighbor.SearchRange",
+   "severity": "medium",
+   "category": "edge-case",
+   "summary": "SearchRange writes matches into outIdx without any capacity check or count parameter, and recurses both children unconditionally. The number of points inside the radius can equal n, so callers sizing outIdx by anything less overflow; more importantly it is the only output-count-driven method here with no bound, unlike the bounded result contract.",
+   "triggeringInput": "Query disk that contains all n points (e.g. rSq huge): outCount reaches n. If the caller allocated outIdx for fewer than n ints (a natural expectation for a 'range' query) the writes go out of the allocated range -> heap corruption / UB.",
+   "rootCause": "No maximum-count guard; method assumes outIdx has capacity for every point. This is consistent with the unchecked contract only if callers know the worst case is n, which is not obvious from the signature (no capacity arg).",
+   "suggestedFix": "Either document/return that outIdx must have capacity n, or add an int cap parameter and stop appending (and stop recursing) once outCount == cap to prevent out-of-range writes."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Voronoi/NearestNeighbor.cs",
+   "symbol": "BuildKD / QuickSort / Partition",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "BuildKD calls a full QuickSort over [left,right] at every recursion level, making construction O(n log^2 n) at best and O(n^2 log n) worst-case; only the median (nth element) is actually needed.",
+   "currentCost": "QuickSort sorts the entire subrange to find one median, then recurses; each level re-sorts already-partially-sorted data. Worst case (sorted/duplicate-heavy input) degrades to O(n^2) per level due to last-element pivot.",
+   "proposedChange": "Replace QuickSort+take-middle with quickselect (nth_element / introselect) to partition around the median in expected O(subrange) without fully sorting; this yields O(n log n) total build. Also use median-of-three or randomized pivot to avoid the O(n^2) adversarial case on sorted input.",
+   "rationale": "Median selection is O(m) expected vs O(m log m) for a full sort; summed over the recursion tree this drops build cost by a log factor and removes the catastrophic sorted-input blowup from the fixed last-element pivot.",
+   "risk": "Quickselect leaves the subrange unsorted except the partition invariant, which is exactly what BuildKD needs (it only reads pts[mid] and recurses on the two halves). Median index choice must match left+(right-left)/2. Randomized pivot makes build nondeterministic in element order but the resulting tree's correctness (nearest-neighbor results) is unaffected; if determinism is required, use median-of-three instead of randomization."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Voronoi/NearestNeighbor.cs",
+   "symbol": "Partition",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The comparison axis `(depth % 2 == 0)` is recomputed for every element in the partition loop although depth is constant for the whole call.",
+   "currentCost": "A modulo (or its branch) plus a select per inner-loop iteration; for m elements that is m redundant depth%2 evaluations, and the branch inside the hot loop hinders vectorization.",
+   "proposedChange": "Compute `bool byX = (depth & 1) == 0;` once before the loop and branch on it; or better, hoist the axis test out of the loop entirely by writing two specialized loop bodies (compare .X vs compare .Y) selected once. Replace `% 2` with `& 1` regardless.",
+   "rationale": "depth & 1 is a single AND vs a div-based modulo; hoisting the constant axis decision out of the loop removes a per-iteration branch and lets Burst vectorize each comparison branch cleanly.",
+   "risk": "depth is non-negative so `& 1` equals `% 2` exactly. Hoisting the boolean is pure; specializing the two loops preserves identical comparisons."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Voronoi/NearestNeighbor.cs",
+   "symbol": "SearchNearest / DistToBox",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "nodes[node].Left and nodes[node].Right are reloaded multiple times (DistToBox arg, comparison, and SearchIfBetter arg), and DistToBox re-reads the whole child node struct after node!=-1 was already implied.",
+   "currentCost": "Repeated `nodes[node].Left/.Right` indexed loads (KDNode is 56 bytes; .Left/.Right live at offsets that may straddle cache lines) and a redundant node!=-1 reload chain per recursion.",
+   "proposedChange": "Cache `int l = nodes[node].Left; int r = nodes[node].Right;` once at the top of SearchNearest and pass those locals to DistToBox/SearchIfBetter. Read the current node into a local KDNode (or a ref) once instead of re-indexing nodes[node] in UpdateBest, DistToBox, and the comparisons.",
+   "rationale": "Reduces repeated 56-byte-struct pointer indexing and shortens dependency chains in the recursive hot path; helps register allocation in Burst.",
+   "risk": "None; nodes are immutable during search, so caching child indices and the node struct is semantics-preserving."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Voronoi/NearestNeighbor.cs",
+   "symbol": "KDNode",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "KDNode stores X,Y redundantly with the point AND four bounds doubles (MinX/MinY/MaxX/MaxY); the struct is 56 bytes, hurting cache density during traversal where only X,Y,Left,Right and bounds-for-pruning are touched.",
+   "currentCost": "56 bytes/node means ~1.14 nodes per 64-byte cache line; nearest-neighbor descent touches X,Y,Left,Right (UpdateBest+children) on the way down and bounds only when deciding to recurse, so every node access pulls bounds it may not need.",
+   "proposedChange": "Consider splitting hot fields (X,Y,Idx,Left,Right = 28 bytes) from cold bounds into a parallel array (SoA), so the descent walks a denser hot array and only loads bounds when DistToBox is actually called. Alternatively store bounds as float if the precision budget allows (halves bounds footprint).",
+   "rationale": "Smaller hot stride => more nodes per cache line => fewer misses on the pointer-chasing descent, the dominant cost of KD search on large point sets.",
+   "risk": "SoA split changes the API/layout (callers build nodes differently) \u2014 an ergonomics/breaking-change tradeoff, flag as design-level. float bounds change pruning precision: DistToBox would compare a slightly looser/tighter box distance, which can change which subtrees are pruned and thus is NOT guaranteed semantics-preserving for ties; reject float-bounds unless exact-double results are not contractual. SoA split with double bounds IS semantics-preserving."
+  }
+ ]
+}

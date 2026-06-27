@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Physics.Xpbd/VolumeConstraint.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Physics.Xpbd/VolumeConstraint.cs",
+   "symbol": "Solve",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "OneSixth is multiplied into volume and into each of three gradients, then squared in lengthsq; the 1/6 factors can be factored out of w and folded.",
+   "currentCost": "4 separate '* OneSixth' multiplies (volume, grad1, grad2, grad3) plus grad0 sum; then w uses lengthsq of the already-scaled grads (each lengthsq re-multiplies). The 1/6 appears squared inside w and linearly in c.",
+   "proposedChange": "Compute raw cross products g1=cross(d2,d3), g2=cross(d3,d1), g3=cross(d1,d2), g0=-(g1+g2+g3) WITHOUT the 1/6. Then volume=dot(g1,d1)*OneSixth (or dot(cross(d1,d2),d3)*OneSixth). w_raw = invMass0*lengthsq(g0)+...; the true w = w_raw*OneSixth*OneSixth. c = volume-restVolume. lambda = -c/(w_raw*(1/36) + alpha). Final position update uses grad_i = g_i*OneSixth, i.e. delta = invMass_i*lambda*OneSixth*g_i \u2014 fold OneSixth*lambda into a scalar k once. Removes 3 vector scalings from the gradient construction.",
+   "rationale": "Folds four float3 scalar-multiplies into scalar constant folding (1/36 precomputed as a named const), trimming vector ALU ops on the hot path while keeping the same math.",
+   "risk": "Floating-point: factoring 1/6 out of squared terms changes rounding (w_raw*1/36 vs scaling-then-square). Not bit-identical. Precompute OneThirtySixth as a named const to satisfy house rules. Behavior preserved to rounding tolerance only."
+  }
+ ]
+}

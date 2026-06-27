@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Permutation/NextPermutation.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Permutation/NextPermutation.cs",
+   "symbol": "NextPermutation.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Cache ptr[i] in the descending j-scan instead of re-loading and re-comparing through CompareTo each iteration.",
+   "currentCost": "The j-loop calls ptr[j].CompareTo(ptr[i]) each step, reloading ptr[i] (the pivot) every iteration and going through the IComparable<T> interface comparison.",
+   "proposedChange": "T pivot = ptr[i]; while (ptr[j].CompareTo(pivot) <= 0) j--; - hoist the invariant pivot load out of the loop. Same pattern applies to the i-scan where ptr[i+1] vs ptr[i] could reuse one loaded value across steps.",
+   "rationale": "Removes a redundant load per iteration and shortens the dependency chain on the pivot; the value of ptr[i] is loop-invariant in the j-scan.",
+   "risk": "None for the j-scan (ptr[i] is not modified there). For T being a generic unmanaged struct, CompareTo on IComparable<T> may still not inline under Burst; consider an il2cpp/Burst-friendly constrained call, but that is orthogonal. Identical results."
+  }
+ ]
+}

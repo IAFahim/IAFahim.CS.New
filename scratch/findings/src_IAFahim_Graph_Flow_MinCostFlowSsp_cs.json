@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Graph.Flow/MinCostFlowSsp.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Flow/MinCostFlowSsp.cs",
+   "symbol": "MinCostFlowSsp.PushHeap / MinCostFlowSsp.Run",
+   "severity": "critical",
+   "category": "overflow",
+   "summary": "The Dijkstra binary heap uses a push-only insert (no decrease-key). PushHeap unconditionally does `int i = (*pqSize)++` and appends a new entry every time a vertex is relaxed (line 38 calls PushHeap again for an already-present vertex). The heap arrays pqV/pqDist/pqPos are stackalloc[n], so once any vertex is relaxed and re-pushed, pqSize exceeds n and the heap writes out of bounds, corrupting the stack (pointer UB) and producing wrong/garbage results.",
+   "triggeringInput": "n=3, s=0, t=2 with edges (proper paired layout, edgeId starting at 2): 0->1 cost 5 cap 1, 0->2 cost 10 cap 1, 1->2 cost 1 cap 1. Trace: push s(size1); pop s relaxes node1 (push,size2) and node2 dist10 (push,size3==n); pop node1 (dist5) relaxes node2 to 6<10 -> PushHeap appends at index 3 -> writes pqV[3]/pqDist[3]/pqPos beyond the stackalloc[3] buffer.",
+   "rootCause": "PushHeap implements insert-only; it does not check pqPos[v] to update an existing heap entry (decrease-key) the way the correct MinHeap.PushOrUpdate in Flow.cs does. With re-relaxations the live heap size can exceed n, but the backing arrays are sized exactly n.",
+   "suggestedFix": "Make PushHeap a decrease-key: if pqPos[v] != -1, update pqDist at the existing index and sift up instead of appending. Alternatively keep insert-only but size the heap arrays to the number of edges (max pushes) and skip stale pops via a `if (poppedDist != dist[u]) continue;` guard, matching MinHeap/MinCostMaxFlow in Flow.cs."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Flow/MinCostFlowSsp.cs",
+   "symbol": "MinCostFlowSsp.Run",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "stackalloc of pqDist/pqV/pqPos inside the while(true) augment loop accumulates stack across iterations",
+   "currentCost": "Three stackalloc[n] (long+int+int = 16*n bytes) are placed inside the outer while(true) loop (lines 21-23). C# stackalloc inside a loop is NOT freed at end of each iteration; the stack pointer only resets at method return. With up to O(E) augmenting iterations, the stack grows by 16*n bytes per iteration, risking stack overflow on mobile and trashing cache locality.",
+   "proposedChange": "Hoist the three pqDist/pqV/pqPos stackalloc buffers (and reuse a single allocation) out above the while(true) loop, alongside dist/parent/parentEdge/pot. Reset pqSize=0 and reinitialize pqPos[i]=-1 at the top of each iteration instead of re-allocating.",
+   "rationale": "Eliminates unbounded stack growth: O(n) fixed stack instead of O(E*n). Also avoids re-touching fresh (cold) stack pages every iteration, improving cache behavior.",
+   "risk": "None semantically; the buffers are fully reinitialized each iteration (pqSize=0, pqPos reset loop already present). Must keep the pqPos[i]=-1 init and pqSize=0 reset at iteration start."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/MinCostFlowSsp.cs",
+   "symbol": "MinCostFlowSsp.PushHeap",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "PushHeap never decrease-keys; duplicate vertices can overflow the n-sized heap buffers",
+   "currentCost": "PushHeap always does i=(*pqSize)++ and writes a new slot (lines 55-56), ignoring pqPos[v]. When an edge relaxes an already-queued vertex (the common Dijkstra case), a second copy is pushed. pqV/pqDist/pqPos are only stackalloc[n], so more than n live entries overflow the buffer (out-of-bounds writes / corrupt pqPos). PopMin sets pqPos[minV]=-1 but Run never re-checks staleness, so stale entries are also popped and re-relaxed.",
+   "proposedChange": "Adopt the existing MinHeap.PushOrUpdate decrease-key pattern from Flow.cs: if pqPos[v]!=-1 update in place and sift, else insert. This bounds the heap at n entries and removes redundant pops. Alternatively switch Run to delegate to PotentialDijkstra/MinHeap which already implements this correctly.",
+   "rationale": "Caps heap size at n (no overflow, smaller working set), removes duplicate-entry pops, and reduces total sift operations from O(E log E) toward O(E log V). Lower asymptotic constant and removes a latent buffer-overflow.",
+   "risk": "Behavior-preserving for valid graphs once bounded; current code is arguably already incorrect for any vertex relaxed twice. Verify pqPos is consistently maintained on both push and pop paths (PopMin already maintains it)."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/MinCostFlowSsp.cs",
+   "symbol": "MinCostFlowSsp.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "n*2 loop bound recomputed and no early-exit when t popped",
+   "currentCost": "Line 11 recomputes n*2 each iteration of the init loop (trivial but trivially hoistable). More importantly, the Dijkstra inner while(pqSize>0) (lines 27-41) drains the entire heap even after t is finalized; the sibling PotentialDijkstra.Run breaks as soon as u==t.",
+   "proposedChange": "Hoist int twoN=n<<1 for the flow-init loop. Add 'if (u==t) break;' after PopMin to stop once the target distance is finalized (Dijkstra guarantees finality on pop).",
+   "rationale": "Early t-break stops processing the remainder of the heap on every augmenting phase, cutting relax/sift work substantially on large graphs. Matches the optimization already present in PotentialDijkstra.",
+   "risk": "Safe only because pot update on line 43 guards dist[i]<long.MaxValue; vertices not finalized keep dist=MaxValue and are skipped, so pot stays consistent. Confirm no later code depends on dist[] of non-target vertices beyond the pot update (it does not)."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/MinCostFlowSsp.cs",
+   "symbol": "MinCostFlowSsp.PushHeap/PopMin",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hot leaf heap methods lack AggressiveInlining and use mul instead of shift for child index",
+   "currentCost": "PushHeap/PopMin are called O(E log V) times but are not marked AggressiveInlining (call overhead per relax). PopMin computes i*2+1, i*2+2 (lines 81) via multiply.",
+   "proposedChange": "Add [MethodImpl(MethodImplOptions.AggressiveInlining)] to PushHeap and PopMin. Replace i*2+1 with (i<<1)+1. (Parent (i-1)>>1 is already shift-based.)",
+   "rationale": "Inlining removes call/spill overhead on the hottest inner operations; shift is one cycle vs a multiply on some mobile ARM pipelines. Both are pure constant-factor wins on the tightest loop.",
+   "risk": "None; i>=0 so <<1 equals *2 exactly. Burst already inlines aggressively, so the win is mainly for non-Burst/JIT paths."
+  }
+ ]
+}

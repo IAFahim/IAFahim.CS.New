@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Search.Automaton/Automaton.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.Automaton/Automaton.cs",
+   "symbol": "ModMatrixPow.MultiplyMatrices",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Hoist b-column access into row-major form and reduce modulo frequency to cut the modulo-per-multiply cost and improve cache behavior in the innermost k-loop.",
+   "currentCost": "Inner loop does b[k*n+j] (column-strided, cache-unfriendly: stride n*8 bytes) plus one 64-bit modulo per k iteration. For n^3 inner iterations that is n^3 divisions and n^3 strided loads -> heavy DIV-port pressure and TLB/cache misses.",
+   "proposedChange": "Reorder loops to i-k-j (cache-friendly: stream b row b[k*n+j] sequentially, accumulate into tmp row tmp[i*n+j]). Compute aik=a[i*n+k] once per (i,k), and apply % mod once after the j-accumulation pass per element rather than every k step where the running sum cannot overflow. Concretely: since mod fits in long and inputs are already reduced (< mod), if mod <= ~3037000499 (sqrt(2^63)) then a[i*n+k]*b[k*n+j] < 2^63 and sum stays bounded by reducing only when sum could overflow; otherwise keep per-step %. Minimum safe win: keep per-step % but switch to i-k-j ordering with aik hoisted, eliminating the column-strided b access and the repeated a[i*n+k] index recomputation.",
+   "rationale": "i-k-j ordering turns the inner loop into two sequential streams (b row, tmp row) that Burst/SLP can vectorize and the prefetcher loves, versus the current i-j-k which reads a column of b with stride n. Hoisting aik removes one multiply-add address computation per inner iteration. Both lower cycles and cache misses with identical numeric results when % is kept per step.",
+   "risk": "i-k-j reordering with per-step % is bit-exact identical to i-j-k per-step % because (sum + x) % mod is applied after each add regardless of accumulation order ONLY IF the same set of products is summed in the same order; i-k-j changes summation order. Modular addition is associative/commutative so the final residue is identical, but intermediate values differ \u2014 final result provably equal mod p. Deferring the % (the overflow-conditional variant) is only safe when mod*mod + mod < 2^63 (mod < ~3.03e9) AND inputs pre-reduced; must guard with a named constant MaxDeferMod or reject. Signed long products of pre-reduced non-negative residues stay non-negative, no signed-% pitfall."
+  },
+  {
+   "file": "src/IAFahim.Search.Automaton/Automaton.cs",
+   "symbol": "ModMatrixPow.MultiplyMatrices",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Eliminate the per-call stackalloc scratch buffer and the trailing MemoryCopy by writing the product into a caller-provided ping-pong buffer.",
+   "currentCost": "Each MultiplyMatrices does stackalloc long[n*n] (grows stack per call inside a loop-driven recursion-free path; repeated stackalloc in the squaring loop reuses frame but still zero-inits cost is avoided, yet the n*n*8-byte MemoryCopy at the end is a full extra pass over the matrix every multiply).",
+   "proposedChange": "Hoist two n*n buffers in Run (src/dst) and ping-pong: MultiplyMatrices writes result into dst and the caller swaps pointers, removing the final Buffer.MemoryCopy(tmp,a,...) entirely. Pass dst as an out pointer; Run already owns temp and result, just add a second temp for squaring.",
+   "rationale": "Removes one full n*n*8-byte memory pass (the copy-back) per matrix multiply. In matrix-pow there are O(log exp) squarings plus up to log exp products, so eliminating the copy saves O(n^2 log exp) writes. Also avoids re-stackallocing scratch on every call.",
+   "risk": "Pointer ping-pong must keep result semantics: final answer must end up in the caller's result buffer. Need a final conditional copy only if the last write landed in the scratch buffer (one copy total vs one-per-multiply). Behavior identical; care needed that MultiplyMatrices(temp,temp,...) self-multiply still reads consistent source (already needs scratch because output overlaps input \u2014 ping-pong naturally fixes the aliasing)."
+  },
+  {
+   "file": "src/IAFahim.Search.Automaton/Automaton.cs",
+   "symbol": "ModMatrixPow.InitializeIdentity",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Replace the branchy double loop with a zero-fill plus diagonal write to remove n^2 branches.",
+   "currentCost": "n^2 iterations each evaluating (i==j)?1:0 \u2014 a data-dependent branch/cmov per element across the whole matrix.",
+   "proposedChange": "memset/loop-zero the n*n block (or Unsafe.InitBlock / a tight for writing 0), then a single diagonal loop: for(int i=0;i<n;i++) res[i*n+i]=1. Diagonal index i*n+i can be strength-reduced with an accumulator idx+=n+1.",
+   "rationale": "Turns n^2 conditional writes into a branchless contiguous zero-fill (vectorizable / single InitBlock) plus n diagonal writes. Fewer instructions, no per-element compare, prefetcher-friendly contiguous store.",
+   "risk": "None \u2014 output identical. InitBlock requires byte count n*n*sizeof(long); ensure no overflow of the int byte-count argument for large n (n*n*8 must fit int; guard or use loop for very large n)."
+  },
+  {
+   "file": "src/IAFahim.Search.Automaton/Automaton.cs",
+   "symbol": "BuildAutomaton.ProcessTransition",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the repeated trans[f*alphabetSize+i] and fail[next] computations and force inlining of this hot per-edge helper.",
+   "currentCost": "trans[f*alphabetSize+i] is computed twice (loop condition and after the loop at line 75), and fail[next] is read twice (lines 75-76: fail[next] is written then re-read). state*alphabetSize+i recomputed at lines 70 and 81. The method is a non-inlined call invoked alphabetSize times per dequeued state in the BFS hot loop.",
+   "proposedChange": "Add [MethodImpl(MethodImplOptions.AggressiveInlining)] to ProcessTransition (and InitializeRootTransitions). Cache long baseIdx=state*alphabetSize+i once. After the while loop, store the resolved target t=trans[f*alphabetSize+i] in a local, write fail[next]=t and use t (not a re-read of fail[next]) for output[next]|=output[t].",
+   "rationale": "Removes a redundant load+multiply-add per edge, shortens the dependency chain (output|= no longer waits on a reload of fail[next]), and inlining eliminates call overhead and lets Burst keep base indices in registers across the whole alphabet loop. Asymptotics unchanged but constant factor on the dominant BFS edge loop drops.",
+   "risk": "Behavior-preserving: fail[next] is set to exactly trans[f*alphabetSize+i] so reusing the local t for output is identical. Inlining a recursive-free leaf is safe under Burst. No aliasing issue since next!=state in Aho-Corasick goto edges (next is a distinct child state)."
+  },
+  {
+   "file": "src/IAFahim.Search.Automaton/Automaton.cs",
+   "symbol": "BuildAutomaton.ProcessTransition",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "The else-branch mutates trans in place to build the goto-automaton, mixing two responsibilities; splitting the failure-link build from the goto-completion would clarify the API but is optional.",
+   "currentCost": "Single helper both (a) computes failure links for real edges and (b) path-compresses missing edges via trans[state*A+i]=trans[fail[state]*A+i]. The dual role makes the hot method harder to reason about and prevents the compiler from specializing each path.",
+   "proposedChange": "Keep the perf model but consider documenting that this is the standard Aho-Corasick BFS goto-completion; optionally precompute fail[state] into a local fs once at method entry (used in both branches) to avoid two fail[state] loads.",
+   "rationale": "fail[state] is loaded in both branches (line 73 and 81); hoisting it to a single local at entry removes one load on the else path and clarifies intent. Minor cycle + readability win.",
+   "risk": "None \u2014 fail[state] is not modified within the method, so a single cached load is identical to two loads."
+  }
+ ]
+}

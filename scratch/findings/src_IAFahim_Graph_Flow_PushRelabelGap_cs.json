@@ -1,0 +1,82 @@
+{
+ "file": "src/IAFahim.Graph.Flow/PushRelabelGap.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Flow/PushRelabelGap.cs",
+   "symbol": "PushRelabelGap.Push",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Push always operates on the node's first edge head[u] instead of the admissible edge e that was selected in the discharge loop, so flow is pushed along the wrong (or saturated) arc, violating flow conservation and producing a wrong max-flow.",
+   "triggeringInput": "Any graph where the admissible edge for some node u is NOT u's first edge head[u]. E.g. n=4, s=0, t=3, edges (adjacency with antiparallel pairs): u=1 has first edge 1->2 with cap 0 (saturated/inadmissible) listed before edge 1->3 with cap 5 that is admissible. The discharge loop at line 34-43 picks e = (1->3) and calls Push(n,1,3,...), but Push computes push=Min(excess[1], cap[head[1]]-flow[head[1]]) on the 1->2 edge and updates flow[head[1]] / flow[head[1]^1], moving 0 (or wrong) flow and corrupting flow[] on the wrong edge.",
+   "rootCause": "The caller passes only (n,u,v2) to Push (line 40) and Push (lines 61-63) hardcodes head[u] for the residual-capacity computation and for the flow updates, ignoring which edge e the loop actually found admissible at lines 36-38.",
+   "suggestedFix": "Pass the selected edge index e into Push and use it: push = Math.Min(excess[u], cap[e] - flow[e]); flow[e] += push; flow[e^1] -= push; excess[u]-=push; excess[v]+=push. Change the signature to Push(... , int e, ...) and call Push(n, u, e, v2, ...)."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/PushRelabelGap.cs",
+   "symbol": "PushRelabelGap.Run",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "The admissibility / residual-capacity test uses flow[e] > 0 (current flow) as the residual condition instead of the residual capacity cap[e] - flow[e] > 0, so it pushes along edges with no remaining residual capacity and skips edges that actually have residual, giving a wrong max-flow.",
+   "triggeringInput": "n=3, s=0, t=2, single forward path 0->1->2 each cap 5. After init, the edge 1->2 has flow[e]=0 but cap[e]-flow[e]=5 > 0; the test at line 38 'flow[e] > 0' is false, so node 1's excess can never be pushed to t along 1->2, and the algorithm fails to route the available flow (returns a value below the true max-flow of 5).",
+   "rootCause": "In this representation residual capacity is cap[e]-flow[e] (as used correctly in PushRelabelGlobalRelabel line 51), but line 38 of the Gap version tests flow[e] > 0, which is the amount of flow currently on the edge, not its remaining residual capacity.",
+   "suggestedFix": "Replace the condition at line 38 with 'else if (cap[e] - flow[e] > 0 && height[u] == height[v2] + 1)' (and review the line 37 reverse-edge test for the same residual convention)."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Flow/PushRelabelGap.cs",
+   "symbol": "Push",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Cache head[u] once and hoist flow[head[u]] reload in Push; eliminate redundant pointer-arithmetic loads.",
+   "currentCost": "Push reads head[u] three times (lines 61,63) and flow[head[u]] twice on line 61 plus once on line 63 (two indexed loads through the same address). Each head[u] is a dependent load (base+index) feeding another dependent load flow[head[u]], creating a long dependency chain executed on every push.",
+   "proposedChange": "int hu = head[u]; int f = flow[hu]; int push = Math.Min(excess[u], cap[hu] - f); excess[u] -= push; excess[v] += push; flow[hu] = f + push; flow[hu ^ 1] -= push;",
+   "rationale": "Reduces 3 loads of head[u] to 1 and 2 loads of flow[head[u]] to 1, shortening the load-dependent chain and cutting memory-uop count on the hottest leaf method. Burst keeps hu/f in registers.",
+   "risk": "None. Observable behavior identical: flow[hu] is written exactly once with the same final value (f+push); v and n are unused by the original body so still ignored. Note the original already ignores the e/v passed in (uses head[u]); this change preserves that exact (buggy-but-intended-unchecked) behavior."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/PushRelabelGap.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist height[u] into a local across the per-edge loop; it is read up to 3x per edge and only changes after the loop.",
+   "currentCost": "Inside the edge loop (lines 33-43) height[u] is loaded on lines 33, 37, 38 for every incident edge. height[u] is loop-invariant within the edge scan (only mutated on line 46 after the loop), so each iteration re-loads it from the stack array.",
+   "proposedChange": "int hu = height[u]; count[hu]++; for(...) { int v2 = to[e]; if(flow[e^1]>0 && hu>height[v2]+1) count[hu]--; else if(flow[e]>0 && hu==height[v2]+1){ Push(...); if(excess[u]==0) break; } }",
+   "rationale": "Removes 2 redundant dependent loads of height[u] per edge in the inner scan, freeing load ports and shortening the comparison dependency chain. height[v2] still loaded once as required.",
+   "risk": "None. height[u] is provably invariant during the edge loop (only line 46 mutates it, after the loop). count[hu] indexes the same slot consistently."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/PushRelabelGap.cs",
+   "symbol": "Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "The outer while loop (lines 25-52) dequeues v then unconditionally rebuilds the entire BFS/discharge from t every iteration, doing O(outer * (n+E)) redundant full passes.",
+   "currentCost": "Line 27 reads v (never used). Lines 28-29 zero count[] and reset the queue to {t} on EVERY outer iteration, so the inner while (30-51) re-discharges the whole frontier from scratch each time. The outer loop's queue (q) is simultaneously reset to t inside, so qh/qt bookkeeping at the outer level is dead \u2014 the outer loop effectively just repeats the same inner sweep until convergence, an O(n+E) pass per outer turn with no carried state.",
+   "proposedChange": "Restructure so the active-vertex queue carries between sweeps (as PushRelabelGlobalRelabel does) instead of re-seeding {t} and re-zeroing count each outer pass; or at minimum drop the dead 'int v = q[qh++]' read and the dead outer qh/qt manipulation. Verify against the test suite since the current control flow is convoluted.",
+   "rationale": "Eliminating repeated full-graph re-discharge changes the constant/asymptotic factor of the gap variant from repeated O(n+E) sweeps to incremental work proportional to actual relabels/pushes, matching standard gap-heuristic push-relabel.",
+   "risk": "High-risk refactor: the current outer/inner queue interplay is subtle and possibly already incorrect (the unused v, the per-iteration count reset). Must be gated behind the NUnit Flow tests; do not land without green tests. Flagged as opportunity, not a blind rewrite."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/PushRelabelGap.cs",
+   "symbol": "Run",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "ptr[] is allocated and initialized (lines 20-21) but never read anywhere in the gap variant.",
+   "currentCost": "stackalloc int[n] plus an O(n) init loop writing head[i] into ptr[i], consuming n*4 bytes of stack and n stores per call, with zero subsequent reads.",
+   "proposedChange": "Delete the ptr declaration and its initialization loop (lines 20-21).",
+   "rationale": "Removes a dead n-element stack buffer and an O(n) write loop from every call: less stack pressure (matters on mobile/Burst stack budgets) and fewer cache lines touched at startup.",
+   "risk": "None \u2014 confirmed unused in this file. (In the GlobalRelabel variant ptr IS used, so only remove it here.)"
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/PushRelabelGap.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Fuse the four separate per-index initializations on line 13 \u2014 they already are fused, but the count[] re-zero on line 28 runs inside the outer loop and can be hoisted/avoided.",
+   "currentCost": "Line 28 'for(i) count[i]=0' executes once per outer-loop iteration, an O(n) memset repeated for every dequeued v, even though the inner sweep recomputes count from scratch each time.",
+   "proposedChange": "If the outer loop is kept as-is, replace the explicit zeroing loop with Unsafe.InitBlockUnaligned over count (n*4 bytes) which Burst lowers to vectorized stores; or, after the restructure above, this becomes unnecessary.",
+   "rationale": "A vectorized clear of n ints is faster than a scalar store loop and avoids per-element loop overhead; better still is eliminating the repeated clear via the structural fix.",
+   "risk": "None for the InitBlock substitution (same zeroed result). The structural elimination depends on the line-25 refactor and must be test-gated."
+  }
+ ]
+}

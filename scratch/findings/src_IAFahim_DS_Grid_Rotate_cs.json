@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.DS.Grid/Rotate.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.Grid/Rotate.cs",
+   "symbol": "Rotate.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the per-cell destination-index multiply out of the inner loop and strength-reduce to additions.",
+   "currentCost": "Clockwise branch: inner loop computes srcIdx = y*width+x and dstIdx = x*height + (height-1-y) every iteration -> 2 IMUL + several ADD/SUB per cell. srcIdx already increments by 1 per x; x*height recomputes a multiply each step.",
+   "proposedChange": "For clockwise: precompute outside x-loop: int srcRow = y*width; int dstBase = height-1-y; then inside, maintain dstIdx via additive stepping: starting dstIdx = 0*height + dstBase and adding 'height' each x iteration; srcIdx = srcRow + x increments by 1. Symmetric treatment for the counter-clockwise branch (dstIdx steps by -height with base (width-1)*height + y). Replaces inner IMULs with one ADD each.",
+   "rationale": "Strength-reduces x*height (a multiply in the dependency chain of the store address) to a running add, and hoists y*width to once per row. Fewer multiplies, shorter address-computation dependency chain, same memory traffic.",
+   "risk": "Pure index arithmetic, identical addresses produced. width*height must fit int as before (unchanged). The scatter store pattern (non-contiguous dst) limits vectorization either way, but the arithmetic reduction is a real constant-factor win."
+  },
+  {
+   "file": "src/IAFahim.DS.Grid/Rotate.cs",
+   "symbol": "Rotate.Run",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Buffer.MemoryCopy of the whole grid into temp is required because output is a scatter into ptr; but the copy could be avoided by writing the rotation directly when a separate dst is acceptable.",
+   "currentCost": "Full len*sizeof(T) MemoryCopy of ptr->temp every call (one extra full pass over the grid + a caller-supplied scratch buffer of equal size), purely to break the read/write aliasing of the in-place scatter.",
+   "proposedChange": "Offer/add a variant that reads from a caller src and writes the rotated result directly into a distinct dst (no temp, no copy): Run(T* src, T* dst, int width, int height, bool clockwise). The current in-place Run can forward to it after the copy, but callers that already have two buffers skip the MemoryCopy entirely, halving memory traffic and removing the scratch requirement.",
+   "rationale": "The MemoryCopy exists only to resolve aliasing for the in-place case. A src!=dst overload removes one full O(len) pass and the scratch allocation for the common transform-into-new-buffer use case.",
+   "risk": "Ergonomic/API addition, not a change to existing semantics. Caller must guarantee src and dst do not overlap for the new overload; document that. In-place behavior of existing Run is unchanged."
+  }
+ ]
+}

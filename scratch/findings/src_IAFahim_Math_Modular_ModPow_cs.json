@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.Modular/ModPow.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Modular/ModPow.cs",
+   "symbol": "ModPow.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Skip the final wasted squaring of b after the last bit is consumed.",
+   "currentCost": "On the last loop iteration e becomes 0 after e>>=1, yet b = ModMul.Run(b,b,mod) still executes one full Russian-peasant modmul (~63-iteration inner loop) whose result is never read. That is one entire ModMul wasted per ModPow call.",
+   "proposedChange": "Restructure so the square is not done on the terminal iteration, e.g.: while (e > 1) { if ((e&1)==1) result = ModMul.Run(result,b,mod); b = ModMul.Run(b,b,mod); e >>= 1; } if (e==1) result = ModMul.Run(result,b,mod); This squares b only when another bit remains.",
+   "rationale": "Eliminates one O(log mod) ModMul per ModPow invocation. Since ModSqrt/Tonelli-Shanks and the whole NT module call ModPow millions of times, removing the final dead square is a measurable constant-factor win on the hottest path.",
+   "risk": "Must preserve e==0 case (returns 1) and e==1 case (single multiply, no square). The shown split handles both. No semantic change for any non-negative e; e is assumed >=0 by the loop condition as today."
+  },
+  {
+   "file": "src/IAFahim.Math.Modular/ModPow.cs",
+   "symbol": "ModPow.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Redundant re-normalization: ModMul.Run re-reduces both operands every call, so ModPow's own b%=mod / a%=mod work is duplicated, and a per-call mod<=1 guard is paid on every inner modmul.",
+   "currentCost": "ModPow already does b%=mod; if(b<0)b+=mod. Then every ModMul.Run does a%=mod;if(a<0)..;b%=mod;if(b<0).. again, plus an if(mod<=1)return 0 branch. Across ~2*log2(e) ModMul calls each contains two 64-bit divisions (% is a div) that are provably no-ops because both inputs are already in [0,mod).",
+   "proposedChange": "Provide an internal unchecked ModMul variant (e.g. ModMul.RunReduced) that assumes a,b in [0,mod) and mod>1, dropping the two %=, the two sign fixups, and the mod<=1 guard; have ModPow call it. ModPow already guarantees result in [0,mod) (starts at 1<mod after normalization) and b in [0,mod); squaring/products stay reduced because ModMul returns a reduced value.",
+   "rationale": "64-bit idiv is ~20-40 cycles; removing 2 divs + 2 branches + 1 guard from each of the ~2*log2(e) inner modmuls is a large constant-factor reduction on the dominant kernel. Pure cycle savings, no asymptotic change.",
+   "risk": "Caller must guarantee operands already in [0,mod) and mod>1. ModPow normalizes b once up front and result starts as 1; ModMul.Run already returns values in [0,mod), so the invariant holds. Keep the public ModMul.Run unchanged for external callers; only ModPow/internal hot paths use the reduced variant. If mod==1 reaches ModPow, normalization makes b=0 and result must be 0 \u2014 guard that one case before the loop instead of inside every modmul."
+  }
+ ]
+}

@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Optimization.Matroid/MatroidGreedy.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Optimization.Matroid/MatroidGreedy.cs",
+   "symbol": "MatroidGreedy.Run",
+   "severity": "high",
+   "category": "logic",
+   "summary": "Greedy matroid maximum-weight algorithm unconditionally adds every independent element, including those with negative weight, so it returns a suboptimal (wrong) maximum-weight value whenever a negative-weight element can be added independently. The correct Rado-Edmonds greedy must skip elements whose weight is <= 0 (the empty/partial set is always a valid independent set with at least weight 0).",
+   "triggeringInput": "n=1, set={0}, weight[0]=-5, and an 'independent' callback returning true for the singleton {0}. Run returns total=-5, but the maximum-weight independent subset is the empty set with weight 0. Likewise n=2 with weights {-3,-1} returns -4 instead of 0.",
+   "rootCause": "The loop at lines 15-19 does 'cur[curSize]=e; if (independent(...)) { total += weight[e]; curSize++; }' with no guard on the sign/value of weight[e]. Since weights are sorted in descending order (SortByWeight puts larger weights first), once a non-positive weight is reached every remaining element is also non-positive and adding any of them can only decrease total below the best achievable value; the algorithm must stop/skip there.",
+   "suggestedFix": "In the loop, only consider elements with positive weight: replace the body with 'if (weight[e] <= 0) break; int e2=order[i]; cur[curSize]=e2; if (independent(cur, curSize+1, e2)) { total += weight[e2]; curSize++; }'. Because order is sorted descending by weight, a 'break' on the first non-positive weight is correct and yields the true maximum-weight independent set (>= 0)."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Matroid/MatroidGreedy.cs",
+   "symbol": "SortByWeight",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Replace the O(n^2) selection-style sort with an O(n log n) sort over the index permutation.",
+   "currentCost": "The double loop performs n*(n-1)/2 comparisons of weight[order[i]] < weight[order[j]] plus up to that many swaps, i.e. O(n^2) comparisons and double-indirection loads (order[i]->weight[]). For the greedy matroid algorithm this dominates total runtime whenever the independence callback is cheap.",
+   "proposedChange": "Sort the 'order' index array by descending weight using an in-place introsort/heapsort over the stackalloc buffer (no managed Array.Sort, no allocations). A heapsort on the int* order array with comparisons keyed on weight[order[k]] keeps everything unmanaged and Burst-friendly while dropping to O(n log n). Alternatively, if weights are bounded, a radix/counting pass; but heapsort is the general drop-in.",
+   "rationale": "n log n vs n^2 is an asymptotic win that grows unbounded with n; for n in the thousands this is orders of magnitude fewer comparisons and memory loads. Heapsort is in-place (no extra RAM), branch-predictable enough, and contains no recursion-depth blowup risk.",
+   "risk": "Sort must be a stable-equivalent for the matroid result: the current selection sort is NOT stable (it swaps on strict <, leaving equal-weight elements in a data-dependent order). Heapsort is also unstable, so for equal weights the chosen independent set may differ from the current code when ties exist and the independence oracle is tie-sensitive. The TOTAL weight returned is provably identical for any matroid regardless of tie order (matroid greedy optimality), so the long return value is preserved; only the unobservable internal selection among equal-weight ties could differ. State this guard: behavior-preserving for the returned total, not necessarily for which specific tied elements get selected."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Matroid/MatroidGreedy.cs",
+   "symbol": "SortByWeight",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Eliminate double indirection in the comparison by sorting (weight, index) pairs or caching weights, removing the gather load weight[order[i]] from the inner loop.",
+   "currentCost": "Inner comparison weight[order[i]] < weight[order[j]] does two dependent loads each: read order[k] (sequential, cached) then a gather load weight[order[k]] (random access, likely cache miss for large n). The dependency chain order[k] -> weight[order[k]] serializes and the gather defeats vectorization and prefetch.",
+   "proposedChange": "Materialize a parallel key buffer once: stackalloc long[n] keys; for(i) keys[i] = weight[order[i]] (here order[i]==i initially so keys[i]=weight[i]); then sort the (key, index) pairs together. Comparisons then read keys[i] directly (sequential) instead of gathering through order. Combine with the heapsort above so the gather happens O(n) times during key build instead of O(n log n) (or O(n^2)) times during comparison.",
+   "rationale": "Converts O(comparisons) random gathers into O(n) sequential reads plus O(comparisons) sequential key reads. Sequential access is cache-friendly and prefetchable, shortening the per-compare dependency chain from two dependent loads to one.",
+   "risk": "Costs an extra n*8 bytes of stack (long keys) plus optionally keeping order in sync during swaps (swap both arrays). Stack pressure: n longs + existing 3 int arrays = ~ n*20 bytes on stack; for large n this could approach stack limits, so for very large n a caller-provided scratch buffer would be safer. Semantics preserved (same key values, ties handled identically to whatever sort is chosen)."
+  }
+ ]
+}

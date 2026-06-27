@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Algebra.Sequence/Combinatorial.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Algebra.Sequence/Combinatorial.cs",
+   "symbol": "Binom",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Binom recomputes three full Factorial loops plus a ModPow inverse on every call; callers like Narayana and Lah call it repeatedly, making this O(n) per call with a modular exponentiation each time.",
+   "currentCost": "Each Binom does Factorial(n) (n-1 mults), Factorial(k), Factorial(n-k) and a ModPow(den, MOD-2) which is ~log2(MOD) ~30 mod-mults. Narayana calls Binom twice -> recomputes Factorial(n) twice; Lah calls Binom plus its own Factorial(n) again.",
+   "proposedChange": "Compute the product form num = n*(n-1)*...*(n-k+1) and den = k! in a single fused loop of min(k, n-k) iterations, then one ModPow inverse: long num=1,den=1; int kk = k<n-k?k:n-k; for(int i=0;i<kk;i++){num=num*((n-i)%MOD)%MOD; den=den*(long)(i+1)%MOD;} return num*ModPow(den,MOD-2,MOD)%MOD. Uses symmetry C(n,k)=C(n,n-k) to bound the loop by min(k,n-k).",
+   "rationale": "Replaces three independent O(n) factorial passes (up to 3n-ish mults) with one fused pass of min(k,n-k) <= n/2 iterations, and keeps a single ModPow. Fewer total modular multiplications, shorter dependency chain, better cache behavior (no separate factorial walks).",
+   "risk": "Pure refactor; same value modulo MOD for valid 0<=k<=n. MOD must be prime for ModPow inverse, which the existing code already assumes (Fermat inverse). No signed/overflow change: products stay < MOD^2 < 2^63 for MOD up to ~3e9, same as current code."
+  },
+  {
+   "file": "src/IAFahim.Algebra.Sequence/Combinatorial.cs",
+   "symbol": "Lah",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Lah computes nf=Factorial(n) then Binom(n-1,k-1) which itself recomputes Factorial(n-1) and Factorial(k-1)/Factorial(n-k), and does two separate ModPow inversions.",
+   "currentCost": "Factorial(n) (n-1 mults) + Binom's internal three factorials + two ModPow inversions (~60 mod-mults total).",
+   "proposedChange": "Use the closed form Lah(n,k)=C(n-1,k-1)*n!/k!. Compute n!/k! as a single descending product n*(n-1)*...*(k+1) (n-k mults, no inverse needed), combine with one C(n-1,k-1) via the fused Binom from the prior finding. Removes the explicit ModPow(kf,MOD-2) entirely.",
+   "rationale": "n!/k! needs no modular inverse (it is an exact integer ratio computable as a contiguous product), eliminating one full ModPow (~30 mod-mults) and one Factorial pass.",
+   "risk": "Same result mod MOD for valid 1<=k<=n. Still relies on prime MOD only for the binomial inverse. No overflow change."
+  },
+  {
+   "file": "src/IAFahim.Algebra.Sequence/Combinatorial.cs",
+   "symbol": "QBinomial",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "QBinomial calls ModPow twice inside the k-iteration loop to recompute q^(n-1-i) and q^(i+1) from scratch each iteration, turning an O(k) loop into O(k log MOD).",
+   "currentCost": "2*k ModPow calls, each ~log2(MOD) ~30 mod-mults => ~60*k mod-mults, plus a final ModPow inverse.",
+   "proposedChange": "Maintain the powers incrementally. q^(n-1-i) for i=0..k-1 is a descending sequence: precompute qHi = ModPow(q, n-1, MOD) once, then divide is hard, so instead iterate i and track qPowHi starting at q^(n-1) and multiply by ModPow(q,-1) is also a ModPow; simplest: compute qPowLow = q (i+1 starts at 1) and multiply by q each iter; for the high term precompute base = ModPow(q,n-1,MOD) once and keep a running qPowHi where qPowHi_{i+1}=qPowHi_i * invq, with invq=ModPow(q,MOD-2,MOD) computed once. Net: 2 ModPow total instead of 2k.",
+   "rationale": "Replaces 2k modular exponentiations with 2 (one for q^(n-1) base, one for invq) plus O(k) plain multiplications. Cuts the loop cost from O(k log MOD) to O(k + log MOD).",
+   "risk": "Requires q not divisible by MOD for invq to exist (q coprime to prime MOD). If q can be 0 mod MOD, guard or keep the high term as a forward product q^0..q^(k-1) multiplied into a precomputed q^(n-k) base instead of using invq, avoiding the inverse entirely. State this guard; otherwise semantics identical."
+  },
+  {
+   "file": "src/IAFahim.Algebra.Sequence/Combinatorial.cs",
+   "symbol": "YoungTableaux",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "The hook-length product calls ModPow(hook, MOD-2) once per cell, i.e. n modular exponentiations; these can be batched into a single inverse.",
+   "currentCost": "For a partition of n cells, n separate ModPow(hook,MOD-2) calls => ~30*n mod-mults.",
+   "proposedChange": "Accumulate the product of all hook lengths into one value H = prod(hook) % MOD across all cells, then return Factorial(n) * ModPow(H, MOD-2, MOD) % MOD. One inverse instead of n.",
+   "rationale": "result = n! / prod(hooks); computing prod(hooks) then a single Fermat inverse replaces n exponentiations with 1, reducing ~30*n mod-mults to ~30 + n.",
+   "risk": "Requires no hook length to be 0 mod MOD (true for a valid Young diagram and MOD > max hook, which holds since hooks <= n and MOD is a large prime). Same result mod MOD. If MOD could be <= some hook, the original per-term version also fails identically, so no new constraint."
+  },
+  {
+   "file": "src/IAFahim.Algebra.Sequence/Combinatorial.cs",
+   "symbol": "Eulerian",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Eulerian allocates two stackalloc buffers and does a manual copy pass each row; it can use a single in-place buffer updated backward, halving stack and removing the copy loop.",
+   "currentCost": "2*(k+1) longs stackalloc, plus an explicit ndp->dp copy loop of min(k,nextN)+1 each of the n-1 rows.",
+   "proposedChange": "Use one dp buffer and iterate j downward so dp[j] only reads dp[j] and dp[j-1] (both still old at that point): for(int j=Math.Min(k,nextN); j>=0; j--){ long val=(j+1)*dp[j]; if(j>0) val=(val+(long)(nextN-j)*dp[j-1])%MOD; dp[j]=val%MOD; }. Eliminates ndp and the copy loop.",
+   "rationale": "The recurrence A[i][j] = (j+1)A[i-1][j] + (i-j)A[i-1][j-1] reads only j and j-1, so a single backward sweep is safe in-place. Halves stack working set and removes one O(k) pass per row.",
+   "risk": "Must iterate strictly descending so dp[j-1] is still the previous row's value when read. Loop bound min(k,nextN) preserved. Same outputs."
+  }
+ ]
+}

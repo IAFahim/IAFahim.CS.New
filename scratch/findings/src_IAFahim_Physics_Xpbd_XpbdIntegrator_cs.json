@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Physics.Xpbd/XpbdIntegrator.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Physics.Xpbd/XpbdIntegrator.cs",
+   "symbol": "XpbdIntegrator.SolveDistanceConstraints",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Drop the unused velocity arrays/pointers from the per-constraint solve call: they are dead loads and dead arguments.",
+   "currentCost": "Each loop iteration computes two extra pointer addresses (&velocities[idxA], &velocities[idxB]) and pushes the velocities base pointer plus two pointer args into DistanceConstraint.Solve, which never reads *velA/*velB. That is 2 extra LEA/address computations and 3 extra argument moves per constraint, plus a dependency on idxA/idxB before the call even though the velocities are irrelevant.",
+   "proposedChange": "Remove the velocities parameter from SolveDistanceConstraints (and velA/velB from DistanceConstraint.Solve), so the loop only forms &positions[idxA]/&positions[idxB]. Since Solve is AggressiveInlining the compiler MAY eliminate the dead args after inlining, but trimming the signature guarantees it and shrinks the public API to only what is used.",
+   "rationale": "Eliminates redundant address arithmetic and argument register/stack traffic in the hottest loop of the solver. Fewer live values reduces register pressure inside the (large constraintCount) loop and shortens the dependency chain to the actual position update.",
+   "risk": "Signature change is API-breaking; callers passing velocities must be updated. Observable position output is unchanged because velA/velB are provably unused in Solve. If the velocity arrays are intended for a future velocity-projection step, keep them but still drop the per-iteration &velocities indexing until used."
+  },
+  {
+   "file": "src/IAFahim.Physics.Xpbd/XpbdIntegrator.cs",
+   "symbol": "XpbdIntegrator.SolveDistanceConstraints",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist the dt*dt reciprocal out of the per-constraint loop and pass it to Solve as a precomputed invDtSq.",
+   "currentCost": "Inside DistanceConstraint.Solve, alpha = compliance / (dt*dt) recomputes dt*dt and a divide for every constraint, even though dt is constant for the whole SolveDistanceConstraints call. That is one mul + one divide per constraint that depends only on a loop-invariant.",
+   "proposedChange": "Compute float invDtSq = 1.0f / (dt * dt); once before the loop in SolveDistanceConstraints (guarding dt below threshold once), and pass invDtSq into a Solve overload that does alpha = compliance * invDtSq. This turns a per-constraint divide into a per-constraint multiply.",
+   "rationale": "Strength-reduces a per-iteration division to a multiplication and removes a redundant invariant computation from the hot loop, lowering throughput cost across constraintCount iterations.",
+   "risk": "Changes Solve's signature/overload. Numerically compliance*(1/(dt*dt)) is not always bit-identical to compliance/(dt*dt) due to rounding of the reciprocal; for an iterative solver this is negligible but not bit-exact. If dt can be ~0, the single hoisted reciprocal must reproduce the existing per-call behavior (currently Solve would produce inf alpha and then return via the w+alpha guard only if alpha is finite); verify the dt<1e-8 path is handled at the caller as it is in UpdateVelocity."
+  }
+ ]
+}

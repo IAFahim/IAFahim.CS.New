@@ -1,0 +1,72 @@
+{
+ "file": "src/IAFahim.Graph.Tree/TreeBasic.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Tree/TreeBasic.cs",
+   "symbol": "LcaQuery.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace the per-bit ascent loop over all logN bits with a bit-iteration over only the set bits of diff using Bmi1/trailing-zero extraction, and strength-reduce the repeated `u * logN` index multiply into a cached row base pointer.",
+   "currentCost": "First loop runs logN iterations regardless of how many bits are set in diff, each doing a `(diff>>j)&1` test plus a multiply `u*logN+j`. The branch `if(((diff>>j)&1)!=0)` is data-dependent and frequently mispredicts. The multiply u*logN is recomputed every iteration even though u only changes on taken branches.",
+   "proposedChange": "Iterate only over set bits: `while (diff != 0) { int j = System.Numerics.BitOperations.TrailingZeroCount(diff); u = ancestors[u * logN + j]; diff &= diff - 1; }`. This removes the branch entirely (each iteration is a guaranteed lift) and runs popcount(diff) times instead of logN. Keep the second (LCA-narrowing) loop as-is since it must scan all levels high-to-low.",
+   "rationale": "diff often has far fewer set bits than logN, so popcount(diff) <= logN iterations with zero branch mispredicts. `diff &= diff-1` clears the lowest set bit branchlessly; TrailingZeroCount maps to a single TZCNT/CTZ instruction Burst emits. Removes the data-dependent branch that the current `&1` test creates.",
+   "risk": "Pure cycle/branch reduction; identical output. diff = depth[u]-depth[v] >= 0 after the swap so it is non-negative; the unsigned-style bit tricks are safe on the non-negative value. BitOperations is Burst-compatible; if unavailable, the same can be done with an intrinsic. No semantic change."
+  },
+  {
+   "file": "src/IAFahim.Graph.Tree/TreeBasic.cs",
+   "symbol": "LcaQuery.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "In the second loop, hoist the two row bases `ancestors + u*logN` and `ancestors + v*logN` and recompute them only when u/v change, instead of computing `u*logN+j` and `v*logN+j` four times per iteration.",
+   "currentCost": "Each of the logN iterations computes `u*logN+j` and `v*logN+j` up to four times (the compare reads both, and on a taken branch both are reread to assign). That is up to 4 integer multiplies + adds per level.",
+   "proposedChange": "Cache `int* au = ancestors + u*logN; int* av = ancestors + v*logN;` and use `au[j] != av[j]`; on a taken branch set `u = au[j]; v = av[j];` then refresh `au`/`av`. The multiply only happens when u/v actually change (at most logN times total across the loop instead of per-read).",
+   "rationale": "Reduces redundant address arithmetic and the dependency chain length per iteration; the multiply by logN (not a power of two in general) is a real multiply Burst cannot fold cheaply. Fewer multiplies per level lowers the critical path.",
+   "risk": "None to semantics \u2014 same reads/writes, just fewer recomputations of the same address. Pointer arithmetic stays in-bounds for valid ancestors layout."
+  },
+  {
+   "file": "src/IAFahim.Graph.Tree/TreeBasic.cs",
+   "symbol": "LcaBuild.Run",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "The two nested binary-lifting fill loops are an exact duplicate of BinaryLiftBuild.Run; delegate to it to remove code duplication and keep a single optimized implementation.",
+   "currentCost": "Lines 29-34 duplicate BinaryLiftBuild.Run (lines 75-80) byte-for-byte, so any index-strength-reduction must be applied twice and risks drift.",
+   "proposedChange": "Replace the duplicated loops in LcaBuild.Run with `IAFahim.Graph.Tree.BinaryLiftBuild.Run(n, root, parent, ancestors, logN);` (root param is unused by BinaryLiftBuild so it is harmless), guaranteeing both paths share the same hot code.",
+   "rationale": "Single source of truth for the O(n*logN) lift table build; lets one set of micro-optimizations (below) cover both call sites. No asymptotic change but eliminates divergence risk and shrinks code/icache footprint.",
+   "risk": "Behavior identical (same loop). Confirm inlining still occurs under Burst; if Burst won't inline a cross-class call on a hot build path, alternatively keep duplication but apply the strength-reduction to both. Ergonomics/maintenance win primarily."
+  },
+  {
+   "file": "src/IAFahim.Graph.Tree/TreeBasic.cs",
+   "symbol": "BinaryLiftBuild.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Strength-reduce the address arithmetic in the O(n*logN) inner loop: walk row pointers with `+= logN` instead of recomputing `i*logN+j` and `i*logN+(j-1)`, and read the previous column once.",
+   "currentCost": "Inner loop body `ancestors[i*logN+j] = ancestors[ancestors[i*logN+(j-1)]*logN+(j-1)]` does three multiplies by logN per element across n*logN elements. logN is a runtime value (not a power of two), so each is a genuine IMUL on the critical path.",
+   "proposedChange": "For each j, set `int* col = ancestors + (j-1);` then loop i with `int* row = ancestors; for(i) { int mid = row[j-1]; row[j] = ancestors[mid*logN + (j-1)]; row += logN; }`. This removes the `i*logN` multiply (replaced by a single add per i) and reuses `row[j-1]` instead of re-deriving it. Only the unavoidable `mid*logN` multiply remains.",
+   "rationale": "Cuts ~2 of 3 multiplies per inner-loop element over an O(n*logN) hot build, and shortens the dependency chain (the row base is loop-carried by addition). Sequential `row += logN` is also more vectorizer/prefetcher friendly than scattered `i*logN+j`.",
+   "risk": "Identical writes and reads, in-bounds for the existing flat [n*logN] layout. Pure cycle win; apply the same transform to LcaBuild if not delegating."
+  },
+  {
+   "file": "src/IAFahim.Graph.Tree/TreeBasic.cs",
+   "symbol": "BinaryLiftKthAncestor.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Iterate only the set bits of k and stop early, instead of always looping logN times with a per-bit branch.",
+   "currentCost": "Always logN iterations, each with a data-dependent `((k>>j)&1)!=0` branch and an `node*logN+j` multiply even on non-taken bits.",
+   "proposedChange": "`while (k != 0) { int j = System.Numerics.BitOperations.TrailingZeroCount(k); node = ancestors[node*logN + j]; k &= k - 1; }`. Branchless per-step (each step is a guaranteed lift), popcount(k) iterations.",
+   "rationale": "Fewer iterations (popcount(k) <= logN) and no branch mispredict; the multiply only executes on real lifts. Same intrinsic mapping as the LcaQuery suggestion.",
+   "risk": "k is assumed valid/non-negative per the unchecked Run convention. If a negative k were passed the original would also misbehave; for k>=0 outputs are identical. Burst-compatible intrinsic."
+  },
+  {
+   "file": "src/IAFahim.Graph.Tree/TreeBasic.cs",
+   "symbol": "TreeCenter.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Fuse the degree-initialization-to-zero pass into the degree-counting pass, and compute degree by counting edges in the same scan rather than two separate O(n)/O(n+m) passes.",
+   "currentCost": "Three sequential passes: zero degree[] (n), count degree by scanning adjacency (n+m), then scan for leaves (n). The zeroing pass is redundant because the counting loop fully overwrites each degree[u].",
+   "proposedChange": "Drop the `for(i) degree[i]=0;` pass and instead set `degree[u]` directly: `for(u){ int d=0; for(e=head[u];e!=0;e=next[e]) d++; degree[u]=d; if(d<=1) q[qt++]=u; }`. This fuses zero-init, counting, and leaf-seeding into one pass over nodes+edges.",
+   "rationale": "Eliminates one full O(n) write pass and one O(n) leaf-scan pass by fusing them into the counting loop, improving cache locality (degree[u] written once) and reducing total memory traffic.",
+   "risk": "None \u2014 degree[u] is unconditionally assigned before its first read, and leaf seeding order within the same u-range is identical to the original separate loop. Same q contents and order."
+  }
+ ]
+}

@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.DS.Splay/SplayRangeQuery.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.DS.Splay/SplayRangeQuery.cs",
+   "symbol": "SplayRangeQuery.QuerySum",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Same defect as SplayRangeReverse.Reverse: when both neighbors exist, mid = right->Left->Right after fully splaying both `left` (l-1) and `right` (r+1) to root. This assumes right->Left == left, which is false in general, so the wrong subtree's Sum is returned for any non-empty range with l>0 and r<n-1.",
+   "triggeringInput": "5 nodes with keys 1..5 (indices 0..4) as a right-spine; QuerySum(&root, 1, 3). Correct sum is keys at indices 1,2,3 = 2+3+4 = 9, but mid resolves to the index-3 node whose subtree is {index2,index3} = keys 3+4 = 7, so 7 is returned instead of 9.",
+   "rootCause": "Identical to Reverse: splaying right fully to root does not make right->Left equal to `left`; it only makes right->Left contain all indices < r+1, with an arbitrary root. The intended range subtree is reachable only if right is splayed to be the right child of root `left` (so range = right->Left), not splayed past it to root.",
+   "suggestedFix": "After Splay(root, left), splay `right` only until right->Parent == left (constrained splay leaving left at root), then mid = right->Left. Do not splay right to the global root."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.Splay/SplayRangeQuery.cs",
+   "symbol": "Kth",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Kth in SplayRangeQuery calls SplayRangeReverse.Push (which can flip Rev) during a read-only sum query path; confirm intent and consider sharing one Kth implementation.",
+   "currentCost": "Two near-identical Kth implementations exist (one in SplayRangeQuery, one private in SplayRangeReverse), each calling Push and re-deriving left size. Duplicate code, and the query path performs lazy Rev pushes (writes) during what is semantically a read.",
+   "proposedChange": "Factor a single internal static Kth(SplayRevNode* root, int k) in SplayRangeReverse and reuse it from SplayRangeQuery to avoid divergence; load cur->Left once for the size read (same single-load fix as Update).",
+   "rationale": "Removes duplicated logic (maintenance + i-cache) and applies the load-once micro-opt to the descent loop. Pushing is required for correctness (Rev must be resolved before reading subtree sizes), so it stays.",
+   "risk": "Push is intentional and must remain (size/sum are only valid after lazy reversal is pushed down). Pure refactor + single-load; no semantic change. Just ensure accessibility (internal) since house rules forbid exposing extra public surface unnecessarily."
+  }
+ ]
+}

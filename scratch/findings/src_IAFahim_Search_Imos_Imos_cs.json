@@ -1,0 +1,71 @@
+{
+ "file": "src/IAFahim.Search.Imos/Imos.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Search.Imos/Imos.cs",
+   "symbol": "ScanlineEvents.Run",
+   "severity": "critical",
+   "category": "overflow",
+   "summary": "events buffer is stackalloc long[n*2] but the loop writes to index up to 4n-1 (and Build-read reads up to 4n-1), overflowing the stack buffer by 2n longs for any n>=1.",
+   "triggeringInput": "n=1, xs={5}, ys1={0}, ys2={2}, plus any valid ys/res of length 2. events is stackalloc long[2], but line 133 writes events[0*2 + 1*2]=events[2] and line 134 writes events[3]; line 137 reads events[3].",
+   "rootCause": "The method emits two events per input rectangle (open at xs[i], close at xs[i]+1), so it needs 4n longs, but only n*2 are allocated. Indices events[i*2 + n*2] and events[i*2 + n*2 + 1] reach 4n-1 while the allocation top is 2n-1, causing out-of-bounds stack writes and reads (undefined behavior / memory corruption).",
+   "suggestedFix": "Allocate the buffer with the correct size: long* events = stackalloc long[n * 4]; (the array conceptually holds 2n events of 2 longs each)."
+  },
+  {
+   "file": "src/IAFahim.Search.Imos/Imos.cs",
+   "symbol": "LargestRectangleHistogram.Run",
+   "severity": "high",
+   "category": "overflow",
+   "summary": "Histogram heights from long* h are truncated to int via (int)h[...] before computing area, producing wrong areas for heights outside int range even though h is a long array.",
+   "triggeringInput": "n=1, h={5000000000} (5e9, a valid long). Expected area 5000000000, but (int)5000000000 wraps to 705032704, so area is computed as 705032704 and returned/written wrong.",
+   "rootCause": "Line 46 casts the long height to int: int height = (int)h[stack[--top]]; then area = (long)height * width uses the already-truncated value. Heights are typed long* and may legitimately exceed Int32 range, so truncation gives an incorrect maximum-rectangle area.",
+   "suggestedFix": "Keep the height as long: long height = h[stack[--top]]; long area = height * (long)width; (no int cast). Width remains int."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.Imos/Imos.cs",
+   "symbol": "ImosRectangle.Build",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist row-base indices and avoid the per-element branch on i>0 by special-casing the first row.",
+   "currentCost": "Inner loop recomputes i*width+j and (i-1)*width+j each iteration (two multiplies) and tests if (i>0) on every element, a branch that is taken for all rows except the first yet evaluated width*height times.",
+   "proposedChange": "Compute int rowBase = i*width; int prevBase = rowBase - width; once per row. Handle i==0 with a dedicated loop (just the rowAcc running sum, no vertical add) and i>=1 with a loop that always adds res[prevBase+j]. This removes the i>0 branch from the hot inner loop entirely.",
+   "rationale": "Eliminates width*height index multiplies (down to O(height)) and removes a width*height-count branch whose outcome is loop-invariant per row. The two resulting straight-line inner loops vectorize cleanly under Burst.",
+   "risk": "None; output identical. First-row loop writes res=rowAcc, subsequent rows add the row above, exactly as the original conditional did."
+  },
+  {
+   "file": "src/IAFahim.Search.Imos/Imos.cs",
+   "symbol": "LargestRectangleGrid.Run",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Hoist the per-row stack stackalloc out of the height loop to allocate it once.",
+   "currentCost": "int* stack = stackalloc int[width]; sits inside the for(i) loop. While stackalloc inside a loop in C# does not grow the frame each iteration (the frame is reserved once), placing it in-loop can defeat that guarantee depending on codegen and obscures intent; the stack contents are fully overwritten each row anyway since top resets to 0.",
+   "proposedChange": "Move int* stack = stackalloc int[width]; and the heights buffer init above the for(i) loop; reset int top=0; at the start of each row iteration. heights is already hoisted; do the same for stack.",
+   "rationale": "Guarantees a single frame reservation, removes any per-iteration stackalloc setup, and makes the working set explicit. No correctness change since each row re-initializes top=0 and only reads stack entries it wrote this row.",
+   "risk": "None functionally. Stack is fully rewritten per row before reads (entries pushed before popped), so hoisting is safe."
+  },
+  {
+   "file": "src/IAFahim.Search.Imos/Imos.cs",
+   "symbol": "IntervalUnion.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "The interval sort uses O(n^2) selection-style swap sort; replace with an O(n log n) sort to fix the asymptotic bottleneck.",
+   "currentCost": "The double loop for(i){for(j=i+1..){if res[j]<res[i] swap}} is an O(n^2) sort of the intervals by start. For large n this dominates the whole routine (the merge pass is O(n)).",
+   "proposedChange": "Sort the n (start,end) pairs with an O(n log n) in-place sort over the pointer array \u2014 e.g. an unmanaged heapsort or introsort on indices/pairs keyed by res[k*2]. Keep it allocation-free using stackalloc/in-place swaps to respect house constraints (no managed Array.Sort).",
+   "rationale": "Lowers complexity from O(n^2) to O(n log n); for n in the thousands this is orders of magnitude fewer comparisons/swaps. Same final merged output since the merge step only requires intervals sorted by start.",
+   "risk": "Must keep the sort stable-enough only in the sense that ties by start don't change the union result (they don't, since merge takes max end). Implementing heapsort in unmanaged C# is more code/complexity; verify the pair-swap keeps start and end paired. Behavior preserved for all valid n>=1 (n==0 would read res[0] in the original too, so no new edge case)."
+  },
+  {
+   "file": "src/IAFahim.Search.Imos/Imos.cs",
+   "symbol": "MaximalSquare.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Replace the inner j-1 underflow ternary with a branchless first-column special-case and hoist row base.",
+   "currentCost": "dp[j - 1 < 0 ? 0 : j - 1] evaluates a branch every cell of every row (width*height branches), and grid[i*width+j] recomputes i*width+j per cell. For j==0 the expression dp[0] is also semantically a corner the loop handles awkwardly.",
+   "proposedChange": "Hoist long* row = grid + i*width; (or int rowBase). Handle j==0 outside the inner loop (left neighbor contributes 0), then loop j=1..width-1 using dp[j-1] directly with no bounds ternary. Use a branchless min via Math.Min already present; the key is removing the j-1<0 test.",
+   "rationale": "Removes width*height branch evaluations from the hot loop and O(width*height) index multiplies (down to O(height)), tightening the dependency chain and helping Burst vectorize the steady-state inner loop.",
+   "risk": "Must preserve the j==0 case exactly: original uses dp[max(0,j-1)]=dp[0] when j==0, i.e. it reads dp[0] (the cell itself's previous value via temp logic). Carefully reproduce: at j==0 the min is over (dp[0]_old, dp[0]_old, prev=0) -> result is 1 when grid==1 (since prev starts 0). Reproduce that as dp[0] = grid==1 ? 1 : 0. Verify against original before applying."
+  }
+ ]
+}

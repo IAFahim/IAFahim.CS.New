@@ -1,0 +1,83 @@
+{
+ "file": "src/IAFahim.DS.Sparse/Sparse.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.Sparse/Sparse.cs",
+   "symbol": "SparseTableBuild.ComputeNextLevelInt32 / ComputeNextLevelInt64",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the per-iteration shift in the loop bound and precompute the inner span constant.",
+   "currentCost": "The loop condition `i + (1 << j) <= n` recomputes `1 << j` on every iteration of the inner build loop. Across all O(n log n) build iterations this is an extra shift plus the add in the bound test each time, lengthening the dependency chain of the loop-control path.",
+   "proposedChange": "Compute `int span = 1 << j;` (or `int limit = n - (1 << j);`) once before the loop and use `for (int i = 0; i <= limit; i++)`. `half` is already hoisted; do the same for the full-block width.",
+   "rationale": "Strength-reduces a loop-invariant shift+compare to a single compare against a precomputed bound, shortening the loop-control dependency chain and helping Burst keep the inner copy/min loop tight and vectorizable.",
+   "risk": "None. `1 << j` is loop-invariant; `n - (1 << j)` cannot underflow because the outer loop guarantees `(1 << j) <= n`. Observable behavior identical."
+  },
+  {
+   "file": "src/IAFahim.DS.Sparse/Sparse.cs",
+   "symbol": "SparseTableBuild.InitializeLevel0 / InitializeLevel0Int64",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Replace the element-by-element copy of level 0 with a bulk memcpy.",
+   "currentCost": "`for (int i = 0; i < n; i++) table[i] = arr[i];` is a scalar load/store loop. Burst may autovectorize it, but it is plainly a contiguous blittable copy that does not need a hand loop.",
+   "proposedChange": "Use `Unsafe.CopyBlockUnaligned(table, arr, (uint)(n * sizeof(int)))` (and the long variant) or `UnsafeUtility.MemCpy` to copy the whole level-0 row in one call.",
+   "rationale": "A dedicated memcpy uses the widest available stores and is a single intrinsic call, eliminating loop overhead and guaranteeing wide moves rather than relying on the autovectorizer to recognize the copy idiom.",
+   "risk": "Low. Source and destination are distinct, non-overlapping blittable buffers, so CopyBlock semantics match the loop exactly. Must ensure `n * sizeof(...)` does not overflow int for very large n (cast to long/uint as needed)."
+  },
+  {
+   "file": "src/IAFahim.DS.Sparse/Sparse.cs",
+   "symbol": "SqrtDecomposeBuild.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Eliminate the per-element integer division `i / bSize` in the build scan and hoist the block-count expression.",
+   "currentCost": "The main scan does `int bIdx = i / bSize;` for every one of the n elements \u2014 an integer divide per element, the most expensive integer ALU op. Also `(n + bSize - 1) / bSize` is recomputed in the init-loop bound each iteration.",
+   "proposedChange": "Walk blocks instead of dividing: precompute `int blockCount = (n + bSize - 1) / bSize;` once for the init loop, then build mins with a nested loop `for (int b = 0, base = 0; base < n; b++, base += bSize) { int end = base + bSize; if (end > n) end = n; int m = int.MaxValue; for (int i = base; i < end; i++) if (arr[i] < m) m = arr[i]; block[b] = m; }` which removes the division and the redundant init pass entirely.",
+   "rationale": "Replaces n integer divisions with simple additions and fuses the init (setting MaxValue) and the min-accumulation into one pass, halving memory traffic over `block` and removing the divide chain. bSize is data-dependent (sqrt(n)) so it is NOT a power of two and cannot be turned into a shift; converting to a counter is the only divide-free route.",
+   "risk": "None for valid input. The block boundary clamp `end > n -> end = n` exactly reproduces the partial final block; result per block is identical. Local `base`/`end` are int and bounded by n."
+  },
+  {
+   "file": "src/IAFahim.DS.Sparse/Sparse.cs",
+   "symbol": "SqrtQuery.RangeMin",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist `(bl + 1) * blockSize` and `br * blockSize` out of loop bounds; use branchless min in the scalar tails.",
+   "currentCost": "The first tail loop recomputes `(bl + 1) * blockSize` in its bound each iteration, and `br * blockSize` is recomputed for the third loop's start. The three inner loops use a data-dependent branch `if (arr[i] < res) res = arr[i];` which can mispredict on adversarial inputs.",
+   "proposedChange": "Compute `int leftEnd = (bl + 1) * blockSize; int rightStart = br * blockSize;` once. Replace `if (x < res) res = x;` with branchless `res = x < res ? x : res;` (cmov/min pattern) in all three scan loops, matching the build code's already-branchless style.",
+   "rationale": "Removes a multiply from each iteration of the first tail and converts unpredictable data-dependent branches to a branchless select that Burst lowers to a min instruction, eliminating mispredict penalties and aiding vectorization of the block-sweep loop.",
+   "risk": "None. Loop bounds are invariant within the call; ternary min is semantically identical to the if-update for ints (no NaN concerns)."
+  },
+  {
+   "file": "src/IAFahim.DS.Sparse/Sparse.cs",
+   "symbol": "DisjointSparseQuery.BitOperations_Log2",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace the hand-rolled 5-branch software log2 with a hardware bit-scan intrinsic.",
+   "currentCost": "This is a leaf called on every disjoint-sparse query (the per-query critical path). It executes up to five dependent compare-and-conditional-shift steps, a long serial dependency chain, where a single lzcnt/bsr instruction suffices.",
+   "proposedChange": "Under Burst, compute `31 - math.lzcnt(value)` (Unity.Mathematics) for floor-log2 of a nonzero uint, or use `System.Numerics.BitOperations.Log2` which Burst/JIT lowers to LZCNT/BSR. Keep the current software version only as a non-Burst fallback if needed.",
+   "rationale": "Collapses a ~5-step branchy dependency chain into one hardware instruction, drastically cutting latency on the query hot path and removing branches the predictor must track.",
+   "risk": "Caller guarantees value != 0 here (l != r implies l ^ r != 0), matching lzcnt's nonzero-input domain, so 31-lzcnt is exact. If the project forbids Unity.Mathematics in this module, the intrinsic must be confirmed available; otherwise keep the manual version. No semantic change for the guaranteed nonzero input."
+  },
+  {
+   "file": "src/IAFahim.DS.Sparse/Sparse.cs",
+   "symbol": "DisjointSparseBuild.RunInt64",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the repeated `j * n` row-offset multiply out of the inner accumulation loops.",
+   "currentCost": "Inside both descending and ascending inner loops, every store recomputes `table[j * n + i]` \u2014 a multiply `j * n` per element across the full O(n log n) build. The row base is invariant for the entire level j.",
+   "proposedChange": "Precompute `long* row = table + (long)j * n;` (or `int rowBase = j * n;`) once at the top of the `for j` body and index `row[i]` / `row[mid]` in all four store sites. Likewise `arr` reads are already direct.",
+   "rationale": "Removes one integer multiply from every table write in the build, replacing `base + i` index math with a single add against a hoisted pointer; shortens the address-calculation dependency chain and is a pattern Burst keeps in registers.",
+   "risk": "None. `j * n` is invariant within each outer iteration; pointer form must use a 64-bit offset (`(long)j * n`) to avoid int overflow for very large tables, otherwise identical addressing."
+  },
+  {
+   "file": "src/IAFahim.DS.Sparse/Sparse.cs",
+   "symbol": "SparseTableQuery.MinInt32",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Avoid recomputing `j * n` twice and `1 << j` in the two table index expressions.",
+   "currentCost": "`table[j * n + l]` and `table[j * n + r - (1 << j) + 1]` each evaluate `j * n` (two multiplies) and one shift on the per-query hot path.",
+   "proposedChange": "Compute `int span = 1 << j; long* row = table + (long)j * n;` then `left = row[l]; right = row[r - span + 1];`. Use a branchless `return left < right ? left : right;` (already branchless).",
+   "rationale": "Folds two multiplies into one hoisted pointer add and reuses the shift, trimming the query's address-math dependency chain; AggressiveInlining is already present so this directly benefits the caller.",
+   "risk": "None. Pure index-arithmetic refactor; use 64-bit offset for the pointer to avoid overflow on large n. Output identical."
+  }
+ ]
+}

@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Math.Polynomial/OnlineNttConvolution.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Polynomial/OnlineNttConvolution.cs",
+   "symbol": "OnlineNttConvolution.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "fa and fb are identical buffers (both filled from a[]), so the second NttForward and the second buffer are pure redundant work in every iteration of the resLen loop.",
+   "currentCost": "Per len in 1..resLen: two full O(size log size) forward NTTs plus a full size-length copy/zero of fb, when fa==fb identically. The whole loop is O(resLen * size log size) and half of every forward transform is duplicated.",
+   "proposedChange": "Drop fb entirely. Fill only fa, call NttForward(fa,...) once, then square pointwise: fa[i] = fa[i]*fa[i] % mod. Remove the fb pointer, the 'fb[i]=0' zeroing in the size-loop, the 'for ... fb[i]=a[i]' loop, and the second NttForward. work then needs only 3*size longs instead of 4*size.",
+   "rationale": "Eliminates one of two identical forward transforms (~33% of transform cost since inverse is also a forward) and one full-size zero+copy pass per outer iteration, plus shrinks the scratch working set by size longs (better cache residency for roots/invRoots).",
+   "risk": "None semantically: fa and fb hold the same values, so fa[i]*fb[i] == fa[i]*fa[i]. Caller-provided work must still be >= 3*size; if callers sized it at exactly 4*size this is a safe shrink, but the documented work size requirement changes and must be updated."
+  },
+  {
+   "file": "src/IAFahim.Math.Polynomial/OnlineNttConvolution.cs",
+   "symbol": "OnlineNttConvolution.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "The per-len recomputation makes the routine O(resLen * size log size); the squared transform of 'a' does not depend on len, so it can be hoisted out of the loop entirely.",
+   "currentCost": "fa is rebuilt from a[] and fully transformed/squared/inverse-transformed for every len from 1 to resLen, but the input 'a' (length n) never changes with len. Only the truncation 'i < len' on the input differs, yet res[len-1] of the full convolution a*a equals the desired coefficient regardless of that truncation when len-1 >= the contributing indices.",
+   "proposedChange": "If the intent is the self-convolution c = a*a (c[k] = sum a[i]a[k-i]), compute fa once: forward, square, inverse, then emit res[k]=fa[k] for k in 0..resLen-1 in a single pass. This collapses the outer loop, turning O(resLen * size log size) into O(size log size).",
+   "rationale": "Removes a factor of resLen (which is ~size) from the asymptotic cost \u2014 the dominant win for this file by far. The 'online'/prefix-truncation only matters if c[k] must exclude inputs a[i] with i>=len, but for a fixed-length 'a' the index range i in [max(0,k-n+1), min(k,n-1)] is already bounded by n, so per-len truncation is a no-op for k=len-1 once len>n.",
+   "risk": "Behavior-preserving ONLY if the truncation 'i < len' was incidental (i.e. n <= resLen and the desired output is the full self-convolution). If 'online' semantics deliberately require c[len-1] computed from only the first len input coefficients and that differs from the full convolution, this changes results \u2014 must be confirmed against intended semantics before applying. Flagging as a candidate, with the guard: apply only when full-convolution semantics are intended."
+  },
+  {
+   "file": "src/IAFahim.Math.Polynomial/OnlineNttConvolution.cs",
+   "symbol": "NttInverse",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "invN = FastPow(n, mod-2, mod) is recomputed on every inverse call although n and mod are loop-invariant for the whole Run.",
+   "currentCost": "One modular exponentiation (O(log mod) multiply-mods) per resLen iteration, all producing the identical value since size and mod are fixed.",
+   "proposedChange": "Compute invSize = FastPow(size, mod-2, mod) once in Run before the loop and pass it into NttInverse (or fold the final scaling into Run), replacing the per-call FastPow.",
+   "rationale": "Removes ~resLen modular exponentiations (each ~60 multiply-mods for a 60-bit mod) from the hot loop for zero behavioral change.",
+   "risk": "None; invN depends only on n(=size) and mod which are constant across the loop. Requires adding a parameter or hoisting the scaling, a minor signature change."
+  }
+ ]
+}

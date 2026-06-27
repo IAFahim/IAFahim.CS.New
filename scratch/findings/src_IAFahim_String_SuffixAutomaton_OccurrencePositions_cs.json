@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.String.SuffixAutomaton/OccurrencePositions.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.String.SuffixAutomaton/OccurrencePositions.cs",
+   "symbol": "OccurrencePositions.Find",
+   "severity": "high",
+   "category": "logic",
+   "summary": "Stores outPos[count++] = lenPtr[v] (the state's Len) as if it were an occurrence position. Len is the substring length, identical for every state matching targetLen, not an end-position. The returned array is therefore just targetLen repeated and contains no real positions. Occurrence positions require endpos/firstpos data (propagated via the link tree from each cloned state's source), which this code never computes.",
+   "triggeringInput": "Build SAM for a text where two distinct states have Len==targetLen (e.g. \"aab\" with targetLen=1): the function returns count==(number of such states) but outPos is filled with [1,1,...], i.e. the length value, not the actual end positions of the substring.",
+   "rootCause": "Confuses state Len with position; SAM states do not store endpos here, and no firstpos propagation is done.",
+   "suggestedFix": "Track endpos: when building, record firstpos (end index) for each non-clone state and propagate the minimum/all positions up the suffix-link tree; emit those positions, not lenPtr[v]."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.SuffixAutomaton/OccurrencePositions.cs",
+   "symbol": "Find",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Same O(stateCount^2) child rescan as LinkTree, plus it stackallocs a per-call buffer and stores a constant value.",
+   "currentCost": "For each popped node the inner loop scans all stateCount link entries to find children: O(stateCount^2). Also `int* stack = stackalloc int[stateCount]` allocates per call (fine but could be caller-provided), and `outPos[count++] = lenPtr[v]` stores lenPtr[v] which is guaranteed == targetLen inside the matching branch, so it always writes the constant targetLen.",
+   "proposedChange": "Reuse the CSR children adjacency from the LinkTree fix to get O(stateCount) traversal. Take the stack/scratch as a caller-provided int* to remove the per-call stackalloc (matches LinkTree's signature convention and the library's no-hidden-alloc model). Write outPos[count++] = targetLen directly (or, more likely the intended semantic, write the state index v rather than lenPtr[v]).",
+   "rationale": "O(n) instead of O(n^2) traversal; removing per-call stackalloc avoids stack-pointer adjustment and large frame growth for big automata. Writing the constant directly removes a redundant load.",
+   "risk": "The current store outPos[count++]=lenPtr[v] only ever records targetLen repeated count times, which looks like a bug (occurrence *positions* should be state ids / end positions). Changing the stored value would alter observable output, so treat the value fix as a correctness question to confirm with the caller, separate from the O(n)->traversal optimization which is behavior-preserving on the count return."
+  }
+ ]
+}

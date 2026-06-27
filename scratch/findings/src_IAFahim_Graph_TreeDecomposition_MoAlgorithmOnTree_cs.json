@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Graph.TreeDecomposition/MoAlgorithmOnTree.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.TreeDecomposition/MoAlgorithmOnTree.cs",
+   "symbol": "QSort",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "QSort recurses on both partitions without tail-recursion elimination or median-of-three guard, risking O(n^2) time and O(n) stack depth on adversarial/sorted query orders.",
+   "currentCost": "Recurses into both [left,j] and [i,right]; worst case (already-sorted or many-equal queries, common in Mo where many queries share a block) gives O(q^2) comparisons and O(q) recursion depth \u2014 stack pressure under Burst and on mobile.",
+   "proposedChange": "Recurse into the smaller partition and loop on the larger (tail-call elimination) to bound stack to O(log q); the pivot is already mid-of-three-ish but consider it stays. Comparisons stay the same but worst-case stack becomes O(log q).",
+   "rationale": "Bounding recursion depth to O(log q) prevents stack overflow on large q and reduces call overhead; tail-loop on the bigger side is the standard safe quicksort. Mo's queries frequently cluster by block, which is exactly the near-sorted input that hurts naive quicksort recursion.",
+   "risk": "Must keep both partitions sorted; converting one recursion to a while-loop preserves output order. No semantic change to the sort result. Compare() ordering is unchanged."
+  },
+  {
+   "file": "src/IAFahim.Graph.TreeDecomposition/MoAlgorithmOnTree.cs",
+   "symbol": "Compare",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Compare passes MoQuery by value (20 bytes) and uses Int32.CompareTo, where a plain subtract-sign would be cheaper and avoids the struct copy.",
+   "currentCost": "Each comparison copies two 20-byte MoQuery structs by value and calls CompareTo (a method call returning -1/0/1). Called O(q log q) times inside QSort's inner while loops.",
+   "proposedChange": "Take parameters by 'in' (in MoQuery a, in MoQuery b) to avoid the copy, and replace a.R.CompareTo(b.R) with (a.R<b.R?-1:(a.R>b.R?1:0)) or, since QSort only checks <0 and >0, return (a.R - b.R) style comparisons guarded against overflow, or branch directly. R/BlockId are inputs bounded by n so a.R-b.R cannot overflow int when both are non-negative array indices.",
+   "rationale": "Removes per-comparison 40-byte stack copies and the CompareTo call overhead in the tightest sort loop; 'in' keeps the value-type semantics while passing by reference. Burst inlines the AggressiveInlining-tagged method but still benefits from avoiding the copy.",
+   "risk": "a.R - b.R is only safe from overflow because L/R are Euler-tour indices in [0,2n) and non-negative; if that invariant is not guaranteed, keep the explicit two-way compare instead of subtraction. 'in' parameters are always safe here."
+  },
+  {
+   "file": "src/IAFahim.Graph.TreeDecomposition/MoAlgorithmOnTree.cs",
+   "symbol": "TreeMoQuery",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "onPath is zero-initialized with an explicit loop; stackalloc byte[n] can be zeroed in bulk and the init loop removed.",
+   "currentCost": "A scalar for-loop writes n bytes to clear onPath after stackalloc (which is not guaranteed zeroed). One byte per iteration.",
+   "proposedChange": "Use 'byte* onPath = stackalloc byte[n];' followed by Unsafe.InitBlockUnaligned(onPath, 0, (uint)n), or in C#7.3+ 'stackalloc byte[n]' assigned to a Span and cleared. Burst lowers InitBlock to a fast memset.",
+   "rationale": "Replaces an n-iteration scalar clear with a single vectorized memset, shrinking setup cost; negligible RAM change but removes a hot-ish init loop before the main Mo loop.",
+   "risk": "None; semantics identical (all zero). n is the vertex count, a valid stackalloc size as already assumed."
+  }
+ ]
+}

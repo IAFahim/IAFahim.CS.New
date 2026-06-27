@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.DS.Treap/TreapRangeRotate.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.Treap/TreapRangeRotate.cs",
+   "symbol": "TreapRangeRotate.Rotate",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Double modulo k normalization can be reduced to a single integer division-remainder plus one branchless add for the negative case.",
+   "currentCost": "Line 10 `k = ((k % len) + len) % len;` performs TWO integer remainder operations (idiv is ~20-40 cycles each on typical x86/ARM cores) on a non-power-of-two `len`. The second `%` exists only to map the value back into [0,len) after adding len.",
+   "proposedChange": "Replace with one remainder then a conditional add: `k %= len; if (k < 0) k += len;`. Since after `k %= len` the value lies in (-len, len), a single `k += len` (guarded by k<0) already lands it in [0, len) \u2014 the outer `% len` is provably unnecessary. The branch can be made branchless: `k += len & (k >> 31);` (arithmetic shift produces 0 or -1 mask; only valid because k > -len so adding len once suffices, and len fits comfortably so no overflow).",
+   "rationale": "Eliminates one full integer-division/remainder instruction (the second `%`), the most expensive integer op on both PC and mobile, from every Rotate call. Halves the idiv latency on the normalization path.",
+   "risk": "Behavior-preserving for all int k and len>=1: after `k%=len`, k in (-len,len); the single `+len` mask maps negatives into [0,len) exactly as the double-mod did. The branchless `k>>31` form assumes 32-bit int and len small enough that k+len cannot overflow int (guaranteed since k<len<=array size). If len could be a power of two it is still correct (no special-casing needed)."
+  }
+ ]
+}

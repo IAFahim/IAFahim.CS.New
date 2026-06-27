@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Math.PotentialField/PotentialField3D.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.PotentialField/PotentialField3D.cs",
+   "symbol": "Repulsive",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Reformulate magnitude with dot + rsqrt to remove sqrt and the chain of scalar divisions (same as 2D).",
+   "currentCost": "math.length(delta)=sqrt(dot) then four divisions (1/dist, 1/radius, /(dist*dist), final /dist). In 3D the float3 divides are also 3-wide. Long sqrt->divide dependency chain on the hot gradient path.",
+   "proposedChange": "float d2 = math.dot(delta,delta); gate 'd2 > radius*radius || d2 < 1e-12f'; float invDist = math.rsqrt(d2); float coeff = strength * (invDist - invRadius) * invDist*invDist*invDist; return coeff * delta; (invRadius = 1.0f/radius hoisted; radius*radius and 1e-12f as named constants).",
+   "rationale": "Identical algebra to the 2D case: result = strength*(1/dist - 1/radius)/dist^3 * delta = strength*(invDist - 1/radius)*invDist^3*delta. rsqrt + multiplies replace sqrt + four divides; especially valuable in ComputeGradient's repulsor loop.",
+   "risk": "rsqrt approximation: not bit-identical to sqrt path (~1 ULP); flag if exact reproducibility required. Squared radius gate equivalent for radius>=0; 1e-12f=(1e-6f)^2 matches original lower cutoff."
+  },
+  {
+   "file": "src/IAFahim.Math.PotentialField/PotentialField3D.cs",
+   "symbol": "Attractive",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Normalize via strength*rsqrt(dot)*delta instead of length + float3 divide.",
+   "currentCost": "math.length(delta) sqrt; then 'strength*delta/dist' is a 3-wide vector divide. sqrt->divide dependency chain, called once per attractor in ComputeGradient.",
+   "proposedChange": "float d2 = math.dot(delta,delta); if (d2 < 1e-12f) return float3.zero; return (strength * math.rsqrt(d2)) * delta;",
+   "rationale": "delta/dist is normalize; one rsqrt + scalar*vector multiply replaces sqrt + vector divide, shortening the chain and removing a 3-wide division per attractor.",
+   "risk": "rsqrt precision (not bit-identical). d2<1e-12f equals original dist<1e-6f gate (non-negative both sides)."
+  },
+  {
+   "file": "src/IAFahim.Math.PotentialField/PotentialField3D.cs",
+   "symbol": "ComputeGradient",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Add [MethodImpl(AggressiveInlining)] is not appropriate here, but mark ComputeGradient's hot leaf callers consistent; primary win is ensuring the per-element kernels stay inlined into the loops.",
+   "currentCost": "ComputeGradient is the per-position hot path that GradientDescent calls every iteration; Attractive/Repulsive are already AggressiveInlining so the loops should fuse, but ComputeGradient itself has no inlining hint and is called once per descent step with a large argument list passed by value.",
+   "proposedChange": "Consider [MethodImpl(AggressiveInlining)] on ComputeGradient so the float3-by-value argument marshalling is elided when inlined into GradientDescent, letting Burst keep position and accumulator in registers across the attractor/repulsor loops.",
+   "rationale": "Inlining ComputeGradient into GradientDescent removes the by-value passing of position and the many scalar params per step and exposes the whole step to Burst's vectorizer/register allocator as one body. Fewer call-boundary spills on the hottest path.",
+   "risk": "Inlining a large method can increase code size / register pressure; Burst may already inline it heuristically, so the attribute is a hint not a guarantee. No semantic change. Validate it does not hurt I-cache on mobile."
+  },
+  {
+   "file": "src/IAFahim.Math.PotentialField/PotentialField3D.cs",
+   "symbol": "GradientDescent",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "rsqrt-based normalize for 'grad/gradLen' and squared-distance tolerance checks (same as 2D).",
+   "currentCost": "Per step: math.length(grad) sqrt + 'grad/gradLen' 3-wide divide; plus math.length(pos-attractors[0]) sqrt each iteration.",
+   "proposedChange": "float g2 = math.dot(grad,grad); if (g2 < tol2) break; float invLen = math.rsqrt(g2); pos = pos + grad*(invLen*stepSize); target check via math.dot(pos-attractors[0], ...) < tol2; hoist tol2 = tolerance*tolerance and float3 a0 = attractors[0] out of the loop.",
+   "rationale": "Removes one sqrt+divide for direction and two sqrt per iteration for the comparisons by working in squared space; multiplies replace divides. Hoisting a0 avoids repeated pointer deref.",
+   "risk": "tolerance>=0 required for squared comparison equivalence (true for a tolerance). rsqrt approximation can shift a near-threshold convergence by one iteration, perturbing stepCount at the boundary; keep math.length if exact step-count reproducibility is contractual."
+  },
+  {
+   "file": "src/IAFahim.Math.PotentialField/PotentialField3D.cs",
+   "symbol": "PotentialField3D",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Remove unused 'using System;'.",
+   "currentCost": "Dead using directive; no System.* symbol is referenced.",
+   "proposedChange": "Delete 'using System;'.",
+   "rationale": "Keeps the file's dependency surface minimal and explicitly Burst-friendly.",
+   "risk": "None; confirmed no System namespace usage in the file."
+  }
+ ]
+}

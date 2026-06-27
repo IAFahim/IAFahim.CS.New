@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Graph.Flow/MinCostFlowPrimalDual.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Flow/MinCostFlowPrimalDual.cs",
+   "symbol": "Run",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "BFS queue q is stackalloc'd inside while(true); level[] is allocated and initialized but never used.",
+   "currentCost": "stackalloc int[n] q per outer iteration; plus `int* level = stackalloc int[n]; for(i) level[i]=0;` \u2014 level is written once and never read anywhere in the method (dead allocation + dead O(n) init loop).",
+   "proposedChange": "Remove the level array and its init loop entirely. Hoist q stackalloc above the while(true) loop and reset qh/qt per iteration.",
+   "rationale": "Eliminates a full O(n) stackalloc plus its zeroing loop that produce nothing, and reduces outer-loop allocations to one. Pure dead-code removal is a guaranteed win.",
+   "risk": "None \u2014 level is provably unused (write-only); removing it cannot change outputs."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/MinCostFlowPrimalDual.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Repeated reduced-cost subexpression pot[u]-pot[v] and cost[e] recompute; hoist pot[u] out of the edge loop.",
+   "currentCost": "Inside the per-node edge scan, `dist[u] + cost[e] + pot[u] - pot[v]` recomputes dist[u]+pot[u] for every outgoing edge of u.",
+   "proposedChange": "Hoist `long base = dist[u] + pot[u];` once per node before the edge loop, then `long nd = base + cost[e] - pot[v];`. Same hoist applies in Spfa and Dijkstra inner loops.",
+   "rationale": "Removes one add and one load (dist[u], pot[u]) per edge from the inner loop, shortening the dependency chain of the relaxation test.",
+   "risk": "None \u2014 dist[u] and pot[u] are invariant across u's edge scan (not mutated inside the loop body for the current u)."
+  }
+ ]
+}

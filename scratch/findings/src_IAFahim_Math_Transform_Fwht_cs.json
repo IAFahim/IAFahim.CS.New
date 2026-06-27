@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Math.Transform/Fwht.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.Transform/Fwht.cs",
+   "symbol": "WalshHadamardXor.Forward / FwhtConvolution.Run",
+   "severity": "high",
+   "category": "overflow",
+   "summary": "WalshHadamardXor.Forward computes u+v and u-v with NO modular reduction (unlike its Or/And siblings which reduce mod 1e9+7). FwhtConvolution.Run then does c[i]=a[i]*b[i]%mod on these un-reduced transform values, so the multiplication overflows signed 64-bit long and yields a wrong (often negative) result for inputs that are perfectly valid (elements < mod).",
+   "triggeringInput": "FwhtConvolution.Run(a,b,c,n=1,FwhtType.Xor) with a=b={1000000006, 1000000006} (size = 1<<1 = 2). After Forward, a[0]=b[0]=2000000012 raw; with size=4 and four copies of mod-1 the forward value is ~4e9 and a[0]*b[0] = 1.6e19 > long.MaxValue (9.2e18).",
+   "rootCause": "WalshHadamardXor.Forward (lines 16-19) does f[i+j]=u+v; f[i+j+len]=u-v without '% 1000000007', so transformed coefficients grow to ~size*max(value). FwhtConvolution.Run (line 125) multiplies two such un-reduced values before taking the modulus, overflowing long. The Or/And forward transforms reduce each step mod p so they do not have this problem.",
+   "suggestedFix": "Reduce inside WalshHadamardXor.Forward: f[i+j]=(u+v)%1000000007L; f[i+j+len]=((u-v)%1000000007L+1000000007L)%1000000007L; (matching the Or/And transforms). Then a[i],b[i] are < mod and a[i]*b[i] stays < ~1e18, well within long. The Inverse round-trip still holds since Forward(Forward(f)) = n*f mod p and multiply by ModInverse(n)."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Transform/Fwht.cs",
+   "symbol": "ExtGcd / ModInverse",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Uses `out` parameters and recursion; convert to pointer/iterative to match the unmanaged-Burst convention used elsewhere.",
+   "currentCost": "ExtGcd here uses managed `out long` and recursion, unlike OrAndXorConvolution which already uses `long*`. `out` on a static unmanaged path is fine but recursion is a Burst smell, and the two copies diverge stylistically.",
+   "proposedChange": "Replace recursive ExtGcd with an iterative loop and pointer outputs (mirror OrAndXorConvolution.ExtGcd). Called once per Inverse(), so the win is Burst-compatibility and consistency, not hot-loop cycles.",
+   "rationale": "Removes recursion stack frames and keeps the API uniform with the sibling file; iterative extended-Euclid is the same cost without call overhead.",
+   "risk": "Keep the g!=1 fallback returning 1 and the final normalization to preserve exact outputs."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform/Fwht.cs",
+   "symbol": "WalshHadamardXor.Forward / FwhtConvolution.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Xor Forward accumulates without modular reduction, forcing the convolution to risk overflow and preventing the cheap-reduction path the Or/And variants use.",
+   "currentCost": "Forward does raw `u+v` / `u-v` with no `% mod`, so after log(size) layers values can reach size * max_input. FwhtConvolution.Run then computes `a[i]*b[i] % mod` on these unreduced longs (line 125), which can overflow 64-bit for large inputs and also means each product needs a full division.",
+   "proposedChange": "If the intended semantics is modular (the Or/And variants and Inverse use 1e9+7), reduce inside Forward like the OrAndXorConvolution.FwtXor: `f[i+j]=(u+v)%mod; f[i+j+len]=(u-v+mod)%mod;` \u2014 or better, the conditional-subtract form once inputs are pre-reduced. This keeps every intermediate in [0,mod), removing the overflow hazard in Run and enabling conditional-subtract instead of division.",
+   "rationale": "Bounded intermediates eliminate the multiply-overflow risk in Run and let the butterfly use cheap reduction; it also matches the documented modular contract used by Inverse (which divides by n mod 1e9+7).",
+   "risk": "This CHANGES observable output if any caller relied on the current non-reduced integer FWHT (true Hadamard transform over Z, not Z_p). The test only checks small reduced cases. Treat as a semantics decision: either Fwht.cs is a pure-integer transform (then Inverse's mod-inverse is wrong) or modular (then Forward must reduce). Flag for owner; do not apply blindly."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform/Fwht.cs",
+   "symbol": "FwhtConvolution.Run",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Three near-identical branches differing only by which static class is called; and unused `using` directives across the module.",
+   "currentCost": "Run duplicates the forward/pointwise/inverse body three times (Xor/Or/And). Maintenance hazard and code bloat, though each path is selected once per call (no hot-loop cost). Also `using System;` / `using System.Runtime.CompilerServices;` are imported in files that don't use them.",
+   "proposedChange": "Keep the per-type static classes (Burst-friendly, no function pointers needed) but factor the shared pointwise-multiply loop. Or accept duplication for inlining. Remove unused usings (System / CompilerServices) where no attribute or type is referenced to keep the translation unit minimal.",
+   "rationale": "Reduces duplication and trims unused imports; no runtime effect but improves maintainability and avoids accidental divergence between the three modular contracts (note Xor.Forward currently does NOT reduce while Or/And do \u2014 a real inconsistency this consolidation would surface).",
+   "risk": "Purely cosmetic if the three transforms keep their distinct math; do not unify the butterfly bodies since Xor/Or/And differ. Removing usings is safe only after confirming no attribute (e.g. MethodImpl) is used in that file."
+  }
+ ]
+}

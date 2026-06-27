@@ -1,0 +1,72 @@
+{
+ "file": "src/IAFahim.Math.Quaternion/QuaternionOps.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Quaternion/QuaternionOps.cs",
+   "symbol": "FromAxisAngle",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Separate sin/cos and a divide that can be a reciprocal-multiply",
+   "currentCost": "len = math.length(axis); n = axis/len does a float3 divide (3 divides via vector div); then math.sin(halfAngle) and math.cos(halfAngle) are two separate transcendental calls.",
+   "proposedChange": "Use math.sincos(halfAngle, out float s, out float c) for one combined evaluation. Replace axis/len with axis * (One/len) so the per-component operation is a multiply; or fold the scale: float scale = s / len and return new quaternion(axis.x*scale, axis.y*scale, axis.z*scale, c), removing the explicit normalize vector entirely.",
+   "rationale": "sincos is cheaper than independent sin+cos. Folding 1/len and s into one scalar 'scale' replaces a float3 divide plus a float3 multiply-by-s with a single float3 multiply, cutting the vector op count.",
+   "risk": "Folding s/len is algebraically identical to (axis/len)*s. The len < Epsilon early-out is preserved. No semantic change."
+  },
+  {
+   "file": "src/IAFahim.Math.Quaternion/QuaternionOps.cs",
+   "symbol": "FromEuler",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Half-angle products c.x*c.y, s.x*s.y, etc. recomputed across the four components",
+   "currentCost": "The four-component construction recomputes shared subproducts: c.x*c.y appears in z and w; s.x*s.y appears in z and w; c.x*s.y, s.x*c.y, c.y*c.z patterns repeat. Each is a separate multiply emitted unless the compiler CSEs aggressively.",
+   "proposedChange": "Precompute the 6 distinct pair products once: float cxcy=c.x*c.y, sxsy=s.x*s.y, cxsy=c.x*s.y, sxcy=s.x*c.y (and reuse), then build the four outputs from these and the third-axis c.z/s.z. This guarantees CSE rather than relying on the optimizer.",
+   "rationale": "Reduces the multiply count in the quaternion construction by reusing shared products, shortening the dependency chain feeding the constructor.",
+   "risk": "Pure algebraic factoring; identical floating-point result if grouped to preserve the original multiply order. Burst likely already CSEs this, so impact is low and mainly a readability/guarantee win."
+  },
+  {
+   "file": "src/IAFahim.Math.Quaternion/QuaternionOps.cs",
+   "symbol": "Normalize",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "length+divide pattern can use rsqrt to replace sqrt-then-divide with one reciprocal-sqrt multiply",
+   "currentCost": "len = math.length(q) does sqrt(dot); then inv = One/len is a divide; then 4 multiplies. That is one sqrt plus one divide on the dependency chain.",
+   "proposedChange": "Compute float lenSq = math.lengthsq(q.value); guard lenSq < Epsilon*Epsilon; inv = math.rsqrt(lenSq); multiply the four components by inv. Replaces sqrt+divide with a single rsqrt.",
+   "rationale": "rsqrt is a single hardware-friendly op replacing the sqrt then reciprocal-divide sequence, cutting one high-latency divide off the chain.",
+   "risk": "math.rsqrt may use a lower-precision estimate on some targets, slightly changing the last ULPs of the normalized result versus 1/sqrt. If exact bit-parity with the current sqrt-then-divide is required by tests, keep One/math.sqrt(lenSq) instead (still saves nothing over current). The Epsilon guard must become Epsilon*Epsilon on lenSq to preserve the same cutoff."
+  },
+  {
+   "file": "src/IAFahim.Math.Quaternion/QuaternionOps.cs",
+   "symbol": "LookRotation",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "normalizesafe(cross) computed before the degenerate-input lengthsq(r) check, and four /s divides per branch",
+   "currentCost": "r = normalizesafe(cross(up,f)) normalizes r, then math.lengthsq(r) < Epsilon checks degeneracy AFTER normalization. normalizesafe already returns 0 for degenerate cross, so lengthsq(r) is ~0 only when normalizesafe bailed; computing the full normalize then re-measuring its squared length is wasteful. Each of the four trace branches also performs three or four scalar /s divisions.",
+   "proposedChange": "Compute crossUF = math.cross(up, f); test math.lengthsq(crossUF) < Epsilon BEFORE normalizing to early-out on degenerate input, then r = normalize(crossUF). In each branch replace the repeated '/ s' with a precomputed float invS = One / s and multiply, e.g. (m21 - m12) * invS, and s * Half stays.",
+   "rationale": "Moves the cheap degeneracy test (lengthsq, no sqrt) ahead of the expensive normalize so degenerate inputs skip normalization entirely; reordering also tests the raw cross magnitude which is the true degeneracy signal rather than the post-normalize length. Replacing 3 divides with 1 reciprocal + 3 multiplies per branch shortens the critical path.",
+   "risk": "Behavior is preserved only if the degeneracy threshold maps correctly: current code checks lengthsq of the normalized r against Epsilon; checking lengthsq of the raw cross is the more correct degeneracy test but uses a different magnitude scale, so the Epsilon constant for the raw-cross test should be chosen to match intent (raw cross can be tiny yet valid for near-unit inputs). Safer minimal change: keep the normalize but hoist invS in each branch (pure win, no threshold change). The reorder is the higher-impact but threshold-sensitive part."
+  },
+  {
+   "file": "src/IAFahim.Math.Quaternion/QuaternionOps.cs",
+   "symbol": "ToAxisAngle",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "sinHalf = sqrt(1-w*w) then divide by sinHalf; can be reciprocal-multiply, and acos(w) shares w",
+   "currentCost": "sinHalf = math.sqrt(One - w*w); then axis = xyz / sinHalf is a float3 divide (3 divides).",
+   "proposedChange": "Compute float invSin = One / sinHalf once after the Epsilon guard and multiply: axis = new float3(x,y,z) * invSin. Replaces 3 component divides with 1 reciprocal + 3 multiplies.",
+   "rationale": "Vector divide-by-scalar becomes reciprocal-then-multiply, removing two of the three divide-latency operations.",
+   "risk": "Algebraically identical; the sinHalf < Epsilon guard already ensures the reciprocal is finite. No semantic change."
+  },
+  {
+   "file": "src/IAFahim.Math.Quaternion/QuaternionOps.cs",
+   "symbol": "AngleBetween",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Branch for abs() can be branchless math.abs",
+   "currentCost": "After clamp, an if (d<0) d=-d branch computes absolute value with a conditional, creating a predictable-but-present branch.",
+   "proposedChange": "Replace the if-block with d = math.abs(d) (or fold: d = math.abs(math.dot(...)) then clamp to [0,1]). Branchless, one instruction.",
+   "rationale": "math.abs is a single bitwise/instruction op with no branch, removing a conditional from the leaf method that may be called in tight loops (e.g. per-bone angle checks).",
+   "risk": "math.abs(d) is identical to the if-negate for all finite d. Ordering note: abs-then-clamp to [0,1] is equivalent to clamp[-1,1]-then-abs since abs maps [-1,1] to [0,1]. No semantic change."
+  }
+ ]
+}

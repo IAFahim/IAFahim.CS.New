@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Math.NT/MillerRabin.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/MillerRabin.cs",
+   "symbol": "ModPow.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace slow O(log^2) ModMul-based modular multiplication with __int128/Math.BigMul-based ModMul when mod fits in 63 bits, or at minimum special-case mod < 2^31 to use direct 64-bit multiply.",
+   "currentCost": "ModPow calls ModMul up to 2*log2(e) times, and each ModMul is itself an O(log b) loop (Russian-peasant add-shift, ~63 iterations of branchy add/sub). For a single MillerRabin.Run this is ~12 witnesses * (ModPow ~63 squarings + r-1 squarings) * ~63 inner ModMul iterations = hundreds of thousands of dependent branchy ops.",
+   "proposedChange": "In ModMul.Run, when mod <= 0xFFFFFFFF (fits 32 bits) the product a*b fits in 64 bits, so return (a*b)%mod directly with no loop. More generally use Math.BigMul(ulong,ulong,out ulong hi) to form the 128-bit product and reduce, eliminating the bit-by-bit loop entirely. Keep the existing add-shift path only as a fallback for mod > 2^63 (which cannot occur for long inputs anyway, so the loop can be removed entirely).",
+   "rationale": "a*b with a,b < 2^32 fits in u64, turning an ~63-iteration loop into one multiply + one remainder. For full 63-bit moduli, Math.BigMul + 128-bit reduction is a handful of instructions versus 63 dependent iterations \u2014 orders of magnitude fewer cycles and a far shorter dependency chain that Burst can schedule.",
+   "risk": "Math.BigMul(ulong,ulong,out ulong) availability under the targeted runtime/Burst must be confirmed; signed long inputs are already normalized to [0,mod) so reinterpreting as ulong is safe. The 32-bit fast path is exactly semantics-preserving: a,b in [0,mod), mod<=2^32 => a*b < 2^64."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/MillerRabin.cs",
+   "symbol": "ModPow.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Skip the final redundant b=ModMul(b,b) squaring on the last loop iteration.",
+   "currentCost": "The loop always computes b = ModMul(b,b,mod) after consuming the bit, including on the iteration where e becomes 0. That final squaring (a full ModMul) is never used.",
+   "proposedChange": "Restructure: while (e > 1) { if odd, result=ModMul(result,b); b=ModMul(b,b); e>>=1; } then if (e==1) result=ModMul(result,b). This drops one whole ModMul per ModPow call.",
+   "rationale": "One ModMul is the single most expensive operation here (~63 inner iterations in the current impl). Eliminating it per ModPow call, across ~12 witnesses * tens of squarings in IsComposite paths, removes a meaningful constant factor.",
+   "risk": "Must preserve the e==1 edge and e==0 (returns result=1 correctly). Behavior identical for all e>=0; only the dead final square is removed."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/MillerRabin.cs",
+   "symbol": "MillerRabin.SmallPrimes",
+   "dimension": "burst",
+   "impact": "high",
+   "summary": "Replace the managed long[] static field with a stackalloc/const witness set to keep the type Burst-compatible and avoid managed array access on the hot path.",
+   "currentCost": "SmallPrimes is a managed long[] (heap object, GC-tracked). Accessing SmallPrimes[i] in the loop is a managed array load with bounds checks; the managed array also defeats Burst compilation of Run and violates the house no-managed-arrays constraint.",
+   "proposedChange": "Either accept a long* witnesses + int count parameter, or build the 12 witnesses via stackalloc long[12] initialized from a static readonly ReadOnlySpan<byte>/const pattern inside Run. Then iterate over the pointer. Since deterministic witness sets are known, the 12 values can be hard-coded.",
+   "rationale": "Removes a heap allocation, GC reference, and per-access bounds check from the hot validation loop, and makes Run blittable so Burst can actually compile and vectorize the surrounding integer math. Aligns with the unmanaged-only house rule.",
+   "risk": "Changing Run's signature (if passing pointer) is an API change; the stackalloc-internal approach preserves the signature exactly. SmallPrimes.Length usage must be replaced with a named constant (12)."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/MillerRabin.cs",
+   "symbol": "MillerRabin.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Trim the witness set based on the magnitude of n instead of always testing all 12 witnesses.",
+   "currentCost": "Run always loops over all 12 small primes (with a >= n skip). For deterministic primality, only a small prefix of witnesses is needed depending on n's size: e.g. n < 3,215,031,751 needs {2,3,5,7}; n < 3.3e14 needs {2,3,5,7,11,13,17}; the full 12 only matter up to ~3.3e24 (beyond long range).",
+   "proposedChange": "Branch on n's magnitude to choose the minimal sufficient witness count (e.g. 7 witnesses {2,3,5,7,11,13,17,19,23,29,31,37} suffice for all 64-bit; commonly used minimal sets cut the count to 3-7 for smaller n). Test only that prefix.",
+   "rationale": "Each skipped witness saves an entire IsComposite call (a ModPow plus up to r-1 ModMuls). For typical n well below 2^64, cutting witnesses from 12 to 3-7 roughly halves to thirds the work with zero loss of determinism.",
+   "risk": "Must use verified deterministic witness thresholds; using an incorrect threshold would produce false primality results. Keep the full set as the upper branch so correctness across the entire long range is preserved."
+  }
+ ]
+}

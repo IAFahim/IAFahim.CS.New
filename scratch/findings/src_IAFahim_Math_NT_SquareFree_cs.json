@@ -1,0 +1,60 @@
+{
+ "file": "src/IAFahim.Math.NT/SquareFree.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.NT/SquareFree.cs",
+   "symbol": "SquareFree.Prefix",
+   "severity": "high",
+   "category": "overflow",
+   "summary": "int overflow in 'i * i' (loop bound and i2) for large n leads to a negative i2 and an out-of-bounds negative-index write into result.",
+   "triggeringInput": "Prefix(2000000000, result) (n is a valid non-negative int). At i=46341, i*i overflows int to -2147479015, so the loop condition 'i*i <= n' is true, i2 = -2147479015, and the inner loop 'for (j = i2; j <= n; j += i2) result[j] = 0;' starts with a huge negative j -> result[j] writes far out of bounds (UB), and the squarefree marking is also wrong.",
+   "rootCause": "Lines 44 and 46: 'for (int i = 2; i * i <= n; i++)' and 'int i2 = i * i;' use 32-bit multiplication. For n above ~2.1e9-region (any n with floor(sqrt(n)) such that i*i exceeds int.MaxValue), i*i wraps to negative.",
+   "suggestedFix": "Use a long for the square comparison and i2: 'for (int i = 2; (long)i * i <= n; i++) { long i2 = (long)i * i; for (long j = i2; j <= n; j += i2) result[(int)j] = 0; }' (or cap i at (int)Math.Sqrt(n))."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/SquareFree.cs",
+   "symbol": "SquareFree.Count",
+   "severity": "medium",
+   "category": "overflow",
+   "summary": "(int)Math.Sqrt(n) overflows int for large n, making 'limit' negative; the sieve and summation loops then do not run and Count returns 0 instead of the true squarefree count.",
+   "triggeringInput": "Count(9223372030926249001, mu) (a valid n > 0, this is 3037000499^2). Math.Sqrt(n) ~= 3.037e9 > int.MaxValue, so (int) conversion yields a negative/undefined value; limit < 0 => SieveMobius loops skip, the d-loop skips, and the method returns 0, whereas the real count is large.",
+   "rootCause": "Line 20: 'int limit = (int)Math.Sqrt((double)n);'. For n > ~4.6e18 the square root exceeds int.MaxValue and the cast overflows. Count's only documented precondition is n > 0 (line 16-18), so such n is in-contract.",
+   "suggestedFix": "Store limit as long, or check that the sqrt fits in int; e.g. 'long limit = (long)Math.Sqrt((double)n); while ((limit+1)*(limit+1) <= n) limit++; while (limit*limit > n) limit--;' and iterate d as long. (Practically Count is bounded by the caller-supplied mu size, but the cast should not silently overflow to a wrong answer.)"
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/SquareFree.cs",
+   "symbol": "Count",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist and strength-reduce the d*d term and drop the redundant mu!=0 guard in the accumulation loop.",
+   "currentCost": "Loop recomputes (long)d*d each iteration and branches on mu[d]!=0; the branch is data-dependent (mu in {-1,0,1}) and mispredicts often, and the divisor (long)d*d is a fresh 64-bit multiply per step.",
+   "proposedChange": "Maintain d2 incrementally (d2 += 2*d+1 per step, i.e. (d+1)^2 = d2 + 2d + 1) to avoid the multiply, and accumulate branchlessly as ans += mu[d]*(n/d2): when mu[d]==0 the term is 0, so the guard only saves the division. Keep the guard only if skipping the n/d2 division on mu==0 entries (~ majority are nonzero for small d) is a net win; otherwise remove it to go branchless.",
+   "rationale": "Replaces a per-iteration 64-bit multiply with an add, and removes a hard-to-predict branch, improving ILP. Division by d2 is still required but its operand is now branch-free.",
+   "risk": "Incremental d2 must use long to avoid overflow at d up to sqrt(n) (d2 up to n, fits long). Removing the mu!=0 guard means doing the division even for mu==0 entries; that division is the dominant cost, so measure-by-reason: keeping the guard avoids ~1/zeta worth of divisions, so PREFER keeping the branch but still hoist d2. Net: adopt the d2 strength-reduction; treat the branch removal as optional."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/SquareFree.cs",
+   "symbol": "SieveMobius",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Two stackalloc buffers of size limit+1 (limit = sqrt(n)) risk stack overflow for large n and double the working set.",
+   "currentCost": "stackalloc int[limit+1] for primes plus stackalloc bool[limit+1] for isPrime. For n=1e14, limit=1e7, that is ~40MB of int primes on the stack alone, which overflows the stack; primes[] is also over-allocated since pi(limit) << limit.",
+   "proposedChange": "Either accept a caller-provided scratch pointer for primes/isPrime (consistent with the mu/result pointer-passing convention used elsewhere in this module), or reuse the mu buffer's sign as the isPrime flag to drop the separate bool array. Size the prime buffer by an upper bound on pi(limit) (~1.26*limit/ln(limit)) rather than limit+1.",
+   "rationale": "Removes stack-overflow cliff at large n, halves peak memory, and matches the module's pointer-in convention for Burst-friendly explicit allocation.",
+   "risk": "Changes the helper signature (and thus Count's), so callers must pass scratch; an API change but aligns with house style. Folding isPrime into mu must not corrupt mu values mid-sieve (mu is written as -1/0/+1; using a distinct sentinel or separate region needed)."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/SquareFree.cs",
+   "symbol": "Prefix",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "The i*i squarefree-marking pass and the final prefix-sum pass can be fused, and i2 already hoisted; minor: loop bound i*i<=n recomputes i*i.",
+   "currentCost": "Outer loop condition i*i<=n recomputes i*i each iteration; the marking pass and the prefix-sum pass are two separate sweeps over result[1..n] (two full cache passes).",
+   "proposedChange": "Replace the i*i<=n condition with a precomputed limit = (int)Math.Sqrt(n) and loop i<=limit (one sqrt vs n multiplies). The two sweeps cannot be trivially fused because marking writes ahead of the prefix cursor, so leave them separate, but the loop-bound fix stands.",
+   "rationale": "Removes one multiply per outer iteration and a data-dependent comparison; sqrt is computed once.",
+   "risk": "sqrt rounding: must ensure limit*limit may be < n by one; use limit such that while((long)(limit+1)*(limit+1)<=n) limit++ to be exact. i2=i*i already hoisted inside, good."
+  }
+ ]
+}

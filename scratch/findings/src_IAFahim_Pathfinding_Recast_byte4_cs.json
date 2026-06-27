@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/byte4.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/byte4.cs",
+   "symbol": "byte4.this[int]",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "The indexer uses fixed(&this) pointer pinning for every element access; reinterpret via Unsafe or a switch avoids the pin and is more Burst-vectorizable.",
+   "currentCost": "Each get/set pins the struct with `fixed (byte4* array = &this)` then casts to byte*. Pinning a stack struct is usually free under Burst, but `fixed` on `&this` can inhibit some optimizations and, for a 4-byte struct, a direct field switch or UnsafeUtility.ReadArrayElement on a reinterpret is cleaner and avoids the pinning region.",
+   "proposedChange": "Implement the indexer with a `switch (index) { case 0: return x; ... }` or `Unsafe.Add(ref Unsafe.As<byte4, byte>(ref this), index)`. The switch is fully branch-predictable for constant indices and lets the JIT keep the struct in registers.",
+   "rationale": "Avoids the fixed-pin region (which can force the struct to memory) and enables register residency; for compile-time-constant indices the switch folds to a direct field access with zero overhead.",
+   "risk": "Behavior must match for index 0..3; out-of-range path is guarded only under ENABLE_UNITY_COLLECTIONS_CHECKS, so a switch should keep the same checked/unchecked semantics (default case = undefined like the current pointer read). Low impact since these indexers are not on the rasterization hot path."
+  }
+ ]
+}

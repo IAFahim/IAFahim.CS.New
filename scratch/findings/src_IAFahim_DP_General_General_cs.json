@@ -1,0 +1,114 @@
+{
+ "file": "src/IAFahim.DP.General/General.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.DP.General/General.cs",
+   "symbol": "IntervalDp.Run",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "The interval-DP base case zeroes the wrong cells: it writes dp[i] (i.e. dp[0*n+i]) for i in [0,n), instead of the diagonal dp[i*n+i]. The diagonal cells dp[1*n+1], dp[2*n+2], ... are never initialized, so FindBestIntervalSplit reads uninitialized caller memory as the length-1 sub-interval costs, producing a wrong result (or arbitrary garbage / overflow on the +1 addition).",
+   "triggeringInput": "n=2, a=[5,7], dp = caller buffer of size n*n=4 not pre-zeroed. Run sets dp[0]=0, dp[1]=0 (these are dp[0*2+0] and dp[0*2+1]). FindBestIntervalSplit(i=0,j=1): k=0 -> d1=dp[0*2+0]=0, d2=dp[1*2+1] = UNINITIALIZED garbage. Result dp[0*2+1] = garbage+1 instead of the intended value.",
+   "rootCause": "Loop `for (int i = 0; i < n; i++) dp[i] = 0;` indexes the flattened 2D array linearly (dp[i] == dp[0*n+i]) rather than along the diagonal (dp[i*n+i]). Only dp[0*n+0] happens to coincide with a correct diagonal cell; all other length-1 base cases dp[i*n+i] for i>=1 are left at whatever the caller's buffer contained, and cells dp[0*n+i] for i>=1 are wrongly overwritten with 0.",
+   "suggestedFix": "Initialize the diagonal: `for (int i = 0; i < n; i++) dp[i * n + i] = 0;` (matching the n*n indexing used everywhere else in the class)."
+  },
+  {
+   "file": "src/IAFahim.DP.General/General.cs",
+   "symbol": "QuadrangleInequalityDp.FindBestQuadrangleSplit",
+   "severity": "critical",
+   "category": "wrong-recurrence",
+   "summary": "The split recurrence uses dp[k*n+j] for the right sub-interval instead of dp[(k+1)*n+j]. For k==i this references dp[i*n+j] \u2014 the very cell currently being computed (still at its uninitialized/MaxValue initial value), and in general it splits at [i..k]+[k..j] (overlapping at k) rather than [i..k]+[k+1..j]. This yields wrong interval-DP costs versus the documented Knuth/quadrangle optimization (compare IntervalDp which correctly uses dp[(k+1)*n+j]).",
+   "triggeringInput": "n=3, m=3, dp diagonal seeded to 0 by Run. For interval i=0,j=1 (len=2): k ranges opt[0]=0..opt[1]=1. At k=0: d1=dp[0*3+0]=0, d2=dp[0*3+1] = the cell being computed (uninitialized caller value / MaxValue). The combined cost therefore uses the wrong/uninitialized right half instead of dp[(0+1)*3+1]=dp[1*3+1]=0.",
+   "rootCause": "Off-by-one in the second sub-problem index: standard cost-split is dp[i..k] + dp[k+1..j]. Code writes dp[k * n + j] (missing the +1 on the row), so the partition point k is shared by both halves and at the loop's lower bound it indexes the in-progress cell.",
+   "suggestedFix": "Use the right half starting at k+1: `long d2 = dp[(k + 1) * n + j];` (consistent with IntervalDp.FindBestIntervalSplit)."
+  },
+  {
+   "file": "src/IAFahim.DP.General/General.cs",
+   "symbol": "QuadrangleInequalityDp.FindBestQuadrangleSplit",
+   "severity": "high",
+   "category": "off-by-one",
+   "summary": "When no candidate split is valid (all d1/d2 == long.MaxValue), bestK stays -1 and is stored via opt[i] = bestK = -1. On the next (longer) length iteration for the same i, `start = opt[i]` = -1 is used as the loop lower bound, so k starts at -1 and the code reads dp[i*n + (-1)] = dp[i*n - 1], an out-of-bounds read (pointer UB; for i==0 this reads dp[-1]).",
+   "triggeringInput": "Any configuration where some shorter interval [i,k] or [k,j] remains long.MaxValue so best is never updated for interval starting at i (e.g. an INF-seeded dp where a sub-interval is unreachable). After that interval, opt[i] becomes -1; the next len iteration computing dp[i*n+j] calls the split with start=opt[i]=-1, dereferencing dp[i*n-1].",
+   "rootCause": "bestK initialized to -1 and unconditionally written back to opt[i] without a guard for the 'no valid split' case, then reused as a loop bound / array index on the subsequent iteration.",
+   "suggestedFix": "Guard the write-back (only update opt[i] when bestK >= 0, and/or clamp start = Math.Max(opt[i], i)), or initialize bestK = i so the optimal-split pointer never goes below the valid range."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.DP.General/General.cs",
+   "symbol": "ProfileDp.Run / UpdateProfileDpMasks / CopyDp",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Per (i,j) cell the code does TWO full O(2^m) array copies (dp->tmp inside UpdateProfileDpMasks, then tmp->dp in CopyDp). One copy is entirely removable by swapping roles or writing results directly into dp.",
+   "currentCost": "Each of the n*m iterations performs: a 2^m copy (line 31), a 2^m relaxation pass, then a second full 2^m copy in CopyDp (line 49). That is 2 * 2^m stores per cell purely for buffer shuffling, i.e. n*m*2^(m+1) extra long stores plus the n*m*2^m loads. CopyDp is pure overhead on top of the copy already done in UpdateProfileDpMasks.",
+   "proposedChange": "Drop CopyDp entirely. In UpdateProfileDpMasks the relaxation only ever WRITES tmp[nmask] where nmask = mask^bit (a strictly different slot reachable only from a mask that has the bit set), and READS dp[mask]. Since tmp is seeded as an exact copy of dp, you can instead relax in place on dp itself: for masks with bit set, compute cand = dp[mask]+rowA[j] and do dp[nmask] = max(dp[nmask], cand). Because nmask has the bit clear and mask has it set, iterating mask ascending never revisits a written nmask as a future source (nmask < mask is false in general, but the source dp[mask] for a given mask is never itself a destination in this same j-pass since destinations all have bit==0 and sources all have bit==1). This removes both the tmp seed copy and CopyDp, eliminating the tmp buffer round-trip. If strict equivalence with the two-buffer semantics is required, instead keep tmp but swap the dp/tmp pointers after the pass (pointer swap, O(1)) rather than calling CopyDp (O(2^m)).",
+   "rationale": "Eliminates n*m*2^m redundant long stores (the CopyDp pass) and, in the in-place variant, a second n*m*2^m. For typical m (broad profile DP) 2^m dominates; halving or removing buffer copies is a direct constant-factor win on the hottest loop and improves cache behavior (single buffer stays hot instead of two).",
+   "risk": "The pointer-swap variant is exactly semantics-preserving and lowest risk: after UpdateProfileDpMasks writes into tmp, swap dp<->tmp pointers in Run instead of CopyDp; the returned dp[0] must read from the final live buffer, so track parity (n*m swaps) or swap back once. The fully in-place variant requires verifying no source mask is also a destination within the same j-pass: sources have bit set, destinations have bit clear, so they are disjoint and the transform is safe for this specific recurrence. Reject in-place only if the recurrence is later changed to relax same-parity masks."
+  },
+  {
+   "file": "src/IAFahim.DP.General/General.cs",
+   "symbol": "ProfileDp.UpdateProfileDpMasks",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Inner mask loop reads dp[mask] twice and tests every mask even though only masks with bit set do work; the long.MinValue guard and double load add an avoidable dependency on the hot path.",
+   "currentCost": "For each of 2^m masks: branch (mask&bit), then dp[mask] is loaded once for the != MinValue test (line 37) and again for the addition (line 39). Half the masks (bit clear) do nothing yet still iterate. rowA[j] is reloaded every iteration.",
+   "proposedChange": "Hoist long addV = rowA[j] above the loop (loop-invariant, line 39 reloads it each iteration). Iterate only over masks that have the bit set by stepping: for(int mask=bit; mask<maskCount; mask=(mask+1)|bit) or enumerate submasks; this skips the (mask&bit)==0 half entirely. Load dp[mask] once into a local long cur, test cur!=long.MinValue, then cand=cur+addV \u2014 removing the second load.",
+   "rationale": "Removes the redundant second load of dp[mask], hoists the rowA[j] load out of the loop, and roughly halves loop trip count by visiting only bit-set masks. Fewer loads shorten the dependency chain and reduce memory traffic on a loop that runs n*m*2^m times.",
+   "risk": "Stepping only over bit-set masks changes iteration order but not results (masks without the bit are no-ops in the original). The mask=(mask+1)|bit enumeration must start at mask=bit and is correct for visiting exactly the bit-set masks. addV hoist is unconditionally safe (rowA, j fixed for the call)."
+  },
+  {
+   "file": "src/IAFahim.DP.General/General.cs",
+   "symbol": "BrokenProfileDp (entire class)",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "BrokenProfileDp is a byte-for-byte duplicate of ProfileDp except for an unused int* state parameter; it adds maintenance/code-size cost with no behavioral difference.",
+   "currentCost": "Two identical copies of the same DP (InitializeDp, UpdateProfileDpMasks, CopyDp bodies are identical lines 67-97 vs 20-50). The state pointer is accepted but never read or written, so it is dead surface area. Doubles instruction-cache footprint and any future fix must be applied twice.",
+   "proposedChange": "Either remove BrokenProfileDp and route callers to ProfileDp, or, if the distinct name is part of the public API, have BrokenProfileDp.Run forward to ProfileDp.Run (dropping the unused state arg) so the optimized inner loop lives in one place. If state is meant to participate in a true broken-profile recurrence, it is currently a no-op bug; flag for spec review.",
+   "rationale": "Single source of truth removes duplicate I-cache pressure and ensures the cycle optimizations above only need to be made once. Removing a dead pointer parameter also clarifies the API.",
+   "risk": "If external code depends on the BrokenProfileDp.Run signature including state, keep the signature and forward internally. If state was intended to carry real DP information, deduplication would mask a latent functional bug rather than preserve it \u2014 confirm intended semantics before deleting."
+  },
+  {
+   "file": "src/IAFahim.DP.General/General.cs",
+   "symbol": "TreeKnapsack.Run / ProcessTreeKnapsackChild",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "subSize is always 0 (Run declares it and never assigns), so dp[vNode*cap+subSize]+valV inside the loop is loop-invariant and should be hoisted; also the i+weightV<cap test wastes iterations that do nothing.",
+   "currentCost": "ProcessTreeKnapsackChild recomputes val2 = dp[vNode*cap + subSize] + valV every iteration (line 121) although vNode, subSize(=0), valV are all fixed for the call \u2014 a redundant load+add per i. Additionally the loop runs i from min(size,cap)-1 down to 0 but only acts when i+weightV<cap, so iterations with i >= cap-weightV are pure no-ops (a branch with no body).",
+   "proposedChange": "Hoist long val2 = dp[vNode*cap + subSize] + valV; above the loop. Replace the per-iteration guard by tightening loop bounds: start i at min(min(size,cap)-1, cap-weightV-1) so every iteration does real work, removing the inner branch entirely. Also hoist long* dpU = dp + u*cap; so dp[u*cap+i+weightV] becomes dpU[i+weightV], removing the repeated u*cap multiply/add.",
+   "rationale": "Removes a load, an add, a multiply (u*cap and vNode*cap), and a branch from each iteration of a loop that runs O(cap) times per edge across the whole tree (O(V*cap) overall). Tightening bounds eliminates the no-op tail iterations entirely instead of branching through them.",
+   "risk": "Hoisting val2 is safe only because dp[vNode*cap+subSize] is not written inside this loop (the loop writes dp[u*cap+...], u != vNode for a child edge). Bound tightening preserves results because skipped iterations had no effect under the original guard; must guard cap-weightV-1 against negative (if weightV>=cap the loop should not run at all) to avoid an out-of-range start index. The dead subSize/size accounting also suggests a latent algorithm bug (sizes never grow as intended) \u2014 flag for correctness review separately."
+  },
+  {
+   "file": "src/IAFahim.DP.General/General.cs",
+   "symbol": "IntervalDp.FindBestIntervalSplit",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The i*n row base is recomputed inside the k-loop and the long.MaxValue double-guard adds branches; hoist the row pointer and the (k+1)*n stride.",
+   "currentCost": "For each k in [i,j): dp[i*n+k] recomputes i*n (line 148) and dp[(k+1)*n+j] recomputes (k+1)*n (line 149) each iteration. Two != MaxValue comparisons plus the compare-and-update form a branch cluster per k. Inner loop runs O(n) per cell, O(n^3) total.",
+   "proposedChange": "Hoist long* rowI = dp + i*n; so d1 = rowI[k]. For d2, note (k+1)*n advances by exactly n each iteration, so keep a running pointer long* colBase = dp + (i+1)*n + j; and add n each step instead of multiplying. This converts two multiplies per k into one add.",
+   "rationale": "Removes two integer multiplies per inner iteration (i*n hoisted, (k+1)*n strength-reduced to running add) in an O(n^3) triangle loop \u2014 a real per-iteration cycle saving and shorter address-computation dependency chain that Burst can pipeline better.",
+   "risk": "Strength-reduction of (k+1)*n to incremental add is exact for the contiguous k step; ensure the running pointer is initialized to (i+1)*n+j and incremented by n in lockstep with k. No semantic change to the MaxValue guard or the min selection."
+  },
+  {
+   "file": "src/IAFahim.DP.General/General.cs",
+   "symbol": "QuadrangleInequalityDp.FindBestQuadrangleSplit",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Inside the k-loop, i*n (constant for the call) is recomputed and k*n is recomputed each iteration; hoist the row base and strength-reduce k*n to a running add.",
+   "currentCost": "Per k in [start,end]: dp[i*n+k] recomputes i*n and dp[k*n+j] recomputes k*n (line 200). With the Knuth/Yao opt the k-range is amortized small, but the two multiplies and the double MaxValue guard still execute every iteration of the amortized-O(n^2) total work.",
+   "proposedChange": "Hoist long* rowI = dp + i*n; (d1 = rowI[k]). Maintain a running pointer rowK = dp + start*n + j; incremented by n per k so d2 = *rowK. Hoist into locals to cut the address-computation multiplies to a single add per iteration.",
+   "rationale": "Same strength-reduction win as IntervalDp: replaces two multiplies per inner iteration with one add and a hoisted base, shortening the address dependency chain on the dominant inner loop.",
+   "risk": "Exact transform: k advances by 1 so k*n advances by n; initialize rowK at start*n+j. opt[i] bestK tracking and the MaxValue guard are unchanged, so the Knuth optimization invariant is preserved."
+  },
+  {
+   "file": "src/IAFahim.DP.General/General.cs",
+   "symbol": "MinPlusConvolution.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Inner loop reloads a[i] every j iteration and the a[i]!=INF test is loop-invariant in j; hoist a[i] and its INF check out of the j-loop.",
+   "currentCost": "For each (i,j): a[i] is loaded and compared to INF (line 168) inside the j-loop although both are constant across j. That is m redundant loads+compares per i, n*m total wasted.",
+   "proposedChange": "Hoist long ai = a[i]; and the if(ai==INF) continue; check above the j-loop. Inside the loop only test b[j]!=INF and compute ai+b[j]. Optionally hoist long* cBase = c + i; so c[i+j] is cBase[j].",
+   "rationale": "Removes a load and a branch per inner iteration and skips entire rows where a[i]==INF, cutting n*m work to (#finite a)*m. The min-update can stay as written; the dependency chain on c[i+j] is unchanged.",
+   "risk": "Hoisting a[i] and its INF guard is exactly equivalent because neither a[i] nor the INF constant changes across j, and skipping a fully-INF row produces no writes the original would have made (original would also skip every j for that i). c[i+j] aliasing with a/b is not a concern since they are distinct output/input buffers by contract."
+  }
+ ]
+}

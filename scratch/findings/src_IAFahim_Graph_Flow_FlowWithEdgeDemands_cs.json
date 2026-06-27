@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Graph.Flow/FlowWithEdgeDemands.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Flow/FlowWithEdgeDemands.cs",
+   "symbol": "FlowWithEdgeDemands.Run",
+   "severity": "critical",
+   "category": "off-by-one",
+   "summary": "Auxiliary graph for the lower-bound feasibility flow is built with edgeId starting at 1, breaking the e^1 reverse-edge pairing in DinicMaxFlow/DinicDfs and yielding an incorrect feasibility flow.",
+   "triggeringInput": "n=2, s=0, t=1, one edge 0->1 with lower=1, upper=2. Dinic on the aux graph then mis-pairs reverse edges (first forward edge id 1 -> 1^1=0 sentinel).",
+   "rootCause": "MinCostFlowAddEdge writes forward edge at *edgeId then reverse at *edgeId+1; DinicDfs uses flow[e^1] for the reverse residual. This only works when forward ids are even. Starting edgeId at 1 puts the first forward edge on an odd id so e^1 references the head-sentinel/index 0 and the wrong reverse edge, corrupting the residual graph and the computed flow that the method then copies into flow[].",
+   "suggestedFix": "Set edgeId = 2 at initialization (as in the verified DinicMaxFlow test and MaxFlowLowerBounds)."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Flow/FlowWithEdgeDemands.cs",
+   "symbol": "FlowWithEdgeDemands.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Dead sumPos/sumNeg accumulation loop over all n vertices is computed but never read.",
+   "currentCost": "An O(n) pass (lines 36-37) with a per-iteration branch and two long accumulations whose results (sumPos, sumNeg) are never used anywhere afterward.",
+   "proposedChange": "Delete lines 36-37 entirely: 'long sumPos = 0, sumNeg = 0;' and the following 'for (int i = 0; i < n; i++) { ... }'. Nothing downstream consumes these values.",
+   "rationale": "Removes a full O(n) loop, n branches, and 2n long adds from the hot path with zero observable effect. Pure dead-code elimination \u2014 Burst/JIT may not always remove it because b[] is written through a pointer and could be considered to have aliasing/observable reads.",
+   "risk": "None. Verified by grep that sumPos and sumNeg have no other readers in this method or file. Observable behavior (flow[], *result, return) is unchanged."
+  }
+ ]
+}

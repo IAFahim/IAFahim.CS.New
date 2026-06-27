@@ -1,0 +1,72 @@
+{
+ "file": "src/IAFahim.Graph.Matching/Blossom.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Matching/Blossom.cs",
+   "symbol": "WeightedBlossom.min_cost_augment / WeightedBlossom.Run",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "WeightedBlossom.Run never assigns to match[], so it always returns an empty matching with total weight 0 for any input. min_cost_augment runs a Dijkstra over reduced costs and updates only `potentials`; it never writes match[]. Run() therefore loops calling min_cost_augment for every still-unmatched i (all of them), and CalculateTotalWeight sums over an all-(-1) match, yielding 0.",
+   "triggeringInput": "n=2, w (row-major n*n) = {0,5, 5,0}, match = stackalloc int[2]. Expected optimal matching {(0,1)} with weight 5; actual returns 0 and match[0]=match[1]=-1 (verified by compiling and running).",
+   "rootCause": "min_cost_augment performs the shortest-path/potential-update phase of the Hungarian/min-cost-matching SSSP but omits the augmentation step: after Dijkstra it must walk parent[] from the reached free column back to i and flip match pointers along the alternating path. That step is entirely missing, so the matching is never built.",
+   "suggestedFix": "After the Dijkstra loop in min_cost_augment, pick the target free vertex reached (or for assignment, the column endpoint), then trace parent[] back to i and update match[]/matchInverse along the augmenting path before returning; only then does CalculateTotalWeight reflect a real matching."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Matching/Blossom.cs",
+   "symbol": "MinHeap (ctor/Dispose)",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "MinHeap does three separate AllocHGlobal/FreeHGlobal heap allocations per Dijkstra invocation; this is called once per unmatched vertex (O(n) times), so O(n) malloc/free round-trips dominate the constant factor.",
+   "currentCost": "3 AllocHGlobal + 3 FreeHGlobal per min_cost_augment call, called up to n times => up to 3n mallocs and 3n frees, each a kernel/CRT round-trip, plus an O(n) Pos init loop each time.",
+   "proposedChange": "Replace the three AllocHGlobal buffers with caller-provided scratch (stackalloc in WeightedBlossom.Run, sized 3*n: long[n] for Dist, int[n] for V, int[n] for Pos) and pass pointers into MinHeap. Since min_cost_augment already stackallocs dist/parent of size n, allocate the heap buffers once in Run and reuse across all n augment calls, re-initializing Pos to -1 (or better, lazily via a generation counter) each call.",
+   "rationale": "Eliminates 3n malloc/free syscalls, removes try/finally overhead, and keeps the heap working set in stack/registers improving cache locality. Reusing one buffer across iterations turns O(n) allocations into O(1).",
+   "risk": "stackalloc size n*(sizeof(long)+2*sizeof(int)) per Run is fine for moderate n but can overflow the stack for very large n; if n is unbounded keep a single AllocHGlobal pair reused across the outer loop instead of per-augment. Pos must be reset to -1 between augment calls (Pop sets visited entries to -1, but un-popped entries remain stale), so a full re-init or generation-stamp is required for correctness."
+  },
+  {
+   "file": "src/IAFahim.Graph.Matching/Blossom.cs",
+   "symbol": "WeightedBlossom.RelaxEdges",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Inner relaxation recomputes the loop-invariant base term dist[u]-potentials[u] every iteration and indexes w[u*n+j] with a multiply that can be hoisted to a running pointer.",
+   "currentCost": "Per inner iteration: load dist[u], load potentials[u], one subtract that is invariant across j; plus an integer multiply u*n inside the address computation for w.",
+   "proposedChange": "Hoist 'long baseU = dist[u] - potentials[u];' and 'long* wRow = w + (long)u * n;' before the j-loop, then 'long ndist = baseU + wRow[j] - potentials[j];'. This removes one subtraction and the u*n multiply from every iteration.",
+   "rationale": "Strength-reduces the index multiply to a single pointer add per row and shortens the per-iteration dependency chain by one subtraction. Over n calls x n vertices x n edges this is O(n^3) iterations, so each removed op is meaningful.",
+   "risk": "None; arithmetic is associative for the integer additions here and (long)u*n avoids 32-bit overflow on large n (the original u*n is int and could overflow for n where u*n exceeds int range; widening is a strict improvement, guard worth noting)."
+  },
+  {
+   "file": "src/IAFahim.Graph.Matching/Blossom.cs",
+   "symbol": "WeightedBlossom.min_cost_augment",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The 'if (i == j) continue;' branch in the hot O(n^2) relaxation per augment can be eliminated by structuring the loop to skip i without a per-iteration test, or by relying on dist[i]=0 making the self-edge non-improving.",
+   "currentCost": "One compare+branch per inner iteration (n per call, n*n per augment, n^3 overall) purely to skip the source vertex.",
+   "proposedChange": "Drop the 'i == j' guard entirely: since dist[i] starts at 0 and w[u*n+i]-potentials[u]-potentials[i] for the reduced cost is non-negative under valid potentials, ndist for j==i will not be < dist[i]=0, so the update is naturally skipped. If non-negativity is not guaranteed, split the loop into [0,i) and (i,n) to avoid the branch.",
+   "rationale": "Removes a predictable-but-nonzero branch from the innermost loop, helping Burst vectorize the relaxation as a straight-line reduction over j.",
+   "risk": "Removing the guard is only safe if reduced edge costs to the source are non-negative (true after Johnson-style potential maintenance with no negative cycles). If that invariant is not certain, use the loop-splitting variant which is unconditionally equivalent."
+  },
+  {
+   "file": "src/IAFahim.Graph.Matching/Blossom.cs",
+   "symbol": "MinHeap.PushOrUpdate/Pop",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Heap parent/child index math uses '/2' and '*2+1'; '/2' on a known-nonnegative idx can be a shift, and the sift loops recompute child indices.",
+   "currentCost": "(idx-1)/2 emits a signed division-by-2 sequence (sign-correcting) rather than a shift; left=idx*2+1/right=idx*2+2 recompute multiplies.",
+   "proposedChange": "Use '(idx - 1) >> 1' for the parent (idx>=1 in that branch so non-negative) and 'int left = (idx << 1) + 1; int right = left + 1;' to derive right from left.",
+   "rationale": "Signed '/2' on a value the compiler cannot prove non-negative emits extra add+shift for rounding; an explicit '>>1' on a provably non-negative value is one shift. Deriving right=left+1 saves a multiply.",
+   "risk": "'>>1' is only equivalent to '/2' for non-negative operands; idx>0 in PushOrUpdate's loop and idx>=0 in Pop guarantee (idx-1)>=0 and idx>=0, so the substitution is exact. Burst likely already does this, so impact is low."
+  },
+  {
+   "file": "src/IAFahim.Graph.Matching/Blossom.cs",
+   "symbol": "BlossomGeneral.GetLca/UpdateBases",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Blossom contraction uses O(n) full-array scans (GetLca clears inPath[0..n), UpdateBases rewrites base_ across all n) inside the augmenting-path search, giving an O(n^3)+ overall worst case typical of array-based blossom.",
+   "currentCost": "GetLca does an O(n) inPath clear per odd-cycle encounter; UpdateBases does an O(n) base_ rewrite per contracted vertex; both run inside FindAugmentingPath which itself runs n times.",
+   "proposedChange": "Track only the vertices actually touched during the current BFS (a small worklist) to clear inPath, and maintain base_ via a union-find (path-compressed) structure so contraction is near-O(alpha) amortized instead of O(n) per step. This lowers the blossom matching from ~O(n^3) toward O(n*m*alpha(n)).",
+   "rationale": "The dominant cost in array-based blossom is the repeated full-width base_/inPath sweeps; union-find with path compression is the standard asymptotic improvement and also reduces cache traffic by avoiding full-array passes.",
+   "risk": "This is an algorithmic rewrite, not a micro-opt; must preserve exact matching results and the same edge-iteration order to keep deterministic output. Union-find base tracking needs careful reset between sources. Higher implementation risk; propose only if blossom is a hot path."
+  }
+ ]
+}

@@ -1,0 +1,8 @@
+PASS(build) IAFahim.Graph.DAG
+PASS(test)  IAFahim.Graph.DynamicTrees
+PASS(build) IAFahim.Graph.Eulerian
+PASS(test)  IAFahim.Graph.Flow
+PASS(build) IAFahim.Graph.Matching
+PASS(test)  IAFahim.Graph.SCC
+PASS(test)  IAFahim.Graph.Tree
+=== SWEEP DONE ===

@@ -1,0 +1,105 @@
+{
+ "file": "src/IAFahim.Graph.Flow/Flow.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Flow/Flow.cs",
+   "symbol": "MinCostMaxFlow.TryFindMinCostPath",
+   "severity": "high",
+   "category": "logic",
+   "summary": "Shortest-path augmentation uses a plain Dijkstra (MinHeap by raw cost[e]) without Johnson potentials, but residual reverse edges carry negative cost (-c set by MinCostFlowAddEdge). Dijkstra is invalid on graphs with negative edge weights, so after the first augmentation (when reverse edges gain positive capacity and negative cost) the computed distances/parents can be wrong, yielding a non-minimum-cost flow.",
+   "triggeringInput": "Classic MCMF where the optimal solution must cancel earlier flow via a negative-cost residual edge, e.g. s->a (cap1,cost1), s->b (cap1,cost1), a->b (cap1,cost1), b->t (cap1,cost1), a->t (cap1,cost5) sending 2 units to t: the second augmentation needs the negative residual edge b->a (cost -1) which Dijkstra mis-orders, producing a higher-than-optimal cost.",
+   "rootCause": "TryFindMinCostPath relaxes with dist[u]+cost[e] using a min-heap keyed on accumulated cost, but cost[e] can be negative on residual edges; unlike PotentialDijkstra it does not reduce costs with potentials, breaking Dijkstra's non-negativity precondition.",
+   "suggestedFix": "Use reduced costs with potentials (as PotentialDijkstra/SuccessiveShortestPath do): maintain pot[], relax with dist[u]+cost[e]+pot[u]-pot[v], and update pot after each Dijkstra; or use Bellman-Ford/SPFA for the first/negative iterations."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Flow/Flow.cs",
+   "symbol": "MinHeap.PushOrUpdate",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Sift-up does full 3-way swaps each step; use hole-punching (shift parent down, place value once) to halve memory writes.",
+   "currentCost": "Lines 26-29 perform a full swap (read+write of Dist, V, and two Pos updates) at every level of the sift-up. That is ~6 array writes per level; on a heap of size m the path is O(log m) levels, and this runs once per edge relaxation in Dijkstra \u2014 the dominant cost of min-cost flow.",
+   "proposedChange": "Hole technique: hold the inserted (d, v) in registers; while parent's Dist > d, move parent down into the hole (Dist[idx]=Dist[p]; V[idx]=V[p]; Pos[V[idx]]=idx; idx=p). After the loop, write Dist[idx]=d; V[idx]=v; Pos[v]=idx once.",
+   "rationale": "Reduces per-level writes from ~6 to ~3 and removes the redundant Pos updates for the moving element until the final placement; fewer stores, shorter dependency chain. Classic heap optimization.",
+   "risk": "None to semantics; standard hole-based sift. Must ensure the final single Pos[v]=idx write covers the inserted element's position."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/Flow.cs",
+   "symbol": "MinHeap.Pop",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Sift-down uses full swaps; apply the same hole technique, and strength-reduce idx*2+1 to a running child index.",
+   "currentCost": "Lines 53-56 do full 3-way swaps each level (~6 writes/level). Lines 46-49 recompute idx*2+1 and idx*2+2 (two multiplies/adds) per level. Pop runs once per settled vertex in Dijkstra.",
+   "proposedChange": "Hole-punch sift-down: keep the moved last element in registers, move the smaller child up into the hole each level, write once at the end. Compute 'left = (idx<<1)+1' (shift not multiply) and 'right = left+1' to avoid the second multiply.",
+   "rationale": "Halves store traffic and shortens the dependency chain; shift+add replaces multiply for child index. Both are in the inner loop of the heaviest algorithm.",
+   "risk": "None; idx is non-negative so <<1 equals *2 exactly. Standard transformation."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/Flow.cs",
+   "symbol": "MinHeap.PushOrUpdate",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Add AggressiveInlining to PushOrUpdate and Pop; they are hot leaf-ish methods called per relaxation.",
+   "currentCost": "Neither heap method is marked for inlining; the call overhead (arg setup, no register promotion of Size/pointers across the call) repeats once per edge relaxation and per pop.",
+   "proposedChange": "Add [MethodImpl(MethodImplOptions.AggressiveInlining)] to PushOrUpdate and Pop.",
+   "rationale": "Lets Burst/JIT promote the heap struct fields into registers at call sites in the Dijkstra loops, cutting per-call prologue/epilogue. Hot, small-ish methods.",
+   "risk": "Pop/PushOrUpdate are moderately sized; inlining may bloat code. Low risk under Burst which manages this well; measure I-cache if concerned."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/Flow.cs",
+   "symbol": "MinCostMaxFlow.TryFindMinCostPath",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "to[e] and dist[u] are re-loaded/recomputed multiple times per edge in the relax loop.",
+   "currentCost": "Lines 385-389: 'to[e]' is indexed 4 times and 'dist[u]+cost[e]' computed twice per qualifying edge. dist[u] is loop-invariant for u's expansion but reloaded; the repeated to[e] loads and dual add are pure redundancy in the hottest min-cost loop.",
+   "proposedChange": "Hoist 'long du = dist[u];' after Pop (it equals d, already available \u2014 use d directly). Per edge: 'int w = to[e]; long nd = d + cost[e]; if (cap[e] > 0 && nd < dist[w]) { dist[w] = nd; parent[w] = u; parentEdge[w] = e; pq->PushOrUpdate(w, nd); }'.",
+   "rationale": "Removes 3 redundant to[e] loads and one redundant add per edge; reuses 'd' from Pop instead of reloading dist[u]. Note: dist[u] cannot be hoisted by the compiler because dist[to[e]] stores may alias, so manual hoist is required.",
+   "risk": "Using 'd' for dist[u] is valid only because the 'if (d != dist[u]) continue;' guard (line 383) ensures d == dist[u] at this point. Correct and exact."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/Flow.cs",
+   "symbol": "PotentialDijkstra.RelaxEdges",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "dist[u]+pot[u] is recomputed per edge though both are invariant for u; hoist the partial sum.",
+   "currentCost": "Line 142: 'dist[u] + pot[u] + cost[e] - pot[v]' recomputes dist[u]+pot[u] for every outgoing edge of u. That is a redundant long add per edge in the reduced-cost Dijkstra inner loop.",
+   "proposedChange": "At RelaxEdges entry compute 'long baseU = dist[u] + pot[u];' once, then per edge 'long nd = baseU + cost[e] - pot[to[e]];'. Also hoist 'int v = to[e];' before the pot[v] load (already done) and reuse for dist[v]/parent[v].",
+   "rationale": "Removes one long add per edge; dist[u] and pot[u] are not written inside this loop (only dist[v], v!=u in any relax that changes state, and pot is untouched here), so the partial sum is invariant.",
+   "risk": "None. pot is read-only in RelaxEdges; dist[u] is only overwritten if some edge relaxes u itself (self-loop), which cannot improve dist[u] since reduced cost of a non-negative... but to be exact: a self-loop edge u->u with negative reduced cost is impossible under valid potentials, so baseU stays correct. If self-loops with cap>0 are possible in input, recompute is identical because nd<dist[u] would fail. Safe."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/Flow.cs",
+   "symbol": "DinicDfs.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Recursive DFS re-reads to[e], level[to[e]], cap[e]-flow[e] up to three times per edge; cache once. Also recursion limits Burst.",
+   "currentCost": "Lines 102-105: 'to[e]' indexed 3x, 'cap[e]-flow[e]' computed twice, 'level[to[e]]' loaded then 'to[e]' recomputed. This is the Dinic blocking-flow hot path. Additionally, recursion (line 103) is harder for Burst to optimize and risks deep stack on long paths.",
+   "proposedChange": "Cache 'int v = to[e]; int res = cap[e] - flow[e];' once, test 'if (level[v] != level[u] + 1 || res <= 0) continue;' and pass 'Math.Min(pushed, res)'. Also hoist 'int lu1 = level[u] + 1;' before the loop. Longer term: convert to an explicit-stack iterative DFS to remove recursion for Burst.",
+   "rationale": "Removes redundant indexed loads and the duplicate subtraction per edge; lu1 hoist removes a load+add per edge. Iterative form removes function-call overhead per DFS level and the stack-depth hazard, and is more Burst-friendly.",
+   "risk": "Micro-hoist: none (u, e fixed in iteration; level[u] not written in this frame). Iterative rewrite: larger change, must faithfully reproduce current-arc advancement and partial-push return semantics \u2014 validate against tests."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/Flow.cs",
+   "symbol": "MaxFlowLowerBounds.Run",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "newFlow stackalloc size 'nn*2 + edgeId' over-allocates; edgeId already counts both directions, and the +nn*2 padding is unexplained.",
+   "currentCost": "Line 226 allocates nn*2+edgeId ints and line 227 zeroes them all. edgeId is the next free edge slot (already 2-based, counting forward+reverse), so it is exactly the needed flow array length; nn*2 is extra stack and extra zeroing work each call.",
+   "proposedChange": "Allocate 'int* newFlow = stackalloc int[edgeId];' and zero edgeId entries (DinicMaxFlow only indexes flow[e] for e < edgeId). Remove the nn*2 slack unless a specific off-by index requires it; if a guard is needed, +2 (for the e^1 of the highest edge) suffices, not nn*2.",
+   "rationale": "Shrinks stack frame and the zeroing loop by nn*2 ints per call; flow is edge-indexed so edgeId is the precise bound.",
+   "risk": "Must confirm DinicMaxFlow never indexes flow beyond edgeId-1 (it does not; edges run 2..edgeId-1, and e^1 stays within). Use edgeId (possibly +1 rounding) to be safe. Note Run returns 0 unconditionally (line 229) \u2014 the function appears incomplete; verify intended behavior before tuning."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/Flow.cs",
+   "symbol": "EdmondsKarp.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Initial O(V+E) scan to find maxEdge just to zero flow; if edge count is known or flow is caller-zeroed this whole pass is removable, and to[e] reloads in path loops can be cached.",
+   "currentCost": "Lines 263-278 scan all adjacency to find the max edge id, then zero flow[0..maxEdge|1]. That is an extra full O(V+E) traversal per Run. Also FindPathMinCapacity/UpdatePathFlow (lines 312, 319) recompute 'to[parent[u]^1]' and index parent[u] twice per hop.",
+   "proposedChange": "If callers can pass an explicit edge count (consistent with MinCostFlowAddEdge's edgeId pattern used elsewhere), zero flow directly over that range and drop the max-edge scan. In the path loops, cache 'int pe = parent[u];' once and reuse for cap[pe], flow[pe], flow[pe^1], to[pe^1].",
+   "rationale": "Removes a whole graph traversal per max-flow computation and redundant parent[u] loads per augmenting-path hop.",
+   "risk": "Dropping the scan changes the API (needs edge count) \u2014 ergonomics tradeoff; only adopt if other callers already thread edgeId. Path-loop caching is zero-risk (parent[u] fixed within the hop)."
+  }
+ ]
+}

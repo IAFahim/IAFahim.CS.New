@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Combinatorics.Generation/Combinations.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Combinatorics.Generation/Combinations.cs",
+   "symbol": "RevolvingDoorEnumerator.MoveNext",
+   "severity": "medium",
+   "category": "wrong-recurrence",
+   "summary": "RevolvingDoorEnumerator does not produce a revolving-door (Gray-code) ordering; it uses the plain lexicographic combination successor, so consecutive combinations can differ by more than one element, violating the defining property of the revolving-door algorithm.",
+   "triggeringInput": "n=4, k=2: successive outputs are {0,1},{0,2},{0,3},{1,2},{1,3},{2,3}. The transition {0,3} -> {1,2} changes BOTH elements, whereas a revolving-door Gray code must change exactly one element per step.",
+   "rootCause": "MoveNext (lines 41-43) is identical to standard lexicographic next-combination logic (`c[idx]==_n-_k+idx`, increment, reset suffix to consecutive values). The revolving-door algorithm requires a Gray-code transition where exactly one element is added and one removed; this code does not implement that, so any caller relying on the single-swap invariant gets wrong adjacency (the combination SET is still complete/correct).",
+   "suggestedFix": "Implement the actual revolving-door (Nijenhuis-Wilf / Knuth Algorithm R) successor that changes exactly one element between consecutive combinations, or rename the type to LexCombinationEnumerator to match the lexicographic behavior actually implemented."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Combinatorics.Generation/Combinations.cs",
+   "symbol": "CoolLexEnumerator / RevolvingDoorEnumerator",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Both 'enumerators' implement the same plain lexicographic combination successor, not CoolLex or revolving-door (Gray) order; either dedupe or fix to honor the named ordering.",
+   "currentCost": "Lines 26-31 and 41-46 are byte-identical logic (idx scan from t-1, c[idx]++, refill ascending). CoolLex should be a single-shift O(1)-amortized loopless order; revolving-door should be a Gray code changing one element per step. As written both are O(t)-per-step lex order \u2014 duplicated code and a misleading API.",
+   "proposedChange": "Either (a) collapse to one shared lexicographic enumerator and rename honestly, or (b) implement true CoolLex (loopless, O(1) per step via the shift rule) and true revolving-door (single-element Gray successor). Option (b) restores the intended O(1)-per-step cost vs current O(t).",
+   "rationale": "True CoolLex is loopless (O(1) per combination, no inner refill loop), strictly cheaper than the O(t) refill here; revolving-door changes one position per step. Beyond cycles, removing the duplicate avoids API confusion and code bloat.",
+   "risk": "Changing the emitted ORDER changes observable behavior; only acceptable because the current order does not match the method name (latent bug). If the order must stay, only the dedupe (a) is semantics-preserving. Flag to maintainer which intent is canonical."
+  },
+  {
+   "file": "src/IAFahim.Combinatorics.Generation/Combinations.cs",
+   "symbol": "CoolLexEnumerator.Populate / RevolvingDoorEnumerator.Populate",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Populate copies c into res every step, doubling working set and write traffic for identical data.",
+   "currentCost": "MoveNext maintains state in `c` and then copies all t elements into `res` via Populate on every step. res is a verbatim duplicate of c, so the caller could read c directly. This is an O(t) copy plus a second t-int buffer per call site.",
+   "proposedChange": "Drop res/Populate and let the caller read the combination directly from c (the enumerator's working buffer), matching how HeapPermutationEnumerator exposes `a` directly. If a separate output buffer is a hard API requirement, document that res==c content and skip the copy when the caller passes the same pointer.",
+   "rationale": "Eliminates an O(t)-per-step memcpy and a t-int buffer (half the RAM footprint, less cache pressure). Heap/JohnsonTrotter enumerators already expose state in-place, so this also makes the API consistent.",
+   "risk": "API change: callers currently reading res must switch to c. Behavior of the sequence is unchanged. Low risk if callers are in-tree."
+  }
+ ]
+}

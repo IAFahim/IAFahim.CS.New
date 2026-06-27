@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.DS.SegmentTree/SegmentTree.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.SegmentTree/SegmentTree.cs",
+   "symbol": "SegmentTreeMinLeft.Run",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Dead ternary: `res == -1 ? -1 : res` always returns res",
+   "currentCost": "One redundant compare + conditional-select (cmov or branch) on every top-level call, plus reader confusion.",
+   "proposedChange": "Replace `int res = RunNode(...); return res == -1 ? -1 : res;` with `return RunNode(tree, 1, 0, n - 1, r, &target);`. Both branches of the ternary yield `res`, so it is a provable no-op.",
+   "rationale": "Eliminates a compare and a conditional move/branch; identical output for all inputs since both arms are `res`.",
+   "risk": "None. Pure simplification; observable behavior identical. (Note: this differs from MaxRight.Run where the ternary maps -1 -> n and is meaningful; do not apply the same removal there.)"
+  },
+  {
+   "file": "src/IAFahim.DS.SegmentTree/SegmentTree.cs",
+   "symbol": "SegmentTreeMaxRight.RunNode / SegmentTreeMinLeft.RunNode",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "`long* target` indirection forces target to memory across the hot descent loop; pass/return by value to keep it in a register",
+   "currentCost": "Taking `&target` in Run() forces the local onto the stack. Each `*target` read in the `while` loop is a memory load and each `*target -= ...` is a load+store, defeating register allocation on the hottest path (one such access per tree level, O(log n) per call).",
+   "proposedChange": "Refactor RunNode to take `long target` by value and return the residual when it returns -1. E.g. signature `int RunNode(int* tree, int node, int lo, int hi, int l, long* targetOut)` is the current shape; instead thread target as a value parameter and, for the descent loop, keep a local `long t = target;` operating purely on `t` (no dereference), writing back only when needled by the recursive accumulation path. Concretely: in the while loop replace all `*target` with a local `long t` initialized once from the pointer and stored back only on the early-return-(-1) accumulation branch.",
+   "rationale": "Burst/LLVM keeps a value-typed local in a register; pointer aliasing through `long*` prevents that and inserts a load/store per level. Removing the indirection in the tight while loop cuts ~1 load (+1 store on the subtract branch) per level.",
+   "risk": "Must preserve the side-effecting subtraction semantics: when a subtree is fully consumed (`tree[node] < target`), the caller's residual `target` must be decremented exactly as today so sibling subtrees see the reduced target. Any refactor must still write the residual back before returning -1 from a fully-scanned subtree; only the in-loop dereferences (which never cross a call boundary) are safe to localize."
+  },
+  {
+   "file": "src/IAFahim.DS.SegmentTree/SegmentTree.cs",
+   "symbol": "SegmentTreeBuild.RunInt32/RunInt64, SegmentTreeSet.RunInt32/RunInt64, SegmentTreeAdd.RunInt32, SegmentTreeQuery.RunInt32/RunInt64",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Recomputed `node * 2` and `node * 2 + 1` child indices; hoist to locals to shorten the dependency chain",
+   "currentCost": "In Build/Set the left child index is computed up to 3x (`node*2` in recurse arg and in `tree[node*2]`), right child 2x. Each is a shift+(add). The compiler usually CSEs these, but making them explicit guarantees a single computation and clarifies intent.",
+   "proposedChange": "Add `int left = node << 1; int right = left | 1;` once after computing mid, then use `left`/`right` for both the recursive calls and the `tree[left] + tree[right]` combine. `left | 1` is equivalent to `left + 1` since left is even (node<<1), and OR can issue on more ports than ADD.",
+   "rationale": "Single computation of each child index; `right = left | 1` is branch/carry-free and may relieve the ALU add port. Shortens the read-after-write chain feeding the final `tree[node] = ...` store.",
+   "risk": "`left | 1` equals `left + 1` only because `node << 1` is always even \u2014 true here for all `node >= 0` (valid tree nodes are >= 1). If `node` could be negative the shift is still well-defined for the index arithmetic the code already relies on, so no new constraint beyond what the code assumes. Behavior identical."
+  },
+  {
+   "file": "src/IAFahim.DS.SegmentTree/SegmentTree.cs",
+   "symbol": "SegmentTreeQuery.RunInt32/RunInt64",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Disjoint-range test `qr < l || ql > r` is evaluated at every recursion node before the containment test; cheap but the two-branch short-circuit can be made branch-lighter and the call elides a frame when out of range higher up",
+   "currentCost": "Each node does up to two compares with a short-circuit OR (a branch), then a two-compare AND for containment. For a point/narrow query most descended nodes hit the disjoint test, paying a mispredict-prone branch per visited node.",
+   "proposedChange": "Keep semantics but order so the common containment fast-path is reachable with fewer branches, or compute the disjoint condition branchlessly: `if (((uint)(qr - l) | (uint)(r - ql)) ...)` style is unsafe with overflow here, so prefer leaving logic but marking these leaf recursive helpers `[MethodImpl(MethodImplOptions.AggressiveInlining)]` is NOT applicable (recursive). Instead, hoist `node<<1`/`(node<<1)|1` as in the Build/Set item to share the child-index computation across the two recursive calls.",
+   "rationale": "The only safe, real win here is sharing the child-index arithmetic (same as the hoist item); a branchless disjoint test risks signed overflow on `qr - l` for extreme indices, so it is rejected.",
+   "risk": "Branchless overflow-based range test is REJECTED: `qr - l` / `r - ql` can overflow for int indices near int.MIN/MAX, changing results. Only the child-index hoist is safe and is already captured above."
+  }
+ ]
+}

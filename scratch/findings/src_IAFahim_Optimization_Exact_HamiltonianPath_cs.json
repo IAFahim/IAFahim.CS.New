@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Optimization.Exact/HamiltonianPath.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Exact/HamiltonianPath.cs",
+   "symbol": "TryExtendPath",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist invariant dp[mask*n+v] load and w[v*n] row base out of the inner u-loop, same as the cycle variant.",
+   "currentCost": "dp[mask*n+v] is reloaded n times though invariant; w[v*n+u] recomputes v*n each iteration.",
+   "proposedChange": "`long baseDp = dp[mask * n + v]; long* wRow = w + v * n;` before the loop; use `baseDp + wRow[u]` and `wRow[u] >= inf`.",
+   "rationale": "Shorter dependency chain and one fewer multiply per inner iteration in the dominant O(2^n * n^2) loop; deterministic invariant hoisting independent of optimizer.",
+   "risk": "None; the write target (mask|bit)*n+u differs from mask*n+v since bit u is newly set, so baseDp is not invalidated."
+  }
+ ]
+}

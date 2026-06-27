@@ -1,0 +1,49 @@
+{
+ "file": "src/IAFahim.Optimization.DivideConquer/DequeOpt.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Optimization.DivideConquer/DequeOpt.cs",
+   "symbol": "DequeOpt.IntersectX",
+   "severity": "critical",
+   "category": "wrong-recurrence",
+   "summary": "IntersectX computes a nonsensical intersection abscissa that ignores the C coefficients and divides by p.A+q.A, giving wrong CHT pop decisions and dividing by zero when p.A+q.A==0.",
+   "triggeringInput": "p={A:1,B:0,C:0}, q={A:1,B:2,C:10}. True intersection of x^2 and x^2+2x+10 is x=-5 (from (q.C-p.C)/(p.B-q.B)=10/-2). IntersectX returns (q.B-p.B + p.A-q.A + |p.A-q.A|)/(p.A+q.A) = (2-0+0+0)/2 = 1. Wrong. Also p={A:1,...}, q={A:-1,...} makes denominator p.A+q.A==0 -> divide-by-zero.",
+   "rootCause": "The closed-form for the x where two quadratics A1 x^2+B1 x+C1 and A2 x^2+B2 x+C2 meet is not (B2-B1+A1-A2+|A1-A2|)/(A1+A2). For equal-A 'lines' the correct value is (C2-C1)/(B1-B2); the formula drops C entirely and divides by the sum of leading coefficients, which is unrelated to the crossing point. It also has no guard against A1+A2==0.",
+   "suggestedFix": "Derive the real crossing point. For the lower-envelope-of-quadratics use case, compute the threshold from the quadratics' difference (a difference quadratic, or the linear case (C_q-C_p)/(B_p-B_q) when A_p==A_q), and guard the denominator against zero before dividing."
+  },
+  {
+   "file": "src/IAFahim.Optimization.DivideConquer/DequeOpt.cs",
+   "symbol": "DequeOpt.Run",
+   "severity": "high",
+   "category": "overflow",
+   "summary": "Eval(quads[...], i) computes q.A*i*i+q.B*i+q.C in long but A*i*i overflows long for large quadratic coefficients within contract, and the deque/Eval comparisons then make wrong pop decisions; also reads quads[i+1] up to quads[n], requiring n+1 quads but the method's array sizing is implied by n.",
+   "triggeringInput": "n=3, quads[i].A = 5,000,000,000 (5e9, a valid long), i evaluated up to n-1=2: A*i*i with A=5e9 and a larger i (e.g. i~2e9 scale in a long-running call) overflows; more directly, with A=1e18 and i=2, A*i*i=4e18 > long.MaxValue(~9.22e18) is still ok, but A=3e18,i=2 -> 1.2e19 overflows and flips the >= comparison on line 30, selecting the wrong transition and writing a wrong dp[i].",
+   "rootCause": "Eval multiplies A*x*x in long without any widening or range guard; for coefficient magnitudes representable as long but whose A*x*x exceeds long.MaxValue, the signed overflow produces a wrong (possibly negative) value, corrupting the monotonic-deque comparisons on lines 30 and 34 and thus dp[i].",
+   "suggestedFix": "Either document a tighter precondition bounding |A|*x*x, or perform the comparison/intersection arithmetic in a wider type (Int128) or with overflow-checked accumulation before using the result for deque decisions."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.DivideConquer/DequeOpt.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Cache *head/*tail in locals and hoist repeated Eval(deque[*head], i) to cut pointer derefs and redundant recomputation per iteration.",
+   "currentCost": "*head and *tail are dereferenced through int* on every comparison and update inside both while loops (3-6 pointer loads/stores per element). Also `Eval(quads[deque[*head]], i)` is computed in the first while-loop condition and then recomputed again for `dp[i]` on line 32.",
+   "proposedChange": "Load `int h = *head; int t = *tail;` at function entry, operate on the locals throughout both while loops and the push, and write `*head = h; *tail = t;` once at the end of each iteration (or once after the loop, updating locals in-loop). Additionally, after the head-advance loop, reuse the already-computed `Eval(quads[deque[h]], i)` value for `dp[i]` instead of calling Eval a second time.",
+   "rationale": "Promotes head/tail to registers, removing aliasing-forced reloads (the compiler cannot assume *head/*tail don't alias dp/deque/quads through int*/long*). Reusing the front Eval removes one multiply-heavy Eval (2 muls + 2 adds) per element from the n-length outer loop.",
+   "risk": "Must ensure the cached front-Eval value corresponds to the final deque[h] after the advance loop (it does: the loop exits when front is no longer dominated, so the surviving deque[h] is the one evaluated). No aliasing concern because head/tail are scalars passed by pointer and not written through other pointers in the loop. Behavior identical."
+  },
+  {
+   "file": "src/IAFahim.Optimization.DivideConquer/DequeOpt.cs",
+   "symbol": "Eval",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Factor Eval to one fewer multiply via Horner form.",
+   "currentCost": "`q.A * x * x + q.B * x + q.C` issues 3 multiplies and 2 adds.",
+   "proposedChange": "Use Horner: `(q.A * x + q.B) * x + q.C` \u2014 2 multiplies, 2 adds, and a shorter dependency chain.",
+   "rationale": "Strength-reduces one 64-bit multiply and shortens the critical path (the two muls now chain but total mul count drops from 3 to 2). Eval is called in the innermost deque loop, so per-element savings compound.",
+   "risk": "Integer multiply is associative/distributive in two's-complement wraparound arithmetic, so `A*x*x` and `(A*x+B)*x + C` produce bit-identical results including on overflow. Fully semantics-preserving."
+  }
+ ]
+}

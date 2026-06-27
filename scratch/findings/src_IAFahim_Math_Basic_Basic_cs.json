@@ -1,0 +1,71 @@
+{
+ "file": "src/IAFahim.Math.Basic/Basic.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.Basic/Basic.cs",
+   "symbol": "FastPow.Run",
+   "severity": "high",
+   "category": "overflow",
+   "summary": "Modular exponentiation does plain long multiplication (res*a%mod and a*a%mod) without overflow-safe multiplication. For any modulus larger than floor(sqrt(long.MaxValue)) = 3037000499, the intermediate product a*a (with a up to mod-1) overflows signed 64-bit, wrapping to a negative/garbage value and producing a wrong result.",
+   "triggeringInput": "Run(a=3999999999, e=2, mod=4000000000): a%=mod -> 3999999999; a*a = 15999999992000000001 overflows long.MaxValue (9223372036854775807), wrapping negative; the returned value does not equal (3999999999^2) mod 4000000000.",
+   "rootCause": "Line 11 computes 'res = res * a % mod' and 'a = a * a % mod' directly in long arithmetic. With mod > sqrt(long.MaxValue) ~ 3.037e9, operands < mod can have products exceeding long range, so the multiply overflows before the % mod is applied.",
+   "suggestedFix": "Route the multiplications through SafeMulMod.Run (after that routine itself is fixed) instead of raw '* % mod', e.g. res = SafeMulMod.Run(res, a, mod); a = SafeMulMod.Run(a, a, mod); or use Int128/UInt128 for the product."
+  },
+  {
+   "file": "src/IAFahim.Math.Basic/Basic.cs",
+   "symbol": "SafeMulMod.SafeAdd",
+   "severity": "high",
+   "category": "overflow",
+   "summary": "The large-modulus path (mod > int.MaxValue) reduces a*b via repeated doubling/addition using SafeAdd, which computes 'a + b' in plain long arithmetic. When the modulus exceeds long.MaxValue/2 (~4.61e18), operands a,b in [0,mod) can sum to more than long.MaxValue, overflowing to a negative value and corrupting the result. The routine is named 'Safe' but is not safe for the upper half of the valid long modulus range.",
+   "triggeringInput": "Run(a=mod-1, b=mod-1, mod=(1L<<62)+5 = 4611686018427387909): inside the doubling loop SafeAdd(a,a,mod) computes (4611686018427387908 + 4611686018427387908) = 9223372036854775816 > long.MaxValue (9223372036854775807), overflowing to a negative number; result is wrong.",
+   "rootCause": "Line 96 'long res = a + b; return res >= mod ? res - mod : res;' assumes a+b does not overflow long. That holds only when mod <= long.MaxValue/2. For mod in (long.MaxValue/2, long.MaxValue], a+b can overflow signed 64-bit before the comparison, so the conditional subtraction operates on a wrapped negative value.",
+   "suggestedFix": "Detect overflow before subtracting: 'ulong s = (ulong)a + (ulong)b; if (s >= (ulong)mod) s -= (ulong)mod; return (long)s;' (unsigned sum cannot overflow since a,b < mod <= long.MaxValue, and a+b < 2*long.MaxValue < ulong.MaxValue), or use Int128."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Basic/Basic.cs",
+   "symbol": "IsPerfectSquare.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "IntegerSqrt.Run is called twice for the same x, doubling a ~31-iteration binary search with two mid*mid multiplies per iteration.",
+   "currentCost": "Two full IntegerSqrt binary searches (each ~31 loop iterations, each with a 64-bit multiply and compare) plus one final multiply. The square root is recomputed from scratch a second time even though it is identical.",
+   "proposedChange": "Compute the root once: long s = IntegerSqrt.Run(x); return x >= 0 && s * s == x; (x>=0 is already guaranteed inside IntegerSqrt which returns -1 for negatives, so the cheap fix is `long s = IntegerSqrt.Run(x); return s >= 0 && s * s == x;`). For x<0, IntegerSqrt returns -1, and (-1)*(-1)==1 != x for negative x, so the s>=0 guard preserves correctness while removing the second call.",
+   "rationale": "Halves the work of the dominant cost (the binary search). Caching the result removes ~31 iterations and ~31 multiplies plus the redundant comparison setup.",
+   "risk": "Must keep the x>=0 / s>=0 guard. IntegerSqrt.Run(x) returns -1 for x<0; using s = -1 then `s>=0` correctly yields false, identical to the original x>=0 check. No overflow concern: s <= 3037000499 so s*s fits in long without overflow for valid inputs (same as original)."
+  },
+  {
+   "file": "src/IAFahim.Math.Basic/Basic.cs",
+   "symbol": "CeilLog2.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Recomputes floor via FloorLog2 then separately tests power-of-two; the power-of-two test re-derives information already implied, but more importantly the call is fine \u2014 the real micro-win is ordering the cheap mask test first.",
+   "currentCost": "FloorLog2 (a ~6-branch cascade) always runs, then `(x & (x-1)) == 0` runs. For exact powers of two the +1 is skipped, but FloorLog2's full cascade still executes.",
+   "proposedChange": "Leave FloorLog2 (needed for the magnitude) but compute the power-of-two predicate before/in parallel as a branchless add: `int floor = FloorLog2.Run(x); return floor + (((x & (x - 1)) != 0) ? 1 : 0);` which is what it already does \u2014 this is essentially optimal. The only genuine improvement is marking FloorLog2 and CeilLog2 for inlining (already done). No change recommended beyond confirming the predicate increment is branchless.",
+   "rationale": "Branchless increment avoids a mispredict on the boundary between exact and non-exact powers.",
+   "risk": "None; arithmetic identical. Low impact \u2014 listed only for completeness; can be skipped."
+  },
+  {
+   "file": "src/IAFahim.Math.Basic/Basic.cs",
+   "symbol": "FastPow.Run / SafeMulMod.Run / IntegerSqrt.Run / NthRoot.Run / IntegerCbrt.Run",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "These hot leaf methods lack [MethodImpl(AggressiveInlining)] while their tiny siblings (NormalizeModulo, Minimize, etc.) have it; inlining FastPow/SafeMulMod into callers exposes the modulus to constant-folding when mod is a compile-time constant.",
+   "currentCost": "Each call is a real function-call boundary (stack setup, no cross-procedure constant propagation). When `mod` is a literal at the call site, Burst/LLVM cannot strength-reduce the `% mod` into a multiply-shift magic-number division unless the body is inlined or mod is visible.",
+   "proposedChange": "Add [MethodImpl(MethodImplOptions.AggressiveInlining)] to FastPow.Run, IntegerSqrt.Run, IntegerCbrt.Run, NthRoot.Run (and its private CanMultiply), SafeMulMod.Run and SafeAdd. For the unrolled bit-twiddlers NextPowerOfTwo.Run (sibling PrevPowerOfTwo already has it) add it too for consistency and call-site folding.",
+   "rationale": "Inlining small/medium hot math routines lets LLVM constant-fold known moduli into magic-number division (replacing a 20-40 cycle DIV with a multiply+shift), removes call overhead in inner loops, and keeps values in registers across the boundary.",
+   "risk": "Inlining larger bodies (the while-loop reductions) increases code size; on mobile I-cache this is a tradeoff. AggressiveInlining is a hint Burst may decline for large bodies, so semantics are unaffected. The main, safe, high-value targets are NextPowerOfTwo (currently missing, sibling has it) and the leaf SafeAdd; the loop-bodies are optional."
+  },
+  {
+   "file": "src/IAFahim.Math.Basic/Basic.cs",
+   "symbol": "NthRoot.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "CanMultiply recomputes `x / mid` (a division) inside its loop guard each iteration of the binary search, and binary-search hi bound `1L << (62/n + 1)` plus per-step overflow guard are heavier than needed for small n.",
+   "currentCost": "For each binary-search step (~62/n steps), CanMultiply loops up to n times doing `x / mid` (a divide) per iteration to avoid overflow. That is n divides per probe, O(n log range) divides total.",
+   "proposedChange": "Hoist the divisor-independent part where possible and special-case n==2 to delegate to IntegerSqrt.Run and n could fall through for n>=64 (where hi collapses to 1) early: `if (n >= 63) return x >= 1 ? 1 : 0;` Also for n==2 call IntegerSqrt directly to reuse its tighter 31-step search without the per-iteration division of CanMultiply. Keep the overflow-safe `p > x / mid` guard only for the general path.",
+   "rationale": "Delegating n==2 to IntegerSqrt removes the n-divides-per-probe overhead for the most common non-trivial root; the n>=63 short-circuit avoids a binary search whose answer is always 0 or 1.",
+   "risk": "Must match boundary results exactly. IntegerSqrt.Run returns floor(sqrt(x)) which equals NthRoot for n==2 for all x>=0 \u2014 verify both return the same for x==0 and perfect squares (they do). The n>=63 case: 2^63 overflows long, so any x>=1 has integer 63rd root >= 1 but < 2; floor is 1 for x>=1, 0 for x==0 \u2014 matches `x>=1?1:0`. Confirm 62/n+1 shift bound is unaffected for the remaining range."
+  }
+ ]
+}

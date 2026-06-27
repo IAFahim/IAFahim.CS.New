@@ -1,0 +1,72 @@
+{
+ "file": "src/IAFahim.Geometry.Basic/GeometryBasic.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Geometry.Basic/GeometryBasic.cs",
+   "symbol": "PolygonContains.Run",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Ray-casting point-in-polygon uses the cross-multiplied test `px*dy < rhs` (where dy = yj - yi) which is only valid when dy > 0. For any edge directed downward (yj < yi), multiplying the inequality `px < xint` by the negative dy should flip the comparison to `>`, but the code keeps `<`. This inverts the edge-crossing toggle for every downward edge, producing wrong inside/outside results for essentially all polygons.",
+   "triggeringInput": "CCW square n=4, x={0,4,4,0}, y={0,0,4,4}, query point px=2, py=2 (clearly interior). Returns 0 (outside) instead of 1. Conversely the exterior point px=5,py=2 returns 1 (inside).",
+   "rootCause": "The standard test counts an edge crossing when px < xi + (xj-xi)*(py-yi)/(yj-yi). Rewriting it as px*dy < xi*dy + (xj-xi)*(py-yi) is only equivalent when dy=yj-yi is positive; for dy<0 the inequality direction must reverse. The single fixed `<` operator silently miscounts every edge whose endpoints go from higher y to lower y, so the inside/outside parity ends up inverted.",
+   "suggestedFix": "Either branch on the sign of dy (use `<` when dy>0 and `>` when dy<0), or normalize the orientation by always treating the lower vertex as the start, or revert to the canonical form: compute the intersection condition as `px < xi + (xj - xi) * (py - yi) / dy` using rational/long-double-free comparison, e.g. test `(px - xi) * dy < (xj - xi) * (py - yi)` only after forcing dy>0 (swap (xi,yi) with (xj,yj) when yi>yj so dy is always positive)."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Basic/GeometryBasic.cs",
+   "symbol": "PolygonArea.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace per-iteration `(i + 1) % n` integer modulo with the rotating-index idiom used in PolygonContains.",
+   "currentCost": "One 64/32-bit integer division (idiv, ~20-40 cycle latency, not pipelined) per vertex per call, because `n` is a runtime value (not a power of two), so the JIT/Burst cannot strength-reduce the modulo. For an n-gon that is n divisions in the inner loop.",
+   "proposedChange": "Restructure as `for (int i = 0, j = n - 1; i < n; j = i++) { area += x[j]*y[i] - x[i]*y[j]; }` (shoelace with previous index j), or hoist `int j = 0; for i: j = i+1; if (j==n) j=0;`. This removes the div entirely, replacing it with a copy/compare-branch that predicts perfectly.",
+   "rationale": "idiv is one of the most expensive integer ops; eliminating one per loop iteration converts an O(n) chain of long-latency divisions into O(n) cheap adds/multiplies. The j=i++ trailing-index form is already proven in PolygonContains in this same file, so it is idiomatic here.",
+   "risk": "Must preserve sign of the accumulated cross sum. The shoelace sum's sign is taken as abs at the end (`if (area<0) area=-area`), so re-ordering i/j swaps the sign of every term uniformly and the final abs makes it identical. Only valid because the result is the absolute area; verify the term reorder keeps the same magnitude (it does: sum over edges is rotation-invariant)."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Basic/GeometryBasic.cs",
+   "symbol": "PolygonCentroid.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Eliminate the per-iteration `(i + 1) % n` modulo with a wrap-on-compare next index.",
+   "currentCost": "One integer division per vertex to compute `j = (i + 1) % n`, in addition to the real centroid math. Same non-power-of-two idiv penalty as PolygonArea.",
+   "proposedChange": "Use `int j = 1; for (int i = 0; i < n; i++) { ...use x[i],x[j]...; j++; if (j == n) j = 0; }` so the wrap is a predictable compare+conditional-move/branch instead of a division. Reads x[i],y[i],x[j],y[j] into locals once to also cut redundant pointer loads.",
+   "rationale": "Replaces a long-latency idiv per iteration with a single increment and a well-predicted branch (taken exactly once per call). For polygons with many vertices this is a measurable constant-factor reduction in the centroid hot loop.",
+   "risk": "Semantics-preserving: the only use of j is to index the next vertex with wraparound at n, which the increment-and-reset reproduces exactly. The final `cx*3/area` division and the area!=0 guard are unchanged. Caller must still pass n>=1 (already assumed by the unchecked Run contract)."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Basic/GeometryBasic.cs",
+   "symbol": "PolygonContains.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist the shared subexpression in the crossing test to cut one multiply per crossing edge.",
+   "currentCost": "Per edge that straddles py, computes `rhs = xi*dy + (xj - xi)*(py - yi)` then `px*dy`. The two multiplies plus the add form the per-edge work; `dy = yj - yi` and the comparison `(yi>py)!=(yj>py)` are recomputed each edge.",
+   "proposedChange": "Keep current structure but factor `px*dy < xi*dy + (xj-xi)*(py-yi)` into `(px - xi)*dy < (xj - xi)*(py - yi)`, which is algebraically identical and uses two multiplies instead of three (drops the separate `xi*dy` term).",
+   "rationale": "Reduces the multiply count in the inner test from three (px*dy, xi*dy, (xj-xi)*(py-yi)) to two ((px-xi)*dy and (xj-xi)*(py-yi)), shortening the dependency chain on the hot crossing path with no change in the comparison's truth value.",
+   "risk": "Sign-of-inequality preservation: moving xi*dy to the left as (px-xi)*dy keeps the same inequality direction only when dy is unchanged sign-wise on both sides, which it is (dy multiplies both sides identically here, but note we are NOT dividing \u2014 we subtract xi*dy from both sides, so the inequality direction is fully preserved regardless of dy's sign). Use 64-bit longs as now; (px-xi) and (py-yi) stay within long range given inputs already used in long multiplies."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Basic/GeometryBasic.cs",
+   "symbol": "Ccw.Run",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Ccw.Run is a byte-for-byte duplicate of Orientation.Run; collapse one into a forwarding call to remove duplicate code/icache footprint.",
+   "currentCost": "Two separate identical method bodies (Ccw and Orientation) each emit the same cross-product + sign logic, duplicating code size and instruction-cache footprint; SegmentIntersect/OnSegment call Orientation, leaving Ccw a redundant copy.",
+   "proposedChange": "Make `Ccw.Run` body `return Orientation.Run(ax, ay, bx, by, cx, cy);` (still AggressiveInlining, so zero call overhead after inlining), keeping the public API intact while having a single source of truth.",
+   "rationale": "With AggressiveInlining the forwarding call inlines to the identical machine code, so runtime cost is unchanged while source duplication and standalone code size shrink. Purely a maintainability/footprint win with no perf regression.",
+   "risk": "None to observable behavior: identical inputs map to identical outputs. Only consideration is that Ccw must keep the same signature/return convention (-1/0/1), which forwarding preserves exactly."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Basic/GeometryBasic.cs",
+   "symbol": "Orientation.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Return branchless sign of the cross product instead of two compares-and-branches.",
+   "currentCost": "Two conditional branches (`if cross>0`, `if cross<0`) to produce -1/0/1. On the hot path inside SegmentIntersect (4 calls) and OnSegment, mispredictable branches on data-dependent sign.",
+   "proposedChange": "Compute sign branchlessly: `return (int)((cross > 0 ? 1 : 0) - (cross < 0 ? 1 : 0));` which Burst/JIT typically lowers to setcc/conditional-moves, or use `(int)(((ulong)(-cross) >> 63)) ... ` style sign extraction. Concretely `int s = (cross >> 63) | (int)((-(ulong)cross) >> 63 ... )` \u2014 simplest portable form is `return (cross > 0 ? 1 : 0) - (cross < 0 ? 1 : 0);`.",
+   "rationale": "Eliminates two data-dependent conditional branches in a leaf function called up to 4x per SegmentIntersect and inside polygon-adjacent geometry, replacing them with branchless setcc/cmov which avoids branch-misprediction stalls when orientation sign is unpredictable.",
+   "risk": "Must produce exactly -1/0/1 for negative/zero/positive cross including the case cross == long.MinValue (where -cross overflows): the `(cross>0)-(cross<0)` form avoids any negation and is overflow-safe, so prefer that form over any `-cross` bit-trick. No overflow in cross itself is a pre-existing caller assumption (unchecked Run)."
+  }
+ ]
+}

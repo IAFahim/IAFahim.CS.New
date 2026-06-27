@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Combinatorics.Generation/Permutations.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Combinatorics.Generation/Permutations.cs",
+   "symbol": "JohnsonTrotterEnumerator.MoveNext",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Finds the largest mobile element by full O(n) scan plus a second O(n) direction-flip scan every step; classic JT tracks position to avoid the search.",
+   "currentCost": "Per step: one O(n) loop to locate the largest mobile element (with redundant `dir[a[i]]` lookups and two near-identical branches), then a swap, then a SECOND O(n) loop flipping directions of all larger elements. Total 2n reads/writes per permutation; the position lookup is the avoidable part.",
+   "proposedChange": "Maintain an inverse-permutation (value->index) array so the mobile-element position is found in O(1) per value, or use the standard Steinhaus-Johnson-Trotter with a position table; still O(n) worst for the flip pass but removes the search loop. At minimum, hoist `a[i]` into a local and compute `dir[a[i]]` once per i instead of twice.",
+   "rationale": "Removes one of two full-array passes per step and redundant repeated `dir[a[i]]` indexed loads; for an enumerator called n! times this constant factor and the search elimination compound dramatically.",
+   "risk": "Must preserve the exact JT visiting order. The inverse-array variant needs extra n-int state (ram tradeoff) and careful maintenance on swaps; verify the emitted sequence is unchanged. The local-hoist micro-opt alone is zero-risk."
+  },
+  {
+   "file": "src/IAFahim.Combinatorics.Generation/Permutations.cs",
+   "symbol": "InvolutionCount",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "O(n) stackalloc for a 2-term linear recurrence that needs only two scalars.",
+   "currentCost": "Allocates `long* dp = stackalloc long[n+1]` though dp[i] depends only on dp[i-1] and dp[i-2]. That is n+1 longs of stack and n+1 stores when two rolling scalars suffice.",
+   "proposedChange": "Replace the array with two locals: `long prev2=1, prev1=1, cur=1; for(int i=2;i<=n;i++){ cur = prev1 + (long)(i-1)*prev2; prev2=prev1; prev1=cur; } return cur;`",
+   "rationale": "Drops stack working set from O(n) to O(1) and removes n array stores/loads, keeping everything in registers \u2014 better for Burst register allocation and avoids stack traffic.",
+   "risk": "None. Same recurrence, same long arithmetic; (i-1)*dp[i-2] cast to long preserved. Identical output for all n."
+  },
+  {
+   "file": "src/IAFahim.Combinatorics.Generation/Permutations.cs",
+   "symbol": "RandomDerangement",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "j = (i+1)%n fixup uses a modulo where a branchless wrap suffices, and the swap-with-neighbor fixup does not guarantee a derangement.",
+   "currentCost": "`(i+1)%n` issues an integer division per fixed point. Also semantically: swapping a fixed point with its neighbor can create a new fixed point or fail to derange in general, so the result is not a guaranteed derangement (correctness concern, not just perf).",
+   "proposedChange": "For the modulo: `int j = i+1; if (j==n) j=0;` (single branch, no div) since i in [0,n-1]. Separately, flag that the algorithm should be a rejection-sampling or early-refusal derangement generator if a true uniform derangement is the contract.",
+   "rationale": "Replaces a div (10-40 cycles) with a predictable compare+move. The correctness note prevents shipping a non-derangement under a Random*Derangement* name.",
+   "risk": "The modulo replacement is exact for i in [0,n-1]. The correctness flag is a behavior question for the maintainer \u2014 do not silently change sampling semantics; raise it."
+  },
+  {
+   "file": "src/IAFahim.Combinatorics.Generation/Permutations.cs",
+   "symbol": "IsInvolution",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Hoist a[k] to avoid double-indexing and enable a cleaner branchless accumulation.",
+   "currentCost": "`a[a[k]] != k` does a dependent double load (a[k] then a[a[k]]) plus an early-return branch each iteration. Fine, but the inner load can be hoisted.",
+   "proposedChange": "`for(int k=0;k<n;k++){ int ak=a[k]; if (a[ak]!=k) return false; } return true;` keeps the early-out. The double indirection is inherent; just name the intermediate so Burst schedules the loads.",
+   "rationale": "Minor: makes the dependent-load chain explicit and removes a redundant recompute of a[k]; negligible but free.",
+   "risk": "None. Identical semantics including early return."
+  }
+ ]
+}

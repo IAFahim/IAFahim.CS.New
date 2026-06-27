@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Geometry.Curve/CatmullRom.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Curve/CatmullRom.cs",
+   "symbol": "Evaluate",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Use Horner's method to evaluate the cubic, cutting vector multiplies and shortening the dependency chain.",
+   "currentCost": "Computes tt = t*t and ttt = tt*t, then p = Half*(a + b*t + c*tt + d*ttt). That is 3 vector scalar-multiplies on b,c,d plus 3 vector adds plus the final Half scale, and a long serial chain (ttt depends on tt depends on t).",
+   "proposedChange": "Evaluate as p = Half * (a + t*(b + t*(c + t*d))). This is 3 fused multiply-adds (math.mad / mad pattern Burst lowers to FMA) plus the Half scale, and avoids materializing tt and ttt entirely.",
+   "rationale": "Horner form removes the precomputation of tt and ttt (2 scalar muls) and replaces 3 independent scalar*vector + 3 adds with 3 mads. On Burst this maps to vectorized FMA on float3, fewer instructions and a balanced/shorter critical path, lowering latency per evaluation. Evaluate is the hottest leaf (called per LUT sample and per output sample).",
+   "risk": "Floating-point result changes in the last ULP because mad/FMA rounds once vs separate mul+add, and reassociation reorders rounding. If bit-exact parity with the current expression is required by tests, this is observable; otherwise mathematically equivalent. Reject if exact-bit reproducibility is a contract."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Curve/CatmullRom.cs",
+   "symbol": "Evaluate / EvaluateTangent",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Provide a combined position+tangent entry point so the shared coefficients b, c, d are computed once.",
+   "currentCost": "Callers that need both a point and its tangent at the same t call Evaluate then EvaluateTangent, each independently recomputing b = p2-p0, c = 2p0-5p1+4p2-p3, and d = p3-p0+3(p1-p2) (roughly a dozen vector ops duplicated).",
+   "proposedChange": "Add a static method EvaluateWithTangent(p0,p1,p2,p3,t, out float3 pos, out float3 tangent) that computes a,b,c,d once and produces both pos = Half*(a + t*(b + t*(c+t*d))) and tangent = Half*(b + t*(2c + 3t*d)). Keep the two existing methods for callers needing only one.",
+   "rationale": "Eliminates duplicate computation of b, c, d (the bulk of the work) when both outputs are needed, halving coefficient setup. This mirrors how CubicBezier.UniformSample evaluates position and tangent at the same t.",
+   "risk": "Pure additive API; no behavior change to existing methods. The out form must reproduce the same arithmetic ordering to stay bit-identical, or accept last-ULP differences from any Horner refactor. Low risk."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Curve/CatmullRom.cs",
+   "symbol": "(file)",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Remove unused usings and unused named constants to reduce surface and avoid confusion.",
+   "currentCost": "using System; is imported but unused. Constants Zero (0f), and arguably the full set, exist; in Evaluate/EvaluateTangent only Half, Two, Three, Four, Five are referenced. Zero and One appear unused.",
+   "proposedChange": "Drop using System; and any const not referenced (Zero, One if unreferenced). Verify each const has a use before removing.",
+   "rationale": "No runtime cost (consts are compile-time), but trimming dead declarations keeps the file lean and prevents accidental misuse. Pure hygiene.",
+   "risk": "None functionally. Only confirm the consts are truly unreferenced before deletion."
+  }
+ ]
+}

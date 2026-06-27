@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Math.NT/Factorize.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/Factorize.cs",
+   "symbol": "Factorize.Factor",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Factor recurses on (d, n/d) recomputing n/d that PollardRho effectively already split; minor, but the MillerRabin/PollardRho calls dominate so leave structure, only ensure n/d computed once.",
+   "currentCost": "'Factor(d,...); Factor(n / d,...)' computes n/d after the PollardRho call; this single division is negligible next to the probabilistic primality/factoring cost, so the file is essentially optimal.",
+   "proposedChange": "Optionally hoist 'long cof = n / d;' before the two recursive calls for readability/consistency with the single-division convention; no measurable perf change since the heavy lifting is in MillerRabin/PollardRho.",
+   "rationale": "Keeps the one-division-per-value convention and avoids any chance of recomputation, but the asymptotic and constant costs are governed by the number-theoretic subroutines, not this division.",
+   "risk": "None; identical behavior. Listed low-impact for completeness \u2014 Factorize is already well structured (insertion sort over the few prime factors is appropriate)."
+  }
+ ]
+}

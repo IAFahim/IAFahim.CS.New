@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Optimization.Exact/MinDominatingSet.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Exact/MinDominatingSet.cs",
+   "symbol": "Search",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Domination is tracked with int counts over a bool adjacency matrix scanned row-by-row; using ulong bitmask closed-neighborhoods collapses the inner O(n) neighbor loops to O(n/64) and makes the final all-dominated check O(1).",
+   "currentCost": "Each branch where a vertex is chosen scans the full adjacency row twice (lines 32-33 and 36-37), O(n) increments/decrements per node added/removed, plus the leaf check (lines 20-21) scans all n dom[] counts. Over a backtracking tree this is the dominant cost.",
+   "proposedChange": "Precompute per-vertex closed-neighborhood bitmasks N[v] (ulong[ceil(n/64)] per vertex, or a single ulong when n<=64). Represent the dominated set as a bitset 'dominated'. Choosing v sets dominated |= N[v]; the leaf test becomes popcount(dominated)==n (or dominated==full). Backtracking needs the previous dominated value saved on the recursion stack instead of decrementing counts.",
+   "rationale": "Replaces two O(n) row scans and an O(n) leaf scan with O(n/64) OR operations and an O(1) full-mask compare, an up-to-64x constant-factor reduction on the hottest path; bitset ops are branch-free and Burst-vectorizable.",
+   "risk": "Counts allow per-vertex domination multiplicity (dom[u] can exceed 1) but only the >0 predicate is ever observed (lines 21,26), so a boolean/bitset is behaviorally equivalent. Backtracking must restore the saved prior bitset rather than subtract; store it in a local (stack) per recursion frame. For n>64 use a small fixed ulong array and stackalloc/scratch \u2014 keep it unmanaged."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Exact/MinDominatingSet.cs",
+   "symbol": "Search",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Bound pruning is missing: search recurses to idx==n before testing 'used < *best', exploring branches that cannot improve the incumbent.",
+   "currentCost": "The 'used < *best' comparison only happens at the leaf (line 22). Branches that have already used >= *best vertices keep recursing pointlessly through the full O(n) row updates at each level.",
+   "proposedChange": "Add an early cutoff at the top of Search: 'if (used >= *best) return;' (mirrors the pattern already used in MinSetCover.Search line 23). Optionally also prune when used+1 >= *best before taking the 'include v' branch.",
+   "rationale": "Prunes entire subtrees of the backtracking tree, each of which would otherwise perform O(n) work per level \u2014 a real reduction in explored nodes, not just a constant factor.",
+   "risk": "Semantics-preserving: any leaf reachable from a node with used>=*best would set *best only if used<*best, which is already impossible, so pruning cannot discard an improving solution."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Exact/MinDominatingSet.cs",
+   "symbol": "Search",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "adj[vi2 * n + u] base offset (vi2*n) is recomputed each iteration of both neighbor loops.",
+   "currentCost": "Lines 32-33 and 36-37 index adj[vi2*n+u] inside the loop; the multiply vi2*n is loop-invariant.",
+   "proposedChange": "Hoist 'bool* row = adj + vi2 * n;' once before each loop and index row[u]. (Moot if the bitset rewrite above is adopted.)",
+   "rationale": "Removes a multiply from each of n iterations; gives Burst a clean linear pointer walk that vectorizes better.",
+   "risk": "None; vi2 and n are invariant across the loop."
+  }
+ ]
+}

@@ -1,0 +1,5615 @@
+# Discovery Report — Setup & Discovery
+
+This report lists all 153 packages in the workspace, their public C# APIs, and existing descriptions.
+
+## Packages List
+
+### IAFahim.Algebra.GraphPoly
+- **Path**: `src/IAFahim.Algebra.GraphPoly`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Algebra.GraphPoly/Chromatic.cs`
+  - `IAFahim.Algebra.GraphPoly/Independence.cs`
+  - `IAFahim.Algebra.GraphPoly/Matching.cs`
+  - `IAFahim.Algebra.GraphPoly/Reliability.cs`
+  - `IAFahim.Algebra.GraphPoly/Rook.cs`
+  - `IAFahim.Algebra.GraphPoly/Tutte.cs`
+- **Public APIs**:
+  - **class** `Chromatic`
+    - `public static void Subset(int n, bool* adj, int MOD, long* coeffs)`
+    - `public static int NumberDp(int n, bool* adj, int MOD)`
+    - `public static void DeletionContraction(int n, bool* adj, int edges, int* from, int* to, int MOD, long* coeffs)`
+  - **class** `Independence`
+    - `public static long Polynomial(int n, bool* adj, long x, int MOD)`
+  - **class** `Matching`
+    - `public static long Polynomial(int n, bool* adj, long x, int MOD)`
+  - **class** `Reliability`
+    - `public static long Run(int n, int edges, int* from, int* to, long p, int MOD)`
+  - **class** `Rook`
+    - `public static long Run(int n, int m, bool* blocked, long x, int MOD)`
+  - **class** `Tutte`
+    - `public static long Subset(int n, int edges, int* from, int* to, long x, long y, int MOD)`
+
+### IAFahim.Algebra.Polynomial
+- **Path**: `src/IAFahim.Algebra.Polynomial`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Algebra.Polynomial/Berlekamp.cs`
+  - `IAFahim.Algebra.Polynomial/BerlekampMassey.cs`
+  - `IAFahim.Algebra.Polynomial/BostanMori.cs`
+  - `IAFahim.Algebra.Polynomial/CantorZassenhaus.cs`
+  - `IAFahim.Algebra.Polynomial/DivMod.cs`
+  - `IAFahim.Algebra.Polynomial/Gcd.cs`
+  - `IAFahim.Algebra.Polynomial/Ntt.cs`
+  - `IAFahim.Algebra.Polynomial/OfflineQuery.cs`
+  - `IAFahim.Algebra.Polynomial/PowMod.cs`
+  - `IAFahim.Algebra.Polynomial/ProductTree.cs`
+  - `IAFahim.Algebra.Polynomial/RationalInterpolation.cs`
+  - `IAFahim.Algebra.Polynomial/RemainderTree.cs`
+  - `IAFahim.Algebra.Polynomial/RootFind.cs`
+  - `IAFahim.Algebra.Polynomial/SchonhageStrassen.cs`
+  - `IAFahim.Algebra.Polynomial/SquareFree.cs`
+  - `IAFahim.Algebra.Polynomial/ToomCook.cs`
+- **Public APIs**:
+  - **class** `Berlekamp`
+    - `public static int Run(long* poly, int n, int MOD, long* outF, int* outL)`
+  - **class** `BerlekampMassey`
+    - `public static int Run(long* s, int n, int MOD, long* c)`
+  - **class** `BostanMori`
+    - `public static long Run(long* p, int pLen, long* q, int qLen, long k, int MOD)`
+  - **class** `CantorZassenhaus`
+    - `public static int Run(long* poly, int n, int MOD, long* outF, int* outL)`
+  - **class** `DivMod`
+    - `public static void Run(long* a, int lenA, long* b, int lenB, long* q, out int lenQ, long* r, out int lenR, int MOD)`
+  - **class** `Gcd`
+    - `public static void Run(long* a, int lenA, long* b, int lenB, long* gcd, out int lenGcd, int MOD)`
+  - **class** `Ntt`
+    - `public static void Convolve(long* a, long* b, long* result, int n, int MOD, long primRoot)`
+    - `public static void ThreePrime(long* a, long* b, long* result, int n)`
+    - `public static void Crt(long* r1, long* r2, long* r3, long* result, int n, int MOD)`
+  - **class** `OfflineQuery`
+    - `public static long MultiEval(long* poly, int n, long x, int MOD)`
+  - **class** `PowMod`
+    - `public static void Run(long* poly, int lenPoly, long exponent, long* modPoly, int lenModPoly, long* result, out int lenResult, int MOD)`
+  - **class** `ProductTree`
+    - `public static int Build(long* values, int n, int MOD, long* tree, int* offsets, int* sizes)`
+  - **class** `RationalInterpolation`
+    - `public static int Run(long* xs, long* ys, int n, long MOD, long* num, long* den)`
+  - **class** `RemainderTree`
+    - `public static int Build(long* poly, int polyLen, long* values, int n, int MOD, long* remainders, int* remLens)`
+  - **class** `RootFind`
+    - `public static int Find(long* poly, int n, int MOD, long* roots)`
+  - **class** `SchonhageStrassen`
+    - `public static void Multiply(long* a, long* b, long* result, int n, int MOD)`
+  - **class** `SquareFree`
+    - `public static int Factor(long* poly, int n, int MOD, long* outFact, int* outLens)`
+  - **class** `ToomCook`
+    - `public static void Multiply(long* a, int lenA, long* b, int lenB, long* result, int MOD)`
+
+### IAFahim.Algebra.Sequence
+- **Path**: `src/IAFahim.Algebra.Sequence`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Algebra.Sequence/Combinatorial.cs`
+  - `IAFahim.Algebra.Sequence/GeneratingFunction.cs`
+  - `IAFahim.Algebra.Sequence/Prufer.cs`
+  - `IAFahim.Algebra.Sequence/Stirling.cs`
+  - `IAFahim.Algebra.Sequence/SubsetBell.cs`
+  - `IAFahim.Algebra.Sequence/Transform.cs`
+- **Public APIs**:
+  - **class** `Combinatorial`
+    - `public static long Eulerian(int n, int k, int MOD)`
+    - `public static long Narayana(int n, int k, int MOD)`
+    - `public static long Lah(int n, int k, int MOD)`
+    - `public static long YoungTableaux(int* shape, int len, int MOD)`
+    - `public static long HookLength(int* shape, int len, int MOD) => YoungTableaux(shape, len, MOD);`
+    - `public static long QBinomial(int n, int k, long q, int MOD)`
+    - `public static long GaussianBinomial(int n, int k, long q, int MOD) => QBinomial(n, k, q, MOD);`
+    - `public static long Binom(int n, int k, int MOD)`
+    - `public static long Factorial(int n, int MOD)`
+    - `public static long ModPow(long b, long e, long mod)`
+  - **class** `GeneratingFunction`
+    - `public static void EgfMultiply(long* a, long* b, int n, int MOD, long* result)`
+    - `public static void OgfMultiply(long* a, long* b, int n, int MOD, long* result)`
+    - `public static long LagrangeInversion(long* f, int n, int k, int MOD)`
+    - `public static long TreeCount(int n, int MOD)`
+  - **class** `Prufer`
+    - `public static long Rank(int* seq, int n, int MOD)`
+    - `public static void Unrank(long rank, int n, int MOD, int* seq)`
+  - **class** `Stirling`
+    - `public static void FirstRow(int n, int MOD, long* result)`
+    - `public static void SecondRow(int n, int MOD, long* result)`
+    - `public static long First(int n, int k, int MOD)`
+    - `public static long Second(int n, int k, int MOD)`
+  - **class** `SubsetBell`
+    - `public static long Run(long* a, int n, int MOD)`
+  - **class** `Transform`
+    - `public static void Binomial(long* a, int n, int MOD, long* b)`
+    - `public static void InverseBinomial(long* a, int n, int MOD, long* b)`
+    - `public static long SetPartition(int n, int MOD)`
+    - `public static long CayleyCount(int n, int MOD)`
+
+### IAFahim.Collections.NoDeps
+- **Path**: `src/IAFahim.Collections.NoDeps`
+- **Description**: Curious cat wants Unity-style allocators while prowling in pure .NET, so it uses these stubs to keep builds happy. It lets the cat compile data structures without dragging Unity assemblies along.
+- **C# Source Files**:
+  - `IAFahim.Collections.NoDeps/Allocator.cs`
+  - `IAFahim.Collections.NoDeps/AllocatorManager.cs`
+  - `IAFahim.Collections.NoDeps/Assertions.cs`
+  - `IAFahim.Collections.NoDeps/Attributes.cs`
+  - `IAFahim.Collections.NoDeps/BLGlobalLogger.cs`
+  - `IAFahim.Collections.NoDeps/CollectionHelper.cs`
+  - `IAFahim.Collections.NoDeps/Hint.cs`
+  - `IAFahim.Collections.NoDeps/INativeDisposable.cs`
+  - `IAFahim.Collections.NoDeps/JobsUtility.cs`
+  - `IAFahim.Collections.NoDeps/Memory.cs`
+  - `IAFahim.Collections.NoDeps/NativeArray.cs`
+  - `IAFahim.Collections.NoDeps/NativeArrayOptions.cs`
+  - `IAFahim.Collections.NoDeps/NativeHashSet.cs`
+  - `IAFahim.Collections.NoDeps/NativeKeyedMap.cs`
+  - `IAFahim.Collections.NoDeps/NativeList.cs`
+  - `IAFahim.Collections.NoDeps/NativeParallelMultiHashMap.cs`
+  - `IAFahim.Collections.NoDeps/UnsafeKeyedMap.cs`
+  - `IAFahim.Collections.NoDeps/UnsafeList.cs`
+  - `IAFahim.Collections.NoDeps/UnsafeParallelHashSet.cs`
+  - `IAFahim.Collections.NoDeps/UnsafePartialKeyedMap.cs`
+  - `IAFahim.Collections.NoDeps/UnsafeUtility.cs`
+- **Public APIs**:
+  - **class** `AllocatorManager`
+  - **struct** `AllocatorHandle`
+    - `public int Value;`
+    - `public readonly AllocatorHandle Handle => this;`
+    - `public static implicit operator Allocator(AllocatorHandle handle)`
+    - `public static implicit operator AllocatorHandle(Allocator allocator)`
+  - **class** `Assert`
+    - `public static void IsTrue(bool condition)`
+    - `public static void IsFalse(bool condition)`
+    - `public static void AreEqual<T>(T expected, T actual)`
+  - **class** `Check`
+    - `public static void Assume(bool assumption)`
+    - `public static void Assume(bool assumption, string message)`
+  - **class** `JobExtensions`
+  - **class** `BLGlobalLogger`
+    - `public static void LogError512(string msg) {}`
+    - `public static void LogWarningString(string msg) {}`
+  - **class** `CollectionHelper`
+    - `public const int CacheLineSize = 64;`
+    - `public static int Align(int size, int alignment)`
+    - `public static void CheckAllocator(AllocatorManager.AllocatorHandle allocator)`
+    - `public static int AssumePositive(int value)`
+    - `public static void CheckIndexInRange(int index, int length)`
+  - **class** `Hint`
+    - `public static bool Likely(bool val) => val;`
+    - `public static bool Unlikely(bool val) => val;`
+  - **class** `JobsUtility`
+    - `public const int CacheLineSize = 64;`
+    - `public static int ThreadIndex => 0;`
+    - `public static int ThreadIndexCount => 1;`
+    - `public static int JobWorkerCount => 1;`
+  - **class** `Unmanaged`
+    - `public static void* Allocate(long size, int alignment, AllocatorManager.AllocatorHandle allocator)`
+    - `public static void Free(void* ptr, AllocatorManager.AllocatorHandle allocator)`
+  - **struct** `NativeArray`
+    - `public NativeArray(int length, Allocator allocator, NativeArrayOptions options = NativeArrayOptions.ClearMemory)`
+    - `public int Length`
+    - `public bool IsCreated`
+    - `public T this[int index]`
+    - `public NativeArray(void* buffer, int length, Allocator allocator)`
+    - `public readonly void* GetUnsafeReadOnlyPtr() => (void*)_buffer;`
+    - `public readonly void* GetUnsafePtr() => (void*)_buffer;`
+    - `public void Dispose()`
+  - **struct** `NativeHashSet`
+  - **struct** `Enumerator`
+    - `public bool MoveNext()`
+    - `public void Reset()`
+    - `public readonly T Current => this.set.state->Keys[this.entryIndex];`
+    - `public readonly void Dispose()`
+  - **struct** `NativeKeyedMap`
+  - **struct** `NativeList`
+    - `public IntPtr Buffer;`
+    - `public int Length;`
+    - `public int Capacity;`
+    - `public Allocator Allocator;`
+    - `public NativeList(int initialCapacity, Allocator allocator)`
+    - `public NativeList(Allocator allocator) : this(16, allocator)`
+    - `public int Length`
+    - `public int Capacity`
+    - `public readonly bool IsCreated`
+    - `public readonly T* GetUnsafePtr()`
+    - `public T this[int index]`
+    - `public void Dispose()`
+    - `public readonly void Clear()`
+    - `public void Add(in T item)`
+    - `public readonly void RemoveAt(int index)`
+    - `public readonly void RemoveRange(int index, int count)`
+    - `public void Resize(int length, NativeArrayOptions options)`
+    - `public void ResizeUninitialized(int length)`
+  - **struct** `Enumerator`
+    - `public bool MoveNext()`
+    - `public void Reset()`
+    - `public readonly T Current`
+    - `public readonly void Dispose()`
+  - **struct** `JobHandle`
+    - `public void Complete()`
+  - **struct** `NativeParallelMultiHashMapIterator`
+  - **struct** `NativeParallelMultiHashMap`
+  - **struct** `UnsafeBucketData`
+    - `public void* keys;`
+    - `public void* values;`
+  - **struct** `UnsafeKeyedMapIterator`
+    - `public int EntryIndex { get; internal set; }`
+  - **struct** `UnsafeKeyedMap`
+  - **struct** `UnsafeList`
+    - `public UnsafeList(int initialCapacity, Allocator allocator)`
+    - `public UnsafeList(T* ptr, int capacity, Allocator allocator)`
+    - `public int Length`
+    - `public int Capacity`
+    - `public bool IsCreated`
+    - `public T* Ptr`
+    - `public T this[int index]`
+    - `public void Dispose()`
+    - `public void Clear()`
+    - `public void Add(in T item)`
+    - `public void AddRange(T* ptr, int count)`
+    - `public void RemoveAt(int index)`
+    - `public void RemoveRange(int index, int count)`
+    - `public static UnsafeList<T>* Create(int capacity, Allocator allocator)`
+    - `public static void Destroy(UnsafeList<T>* list)`
+    - `public void Resize(int length, Unity.Collections.NativeArrayOptions options = Unity.Collections.NativeArrayOptions.ClearMemory)`
+    - `public void ResizeUninitialized(int length)`
+  - **struct** `UnsafeParallelHashSet`
+  - **struct** `UnsafePartialKeyedMap`
+  - **class** `UnsafeUtility`
+    - `public static int SizeOf<T>() where T : unmanaged`
+    - `public static int AlignOf<T>() where T : unmanaged`
+    - `public static void MemCpy(void* destination, void* source, long size)`
+    - `public static void MemClear(void* destination, long size)`
+    - `public static void MemSet(void* destination, byte value, long size)`
+    - `public static unsafe void* AddressOf<T>(ref T output) where T : unmanaged`
+    - `public static ref U As<T, U>(ref T source)`
+    - `public T Data;`
+    - `public static void WriteArrayElement<T>(void* destination, int index, T value) where T : unmanaged`
+    - `public static T ReadArrayElement<T>(void* source, int index) where T : unmanaged`
+    - `public static void MemCpyReplicate(void* destination, void* source, int size, int count)`
+    - `public static bool IsNativeContainerType<T>() where T : unmanaged`
+    - `public static ref T ArrayElementAsRef<T>(void* ptr, int index) where T : unmanaged`
+
+### IAFahim.Collision.Gjk
+- **Path**: `src/IAFahim.Collision.Gjk`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Collision.Gjk/Epa.cs`
+  - `IAFahim.Collision.Gjk/Gjk.cs`
+  - `IAFahim.Collision.Gjk/MinkowskiDifference.cs`
+- **Public APIs**:
+  - **class** `Epa`
+    - `public static float PenetrationDepth(Gjk.SupportFunction supportA, Gjk.SupportFunction supportB,`
+  - **class** `Gjk`
+    - `public delegate float3 SupportFunction(float3 direction);`
+    - `public static bool Intersect(SupportFunction supportA, SupportFunction supportB)`
+    - `public static bool Intersect(SupportFunction supportA, SupportFunction supportB, float3* outSimplex, out int outCount)`
+    - `public static float Distance(SupportFunction supportA, SupportFunction supportB)`
+  - **class** `MinkowskiDifference`
+    - `public static float3 SphereSupport(float3 direction, float3 center, float radius)`
+    - `public static float3 BoxSupport(float3 direction, float3 center, float3 halfExtents)`
+    - `public static float3 CapsuleSupport(float3 direction, float3 a, float3 b, float radius)`
+    - `public static float3 ConvexHullSupport(float3 direction, float3* points, int count)`
+
+### IAFahim.Combinatorics.Generation
+- **Path**: `src/IAFahim.Combinatorics.Generation`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Combinatorics.Generation/CatalanStructures.cs`
+  - `IAFahim.Combinatorics.Generation/Combinations.cs`
+  - `IAFahim.Combinatorics.Generation/NecklacesAndBracelets.cs`
+  - `IAFahim.Combinatorics.Generation/Permutations.cs`
+  - `IAFahim.Combinatorics.Generation/RandomStructures.cs`
+  - `IAFahim.Combinatorics.Generation/SetPartitions.cs`
+- **Public APIs**:
+  - **class** `CatalanStructures`
+    - `public static bool TryGenerateDyckWord(int n, byte* a, ref bool first)`
+    - `public static void UnrankCatalanObject(long rank, int n, byte* outObj)`
+    - `public static long RankCatalanObject(byte* obj, int n)`
+    - `public static void UnrankDyckWord(long rank, int n, byte* outObj) => UnrankCatalanObject(rank, n, outObj);`
+    - `public static long RankDyckWord(byte* word, int n) => RankCatalanObject(word, n);`
+    - `public static long RankBalancedParentheses(byte* s, int n) => RankDyckWord(s, n);`
+    - `public static void UnrankBalancedParentheses(long rank, int n, byte* outObj) => UnrankDyckWord(rank, n, outObj);`
+  - **class** `Combinations`
+    - `public static bool TryNextMultiset(int* m, int n, int k, int* comb, ref bool first)`
+  - **struct** `CoolLexEnumerator`
+    - `public CoolLexEnumerator(int n, int t) { _n = n; _t = t; _first = true; }`
+    - `public bool MoveNext(int* c, int* res)`
+  - **struct** `RevolvingDoorEnumerator`
+    - `public RevolvingDoorEnumerator(int n, int k) { _n = n; _k = k; _first = true; }`
+    - `public bool MoveNext(int* c, int* res)`
+  - **struct** `LyndonWordEnumerator`
+    - `public LyndonWordEnumerator(int n, int k) { _n = n; _k = k; _first = true; }`
+    - `public bool MoveNext(int* w, int* res, out int resLen)`
+  - **class** `NecklacesAndBracelets`
+    - `public static int DeBruijnFromLyndon(int k, int n, int* outSeq)`
+    - `public static long NecklaceRank(int* necklace, int n, int k) => 0;`
+    - `public static bool NecklaceUnrank(long rank, int n, int k, int* outObj) => false;`
+    - `public static long BraceletRank(int* bracelet, int n, int k) => 0;`
+    - `public static bool BraceletUnrank(long rank, int n, int k, int* outObj) => false;`
+    - `public static long LyndonWordRank(int* word, int n, int k) => 0;`
+    - `public static bool LyndonWordUnrank(long rank, int n, int k, int* outObj) => false;`
+  - **struct** `HeapPermutationEnumerator`
+    - `public HeapPermutationEnumerator(int n) { _n = n; _i = 1; _first = true; }`
+    - `public bool MoveNext(int* a, int* c)`
+  - **struct** `JohnsonTrotterEnumerator`
+    - `public JohnsonTrotterEnumerator(int n) { _n = n; _first = true; }`
+    - `public bool MoveNext(int* a, byte* dir)`
+  - **class** `Permutations`
+    - `public static bool NextDerangement(int* a, int n)`
+    - `public static bool NextPermutation(int* ptr, int len)`
+    - `public static void RandomPermutation(int n, int* a, ref uint seed)`
+    - `public static void RandomDerangement(int n, int* a, ref uint seed)`
+    - `public static long InvolutionCount(int n)`
+    - `public static bool IsInvolution(int n, int* a)`
+  - **class** `RandomStructures`
+    - `public static void RandomTreePrufer(int n, int* prufer, ref uint seed)`
+    - `public static void RandomConnectedGraph(int n, int m, int* outFrom, int* outTo, ref uint seed)`
+    - `public static void RandomDAG(int n, int m, int* outFrom, int* outTo, ref uint seed)`
+    - `public static void RandomErdosRenyi(int n, double p, int* outFrom, int* outTo, ref uint seed, int* edgeCount)`
+    - `public static void RandomBipartiteGraph(int n1, int n2, int m, int* outFrom, int* outTo, ref uint seed)`
+    - `public static void RandomRegular(int n, int d, int* outFrom, int* outTo, ref uint seed, int* edgeCount)`
+  - **struct** `IntegerPartitionEnumerator`
+    - `public IntegerPartitionEnumerator(int n) { _n = n; _k = 0; _first = true; }`
+    - `public bool MoveNext(int* p, out int length)`
+  - **class** `SetPartitions`
+  - **struct** `SetPartitionState`
+    - `public int N;`
+    - `public int First;`
+  - **struct** `CompositionState`
+    - `public int N;`
+    - `public int K;`
+    - `public bool First;`
+
+### IAFahim.Compress
+- **Path**: `src/IAFahim.Compress`
+- **Description**: Curious cat uses coordinate compression when big coordinates will not fit in a tight array. It maps scattered values to dense indices so range structures stay fast.
+- **C# Source Files**:
+  - `IAFahim.Compress/CompressValues.cs`
+  - `IAFahim.Compress/RestoreCompressed.cs`
+- **Public APIs**:
+  - **class** `CompressValues`
+    - `public static void Run(int* src, long* dst, int len)`
+    - `public static int RunUnique(int* src, long* dst, int len)`
+  - **class** `RestoreCompressed`
+    - `public static void Run(long* src, int* dst, int len)`
+
+### IAFahim.Compress.Coordinate
+- **Path**: `src/IAFahim.Compress.Coordinate`
+- **Description**: Curious cat reaches for coordinate compression utilities when grid or range endpoints are huge. It packs them into compact indices for sweeps and segment trees.
+- **C# Source Files**:
+  - `IAFahim.Compress.Coordinate/CoordinateCompress.cs`
+  - `IAFahim.Compress.Coordinate/Discretize.cs`
+  - `IAFahim.Compress.Coordinate/RankCompress.cs`
+- **Public APIs**:
+  - **class** `CoordinateCompress`
+    - `public static int Run(int* src, int* tmp, int* dstMap, int len)`
+  - **class** `Discretize`
+    - `public static int Run(int* src, int len)`
+  - **class** `RankCompress`
+    - `public static int Run(int* src, int* dst, int* tmpSorted, int len)`
+
+### IAFahim.DP
+- **Path**: `src/IAFahim.DP`
+- **Description**: Curious cat smells overlapping subproblems and grabs this DP toolkit. It helps the cat encode states and transitions without extra allocations.
+- **C# Source Files**:
+  - `IAFahim.DP/Dp.cs`
+- **Public APIs**:
+  - **class** `BranchAndBound`
+    - `public static long Run(int n, long* weight, long* value, long capacity, long* bestValue, int* bestSet)`
+  - **class** `Knapsack01`
+    - `public static long Run(int n, long capacity, long* weight, long* value, long* dp)`
+    - `public static long RunSpaceOptimized(int n, long capacity, long* weight, long* value, long* dp)`
+  - **class** `KnapsackUnbounded`
+    - `public static long Run(int n, long capacity, long* weight, long* value, long* dp)`
+  - **class** `KnapsackBounded`
+    - `public static long Run(int n, long capacity, long* weight, long* value, int* count, long* dp)`
+  - **class** `SubsetSum`
+    - `public static bool Run(int n, long target, long* arr, bool* dp)`
+  - **class** `BitsetSubsetSum`
+    - `public static long Run(int n, long target, ulong* bitset, long* arr)`
+  - **class** `DivideConquerDp`
+    - `public static void Optimize(int n, int k, long* dp, long* newDp, long* cost)`
+  - **class** `KnuthOptimization`
+    - `public static void Optimize(int n, long* dp, long* newDp, long* cost, int* opt)`
+  - **class** `ConvexHullTrickAdd`
+    - `public static void AddLine(long m, long b, long* ms, long* bs, int* sz)`
+    - `public static long Query(long x, long* ms, long* bs, int sz)`
+  - **class** `LiChaoAddLine`
+    - `public static void AddLine(long m, long b, int node, long l, long r, long* ms, long* bs, bool* has)`
+    - `public static long Query(int node, long l, long r, long x, long* ms, long* bs, bool* has)`
+  - **class** `Smawk`
+    - `public static long Run(int n, int m, long* mat, long* dp)`
+  - **class** `AlienDp`
+    - `public static long Run(int n, long k, long* arr, Func<long, long, long> dist)`
+  - **class** `SubsetDp`
+    - `public static void Run(int n, long* dp, long* newDp)`
+  - **class** `SosDp`
+    - `public static void Run(int n, long* f)`
+  - **class** `IntervalDp`
+    - `public static long Run(int n, long* dp, long* cost)`
+  - **class** `MinPlusConvolution`
+    - `public static void Run(int n, long* a, long* b, long* c)`
+  - **class** `MaxPlusConvolution`
+    - `public static void Run(int n, long* a, long* b, long* c)`
+
+### IAFahim.DP.General
+- **Path**: `src/IAFahim.DP.General`
+- **Description**: Curious cat uses these general DP routines when the recurrence is standard but the state space is big. It keeps the cat’s paws on predictable transitions and memory.
+- **C# Source Files**:
+  - `IAFahim.DP.General/General.cs`
+- **Public APIs**:
+  - **class** `ProfileDp`
+    - `public static long Run(int m, int n, int* a, long* dp, long* tmp)`
+  - **class** `BrokenProfileDp`
+    - `public static long Run(int m, int n, int* a, long* dp, long* tmp, int* state)`
+  - **class** `TreeKnapsack`
+    - `public static void Run(int u, int p, int* head, int* to, int* next, int* w, long* v, long* dp, long* tmp, int cap)`
+  - **class** `IntervalDp`
+    - `public static long Run(int n, int* a, long* dp, long* tmp)`
+  - **class** `MinPlusConvolution`
+    - `public static void Run(int n, int m, long* a, long* b, long* c, long INF)`
+  - **class** `QuadrangleInequalityDp`
+    - `public static long Run(int n, int m, long* dp, long* tmp, int* opt)`
+
+### IAFahim.DP.Knapsack
+- **Path**: `src/IAFahim.DP.Knapsack`
+- **Description**: Curious cat uses knapsack DP to pick items under weight or cost limits. It is the go‑to when tradeoffs need an exact optimal fill.
+- **C# Source Files**:
+  - `IAFahim.DP.Knapsack/Knapsack.cs`
+- **Public APIs**:
+  - **class** `Knapsack01`
+    - `public static long Run(int n, long cap, long* w, long* v, long* dp)`
+    - `public static long RunSpaceEfficient(int n, long cap, long* w, long* v, long* dp) => Run(n, cap, w, v, dp);`
+  - **class** `KnapsackUnbounded`
+    - `public static long Run(int n, long cap, long* w, long* v, long* dp)`
+    - `public static long RunSpaceEfficient(int n, long cap, long* w, long* v, long* dp) => Run(n, cap, w, v, dp);`
+  - **class** `KnapsackBounded`
+    - `public static long Run(int n, long cap, long* w, long* v, long* cnt, long* dp)`
+  - **class** `SubsetSum`
+    - `public static bool Run(int n, long target, long* a, bool* dp)`
+  - **class** `BitsetSubsetSum`
+    - `public static long Run(int n, long target, long* a, long* bits)`
+
+### IAFahim.DP.Optimization
+- **Path**: `src/IAFahim.DP.Optimization`
+- **Description**: Curious cat uses DP optimizations when the naive recurrence is too slow. It applies structure‑aware tricks to shrink time while preserving exact results.
+- **C# Source Files**:
+  - `IAFahim.DP.Optimization/Optimization.cs`
+- **Public APIs**:
+  - **class** `KnuthOptimization`
+    - `public static long Run(int n, long* dp, long* a, long* opt)`
+  - **class** `LiChaoAddLine`
+    - `public static void Run(long* seg, long m, long b, int node, int l, int r, long x1, long x2)`
+
+### IAFahim.DS.Dsu
+- **Path**: `src/IAFahim.DS.Dsu`
+- **Description**: Curious cat uses DSU to keep track of which nodes belong together as it merges sets. It is perfect for connectivity questions and union‑heavy workflows.
+- **C# Source Files**:
+  - `IAFahim.DS.Dsu/Dsu.cs`
+- **Public APIs**:
+  - **class** `DsuInit`
+    - `public static void Run(int* parent, int* size, int n)`
+  - **class** `DsuFind`
+    - `public static int Run(int* parent, int x)`
+    - `public static int RunPathCompression(int* parent, int x)`
+  - **class** `DsuUnion`
+    - `public static bool Run(int* parent, int* size, int a, int b)`
+  - **class** `DsuSame`
+    - `public static bool Run(int* parent, int a, int b)`
+  - **class** `DsuSize`
+    - `public static int Run(int* parent, int* size, int x)`
+  - **class** `DsuRollbackSnapshot`
+    - `public static int Run(int* history, int histSize)`
+  - **class** `DsuRollback`
+    - `public static void Run(int* parent, int* size, int* history, int targetHistSize, int* currentHistSize)`
+  - **class** `DsuRollbackUnion`
+    - `public static bool Run(int* parent, int* size, int* history, int* histSize, int a, int b)`
+  - **class** `DsuBipartiteAdd`
+    - `public static bool Run(int* parent, int* parity, int* size, int* hist, int* histSize, int a, int b)`
+  - **class** `DsuParityFind`
+    - `public static int Run(int* parent, int* parity, int x)`
+  - **class** `DsuParityUnion`
+    - `public static bool Run(int* parent, int* parity, int a, int b, int w)`
+  - **class** `SmallToLargeMerge`
+    - `public static void Run(int* parent, int* heavy, int n)`
+
+### IAFahim.DS.Fenwick
+- **Path**: `src/IAFahim.DS.Fenwick`
+- **Description**: Curious cat uses a Fenwick tree for fast prefix sums with point updates. It is the quick scratchpad for frequency tables and dynamic ranges.
+- **C# Source Files**:
+  - `IAFahim.DS.Fenwick/Fenwick.cs`
+  - `IAFahim.DS.Fenwick/FenwickOps.cs`
+  - `IAFahim.DS.Fenwick/PersistentFenwick.cs`
+- **Public APIs**:
+  - **class** `Fenwick`
+    - `public static void AddInt64(long* bit, int n, int idx, long val)`
+    - `public static long SumInt64(long* bit, int idx)`
+    - `public static long RangeSumInt64(long* bit, int l, int r)`
+    - `public static int LowerBoundInt64(long* bit, int n, long target)`
+    - `public static int UpperBoundInt64(long* bit, int n, long target)`
+  - **class** `FenwickAdd`
+    - `public static void Run(int* bit, int bitLen, int idx, int val)`
+    - `public static void RunLong(long* bit, int bitLen, int idx, long val)`
+  - **class** `FenwickSum`
+    - `public static int Run(int* bit, int idx)`
+    - `public static long RunLong(long* bit, int idx)`
+  - **class** `FenwickRangeSum`
+    - `public static int Run(int* bit, int l, int r)`
+    - `public static long RunLong(long* bit, int l, int r)`
+  - **class** `FenwickLowerBound`
+    - `public static int Run(long* bit, int n, long target)`
+  - **class** `Fenwick2DAdd`
+    - `public static void Run(long* bit, int n, int m, int x, int y, long val)`
+    - `public static void RunLinear(long* bit, int n, int x, int y, long val)`
+  - **class** `Fenwick2DSum`
+    - `public static long Run(long* bit, int n, int m, int x, int y)`
+    - `public static long RunLinear(long* bit, int n, int x, int y)`
+  - **class** `FenwickRangeAdd`
+    - `public static void Run(long* bit1, long* bit2, int bitLen, int idx, long val)`
+    - `public static void RangeAdd(long* bit1, long* bit2, int bitLen, int l, int r, long val)`
+    - `public static long PrefixQuery(long* bit1, long* bit2, int idx)`
+    - `public static long RangeQuery(long* bit1, long* bit2, int l, int r)`
+  - **class** `FenwickPointQuery`
+    - `public static long Run(long* bit, int idx)`
+    - `public static long PrefixSum(long* bit, int idx)`
+    - `public static long RangeQuery(long* bit, int l, int r)`
+  - **class** `PersistentFenwickUpdate`
+    - `public static int Run(int* leftChild, int* rightChild, int* sumArr, int* allocCount,`
+  - **class** `PersistentFenwickQuery`
+    - `public static int Run(int* leftChild, int* rightChild, int* sumArr,`
+
+### IAFahim.DS.FixedCollections
+- **Path**: `src/IAFahim.DS.FixedCollections`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.DS.FixedCollections/FixedArray.cs`
+  - `IAFahim.DS.FixedCollections/FixedBitMask.cs`
+  - `IAFahim.DS.FixedCollections/FixedHashMap.cs`
+  - `IAFahim.DS.FixedCollections/NativeCounter.cs`
+  - `IAFahim.DS.FixedCollections/NativeLinearCongruentialGenerator.cs`
+  - `IAFahim.DS.FixedCollections/SpinLock.cs`
+  - `IAFahim.DS.FixedCollections/ThreadList.cs`
+  - `IAFahim.DS.FixedCollections/ThreadRandom.cs`
+  - `IAFahim.DS.FixedCollections/UnmanagedPool.cs`
+  - `IAFahim.DS.FixedCollections/UnsafeListPool.cs`
+- **Public APIs**:
+  - **struct** `FixedArray`
+  - **struct** `FixedBitMask`
+  - **struct** `FixedHashMap`
+  - **struct** `NativeCounter`
+    - `public NativeCounter(AllocatorManager.AllocatorHandle allocator)`
+    - `public int Increment()`
+    - `public int Count`
+    - `public bool IsCreated => this.count != null;`
+    - `public void Dispose()`
+    - `public ParallelWriter AsParallelWriter()`
+  - **struct** `ParallelWriter`
+    - `public int Increment()`
+  - **struct** `NativeLinearCongruentialGenerator`
+    - `public NativeLinearCongruentialGenerator(int seed, Allocator allocator)`
+    - `public void Dispose()`
+    - `public int Next()`
+  - **struct** `SpinLock`
+    - `public void Acquire()`
+    - `public bool TryAcquire()`
+    - `public bool TryAcquire(bool spin)`
+    - `public void Release()`
+  - **struct** `ThreadList`
+    - `public ThreadList(AllocatorManager.AllocatorHandle allocator)`
+    - `public readonly bool IsCreated => this.buffer != null;`
+    - `public ref UnsafeList<byte> GetList()`
+    - `public ref UnsafeList<byte> GetList(int threadIndex)`
+    - `public void Dispose()`
+    - `public UnsafeList<byte> List;`
+  - **struct** `ThreadRandom`
+    - `public ThreadRandom(uint seed, AllocatorManager.AllocatorHandle allocator)`
+    - `public readonly bool IsCreated => this.buffer != null;`
+    - `public ref Unity.Mathematics.Random GetRandomRef()`
+    - `public void Dispose()`
+    - `public Unity.Mathematics.Random Random;`
+  - **struct** `UnmanagedPool`
+  - **struct** `UnsafeListPool`
+
+### IAFahim.DS.GapBuffer
+- **Path**: `src/IAFahim.DS.GapBuffer`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.DS.GapBuffer/GapBuffer.cs`
+- **Public APIs**:
+  - **struct** `GapBufferState`
+    - `public byte* Buffer;`
+    - `public int Capacity;`
+    - `public int GapStart;`
+    - `public int GapEnd;`
+  - **class** `GapBufferInsert`
+    - `public static void Run(ref GapBufferState s, int pos, byte* data, int len)`
+  - **class** `GapBufferDelete`
+    - `public static void Run(ref GapBufferState s, int pos, int len)`
+
+### IAFahim.DS.Grid
+- **Path**: `src/IAFahim.DS.Grid`
+- **Description**: Curious cat uses grid structures when it needs fast access to 2D cells and neighbors. It keeps spatial logic simple and cache‑friendly.
+- **C# Source Files**:
+  - `IAFahim.DS.Grid/FillGrid.cs`
+  - `IAFahim.DS.Grid/FillSlice.cs`
+  - `IAFahim.DS.Grid/GridBfs.cs`
+  - `IAFahim.DS.Grid/GridNeighbors4.cs`
+  - `IAFahim.DS.Grid/GridNeighbors8.cs`
+  - `IAFahim.DS.Grid/MakeGrid.cs`
+  - `IAFahim.DS.Grid/Reverse.cs`
+  - `IAFahim.DS.Grid/Rotate.cs`
+  - `IAFahim.DS.Grid/Shuffle.cs`
+- **Public APIs**:
+  - **class** `FillGrid`
+    - `public static void Run<T>(T* ptr, int width, int height, T value) where T : unmanaged`
+  - **class** `FillSlice`
+    - `public static void Run<T>(T* ptr, int len, int start, int end, T value) where T : unmanaged`
+  - **class** `GridBfs`
+    - `public static int Run(int height, int width, int sr, int sc, int* dist, long* visited, int* queue)`
+  - **class** `RotateGrid`
+    - `public static void Run(int h, int w, long* src, long* dst, int times)`
+  - **class** `GridNeighbors4`
+    - `public const int MaxNeighbors = 4;`
+    - `public static int Collect(int r, int c, int height, int width, int* nr, int* nc)`
+    - `public static int CollectFlat(int r, int c, int height, int width, int* outIndices)`
+  - **class** `GridNeighbors8`
+    - `public const int MaxNeighbors = 8;`
+    - `public static int Collect(int r, int c, int height, int width, int* nr, int* nc)`
+    - `public static int CollectFlat(int r, int c, int height, int width, int* outIndices)`
+  - **class** `MakeGrid`
+    - `public static void Run(int* ptr, int len, int width, int height)`
+  - **class** `Reverse`
+    - `public static void Run<T>(T* ptr, int len) where T : unmanaged`
+  - **class** `Rotate`
+    - `public static void Run<T>(T* ptr, int width, int height, bool clockwise, T* temp) where T : unmanaged`
+  - **class** `Shuffle`
+    - `public static void Run<T>(T* ptr, int len, int seed) where T : unmanaged`
+
+### IAFahim.DS.Heap
+- **Path**: `src/IAFahim.DS.Heap`
+- **Description**: Curious cat uses a heap when it needs the next smallest or largest element fast. It powers priority queues for scheduling and Dijkstra‑style paths.
+- **C# Source Files**:
+  - `IAFahim.DS.Heap/Heap.cs`
+- **Public APIs**:
+  - **class** `HeapPush`
+    - `public static void Run<T>(T* ptr, int len, T val) where T : unmanaged, IComparable<T>`
+  - **class** `HeapPop`
+    - `public static T Run<T>(T* ptr, int len) where T : unmanaged, IComparable<T>`
+  - **class** `HeapFix`
+    - `public static void Run<T>(T* ptr, int i, int len) where T : unmanaged, IComparable<T>`
+  - **class** `HeapRemove`
+    - `public static void Run<T>(T* ptr, int i, int len) where T : unmanaged, IComparable<T>`
+  - **class** `DequePush`
+    - `public static void PushFrontInt32(int* deque, int* front, int* back, int cap, int val)`
+    - `public static void PushBackInt32(int* deque, int* front, int* back, int cap, int val)`
+  - **class** `DequePop`
+    - `public static int PopFrontInt32(int* deque, int* front, int* back, int cap)`
+    - `public static int PopBackInt32(int* deque, int* front, int* back, int cap)`
+  - **class** `MonotonicQueueMin`
+    - `public static void Run(int* src, int* dst, int len, int windowSize)`
+  - **class** `MonotonicQueuePush`
+    - `public static void MinInt32(int* mono, int* size, int val)`
+  - **class** `MonotonicStackProcess`
+    - `public static int NextGreaterInt32(int* src, int* dst, int len)`
+
+### IAFahim.DS.HilbertOrder
+- **Path**: `src/IAFahim.DS.HilbertOrder`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.DS.HilbertOrder/HilbertOrder.cs`
+- **Public APIs**:
+  - **class** `HilbertOrder`
+    - `public static long Run(long x, long y, int pow, int rot)`
+    - `public static long Encode(long x, long y, int logN)`
+    - `public static long SwappedEncode(long x, long y, int logN) => Encode(Math.Min(x, y), Math.Max(x, y), logN);`
+  - **class** `GilbertOrder`
+    - `public static long Encode(long x, long y, int w, int h)`
+  - **class** `BlockOrder`
+    - `public static long Encode(int l, int r, int blockSize)`
+    - `public static void Decode(long code, int n, int blockSize, int* l, int* r)`
+
+### IAFahim.DS.LinkCut
+- **Path**: `src/IAFahim.DS.LinkCut`
+- **Description**: Curious cat uses link‑cut trees to update and query dynamic forests. It shines when edges are cut and linked on the fly.
+- **C# Source Files**:
+  - `IAFahim.DS.LinkCut/LinkCut.cs`
+- **Public APIs**:
+  - **struct** `LctNode`
+    - `public int Index;`
+    - `public long Value;`
+    - `public long PathSum;`
+    - `public bool Rev;`
+    - `public LctNode* Left;`
+    - `public LctNode* Right;`
+    - `public LctNode* Parent;`
+  - **class** `LinkCut`
+    - `public static void Access(LctNode* x)`
+    - `public static void MakeRoot(LctNode* x)`
+    - `public static LctNode* FindRoot(LctNode* x)`
+    - `public static void Link(LctNode* x, LctNode* y)`
+    - `public static void Cut(LctNode* x, LctNode* y)`
+    - `public static long Query(LctNode* x, LctNode* y)`
+
+### IAFahim.DS.Mo
+- **Path**: `src/IAFahim.DS.Mo`
+- **Description**: Curious cat uses Mo’s ordering to batch offline range queries. It reduces pointer movement so many queries can share work.
+- **C# Source Files**:
+  - `IAFahim.DS.Mo/MoAlgorithm.cs`
+  - `IAFahim.DS.Mo/MoUpdates.cs`
+- **Public APIs**:
+  - **class** `MoAdd`
+    - `public static void Run(int* freq, int val) => freq[val]++;`
+  - **class** `MoRemove`
+    - `public static void Run(int* freq, int val) => freq[val]--;`
+  - **class** `MoAnswer`
+    - `public static int Run(int* freq, int n)`
+    - `public static int DistinctCount(int* freq, int n)`
+  - **class** `MoSort`
+    - `public static void Run(int* queries, int* l, int* r, int* block, int q, int blockSize)`
+  - **class** `MoRollback`
+    - `public static void Run(int* freq, int n) { for (int i = 0; i < n; i++) freq[i] = 0; }`
+  - **class** `MoDistinctCounter`
+    - `public static void AddInt(int* freq, int* curDistinct, int val) { if (freq[val] == 0) (*curDistinct)++; freq[val]++; }`
+    - `public static void RemoveInt(int* freq, int* curDistinct, int val) { freq[val]--; if (freq[val] == 0) (*curDistinct)--; }`
+  - **struct** `Query3D`
+    - `public int L, R, T, Id;`
+  - **struct** `Update`
+    - `public int Pos, OldVal, NewVal;`
+  - **class** `MoWithUpdates`
+    - `public static void Run(int n, int* arr, int qCount, Query3D* queries, int uCount, Update* updates, int* ans, int blockSize, int* freq)`
+
+### IAFahim.DS.OrderedSet
+- **Path**: `src/IAFahim.DS.OrderedSet`
+- **Description**: Curious cat uses an ordered set for sorted inserts, deletes, and rank queries. It helps when the cat wants both order and fast updates.
+- **C# Source Files**:
+  - `IAFahim.DS.OrderedSet/OrderedSet.cs`
+- **Public APIs**:
+  - **class** `OrderedSet`
+    - `public static int Insert<T>(T* ptr, int len, T key) where T : unmanaged, IComparable<T>`
+    - `public static int Erase<T>(T* ptr, int len, T key) where T : unmanaged, IComparable<T>`
+    - `public static int Rank<T>(T* ptr, int len, T key) where T : unmanaged, IComparable<T>`
+    - `public static T Kth<T>(T* ptr, int len, int k) where T : unmanaged, IComparable<T>`
+
+### IAFahim.DS.PerfectHashMap
+- **Path**: `src/IAFahim.DS.PerfectHashMap`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.DS.PerfectHashMap/NativePerfectHashMap.cs`
+  - `IAFahim.DS.PerfectHashMap/UnsafePerfectHashMap.cs`
+- **Public APIs**:
+  - **struct** `NativePerfectHashMap`
+  - **struct** `UnsafePerfectHashMap`
+
+### IAFahim.DS.PersistentDsu
+- **Path**: `src/IAFahim.DS.PersistentDsu`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.DS.PersistentDsu/PersistentDsu.cs`
+- **Public APIs**:
+  - **class** `PersistentDsu`
+    - `public static int Build(int l, int r, int* parent, int* size, int* allocCnt, int* lc, int* rc)`
+    - `public static int Update(int root, int lIn, int rIn, int idx, int val, int s, int* parent, int* size, int* allocCnt, int* lc, int* rc)`
+    - `public static int Query(int root, int l, int r, int idx, int* parent, int* lc, int* rc, out int s, int* size)`
+    - `public static int Find(int root, int n, int x, int* parent, int* lc, int* rc, int* size, out int s)`
+    - `public static int Union(int root, int n, int a, int b, int* parent, int* size, int* allocCnt, int* lc, int* rc)`
+
+### IAFahim.DS.PersistentTreap
+- **Path**: `src/IAFahim.DS.PersistentTreap`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.DS.PersistentTreap/Treap.cs`
+- **Public APIs**:
+  - **class** `PersistentTreapNode`
+    - `public static int NewNode<T>(T* nodes, int* left, int* right, int* prio, int* size, T val, int* allocCnt)`
+    - `public static int CloneNode<T>(T* nodes, int* left, int* right, int* prio, int* size, int src, int* allocCnt)`
+    - `public static void Update(int* left, int* right, int* size, int x)`
+  - **class** `PersistentTreapSplit`
+    - `public static void Run<T>(T* nodes, int* left, int* right, int* prio, int* size, int root, T key, int* outLeft, int* outRight, int* allocCnt)`
+  - **class** `PersistentTreapMerge`
+    - `public static int Run<T>(T* nodes, int* left, int* right, int* prio, int* size, int l, int r, int* allocCnt)`
+  - **class** `PersistentTreapInsert`
+    - `public static int Run<T>(T* nodes, int* left, int* right, int* prio, int* size, int* allocCnt, int root, T val)`
+  - **class** `PersistentTreapErase`
+    - `public static int Run<T>(T* nodes, int* left, int* right, int* prio, int* size, int* allocCnt, int root, T val)`
+  - **class** `PersistentTreapFind`
+    - `public static bool Run<T>(T* nodes, int* left, int* right, int root, T val)`
+
+### IAFahim.DS.PieceTable
+- **Path**: `src/IAFahim.DS.PieceTable`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.DS.PieceTable/PieceTable.cs`
+- **Public APIs**:
+  - **struct** `Piece`
+    - `public int BufferIndex;`
+    - `public int Start;`
+    - `public int Length;`
+    - `public Piece* Next;`
+  - **struct** `PieceTableState`
+    - `public byte* Original;`
+    - `public int OriginalLen;`
+    - `public byte* Added;`
+    - `public int AddedLen;`
+    - `public int AddedCap;`
+    - `public Piece* Head;`
+  - **class** `PieceTableInsert`
+    - `public static void Run(ref PieceTableState s, int pos, byte* data, int len,`
+  - **class** `PieceTableDelete`
+    - `public static void Run(ref PieceTableState s, int pos, int len,`
+
+### IAFahim.DS.RollbackSeg
+- **Path**: `src/IAFahim.DS.RollbackSeg`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.DS.RollbackSeg/Retroactive.cs`
+  - `IAFahim.DS.RollbackSeg/RollbackBasis.cs`
+  - `IAFahim.DS.RollbackSeg/RollbackSeg.cs`
+  - `IAFahim.DS.RollbackSeg/RollbackSegVariants.cs`
+- **Public APIs**:
+  - **class** `Retroactive`
+    - `public static void RetroactiveQueueInsert() { }`
+    - `public static void RetroactiveQueueDelete() { }`
+    - `public static void RetroactivePriorityQueueInsert() { }`
+    - `public static void RetroactivePriorityQueueDelete() { }`
+    - `public static void OfflineDeleteSegmentTree() { }`
+    - `public static void RetroactiveConnectivity() { }`
+  - **class** `RollbackBasis`
+    - `public static void LinearBasisRollbackInsert() { }`
+    - `public static void LinearBasisRollbackMax() { }`
+    - `public static void RangeBasisQuery() { }`
+  - **class** `RollbackSegBuild`
+    - `public static void RunInt32(int* arr, int* tree, int node, int l, int r)`
+    - `public static void RunInt64(long* arr, long* tree, int node, int l, int r)`
+  - **class** `RollbackSegUpdate`
+    - `public static void RangeAddInt64(long* tree, long* lazy, int* histNode, long* histVal, byte* histType, int* top, int node, int l, int r, int ql, int qr, long val)`
+    - `public static void PointSetInt64(long* tree, int* histNode, long* histVal, byte* histType, int* top, int node, int l, int r, int idx, long val)`
+  - **class** `RollbackSegQuery`
+    - `public static long RangeSumInt64(long* tree, long* lazy, int node, int l, int r, int ql, int qr)`
+  - **class** `RollbackSegRollback`
+    - `public static void Run(long* tree, long* lazy, int* histNode, long* histVal, byte* histType, int* top, int checkpoint)`
+    - `public static void UndoLast(long* tree, long* lazy, int* histNode, long* histVal, byte* histType, int* top)`
+    - `public static int GetCheckpoint(int* top) => *top;`
+  - **class** `DynamicLiChaoAdd`
+    - `public static void Run(long* seg, int* left, int* right, long m, long b, int node, long xl, long xr)`
+  - **class** `DynamicLiChaoQuery`
+    - `public static long Run(long* seg, int* left, int* right, int node, long xl, long xr, long x)`
+  - **class** `DivideConquerHull`
+    - `public static void Run(long* dp, long* a, long* b, long* c, int n, int k, int* opt, int lo, int hi, int l, int r)`
+  - **class** `SegmentTreeDivideConquer`
+    - `public static void Run(long* seg, long* dp, long* temp, int node, int l, int r, int ql, int qr, long val, int k)`
+  - **class** `IntervalStabbing`
+    - `public static int Run(int* starts, int* ends, int n, int point)`
+  - **class** `RectangleStabbing`
+    - `public static int Run(int* x1, int* y1, int* x2, int* y2, int n, int px, int py)`
+  - **class** `RollbackSegVariants`
+    - `public static void RollbackSegmentTreeUpdate() { }`
+    - `public static void RollbackSegmentTreeQuery() { }`
+    - `public static void SegmentTreeDivideConquer() { }`
+    - `public static void IntervalStabbingQuery() { }`
+    - `public static void RectangleStabbingQuery() { }`
+
+### IAFahim.DS.RollbackStack
+- **Path**: `src/IAFahim.DS.RollbackStack`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.DS.RollbackStack/RollbackStack.cs`
+- **Public APIs**:
+  - **class** `RollbackStack`
+    - `public static void Init(void* mem, int capacity)`
+    - `public static int Snapshot(void* mem)`
+    - `public static void Rollback(void* mem, int targetSize, int sizeOfT)`
+  - **class** `UndoableUnionFind`
+    - `public static int Snapshot(int* parent, int* size, int* history, int histSize)`
+    - `public static void Rollback(int* parent, int* size, int* history, int targetHistSize, int* currentHistSize)`
+    - `public static int Find(int* parent, int x)`
+    - `public static bool Union(int* parent, int* size, int* history, int* histSize, int a, int b)`
+  - **class** `UndoableBipartiteDsu`
+    - `public static int Snapshot(int* parent, int* parity, int* history, int histSize)`
+    - `public static void Rollback(int* parent, int* parity, int* history, int targetHistSize, int* currentHistSize)`
+    - `public static int Find(int* parent, int* parity, int x)`
+    - `public static bool Union(int* parent, int* parity, int* history, int* histSize, int a, int b)`
+  - **class** `UndoableHeap`
+    - `public static int Parent(int i) => (i - 1) >> 1;`
+    - `public static int Left(int i) => (i << 1) + 1;`
+    - `public static int Right(int i) => (i << 1) + 2;`
+    - `public static bool Less<T>(T* ptr, int* priority, int a, int b)`
+    - `public static void HeapifyDown<T>(T* ptr, int* priority, int* heapIdx, int* history, int* histSize, int n, int i)`
+    - `public static void HeapifyUp<T>(T* ptr, int* priority, int* heapIdx, int* history, int* histSize, int i)`
+    - `public static int Snapshot(int* histSize)`
+    - `public static void Rollback<T>(T* ptr, int* priority, int* heapIdx, int* history, int targetHistSize, int* currentHistSize, int* heapSize, int targetHeapSize)`
+
+### IAFahim.DS.Rope
+- **Path**: `src/IAFahim.DS.Rope`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.DS.Rope/Rope.cs`
+- **Public APIs**:
+  - **struct** `RopeNode`
+    - `public int Size;`
+    - `public int Priority;`
+    - `public byte Value;`
+    - `public RopeNode* Left;`
+    - `public RopeNode* Right;`
+  - **class** `RopeInsert`
+    - `public static RopeNode* Run(RopeNode* root, int pos, RopeNode* node)`
+  - **class** `RopeErase`
+    - `public static RopeNode* Run(RopeNode* root, int pos, int len)`
+  - **class** `RopeSubstring`
+    - `public static RopeNode* Run(RopeNode* root, int pos, int len, byte* buf, out int count)`
+
+### IAFahim.DS.SegmentTree
+- **Path**: `src/IAFahim.DS.SegmentTree`
+- **Description**: Curious cat uses a segment tree for fast range queries and updates. It is the cat’s choice for logs of min/max/sum over intervals.
+- **C# Source Files**:
+  - `IAFahim.DS.SegmentTree/ChairmanTree.cs`
+  - `IAFahim.DS.SegmentTree/DualSegment.cs`
+  - `IAFahim.DS.SegmentTree/KineticDS.cs`
+  - `IAFahim.DS.SegmentTree/LazySegmentTree.cs`
+  - `IAFahim.DS.SegmentTree/LiChaoTree.cs`
+  - `IAFahim.DS.SegmentTree/MergeSortTree.cs`
+  - `IAFahim.DS.SegmentTree/MergeableSegmentTree.cs`
+  - `IAFahim.DS.SegmentTree/PersistentLazySeg.cs`
+  - `IAFahim.DS.SegmentTree/PersistentTree.cs`
+  - `IAFahim.DS.SegmentTree/SegTreeOnTree.cs`
+  - `IAFahim.DS.SegmentTree/SegmentTree.cs`
+- **Public APIs**:
+  - **class** `ChairmanTreeBuild`
+    - `public static int Run(int* arr, int n, int lo, int hi,`
+  - **class** `ChairmanTreeUpdate`
+    - `public static int Run(int prev, int lo, int hi, int idx, int addCount, long addSum,`
+  - **class** `ChairmanTreeKth`
+    - `public static int Run(int lRoot, int rRoot, int lo, int hi, int k,`
+  - **class** `ChairmanTreeCount`
+    - `public static int Run(int lRoot, int rRoot, int lo, int hi, int ql, int qr,`
+  - **class** `ChairmanTreeSum`
+    - `public static long Run(int lRoot, int rRoot, int lo, int hi, int ql, int qr,`
+  - **class** `DualSegmentApply`
+    - `public static void RangeAddInt64(long* bit, int n, int l, int r, long val)`
+    - `public static void AddInt64(long* bit, int n, int idx, long val)`
+    - `public static void RangeAddInt32(int* bit, int n, int l, int r, int val)`
+    - `public static void AddInt32(int* bit, int n, int idx, int val)`
+  - **class** `DualSegmentGet`
+    - `public static long RangeSumInt64(long* bit, int n, int l, int r)`
+    - `public static long PrefixSumInt64(long* bit, int n, int idx)`
+    - `public static int RangeSumInt32(int* bit, int n, int l, int r)`
+    - `public static int PrefixSumInt32(int* bit, int n, int idx)`
+  - **class** `KineticDS`
+    - `public static void KineticTournamentBuild() { }`
+    - `public static void KineticTournamentUpdate() { }`
+    - `public static void KineticTournamentWinner() { }`
+    - `public static void KineticSegmentTreeBuild() { }`
+    - `public static void KineticSegmentTreeQuery() { }`
+  - **class** `LazySegmentBuild`
+    - `public static void RunInt32(int* arr, int* tree, int node, int l, int r)`
+  - **class** `LazySegmentApply`
+    - `public static void RangeAddInt32(int* tree, int* lazy, int node, int l, int r, int ql, int qr, int val)`
+    - `public static void RangeSetInt32(int* tree, int* lazy, bool* hasLazy, int node, int l, int r, int ql, int qr, int val)`
+  - **class** `LazySegmentPush`
+    - `public static void Run(int* tree, int* lazy, int node, int l, int r)`
+  - **class** `LazySegmentPull`
+    - `public static void Run(int* tree, int node)`
+  - **class** `LazySegmentQuery`
+    - `public static int RangeSumInt32(int* tree, int* lazy, int node, int l, int r, int ql, int qr)`
+  - **class** `LazySegmentUpdate`
+    - `public static void RangeAddInt32(int* tree, int* lazy, int node, int l, int r, int ql, int qr, int val)`
+  - **class** `LiChaoTree`
+  - **struct** `Line`
+    - `public long M, C;`
+    - `public long Eval(long x) => M * x + C;`
+  - **class** `MergeSortTreeBuild`
+    - `public static void Run(int* arr, int n, int** nodes, int* sizes, int* pool, ref int poolSize)`
+  - **class** `MergeSortTreeKth`
+    - `public static int Run(int n, int ql, int qr, int k, int** nodes, int* sizes)`
+  - **class** `MergeSortTreeCountLess`
+    - `public static int Run(int n, int ql, int qr, int val, int** nodes, int* sizes) => Count(0, 0, n - 1, ql, qr, val, nodes, sizes);`
+  - **class** `MergeSortTreeCountGreater`
+    - `public static int Run(int n, int ql, int qr, int val, int** nodes, int* sizes) => Count(0, 0, n - 1, ql, qr, val, nodes, sizes);`
+  - **class** `MergeSortTreePredecessor`
+    - `public static bool TryRun(int n, int ql, int qr, int val, int** nodes, int* sizes, out int result)`
+  - **class** `MergeSortTreeSuccessor`
+    - `public static bool TryRun(int n, int ql, int qr, int val, int** nodes, int* sizes, out int result)`
+  - **class** `MergeableSegmentTreeMerge`
+    - `public static int Run(int aNode, int bNode,`
+  - **class** `MergeableSegmentTreeUpdate`
+    - `public static void Run(int* root, int lo, int hi, int idx, int val,`
+  - **class** `MergeableSegmentTreeQuery`
+    - `public static int Run(int node, int lo, int hi, int ql, int qr,`
+  - **class** `PersistentLazySegmentUpdate`
+    - `public static int Run(int prev, int lo, int hi, int ql, int qr, long val,`
+  - **class** `PersistentLazySegmentQuery`
+    - `public static long Run(int node, int lo, int hi, int ql, int qr, long inherited,`
+  - **class** `PersistentSegmentBuild`
+    - `public static int RunInt32(int* arr, int* roots, int* left, int* right, int* tree, int prev, int l, int r)`
+  - **class** `PersistentSegmentUpdate`
+    - `public static int RunInt32(int* tree, int* left, int* right, int prev, int lIn, int rIn, int idx, int val)`
+  - **class** `PersistentSegmentQuery`
+    - `public static int RunInt32(int* tree, int* left, int* right, int node, int l, int r, int ql, int qr)`
+  - **class** `DynamicSegmentUpdate`
+    - `public static void Run(int* tree, int* left, int* right, int* alloc, int node, int lIn, int rIn, int idx, int val)`
+  - **class** `DynamicSegmentQuery`
+    - `public static int Run(int* tree, int* left, int* right, int node, int l, int r, int ql, int qr)`
+  - **class** `SegmentTreeOnTreeMerge`
+    - `public static int Run(int aRoot, int bRoot, int lo, int hi,`
+  - **class** `PersistentMergeableSegmentTree`
+    - `public static int Update(int prev, int lo, int hi, int idx, int val,`
+    - `public static int Merge(int aNode, int bNode, int lo, int hi,`
+    - `public static int Query(int node, int lo, int hi, int ql, int qr,`
+  - **class** `SegmentTreeBuild`
+    - `public static void RunInt32(int* arr, int* tree, int node, int l, int r)`
+    - `public static void RunInt64(long* arr, long* tree, int node, int l, int r)`
+  - **class** `SegmentTreeSet`
+    - `public static void RunInt32(int* tree, int node, int l, int r, int idx, int val)`
+    - `public static void RunInt64(long* tree, int node, int l, int r, int idx, long val)`
+  - **class** `SegmentTreeAdd`
+    - `public static void RunInt32(int* tree, int node, int l, int r, int idx, int val)`
+  - **class** `SegmentTreeQuery`
+    - `public static int RunInt32(int* tree, int node, int l, int r, int ql, int qr)`
+    - `public static long RunInt64(long* tree, int node, int l, int r, int ql, int qr)`
+  - **class** `SegmentTreeMaxRight`
+    - `public static int Run(int* tree, int n, int l, long target)`
+  - **class** `SegmentTreeMinLeft`
+    - `public static int Run(int* tree, int n, int r, long target)`
+
+### IAFahim.DS.Sparse
+- **Path**: `src/IAFahim.DS.Sparse`
+- **Description**: Curious cat uses a sparse table when data is static and queries must be lightning fast. It precomputes overlaps for O(1) range answers.
+- **C# Source Files**:
+  - `IAFahim.DS.Sparse/Sparse.cs`
+- **Public APIs**:
+  - **class** `SparseTableBuild`
+    - `public static void RunInt32(int* arr, int* table, int* log, int n)`
+    - `public static void RunInt64(long* arr, long* table, int* log, int n)`
+  - **class** `DisjointSparseBuild`
+    - `public static void RunInt64(long* arr, long* table, int* blockSize, int n)`
+  - **class** `SparseTableQuery`
+    - `public static int MinInt32(int* table, int* log, int l, int r, int n)`
+  - **class** `SqrtDecomposeBuild`
+    - `public static void Run(int* arr, int* block, int* blockSize, int n)`
+  - **class** `SqrtQuery`
+    - `public static int RangeMin(int* arr, int* block, int blockSize, int l, int r, int n)`
+  - **class** `DisjointSparseQuery`
+    - `public static long RangeMinInt64(long* table, int* blockSize, int l, int r)`
+
+### IAFahim.DS.SpatialMap
+- **Path**: `src/IAFahim.DS.SpatialMap`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.DS.SpatialMap/ISpatialPosition.cs`
+  - `IAFahim.DS.SpatialMap/LocalSpatialMap.cs`
+  - `IAFahim.DS.SpatialMap/SpatialHexMap.cs`
+  - `IAFahim.DS.SpatialMap/SpatialKeyedMap.cs`
+  - `IAFahim.DS.SpatialMap/SpatialMap.cs`
+  - `IAFahim.DS.SpatialMap/SpatialMap3.cs`
+- **Public APIs**:
+  - **struct** `LocalSpatialMap`
+  - **struct** `ResizeKeys`
+    - `public UnsafeList<int>* Keys;`
+    - `public NativeArray<T> Values;`
+    - `public void Execute()`
+  - **struct** `QuantizeJob`
+    - `public NativeArray<T> Positions;`
+    - `public UnsafeList<int>* Keys;`
+    - `public float QuantizeStep;`
+    - `public int QuantizeWidth;`
+    - `public int2 HalfSize;`
+    - `public int Workers;`
+    - `public void Execute(int index)`
+  - **struct** `UpdateMap`
+    - `public UnsafePartialKeyedMap<T>* SpatialHashMap;`
+    - `public UnsafeList<int>* Keys;`
+    - `public NativeArray<T> Values;`
+    - `public void Execute()`
+  - **struct** `ReadOnly`
+    - `public ReadOnly(float quantizeStep, int quantizeWidth, int2 halfSize, UnsafePartialKeyedMap<T>* map)`
+    - `public UnsafePartialKeyedMap<T>* Map { get; }`
+    - `public int2 Quantized(float2 position)`
+    - `public int Hash(int2 quantized)`
+  - **class** `PartialSpatialMap`
+    - `public static int2 Quantized(float2 position, float step, int2 halfSize)`
+    - `public static int Hash(int2 quantized, int width)`
+  - **struct** `SpatialHexMap`
+  - **struct** `ResizeNativeParallelHashMapJob`
+    - `public NativeParallelMultiHashMap<int, int> Map;`
+    - `public NativeArray<T> Length;`
+    - `public void Execute()`
+  - **struct** `QuantizeJob`
+    - `public NativeArray<T> Positions;`
+    - `public NativeParallelMultiHashMap<int, int> Map;`
+    - `public float OuterRadius;`
+    - `public int2 BoundsMin;`
+    - `public int2 BoundsSize;`
+    - `public float WorldHalfSize;`
+    - `public int Workers;`
+    - `public void Execute(int index)`
+  - **class** `SpatialHexMap`
+    - `public static int2 Quantized(float2 position, float outerRadius)`
+    - `public static float2 Center(int2 axial, float outerRadius)`
+    - `public static int Hash(int2 axial, int2 boundsMin, int boundsWidth)`
+    - `public static bool IsWithinBounds(int2 axial, int2 boundsMin, int2 boundsSize)`
+    - `public static int SearchRange(float radius, float outerRadius)`
+    - `public static float CellMinDistanceSq(float2 position, int2 axial, float outerRadius)`
+    - `public static int2 Direction(int index)`
+  - **struct** `ReadOnly`
+    - `public ReadOnly(float outerRadius, int2 boundsMin, int2 boundsSize, NativeParallelMultiHashMap<int, int> map)`
+    - `public NativeParallelMultiHashMap<int, int> Map { get; }`
+    - `public int2 Quantized(float2 position)`
+    - `public float2 Center(int2 axial)`
+    - `public int Hash(int2 axial)`
+    - `public bool IsWithinBounds(int2 axial)`
+    - `public int SearchRange(float radius)`
+    - `public float CellMinDistanceSq(float2 position, int2 axial)`
+    - `public int2 Direction(int index)`
+  - **struct** `SpatialKeyedMap`
+  - **struct** `ResizeNativeKeyedMapJob`
+    - `public NativeKeyedMap<int> Map;`
+    - `public NativeArray<T> Length;`
+    - `public void Execute()`
+  - **struct** `QuantizeJob`
+    - `public NativeArray<T> Positions;`
+    - `public NativeKeyedMap<int> Map;`
+    - `public float QuantizeStep;`
+    - `public int QuantizeWidth;`
+    - `public int2 HalfSize;`
+    - `public int Workers;`
+    - `public void Execute(int index)`
+  - **class** `SpatialKeyedMap`
+    - `public static int2 Quantized(float2 position, float step, int2 halfSize)`
+    - `public static int Hash(int2 quantized, int width)`
+  - **struct** `ReadOnly`
+    - `public ReadOnly(float quantizeStep, int quantizeWidth, int2 halfSize, NativeKeyedMap<int> map)`
+    - `public NativeKeyedMap<int> Map { get; }`
+    - `public int2 Quantized(float2 position)`
+    - `public int Hash(int2 quantized)`
+  - **struct** `SpatialMap`
+  - **struct** `ResizeNativeParallelHashMapJob`
+    - `public NativeParallelMultiHashMap<int, int> Map;`
+    - `public NativeArray<T> Length;`
+    - `public void Execute()`
+  - **struct** `QuantizeJob`
+    - `public NativeArray<T> Positions;`
+    - `public NativeParallelMultiHashMap<int, int> Map;`
+    - `public float QuantizeStep;`
+    - `public int QuantizeWidth;`
+    - `public int2 HalfSize;`
+    - `public int Workers;`
+    - `public void Execute(int index)`
+  - **struct** `CalculateMapJob`
+    - `public NativeParallelMultiHashMap<int, int> SpatialHashMap;`
+    - `public void Execute()`
+  - **class** `SpatialMapUtility`
+    - `public static int2 Quantized(float2 position, float step, int2 halfSize)`
+    - `public static int Hash(int2 quantized, int width)`
+  - **struct** `SpatialMapReadOnly`
+    - `public SpatialMapReadOnly(float quantizeStep, int quantizeWidth, int2 halfSize, NativeParallelMultiHashMap<int, int> map)`
+    - `public NativeParallelMultiHashMap<int, int> Map { get; }`
+    - `public int2 Quantized(float2 position)`
+    - `public int Hash(int2 quantized)`
+  - **struct** `SpatialMap3`
+  - **struct** `ResizeNativeParallelHashMapJob`
+    - `public NativeParallelMultiHashMap<long, int> Map;`
+    - `public NativeArray<T> Length;`
+    - `public void Execute()`
+  - **struct** `QuantizeJob`
+    - `public NativeArray<T> Positions;`
+    - `public NativeParallelMultiHashMap<long, int> Map;`
+    - `public float QuantizeStep;`
+    - `public int QuantizeWidth;`
+    - `public int QuantizeDepth;`
+    - `public int3 HalfSize;`
+    - `public int Workers;`
+    - `public void Execute(int index)`
+  - **struct** `CalculateMapJob`
+    - `public NativeParallelMultiHashMap<long, int> SpatialHashMap;`
+    - `public void Execute()`
+  - **class** `SpatialMapUtility3`
+    - `public static int3 Quantized(float3 position, float step, int3 halfSize)`
+    - `public static long Hash(int3 quantized, int width, int depth)`
+  - **struct** `SpatialMapReadOnly3`
+    - `public SpatialMapReadOnly3(float quantizeStep, int quantizeWidth, int3 halfSize, NativeParallelMultiHashMap<long, int> map)`
+    - `public NativeParallelMultiHashMap<long, int> Map { get; }`
+    - `public int3 Quantized(float3 position)`
+    - `public long Hash(int3 quantized)`
+
+### IAFahim.DS.Splay
+- **Path**: `src/IAFahim.DS.Splay`
+- **Description**: Curious cat uses a splay tree when access patterns are skewed. It moves hot nodes to the top so repeated queries get faster.
+- **C# Source Files**:
+  - `IAFahim.DS.Splay/Splay.cs`
+  - `IAFahim.DS.Splay/SplayRangeQuery.cs`
+  - `IAFahim.DS.Splay/SplayRangeReverse.cs`
+- **Public APIs**:
+  - **struct** `SplayNode`
+    - `public int Key;`
+    - `public int Size;`
+    - `public SplayNode* Parent;`
+    - `public SplayNode* Left;`
+    - `public SplayNode* Right;`
+  - **class** `Splay`
+    - `public static void Update(SplayNode* x)`
+    - `public static void Rotate(SplayNode** root, SplayNode* x)`
+    - `public static void Splay_(SplayNode** root, SplayNode* x)`
+  - **class** `SplayRangeQuery`
+    - `public static long QuerySum(SplayRevNode** root, int l, int r)`
+  - **struct** `SplayRevNode`
+    - `public int Key;`
+    - `public int Size;`
+    - `public long Sum;`
+    - `public bool Rev;`
+    - `public SplayRevNode* Parent;`
+    - `public SplayRevNode* Left;`
+    - `public SplayRevNode* Right;`
+  - **class** `SplayRangeReverse`
+    - `public static void Update(SplayRevNode* x)`
+    - `public static void Push(SplayRevNode* x)`
+    - `public static void Splay(SplayRevNode** root, SplayRevNode* x)`
+    - `public static void Reverse(SplayRevNode** root, int l, int r)`
+
+### IAFahim.DS.Treap
+- **Path**: `src/IAFahim.DS.Treap`
+- **Description**: Curious cat uses a treap for a randomized balanced BST without heavy rotations. It keeps ordered operations simple and reliable.
+- **C# Source Files**:
+  - `IAFahim.DS.Treap/Treap.cs`
+  - `IAFahim.DS.Treap/TreapAffineRange.cs`
+  - `IAFahim.DS.Treap/TreapImplicit.cs`
+  - `IAFahim.DS.Treap/TreapRangeMin.cs`
+  - `IAFahim.DS.Treap/TreapRangeReverse.cs`
+  - `IAFahim.DS.Treap/TreapRangeRotate.cs`
+  - `IAFahim.DS.Treap/TreapRangeSum.cs`
+- **Public APIs**:
+  - **struct** `TreapNode`
+    - `public int Key;`
+    - `public int Priority;`
+    - `public int Size;`
+    - `public bool Rev;`
+    - `public long Sum;`
+    - `public TreapNode* Left;`
+    - `public TreapNode* Right;`
+  - **class** `Treap`
+    - `public static void Update(TreapNode* node)`
+    - `public static void Push(TreapNode* node)`
+    - `public static TreapNode* Merge(TreapNode* a, TreapNode* b)`
+    - `public static void Split(TreapNode* root, int key, TreapNode** left, TreapNode** right)`
+    - `public static void Insert(TreapNode** root, TreapNode* node)`
+    - `public static void Erase(TreapNode** root, int key)`
+    - `public static TreapNode* Find(TreapNode* root, int key)`
+    - `public static TreapNode* Kth(TreapNode* root, int k)`
+    - `public static int Rank(TreapNode* root, int key)`
+    - `public static void Reverse(TreapNode* node)`
+    - `public static long RangeQuery(TreapNode** root, int l, int r)`
+  - **struct** `TreapAffineNode`
+    - `public int Priority;`
+    - `public int Size;`
+    - `public long Value;`
+    - `public long Sum;`
+    - `public long LazyA;`
+    - `public long LazyB;`
+    - `public bool HasLazy;`
+    - `public TreapAffineNode* Left;`
+    - `public TreapAffineNode* Right;`
+  - **class** `TreapAffineRange`
+    - `public static int Size(TreapAffineNode* n) => n == null ? 0 : n->Size;`
+    - `public static long Sum(TreapAffineNode* n) => n == null ? 0 : n->Sum;`
+    - `public static void Update(TreapAffineNode* n)`
+    - `public static void Push(TreapAffineNode* n)`
+    - `public static void Split(TreapAffineNode* root, int k,`
+    - `public static TreapAffineNode* Merge(TreapAffineNode* a, TreapAffineNode* b)`
+    - `public static void AffineRange(ref TreapAffineNode* root, int l, int r, long a, long b)`
+    - `public static long QuerySum(ref TreapAffineNode* root, int l, int r)`
+  - **struct** `TreapImplicitNode`
+    - `public int Priority;`
+    - `public int Size;`
+    - `public long Value;`
+    - `public long Sum;`
+    - `public long Lazy;`
+    - `public bool Rev;`
+    - `public bool HasLazy;`
+    - `public TreapImplicitNode* Left;`
+    - `public TreapImplicitNode* Right;`
+  - **class** `TreapImplicit`
+    - `public static int Size(TreapImplicitNode* n) => n == null ? 0 : n->Size;`
+    - `public static long Sum(TreapImplicitNode* n) => n == null ? 0 : n->Sum;`
+    - `public static void Update(TreapImplicitNode* n)`
+    - `public static void Push(TreapImplicitNode* n)`
+    - `public static void SplitBySize(TreapImplicitNode* root, int k,`
+    - `public static TreapImplicitNode* Merge(TreapImplicitNode* a, TreapImplicitNode* b)`
+    - `public static void AddRange(ref TreapImplicitNode* root, int l, int r, long val)`
+    - `public static long QueryRange(ref TreapImplicitNode* root, int l, int r)`
+    - `public static void ReverseRange(ref TreapImplicitNode* root, int l, int r)`
+  - **struct** `TreapMinNode`
+    - `public int Priority;`
+    - `public int Size;`
+    - `public long Value;`
+    - `public long Min;`
+    - `public long LazyAssign;`
+    - `public bool HasAssign;`
+    - `public TreapMinNode* Left;`
+    - `public TreapMinNode* Right;`
+  - **class** `TreapRangeMin`
+    - `public static int Size(TreapMinNode* n) => n == null ? 0 : n->Size;`
+    - `public static long Min(TreapMinNode* n) => n == null ? MaxVal : n->Min;`
+    - `public static void Update(TreapMinNode* n)`
+    - `public static void Push(TreapMinNode* n)`
+    - `public static void Split(TreapMinNode* root, int k,`
+    - `public static TreapMinNode* Merge(TreapMinNode* a, TreapMinNode* b)`
+    - `public static long QueryMin(ref TreapMinNode* root, int l, int r)`
+    - `public static void AssignRange(ref TreapMinNode* root, int l, int r, long val)`
+  - **struct** `TreapRevNode`
+    - `public int Priority;`
+    - `public int Size;`
+    - `public long Value;`
+    - `public long Sum;`
+    - `public bool Rev;`
+    - `public TreapRevNode* Left;`
+    - `public TreapRevNode* Right;`
+  - **class** `TreapRangeReverse`
+    - `public static int Size(TreapRevNode* n) => n == null ? 0 : n->Size;`
+    - `public static long Sum(TreapRevNode* n) => n == null ? 0 : n->Sum;`
+    - `public static void Update(TreapRevNode* n)`
+    - `public static void Push(TreapRevNode* n)`
+    - `public static void Split(TreapRevNode* root, int k,`
+    - `public static TreapRevNode* Merge(TreapRevNode* a, TreapRevNode* b)`
+    - `public static void Reverse(ref TreapRevNode* root, int l, int r)`
+  - **class** `TreapRangeRotate`
+    - `public static TreapRevNode* Rotate(ref TreapRevNode* root, int l, int r, int k)`
+  - **struct** `TreapSumNode`
+    - `public int Priority;`
+    - `public int Size;`
+    - `public long Value;`
+    - `public long Sum;`
+    - `public long LazyAdd;`
+    - `public TreapSumNode* Left;`
+    - `public TreapSumNode* Right;`
+  - **class** `TreapRangeSum`
+    - `public static int Size(TreapSumNode* n) => n == null ? 0 : n->Size;`
+    - `public static long Sum(TreapSumNode* n) => n == null ? 0 : n->Sum;`
+    - `public static void Update(TreapSumNode* n)`
+    - `public static void Push(TreapSumNode* n)`
+    - `public static void Split(TreapSumNode* root, int k,`
+    - `public static TreapSumNode* Merge(TreapSumNode* a, TreapSumNode* b)`
+    - `public static void AddRange(ref TreapSumNode* root, int l, int r, long val)`
+    - `public static long QuerySum(ref TreapSumNode* root, int l, int r)`
+
+### IAFahim.DS.Trie
+- **Path**: `src/IAFahim.DS.Trie`
+- **Description**: Curious cat uses a trie to store many strings by shared prefixes. It makes prefix checks and dictionary lookups swift.
+- **C# Source Files**:
+  - `IAFahim.DS.Trie/Trie.cs`
+- **Public APIs**:
+  - **class** `TrieInsert`
+    - `public static void Run(int* trie, int node, byte* s, int len)`
+  - **class** `TrieDelete`
+    - `public static bool Run(int* trie, int node, byte* s, int len)`
+  - **class** `TrieFind`
+    - `public static bool Run(int* trie, int node, byte* s, int len)`
+  - **class** `TriePrefixCount`
+    - `public static int Run(int* trie, int node, byte* s, int len)`
+  - **class** `BinaryTrieInsert`
+    - `public static void Run(int* trie, int node, int val, int bits)`
+  - **class** `BinaryTrieErase`
+    - `public static void Run(int* trie, int node, int val, int bits)`
+  - **class** `BinaryTrieMaxXor`
+    - `public static int Run(int* trie, int node, int val, int bits)`
+  - **class** `BinaryTrieMinXor`
+    - `public static int Run(int* trie, int node, int val, int bits)`
+  - **class** `PersistentTrieInsert`
+    - `public static int Run(int* trie, int oldRoot, int val, int bits)`
+  - **class** `PersistentTrieQuery`
+    - `public static int Run(int* trie, int node, int val, int bits)`
+
+### IAFahim.DS.UnsafeArray
+- **Path**: `src/IAFahim.DS.UnsafeArray`
+- **Description**: Curious cat uses UnsafeArray when it wants raw, unmanaged storage it can free itself. It fits low‑level algorithms that must own memory.
+- **C# Source Files**:
+  - `IAFahim.DS.UnsafeArray/UnsafeArray.cs`
+- **Public APIs**:
+  - **struct** `UnsafeArray`
+    - `public T* Ptr;`
+    - `public readonly int Length;`
+    - `public readonly Allocator Allocator;`
+    - `public UnsafeArray(int length, Allocator allocator)`
+    - `public void Dispose()`
+
+### IAFahim.DS.WaveletMatrix
+- **Path**: `src/IAFahim.DS.WaveletMatrix`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.DS.WaveletMatrix/WaveletMatrix.cs`
+  - `IAFahim.DS.WaveletMatrix/WaveletMatrixAdvanced.cs`
+- **Public APIs**:
+  - **class** `WaveletMatrixBuild`
+    - `public static int Run(int* data, int n, int maxVal, int* bitmaps, int* ranks, int* mids, int log)`
+    - `public static void RunFrom(int* data, int n, int* mids, int* bitmapPtr, int* rankPtr, int log)`
+  - **class** `WaveletMatrixKth`
+    - `public static int Run(int* bitmapPtr, int* rankPtr, int* mids, int l, int r, int k, int log)`
+  - **class** `WaveletMatrixAdvanced`
+    - `public static void WaveletMatrixQuantile() { }`
+    - `public static void WaveletMatrixPrevValue() { }`
+    - `public static void WaveletMatrixNextValue() { }`
+    - `public static void WaveletMatrixIntersect() { }`
+    - `public static void WaveletMatrixRectangleSum() { }`
+    - `public static void WaveletMatrixRectangleCount() { }`
+    - `public static void SuccinctWaveletBuild() { }`
+    - `public static void SuccinctWaveletRank() { }`
+    - `public static void SuccinctWaveletSelect() { }`
+
+### IAFahim.GameTheory
+- **Path**: `src/IAFahim.GameTheory`
+- **Description**: Curious cat uses game theory algorithms to decide winning and losing positions. It helps the cat compute optimal moves in impartial games.
+- **C# Source Files**:
+  - `IAFahim.GameTheory/GameTheory.cs`
+- **Public APIs**:
+  - **class** `GrundyDAG`
+    - `public static int Run(int n, int* to, int* grundy, int* indeg, int* queue)`
+  - **class** `NimSum`
+    - `public static long Run(int n, long* piles) { long xor = 0; for (int i = 0; i < n; i++) xor ^= piles[i]; return xor; }`
+  - **class** `Minimax`
+    - `public static long Run(int depth, bool isMax, long alpha, long beta, long* gameState, int player)`
+  - **class** `GameDp`
+    - `public static int Run(int n, long* dp, long* a, int* moves, int moveCount)`
+
+### IAFahim.Geometry.Advanced
+- **Path**: `src/IAFahim.Geometry.Advanced`
+- **Description**: Curious cat uses advanced geometry when plain lines and circles are not enough. It tackles robust intersections, hulls, and tricky predicates.
+- **C# Source Files**:
+  - `IAFahim.Geometry.Advanced/GeometryAdvanced.cs`
+  - `IAFahim.Geometry.Advanced/GeometryAdvanced2.cs`
+  - `IAFahim.Geometry.Advanced/PolygonBoolean.cs`
+- **Public APIs**:
+  - **class** `ConvexDiameter`
+    - `public static long Run(int n, long* x, long* y)`
+  - **class** `RotatingCalipers`
+    - `public static long Run(int n, long* x, long* y, long* res)`
+  - **class** `MinkowskiSum`
+    - `public static int Run(int n1, long* x1, long* y1, int n2, long* x2, long* y2, long* rx, long* ry)`
+  - **class** `ClosestPair`
+    - `public static long Run(int n, long* x, long* y)`
+  - **class** `Circumcenter`
+    - `public static void Run(long ax, long ay, long bx, long by, long cx, long cy, long* ox, long* oy)`
+  - **class** `MinimumEnclosingCircle`
+    - `public static void Run(int n, long* x, long* y, long* cx, long* cy, long* r)`
+  - **class** `IntegerPointCount`
+    - `public static long Run(int n, long* x, long* y)`
+  - **class** `PickTheorem`
+    - `public static long Run(int n, long* x, long* y)`
+  - **class** `PolygonBoolean`
+    - `public static void PolygonBooleanUnion() { }`
+    - `public static void PolygonBooleanIntersection() { }`
+    - `public static void PolygonBooleanDifference() { }`
+    - `public static void PolygonBooleanXor() { }`
+
+### IAFahim.Geometry.Arrangement
+- **Path**: `src/IAFahim.Geometry.Arrangement`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Geometry.Arrangement/Arrangement.cs`
+  - `IAFahim.Geometry.Arrangement/PointLocation.cs`
+- **Public APIs**:
+  - **class** `PointLocationBuild`
+    - `public static int Run(int* xs, int* ys, int n, int* grid, int gridSize)`
+    - `public static void BuildKdTree(long* points, int* tree, int node, int l, int r, int depth) { if (l > r) return; int axis = depth & 1, m = Partition(points, l, r, axis); tree[node] = m; BuildKdTree(points, tree, node * 2, l, m - 1, depth + 1); BuildKdTree(points, tree, node * 2 + 1, m + 1, r, depth + 1); }`
+  - **class** `PointLocationQuery`
+    - `public static int Run(int* grid, int gridSize, int minX, int minY, int cellW, int cellH, int px, int py) { int cx = (px - minX) / cellW, cy = (py - minY) / cellH; if (cx < 0 || cx >= gridSize || cy < 0 || cy >= gridSize) return -1; return grid[cy * gridSize + cx]; }`
+    - `public static int QueryKdTree(long* points, int* tree, int node, int depth, long px, long py)`
+  - **class** `VerticalDecomposition`
+    - `public static int Run(int* xs, int* ys, int n, int* outX, int* outY) { int* order = stackalloc int[n]; for (int i = 0; i < n; i++) order[i] = i; SortByX(xs, order, n); for (int i = 0; i < n; i++) { outX[i] = xs[order[i]]; outY[i] = ys[order[i]]; } return n; }`
+  - **class** `TrapezoidalMapBuild`
+    - `public static int Run(int* sx1, int* sy1, int* sx2, int* sy2, int n, int* tx1, int* ty1, int* tx2, int* ty2) { int m = 0; for (int i = 0; i < n; i++) { int loX = sx1[i] < sx2[i] ? sx1[i] : sx2[i], hiX = sx1[i] < sx2[i] ? sx2[i] : sx1[i]; tx1[m] = loX; ty1[m] = sy1[i]; tx2[m] = hiX; ty2[m] = sy2[i]; m++; tx1[m] = loX; ty1[m] = sy2[i]; tx2[m] = hiX; ty2[m] = sy1[i]; m++; } return m; }`
+  - **class** `TrapezoidalMapQuery`
+    - `public static int Run(int* tx1, int* ty1, int* tx2, int* ty2, int n, int px, int py) { for (int i = 0; i < n; i++) if (tx1[i] <= px && px <= tx2[i]) { int yL = ty1[i] < ty2[i] ? ty1[i] : ty2[i], yH = ty1[i] < ty2[i] ? ty2[i] : ty1[i]; if (yL <= py && py <= yH) return i; } return -1; }`
+  - **class** `ArrangementFaces`
+    - `public static int Run(int n, int* head, int* to, int* next, int* visited, int* outFace) { int count = 0; for (int i = 0; i < n; i++) for (int e = head[i]; e != 0; e = next[e]) if (visited[e] == 0) { visited[e] = visited[e ^ 1] = 1; outFace[count++] = i; break; } return count; }`
+  - **class** `PolygonBooleanUnion`
+    - `public static int Run(int* x1, int* y1, int* x2, int* y2, int n, int* outX, int* outY) { int count = 0; for (int i = 0; i < n; i++) { int xLo = Math.Min(x1[i], x2[i]), xHi = Math.Max(x1[i], x2[i]), yLo = Math.Min(y1[i], y2[i]), yHi = Math.Max(y1[i], y2[i]); outX[count] = xLo; outY[count++] = yLo; outX[count] = xLo; outY[count++] = yHi; outX[count] = xHi; outY[count++] = yLo; outX[count] = xHi; outY[count++] = yHi; } return count; }`
+  - **class** `PolygonBooleanIntersection`
+    - `public static int Run(int* x1, int* y1, int* x2, int* y2, int n, int* outX, int* outY) { for (int i = 0; i < n; i++) for (int j = i + 1; j < n; j++) { int l = Math.Max(x1[i], x1[j]), r = Math.Min(x2[i], x2[j]), b = Math.Max(y1[i], y1[j]), t = Math.Min(y2[i], y2[j]); if (l < r && b < t) { outX[0] = l; outY[0] = b; outX[1] = l; outY[1] = t; outX[2] = r; outY[2] = b; outX[3] = r; outY[3] = t; return 4; } } return 0; }`
+  - **class** `PointLocation`
+    - `public static void PointLocationBuild() { }`
+    - `public static void PointLocationQuery() { }`
+    - `public static void VerticalDecomposition() { }`
+    - `public static void TrapezoidalMapBuild() { }`
+    - `public static void TrapezoidalMapQuery() { }`
+    - `public static void ArrangementBuild() { }`
+    - `public static void ArrangementFaces() { }`
+
+### IAFahim.Geometry.Azimuth
+- **Path**: `src/IAFahim.Geometry.Azimuth`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Geometry.Azimuth/CartesianAzimuth.cs`
+  - `IAFahim.Geometry.Azimuth/SphericalAzimuth.cs`
+  - `IAFahim.Geometry.Azimuth/SphericalDistance.cs`
+- **Public APIs**:
+  - **class** `CartesianAzimuth`
+    - `public static double Run(double x1, double y1, double x2, double y2)`
+  - **class** `SphericalAzimuth`
+    - `public static double Run(double lat1, double lon1, double lat2, double lon2)`
+  - **class** `SphericalDistance`
+    - `public static double Run(double lat1, double lon1, double lat2, double lon2, double radius)`
+
+### IAFahim.Geometry.Basic
+- **Path**: `src/IAFahim.Geometry.Basic`
+- **Description**: Curious cat uses basic geometry for distances, dot products, and simple intersections. It is the starter kit for 2D and 3D reasoning.
+- **C# Source Files**:
+  - `IAFahim.Geometry.Basic/GeometryBasic.cs`
+- **Public APIs**:
+  - **class** `GeometryPoint`
+    - `public static void Run(long* x, long* y, long px, long py)`
+  - **class** `PointAdd`
+    - `public static void Run(long* ax, long* ay, long bx, long by, long* rx, long* ry)`
+  - **class** `PointSub`
+    - `public static void Run(long* ax, long* ay, long bx, long by, long* rx, long* ry)`
+  - **class** `PointDot`
+    - `public static long Run(long ax, long ay, long bx, long by)`
+  - **class** `PointCross`
+    - `public static long Run(long ax, long ay, long bx, long by)`
+  - **class** `PointNorm`
+    - `public static long Run(long x, long y)`
+  - **class** `PointDist`
+    - `public static long Run(long x1, long y1, long x2, long y2)`
+  - **class** `PointRotate`
+    - `public static void Run(long x, long y, long angleSin, long angleCos, long* rx, long* ry)`
+  - **class** `PointAngle`
+    - `public static long Run(long ax, long ay, long bx, long by)`
+  - **class** `Orientation`
+    - `public static int Run(long ax, long ay, long bx, long by, long cx, long cy)`
+  - **class** `Ccw`
+    - `public static int Run(long ax, long ay, long bx, long by, long cx, long cy)`
+  - **class** `OnSegment`
+    - `public static bool Run(long px, long py, long ax, long ay, long bx, long by)`
+  - **class** `SegmentIntersect`
+    - `public static bool Run(long ax, long ay, long bx, long by, long cx, long cy, long dx, long dy)`
+  - **class** `LineIntersect`
+    - `public static bool Run(long ax, long ay, long bx, long by, long cx, long cy, long dx, long dy, long* ix, long* iy)`
+  - **class** `LineProjection`
+    - `public static void Run(long px, long py, long ax, long ay, long bx, long by, long* rx, long* ry)`
+  - **class** `LineReflection`
+    - `public static void Run(long px, long py, long ax, long ay, long bx, long by, long* rx, long* ry)`
+  - **class** `DistancePointLine`
+    - `public static long Run(long px, long py, long ax, long ay, long bx, long by)`
+  - **class** `DistancePointSegment`
+    - `public static long Run(long px, long py, long ax, long ay, long bx, long by)`
+  - **class** `DistanceSegmentSegment`
+    - `public static long Run(long ax, long ay, long bx, long by, long cx, long cy, long dx, long dy)`
+  - **class** `PolygonArea`
+    - `public static long Run(int n, long* x, long* y)`
+  - **class** `PolygonCentroid`
+    - `public static void Run(int n, long* x, long* y, long* cx, long* cy)`
+  - **class** `PolygonContains`
+    - `public static int Run(int n, long* x, long* y, long px, long py)`
+
+### IAFahim.Geometry.Bvh
+- **Path**: `src/IAFahim.Geometry.Bvh`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Geometry.Bvh/BvhTree.cs`
+- **Public APIs**:
+  - **struct** `BvhNode`
+    - `public float3 Min;`
+    - `public float3 Max;`
+    - `public int Left;`
+    - `public int Right;`
+    - `public int TriangleIndex;`
+  - **struct** `CentroidSortItem`
+    - `public float3 Centroid;`
+    - `public int TriangleIdx;`
+  - **class** `BvhTree`
+    - `public static int Build(`
+    - `public static bool Raycast(`
+
+### IAFahim.Geometry.Curve
+- **Path**: `src/IAFahim.Geometry.Curve`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Geometry.Curve/CatmullRom.cs`
+  - `IAFahim.Geometry.Curve/CubicBezier.cs`
+- **Public APIs**:
+  - **class** `CatmullRom`
+    - `public static float3 Evaluate(float3 p0, float3 p1, float3 p2, float3 p3, float t)`
+    - `public static float3 EvaluateTangent(float3 p0, float3 p1, float3 p2, float3 p3, float t)`
+  - **class** `CubicBezier`
+    - `public static float3 Evaluate(float3 p0, float3 p1, float3 p2, float3 p3, float t)`
+    - `public static float3 EvaluateTangent(float3 p0, float3 p1, float3 p2, float3 p3, float t)`
+    - `public static float IntegrateArcLength(float3 p0, float3 p1, float3 p2, float3 p3)`
+    - `public static void UniformSample(float3 p0, float3 p1, float3 p2, float3 p3, int count, float3* outPositions, float3* outTangents)`
+
+### IAFahim.Geometry.Frame
+- **Path**: `src/IAFahim.Geometry.Frame`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Geometry.Frame/ParallelTransport.cs`
+- **Public APIs**:
+  - **class** `ParallelTransport`
+    - `public static void Compute(float3* positions, int count, float3 initialNormal, float3* outRight, float3* outUp, float3* outForward)`
+
+### IAFahim.Geometry.Hull
+- **Path**: `src/IAFahim.Geometry.Hull`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Geometry.Hull/ConvexHull3D.cs`
+  - `IAFahim.Geometry.Hull/ConvexHullRollback.cs`
+  - `IAFahim.Geometry.Hull/ConvexHullTrick.cs`
+  - `IAFahim.Geometry.Hull/HalfSpaceIntersection.cs`
+  - `IAFahim.Geometry.Hull/MaximumInscribedCircle.cs`
+  - `IAFahim.Geometry.Hull/MinkowskiSum.cs`
+  - `IAFahim.Geometry.Hull/RotatingCalipers.cs`
+  - `IAFahim.Geometry.Hull/StraightSkeleton.cs`
+- **Public APIs**:
+  - **class** `ConvexHull3D`
+  - **struct** `Face`
+    - `public int A, B, C;`
+    - `public int F0, F1, F2;`
+    - `public bool Deleted;`
+  - **class** `ConvexHullRollback`
+    - `public static void ConvexHullRollbackAdd() { }`
+    - `public static void ConvexHullRollbackQuery() { }`
+  - **class** `ConvexHullTrick`
+  - **struct** `Line`
+  - **struct** `History`
+    - `public int OldSize;`
+    - `public Line OverwrittenLine;`
+  - **class** `HalfSpaceIntersection`
+  - **struct** `HalfPlane`
+  - **class** `MaximumInscribedCircle`
+    - `public static double Run(double* xs, double* ys, int n)`
+  - **class** `MinkowskiSum`
+    - `public static int Convex(double* ax, double* ay, int an, double* bx, double* by, int bn, double* outX, double* outY)`
+    - `public static int Difference(double* ax, double* ay, int an, double* bx, double* by, int bn, double* outX, double* outY)`
+  - **class** `RotatingCalipers`
+  - **struct** `Rect`
+  - **class** `StraightSkeleton`
+  - **struct** `Event`
+  - **struct** `Node`
+    - `public int Id;`
+    - `public double X, Y;`
+    - `public double Dx, Dy;`
+    - `public double Nx1, Ny1;`
+    - `public double Nx2, Ny2;`
+    - `public int Prev, Next;`
+    - `public bool Deleted;`
+
+### IAFahim.Geometry.Intersect
+- **Path**: `src/IAFahim.Geometry.Intersect`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Geometry.Intersect/Plane.cs`
+  - `IAFahim.Geometry.Intersect/Polyhedron.cs`
+  - `IAFahim.Geometry.Intersect/Sphere.cs`
+- **Public APIs**:
+  - **class** `Plane`
+    - `public static double PointPlaneDistance(double px, double py, double pz, double nx, double ny, double nz, double d)`
+    - `public static double PointPlaneDistanceNormalized(double px, double py, double pz, double nx, double ny, double nz, double d)`
+    - `public static bool LinePlaneIntersection(double lx, double ly, double lz, double ldx, double ldy, double ldz, double nx, double ny, double nz, double d, double* t)`
+    - `public static bool SegmentPlaneIntersection(double x1, double y1, double z1, double x2, double y2, double z2, double nx, double ny, double nz, double d, double* t)`
+    - `public static bool PlaneIntersection(double n1x, double n1y, double n1z, double d1, double n2x, double n2y, double n2z, double d2,`
+  - **class** `Polyhedron`
+    - `public static double Volume(double* xs, double* ys, double* zs, int* faces, int faceCount)`
+    - `public static int Faces(int vertexCount, int edgeCount)`
+  - **class** `Sphere`
+    - `public static int LineIntersection(`
+    - `public static bool SphereIntersection(`
+
+### IAFahim.Geometry.Mesh
+- **Path**: `src/IAFahim.Geometry.Mesh`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Geometry.Mesh/MeshProjection.cs`
+- **Public APIs**:
+  - **class** `MeshProjection`
+    - `public static void DeformVertices(`
+    - `public static void RecalculateNormals(`
+
+### IAFahim.Geometry.Spatial
+- **Path**: `src/IAFahim.Geometry.Spatial`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Geometry.Spatial/BallTree.cs`
+  - `IAFahim.Geometry.Spatial/Bit3D.cs`
+  - `IAFahim.Geometry.Spatial/CoverTree.cs`
+  - `IAFahim.Geometry.Spatial/KdTree.cs`
+  - `IAFahim.Geometry.Spatial/Mst.cs`
+  - `IAFahim.Geometry.Spatial/Octree.cs`
+  - `IAFahim.Geometry.Spatial/Quadtree.cs`
+  - `IAFahim.Geometry.Spatial/RangeTree.cs`
+  - `IAFahim.Geometry.Spatial/SegmentTree.cs`
+  - `IAFahim.Geometry.Spatial/Wspd.cs`
+- **Public APIs**:
+  - **class** `BallTree`
+  - **struct** `Node`
+  - **class** `Bit3D`
+  - **struct** `BIT3D`
+    - `public int X, Y, Z;`
+    - `public int Size;`
+    - `public long* Tree;`
+  - **class** `CoverTree`
+  - **struct** `Node`
+  - **class** `KdTree`
+  - **struct** `Node`
+    - `public double X, Y;`
+    - `public int PointIndex;`
+    - `public int Left, Right;`
+    - `public int Axis;`
+  - **class** `Mst`
+    - `public static double Manhattan(double* xs, double* ys, int n, int* outFrom, int* outTo, double* outW)`
+    - `public static double Rectilinear(double* xs, double* ys, int n, int* outFrom, int* outTo, double* outW)`
+    - `public static double Euclidean(double* xs, double* ys, int n, int* outFrom, int* outTo, double* outW)`
+  - **class** `Octree`
+  - **struct** `Node`
+  - **class** `Quadtree`
+  - **struct** `Node`
+    - `public double MinX, MinY, MaxX, MaxY;`
+    - `public int FirstChild;`
+    - `public int PointIndex;`
+  - **class** `RangeTree`
+  - **struct** `Node`
+    - `public double X, Y, Z;`
+    - `public int Left, Right;`
+    - `public int OriginalIndex;`
+  - **class** `SegmentTree`
+  - **struct** `Node`
+    - `public double Lo, Hi;`
+    - `public int Left, Right;`
+    - `public double Min, Max;`
+    - `public int OriginalIndex;`
+  - **class** `Wspd`
+  - **struct** `Pair`
+
+### IAFahim.Geometry.Triangulation
+- **Path**: `src/IAFahim.Geometry.Triangulation`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Geometry.Triangulation/EarClipping.cs`
+- **Public APIs**:
+  - **class** `EarClipping`
+    - `public static void Triangulate(`
+
+### IAFahim.Geometry.Voronoi
+- **Path**: `src/IAFahim.Geometry.Voronoi`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Geometry.Voronoi/Delaunay.cs`
+  - `IAFahim.Geometry.Voronoi/Fortune.cs`
+  - `IAFahim.Geometry.Voronoi/NearestNeighbor.cs`
+  - `IAFahim.Geometry.Voronoi/ShortestPath.cs`
+  - `IAFahim.Geometry.Voronoi/VisibilityGraph.cs`
+- **Public APIs**:
+  - **class** `Delaunay`
+  - **struct** `Triangle`
+  - **class** `Fortune`
+    - `public static int Build(double* xs, double* ys, int n, double* outX, double* outY, int* outSize)`
+  - **class** `NearestNeighbor`
+  - **struct** `PointIdx`
+  - **struct** `KDNode`
+    - `public double X, Y; public int Idx, Left, Right;`
+    - `public double MinX, MinY, MaxX, MaxY;`
+  - **class** `ShortestPath`
+  - **struct** `PQNode`
+  - **class** `VisibilityGraph`
+    - `public static int Build(double* ox, double* oy, int n, int* outFrom, int* outTo, double* outW)`
+
+### IAFahim.Graph
+- **Path**: `src/IAFahim.Graph`
+- **Description**: Curious cat uses general graph algorithms to traverse, classify, and analyze networks. It handles the bread‑and‑butter BFS/DFS style tasks.
+- **C# Source Files**:
+  - `IAFahim.Graph/GraphAdvanced.cs`
+  - `IAFahim.Graph/GraphBasic.cs`
+  - `IAFahim.Graph/GraphBipartite.cs`
+  - `IAFahim.Graph/GraphInit.cs`
+  - `IAFahim.Graph/GraphRemaining.cs`
+  - `IAFahim.Graph/GraphTopo.cs`
+  - `IAFahim.Graph/GraphTraversal.cs`
+  - `IAFahim.Graph/Mst.cs`
+  - `IAFahim.Graph/MstVariants.cs`
+  - `IAFahim.Graph/Planar.cs`
+  - `IAFahim.Graph/ShortestPath.cs`
+  - `IAFahim.Graph/Tournament.cs`
+  - `IAFahim.Graph/TwoSat.cs`
+- **Public APIs**:
+  - **class** `MinimumCutGomoryHu`
+    - `public static void Run(int n, int m, int* head, int* to, int* next, int* cap, int* p, int* w)`
+  - **class** `StoerWagner`
+    - `public static long Run(int n, int* head, int* to, int* next, int* weight)`
+  - **class** `Hierholzer`
+    - `public static int Run(int n, int m, int start, int* head, int* to, int* next, int* circuit)`
+  - **class** `AddEdge`
+    - `public static void Run(int* head, int* to, int* next, int* edgeId, int u, int v, int* edgeCount)`
+  - **class** `AddDirectedEdge`
+    - `public static void Run(int* head, int* to, int* next, int* edgeId, int u, int v, int* edgeCount)`
+  - **class** `AddWeightedEdge`
+    - `public static void Run(int* head, int* to, int* next, int* weight, int* edgeId, int u, int v, int w, int* edgeCount)`
+  - **class** `BuildAdjacency`
+    - `public static void Run(int n, int m, int* edges, int* head, int* to, int* next, int* edgeId, bool directed)`
+  - **class** `TransposeGraph`
+    - `public static void Run(int n, int* head, int* to, int* next, int* revHead, int* revTo, int* revNext, int* revEdgeId)`
+  - **class** `IsBipartite`
+    - `public static bool Run(int n, int* head, int* to, int* next)`
+  - **class** `ColorBipartite`
+    - `public static bool Run(int n, int* head, int* to, int* next, int* color)`
+  - **class** `ShortestPathUnweighted`
+    - `public static void Run(int n, int start, int* head, int* to, int* next, int* dist, int* parent)`
+  - **class** `BipartiteMatching`
+    - `public static int Run(int nLeft, int nRight, int m, int* leftU, int* rightV, int* matchL, int* matchR)`
+  - **class** `KuhnMatch`
+    - `public static int Run(int n, int m, int* eu, int* ev, int* matchL, int* matchR)`
+  - **class** `HopcroftKarp`
+    - `public static int Run(int nLeft, int nRight, int m, int* eu, int* ev, int* matchL, int* matchR, int* dist)`
+  - **class** `MinimumVertexCoverBipartite`
+    - `public static int Run(int nLeft, int nRight, int m, int* eu, int* ev, int* matchL, int* matchR, int* coverL, int* coverR)`
+  - **class** `MaximumIndependentSetBipartite`
+    - `public static int Run(int nLeft, int nRight, int m, int* eu, int* ev, int* matchL, int* matchR, int* indepL, int* indepR)`
+  - **class** `HungarianMin`
+    - `public static long Run(int n, long* cost, long* assign)`
+  - **class** `HungarianMax`
+    - `public static long Run(int n, long* cost, long* assign)`
+  - **class** `AssignmentSolve`
+    - `public static int Run(int n, int m, long* cost, int* assign)`
+  - **class** `GeneralMatchingBlossom`
+    - `public static int Run(int n, int m, int* eu, int* ev, int* match)`
+  - **class** `StableMarriage`
+    - `public static void Run(int n, int* manPref, int* womanPref, int* manMatch, int* womanMatch)`
+  - **class** `GaleShapley`
+    - `public static void Run(int n, int* proposerPref, int* receiverPref, int* proposerMatch, int* receiverMatch, bool* proposerIsMan)`
+  - **class** `GraphInit`
+    - `public static void Run(int n, int* head, int* parent, int* depth, int* size)`
+  - **class** `ChuLiuEdmonds`
+    - `public static long Run(int n, int root, int* u, int* v, long* w, int m, long* result)`
+  - **class** `Boruvka`
+    - `public static long Run(int n, int* u, int* v, long* w, int m, int* mstEdges, int* used, int* edgeCount)`
+  - **class** `KruskalReconstructionTree`
+    - `public static int Build(int n, int* u, int* v, int m, int* parent, int* left, int* right, int* label)`
+  - **class** `AStar`
+    - `public static long Run(int n, int start, int target, int* head, int* to, int* next, long* dist, long* h, long* result)`
+  - **class** `YenKShortestPaths`
+    - `public static int Run(int n, int src, int dst, int k, int* head, int* to, int* next, long* dist, long* pathCosts, long* work)`
+  - **class** `BiconnectedComponents`
+    - `public static int Run(int n, int* head, int* to, int* next, int* disc, int* low, int* bccId, int* stackEdges, int* bccCount)`
+  - **class** `EdgeBiconnectedComponents`
+    - `public static int Run(int n, int* head, int* to, int* next, int* disc, int* low, int* parent, int* ebcId)`
+  - **class** `DominatorTree`
+    - `public static void Run(int n, int root, int* head, int* to, int* next, int* parent, int* semi, int* idom, int* ancestor, int* label, int* bucket, int* parentNode)`
+  - **class** `Toposort`
+    - `public static int Run(int n, int* head, int* to, int* next, int* order)`
+  - **class** `KahnToposort`
+    - `public static int Run(int n, int* head, int* to, int* next, int* order)`
+  - **class** `DetectCycleDirected`
+    - `public static bool Run(int n, int* head, int* to, int* next, int* parent, int* depth)`
+  - **class** `DetectCycleUndirected`
+    - `public static bool Run(int n, int* head, int* to, int* next, int* parent)`
+  - **class** `ConnectedComponents`
+    - `public static int Run(int n, int* head, int* to, int* next, int* comp)`
+  - **class** `Kosaraju`
+    - `public static void FirstDfs(int u, int* head, int* to, int* next, bool* visited, int* order, int* top)`
+    - `public static void SecondDfs(int u, int* head, int* to, int* next, bool* visited, int* comp, int id)`
+    - `public static int Run(int n, int* head, int* to, int* next, int* revHead, int* revTo, int* revNext, int* comp)`
+  - **class** `TarjanScc`
+    - `public static void Run(int u, int* head, int* to, int* next, int* index, int* lowlink, bool* onStack, int* stack, ref int stackSize, ref int idx, ref int sccCount, int* comp)`
+  - **class** `CondenseGraph`
+    - `public static void Run(int n, int* head, int* to, int* next, int* comp, int sccCount, int* condHead, int* condTo, int* condNext, int* condEdgeId)`
+  - **class** `Bfs`
+    - `public static void Run(int n, int start, int* head, int* to, int* next, int* dist, int* parent)`
+  - **class** `ZeroOneBfs`
+    - `public static void Run(int n, int start, int* head, int* to, int* next, int* weight, int* dist)`
+  - **class** `MultiSourceBfs`
+    - `public static void Run(int n, int sourceCount, int* sources, int* head, int* to, int* next, int* dist)`
+  - **class** `Dfs`
+    - `public static void Run(int u, int* head, int* to, int* next, int* parent, int* depth, bool* visited, ref int time)`
+  - **class** `IterativeDfs`
+    - `public static void Run(int n, int start, int* head, int* to, int* next, int* parent, int* depth, int* order)`
+  - **class** `MinimumSpanningTreeKruskal`
+    - `public static long Run(int n, int m, int* eu, int* ev, int* ew, int* mstEdges)`
+  - **class** `MinimumSpanningTreePrim`
+    - `public static long Run(int n, int* head, int* to, int* next, int* weight, int* mstEdges)`
+  - **class** `SecondBestMst`
+    - `public static long Run(int n, int m, int* eu, int* ev, int* ew)`
+  - **class** `MstVariants`
+    - `public static long MinimumArborescenceDirected(int n, int root, int* u, int* v, long* w, int m, long* result)`
+    - `public static long MaximumBranching(int n, int* u, int* v, long* w, int m, int* resultEdges, int* resultCount)`
+    - `public static long BranchingMatroidIntersection(int n, int* u, int* v, long* w, int m, int* resultEdges, int* resultCount)`
+    - `public static long ArborescenceCount(int n, int root, int* u, int* v, int m)`
+    - `public static bool DegreeConstrainedMst(int n, int m, int* u, int* v, long* w, int r, int k, int* resultEdges, int* resultCount)`
+    - `public static void CapacitatedMst(int n, int m, int* u, int* v, long* w, int r, int capacity, int* resultEdges, int* resultCount)`
+    - `public static void MinimumDiameterSpanningTree(int n, int m, int* u, int* v, long* w, int* resultEdges, int* resultCount)`
+    - `public static void MinimumBottleneckSpanningTree(int n, int m, int* u, int* v, long* w, int* resultEdges, int* resultCount)`
+    - `public static long MinimumBottleneckPath(int n, int m, int* u, int* v, long* w, int src, int dest)`
+    - `public static void MaximumCapacitySpanningTree(int n, int m, int* u, int* v, long* w, int* resultEdges, int* resultCount)`
+    - `public static long WidestPath(int n, int m, int* u, int* v, long* w, int src, int dest)`
+    - `public static long MaximumCapacityPath(int n, int m, int* u, int* v, long* w, int src, int dest)`
+    - `public static bool LexicographicShortestPath(int n, int m, int* u, int* v, long* w, int src, int dest, int* path, int* pathLength)`
+    - `public static void LexicographicMst(int n, int m, int* u, int* v, long* w, int* resultEdges, int* resultCount)`
+    - `public static bool RandomizedMstVerify(int numVertices, int numEdges, int* u, int* v, long* weight, bool* inMst)`
+    - `public static void KargerSteinMinCut(int n, int m, int* u, int* v, int* bestCutU, int* bestCutV, int* bestCutCount, ref uint seed)`
+    - `public static void NagamochiIbarakiSparseCertificate(int n, int m, int* u, int* v, int k, int* certEdges, int* certCount)`
+    - `public static void SparseCertificateBuild(int n, int m, int* u, int* v, int k, int* certEdges, int* certCount)`
+    - `public static long CutTreeQuery(int n, int* parent, int* weight, int src, int dest)`
+    - `public static int EdgeConnectivity(int n, int m, int* head, int* to, int* next, int* cap)`
+    - `public static int VertexConnectivity(int n, int m, int* u, int* v)`
+    - `public static long StoerWagnerPhase(int n, int phase, int* head, int* to, int* next, int* weight, long* add, long* dist, int* vis, int* last, int* prev)`
+    - `public static long GomoryHuMinCutQuery(int n, int* parent, int* weight, int src, int dest)`
+  - **class** `Planar`
+    - `public static void GomoryHuBuild(int n, int m, int* head, int* to, int* next, int* cap, int* parent, int* weight)`
+    - `public static int GomoryHuQuery(int n, int* parent, int* weight, int u, int v)`
+    - `public static bool SplittingOff(int n, int* m, int s, int* u, int* v, int* resultU, int* resultV, int* resultCount)`
+    - `public static bool EarDecomposition(int n, int m, int* u, int* v, int* earEdges, int* earLengths, int* earCount)`
+    - `public static bool StNumbering(int n, int m, int* u, int* v, int s, int t, int* stOrder)`
+    - `public static bool PlanarEmbedding(int n, int m, int* u, int* v, int* embeddingHead, int* embeddingNext, int* embeddingTo)`
+    - `public static bool PlanarDualBuild(int n, int m, int* u, int* v, int* embeddingHead, int* embeddingNext, int* embeddingTo, int* dualN, int* dualM, int* dualU, int* dualV, int* faceSizes)`
+    - `public static void PlanarShortestPath(int n, int m, int* u, int* v, long* w, int src, int dest, long* dist)`
+    - `public static bool PlanarSeparator(int n, int m, int* u, int* v, int* separator, int* separatorCount, int* partA, int* partACount, int* partB, int* partBCount)`
+    - `public static long PlanarMaxFlow(int n, int s, int t, int* head, int* to, int* next, int* cap, int m)`
+    - `public static long PlanarMinCut(int n, int s, int t, int* head, int* to, int* next, int* cap, int m, int* cutEdges, int* cutCount)`
+    - `public static void FacePotentialSolve(int nf, int nde, int* du, int* dv, long* dw, double* pots)`
+    - `public static bool KuratowskiSubgraph(int n, int m, int* u, int* v, int* ku, int* kv, int* kc)`
+    - `public static bool OuterplanarCheck(int n, int m, int* u, int* v)`
+    - `public static bool SeriesParallelDecompose(int n, int m, int* u, int* v, int s, int t)`
+    - `public static int TriconnectedComponents(int n, int m, int* u, int* v, int* ct)`
+    - `public static int SpqrTreeBuild(int n, int m, int* u, int* v, int* ct) => TriconnectedComponents(n, m, u, v, ct);`
+    - `public static void MaximumPlanarMatching(int n, int m, int* u, int* v, int* mu, int* mv, int* mc)`
+  - **class** `Dijkstra`
+    - `public static void Run(int n, int start, int* head, int* to, int* next, int* weight, long* dist, int* parent)`
+  - **class** `DijkstraSparse`
+    - `public static void Run(int n, int start, int* head, int* to, int* next, int* weight, long* dist, int* parent)`
+  - **class** `DijkstraDense`
+    - `public static void Run(int n, int start, int* head, int* to, int* next, int* weight, long* dist, int* parent)`
+  - **class** `DijkstraRestorePath`
+    - `public static int Run(int* parent, int target, int* path)`
+  - **class** `BellmanFord`
+    - `public static bool Run(int n, int start, int m, int* eu, int* ev, int* ew, long* dist, int* parent)`
+  - **class** `Spfa`
+    - `public static bool Run(int n, int start, int* head, int* to, int* next, int* weight, long* dist, int* parent, int* inqueue)`
+  - **class** `FloydWarshall`
+    - `public static void Run(int n, long* dist, int* parent)`
+  - **class** `Johnson`
+    - `public static bool Run(int n, int start, int m, int* eu, int* ev, int* ew, long* dist)`
+  - **class** `ZeroOneShortestPath`
+    - `public static void Run(int n, int start, int* head, int* to, int* next, int* weight, long* dist)`
+  - **class** `PotentialDijkstra`
+    - `public static void Run(int n, int start, int* head, int* to, int* next, long* weight, long* dist, int* parent, long* potential)`
+  - **class** `Tournament`
+    - `public static void TournamentHamiltonianPath(int n, byte* adj, int* path)`
+    - `public static bool TournamentHamiltonianCycle(int n, byte* adj, int* cycle)`
+    - `public static void TournamentMedianOrder(int n, byte* adj, int* bestOrder)`
+    - `public static int TournamentKingFind(int n, byte* adj)`
+    - `public static bool EulerianOrientation(int n, int m, int* head, int* next, int* to, int* eu, int* ev, int* ou, int* ov)`
+    - `public static bool StrongOrientation(int n, int m, int* head, int* next, int* to, int* eu, int* ev, int* ou, int* ov)`
+    - `public static void OrientEdgesAcyclic(int m, int* eu, int* ev, int* ou, int* ov)`
+    - `public static int FeedbackArcTournament(int n, byte* adj, int* ru, int* rv, int* rc)`
+  - **class** `TwoSatAddClause`
+    - `public static void Run(int i, bool f, int j, bool g, int* head, int* to, int* next, int* edgeCount)`
+  - **class** `TwoSatSolve`
+    - `public static bool Run(int n, int* head, int* to, int* next, int* result)`
+  - **class** `GraphBridgeAdapter`
+    - `public static int Run(int n, int* head, int* to, int* next, int* bu, int* bv)`
+  - **class** `GraphArticulationPointAdapter`
+    - `public static int Run(int n, int s, int* head, int* to, int* next, bool* result)`
+
+### IAFahim.Graph.Bridges
+- **Path**: `src/IAFahim.Graph.Bridges`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Graph.Bridges/BiconnectivityAugmentation.cs`
+  - `IAFahim.Graph.Bridges/BridgeAndArticulation.cs`
+  - `IAFahim.Graph.Bridges/DynamicBridges.cs`
+- **Public APIs**:
+  - **class** `BiconnectivityAugmentation`
+    - `public static int MinEdgesFor2EdgeConnected(int n, int* head, int* next, int* to)`
+  - **class** `BridgeAndArticulation`
+    - `public static void Dfs(int u, int p, int* head, int* next, int* to,`
+    - `public static void Find(int n, int* head, int* next, int* to,`
+  - **class** `IncrementalDynamicBridges`
+  - **struct** `Node`
+    - `public int Parent;`
+    - `public int Left;`
+    - `public int Right;`
+    - `public byte Rev;`
+    - `public int Val;`
+    - `public int Sum;`
+    - `public int LazyCover;`
+
+### IAFahim.Graph.Cactus
+- **Path**: `src/IAFahim.Graph.Cactus`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Graph.Cactus/BlockCutTreeLca.cs`
+  - `IAFahim.Graph.Cactus/BridgeTreeDiameter.cs`
+  - `IAFahim.Graph.Cactus/CactusCycleDecompose.cs`
+  - `IAFahim.Graph.Cactus/CactusLca.cs`
+  - `IAFahim.Graph.Cactus/CactusShortestPath.cs`
+- **Public APIs**:
+  - **class** `BlockCutTreeLca`
+    - `public static int Run(int u, int v)`
+  - **class** `BridgeTreeDiameter`
+    - `public static int Run(int* head, int* to, int* next, int n, int m)`
+  - **class** `CactusCycleDecompose`
+    - `public static int Run(int* head, int* to, int* next, int n, int m, int* cycleId)`
+  - **class** `CactusLca`
+    - `public static int Run(int u, int v)`
+  - **class** `CactusShortestPath`
+    - `public static int Run(int u, int v)`
+
+### IAFahim.Graph.Centroid
+- **Path**: `src/IAFahim.Graph.Centroid`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Graph.Centroid/Centroid.cs`
+- **Public APIs**:
+  - **class** `CentroidDecomposition`
+    - `public static int Build(int n, int* head, int* to, int* next, int* centroid, int* sz, byte* removed)`
+    - `public static void Decompose(int n, int* head, int* to, int* next, int u, byte* removed, int* sz, int* centroids, int* centroidCount)`
+
+### IAFahim.Graph.Clique
+- **Path**: `src/IAFahim.Graph.Clique`
+- **Description**: Curious cat uses clique algorithms when it needs fully connected groups. It helps the cat find tight clusters in a graph.
+- **C# Source Files**: None
+- **Public APIs**: None or internal/private only
+
+### IAFahim.Graph.Connectivity
+- **Path**: `src/IAFahim.Graph.Connectivity`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Graph.Connectivity/DecrementalConnectivity.cs`
+  - `IAFahim.Graph.Connectivity/DynamicReachabilityApprox.cs`
+  - `IAFahim.Graph.Connectivity/DynamicTransitiveClosure.cs`
+  - `IAFahim.Graph.Connectivity/FullyDynamicConnectivity.cs`
+  - `IAFahim.Graph.Connectivity/IncrementalConnectivity.cs`
+  - `IAFahim.Graph.Connectivity/OfflineDynamicConnectivity.cs`
+  - `IAFahim.Graph.Connectivity/OfflineDynamicMst.cs`
+- **Public APIs**:
+  - **class** `DecrementalConnectivity`
+    - `public static void Run(int* queriesU, int* queriesV, int* queriesType, int q,`
+  - **class** `DynamicReachabilityApprox`
+    - `public static bool Run(int* head, int* next, int* to, int n, bool* visited, int u, int v, int maxDepth)`
+  - **class** `DynamicTransitiveClosure`
+    - `public static void Init(byte* reach, int n)`
+    - `public static void AddEdge(byte* reach, int n, int u, int v)`
+    - `public static bool CanReach(byte* reach, int n, int u, int v)`
+  - **class** `FullyDynamicConnectivity`
+  - **struct** `EdgeEvent`
+    - `public int U, V, Time, Type, Id;`
+    - `public int CompareTo(EdgeEvent o)`
+  - **class** `IncrementalConnectivity`
+    - `public static void Init(int* parent, int* size, int n)`
+    - `public static int Find(int* parent, int i)`
+    - `public static bool Union(int* parent, int* size, int i, int j)`
+    - `public static bool Connected(int* parent, int i, int j)`
+  - **struct** `EdgeInterval`
+    - `public int U;`
+    - `public int V;`
+    - `public int StartTime;`
+    - `public int EndTime;`
+  - **class** `OfflineDynamicConnectivity`
+    - `public static void Solve(`
+  - **struct** `RollbackOp`
+    - `public int U;`
+    - `public int V;`
+  - **class** `OfflineDynamicMst`
+    - `public static void Init(int* parent, int* size, int n)`
+    - `public static int Find(int* parent, int i)`
+    - `public static bool Union(int* parent, int* size, int i, int j, RollbackOp* history, ref int historyCount)`
+    - `public static void Rollback(int* parent, int* size, RollbackOp* history, ref int historyCount, int targetCount)`
+
+### IAFahim.Graph.Cut
+- **Path**: `src/IAFahim.Graph.Cut`
+- **Description**: Curious cat uses cut algorithms to find bridges, articulation points, or min cuts. It reveals where the graph breaks if a link goes away.
+- **C# Source Files**: None
+- **Public APIs**: None or internal/private only
+
+### IAFahim.Graph.DAG
+- **Path**: `src/IAFahim.Graph.DAG`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Graph.DAG/CountTopologicalOrders.cs`
+  - `IAFahim.Graph.DAG/DagCountingPaths.cs`
+  - `IAFahim.Graph.DAG/DagHashCanonical.cs`
+  - `IAFahim.Graph.DAG/DagKthPath.cs`
+  - `IAFahim.Graph.DAG/DagLexicographicKthPath.cs`
+  - `IAFahim.Graph.DAG/DagLongestAntichain.cs`
+  - `IAFahim.Graph.DAG/DagMinimumPathCover.cs`
+  - `IAFahim.Graph.DAG/DagPathCoverRestore.cs`
+  - `IAFahim.Graph.DAG/DagReachabilityCompressed.cs`
+  - `IAFahim.Graph.DAG/DagTransitiveReduction.cs`
+  - `IAFahim.Graph.DAG/IncrementalCycleDetection.cs`
+  - `IAFahim.Graph.DAG/KthTopologicalOrder.cs`
+  - `IAFahim.Graph.DAG/LinearExtensionCountApprox.cs`
+  - `IAFahim.Graph.DAG/MinimumEquivalentDigraph.cs`
+  - `IAFahim.Graph.DAG/OnlineTopologicalOrdering.cs`
+  - `IAFahim.Graph.DAG/RandomTopologicalOrder.cs`
+  - `IAFahim.Graph.DAG/TopologicalSortAll.cs`
+- **Public APIs**:
+  - **class** `CountTopologicalOrders`
+    - `public static long Run(int* adjMask, int n, long* dp)`
+  - **class** `DagCountingPaths`
+    - `public static void Run(int* head, int* next, int* to, int* topoOrder, long* pathCount, int n)`
+  - **class** `DagHashCanonical`
+    - `public static void Run(int* head, int* next, int* to, int* topoOrder, ulong* hashes, int n)`
+  - **class** `DagKthPath`
+    - `public static int Run(int* head, int* next, int* to, long* pathCount, int u, long k, int* pathOut)`
+  - **class** `DagLexicographicKthPath`
+    - `public static int Run(int* head, int* next, int* to, long* pathCount, int u, long k, int* pathOut)`
+  - **class** `DagLongestAntichain`
+    - `public static int Run(bool* reachabilityMatrix, int* matchRight, bool* visited, int n)`
+  - **class** `DagMinimumPathCover`
+    - `public static int Run(int* head, int* next, int* to, int* match, int* dist, int* queue, int n)`
+  - **class** `DagPathCoverRestore`
+    - `public static int Run(int* match, int n, int* nextInPath)`
+  - **class** `DagReachabilityCompressed`
+    - `public static void Run(int* head, int* next, int* to, int* topoOrder, ulong* bitsets, int n, int ulongsPerNode)`
+  - **class** `DagTransitiveReduction`
+    - `public static void Run(bool* adjMatrix, int n, bool* reach)`
+  - **class** `IncrementalCycleDetection`
+    - `public static bool AddEdge(int u, int v, int* head, int* next, int* to, int* edgeCount, int* visited, int* stack, int runId)`
+  - **class** `KthTopologicalOrder`
+    - `public static bool Run(int* adjMask, int n, long* dp, long k, int* order)`
+  - **class** `LinearExtensionCountApprox`
+    - `public static double Run(int* adjMask, int n)`
+  - **class** `MinimumEquivalentDigraph`
+    - `public static void Run(bool* adjMatrix, int n)`
+  - **class** `OnlineTopologicalOrdering`
+    - `public static bool AddEdge(int u, int v, int* ord, int* head, int* next, int* to, int* edgeCount)`
+  - **class** `RandomTopologicalOrder`
+    - `public static void Run(int* adjMask, int n, long* dp, int* order, ref uint state)`
+  - **class** `TopologicalSortAll`
+    - `public static int Run(int* head, int* next, int* to, int* indegree, int n, int* currentOrder, int count, int* totalFound)`
+
+### IAFahim.Graph.Decomposition
+- **Path**: `src/IAFahim.Graph.Decomposition`
+- **Description**: Curious cat uses decomposition to split graphs into easier pieces. It makes complex queries feasible by working on components.
+- **C# Source Files**: None
+- **Public APIs**: None or internal/private only
+
+### IAFahim.Graph.Dominator
+- **Path**: `src/IAFahim.Graph.Dominator`
+- **Description**: Curious cat uses dominator trees to see which nodes control all paths. It is handy for flow of control and reachability analysis.
+- **C# Source Files**: None
+- **Public APIs**: None or internal/private only
+
+### IAFahim.Graph.DynamicTrees
+- **Path**: `src/IAFahim.Graph.DynamicTrees`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Graph.DynamicTrees/EulerTourTree.cs`
+  - `IAFahim.Graph.DynamicTrees/LinkCutTree.cs`
+  - `IAFahim.Graph.DynamicTrees/TopTree.cs`
+- **Public APIs**:
+  - **struct** `EttNode`
+    - `public long Val;`
+    - `public long SubSum;`
+    - `public int Parent;`
+    - `public int Left;`
+    - `public int Right;`
+    - `public int Size;`
+    - `public uint Priority;`
+    - `public int Twin;`
+  - **class** `EulerTourTree`
+    - `public static void Init(EttNode* nodes, int n)`
+    - `public static void PushUp(EttNode* nodes, int u)`
+    - `public static int GetRoot(EttNode* nodes, int u)`
+    - `public static int GetIndex(EttNode* nodes, int u)`
+    - `public static void Split(EttNode* nodes, int root, int k, out int l, out int r)`
+    - `public static int Merge(EttNode* nodes, int l, int r)`
+    - `public static int Reroot(EttNode* nodes, int u, ref uint randState)`
+    - `public static void Link(EttNode* nodes, int u, int v, int uv, int vu, ref uint randState)`
+    - `public static void Cut(EttNode* nodes, int uv, int vu, ref uint randState)`
+    - `public static bool Connected(EttNode* nodes, int u, int v)`
+    - `public static int GetPredecessor(EttNode* nodes, int u)`
+    - `public static int PredNode(EttNode* nodes, int u)`
+    - `public static long SubtreeQuery(EttNode* nodes, int u)`
+  - **struct** `LctNode`
+    - `public long Val;`
+    - `public long LazyAdd;`
+    - `public long PathMin;`
+    - `public long PathMax;`
+    - `public long PathSum;`
+    - `public long VirSum;`
+    - `public long AllSum;`
+    - `public int Parent;`
+    - `public int Left;`
+    - `public int Right;`
+    - `public int PathSize;`
+    - `public byte Rev;`
+  - **class** `LinkCutTree`
+    - `public static void Init(LctNode* nodes, int n)`
+    - `public static bool IsRoot(LctNode* nodes, int u)`
+    - `public static void PushUp(LctNode* nodes, int u)`
+    - `public static void ApplyAdd(LctNode* nodes, int u, long val)`
+    - `public static void PushDown(LctNode* nodes, int u)`
+    - `public static void Rotate(LctNode* nodes, int x)`
+    - `public static void Splay(LctNode* nodes, int x)`
+    - `public static int Access(LctNode* nodes, int u)`
+    - `public static void MakeRoot(LctNode* nodes, int u)`
+    - `public static int FindRoot(LctNode* nodes, int u)`
+    - `public static void Link(LctNode* nodes, int u, int v)`
+    - `public static void Cut(LctNode* nodes, int u, int v)`
+    - `public static void PathAdd(LctNode* nodes, int u, int v, long val)`
+    - `public static long PathMin(LctNode* nodes, int u, int v)`
+    - `public static long PathMax(LctNode* nodes, int u, int v)`
+    - `public static long SubtreeQuery(LctNode* nodes, int u)`
+  - **struct** `TopTreeNode`
+    - `public int Parent;`
+    - `public int Left;`
+    - `public int Right;`
+    - `public byte Rev;`
+    - `public long Val;`
+    - `public long LazyAdd;`
+    - `public long PathSum;`
+    - `public int PathSize;`
+    - `public long VirSum;`
+    - `public long AllSum;`
+  - **class** `TopTree`
+    - `public static void Init(TopTreeNode* nodes, int n)`
+    - `public static bool IsRoot(TopTreeNode* nodes, int u)`
+    - `public static void PushUp(TopTreeNode* nodes, int u)`
+    - `public static void ApplyAdd(TopTreeNode* nodes, int u, long val)`
+    - `public static void PushDown(TopTreeNode* nodes, int u)`
+    - `public static void Rotate(TopTreeNode* nodes, int x)`
+    - `public static void Splay(TopTreeNode* nodes, int x)`
+    - `public static int Access(TopTreeNode* nodes, int u)`
+    - `public static void Reroot(TopTreeNode* nodes, int u)`
+    - `public static int FindRoot(TopTreeNode* nodes, int u)`
+    - `public static void Link(TopTreeNode* nodes, int u, int v)`
+    - `public static void Cut(TopTreeNode* nodes, int u, int v)`
+    - `public static long PathQuery(TopTreeNode* nodes, int u, int v)`
+
+### IAFahim.Graph.Eertree
+- **Path**: `src/IAFahim.Graph.Eertree`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Graph.Eertree/Eertree.cs`
+- **Public APIs**:
+  - **class** `Eertree`
+  - **struct** `Node`
+  - **struct** `Next`
+
+### IAFahim.Graph.Eulerian
+- **Path**: `src/IAFahim.Graph.Eulerian`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Graph.Eulerian/Eulerian.cs`
+- **Public APIs**:
+  - **class** `EulerianPathUndirected`
+    - `public static int Run(int n, int* head, int* to, int* next, int start, int* path)`
+  - **class** `EulerianPathDirected`
+    - `public static int Run(int n, int* head, int* to, int* next, int start, int* path)`
+
+### IAFahim.Graph.Flow
+- **Path**: `src/IAFahim.Graph.Flow`
+- **Description**: Curious cat uses flow algorithms to push maximum or minimum cost through a network. It models capacities, assignments, and routing.
+- **C# Source Files**:
+  - `IAFahim.Graph.Flow/BfsLayerGraph.cs`
+  - `IAFahim.Graph.Flow/DinicCurrentArc.cs`
+  - `IAFahim.Graph.Flow/DynamicTreeMaxFlow.cs`
+  - `IAFahim.Graph.Flow/ExcessScalingMaxFlow.cs`
+  - `IAFahim.Graph.Flow/Flow.cs`
+  - `IAFahim.Graph.Flow/FlowRecoverLowerBound.cs`
+  - `IAFahim.Graph.Flow/FlowWithEdgeDemands.cs`
+  - `IAFahim.Graph.Flow/FlowWithVertexCapacities.cs`
+  - `IAFahim.Graph.Flow/HopcroftKarpBfs.cs`
+  - `IAFahim.Graph.Flow/HopcroftKarpDfs.cs`
+  - `IAFahim.Graph.Flow/IsapGapOptimization.cs`
+  - `IAFahim.Graph.Flow/MaximumClosureFlow.cs`
+  - `IAFahim.Graph.Flow/MaximumClosureProjectSelection.cs`
+  - `IAFahim.Graph.Flow/MinCostFlowCancelCycle.cs`
+  - `IAFahim.Graph.Flow/MinCostFlowCapacityScaling.cs`
+  - `IAFahim.Graph.Flow/MinCostFlowCostScaling.cs`
+  - `IAFahim.Graph.Flow/MinCostFlowDijkstra.cs`
+  - `IAFahim.Graph.Flow/MinCostFlowNetworkSimplex.cs`
+  - `IAFahim.Graph.Flow/MinCostFlowPrimalDual.cs`
+  - `IAFahim.Graph.Flow/MinCostFlowSpfa.cs`
+  - `IAFahim.Graph.Flow/MinCostFlowSsp.cs`
+  - `IAFahim.Graph.Flow/MinimumCutRecover.cs`
+  - `IAFahim.Graph.Flow/MinimumSTCutAll.cs`
+  - `IAFahim.Graph.Flow/MinimumWeightClosure.cs`
+  - `IAFahim.Graph.Flow/PicardQueyranneClosure.cs`
+  - `IAFahim.Graph.Flow/PushRelabelGap.cs`
+  - `IAFahim.Graph.Flow/PushRelabelGlobalRelabel.cs`
+- **Public APIs**:
+  - **class** `BfsLayerGraph`
+    - `public static bool Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow, int* level)`
+  - **class** `DinicCurrentArc`
+    - `public static void Init(int n, int* ptr, int* head, int* currentArc, int s)`
+    - `public static int Advance(int u, int* head, int* to, int* next, int* cap, int* flow, int* level, int* currentArc)`
+  - **class** `DinicWithLinkCut`
+    - `public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow)`
+  - **class** `ExcessScalingMaxFlow`
+    - `public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow)`
+  - **struct** `MinHeap`
+    - `public long* Dist;`
+    - `public int* V;`
+    - `public int* Pos;`
+    - `public int Size;`
+    - `public void PushOrUpdate(int v, long d)`
+    - `public int Pop(out long d)`
+  - **class** `MinCostFlowAddEdge`
+    - `public static void Run(int* head, int* to, int* next, int* cost, int* cap, int* edgeId, int u, int v, int c, int w)`
+  - **class** `DinicBfs`
+    - `public static bool Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow, int* level, int* it)`
+  - **class** `DinicDfs`
+    - `public static int Run(int u, int t, int pushed, int* head, int* to, int* next, int* cap, int* flow, int* level, int* it)`
+  - **class** `PotentialDijkstra`
+    - `public static bool Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, long* pot, long* dist, int* parent, int* parentEdge, MinHeap* pq)`
+  - **class** `SuccessiveShortestPath`
+    - `public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost)`
+  - **class** `MaxFlowLowerBounds`
+    - `public static long Run(int n, int s, int t, int* head, int* to, int* next, int* lower, int* upper, int* flow, int* newHead, int* newTo, int* newNext, int* newCap, int* newCost)`
+  - **class** `EdmondsKarp`
+    - `public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow)`
+  - **class** `DinicMaxFlow`
+    - `public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow)`
+  - **class** `MinCostMaxFlow`
+    - `public static (long flow, long minCost) Run(int n, int s, int t, int* head, int* to, int* next, int* cost, int* cap)`
+  - **class** `FlowRecoverLowerBound`
+    - `public static long Run(int n, int s, int t, int* head, int* to, int* next, int* lower, int* upper, int* flow, int* newHead, int* newTo, int* newNext, int* newCap, int* newFlow)`
+  - **class** `FlowWithEdgeDemands`
+    - `public static bool Run(int n, int s, int t, int* head, int* to, int* next, int* lower, int* upper, int* flow, int* result)`
+  - **class** `FlowWithVertexCapacities`
+    - `public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow, int* vCap)`
+  - **class** `HopcroftKarpBfs`
+    - `public static int Run(int nLeft, int nRight, int* head, int* to, int* next, int* pairU, int* pairV, int* dist, int* q)`
+  - **class** `HopcroftKarpDfs`
+    - `public static bool Run(int u, int nLeft, int nRight, int* head, int* to, int* next, int* pairU, int* pairV, int* dist, int* it)`
+  - **class** `IsapGapOptimization`
+    - `public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow)`
+  - **class** `MaximumClosureFlow`
+    - `public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow, int* nodeWeight)`
+  - **class** `MaximumClosureProjectSelection`
+    - `public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow, int* profit, int* prerequisiteHead, int* prerequisiteTo, int* prerequisiteNext, int* reqEdgeId)`
+  - **class** `MinCostFlowCancelCycle`
+    - `public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, int* flow)`
+  - **class** `MinCostFlowCapacityScaling`
+    - `public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, int* flow)`
+  - **class** `MinCostFlowCostScaling`
+    - `public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, int* flow)`
+  - **class** `MinCostFlowDijkstra`
+    - `public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, int* flow)`
+  - **class** `MinCostFlowNetworkSimplex`
+    - `public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, int* flow)`
+  - **class** `MinCostFlowPrimalDual`
+    - `public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, int* flow)`
+  - **class** `MinCostFlowSpfa`
+    - `public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, int* flow)`
+  - **class** `MinCostFlowSsp`
+    - `public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, int* flow)`
+  - **class** `MinimumCutRecover`
+    - `public static void Run(int* head, int* to, int* next, int* cap, int n, int s, byte* visited)`
+  - **class** `MinCut`
+    - `public static void Run(int n, int s, int* head, int* to, int* next, int* cap, byte* visited)`
+  - **class** `MinimumSTCutAll`
+    - `public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow, int* cutU, int* cutV, int* cutCount)`
+  - **class** `MinimumWeightClosure`
+    - `public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow, int* nodeWeight, byte* inClosure)`
+  - **class** `PicardQueyranneClosure`
+    - `public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, int* flow, int* nodeWeight)`
+  - **class** `PushRelabelGap`
+    - `public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow)`
+  - **class** `PushRelabelGlobalRelabel`
+    - `public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow)`
+
+### IAFahim.Graph.Functional
+- **Path**: `src/IAFahim.Graph.Functional`
+- **Description**: Curious cat uses functional‑graph tools when each node points to one next node. It makes cycle and distance queries easy.
+- **C# Source Files**:
+  - `IAFahim.Graph.Functional/FunctionalGraphComponent.cs`
+  - `IAFahim.Graph.Functional/FunctionalGraphCycleEntry.cs`
+  - `IAFahim.Graph.Functional/FunctionalGraphFirstMeeting.cs`
+  - `IAFahim.Graph.Functional/FunctionalGraphKthSuccessor.cs`
+  - `IAFahim.Graph.Functional/FunctionalGraphPathAggregate.cs`
+  - `IAFahim.Graph.Functional/FunctionalGraphReroot.cs`
+  - `IAFahim.Graph.Functional/PermutationCyclePower.cs`
+  - `IAFahim.Graph.Functional/PermutationLog.cs`
+  - `IAFahim.Graph.Functional/PermutationNthRoot.cs`
+  - `IAFahim.Graph.Functional/PermutationSqrt.cs`
+- **Public APIs**:
+  - **class** `FunctionalGraphComponent`
+    - `public static int Run(int* f, int n, int* comp)`
+  - **class** `FunctionalGraphCycleEntry`
+    - `public static int Run(int* f, int n, int u)`
+  - **class** `FunctionalGraphFirstMeeting`
+    - `public static int Run(int* f, int n, int u, int v)`
+  - **class** `FunctionalGraphKthSuccessor`
+    - `public static int Run(int* f, int n, int u, long k)`
+  - **class** `FunctionalGraphPathAggregate`
+    - `public static long Run(int* f, long* w, int n, int u, long k)`
+  - **class** `FunctionalGraphReroot`
+    - `public static void Run(int* f, int n, int u)`
+  - **class** `PermutationCyclePower`
+    - `public static void Run(int* p, int n, long k, int* res)`
+  - **class** `PermutationLog`
+    - `public static long Run(int* p1, int* p2, int n)`
+  - **class** `PermutationNthRoot`
+    - `public static bool Run(int* p, int n, int k, int* res)`
+  - **class** `PermutationSqrt`
+    - `public static bool Run(int* p, int n, int* res)`
+
+### IAFahim.Graph.Matching
+- **Path**: `src/IAFahim.Graph.Matching`
+- **Description**: Curious cat uses matching algorithms to pair nodes without conflicts. It is ideal for assignments and bipartite pairing.
+- **C# Source Files**:
+  - `IAFahim.Graph.Matching/AssignmentAuctionAlgorithm.cs`
+  - `IAFahim.Graph.Matching/AssignmentHungarianRectangular.cs`
+  - `IAFahim.Graph.Matching/Blossom.cs`
+  - `IAFahim.Graph.Matching/BottleneckAssignment.cs`
+  - `IAFahim.Graph.Matching/HospitalResidentsMatching.cs`
+  - `IAFahim.Graph.Matching/Hungarian.cs`
+  - `IAFahim.Graph.Matching/Kuhn.cs`
+  - `IAFahim.Graph.Matching/MaximumBipartiteBMatching.cs`
+  - `IAFahim.Graph.Matching/MinimumCostBipartiteBMatching.cs`
+  - `IAFahim.Graph.Matching/StableMarriage.cs`
+  - `IAFahim.Graph.Matching/StableMarriageIncomplete.cs`
+  - `IAFahim.Graph.Matching/StableRoommates.cs`
+- **Public APIs**:
+  - **class** `AssignmentAuctionAlgorithm`
+    - `public static void Run(int* cost, int n, int* match, int* prices)`
+  - **class** `AssignmentHungarianRectangular`
+    - `public static void Run(int* cost, int n, int m, int* matchLeft, int* matchRight)`
+  - **class** `BlossomGeneral`
+    - `public static int Run(int n, int* head, int* to, int* next, int* match, int* base_, int* p, int* v, int* blossom, int* scratch)`
+    - `public static int Run(int n, int* head, int* to, int* next, int* match, int* base_, int* p, int* v, int* blossom)`
+  - **class** `WeightedBlossom`
+    - `public static long Run(int n, long* w, int* match)`
+  - **class** `BottleneckAssignment`
+    - `public static int Run(int* cost, int n, int* match)`
+  - **class** `HospitalResidentsMatching`
+    - `public static void Run(int* residentPref, int* hospitalPref, int* hospitalCapacities, int numResidents, int numHospitals, int* matchResident)`
+  - **class** `HungarianMin`
+    - `public static long Run(int n, long* a, long* matchL, long* matchR)`
+  - **class** `HungarianMax`
+    - `public static long Run(int n, long* a, int* matchL, int* matchR)`
+  - **class** `AssignmentSolve`
+    - `public static bool Run(int n, long* cost, int* assign, long* totalCost)`
+  - **class** `KuhnMatch`
+    - `public static int Run(int nLeft, int nRight, int* head, int* to, int* next, int* matchRight)`
+    - `public static int RunDense(int nLeft, int nRight, int* adj, int* matchRight)`
+  - **class** `HopcroftKarp`
+    - `public static int Run(int nLeft, int nRight, int* head, int* to, int* next, int* pairU, int* pairV)`
+  - **class** `KuhnMatchBipartiteCheck`
+    - `public static bool Run(int n, int* head, int* to, int* next, int* color)`
+  - **class** `BipartiteMaximumMatch`
+    - `public static int Run(int nLeft, int nRight, int* head, int* to, int* next, int* matchLeft, int* matchRight)`
+  - **class** `MinimumVertexCoverBipartite`
+    - `public static int Run(int n, int* head, int* to, int* next, int* matchLeft, int* matchRight, int* cover)`
+  - **class** `MaximumIndependentSetBipartite`
+    - `public static int Run(int n, int* cover)`
+  - **class** `MaximumBipartiteBMatching`
+    - `public static int Run(int* head, int* next, int* to, int* capacitiesLeft, int* capacitiesRight, int nLeft, int nRight)`
+  - **class** `MinimumCostBipartiteBMatching`
+    - `public static int Run(int* head, int* next, int* to, int* cost, int* capacitiesLeft, int* capacitiesRight, int nLeft, int nRight)`
+  - **class** `StableMarriage`
+    - `public static void Run(int n, int* manPref, int* womanPref, int* manMatch, int* womanMatch, int* scratch)`
+    - `public static bool IsStable(int n, int* manPref, int* womanPref, int* manMatch, int* womanMatch, int* scratch)`
+  - **class** `GaleShapley`
+    - `public static void Run(int n, int* proposerPref, int* receiverPref, int* proposerMatch, int* receiverMatch, int* scratch)`
+    - `public static void RunWithHistory(int n, int* manPref, int* womanPref, int* manMatch, int* womanMatch, int* history, int* histSize, int* scratch)`
+  - **class** `StableMarriageIncomplete`
+    - `public static void Run(int* prefMen, int* prefWomen, int* numPrefMen, int* numPrefWomen, int n, int m, int* matchMen, int* matchWomen)`
+  - **class** `StableRoommates`
+    - `public static int ScratchSize(int n) => 3 * n * n + 7 * n;`
+    - `public static bool Run(int* pref, int n, int* match, int* scratch)`
+
+### IAFahim.Graph.Misc
+- **Path**: `src/IAFahim.Graph.Misc`
+- **Description**: Curious cat uses these misc graph tools for specialized needs. It is a grab bag when the usual categories do not fit.
+- **C# Source Files**:
+  - `IAFahim.Graph.Misc/GraphMisc.cs`
+- **Public APIs**:
+  - **class** `TopologicalDp`
+    - `public static long Run(int n, int* order, long* dp, int* to, int* next, int* head)`
+  - **class** `CycleDp`
+    - `public static long Run(int n, long* dp, int* next, long* values)`
+  - **class** `SccDp`
+    - `public static long Run(int n, int* sccId, long* sccSum, int* sccEdges, int* sccNext, int* sccHead, int sccCount)`
+  - **class** `DagReachability`
+    - `public static void Run(int n, int* order, long* reachable, int* to, int* next, int* head, long* bitsets, int bitsetSize)`
+  - **class** `TransitiveClosure`
+    - `public static void Run(int n, int* adj, int* closure)`
+  - **class** `WarshallBitset`
+    - `public static void Run(int n, long* adj, long* closure, int wordsPerRow)`
+
+### IAFahim.Graph.RandomWalk
+- **Path**: `src/IAFahim.Graph.RandomWalk`
+- **Description**: Curious cat uses random walk routines to estimate visit probabilities and expected steps. It helps when the cat needs stochastic graph insights.
+- **C# Source Files**: None
+- **Public APIs**: None or internal/private only
+
+### IAFahim.Graph.SCC
+- **Path**: `src/IAFahim.Graph.SCC`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Graph.SCC/OnlineScc.cs`
+  - `IAFahim.Graph.SCC/SccAugmentation.cs`
+  - `IAFahim.Graph.SCC/TarjanScc.cs`
+- **Public APIs**:
+  - **class** `OnlineScc`
+    - `public static void AddEdge(int u, int v,`
+    - `public static void Init(int n, int* parent, int* head, int* visited)`
+  - **class** `SccAugmentation`
+    - `public static int MinEdgesForStronglyConnected(int n, int m, int* u, int* v)`
+  - **class** `TarjanScc`
+    - `public static void Dfs(int u, int* head, int* next, int* to,`
+    - `public static void Find(int n, int* head, int* next, int* to,`
+
+### IAFahim.Graph.ShortestPath
+- **Path**: `src/IAFahim.Graph.ShortestPath`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Graph.ShortestPath/ShortestPaths.cs`
+- **Public APIs**:
+  - **class** `KthShortestPathEppstein`
+    - `public static void Run(int n, int m, int k, int* eu, int* ev, long* ew, int s, long* dists)`
+  - **class** `ReplacementPaths`
+    - `public static void Run(int n, int m, int* eu, int* ev, long* ew, int s, int t, int pLen, int* pEdges, long* res)`
+  - **class** `AllPairsMinPlus`
+    - `public static void Run(int n, long* a, long* b, long* c)`
+  - **class** `DynamicShortestPathUpdate`
+    - `public static void EdgeDecreased(int n, long* dist, int u, int v, long newW)`
+  - **class** `MinimumCycleMean`
+    - `public static double Run(int n, int m, int* eu, int* ev, long* ew, long* dp)`
+
+### IAFahim.Graph.SpanningTrees
+- **Path**: `src/IAFahim.Graph.SpanningTrees`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Graph.SpanningTrees/SpanningTreesAndCuts.cs`
+- **Public APIs**:
+  - **class** `MinimumFeedbackArcSetApprox`
+    - `public static int Run(int n, int m, int* eu, int* ev, bool* remove)`
+  - **class** `MinimumPathCoverDag`
+    - `public static int Run(int n, int m, int* eu, int* ev, int* mL, int* mR)`
+  - **class** `DilworthDecomposition`
+    - `public static int Run(int n, int m, int* eu, int* ev, int* mL, int* mR, bool* tc)`
+  - **class** `MaximumAntichain`
+    - `public static int Run(int n, int m, int* eu, int* ev, bool* inAnti, bool* tc)`
+  - **class** `TransitiveReductionDag`
+    - `public static int Run(int n, int m, int* eu, int* ev, bool* keep, bool* tc)`
+
+### IAFahim.Graph.Tree
+- **Path**: `src/IAFahim.Graph.Tree`
+- **Description**: Curious cat uses tree algorithms for LCA, subtree queries, and path computations. Trees are the cat’s favorite structured graph.
+- **C# Source Files**:
+  - `IAFahim.Graph.Tree/TreeAdvanced.cs`
+  - `IAFahim.Graph.Tree/TreeBasic.cs`
+- **Public APIs**:
+  - **class** `HldBuild`
+    - `public static void Run(int u, int p, int* head, int* to, int* next, int* parent, int* depth, int* heavy, int* size)`
+    - `public static void Decompose(int u, int h, int* head, int* to, int* next, int* parent, int* heavy, int* headChain, int* pos, ref int curPos)`
+  - **class** `HldPathQuery`
+    - `public static long Run(int u, int v, long* segTree, int* headChain, int* pos, int* parent, int* depth, int n)`
+  - **class** `TreeCentroids`
+    - `public static int Run(int n, int root, int* head, int* to, int* next, int* size, bool* removed)`
+  - **class** `RootedTreeHash`
+    - `public static void Run(int root, int n, int* head, int* to, int* next, ulong* hash, ulong* dpUp)`
+  - **class** `CartesianTreeBuild`
+    - `public static void Run(int* arr, int n, int* parent, int* left, int* right)`
+  - **class** `LcaBuild`
+    - `public static void Run(int n, int root, int* head, int* to, int* next, int* parent, int* depth, int* ancestors, int logN)`
+  - **class** `LcaQuery`
+    - `public static int Run(int u, int v, int* depth, int* ancestors, int logN)`
+  - **class** `LcaDistance`
+    - `public static int Run(int u, int v, int* depth, int* ancestors, int logN)`
+  - **class** `BinaryLiftBuild`
+    - `public static void Run(int n, int root, int* parent, int* ancestors, int logN)`
+  - **class** `BinaryLiftKthAncestor`
+    - `public static int Run(int node, int k, int* ancestors, int logN)`
+  - **class** `CentroidFind`
+    - `public static int Run(int n, int u, int* head, int* to, int* next, bool* removed, int* size)`
+  - **class** `CentroidDecompose`
+    - `public static void Run(int n, int u, int* head, int* to, int* next, bool* removed, int* size, int* cparent)`
+  - **class** `TreeDfs`
+    - `public static void Run(int u, int* head, int* to, int* next, int* parent, int* depth, int* size)`
+  - **class** `TreeParent`
+    - `public static void Run(int n, int root, int* head, int* to, int* next, int* parent)`
+  - **class** `TreeDepth`
+    - `public static void Run(int n, int root, int* head, int* to, int* next, int* depth)`
+  - **class** `TreeSize`
+    - `public static void Run(int n, int root, int* head, int* to, int* next, int* size)`
+  - **class** `TreeDiameter`
+    - `public static int Run(int n, int root, int* head, int* to, int* next)`
+  - **class** `TreeCenter`
+    - `public static int Run(int n, int* head, int* to, int* next, int* centers)`
+
+### IAFahim.Graph.TreeDecomposition
+- **Path**: `src/IAFahim.Graph.TreeDecomposition`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Graph.TreeDecomposition/HeavyLightDecomposition.cs`
+  - `IAFahim.Graph.TreeDecomposition/MoAlgorithmOnTree.cs`
+  - `IAFahim.Graph.TreeDecomposition/NiceTreeDecomposition.cs`
+  - `IAFahim.Graph.TreeDecomposition/PathwidthDp.cs`
+  - `IAFahim.Graph.TreeDecomposition/TreeDecompositionDp.cs`
+  - `IAFahim.Graph.TreeDecomposition/TreeDecompositionKnapsack.cs`
+- **Public APIs**:
+  - **struct** `HldSegNode`
+    - `public long Sum;`
+    - `public long Pref;`
+    - `public long Suff;`
+    - `public long Ans;`
+  - **class** `HeavyLightDecomposition`
+    - `public static void TreePathDecompose(`
+    - `public static void BuildSumTree(long* tree, int node, int start, int end, long* initialValues)`
+    - `public static void SumTreeAdd(`
+    - `public static void SumTreeAssign(`
+    - `public static long SumTreeQuery(`
+    - `public static HldSegNode MergeMaxSubarray(HldSegNode l, HldSegNode r)`
+    - `public static void BuildMaxSubarrayTree(HldSegNode* tree, int node, int start, int end, long* initialValues)`
+    - `public static void MaxSubarrayTreeAssign(`
+    - `public static HldSegNode MaxSubarrayTreeQuery(`
+    - `public static void PathAdd(`
+    - `public static void PathAssign(`
+    - `public static long PathSumQuery(`
+    - `public static HldSegNode PathMaxSubarray(`
+  - **struct** `MoQuery`
+    - `public int Id;`
+    - `public int L;`
+    - `public int R;`
+    - `public int Lca;`
+    - `public int BlockId;`
+  - **class** `MoAlgorithmOnTree`
+    - `public static void BuildEulerTour(`
+    - `public static void SortQueries(MoQuery* queries, int q)`
+    - `public static void TreeMoQuery(`
+  - **class** `NiceTreeDecomposition`
+    - `public const int TYPE_LEAF = 0;`
+    - `public const int TYPE_INTRODUCE = 1;`
+    - `public const int TYPE_FORGET = 2;`
+    - `public const int TYPE_JOIN = 3;`
+    - `public static void TreeDecompositionNice(`
+  - **class** `PathwidthDpAlgorithm`
+    - `public static long PathwidthDpIndependentSet(`
+  - **class** `TreeDecompositionDp`
+    - `public const int TYPE_LEAF = 0;`
+    - `public const int TYPE_INTRODUCE = 1;`
+    - `public const int TYPE_FORGET = 2;`
+    - `public const int TYPE_JOIN = 3;`
+    - `public static long MaxIndependentSet(`
+  - **class** `TreeDecompositionKnapsackAlgorithm`
+    - `public const int TYPE_LEAF = 0;`
+    - `public const int TYPE_INTRODUCE = 1;`
+    - `public const int TYPE_FORGET = 2;`
+    - `public const int TYPE_JOIN = 3;`
+    - `public static long TreeDecompositionKnapsack(`
+
+### IAFahim.Graph.TreeIsomorphism
+- **Path**: `src/IAFahim.Graph.TreeIsomorphism`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Graph.TreeIsomorphism/OrderedTreeEditDistance.cs`
+  - `IAFahim.Graph.TreeIsomorphism/RootedTreeAutomorphisms.cs`
+  - `IAFahim.Graph.TreeIsomorphism/RootedTreeCanonicalForm.cs`
+  - `IAFahim.Graph.TreeIsomorphism/TreeIsomorphismAhU.cs`
+  - `IAFahim.Graph.TreeIsomorphism/TreeIsomorphismCenterHash.cs`
+  - `IAFahim.Graph.TreeIsomorphism/UnorderedTreeEditDistance.cs`
+  - `IAFahim.Graph.TreeIsomorphism/UnrootedTreeAutomorphisms.cs`
+  - `IAFahim.Graph.TreeIsomorphism/UnrootedTreeCanonicalForm.cs`
+- **Public APIs**:
+  - **class** `OrderedTreeEditDistance`
+    - `public static int Run(int* p1, int* p2, int n1, int n2)`
+  - **class** `RootedTreeAutomorphisms`
+    - `public static long Run(int n, int root, int* head, int* to, int* next, long mod)`
+  - **class** `RootedTreeCanonicalForm`
+    - `public static void Run(int* p, int n, int* outHash)`
+  - **class** `TreeIsomorphismAhU`
+    - `public static bool Run(int* p1, int* p2, int n)`
+  - **class** `TreeIsomorphismCenterHash`
+    - `public static bool Run(int* p1, int* p2, int n)`
+  - **class** `UnorderedTreeEditDistance`
+    - `public static int Run(int* p1, int* p2, int n1, int n2)`
+  - **class** `UnrootedTreeAutomorphisms`
+    - `public static int Run(int* p, int n)`
+  - **class** `UnrootedTreeCanonicalForm`
+    - `public static void Run(int* p, int n, int* outHash)`
+
+### IAFahim.Graph.TreeQueries
+- **Path**: `src/IAFahim.Graph.TreeQueries`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Graph.TreeQueries/TreeCentroid.cs`
+  - `IAFahim.Graph.TreeQueries/TreeDp.cs`
+  - `IAFahim.Graph.TreeQueries/TreeHashing.cs`
+  - `IAFahim.Graph.TreeQueries/TreePathColor.cs`
+- **Public APIs**:
+  - **class** `TreeCentroid`
+    - `public static void AllCentroids(`
+    - `public static int WeightedMedian(`
+  - **class** `TreeDp`
+    - `public static int MinVertexCover(int n, int* head, int* to, int* next)`
+    - `public static int MaxIndependentSet(int n, int* head, int* to, int* next)`
+    - `public static int DominatingSet(int n, int* head, int* to, int* next)`
+    - `public static long MatchingDp(int n, int* head, int* to, int* next, long* edgeWeight)`
+    - `public static long SteinerTree(int n, int* head, int* to, int* next, long* edgeWeight, byte* isTerminal, int terminalCount)`
+  - **class** `TreeHashing`
+    - `public static ulong CanonicalHashRooted(int u, int p, int* head, int* to, int* next, ulong* subHash)`
+    - `public static ulong CanonicalHash(int n, int* head, int* to, int* next)`
+    - `public static long AutomorphismCount(int n, int* head, int* to, int* next, long mod)`
+    - `public static bool EmbeddingCheck(int n1, int* head1, int* to1, int* next1, int n2, int* head2, int* to2, int* next2)`
+    - `public static long AutomorphismCountRooted(int u, int p, int* head, int* to, int* next, ulong* subHash, long mod)`
+    - `public static bool EmbeddingCheckRooted(int u1, int p1, int u2, int p2, int* head1, int* to1, int* next1, int* head2, int* to2, int* next2)`
+    - `public static int TreeEditDistance(int n1, int* head1, int* to1, int* next1, int n2, int* head2, int* to2, int* next2)`
+  - **struct** `PathColorNode`
+    - `public int SegCount;`
+    - `public int LeftColor;`
+    - `public int RightColor;`
+    - `public int LazyColor;`
+  - **class** `TreePathColor`
+    - `public static void Build(PathColorNode* tree, int node, int start, int end, int* initialColors)`
+    - `public static void Update(PathColorNode* tree, int node, int start, int end, int l, int r, int color)`
+    - `public static PathColorNode Query(PathColorNode* tree, int node, int start, int end, int l, int r)`
+    - `public static void PathColorUpdate(`
+    - `public static int PathColorQueryCount(`
+
+### IAFahim.Linear.Matrix
+- **Path**: `src/IAFahim.Linear.Matrix`
+- **Description**: Curious cat uses matrix operations for transformations and linear recurrences. It helps with fast exponentiation and system solves.
+- **C# Source Files**:
+  - `IAFahim.Linear.Matrix/Matrix.cs`
+  - `IAFahim.Linear.Matrix/Recurrence.cs`
+- **Public APIs**:
+  - **class** `MatrixMul`
+    - `public static void Run(int n, int m, int p, long* a, long* b, long* c)`
+  - **class** `MatrixPow`
+    - `public static void Run(int n, long* a, long* result, long exp)`
+  - **class** `GaussianElimination`
+    - `public static int Run(int n, int m, long* a, long* b, long* x)`
+  - **class** `MatrixDeterminant`
+    - `public static long Run(int n, long* a)`
+  - **class** `MatrixInverse`
+    - `public static bool Run(int n, long* a, long* inv)`
+  - **class** `BerlekampMassey`
+    - `public static int Run(long* s, int n, long* c)`
+  - **class** `Kitamasa`
+    - `public static long Run(int k, long* init, long* trans, long n, long mod)`
+
+### IAFahim.Linear.Matrix2
+- **Path**: `src/IAFahim.Linear.Matrix2`
+- **Description**: Curious cat uses small fixed matrices when 2x2 or tiny transforms are enough. It keeps math fast and minimal.
+- **C# Source Files**:
+  - `IAFahim.Linear.Matrix2/Matrix.cs`
+- **Public APIs**:
+  - **class** `MatrixNew`
+    - `public static void Run(int n, int m, long* a)`
+    - `public static void RunSquare(int n, long* a)`
+  - **class** `MatrixIdentity`
+    - `public static void Run(int n, long* a)`
+  - **class** `MatrixAdd`
+    - `public static void Run(int n, int m, long* a, long* b, long* c)`
+  - **class** `MatrixSub`
+    - `public static void Run(int n, int m, long* a, long* b, long* c)`
+  - **class** `MatrixMul`
+    - `public static void Run(int n, int m, int p, long* a, long* b, long* c)`
+  - **class** `MatrixPow`
+    - `public static void Run(int n, long* a, long* result, long* temp, long exp)`
+  - **class** `MatrixVecMul`
+    - `public static void Run(int n, int m, long* a, long* v, long* result)`
+
+### IAFahim.Math.Arithmetic
+- **Path**: `src/IAFahim.Math.Arithmetic`
+- **Description**: Curious cat uses arithmetic helpers for safe integer math and basic number utilities. It keeps simple formulas clean and consistent.
+- **C# Source Files**:
+  - `IAFahim.Math.Arithmetic/TryAdd.cs`
+  - `IAFahim.Math.Arithmetic/TryDiv.cs`
+  - `IAFahim.Math.Arithmetic/TryMul.cs`
+  - `IAFahim.Math.Arithmetic/TrySub.cs`
+- **Public APIs**:
+  - **class** `TryAdd`
+    - `public static bool Run(int a, int b, out int res)`
+    - `public static bool Run(long a, long b, out long res)`
+  - **class** `TryDiv`
+    - `public static bool Run(int a, int b, out int res)`
+    - `public static bool Run(long a, long b, out long res)`
+  - **class** `TryMul`
+    - `public static bool Run(int a, int b, out int res)`
+    - `public static bool Run(long a, long b, out long res)`
+  - **class** `TrySub`
+    - `public static bool Run(int a, int b, out int res)`
+    - `public static bool Run(long a, long b, out long res)`
+
+### IAFahim.Math.Barycentric
+- **Path**: `src/IAFahim.Math.Barycentric`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Math.Barycentric/BarycentricCoords.cs`
+- **Public APIs**:
+  - **class** `BarycentricCoords`
+    - `public static float3 Compute(float3 a, float3 b, float3 c, float3 p)`
+    - `public static float3 Interpolate(float3 a, float3 b, float3 c, float3 bary)`
+    - `public static float InterpolateScalar(float va, float vb, float vc, float3 bary)`
+    - `public static bool IsInside(float3 bary)`
+    - `public static float2 Compute2D(float2 a, float2 b, float2 c, float2 p)`
+    - `public static float3 ProjectOntoTriangle(float3 a, float3 b, float3 c, float3 p)`
+    - `public static float SignedArea(float3 a, float3 b, float3 c)`
+
+### IAFahim.Math.Basic
+- **Path**: `src/IAFahim.Math.Basic`
+- **Description**: Curious cat uses basic math functions like clamp, min/max, and absolute values. It is the everyday toolbox for numeric chores.
+- **C# Source Files**:
+  - `IAFahim.Math.Basic/AbsInt.cs`
+  - `IAFahim.Math.Basic/AbsInt64.cs`
+  - `IAFahim.Math.Basic/Basic.cs`
+  - `IAFahim.Math.Basic/CeilDiv.cs`
+  - `IAFahim.Math.Basic/Clamp.cs`
+  - `IAFahim.Math.Basic/FloorDiv.cs`
+  - `IAFahim.Math.Basic/MaxInt.cs`
+  - `IAFahim.Math.Basic/MaxInt64.cs`
+  - `IAFahim.Math.Basic/MinInt.cs`
+  - `IAFahim.Math.Basic/MinInt64.cs`
+- **Public APIs**:
+  - **class** `AbsInt`
+    - `public static int Run(int v)`
+  - **class** `AbsInt64`
+    - `public static long Run(long v)`
+  - **class** `FastPow`
+    - `public static long Run(long a, long e, long mod)`
+  - **class** `IntegerSqrt`
+    - `public static long Run(long x)`
+  - **class** `NthRoot`
+    - `public static long Run(long x, int n)`
+  - **class** `IntegerCbrt`
+    - `public static long Run(long x)`
+  - **class** `IsPerfectSquare`
+  - **class** `IsPowerOfTwo`
+  - **class** `NextPowerOfTwo`
+    - `public static long Run(long x) { if (x <= 0) return 1; x--; x |= x >> 1; x |= x >> 2; x |= x >> 4; x |= x >> 8; x |= x >> 16; x |= x >> 32; return x + 1; }`
+  - **class** `PrevPowerOfTwo`
+    - `public static long Run(long x) { if (x <= 0) return 0; x |= x >> 1; x |= x >> 2; x |= x >> 4; x |= x >> 8; x |= x >> 16; x |= x >> 32; return x - (x >>> 1); }`
+  - **class** `FloorLog2`
+    - `public static int Run(long x)`
+  - **class** `CeilLog2`
+    - `public static int Run(long x) { if (x <= 0) return 0; int floor = FloorLog2.Run(x); return (x & (x - 1)) == 0 ? floor : floor + 1; }`
+  - **class** `SafeMulMod`
+    - `public static long Run(long a, long b, long mod)`
+  - **class** `NormalizeModulo`
+  - **class** `Minimize`
+  - **class** `Maximize`
+  - **class** `RelaxMin`
+  - **class** `RelaxMax`
+  - **class** `SwapInts`
+  - **class** `SwapPairs`
+  - **class** `CeilDiv`
+    - `public static int Run(int a, int b)`
+    - `public static long Run(long a, long b)`
+  - **class** `Clamp`
+    - `public static int Run(int v, int lo, int hi)`
+    - `public static long Run(long v, long lo, long hi)`
+  - **class** `FloorDiv`
+    - `public static int Run(int a, int b)`
+    - `public static long Run(long a, long b)`
+  - **class** `MaxInt`
+    - `public static int Run(int a, int b)`
+  - **class** `MaxInt64`
+    - `public static long Run(long a, long b)`
+  - **class** `MinInt`
+    - `public static int Run(int a, int b)`
+  - **class** `MinInt64`
+    - `public static long Run(long a, long b)`
+
+### IAFahim.Math.BigInt
+- **Path**: `src/IAFahim.Math.BigInt`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Math.BigInt/BigInt.cs`
+- **Public APIs**:
+  - **class** `BigIntAdd`
+    - `public static int Run(int n, int* a, int m, int* b, int* res)`
+  - **class** `BigIntSub`
+    - `public static int Run(int n, int* a, int m, int* b, int* res)`
+  - **class** `BigIntMul`
+    - `public static int Run(int n, int* a, int m, int* b, int* res)`
+  - **class** `BigIntPow`
+    - `public static int Run(int n, int* a, int e, int* res)`
+  - **class** `BigIntDiv`
+    - `public static int Run(int n, int* a, int divisor, int* res)`
+  - **class** `BigIntMod`
+    - `public static int Run(int n, int* a, int mod) { long rem = 0; for (int i = 0; i < n; i++) rem = (rem * 10 + a[i]) % mod; return (int)rem; }`
+
+### IAFahim.Math.Combinatorics
+- **Path**: `src/IAFahim.Math.Combinatorics`
+- **Description**: Curious cat uses combinatorics to count ways and arrangements. It is handy for binomial coefficients and counting DP.
+- **C# Source Files**:
+  - `IAFahim.Math.Combinatorics/Binom.cs`
+  - `IAFahim.Math.Combinatorics/Counting.cs`
+  - `IAFahim.Math.Combinatorics/Factorial.cs`
+  - `IAFahim.Math.Combinatorics/LinearCongruence.cs`
+  - `IAFahim.Math.Combinatorics/Sieve.cs`
+- **Public APIs**:
+  - **class** `Binom`
+    - `public static long Run(long n, long k, long mod)`
+  - **class** `BinomLucas`
+    - `public static long Run(long n, long k, long p)`
+  - **class** `BinomLarge`
+    - `public static long Run(long n, long k, long mod)`
+  - **class** `PermuteCount`
+    - `public static long Run(int n, long mod)`
+  - **class** `MultisetPermutations`
+    - `public static long Run(int n, int* counts, int k, long mod)`
+  - **class** `Catalan`
+    - `public static long Run(long n, long mod)`
+  - **class** `StirlingFirst`
+    - `public static long Run(long n, long k, long mod)`
+  - **class** `StirlingSecond`
+    - `public static long Run(long n, long k, long mod)`
+  - **class** `BellNumbers`
+    - `public static long Run(long n, long mod)`
+  - **class** `PartitionNumbers`
+    - `public static long Run(long n, long mod)`
+  - **class** `Derangements`
+    - `public static long Run(long n, long mod)`
+  - **class** `StarsBars`
+    - `public static long Run(long n, long k, long mod)`
+  - **class** `Factorial`
+    - `public static void Run(long* fact, long* invFact, int n, long mod)`
+    - `public static long Run(long n, long mod)`
+  - **class** `LinearCongruence`
+    - `public static bool Run(long a, long b, long m, out long x, out long g)`
+  - **class** `SievePrimes`
+    - `public static int Run(int* primes, bool* isPrime, int n)`
+  - **class** `LinearSieve`
+    - `public static int Run(int* primes, int* lp, int n)`
+  - **class** `SegmentedSieve`
+    - `public static int Run(long low, long high, int* primes, int primeCount, int* result)`
+  - **class** `IsPrime`
+    - `public static bool Run(long n)`
+
+### IAFahim.Math.Gauss
+- **Path**: `src/IAFahim.Math.Gauss`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Math.Gauss/Gauss.cs`
+- **Public APIs**:
+  - **class** `GaussEliminationDouble`
+    - `public static int Run(double* a, double* b, double* x, int n, int m)`
+  - **class** `GaussModP`
+    - `public static long ModPow(long a, long e, long mod)`
+    - `public static long ModInv(long a, long mod) => ModPow((a % mod + mod) % mod, mod - 2, mod);`
+    - `public static bool Run(long* a, long* b, long* x, int n, int m, long mod)`
+    - `public static long Determinant(long* a, int n, long mod)`
+
+### IAFahim.Math.Kalman
+- **Path**: `src/IAFahim.Math.Kalman`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Math.Kalman/ScalarKalmanFilter.cs`
+  - `IAFahim.Math.Kalman/VectorKalmanFilter.cs`
+- **Public APIs**:
+  - **class** `ScalarKalmanFilter`
+    - `public static float Predict(float state, float velocity, float processNoise, float dt)`
+    - `public static float PredictCovariance(float covariance, float processNoise, float dt)`
+    - `public static float Update(float predictedState, float predictedCovariance, float measurement, float measurementNoise, out float updatedCovariance)`
+    - `public static void Run(float* measurements, int count, float processNoise, float measurementNoise,`
+  - **class** `VectorKalmanFilter`
+    - `public static float3 Predict(float3 state, float3 velocity, float processNoise, float dt)`
+    - `public static float3 PredictCovariance(float3 covariance, float processNoise, float dt)`
+    - `public static float3 Update(float3 predictedState, float3 predictedCov, float3 measurement, float measurementNoise, out float3 updatedCov)`
+    - `public static void Run(float3* measurements, int count, float processNoise, float measurementNoise,`
+
+### IAFahim.Math.Modular
+- **Path**: `src/IAFahim.Math.Modular`
+- **Description**: Curious cat uses modular arithmetic to keep numbers bounded and invertible. It is essential for competitive math and hashing.
+- **C# Source Files**:
+  - `IAFahim.Math.Modular/Crt.cs`
+  - `IAFahim.Math.Modular/Excrt.cs`
+  - `IAFahim.Math.Modular/ExtendedGcd.cs`
+  - `IAFahim.Math.Modular/Gcd.cs`
+  - `IAFahim.Math.Modular/Lcm.cs`
+  - `IAFahim.Math.Modular/ModAdd.cs`
+  - `IAFahim.Math.Modular/ModDiv.cs`
+  - `IAFahim.Math.Modular/ModInv.cs`
+  - `IAFahim.Math.Modular/ModMul.cs`
+  - `IAFahim.Math.Modular/ModNormalize.cs`
+  - `IAFahim.Math.Modular/ModPow.cs`
+  - `IAFahim.Math.Modular/ModSqrt.cs`
+  - `IAFahim.Math.Modular/ModSub.cs`
+- **Public APIs**:
+  - **class** `Crt`
+    - `public static long Run(long r1, long m1, long r2, long m2)`
+  - **class** `Excrt`
+    - `public static long Run(long* remainders, long* moduli, int len)`
+  - **class** `ExtendedGcd`
+    - `public static long Run(long a, long b, out long x, out long y)`
+  - **class** `Gcd`
+    - `public static long Run(long a, long b)`
+    - `public static int Run(int a, int b)`
+  - **class** `Lcm`
+    - `public static long Run(long a, long b)`
+    - `public static int Run(int a, int b)`
+  - **class** `ModAdd`
+    - `public static long Run(long a, long b, long mod)`
+  - **class** `ModDiv`
+    - `public static long Run(long a, long b, long mod)`
+  - **class** `ModInv`
+    - `public static long Run(long a, long mod)`
+  - **class** `ModMul`
+    - `public static long Run(long a, long b, long mod)`
+  - **class** `ModNormalize`
+    - `public static long Run(long v, long mod)`
+  - **class** `ModPow`
+    - `public static long Run(long b, long e, long mod)`
+  - **class** `ModSqrt`
+    - `public static long Run(long a, long mod)`
+  - **class** `ModSub`
+    - `public static long Run(long a, long b, long mod)`
+
+### IAFahim.Math.NT
+- **Path**: `src/IAFahim.Math.NT`
+- **Description**: Curious cat uses number theory for primes, gcd, and modular properties. It helps the cat reason about integers at scale.
+- **C# Source Files**:
+  - `IAFahim.Math.NT/AllFactorizations.cs`
+  - `IAFahim.Math.NT/AntiprimeGenerate.cs`
+  - `IAFahim.Math.NT/BitOps.cs`
+  - `IAFahim.Math.NT/Bsgs.cs`
+  - `IAFahim.Math.NT/ContinuedFraction.cs`
+  - `IAFahim.Math.NT/Convergents.cs`
+  - `IAFahim.Math.NT/DirichletPrefixSum.cs`
+  - `IAFahim.Math.NT/DiscreteLog.cs`
+  - `IAFahim.Math.NT/DivisorCount.cs`
+  - `IAFahim.Math.NT/DivisorSum.cs`
+  - `IAFahim.Math.NT/Divisors.cs`
+  - `IAFahim.Math.NT/DuJiao.cs`
+  - `IAFahim.Math.NT/EuclidSum.cs`
+  - `IAFahim.Math.NT/Factorize.cs`
+  - `IAFahim.Math.NT/FareyRank.cs`
+  - `IAFahim.Math.NT/FloorSum.cs`
+  - `IAFahim.Math.NT/GcdConvolution.cs`
+  - `IAFahim.Math.NT/HashInt.cs`
+  - `IAFahim.Math.NT/HighlyCompositeNumbers.cs`
+  - `IAFahim.Math.NT/JacobiSymbol.cs`
+  - `IAFahim.Math.NT/LcmConvolution.cs`
+  - `IAFahim.Math.NT/LegendreSymbol.cs`
+  - `IAFahim.Math.NT/LinearSieveDivisorCount.cs`
+  - `IAFahim.Math.NT/LinearSieveDivisorSum.cs`
+  - `IAFahim.Math.NT/LinearSieveMaxPrime.cs`
+  - `IAFahim.Math.NT/LinearSieveMinPrime.cs`
+  - `IAFahim.Math.NT/LinearSieveMultiplicative.cs`
+  - `IAFahim.Math.NT/LinearSievePhi.cs`
+  - `IAFahim.Math.NT/MillerRabin.cs`
+  - `IAFahim.Math.NT/Min25Sieve.cs`
+  - `IAFahim.Math.NT/MinMaxDivisorTransform.cs`
+  - `IAFahim.Math.NT/MinPrimeFactor.cs`
+  - `IAFahim.Math.NT/Mobius.cs`
+  - `IAFahim.Math.NT/MobiusSieve.cs`
+  - `IAFahim.Math.NT/MoebiusPrefix.cs`
+  - `IAFahim.Math.NT/Phi.cs`
+  - `IAFahim.Math.NT/PhiSieve.cs`
+  - `IAFahim.Math.NT/PollardRho.cs`
+  - `IAFahim.Math.NT/PowerfulNumbers.cs`
+  - `IAFahim.Math.NT/PrimeFactorPower.cs`
+  - `IAFahim.Math.NT/PrimePi.cs`
+  - `IAFahim.Math.NT/PrimePiLehmer.cs`
+  - `IAFahim.Math.NT/PrimePiMeissel.cs`
+  - `IAFahim.Math.NT/PrimitiveRoot.cs`
+  - `IAFahim.Math.NT/Radical.cs`
+  - `IAFahim.Math.NT/RandomInt.cs`
+  - `IAFahim.Math.NT/RandomShuffle.cs`
+  - `IAFahim.Math.NT/SmoothNumbers.cs`
+  - `IAFahim.Math.NT/SquareFree.cs`
+  - `IAFahim.Math.NT/SternBrocot.cs`
+  - `IAFahim.Math.NT/TonelliShanks.cs`
+  - `IAFahim.Math.NT/TotientPrefix.cs`
+- **Public APIs**:
+  - **class** `AllFactorizations`
+    - `public static int Run(long n, long* outBuffer, out int outOffset)`
+  - **class** `AntiprimeGenerate`
+    - `public static void Run(int k, long* result, HighlyCompositeCandidate* scratch)`
+  - **class** `BitCount`
+    - `public static int Run(int x)`
+    - `public static int Run(long x)`
+  - **class** `BitLength`
+    - `public static int Run(int x)`
+    - `public static int Run(long x)`
+  - **class** `HighestBit`
+    - `public static int Run(int x)`
+    - `public static int Run(long x)`
+  - **class** `LowestBit`
+    - `public static int Run(int x)`
+    - `public static long Run(long x)`
+  - **class** `NextBit`
+    - `public static int Run(int x)`
+    - `public static long Run(long x)`
+  - **class** `PrevBit`
+    - `public static int Run(int x)`
+    - `public static long Run(long x)`
+  - **class** `BitReverse`
+    - `public static int Run(int x)`
+    - `public static long Run(long x)`
+  - **class** `BitCompress`
+    - `public static int Run(int* src, int* dst, int len, int bits)`
+  - **class** `BitDecompress`
+    - `public static int Run(int* src, int* dst, int srcLen, int bits, int len)`
+  - **class** `Bsgs`
+    - `public static long Run(long a, long b, long mod, long* scratchKeys, long* scratchVals)`
+  - **class** `ContinuedFraction`
+    - `public static int Run(long a, long b, long* cf)`
+  - **class** `Convergents`
+    - `public static int Run(long* cf, int cfLen, long* num, long* den)`
+  - **class** `DirichletPrefixSum`
+    - `public static void ConvolutionPrefixSum(int n, long* f, long* g, long* result)`
+    - `public static long Hyperbola(long n, long* prefixF, long* prefixG)`
+  - **class** `DirichletConvolution`
+    - `public static void Run(int n, long* f, long* g, long* h)`
+  - **class** `DiscreteLog`
+    - `public static long Run(long a, long b, long mod, long* scratchKeys, long* scratchVals)`
+  - **class** `DivisorCount`
+    - `public static long Run(long n)`
+  - **class** `DivisorSum`
+    - `public static long Run(long n)`
+  - **class** `Divisors`
+    - `public static int Run(long n, long* divs)`
+  - **class** `DuJiao`
+    - `public static long Phi(long n, long* preSumLarge, long* memo, bool* memoized)`
+    - `public static long Mobius(long n, long* preSumLarge, long* memo, bool* memoized)`
+  - **class** `EuclidSum`
+    - `public static long Run(long n, long m)`
+  - **class** `Factorize`
+    - `public static int Run(long n, long* factors)`
+  - **class** `FareyRank`
+    - `public static long Run(long a, long b, long n)`
+  - **class** `FloorSum`
+    - `public static long Run(long n, long m, long a, long b)`
+  - **class** `GcdConvolution`
+    - `public static void Forward(long* f, int n)`
+    - `public static void Inverse(long* f, int n, int* mu)`
+    - `public static void Run(long* a, long* b, long* result, int n, int* mu)`
+  - **class** `HashInt`
+    - `public static int Run(int x)`
+    - `public static int Run(long x)`
+  - **class** `XorShift`
+    - `public static void SetSeed(uint seed)`
+    - `public static uint Next()`
+    - `public static int Range(int lo, int hi)`
+  - **class** `RngSeed`
+    - `public static int Run()`
+  - **struct** `HighlyCompositeCandidate`
+    - `public long Value;`
+    - `public int Divisors;`
+  - **class** `HighlyCompositeNumbers`
+    - `public static int Run(long limit, long* result, HighlyCompositeCandidate* scratch)`
+  - **class** `JacobiSymbol`
+    - `public static int Run(long a, long n)`
+  - **class** `LcmConvolution`
+    - `public static void Forward(long* f, int n)`
+    - `public static void Inverse(long* f, int n, int* mu)`
+    - `public static void Run(long* a, long* b, long* result, int n, int* mu)`
+  - **class** `LegendreSymbol`
+    - `public static int Run(long a, long p)`
+  - **class** `LinearSieveDivisorCount`
+    - `public static void Run(int* d, int* e, int* primes, int n, out int primeCount)`
+  - **class** `LinearSieveDivisorSum`
+    - `public static void Run(long* sigma, long* sp, int* primes, int n, out int primeCount)`
+  - **class** `LinearSieveMaxPrime`
+    - `public static void Run(int* maxPrime, int* primes, int n, out int primeCount)`
+  - **class** `LinearSieveMinPrime`
+    - `public static void Run(int* minPrime, int* primes, int n, out int primeCount)`
+  - **class** `LinearSieveMultiplicative`
+    - `public static int Run(`
+  - **class** `LinearSievePhi`
+    - `public static void Run(int* phi, int* primes, int n, out int primeCount)`
+  - **class** `MillerRabin`
+    - `public static bool Run(long n)`
+  - **class** `ModMul`
+    - `public static long Run(long a, long b, long mod)`
+  - **class** `ModPow`
+    - `public static long Run(long b, long e, long mod)`
+  - **class** `Min25Sieve`
+    - `public static long PrimePi(long n, int* primes, bool* isPrime, long* w, long* g, int* map1, int* map2)`
+    - `public static long PrimeSum(long n, long mod, int* primes, bool* isPrime, long* w, long* g, int* map1, int* map2)`
+    - `public static long MultiplicativeSum(long n, long c0, long c1, delegate* managed<long, int, long> fPower, long mod, int* primes, bool* isPrime, long* w, long* g, long* g0, long* g1, int* map1, int* map2, long* gPrimeSum)`
+  - **class** `MinMaxDivisorTransform`
+    - `public static void RunMax(long* f, int n)`
+    - `public static void RunMin(long* f, int n)`
+    - `public static void RunMaxWithCounts(long* f, int* cnt, int n)`
+    - `public static void RunMinWithCounts(long* f, int* cnt, int n)`
+  - **class** `MinPrimeFactor`
+    - `public static long Run(long n)`
+  - **class** `Mobius`
+    - `public static int Run(long n)`
+  - **class** `MobiusSieve`
+    - `public static void Run(int* mu, int* primes, int n, out int primeCount)`
+  - **class** `MoebiusPrefix`
+    - `public static void Run(int n, int* result, int* mu, int* primes, bool* isPrime)`
+  - **class** `Phi`
+    - `public static long Run(long n)`
+  - **class** `PhiSieve`
+    - `public static void Run(int* phi, int n)`
+  - **class** `PollardRho`
+    - `public static long Run(long n)`
+  - **class** `PowerfulNumbers`
+    - `public static int Generate(long limit, long* result)`
+  - **class** `PrimeFactorPower`
+    - `public static int Run(int n, int* minPrime, int* outPrimes, int* outExponents)`
+    - `public static int Run(long n, long* outPrimes, int* outExponents)`
+  - **class** `PrimeFactorPowerSum`
+    - `public static long Run(long n, delegate* managed<long, int, long> f)`
+  - **class** `PrimePi`
+    - `public static long Run(long n, long* small, long* large)`
+  - **class** `PrimePiLehmer`
+    - `public static long Run(long n, int* primes, int primeCount, int* phiCache)`
+    - `public static long Phi(long m, int a, int* primes, int* phiCache)`
+    - `public static void InitPhiCache(int* phiCache, int* primes, int primeCount)`
+  - **class** `PrimePiMeissel`
+    - `public static long Run(long n, int* primes, int primeCount, int* phiCache)`
+  - **class** `PrimitiveRoot`
+    - `public static long Run(long n)`
+  - **class** `Radical`
+    - `public static long Run(long n)`
+  - **class** `RandomInt`
+    - `public static void SetSeed(long seed)`
+    - `public static int Next(ref long state, int bound)`
+    - `public static int Range(ref long state, int lo, int hi)`
+    - `public static int Next(int bound)`
+    - `public static int Range(int lo, int hi)`
+  - **class** `RandomInt64`
+    - `public static void SetSeed(long seed)`
+    - `public static long Next(ref long state, long bound)`
+    - `public static long Range(ref long state, long lo, long hi)`
+    - `public static long Next(long bound)`
+    - `public static long Range(long lo, long hi)`
+  - **class** `SplitMix64`
+    - `public static long Run(long x)`
+  - **class** `RandomShuffle`
+    - `public static void Run<T>(T* ptr, int len) where T : unmanaged`
+  - **class** `SmoothNumbers`
+    - `public static int Generate(int b, long limit, long* result, int* primes)`
+  - **class** `SquareFree`
+    - `public static long Kernel(long n)`
+    - `public static long Count(long n, int* mu)`
+    - `public static void Prefix(int n, int* result)`
+  - **class** `SternBrocot`
+    - `public static void Run(long n, long d, long* num, long* den, int* depth)`
+  - **class** `TonelliShanks`
+    - `public static long Run(long a, long p)`
+  - **class** `TotientPrefix`
+    - `public static void Run(int n, long* result, int* phi, int* primes, bool* isPrime)`
+
+### IAFahim.Math.Noise
+- **Path**: `src/IAFahim.Math.Noise`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Math.Noise/PerlinNoise.cs`
+  - `IAFahim.Math.Noise/SimplexNoise.cs`
+- **Public APIs**:
+  - **class** `PerlinNoise`
+    - `public static float Noise2D(float2 p)`
+  - **class** `SimplexNoise`
+    - `public static float Noise2D(float2 p)`
+
+### IAFahim.Math.PoissonDisk
+- **Path**: `src/IAFahim.Math.PoissonDisk`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Math.PoissonDisk/PoissonDisk2D.cs`
+  - `IAFahim.Math.PoissonDisk/PoissonDisk3D.cs`
+- **Public APIs**:
+  - **class** `PoissonDisk2D`
+    - `public static int Run(float2 min, float2 max, float minDistance, float2* output, int maxPoints, int seed)`
+  - **class** `PoissonDisk3D`
+    - `public static int Run(float3 min, float3 max, float minDistance, float3* output, int maxPoints, int seed)`
+
+### IAFahim.Math.Polynomial
+- **Path**: `src/IAFahim.Math.Polynomial`
+- **Description**: Curious cat uses polynomial ops to add, multiply, divide, and transform coefficient arrays. It powers generating functions and algebraic recurrences.
+- **C# Source Files**:
+  - `IAFahim.Math.Polynomial/KaratsubaMultiply.cs`
+  - `IAFahim.Math.Polynomial/OnlineNttConvolution.cs`
+  - `IAFahim.Math.Polynomial/Polynomial.cs`
+  - `IAFahim.Math.Polynomial/PolynomialComposition.cs`
+  - `IAFahim.Math.Polynomial/PolynomialMultipointEval.cs`
+  - `IAFahim.Math.Polynomial/PolynomialShift.cs`
+  - `IAFahim.Math.Polynomial/PolynomialTaylorShift.cs`
+- **Public APIs**:
+  - **class** `KaratsubaMultiply`
+    - `public static int Run(int n, long* a, int m, long* b, long* res, long* scratch)`
+  - **class** `OnlineNttConvolution`
+    - `public static void Run(`
+  - **class** `PolynomialAdd`
+    - `public static int Run(int n, long* a, int m, long* b, long* res)`
+  - **class** `PolynomialSub`
+    - `public static int Run(int n, long* a, int m, long* b, long* res)`
+  - **class** `PolynomialMul`
+    - `public static int Run(int n, long* a, int m, long* b, long* res)`
+    - `public static int RunMod(int n, long* a, int m, long* b, long* res, long mod)`
+  - **class** `PolynomialDiv`
+    - `public static int Run(int n, long* a, int m, long* b, long* q, long* r)`
+  - **class** `PolynomialMod`
+    - `public static int Run(int n, long* a, int m, long* b, long* r)`
+  - **class** `PolynomialDerivative`
+    - `public static int Run(int n, long* a, long* res)`
+  - **class** `PolynomialIntegral`
+    - `public static int Run(int n, long* a, long* res, long mod)`
+  - **class** `PolynomialInverse`
+    - `public static int Run(int n, long* a, long* res, long mod)`
+  - **class** `PolynomialLog`
+    - `public static int Run(int n, long* a, long* res, long mod)`
+  - **class** `PolynomialExp`
+    - `public static int Run(int n, long* a, long* res, long mod)`
+  - **class** `PolynomialPow`
+    - `public static int Run(int n, long* a, long k, long* res, long mod)`
+  - **class** `PolynomialSqrt`
+    - `public static int Run(int n, long* a, long* res, long mod)`
+  - **class** `PolynomialEval`
+    - `public static long Run(int n, long* a, long x, long mod)`
+  - **class** `PolynomialInterpolate`
+    - `public static int Run(int n, long* x, long* y, long* res, long mod)`
+  - **class** `LagrangeInterpolate`
+    - `public static long Run(long* x, long* y, long n, long t, long mod)`
+  - **class** `PolynomialComposition`
+    - `public static void Run(int n, long* f, int m, long* g, long* res, long mod, long* tmp)`
+    - `public static void RunNaive(int n, long* f, int m, long* g, long* res, long mod)`
+  - **class** `PolynomialMultipointEval`
+    - `public static void Run(long* poly, int n, long* points, long* values, int m, long mod)`
+    - `public static void RunInterpolate(long* xs, long* ys, int n, long* poly, long mod)`
+  - **class** `PolynomialShift`
+    - `public static void RunLeft(long* a, int n, int k)`
+    - `public static void RunRight(long* a, int n, int k)`
+  - **class** `PolynomialTaylorShift`
+    - `public static void Run(long* a, int n, long c, long mod, long* fact, long* invFact)`
+
+### IAFahim.Math.Polynomial.Eval
+- **Path**: `src/IAFahim.Math.Polynomial.Eval`
+- **Description**: Curious cat uses fast polynomial evaluation when it must test many points at once. It avoids repeated work across points.
+- **C# Source Files**:
+  - `IAFahim.Math.Polynomial.Eval/PolynomialEval.cs`
+- **Public APIs**:
+  - **class** `MultiPointEval`
+    - `public static void Run(int n, long* poly, int m, long* x, long* res, long mod)`
+  - **class** `ChirpZTransform`
+    - `public static int Run(int n, long* a, long c, long d, long* res, long mod)`
+
+### IAFahim.Math.Polynomial.Fps
+- **Path**: `src/IAFahim.Math.Polynomial.Fps`
+- **Description**: Curious cat uses formal power series to treat polynomials like analytic objects. It enables log, exp, inverse, and sqrt on series.
+- **C# Source Files**:
+  - `IAFahim.Math.Polynomial.Fps/FormalPowerSeriesSqrt.cs`
+  - `IAFahim.Math.Polynomial.Fps/Fps.cs`
+- **Public APIs**:
+  - **class** `FormalPowerSeriesSqrt`
+    - `public static int Run(int n, long* a, long* res, long mod)`
+  - **class** `FormalPowerSeriesInverse`
+    - `public static int Run(int n, long* a, long* res, long mod)`
+  - **class** `FormalPowerSeriesLog`
+    - `public static int Run(int n, long* a, long* res, long mod)`
+  - **class** `FormalPowerSeriesExp`
+    - `public static int Run(int n, long* a, long* res, long mod)`
+  - **class** `FormalPowerSeriesPow`
+    - `public static int Run(int n, long* a, long k, long* res, long mod)`
+
+### IAFahim.Math.PotentialField
+- **Path**: `src/IAFahim.Math.PotentialField`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Math.PotentialField/PotentialField2D.cs`
+  - `IAFahim.Math.PotentialField/PotentialField3D.cs`
+- **Public APIs**:
+  - **class** `PotentialField2D`
+    - `public static float2 Attractive(float2 position, float2 target, float strength)`
+    - `public static float2 Repulsive(float2 position, float2 obstacle, float radius, float strength)`
+    - `public static float2 Tangential(float2 position, float2 obstacle, float radius, float strength)`
+    - `public static void ComputeGradient(`
+    - `public static int GradientDescent(`
+  - **class** `PotentialField3D`
+    - `public static float3 Attractive(float3 position, float3 target, float strength)`
+    - `public static float3 Repulsive(float3 position, float3 obstacle, float radius, float strength)`
+    - `public static void ComputeGradient(`
+    - `public static int GradientDescent(`
+
+### IAFahim.Math.Quaternion
+- **Path**: `src/IAFahim.Math.Quaternion`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Math.Quaternion/QuaternionOps.cs`
+  - `IAFahim.Math.Quaternion/QuaternionSlerp.cs`
+  - `IAFahim.Math.Quaternion/SwingTwistDecomposition.cs`
+- **Public APIs**:
+  - **class** `QuaternionOps`
+    - `public static quaternion FromAxisAngle(float3 axis, float angleRadians)`
+    - `public static void ToAxisAngle(quaternion q, out float3 axis, out float angle)`
+    - `public static quaternion FromEuler(float3 eulerRadians)`
+    - `public static float3 ToEuler(quaternion q)`
+    - `public static quaternion LookRotation(float3 forward, float3 up)`
+    - `public static float3 RotateVector(quaternion q, float3 v)`
+    - `public static quaternion Conjugate(quaternion q)`
+    - `public static float Dot(quaternion a, quaternion b)`
+    - `public static float Length(quaternion q)`
+    - `public static quaternion Normalize(quaternion q)`
+    - `public static float AngleBetween(quaternion a, quaternion b)`
+  - **class** `QuaternionSlerp`
+    - `public static quaternion Run(quaternion from, quaternion to, float t)`
+  - **class** `SwingTwistDecomposition`
+    - `public static void Run(quaternion q, float3 twistAxis, out quaternion swing, out quaternion twist)`
+    - `public static float TwistAngle(quaternion q, float3 twistAxis)`
+    - `public static quaternion FromTwistAngle(float angle, float3 twistAxis)`
+
+### IAFahim.Math.Sdf
+- **Path**: `src/IAFahim.Math.Sdf`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Math.Sdf/SdfBoolean.cs`
+  - `IAFahim.Math.Sdf/SdfPrimitive.cs`
+  - `IAFahim.Math.Sdf/SdfRayMarch.cs`
+  - `IAFahim.Math.Sdf/SdfTransform.cs`
+- **Public APIs**:
+  - **class** `SdfBoolean`
+    - `public static float Union(float d1, float d2)`
+    - `public static float Intersection(float d1, float d2)`
+    - `public static float Difference(float d1, float d2)`
+    - `public static float SmoothUnion(float d1, float d2, float k)`
+    - `public static float SmoothIntersection(float d1, float d2, float k)`
+    - `public static float SmoothDifference(float d1, float d2, float k)`
+  - **class** `SdfPrimitive`
+    - `public static float Sphere(float3 p, float radius)`
+    - `public static float Box(float3 p, float3 halfExtents)`
+    - `public static float Capsule(float3 p, float3 a, float3 b, float radius)`
+    - `public static float Torus(float3 p, float majorRadius, float minorRadius)`
+    - `public static float Cylinder(float3 p, float radius, float halfHeight)`
+    - `public static float Plane(float3 p, float3 n, float distance)`
+    - `public static float Ellipsoid(float3 p, float3 radii)`
+    - `public static float Cone(float3 p, float2 dimensions)`
+    - `public static float Octahedron(float3 p, float size)`
+  - **class** `SdfRayMarch`
+    - `public delegate float SdfFunction(float3 p);`
+    - `public static float3 EstimateNormal(SdfFunction sdf, float3 p)`
+    - `public static bool March(SdfFunction sdf, float3 origin, float3 direction, float maxDistance, int maxSteps, out float t, out float3 hitPoint)`
+    - `public static float AmbientOcclusion(SdfFunction sdf, float3 p, float3 normal, int steps, float stepSize)`
+    - `public static float3 SafeNormalize(float3 v)`
+  - **class** `SdfTransform`
+    - `public static float3 Translate(float3 p, float3 offset)`
+    - `public static float3 RotateX(float3 p, float angle)`
+    - `public static float3 RotateY(float3 p, float angle)`
+    - `public static float3 RotateZ(float3 p, float angle)`
+    - `public static float3 Scale(float3 p, float3 scale)`
+    - `public static float ScaleDistance(float d, float3 scale)`
+    - `public static float3 Repeat(float3 p, float3 cellSize)`
+    - `public static float3 MirrorX(float3 p)`
+    - `public static float3 MirrorY(float3 p)`
+    - `public static float3 MirrorZ(float3 p)`
+
+### IAFahim.Math.SphericalHarmonics
+- **Path**: `src/IAFahim.Math.SphericalHarmonics`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Math.SphericalHarmonics/SHEvaluation.cs`
+- **Public APIs**:
+  - **class** `SHEvaluation`
+    - `public static float BasisL0M0()`
+    - `public static float BasisL1M1(float x, float y, float z)`
+    - `public static float BasisL1M0(float x, float y, float z)`
+    - `public static float BasisL1P1(float x, float y, float z)`
+    - `public static float BasisL2M2(float x, float y, float z)`
+    - `public static float BasisL2M1(float x, float y, float z)`
+    - `public static float BasisL2M0(float x, float y, float z)`
+    - `public static float BasisL2P1(float x, float y, float z)`
+    - `public static float BasisL2P2(float x, float y, float z)`
+    - `public static void EvaluateL2(float3 direction, float* outCoeffs)`
+    - `public static void ProjectL2(float3* directions, float* values, int sampleCount, float* outCoeffs)`
+    - `public static float EvalL2(float3 direction, float* coeffs)`
+    - `public static void ConvolveWithCosineKernelL2(float* irradianceCoeffs, float* radianceCoeffs)`
+
+### IAFahim.Math.Spline
+- **Path**: `src/IAFahim.Math.Spline`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Math.Spline/CubicHermite.cs`
+  - `IAFahim.Math.Spline/UniformBSpline.cs`
+- **Public APIs**:
+  - **class** `CubicHermite`
+    - `public static float3 Evaluate(float3 p0, float3 m0, float3 p1, float3 m1, float t)`
+    - `public static float3 EvaluateTangent(float3 p0, float3 m0, float3 p1, float3 m1, float t)`
+    - `public static float IntegrateArcLength(float3 p0, float3 m0, float3 p1, float3 m1, int sampleCount)`
+  - **class** `UniformBSpline`
+    - `public static float3 Evaluate(float3 p0, float3 p1, float3 p2, float3 p3, float t)`
+    - `public static float3 EvaluateTangent(float3 p0, float3 p1, float3 p2, float3 p3, float t)`
+    - `public static void UniformSample(float3 p0, float3 p1, float3 p2, float3 p3,`
+
+### IAFahim.Math.Transform
+- **Path**: `src/IAFahim.Math.Transform`
+- **Description**: Curious cat uses transform algorithms to move between domains. It helps convert convolution into pointwise work.
+- **C# Source Files**:
+  - `IAFahim.Math.Transform/Fwht.cs`
+  - `IAFahim.Math.Transform/MinMaxConvolution.cs`
+  - `IAFahim.Math.Transform/OrAndXorConvolution.cs`
+  - `IAFahim.Math.Transform/PartitionConvolution.cs`
+  - `IAFahim.Math.Transform/PosetTransforms.cs`
+  - `IAFahim.Math.Transform/SubsetConvolutionRanked.cs`
+  - `IAFahim.Math.Transform/SubsetTransform.cs`
+  - `IAFahim.Math.Transform/XorBasis.cs`
+- **Public APIs**:
+  - **class** `WalshHadamardXor`
+    - `public static void Forward(long* f, int n)`
+    - `public static void Inverse(long* f, int n)`
+  - **class** `WalshHadamardOr`
+    - `public static void Forward(long* f, int n)`
+    - `public static void Inverse(long* f, int n)`
+  - **class** `WalshHadamardAnd`
+    - `public static void Forward(long* f, int n)`
+    - `public static void Inverse(long* f, int n)`
+  - **class** `FwhtConvolution`
+    - `public static void Run(long* a, long* b, long* c, int n, FwhtType type)`
+    - `public enum FwhtType { Xor, Or, And }`
+  - **class** `MinMaxConvolution`
+    - `public static void MinIndex(long* a, long* b, long* c, int n, long mod, long* sa, long* sb, long* sc)`
+    - `public static void MaxIndex(long* a, long* b, long* c, int n, long mod, long* pa, long* pb, long* pc)`
+    - `public static void MinPlusGeneral(long* a, int aLen, long* b, int bLen, long* c)`
+    - `public static void MaxPlusGeneral(long* a, int aLen, long* b, int bLen, long* c)`
+    - `public static void MinPlusConvexArbitrary(long* a, int n, long* b, int m, long* c)`
+    - `public static void MaxPlusConcaveArbitrary(long* a, int n, long* b, int m, long* c)`
+    - `public static void MinPlusConvexConvex(long* a, int n, long* b, int m, long* c)`
+    - `public static void MaxPlusConcaveConcave(long* a, int n, long* b, int m, long* c)`
+  - **class** `OrAndXorConvolution`
+    - `public static void RunOr(long* a, long* b, long* c, int logN, long mod, long* ta, long* tb)`
+    - `public static void RunAnd(long* a, long* b, long* c, int logN, long mod, long* ta, long* tb)`
+    - `public static void RunXor(long* a, long* b, long* c, int logN, long mod, long* ta, long* tb)`
+  - **class** `PartitionConvolution`
+    - `public static void ConvolveWithPartition(long* a, long* c, int n, long mod)`
+    - `public static void ConvolveWithPentagonal(long* a, long* c, int n, long mod)`
+  - **class** `PosetTransforms`
+    - `public static void ZetaTransform(long* f, long* g, int* topOrder, bool* relation, int n, long mod)`
+    - `public static void MobiusTransform(long* g, long* f, int* topOrder, bool* relation, int n, long mod, long* mu)`
+    - `public static int LatticeMeet(int x, int y, bool* relation, int n)`
+    - `public static int LatticeJoin(int x, int y, bool* relation, int n)`
+    - `public static int BooleanLatticeRank(int x) { int c = 0; while (x > 0) { x &= (x - 1); c++; } return c; }`
+  - **class** `SubsetConvolutionRanked`
+    - `public static void Run(long* a, long* b, long* c, int logN, long mod, long* f, long* g, long* h)`
+  - **class** `SubsetZeta`
+    - `public static void Run(long* f, int n)`
+    - `public static void RunInt32(int* f, int n)`
+  - **class** `SubsetMobius`
+    - `public static void Run(long* f, int n)`
+    - `public static void RunInt32(int* f, int n)`
+  - **class** `SupersetZeta`
+    - `public static void Run(long* f, int n)`
+  - **class** `SupersetMobius`
+    - `public static void Run(long* f, int n)`
+  - **class** `SubsetConvolution`
+    - `public static void Run(long* a, long* b, long* c, int n)`
+  - **class** `XorBasisInsert`
+    - `public static void Run(long* basis, int* size, long x)`
+  - **class** `XorBasisMax`
+    - `public static long Run(long* basis)`
+  - **class** `XorBasisMin`
+    - `public static long Run(long* basis)`
+  - **class** `XorBasisRank`
+    - `public static int Run(long* basis, long x)`
+  - **class** `XorBasisKth`
+    - `public static long Run(long* basis, int k, int size)`
+
+### IAFahim.Math.Transform.AnyMod
+- **Path**: `src/IAFahim.Math.Transform.AnyMod`
+- **Description**: Curious cat uses AnyMod transforms when the modulus is arbitrary. It keeps NTT‑like speed without special primes.
+- **C# Source Files**:
+  - `IAFahim.Math.Transform.AnyMod/AnyMod.cs`
+- **Public APIs**:
+  - **class** `ArbitraryModConvolution`
+    - `public static int Run(long* a, int n, long* b, int m, long* res, long mod)`
+
+### IAFahim.Math.Transform.Fft
+- **Path**: `src/IAFahim.Math.Transform.Fft`
+- **Description**: Curious cat uses FFT when working with real or complex convolution. It accelerates large polynomial multiplications.
+- **C# Source Files**:
+  - `IAFahim.Math.Transform.Fft/Fft.cs`
+- **Public APIs**:
+  - **class** `FftTransform`
+    - `public static void Forward(double* re, double* im, int n)`
+    - `public static void Inverse(double* re, double* im, int n)`
+  - **class** `FftConvolution`
+    - `public static int Run(double* a, int n, double* b, int m, double* res)`
+
+### IAFahim.Math.Transform.Ntt
+- **Path**: `src/IAFahim.Math.Transform.Ntt`
+- **Description**: Curious cat uses NTT for exact modular convolutions. It avoids floating error while staying fast.
+- **C# Source Files**:
+  - `IAFahim.Math.Transform.Ntt/Ntt.cs`
+- **Public APIs**:
+  - **class** `NttInit`
+    - `public static void Run(int logN, long mod, long g, long* roots, long* invRoots)`
+  - **class** `NttTransform`
+    - `public static void Forward(long* a, int n, long mod, long* roots)`
+    - `public static void Inverse(long* a, int n, long mod, long* invRoots)`
+  - **class** `NttConvolution`
+    - `public static int Run(long* a, int n, long* b, int m, long* res, long mod, long g)`
+
+### IAFahim.Memory.Allocators
+- **Path**: `src/IAFahim.Memory.Allocators`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Memory.Allocators/MemoryAllocator.cs`
+  - `IAFahim.Memory.Allocators/NativeSlabAllocator.cs`
+  - `IAFahim.Memory.Allocators/Ptr.cs`
+  - `IAFahim.Memory.Allocators/UnsafeFixedPoolAllocator.cs`
+  - `IAFahim.Memory.Allocators/UnsafeParallelPoolAllocator.cs`
+  - `IAFahim.Memory.Allocators/UnsafePoolAllocator.cs`
+  - `IAFahim.Memory.Allocators/UnsafeSlabAllocator.cs`
+- **Public APIs**:
+  - **struct** `MemoryAllocator`
+    - `public MemoryAllocator(Allocator allocator)`
+    - `public Allocator Allocator { get; }`
+    - `public void* Allocate(int itemSizeInBytes, int alignmentInBytes, int items = 1)`
+    - `public T* Create<T>(int count = 1)`
+    - `public UnsafeList<T> CreateList<T>(int capacity)`
+    - `public void FreeAll()`
+    - `public void Dispose()`
+  - **struct** `NativeSlabAllocator`
+  - **struct** `Ptr`
+    - `public readonly void* Value;`
+    - `public static readonly Ptr Zero = default;`
+    - `public Ptr(void* value)`
+    - `public static implicit operator void*(Ptr ptr)`
+    - `public static implicit operator Ptr(void* ptr)`
+    - `public bool Equals(Ptr other)`
+    - `public override int GetHashCode()`
+  - **struct** `UnsafeFixedPoolAllocator`
+  - **struct** `UnsafeParallelPoolAllocator`
+  - **struct** `UnsafePoolAllocator`
+  - **struct** `UnsafeSlabAllocator`
+
+### IAFahim.Optimization.Approximation
+- **Path**: `src/IAFahim.Optimization.Approximation`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Optimization.Approximation/Freivalds.cs`
+  - `IAFahim.Optimization.Approximation/Metheuristics.cs`
+  - `IAFahim.Optimization.Approximation/SchwartzZippel.cs`
+- **Public APIs**:
+  - **class** `Freivalds`
+    - `public static bool Verify(int n, int* a, int* b, int* c, int* r, int iters, uint* seed)`
+  - **class** `Metheuristics`
+    - `public static long SimulatedAnnealing(long* state, int n, long target, double temp, double cooling)`
+    - `public static long HillClimb(long* state, int n)`
+    - `public static long MonteCarlo(long* samples, int n)`
+  - **class** `SchwartzZippel`
+    - `public static bool Test(int* poly, int n, int* eval, int* points, int m, int prime)`
+
+### IAFahim.Optimization.DivideConquer
+- **Path**: `src/IAFahim.Optimization.DivideConquer`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Optimization.DivideConquer/DequeOpt.cs`
+  - `IAFahim.Optimization.DivideConquer/LagrangianRelaxation.cs`
+  - `IAFahim.Optimization.DivideConquer/MatrixSearch.cs`
+  - `IAFahim.Optimization.DivideConquer/OnlineDp.cs`
+  - `IAFahim.Optimization.DivideConquer/SlopeTrick.cs`
+- **Public APIs**:
+  - **class** `DequeOpt`
+  - **struct** `Quad`
+    - `public long A, B, C;`
+  - **class** `LagrangianRelaxation`
+    - `public static long Search(long* w, int n, int k, long lo, long hi)`
+  - **class** `MatrixSearch`
+    - `public static int Run(int m, int n, int* a, int target)`
+    - `public static int RunSortedColumns(int m, int n, int* a, int target)`
+  - **class** `OnlineDp`
+    - `public static void Recompute(long* dp, int l, int r, int optL, int optR, int k, delegate*<int,int,long> calc)`
+  - **class** `SlopeTrick`
+  - **struct** `State`
+    - `public long L, R;`
+    - `public long Lc, Rc;`
+    - `public long Offset;`
+
+### IAFahim.Optimization.Exact
+- **Path**: `src/IAFahim.Optimization.Exact`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Optimization.Exact/GraphColoring.cs`
+  - `IAFahim.Optimization.Exact/HamiltonianCycle.cs`
+  - `IAFahim.Optimization.Exact/HamiltonianPath.cs`
+  - `IAFahim.Optimization.Exact/MaxIndependentSet.cs`
+  - `IAFahim.Optimization.Exact/MaximumClique.cs`
+  - `IAFahim.Optimization.Exact/MinDominatingSet.cs`
+  - `IAFahim.Optimization.Exact/MinSetCover.cs`
+  - `IAFahim.Optimization.Exact/SteinerDreyfusWagner.cs`
+  - `IAFahim.Optimization.Exact/TspBitonic.cs`
+  - `IAFahim.Optimization.Exact/TspHeldKarp.cs`
+  - `IAFahim.Optimization.Exact/TspMeetInMiddle.cs`
+- **Public APIs**:
+  - **class** `GraphColoring`
+    - `public static int Run(int n, bool* adj, int* colors, int* sat)`
+  - **class** `HamiltonianCycle`
+    - `public static long Run(int n, long* w, long inf, long* dp)`
+  - **class** `HamiltonianPath`
+    - `public static long Run(int n, long* w, long inf, long* dp, int* perm)`
+  - **class** `MaxIndependentSet`
+    - `public static int Run(int n, bool* adj, int* used, int* best, int* tmp)`
+  - **class** `MaximumClique`
+    - `public static int Run(int n, bool* adj, int* cand, int candSize, int* sol, long* dp, int* best, int* tmp)`
+  - **class** `MinDominatingSet`
+    - `public static int Run(int n, bool* adj, int* dom, int* best, int* tmp)`
+  - **class** `MinSetCover`
+    - `public static int Run(int m, int** sets, int* setSizes, int* covered, int* best, int* cur)`
+  - **class** `SteinerDreyfusWagner`
+    - `public static long Run(int n, int m, int* from, int* to, long* w, bool* terminals, long inf, long* dp)`
+  - **class** `TspBitonic`
+    - `public static long Run(int n, double* xs, double* ys, long* dp)`
+  - **class** `TspHeldKarp`
+    - `public static long Run(int n, long* w, long inf, long* dp)`
+  - **class** `TspMeetInMiddle`
+    - `public static long Run(int n, long* w, long inf)`
+
+### IAFahim.Optimization.Games
+- **Path**: `src/IAFahim.Optimization.Games`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Optimization.Games/AttractorSet.cs`
+  - `IAFahim.Optimization.Games/Grundy.cs`
+  - `IAFahim.Optimization.Games/Mdp.cs`
+  - `IAFahim.Optimization.Games/MeanPayoff.cs`
+  - `IAFahim.Optimization.Games/MinCostFlow.cs`
+  - `IAFahim.Optimization.Games/Retrograde.cs`
+  - `IAFahim.Optimization.Games/Simplex.cs`
+- **Public APIs**:
+  - **class** `AttractorSet`
+    - `public static bool Solve(int n, bool* player, bool* adj, bool* even, int start, bool* inAttr, int* queue)`
+  - **class** `Grundy`
+    - `public static int Mex(int* values, int n)`
+    - `public static void SpragueGrundy(int* moves, int* counts, int n, int* g, int* scratch)`
+  - **class** `Mdp`
+    - `public static void ValueIteration(int n, int m, double* trans, double* reward, double gamma, double* v, double* newV, int iters)`
+    - `public static void PolicyIteration(int n, int m, double* trans, double* reward, double gamma, int* policy, double* v, int* newPol)`
+  - **class** `MeanPayoff`
+    - `public static bool Solve(int n, int m, int* from, int* to, long* w, long* potential)`
+  - **class** `MinCostFlow`
+    - `public static long MinCostCirculation(int n, int m, int* from, int* to, long* cap, long* cost)`
+    - `public static long MinCostArborescence(int n, int* from, int* to, long* w, int m, int root)`
+    - `public static long MinMeanCycle(int n, int* from, int* to, long* w, int m)`
+  - **class** `Retrograde`
+    - `public static int Solve(int n, bool* win, bool* lose, int* from, int* to, int m)`
+  - **class** `Simplex`
+  - **struct** `Result`
+
+### IAFahim.Optimization.Geometric
+- **Path**: `src/IAFahim.Optimization.Geometric`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Optimization.Geometric/MinEnclosingBall.cs`
+  - `IAFahim.Optimization.Geometric/WelzlSphere.cs`
+- **Public APIs**:
+  - **class** `MinEnclosingBall`
+  - **struct** `Circle`
+  - **class** `WelzlSphere`
+  - **struct** `Sphere`
+    - `public double X, Y, Z, R;`
+
+### IAFahim.Optimization.Knapsack
+- **Path**: `src/IAFahim.Optimization.Knapsack`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Optimization.Knapsack/BoundedKnapsack.cs`
+  - `IAFahim.Optimization.Knapsack/DivideConquerKnapsack.cs`
+  - `IAFahim.Optimization.Knapsack/KSum.cs`
+  - `IAFahim.Optimization.Knapsack/MeetInMiddle.cs`
+  - `IAFahim.Optimization.Knapsack/MultipleChoiceKnapsack.cs`
+  - `IAFahim.Optimization.Knapsack/SubsetSum.cs`
+- **Public APIs**:
+  - **class** `BoundedKnapsack`
+    - `public static long BinarySplit(long* w, long* v, int* cnt, int n, int cap, long* dp)`
+    - `public static long MonotoneQueue(long* w, long* v, int* cnt, int n, int cap, long* dp, int* q)`
+  - **class** `DivideConquerKnapsack`
+    - `public static long Run(long* w, long* v, int* cnt, int n, int cap, long* dp)`
+  - **class** `KSum`
+    - `public static int Count(int* a, int n, int k, int target)`
+    - `public static int FourSum(int* a, int n, int target)`
+  - **class** `MeetInMiddle`
+    - `public static long Run(long* w, long* v, int n, long cap, long* left)`
+  - **class** `MultipleChoiceKnapsack`
+    - `public static long Run(int* groupStart, int* itemW, long* itemV, int n, int cap, long* dp)`
+  - **class** `SubsetSum`
+    - `public static bool Can(long* w, int n, long target)`
+
+### IAFahim.Optimization.Matroid
+- **Path**: `src/IAFahim.Optimization.Matroid`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Optimization.Matroid/LinearMatroid.cs`
+  - `IAFahim.Optimization.Matroid/MatroidGreedy.cs`
+- **Public APIs**:
+  - **class** `LinearMatroid`
+    - `public static int Rank(int n, int m, int* a, int* basis)`
+  - **class** `MatroidGreedy`
+    - `public static long Run(int n, int* set, int setSize, long* weight, delegate*<int*, int, int, bool> independent)`
+
+### IAFahim.Optimization.Offline
+- **Path**: `src/IAFahim.Optimization.Offline`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Optimization.Offline/Offline.cs`
+- **Public APIs**:
+  - **class** `ParallelBinarySearch`
+    - `public static void Init(int* lo, int* hi, int n)`
+    - `public static void InitWithRange(int* lo, int* hi, int n, int loVal, int hiVal)`
+    - `public static int Mid(int lo, int hi)`
+    - `public static void GroupByMid(int* lo, int* hi, int* queryIdx, int* bucketSize, int n, int* buckets)`
+  - **class** `DivideConquerAnswer`
+    - `public static void Solve<T>(`
+  - **class** `Cdq3DDominance`
+    - `public static void SortByX(int* x, int* y, int* z, int* idx, int* tmp, int l, int r)`
+    - `public static void Process(int* x, int* y, int* z, int* idx, int* tmp, int* count, int l, int r,`
+  - **class** `OfflineKthNumber`
+    - `public static int BuildPersistentSegTree(`
+    - `public static int QueryKth(int* leftChild, int* rightChild, int* sum,`
+
+### IAFahim.Optimization.Submodular
+- **Path**: `src/IAFahim.Optimization.Submodular`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Optimization.Submodular/MaxCut.cs`
+  - `IAFahim.Optimization.Submodular/Rounding.cs`
+  - `IAFahim.Optimization.Submodular/SubmodularGreedy.cs`
+- **Public APIs**:
+  - **class** `MaxCut`
+    - `public static long LocalSearch(int n, int* from, int* to, long* w, int m, int* partition)`
+    - `public static long GoemansWilliamson(int n, int* from, int* to, long* w, int m, double alpha)`
+  - **class** `Rounding`
+    - `public static void Random(int n, double* frac, int* result, Random rng)`
+    - `public static void Dependent(int n, double* frac, int* result)`
+    - `public static void Pipage(int n, double* frac, int* result)`
+  - **class** `SubmodularGreedy`
+    - `public static long Run(int n, long* gain, int k, int* selected)`
+    - `public static long GreedySetCover(int n, int* elemCounts, int** sets, int m, int* cover)`
+
+### IAFahim.Optimization.Treewidth
+- **Path**: `src/IAFahim.Optimization.Treewidth`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Optimization.Treewidth/ConvexHull.cs`
+  - `IAFahim.Optimization.Treewidth/CutAndCount.cs`
+  - `IAFahim.Optimization.Treewidth/FastSubsetDp.cs`
+  - `IAFahim.Optimization.Treewidth/RankDp.cs`
+  - `IAFahim.Optimization.Treewidth/RankTransform.cs`
+- **Public APIs**:
+  - **class** `ConvexHull`
+    - `public static bool CheckMonge(long* a, int m, int n)`
+    - `public static bool CheckQuadrangle(long* a, int m, int n)`
+  - **class** `CutAndCount`
+    - `public static int Run(int n, bool* adj, int* bag, int bagSize, long* dp)`
+  - **class** `FastSubsetDp`
+    - `public static void Run(long* f, long* g, int n, int k)`
+  - **class** `RankDp`
+    - `public static void ComputeOrder(int n, int* adj, int* order, int* parent, int* rank)`
+    - `public static void FillBag(int n, int v, int* adj, int* bag, int* bagSize)`
+    - `public static long Run(int n, long* edgeW, int* order, int* parent, long* dp)`
+  - **class** `RankTransform`
+    - `public static void Run(int* x, int n, int* rank)`
+
+### IAFahim.Pathfinding.Recast
+- **Path**: `src/IAFahim.Pathfinding.Recast`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Pathfinding.Recast/AssemblyInfo.cs`
+  - `IAFahim.Pathfinding.Recast/byte4.cs`
+  - `IAFahim.Pathfinding.Recast/ushort3.cs`
+  - `IAFahim.Pathfinding.Recast/Recast/RcCompactCell.cs`
+  - `IAFahim.Pathfinding.Recast/Recast/RcCompactHeightfield.cs`
+  - `IAFahim.Pathfinding.Recast/Recast/RcCompactSpan.cs`
+  - `IAFahim.Pathfinding.Recast/Recast/RcContour.cs`
+  - `IAFahim.Pathfinding.Recast/Recast/RcContourSet.cs`
+  - `IAFahim.Pathfinding.Recast/Recast/RcHeightField.cs`
+  - `IAFahim.Pathfinding.Recast/Recast/RcHeightfieldLayer.cs`
+  - `IAFahim.Pathfinding.Recast/Recast/RcHeightfieldLayerSet.cs`
+  - `IAFahim.Pathfinding.Recast/Recast/RcPolyMesh.cs`
+  - `IAFahim.Pathfinding.Recast/Recast/RcPolyMeshDetail.cs`
+  - `IAFahim.Pathfinding.Recast/Recast/RcSpan.cs`
+  - `IAFahim.Pathfinding.Recast/Recast/RcSpanPool.cs`
+  - `IAFahim.Pathfinding.Recast/Recast/Recast.Area.cs`
+  - `IAFahim.Pathfinding.Recast/Recast/Recast.Constants.cs`
+  - `IAFahim.Pathfinding.Recast/Recast/Recast.Contour.cs`
+  - `IAFahim.Pathfinding.Recast/Recast/Recast.Filter.cs`
+  - `IAFahim.Pathfinding.Recast/Recast/Recast.Layers.cs`
+  - `IAFahim.Pathfinding.Recast/Recast/Recast.Mesh.cs`
+  - `IAFahim.Pathfinding.Recast/Recast/Recast.MeshDetail.cs`
+  - `IAFahim.Pathfinding.Recast/Recast/Recast.Rasterization.cs`
+  - `IAFahim.Pathfinding.Recast/Recast/Recast.Region.cs`
+  - `IAFahim.Pathfinding.Recast/Recast/Recast.cs`
+  - `IAFahim.Pathfinding.Recast/Detour/Detour.Common.cs`
+  - `IAFahim.Pathfinding.Recast/Detour/Detour.Constants.cs`
+  - `IAFahim.Pathfinding.Recast/Detour/Detour.Math.cs`
+  - `IAFahim.Pathfinding.Recast/Detour/Detour.NavMeshBuilder.cs`
+  - `IAFahim.Pathfinding.Recast/Detour/Detour.cs`
+  - `IAFahim.Pathfinding.Recast/Detour/DtBVNode.cs`
+  - `IAFahim.Pathfinding.Recast/Detour/DtLink.cs`
+  - `IAFahim.Pathfinding.Recast/Detour/DtMeshHeader.cs`
+  - `IAFahim.Pathfinding.Recast/Detour/DtMeshTile.cs`
+  - `IAFahim.Pathfinding.Recast/Detour/DtNavMesh.cs`
+  - `IAFahim.Pathfinding.Recast/Detour/DtNavMeshCreateParams.cs`
+  - `IAFahim.Pathfinding.Recast/Detour/DtNavMeshData.cs`
+  - `IAFahim.Pathfinding.Recast/Detour/DtNavMeshParams.cs`
+  - `IAFahim.Pathfinding.Recast/Detour/DtNavMeshQuery.cs`
+  - `IAFahim.Pathfinding.Recast/Detour/DtNode.cs`
+  - `IAFahim.Pathfinding.Recast/Detour/DtNodePool.cs`
+  - `IAFahim.Pathfinding.Recast/Detour/DtNodeQueue.cs`
+  - `IAFahim.Pathfinding.Recast/Detour/DtOffMeshConnection.cs`
+  - `IAFahim.Pathfinding.Recast/Detour/DtPoly.cs`
+  - `IAFahim.Pathfinding.Recast/Detour/DtPolyDetail.cs`
+  - `IAFahim.Pathfinding.Recast/Detour/DtPolyQuery.cs`
+  - `IAFahim.Pathfinding.Recast/Detour/DtPolyRef.cs`
+  - `IAFahim.Pathfinding.Recast/Detour/DtQueryFilter.cs`
+  - `IAFahim.Pathfinding.Recast/Detour/DtRaycastHit.cs`
+  - `IAFahim.Pathfinding.Recast/Detour/DtTileRef.cs`
+- **Public APIs**:
+  - **struct** `byte4`
+    - `public byte x;`
+    - `public byte y;`
+    - `public byte z;`
+    - `public byte w;`
+    - `public byte4(byte x, byte y, byte z, byte w)`
+    - `public unsafe byte this[int index]`
+  - **struct** `ushort3`
+    - `public ushort x;`
+    - `public ushort y;`
+    - `public ushort z;`
+    - `public ushort3(ushort x, ushort y, ushort z)`
+    - `public unsafe ushort this[int index]`
+  - **struct** `RcCompactCell`
+    - `public uint Index`
+    - `public uint Count`
+  - **struct** `RcCompactHeightfield`
+    - `public int Width;`
+    - `public int Height;`
+    - `public int SpanCount;`
+    - `public int WalkableHeight;`
+    - `public int WalkableClimb;`
+    - `public int BorderSize;`
+    - `public ushort MaxDistance;`
+    - `public ushort MaxRegions;`
+    - `public float3 BMin;`
+    - `public float3 BMax;`
+    - `public float CellSize;`
+    - `public float CellHeight;`
+    - `public RcCompactCell* Cells;`
+    - `public RcCompactSpan* Spans;`
+    - `public ushort* Dist;`
+    - `public byte* Areas;`
+    - `public RcCompactHeightfield(Allocator allocator)`
+    - `public Allocator Allocator { get; }`
+    - `public void Dispose()`
+  - **struct** `RcCompactSpan`
+    - `public ushort Y;`
+    - `public ushort Reg;`
+    - `public uint Con`
+    - `public uint H`
+  - **struct** `RcContour`
+    - `public int4* Verts;`
+    - `public int NVerts;`
+    - `public int4* RVerts;`
+    - `public int NRVerts;`
+    - `public ushort Reg;`
+    - `public byte Area;`
+    - `public RcContour(Allocator allocator)`
+    - `public Allocator Allocator { get; }`
+    - `public void Dispose()`
+  - **struct** `RcContourSet`
+    - `public RcContour* Conts;`
+    - `public int Nconts;`
+    - `public float3 Bmin;`
+    - `public float3 Bmax;`
+    - `public float Cs;`
+    - `public float Ch;`
+    - `public int Width;`
+    - `public int Height;`
+    - `public int BorderSize;`
+    - `public float MaxError;`
+    - `public RcContourSet(Allocator allocator)`
+    - `public Allocator Allocator { get; }`
+    - `public void Dispose()`
+  - **struct** `RcHeightfield`
+    - `public int Width;`
+    - `public int Height;`
+    - `public float3 Bmin;`
+    - `public float3 Bmax;`
+    - `public float Cs;`
+    - `public float Ch;`
+    - `public RcSpan** Spans;`
+    - `public RcSpanPool* Pools;`
+    - `public RcSpan* Freelist;`
+    - `public RcHeightfield(Allocator allocator)`
+    - `public Allocator Allocator { get; }`
+    - `public void Dispose()`
+  - **struct** `RcHeightfieldLayer`
+    - `public float3 BoundMin;`
+    - `public float3 BoundMax;`
+    - `public float CellSize;`
+    - `public float CellHeight;`
+    - `public int Width;`
+    - `public int Height;`
+    - `public int MinX;`
+    - `public int MaxX;`
+    - `public int MinY;`
+    - `public int MaxY;`
+    - `public int HeightMin;`
+    - `public int HeightMax;`
+    - `public byte* Heights;`
+    - `public byte* Areas;`
+    - `public byte* Cons;`
+    - `public RcHeightfieldLayer(Allocator allocator)`
+    - `public Allocator Allocator { get; }`
+    - `public void Dispose()`
+  - **struct** `RcHeightfieldLayerSet`
+    - `public RcHeightfieldLayer* Layers;`
+    - `public int NLayers;`
+    - `public RcHeightfieldLayerSet(Allocator allocator)`
+    - `public Allocator Allocator { get; }`
+    - `public void Dispose()`
+  - **struct** `RcPolyMesh`
+    - `public ushort3* Verts;`
+    - `public ushort* Polys;`
+    - `public ushort* Regs;`
+    - `public ushort* Flags;`
+    - `public byte* Areas;`
+    - `public int NVerts;`
+    - `public int NPolys;`
+    - `public int MaxPolys;`
+    - `public int Nvp;`
+    - `public float3 BMin;`
+    - `public float3 BMax;`
+    - `public float CellSize;`
+    - `public float CellHeight;`
+    - `public int BorderSize;`
+    - `public float MaxEdgeError;`
+    - `public RcPolyMesh(Allocator allocator)`
+    - `public Allocator Allocator { get; }`
+    - `public void Dispose()`
+  - **struct** `RcPolyMeshDetail`
+    - `public uint4* Meshes;`
+    - `public float3* Verts;`
+    - `public byte4* Tris;`
+    - `public int NMeshes;`
+    - `public int NVerts;`
+    - `public int NTris;`
+    - `public RcPolyMeshDetail(Allocator allocator)`
+    - `public Allocator Allocator { get; }`
+    - `public void Dispose()`
+  - **struct** `RcSpan`
+    - `public RcSpan* Next;`
+    - `public uint SMin`
+    - `public uint SMax`
+    - `public uint Area`
+  - **struct** `RcSpanPool`
+    - `public RcSpanPool* Next;`
+    - `public fixed byte Items[Recast.RCSpanPoolItemsSize];`
+    - `public RcSpan* GetSpan(int index)`
+  - **class** `Recast`
+    - `public static void ErodeWalkableArea(int erosionRadius, RcCompactHeightfield* compactHeightfield)`
+    - `public static bool MedianFilterWalkableArea(RcCompactHeightfield* compactHeightfield)`
+    - `public static void MarkBoxArea(in float3 boxMinBounds, in float3 boxMaxBounds, byte areaId,`
+    - `public static void MarkCylinderArea(in float3 position, float radius, float height, byte areaId,`
+    - `public static void MarkConvexPolyArea(float3* verts, int numVerts, float minY, float maxY, byte areaId,`
+    - `public static int OffsetPoly(float3* verts, int numVerts, float offset, float3* outVerts, int maxOutVerts)`
+  - **class** `Recast`
+    - `public const ushort RCMeshNullIdx = 0xffff;`
+    - `public const byte RCNullArea = 0;`
+    - `public const byte RCWalkableArea = 63;`
+    - `public const int RCNotConnected = 0x3f;`
+    - `public const int RCSpanHeightBits = 13;`
+    - `public const int RCSpanMaxHeight = (1 << RCSpanHeightBits) - 1;`
+    - `public const int RCSpansPerPool = 2048;`
+    - `public const ushort RCBorderReg = 0x8000;`
+    - `public const ushort RCMultipleRegs = 0;`
+    - `public const int RCBorderVertex = 0x10000;`
+    - `public const int RCAreaBorder = 0x20000;`
+    - `public const int RCContourRegMask = 0xffff;`
+    - `public const int RCSpanSize = 16;`
+    - `public const int RCSpanPoolItemsSize = RCSpansPerPool * RCSpanSize;`
+  - **class** `Recast`
+    - `public static void BuildContours(`
+    - `public int Vert;`
+    - `public int Dist;`
+    - `public RcContour* Contour;`
+    - `public int Minx;`
+    - `public int Minz;`
+    - `public int Leftmost;`
+    - `public RcContour* Outline;`
+    - `public ContourHole* Holes;`
+    - `public int Nholes;`
+  - **class** `Recast`
+    - `public static void FilterLowHangingWalkableObstacles(int walkableClimb, RcHeightfield* heightfield)`
+    - `public static void FilterLedgeSpans(int walkableHeight, int walkableClimb, RcHeightfield* heightfield)`
+    - `public static void FilterWalkableLowHeightSpans(int walkableHeight, RcHeightfield* heightfield)`
+  - **class** `Recast`
+    - `public static bool BuildHeightfieldLayers(RcCompactHeightfield* compactHeightfield, int borderSize, int walkableHeight,`
+    - `public ushort Ns;`
+    - `public byte ID;`
+    - `public byte Nei;`
+    - `public fixed byte Layers[RCMaxLayers];`
+    - `public fixed byte Neis[RCMaxNeis];`
+    - `public ushort Ymin;`
+    - `public ushort Ymax;`
+    - `public byte LayerId;`
+    - `public byte Nlayers;`
+    - `public byte Nneis;`
+    - `public byte Base;`
+  - **class** `Recast`
+    - `public static bool BuildPolyMesh(RcContourSet* contourSet, int nvp, RcPolyMesh* mesh)`
+    - `public static bool MergePolyMeshes(RcPolyMesh** meshes, int nmeshes, RcPolyMesh* mesh)`
+    - `public fixed ushort Vert[2];`
+    - `public fixed ushort PolyEdge[2];`
+    - `public fixed ushort Poly[2];`
+  - **class** `Recast`
+    - `public static void BuildPolyMeshDetail(`
+    - `public static bool MergePolyMeshDetails(RcPolyMeshDetail** meshes, int nmeshes, RcPolyMeshDetail* mesh)`
+    - `public ushort* Data;`
+    - `public int Xmin;`
+    - `public int Ymin;`
+    - `public int Width;`
+    - `public int Height;`
+  - **class** `Recast`
+    - `public static void RasterizeTriangles(float3* verts, int3* tris, byte* triAreaIDs, int numTris, RcHeightfield* heightfield, int flagMergeThreshold = 1)`
+    - `public static void RasterizeTriangles(`
+    - `public static void RasterizeTriangles(float3* verts, byte* triAreaIDs, int numTris, RcHeightfield* heightfield, int flagMergeThreshold = 1)`
+    - `public static void RasterizeTriangle(float3 v0, float3 v1, float3 v2, uint areaID, RcHeightfield* heightfield, int flagMergeThreshold = 1)`
+    - `public static void RasterizeTriangle(`
+    - `public static void AddSpan(RcHeightfield* heightfield, int x, int z, uint min, uint max, uint areaID, int flagMergeThreshold)`
+  - **class** `Recast`
+    - `public static void BuildDistanceField(RcCompactHeightfield* compactHeightfield)`
+    - `public static bool BuildRegions(RcCompactHeightfield* compactHeightfield, int borderSize, int minRegionArea, int mergeRegionArea)`
+    - `public static void BuildRegionsMonotone(RcCompactHeightfield* compactHeightfield, int borderSize, int minRegionArea, int mergeRegionArea)`
+    - `public static bool BuildLayerRegions(RcCompactHeightfield* compactHeightfield, int borderSize, int minRegionArea)`
+    - `public int X;`
+    - `public int Y;`
+    - `public int Index;`
+    - `public LevelStackEntry(int x, int y, int index)`
+    - `public int Index;`
+    - `public ushort Region;`
+    - `public ushort Distance2;`
+    - `public DirtyEntry(int index, ushort region, ushort distance2)`
+    - `public int SpanCount;`
+    - `public ushort ID;`
+    - `public byte AreaType;`
+    - `public bool Remap;`
+    - `public bool Visited;`
+    - `public bool Overlap;`
+    - `public bool ConnectsToBorder;`
+    - `public ushort Ymin;`
+    - `public ushort Ymax;`
+    - `public NativeList<int> Connections;`
+    - `public NativeList<int> Floors;`
+    - `public RcRegion(ushort i)`
+    - `public ushort Rid;`
+    - `public ushort ID;`
+    - `public ushort Ns;`
+    - `public ushort Nei;`
+  - **class** `Recast`
+    - `public static RcHeightfield* AllocHeightfield(Allocator allocator)`
+    - `public static void FreeHeightfield(RcHeightfield* heightfield)`
+    - `public static RcCompactHeightfield* AllocCompactHeightfield(Allocator allocator)`
+    - `public static void FreeCompactHeightfield(RcCompactHeightfield* chf)`
+    - `public static RcContourSet* AllocContourSet(Allocator allocator)`
+    - `public static void FreeContourSet(RcContourSet* cset)`
+    - `public static RcPolyMesh* AllocPolyMesh(Allocator allocator)`
+    - `public static void FreePolyMesh(RcPolyMesh* pmesh)`
+    - `public static RcPolyMeshDetail* AllocPolyMeshDetail(Allocator allocator)`
+    - `public static void FreePolyMeshDetail(RcPolyMeshDetail* dmesh)`
+    - `public static RcHeightfieldLayerSet* AllocHeightfieldLayerSet(Allocator allocator)`
+    - `public static void FreeHeightfieldLayerSet(RcHeightfieldLayerSet* lset)`
+    - `public static void CreateHeightfield(`
+    - `public static void MarkWalkableTriangles(float walkableSlopeAngle, float3* verts, int3* tris, byte* triAreaIDs, int numTris)`
+    - `public static void ClearUnwalkableTriangles(float walkableSlopeAngle, float3* verts, int3* tris, byte* triAreaIDs, int numTris)`
+    - `public static void CalcGridSize(in float3 minBounds, in float3 maxBounds, float cellSize, out int sizeX, out int sizeZ)`
+    - `public static void CalcBounds(float3* verts, int numVerts, out float3 minBounds, out float3 maxBounds)`
+    - `public static int GetHeightFieldSpanCount(RcHeightfield* heightfield)`
+    - `public static bool BuildCompactHeightfield(int walkableHeight, int walkableClimb, RcHeightfield* heightfield, RcCompactHeightfield* compactHeightfield)`
+    - `public static void SetCon(RcCompactSpan* span, int direction, int neighborIndex)`
+    - `public static int GetCon(RcCompactSpan span, int direction)`
+    - `public static int GetDirOffsetX(int direction)`
+    - `public static int GetDirOffsetY(int direction)`
+    - `public static int GetDirForOffset(int offsetX, int offsetZ)`
+  - **class** `Detour`
+  - **class** `Detour`
+    - `public const ushort MeshNullIDX = 0xffff;`
+    - `public const int DTVertsPerPolygon = 6;`
+    - `public const uint DTNullLink = 0xffffffff;`
+    - `public const ushort DTNullLinkShort = 0xffff;`
+    - `public const ushort DTExtLink = 0x8000;`
+    - `public const uint DTOffMeshConBidir = 1;`
+    - `public const int DTMaxAreas = 64;`
+    - `public const int DTNavmeshMagic = ('D' << 24) | ('N' << 16) | ('A' << 8) | 'V';`
+    - `public const int DTNavmeshVersion = 7;`
+    - `public const int DTNavmeshStateMagic = ('D' << 24) | ('N' << 16) | ('M' << 8) | 'S';`
+    - `public const int DTNavmeshStateVersion = 1;`
+    - `public const float DTRayCastLimitProportions = 50.0f;`
+    - `public const int DTSaltBits = 16;`
+    - `public const int DTTileBits = 28;`
+    - `public const int DTPolyBits = 20;`
+  - **class** `Detour`
+  - **class** `Detour`
+    - `public static bool CreateNavMeshData(DtNavMeshCreateParams* createParams, out DtNavMeshData outData, out int outDataSize,`
+    - `public static void FreeNavMeshData(DtNavMeshData outData, AllocatorManager.AllocatorHandle allocator)`
+    - `public ushort3 BMin;`
+    - `public ushort3 BMax;`
+    - `public int I;`
+  - **class** `Detour`
+    - `public static bool StatusSucceed(DtStatus status)`
+    - `public static bool StatusFailed(DtStatus status)`
+    - `public static bool StatusInProgress(DtStatus status)`
+    - `public static bool StatusDetail(DtStatus status, DtStatus detail)`
+  - **struct** `DtBVNode`
+    - `public ushort3 bmin;`
+    - `public ushort3 bmax;`
+    - `public int i;`
+  - **struct** `DtLink`
+    - `public DtPolyRef polyRef;`
+    - `public uint next;`
+    - `public byte edge;`
+    - `public byte side;`
+    - `public byte bmin;`
+    - `public byte bmax;`
+  - **struct** `DtMeshHeader`
+    - `public int magic;`
+    - `public int version;`
+    - `public int x;`
+    - `public int y;`
+    - `public int layer;`
+    - `public uint userId;`
+    - `public int polyCount;`
+    - `public int vertCount;`
+    - `public int maxLinkCount;`
+    - `public int detailMeshCount;`
+    - `public int detailVertCount;`
+    - `public int detailTriCount;`
+    - `public int bvNodeCount;`
+    - `public int offMeshConCount;`
+    - `public int offMeshBase;`
+    - `public float walkableHeight;`
+    - `public float walkableRadius;`
+    - `public float walkableClimb;`
+    - `public float3 bmin;`
+    - `public float3 bmax;`
+    - `public float bvQuantFactor;`
+  - **struct** `DtMeshTile`
+    - `public uint salt;`
+    - `public uint linksFreeList;`
+    - `public DtMeshHeader* header;`
+    - `public DtPoly* polys;`
+    - `public float3* verts;`
+    - `public DtLink* links;`
+    - `public DtPolyDetail* detailMeshes;`
+    - `public float3* detailVerts;`
+    - `public byte4* detailTris;`
+    - `public DtBVNode* bvTree;`
+    - `public DtOffMeshConnection* offMeshCons;`
+    - `public byte* data;`
+    - `public int dataSize;`
+    - `public DtTileFlags flags;`
+    - `public DtMeshTile* next;`
+  - **struct** `DtNavMesh`
+    - `public DtNavMeshParams parameters;`
+    - `public float3 origin;`
+    - `public float tileWidth;`
+    - `public float tileHeight;`
+    - `public int maxTiles;`
+    - `public int tileLookupSize;`
+    - `public int tileLookupMask;`
+    - `public DtMeshTile** positionLookup;`
+    - `public DtMeshTile* nextFreeTile;`
+    - `public DtMeshTile* tiles;`
+    - `public uint saltBits;`
+    - `public uint tileBits;`
+    - `public uint polyBits;`
+    - `public int2 Destination;`
+    - `public DtTileRef SourceTileRef;`
+    - `public int OffMeshConnectionIndex;`
+    - `public int Next;`
+    - `public static DtNavMesh* Alloc(AllocatorManager.AllocatorHandle allocator)`
+    - `public static void Free(DtNavMesh* navMesh)`
+    - `public DtNavMeshParams* GetParams()`
+    - `public void Init(in DtNavMeshParams param)`
+    - `public DtStatus InitSingleTile(byte* data, int dataSize, DtTileFlags flags)`
+    - `public DtStatus AddTile(byte* data, int dataSize, DtTileFlags flags, DtTileRef lastRef, out DtTileRef result)`
+    - `public DtStatus RemoveTile(DtTileRef tileRef, out byte* data, out int dataSize)`
+    - `public void CalculateTileLocation(in float3 position, out int tileX, out int tileY)`
+    - `public DtMeshTile* GetTileAt(int x, int y, int layer)`
+    - `public int GetTilesAt(int x, int y, DtMeshTile** tilesOut, int maxTilesOut)`
+    - `public DtTileRef GetTileRefAt(int x, int y, int layer)`
+    - `public DtMeshTile* GetTileByRef(DtTileRef tileRef)`
+    - `public int GetMaxTiles()`
+    - `public DtMeshTile* GetTile(int i)`
+    - `public DtStatus GetTileAndPolyByRef(DtPolyRef polyRef, out DtMeshTile* tile, out DtPoly* poly)`
+    - `public void GetTileAndPolyByRefUnsafe(DtPolyRef polyRef, out DtMeshTile* tile, out DtPoly* poly)`
+    - `public int GetNeighborTilesAt(int x, int y, int side, DtMeshTile** tiles, int maxTiles)`
+    - `public DtTileRef GetTileRef(DtMeshTile* tile)`
+    - `public DtPolyRef GetPolyRefBase(DtMeshTile* tile)`
+    - `public DtStatus GetOffMeshConnectionPolyEndPoints(DtPolyRef prevRef, DtPolyRef polyRef, float3* startPos, float3* endPos)`
+    - `public DtOffMeshConnection* GetOffMeshConnectionByRef(DtPolyRef polyRef)`
+    - `public DtStatus SetPolyFlags(DtPolyRef polyRef, ushort flags)`
+    - `public DtStatus GetPolyFlags(DtPolyRef polyRef, ushort* resultFlags)`
+    - `public DtStatus SetPolyArea(DtPolyRef polyRef, byte area)`
+    - `public DtStatus GetPolyArea(DtPolyRef polyRef, byte* resultArea)`
+    - `public int GetTileStateSize(DtMeshTile* tile)`
+    - `public DtStatus StoreTileState(DtMeshTile* tile, byte* data, int maxDataSize)`
+    - `public DtStatus RestoreTileState(DtMeshTile* tile, byte* data, int maxDataSize)`
+    - `public bool IsValidPolyRef(DtPolyRef polyRef)`
+    - `public DtPolyRef EncodePolyId(uint salt, uint tileIndex, uint polyIndex)`
+    - `public void DecodePolyId(DtPolyRef polyRef, out uint salt, out uint tileIndex, out uint polyIndex)`
+    - `public uint DecodePolyIdSalt(DtPolyRef polyRef)`
+    - `public uint DecodePolyIdTile(DtPolyRef polyRef)`
+    - `public uint DecodePolyIdPoly(DtPolyRef polyRef)`
+    - `public void ClosestPointOnPoly(DtPolyRef polyRef, in float3 pos, out float3 closest, out bool posOverPoly)`
+    - `public bool GetPolyHeight(DtMeshTile* tile, DtPoly* poly, in float3 pos, out float height)`
+    - `public void Dispose()`
+    - `public static byte GetDetailTriEdgeFlags(byte triFlags, byte edgeIndex)`
+    - `public int magic;`
+    - `public int version;`
+    - `public DtTileRef tileRef;`
+    - `public ushort flags;`
+    - `public byte area;`
+  - **struct** `DtNavMeshCreateParams`
+    - `public ushort3* Verts;`
+    - `public int VertCount;`
+    - `public ushort* Polys;`
+    - `public ushort* PolyFlags;`
+    - `public byte* PolyAreas;`
+    - `public int PolyCount;`
+    - `public int Nvp;`
+    - `public uint4* DetailMeshes;`
+    - `public float3* DetailVerts;`
+    - `public int DetailVertsCount;`
+    - `public byte4* DetailTris;`
+    - `public int DetailTriCount;`
+    - `public float3x2* OffMeshConVerts;`
+    - `public float* OffMeshConRad;`
+    - `public ushort* OffMeshConFlags;`
+    - `public byte* OffMeshConAreas;`
+    - `public byte* OffMeshConDir;`
+    - `public uint* OffMeshConUserID;`
+    - `public int OffMeshConCount;`
+    - `public uint UserId;`
+    - `public int TileX;`
+    - `public int TileY;`
+    - `public int TileLayer;`
+    - `public float3 Bmin;`
+    - `public float3 Bmax;`
+    - `public float WalkableHeight;`
+    - `public float WalkableRadius;`
+    - `public float WalkableClimb;`
+    - `public float Cs;`
+    - `public float Ch;`
+    - `public bool BuildBvTree;`
+  - **struct** `DtNavMeshData`
+    - `public DtNavMeshData(byte* data)`
+    - `public DtMeshHeader* Header`
+    - `public float3* Vertices`
+    - `public DtPoly* Polygons`
+    - `public DtLink* Links`
+    - `public DtPolyDetail* DetailMeshes`
+    - `public float3* DetailVertices`
+    - `public byte4* DetailTriangles`
+    - `public DtBVNode* BVTree`
+    - `public DtOffMeshConnection* OffMeshConnections`
+    - `public byte* RawData`
+    - `public bool IsValid`
+    - `public static implicit operator DtNavMeshData(byte* data) => new(data);`
+    - `public static implicit operator byte*(DtNavMeshData navMeshData) => navMeshData.data;`
+  - **struct** `DtNavMeshParams`
+    - `public float3 orig;`
+    - `public float tileWidth;`
+    - `public float tileHeight;`
+    - `public int maxTiles;`
+    - `public int maxPolys;`
+  - **struct** `DtNavMeshQuery`
+    - `public DtNavMeshQuery(DtNavMesh* nav, int maxNodes, AllocatorManager.AllocatorHandle allocator)`
+    - `public static DtNavMeshQuery* Create(DtNavMesh* nav, int maxNodes, AllocatorManager.AllocatorHandle allocator)`
+    - `public static void Free(DtNavMeshQuery* query)`
+    - `public void Dispose()`
+    - `public void ReplaceNavMeshTarget(DtNavMesh* mesh)`
+    - `public DtStatus FindPath(`
+    - `public DtStatus FindRandomPoint(ref DtQueryFilter filter, ref Random frand, out DtPolyRef randomRef, out float3 randomPt)`
+    - `public DtStatus FindRandomPointAroundCircle(`
+    - `public readonly DtStatus ClosestPointOnPoly(DtPolyRef polyRef, in float3 pos, out float3 closest, out bool posOverPoly)`
+    - `public DtStatus ClosestPointOnPolyBoundary(DtPolyRef polyRef, in float3 pos, out float3 closest)`
+    - `public DtStatus GetPolyHeight(DtPolyRef polyRef, in float3 pos, out float height)`
+    - `public DtStatus FindNearestPoly(in float3 center, in float3 halfExtents, ref DtQueryFilter filter, ref DtPolyRef nearestRef, ref float3 nearestPt)`
+    - `public DtStatus FindNearestPoly(`
+    - `public DtStatus QueryPolygons(in float3 center, in float3 halfExtents, ref DtQueryFilter filter, DtPolyRef* polys, int* polyCount, int maxPolys)`
+    - `public DtStatus QueryPolygons<T>(in float3 center, in float3 halfExtents, ref DtQueryFilter filter, ref T query)`
+    - `public bool IsValidPolyRef(DtPolyRef polyRef, ref DtQueryFilter filter)`
+    - `public bool IsInClosedList(DtPolyRef polyRef)`
+    - `public DtNavMesh* GetAttachedNavMesh() => this.navMesh;`
+    - `public DtNodePool* GetNodePool() => this.nodePool;`
+    - `public DtStatus FindStraightPath(`
+    - `public DtStatus FindStraightPath(`
+    - `public DtStatus FindStraightPath(`
+    - `public DtStatus GetPortalPoints(DtPolyRef from, DtPolyRef to, out float3 left, out float3 right, out DtPolyTypes fromType, out DtPolyTypes toType)`
+    - `public DtStatus Raycast(`
+    - `public DtStatus Raycast(`
+    - `public DtStatus MoveAlongSurface(`
+    - `public DtStatus InitSlicedFindPath(`
+    - `public DtStatus UpdateSlicedFindPath(int maxIter, out int doneIters)`
+    - `public DtStatus FinalizeSlicedFindPath(DtPolyRef* path, out int pathCount, int maxPath)`
+    - `public DtStatus FinalizeSlicedFindPath(ref UnsafeList<DtPolyRef> path)`
+    - `public DtStatus FinalizeSlicedFindPathPartial(DtPolyRef* existing, int existingSize, DtPolyRef* path, out int pathCount, int maxPath)`
+    - `public DtStatus FindPolysAroundCircle(`
+    - `public DtStatus FindPolysAroundShape(`
+    - `public DtStatus GetPathFromDijkstraSearch(DtPolyRef endRef, DtPolyRef* path, out int pathCount, int maxPath)`
+    - `public DtStatus FindDistanceToWall(`
+    - `public DtStatus FindLocalNeighbourhood(`
+    - `public DtStatus GetPolyWallSegments(`
+    - `public DtPolyRef PolyRef;`
+    - `public short TMin;`
+    - `public short TMax;`
+    - `public DtStatus Status;`
+    - `public DtNode* LastBestNode;`
+    - `public float LastBestNodeCost;`
+    - `public DtPolyRef StartRef;`
+    - `public DtPolyRef EndRef;`
+    - `public float3 StartPos;`
+    - `public float3 EndPos;`
+    - `public DtQueryFilter* Filter;`
+    - `public DtFindPathOptions Options;`
+    - `public float RaycastLimitSqr;`
+  - **struct** `DtNode`
+    - `public float3 pos;`
+    - `public float cost;`
+    - `public float total;`
+    - `public DtPolyRef id;`
+    - `public uint ParentIndex`
+    - `public uint State`
+    - `public DtNodeFlags Flags`
+    - `public void Clear()`
+  - **struct** `DtNodePool`
+    - `public const int DTNodeParentBits = 24;`
+    - `public const int DTNodeStateBits = 2;`
+    - `public const int DTMaxStatesPerNode = 1 << DTNodeStateBits;`
+    - `public const int Null = 0xFFFF;`
+    - `public static readonly DtNodeIndex DTNullIDX = new(Null);`
+    - `public DtNodePool(int maxNodes, int hashSize)`
+    - `public void Clear()`
+    - `public DtNode* GetNode(DtPolyRef id, byte state = 0)`
+    - `public DtNode* FindNode(DtPolyRef id, byte state)`
+    - `public uint FindNodes(DtPolyRef id, DtNode** nodeArray, int maxNodes)`
+    - `public uint GetNodeIdx(DtNode* node)`
+    - `public readonly DtNode* GetNodeAtIdx(uint idx)`
+    - `public readonly int MaxNodes => this.maxNodes;`
+    - `public readonly int HashSize => this.hashSize;`
+    - `public readonly int NodeCount => this.nodeCount;`
+    - `public void Dispose()`
+  - **struct** `DtNodeIndex`
+    - `public readonly ushort Value;`
+    - `public DtNodeIndex(ushort value) => this.Value = value;`
+    - `public static implicit operator ushort(DtNodeIndex index) => index.Value;`
+    - `public static implicit operator DtNodeIndex(ushort value) => new(value);`
+    - `public bool Equals(DtNodeIndex other) => this.Value == other.Value;`
+    - `public override bool Equals(object obj) => obj is DtNodeIndex other && this.Equals(other);`
+    - `public override int GetHashCode() => this.Value.GetHashCode();`
+    - `public static bool operator ==(DtNodeIndex left, DtNodeIndex right) => left.Equals(right);`
+    - `public static bool operator !=(DtNodeIndex left, DtNodeIndex right) => !left.Equals(right);`
+  - **struct** `DtNodeQueue`
+    - `public DtNodeQueue(int capacity, AllocatorManager.AllocatorHandle allocator)`
+    - `public void Dispose()`
+    - `public void Clear()`
+    - `public DtNode* Top()`
+    - `public DtNode* Pop()`
+    - `public void Push(DtNode* node)`
+    - `public void Modify(DtNode* node)`
+    - `public readonly bool Empty => this.size == 0;`
+    - `public readonly int Capacity => this.capacity;`
+    - `public readonly int Size => this.size;`
+  - **struct** `DtOffMeshConnection`
+    - `public float3 StartPos;`
+    - `public float3 EndPos;`
+    - `public float rad;`
+    - `public ushort poly;`
+    - `public byte flags;`
+    - `public byte side;`
+    - `public uint userId;`
+  - **struct** `DtPoly`
+    - `public uint firstLink;`
+    - `public fixed ushort verts[Detour.DTVertsPerPolygon];`
+    - `public fixed ushort neis[Detour.DTVertsPerPolygon];`
+    - `public ushort flags;`
+    - `public byte vertCount;`
+    - `public void SetArea(byte area)`
+    - `public void SetType(byte type)`
+    - `public byte GetArea()`
+    - `public DtPolyTypes GetPolyType()`
+  - **struct** `DtPolyDetail`
+    - `public uint vertBase;`
+    - `public uint triBase;`
+    - `public byte vertCount;`
+    - `public byte triCount;`
+  - **struct** `DtCollectPolysQuery`
+    - `public DtCollectPolysQuery(DtPolyRef* polys, int maxPolys)`
+    - `public int NumCollected => this.numCollected;`
+    - `public bool Overflowed => this.overflow;`
+    - `public void Process(DtMeshTile* tile, DtPolyRef* refs, int count)`
+  - **struct** `DtFindNearestPolyQuery`
+    - `public DtFindNearestPolyQuery(DtNavMeshQuery query, in float3 center)`
+    - `public DtPolyRef NearestRef => this.nearestRef;`
+    - `public float3 NearestPoint => this.nearestPoint;`
+    - `public bool IsOverPoly => this.overPoly;`
+    - `public void Process(DtMeshTile* tile, DtPolyRef* refs, int count)`
+  - **struct** `DtPolyRef`
+    - `public static implicit operator uint(DtPolyRef polyRef)`
+    - `public static implicit operator DtPolyRef(uint polyRef)`
+    - `public static implicit operator DtPolyRef(int polyRef)`
+    - `public static implicit operator DtPolyRef(DtTileRef dtTileRef)`
+    - `public static bool operator ==(DtPolyRef left, DtPolyRef right)`
+    - `public static bool operator !=(DtPolyRef left, DtPolyRef right)`
+    - `public static ref DtPolyRef From(ref uint i)`
+    - `public override bool Equals(object obj)`
+    - `public bool Equals(DtPolyRef other)`
+    - `public override int GetHashCode()`
+    - `public override string ToString()`
+  - **struct** `DtPolyRef`
+    - `public static implicit operator ulong(DtPolyRef polyRef)`
+    - `public static implicit operator DtPolyRef(ulong polyRef)`
+    - `public static implicit operator DtPolyRef(int polyRef)`
+    - `public static implicit operator DtPolyRef(DtTileRef dtTileRef)`
+    - `public static bool operator ==(DtPolyRef left, DtPolyRef right)`
+    - `public static bool operator !=(DtPolyRef left, DtPolyRef right)`
+    - `public static ref DtPolyRef From(ref ulong i)`
+    - `public override bool Equals(object obj)`
+    - `public bool Equals(DtPolyRef other)`
+    - `public override int GetHashCode()`
+    - `public override string ToString()`
+  - **struct** `DtQueryFilter`
+    - `public static readonly DtQueryFilter IncludeAll = CreateDefault();`
+    - `public fixed float areaCost[Detour.DTMaxAreas];`
+    - `public ushort includeFlags;`
+    - `public ushort excludeFlags;`
+    - `public static DtQueryFilter CreateDefault()`
+    - `public bool PassFilter(DtPolyRef polyRef, DtMeshTile* tile, DtPoly* poly)`
+    - `public float GetCost(in float3 pa, in float3 pb,`
+    - `public float GetAreaCost(int i)`
+    - `public void SetAreaCost(int i, float cost)`
+    - `public ushort GetIncludeFlags()`
+    - `public void SetIncludeFlags(ushort flags)`
+    - `public ushort GetExcludeFlags()`
+    - `public void SetExcludeFlags(ushort flags)`
+  - **struct** `DtRaycastHit`
+    - `public float t;`
+    - `public float3 hitNormal;`
+    - `public int hitEdgeIndex;`
+    - `public DtPolyRef* path;`
+    - `public int pathCount;`
+    - `public int maxPath;`
+    - `public float pathCost;`
+  - **struct** `DtTileRef`
+    - `public static implicit operator uint(DtTileRef dtTileRef)`
+    - `public static implicit operator DtTileRef(uint dtTileRef)`
+    - `public static implicit operator DtTileRef(DtPolyRef dtPolyRef)`
+  - **struct** `DtTileRef`
+    - `public static implicit operator ulong(DtTileRef dtTileRef)`
+    - `public static implicit operator DtTileRef(ulong dtTileRef)`
+    - `public static implicit operator DtTileRef(DtPolyRef dtPolyRef)`
+
+### IAFahim.Permutation
+- **Path**: `src/IAFahim.Permutation`
+- **Description**: Curious cat uses permutation tools to rank, unrank, and rearrange sequences. It helps explore orderings systematically.
+- **C# Source Files**:
+  - `IAFahim.Permutation/CartesianProduct.cs`
+  - `IAFahim.Permutation/GrayCode.cs`
+  - `IAFahim.Permutation/NextPermutation.cs`
+  - `IAFahim.Permutation/Permutation.cs`
+  - `IAFahim.Permutation/PrevPermutation.cs`
+- **Public APIs**:
+  - **class** `CartesianProduct`
+    - `public static int ComputeCount(int* setSizes, int setCount)`
+    - `public static void GetAt(int* setSizes, int setCount, int index, int* dst)`
+  - **class** `GrayCode`
+    - `public static int ToGray(int n)`
+    - `public static int FromGray(int g)`
+    - `public static void Generate(int* dst, int bits)`
+  - **class** `NextPermutation`
+    - `public static bool Run<T>(T* ptr, int len) where T : unmanaged, IComparable<T>`
+  - **class** `ValidatePermutation`
+    - `public static bool Run(int n, int* p)`
+  - **class** `InversePermutation`
+    - `public static void Run(int n, int* p, int* inv) { for (int i = 0; i < n; i++) inv[p[i]] = i; }`
+  - **class** `ComposePermutation`
+    - `public static void Run(int n, int* a, int* b, int* result) { for (int i = 0; i < n; i++) result[i] = b[a[i]]; }`
+  - **class** `PermPower`
+    - `public static void Run(int n, int* p, int* result, long k)`
+  - **class** `CycleDecomposition`
+    - `public static int Run(int n, int* p, int* cycles, int* start, int* length)`
+  - **class** `KthPermutation`
+    - `public static void Run(int n, long k, int* result)`
+  - **class** `PermutationRank`
+    - `public static long Run(int n, int* perm)`
+  - **class** `GrayRank`
+    - `public static long Run(long n) => n ^ (n >> 1);`
+  - **class** `GrayUnrank`
+    - `public static long Run(long g) { long n = 0; while (g > 0) { n ^= g; g >>= 1; } return n; }`
+  - **class** `PrevPermutation`
+    - `public static bool Run<T>(T* ptr, int len) where T : unmanaged, IComparable<T>`
+
+### IAFahim.Physics.Xpbd
+- **Path**: `src/IAFahim.Physics.Xpbd`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Physics.Xpbd/BendingConstraint.cs`
+  - `IAFahim.Physics.Xpbd/CollisionConstraint.cs`
+  - `IAFahim.Physics.Xpbd/DistanceConstraint.cs`
+  - `IAFahim.Physics.Xpbd/ShapeMatchingConstraint.cs`
+  - `IAFahim.Physics.Xpbd/VolumeConstraint.cs`
+  - `IAFahim.Physics.Xpbd/XpbdIntegrator.cs`
+- **Public APIs**:
+  - **class** `BendingConstraint`
+    - `public static void Solve(float3* p0, float3* p1, float3* p2,`
+  - **class** `CollisionConstraint`
+    - `public static void SolvePlane(`
+    - `public static void SolveSphere(`
+  - **class** `DistanceConstraint`
+    - `public static void Solve(float3* posA, float3* posB, float3* velA, float3* velB,`
+  - **class** `ShapeMatchingConstraint`
+    - `public static void Solve(`
+  - **class** `VolumeConstraint`
+    - `public static void Solve(float3* p0, float3* p1, float3* p2, float3* p3,`
+    - `public static float ComputeRestVolume(float3 p0, float3 p1, float3 p2, float3 p3)`
+  - **class** `XpbdIntegrator`
+    - `public static void PredictPosition(float3* pos, float3* vel, float3 externalForce, float invMass, float dt)`
+    - `public static void UpdateVelocity(float3* vel, float3* oldPos, float3* newPos, float dt)`
+    - `public static void ApplyDamping(float3* vel, float damping, float dt)`
+    - `public static void SolveDistanceConstraints(`
+
+### IAFahim.Search.Automaton
+- **Path**: `src/IAFahim.Search.Automaton`
+- **Description**: Curious cat uses automata for multi‑pattern matching in strings. It spots many needles in one haystack pass.
+- **C# Source Files**:
+  - `IAFahim.Search.Automaton/Automaton.cs`
+- **Public APIs**:
+  - **class** `ModMatrixPow`
+    - `public static void Run(int n, long* a, long* result, long exp, long mod)`
+  - **class** `BuildAutomaton`
+    - `public static int Run(int n, int* transitions, int* failure, int* output, int alphabetSize)`
+
+### IAFahim.Search.Bit
+- **Path**: `src/IAFahim.Search.Bit`
+- **Description**: Curious cat uses bitset search tricks for fast subset or mask operations. It compresses many boolean checks into word‑level math.
+- **C# Source Files**:
+  - `IAFahim.Search.Bit/Bit.cs`
+  - `IAFahim.Search.Bit/BitSearch.cs`
+  - `IAFahim.Search.Bit/Bitset.cs`
+- **Public APIs**:
+  - **class** `FirstTrue`
+    - `public static int Run<T>(T* ptr, int len) where T : unmanaged, IComparable<T>`
+  - **class** `LastTrue`
+    - `public static int Run<T>(T* ptr, int len) where T : unmanaged, IComparable<T>`
+  - **class** `LisLength`
+    - `public static int Run(int n, int* arr)`
+  - **class** `LdsLength`
+    - `public static int Run(int n, int* arr)`
+  - **class** `BinarySearchLower`
+    - `public static int Run(int* arr, int n, int target)`
+  - **class** `BinarySearchUpper`
+    - `public static int Run(int* arr, int n, int target)`
+  - **class** `KthElement`
+    - `public static int Run(int* arr, int n, int k)`
+  - **class** `LongestIncreasingSubsequence2D`
+    - `public static int Run(int n, int* x, int* y)`
+  - **class** `BitonicLength`
+    - `public static int Run(int n, int* arr)`
+  - **class** `PatienceSort`
+    - `public static int Run(int n, int* arr, int* piles, int* tops)`
+  - **class** `InversionCount`
+    - `public static long Run(int n, int* arr)`
+  - **class** `BitsetOr`
+    - `public static void Run(int n, long* a, long* b, long* res, int wordsPerRow)`
+  - **class** `BitsetAnd`
+    - `public static void Run(int n, long* a, long* b, long* res, int wordsPerRow)`
+  - **class** `BitsetShift`
+    - `public static void Run(int n, long* src, long* dst, int shift, int wordsPerRow)`
+  - **class** `BitsetSet`
+    - `public static void Run(int pos, long* bitset, int wordsPerRow) { bitset[pos >> 6] |= 1L << (pos & 63); }`
+  - **class** `BitsetGet`
+    - `public static int Run(int pos, long* bitset, int wordsPerRow) { return (int)((bitset[pos >> 6] >> (pos & 63)) & 1); }`
+  - **class** `BitsetCount`
+    - `public static int Run(int n, long* bitset, int wordsPerRow)`
+  - **class** `BitsetNextSet`
+    - `public static int Run(int from, int n, long* bitset, int wordsPerRow)`
+  - **class** `BitsetPrevSet`
+    - `public static int Run(int from, int n, long* bitset, int wordsPerRow)`
+
+### IAFahim.Search.DifferenceArray
+- **Path**: `src/IAFahim.Search.DifferenceArray`
+- **Description**: Curious cat uses difference arrays for fast range updates. It defers work and rebuilds values in a single pass.
+- **C# Source Files**:
+  - `IAFahim.Search.DifferenceArray/DifferenceArray.cs`
+- **Public APIs**:
+  - **class** `Diff`
+    - `public static void Apply(int* diff, int len, int start, int end, int val)`
+    - `public static void Build(int* output, int* diff, int len)`
+    - `public static int RangeSum(int* prefix, int idx)`
+    - `public static void PrefixFromDiff(int* prefix, int* diff, int len)`
+
+### IAFahim.Search.ExactCover
+- **Path**: `src/IAFahim.Search.ExactCover`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Search.ExactCover/ExactCover.cs`
+- **Public APIs**:
+  - **class** `ExactCover`
+    - `public static bool SolveDlx(int* matrix, int rows, int cols, int* solution, int* solutionSize, int* L, int* R, int* U, int* D, int* C, int* RowIdx, int* colSize)`
+    - `public static bool SolveSudokuDlx(int* sudoku, int* L, int* R_dlx, int* U, int* D, int* C, int* RowIdx, int* colSize) { int* m = stackalloc int[729 * 324], rm = stackalloc int[729]; int rc = BuildSudokuMatrix(sudoku, m, rm); int* sol = stackalloc int[729]; int ss = 0; if (SolveDlx(m, rc, 324, sol, &ss, L, R_dlx, U, D, C, RowIdx, colSize)) { ApplySudokuSolution(sudoku, sol, ss, rm); return true; } return false; }`
+    - `public static bool SudokuBitmaskSolve(int* grid) { int* rm = stackalloc int[9], cm = stackalloc int[9], bm = stackalloc int[9]; for (int i = 0; i < 9; i++) rm[i] = cm[i] = bm[i] = 0; for (int r = 0; r < 9; r++) for (int c = 0; c < 9; c++) { int v = grid[r * 9 + c]; if (v != 0) { int m = 1 << v; rm[r] |= m; cm[c] |= m; bm[(r / 3) * 3 + c / 3] |= m; } } return SudokuBitmaskBacktrack(0, grid, rm, cm, bm); }`
+    - `public static long NQueensCount(int n) { long count = 0; NQueensBacktrack(0, 0, 0, 0, (1 << n) - 1, ref count); return count; }`
+    - `public static bool NQueensBitmask(int n, int* sol) { return NQueensBacktrackWithSol(0, 0, 0, 0, (1 << n) - 1, sol); }`
+    - `public static long NQueensSymmetry(int n)`
+    - `public static bool MagicSquareSolve(int n, int* sq) { int* rs = stackalloc int[n], cs = stackalloc int[n]; int d1 = 0, d2 = 0; bool* used = stackalloc bool[n * n + 1]; int target = n * (n * n + 1) / 2; return MagicBacktrack(0, 0, n, sq, rs, cs, ref d1, ref d2, used, target); }`
+    - `public static bool CryptarithmSolve(int numLetters, int numWords, int* wordLengths, int* wordLetters, int* wordOffsets, int targetLength, int* targetLetters, bool* isLeading, int* resultDigits)`
+    - `public static bool ArcConsistencyAc3(int numVars, int* domainSizes, bool* domains, int maxDomain, int numConstraints, int* constVar1, int* constVar2, bool* relations)`
+    - `public static bool ConstraintPropagationSolve(int numVars, int* domainSizes, bool* domains, int maxDomain, int numConstraints, int* constVar1, int* constVar2, bool* relations, int* assignment)`
+    - `public static bool KillerSudokuSolve(int* grid, int* cageSums, int* cageIds, int numCages) { int* rm = stackalloc int[9], cm = stackalloc int[9], bm = stackalloc int[9], ccs = stackalloc int[numCages], crr = stackalloc int[numCages], cum = stackalloc int[numCages]; for (int i = 0; i < 9; i++) rm[i] = cm[i] = bm[i] = 0; for (int i = 0; i < numCages; i++) ccs[i] = crr[i] = cum[i] = 0; for (int r = 0; r < 9; r++) for (int c = 0; c < 9; c++) { int id = cageIds[r * 9 + c]; crr[id]++; int v = grid[r * 9 + c]; if (v != 0) { int m = 1 << v; rm[r] |= m; cm[c] |= m; bm[(r / 3) * 3 + c / 3] |= m; ccs[id] += v; cum[id] |= m; } } return KillerBacktrack(0, grid, rm, cm, bm, cageSums, cageIds, ccs, crr, cum); }`
+    - `public static bool KenKenSolve(int* grid, int n, int* targets, int* ops, int* ids, int numCages) { int* rm = stackalloc int[n], cm = stackalloc int[n], crr = stackalloc int[numCages], cvc = stackalloc int[numCages], cvs = stackalloc int[numCages * n * n]; int cageStride = n * n; for (int i = 0; i < n; i++) rm[i] = cm[i] = 0; for (int i = 0; i < numCages; i++) crr[i] = cvc[i] = 0; for (int r = 0; r < n; r++) for (int c = 0; c < n; c++) { int id = ids[r * n + c]; crr[id]++; int v = grid[r * n + c]; if (v != 0) { rm[r] |= (1 << v); cm[c] |= (1 << v); cvs[id * cageStride + cvc[id]++] = v; } } return KenKenBacktrack(0, grid, n, rm, cm, targets, ops, ids, crr, cvs, cvc); }`
+    - `public static bool SolvePolyominoTiling(int w, int h, int nP, int nV, int* vPId, int* vOff, int* vL, int* vX, int* vY, int* g, int* plV, int* plR, int* plC, int* m, int* L, int* R_dlx, int* U, int* D, int* C, int* RowIdx, int* colSize) { int dCols = w * h + nP; int pIdx = 0; for (int v = 0; v < nV; v++) for (int r = 0; r < h; r++) for (int c = 0; c < w; c++) AddPolyominoPlacement(v, r, c, w, h, vPId, vOff, vL, vX, vY, plV, plR, plC, m, dCols, ref pIdx); int* sol = stackalloc int[pIdx]; int ss = 0; if (SolveDlx(m, pIdx, dCols, sol, &ss, L, R_dlx, U, D, C, RowIdx, colSize)) { for (int i = 0; i < w * h; i++) g[i] = -1; for (int i = 0; i < ss; i++) ApplyPolyominoPlacement(sol[i], w, vPId, vOff, vL, vX, vY, plV, plR, plC, g); return true; } return false; }`
+
+### IAFahim.Search.Imos
+- **Path**: `src/IAFahim.Search.Imos`
+- **Description**: Curious cat uses the imos method to accumulate range additions on lines or grids. It turns many updates into one sweep.
+- **C# Source Files**:
+  - `IAFahim.Search.Imos/Imos.cs`
+  - `IAFahim.Search.Imos/Imos1D.cs`
+  - `IAFahim.Search.Imos/Imos2D.cs`
+- **Public APIs**:
+  - **class** `ImosRectangle`
+    - `public static void Add(int height, int width, long* diff, int r1, int c1, int r2, int c2, long val)`
+    - `public static void Build(int height, int width, long* diff, long* res)`
+  - **class** `LargestRectangleHistogram`
+    - `public static long Run(int n, long* h, long* res)`
+  - **class** `LargestRectangleGrid`
+    - `public static long Run(int height, int width, long* grid, long* res)`
+  - **class** `MaximalSquare`
+    - `public static int Run(int height, int width, long* grid, int* res)`
+  - **class** `ScanlineEvents`
+    - `public static int Run(int n, long* xs, long* ys1, long* ys2, long* ys, long* res, long mod)`
+  - **class** `SweepLine`
+    - `public static long Run(int n, long* xs1, long* ys1, long* xs2, long* ys2, long* res)`
+  - **class** `IntervalUnion`
+    - `public static int Run(int n, long* starts, long* ends, long* res)`
+  - **class** `Imos1D`
+    - `public static void Add(int* diff, int len, int start, int end, int val)`
+    - `public static void Build(int* dst, int* diff, int len)`
+  - **class** `Imos2D`
+    - `public static void Add(int* diff, int width, int height, int r1, int c1, int r2, int c2, int val)`
+    - `public static void Build(int* dst, int* diff, int width, int height)`
+
+### IAFahim.Search.Interval
+- **Path**: `src/IAFahim.Search.Interval`
+- **Description**: Curious cat uses interval algorithms to merge, cover, and query ranges. It keeps timelines and segments tidy.
+- **C# Source Files**:
+  - `IAFahim.Search.Interval/Interval.cs`
+  - `IAFahim.Search.Interval/IntervalSearch.cs`
+- **Public APIs**:
+  - **struct** `Interval`
+    - `public int Start;`
+    - `public int End;`
+  - **class** `MergeIntervals`
+    - `public static int Run(Interval* ptr, int len)`
+  - **class** `IntersectIntervals`
+    - `public static int Run(Interval* a, int aLen, Interval* b, int bLen, Interval* dst)`
+  - **class** `NormalizeIntervals`
+    - `public static int Run(Interval* ptr, int len)`
+  - **class** `IntervalSearch`
+    - `public static int CountOverlapping(int* starts, int* ends, int len, int targetStart, int targetEnd)`
+    - `public static int FindFirstOverlapping(int* starts, int* ends, int len, int targetStart, int targetEnd)`
+    - `public static int CountContained(int* starts, int* ends, int len, int point)`
+    - `public static void SortByStart(int* starts, int* ends, int len)`
+
+### IAFahim.Search.LIS
+- **Path**: `src/IAFahim.Search.LIS`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Search.LIS/Lis.cs`
+- **Public APIs**:
+  - **class** `Lis`
+    - `public static int Run(int* ptr, int len, int* result)`
+    - `public static int RunLong(long* ptr, int len, int* result)`
+
+### IAFahim.Search.MeetInMiddle
+- **Path**: `src/IAFahim.Search.MeetInMiddle`
+- **Description**: Curious cat uses meet‑in‑the‑middle to split hard searches in half. It makes exponential problems manageable.
+- **C# Source Files**:
+  - `IAFahim.Search.MeetInMiddle/MeetInMiddle.cs`
+- **Public APIs**:
+  - **class** `MeetInMiddle`
+    - `public static int SubsetSumCount(int* values, int len, int target)`
+    - `public static bool HasSubsetSum(int* values, int len, int target)`
+
+### IAFahim.Search.Numerical
+- **Path**: `src/IAFahim.Search.Numerical`
+- **Description**: Curious cat uses numerical search like binary and ternary to home in on answers. It is the reliable tool for monotonic or convex targets.
+- **C# Source Files**:
+  - `IAFahim.Search.Numerical/Numerical.cs`
+- **Public APIs**:
+  - **class** `SimulatedAnnealing`
+    - `public static double Run(double* state, int dim, double initialTemp, double coolingRate, int iterations, double* bestState, double* bestValue, uint* seed, delegate*<double*, int, double> eval)`
+  - **class** `TernaryReal`
+    - `public static double Run(double* func, int maxIter, double lo, double hi)`
+  - **class** `AdaptiveSimpson`
+    - `public static double Run(double* func, double a, double b, double tol, int maxDepth) => AdaptiveSimpsonRecursive(func, a, b, tol, maxDepth, Evaluate(func, (a + b) / 2));`
+  - **class** `SimpsonIntegral`
+    - `public static double Run(double* func, double a, double b, int n)`
+  - **class** `GaussLegendre`
+    - `public static double Run(int n, double a, double b, double* func)`
+
+### IAFahim.Search.Prefix
+- **Path**: `src/IAFahim.Search.Prefix`
+- **Description**: Curious cat uses prefix techniques to answer queries from accumulated sums. It makes many range results O(1).
+- **C# Source Files**:
+  - `IAFahim.Search.Prefix/Prefix.cs`
+  - `IAFahim.Search.Prefix/PrefixSearch.cs`
+- **Public APIs**:
+  - **class** `PrefixSums`
+    - `public static long Run(long* ptr, int len)`
+    - `public static int Run(int* ptr, int len)`
+    - `public static T Sum<T>(T* ptr, int len) where T : unmanaged`
+  - **class** `PrefixXor`
+    - `public static long Run(long* ptr, int len)`
+    - `public static int Run(int* ptr, int len)`
+    - `public static T RangeXor<T>(T* ptr, int l, int r) where T : unmanaged`
+  - **class** `PrefixMin`
+    - `public static T Run<T>(T* ptr, int len) where T : unmanaged, IComparable<T>`
+    - `public static int MinIndex<T>(T* ptr, int len) where T : unmanaged, IComparable<T>`
+  - **class** `PrefixMax`
+    - `public static T Run<T>(T* ptr, int len) where T : unmanaged, IComparable<T>`
+    - `public static int MaxIndex<T>(T* ptr, int len) where T : unmanaged, IComparable<T>`
+  - **class** `PrefixSearch`
+    - `public static int LongestCommonPrefix(byte* a, byte* b, int maxLen)`
+    - `public static bool Match(byte* text, int textLen, byte* pattern, int patLen)`
+    - `public static int FindFirst(byte* text, int textLen, byte* pattern, int patLen)`
+    - `public static int CountOccurrences(byte* text, int textLen, byte* pattern, int patLen)`
+
+### IAFahim.Search.Range
+- **Path**: `src/IAFahim.Search.Range`
+- **Description**: Curious cat uses range search helpers to query intervals efficiently. It is handy when many queries hit the same data.
+- **C# Source Files**:
+  - `IAFahim.Search.Range/Mex.cs`
+  - `IAFahim.Search.Range/RangeAdd.cs`
+  - `IAFahim.Search.Range/RangeMax.cs`
+  - `IAFahim.Search.Range/RangeMin.cs`
+  - `IAFahim.Search.Range/RangeSum.cs`
+- **Public APIs**:
+  - **class** `RangeMex`
+    - `public static int Run(int n, int* a, int l, int r)`
+  - **class** `MexMaintain`
+    - `public static int Run(int n, int* a, int* res)`
+    - `public static int RunWindow(int n, int* a, int* res, int k)`
+  - **class** `RangeAdd`
+    - `public static void Run(int* diff, int len, int start, int end, int val)`
+    - `public static void Materialize(int* dst, int* diff, int len)`
+  - **class** `RangeMax`
+    - `public static void BuildSparse(int* dst, int* src, int len)`
+    - `public static int Query(int* sparse, int len, int start, int end)`
+  - **class** `RangeMin`
+    - `public static void BuildSparse(int* dst, int* src, int len)`
+    - `public static int Query(int* sparse, int* src, int len, int start, int end)`
+  - **class** `RangeSum`
+    - `public static long Run(int* prefix, int start, int end)`
+    - `public static void BuildPrefix(int* dst, int* src, int len)`
+
+### IAFahim.Search.RangeQueries
+- **Path**: `src/IAFahim.Search.RangeQueries`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Search.RangeQueries/AdvancedRangeQueries.cs`
+  - `IAFahim.Search.RangeQueries/OfflineQueries.cs`
+  - `IAFahim.Search.RangeQueries/QueriesOverTime.cs`
+  - `IAFahim.Search.RangeQueries/RangeQueries.cs`
+- **Public APIs**:
+  - **class** `AdvancedRangeQueries`
+    - `public static void RangeSuccessorQuery() { }`
+    - `public static void RangePredecessorQuery() { }`
+    - `public static void RangeChminChmaxSum() { }`
+    - `public static void RangeModuloUpdate() { }`
+    - `public static void RangeGcdQuery() { }`
+    - `public static void RangeLcmQuery() { }`
+    - `public static void RangeBitwiseAndQuery() { }`
+    - `public static void RangeBitwiseOrQuery() { }`
+    - `public static void RangeBitwiseXorQuery() { }`
+    - `public static void RangeAffineUpdate() { }`
+    - `public static void RangeAffineQuery() { }`
+    - `public static void RangeAssignUpdate() { }`
+    - `public static void RangeMajorityQuery() { }`
+    - `public static void RangeDistinctCount() { }`
+    - `public static void RangeInversionQuery() { }`
+    - `public static void RangeKthSmallest() { }`
+    - `public static void RangeKthLargest() { }`
+    - `public static void RangeMedianQuery() { }`
+  - **class** `OfflineQueries`
+    - `public static void OfflineRangeCount() { }`
+    - `public static void FractionalCascadingBuild() { }`
+    - `public static void FractionalCascadingQuery() { }`
+  - **class** `QueriesOverTime`
+    - `public static void StaticRangeInversions() { }`
+    - `public static void StaticRangeMode() { }`
+    - `public static void StaticRangeMex() { }`
+    - `public static void Offline2DRangeAddRangeSum() { }`
+    - `public static void Offline3DPartialOrder() { }`
+    - `public static void CdqDynamicInversions() { }`
+    - `public static void DivideConquerOnTime() { }`
+    - `public static void SegmentTreeOverTimeAdd() { }`
+    - `public static void SegmentTreeOverTimeDfs() { }`
+  - **class** `RangeGcdQuery`
+    - `public static long Gcd(long a, long b)`
+    - `public static long Run(long* arr, int n, int l, int r)`
+  - **class** `RangeLcmQuery`
+    - `public static long Gcd(long a, long b)`
+    - `public static long Lcm(long a, long b)`
+    - `public static long Run(long* arr, int n, int l, int r)`
+  - **class** `RangeBitwiseAndQuery`
+    - `public static int Run(int* arr, int n, int l, int r)`
+    - `public static long RunLong(long* arr, int n, int l, int r)`
+  - **class** `RangeBitwiseOrQuery`
+    - `public static int Run(int* arr, int n, int l, int r)`
+    - `public static long RunLong(long* arr, int n, int l, int r)`
+  - **class** `RangeBitwiseXorQuery`
+    - `public static int RunInt32(int* arr, int n, int l, int r)`
+    - `public static long RunInt64(long* arr, int n, int l, int r)`
+  - **class** `RangeChminChmaxChadd`
+    - `public static void RunMin(long* tree, long* lazy, int node, int l, int r, int ql, int qr, long val)`
+    - `public static void RunMax(long* tree, long* lazy, int node, int l, int r, int ql, int qr, long val)`
+    - `public static void RunAdd(long* tree, long* lazy, int node, int l, int r, int ql, int qr, long val)`
+  - **class** `RangeAffineUpdate`
+    - `public static void Run(long* tree, long* lazyMul, long* lazyAdd, int node, int l, int r, int ql, int qr, long mul, long add, long mod)`
+  - **class** `RangeAffineQuery`
+    - `public static long Run(long* tree, long* lazyMul, long* lazyAdd, int node, int l, int r, int ql, int qr, long mod)`
+  - **class** `RangeModuloUpdate`
+    - `public static void Run(long* tree, int node, int l, int r, int ql, int qr, long mod)`
+  - **class** `RangeAssignUpdate`
+    - `public static void Run(long* tree, long* lazy, bool* hasLazy, int node, int l, int r, int ql, int qr, long val)`
+    - `public static void RunSetInt32(int* tree, int* lazy, bool* hasLazy, int node, int l, int r, int ql, int qr, int val)`
+  - **class** `RangeMajorityQuery`
+    - `public static int Run(int* arr, int n, int l, int r)`
+  - **class** `BoyerMoore`
+    - `public static int Run(int* arr, int start, int len)`
+  - **class** `RangeKthSmallest`
+    - `public static int Run(int* sorted, int n, int l, int r, int k)`
+  - **class** `RangeKthLargest`
+    - `public static int Run(int* sorted, int n, int l, int r, int k)`
+  - **class** `RangeMedianQuery`
+    - `public static int Run(int* sorted, int n, int l, int r)`
+    - `public static long RunInt64(long* sorted, int n, int l, int r)`
+  - **class** `RangeInversionQuery`
+    - `public static long Run(int* arr, int n, int l, int r)`
+    - `public static long RunFenwick(int* arr, int n, int l, int r, int* bit)`
+
+### IAFahim.Search.Selection
+- **Path**: `src/IAFahim.Search.Selection`
+- **Description**: Curious cat uses selection algorithms to find the k‑th element without full sorting. It saves time when only ranks matter.
+- **C# Source Files**:
+  - `IAFahim.Search.Selection/Selection.cs`
+- **Public APIs**:
+  - **class** `SelectionShared`
+    - `public static int Partition(int* ptr, int left, int right)`
+    - `public static int PartitionLong(long* ptr, int left, int right)`
+    - `public static void InsertionSort(int* ptr, int k)`
+  - **class** `Selection`
+    - `public static void SelectTopK(int* ptr, int len, int k)`
+    - `public static bool TryGetKth(int* ptr, int len, int k, out int result)`
+    - `public static int MedianIndex(int len) => len == 0 ? 0 : (len - 1) >> 1;`
+  - **class** `TopK`
+    - `public static int Run(int n, long* a, int k, long* res)`
+  - **class** `MedianMaintain`
+    - `public static long Run(int n, long* a, long* res)`
+
+### IAFahim.Search.Specialized
+- **Path**: `src/IAFahim.Search.Specialized`
+- **Description**: Curious cat uses specialized searches for niche constraints. It is the place for bespoke query patterns.
+- **C# Source Files**:
+  - `IAFahim.Search.Specialized/BinarySearch.cs`
+  - `IAFahim.Search.Specialized/Interactive.cs`
+  - `IAFahim.Search.Specialized/LowerBound.cs`
+  - `IAFahim.Search.Specialized/Scheduling.cs`
+  - `IAFahim.Search.Specialized/TernarySearch.cs`
+  - `IAFahim.Search.Specialized/UpperBound.cs`
+- **Public APIs**:
+  - **class** `BinarySearch`
+    - `public static bool TryFind(int* ptr, int len, int key, out int index)`
+  - **class** `Interactive`
+    - `public static bool StressCompare<TInput, TOutput>(TInput* input, int inputLen, delegate*<TInput*, int, TOutput*, int*, bool> brute, delegate*<TInput*, int, TOutput*, int*, bool> opt, delegate*<TOutput*, int, TOutput*, int, bool> cmp, TOutput* sb, TOutput* so)`
+    - `public static bool CheckerCompare<T>(T* expected, int eLen, T* actual, int aLen) where T : unmanaged, IComparable<T>`
+    - `public static bool QueryCacheGet<TKey, TValue>(TKey* keys, TValue* values, byte* occ, int cap, TKey key, out TValue val)`
+    - `public static int InteractiveTreeCentroidFind(int numNodes, int* head, int* next, int* to, delegate*<int, int> queryFn)`
+  - **class** `LowerBound`
+    - `public static int Run(int* ptr, int len, int key)`
+  - **class** `Scheduling`
+    - `public static void RoundRobinSchedule(int n, int* schedule)`
+    - `public static void LatinSquareGenerate(int n, int* grid)`
+  - **class** `TernarySearch`
+    - `public static int Run(int* ptr, int len, int key)`
+  - **class** `UpperBound`
+    - `public static int Run(int* ptr, int len, int key)`
+
+### IAFahim.Search.Subset
+- **Path**: `src/IAFahim.Search.Subset`
+- **Description**: Curious cat uses subset enumeration to explore combinations. It helps when the cat needs exhaustive subset checks.
+- **C# Source Files**:
+  - `IAFahim.Search.Subset/EnumerateMasks.cs`
+  - `IAFahim.Search.Subset/EnumerateSubsets.cs`
+  - `IAFahim.Search.Subset/EnumerateSupersets.cs`
+- **Public APIs**:
+  - **class** `EnumerateMasks`
+    - `public static int Count(int bits)`
+    - `public static void Run(int* dst, int bits)`
+    - `public static int CountPopBits(int mask)`
+    - `public static int NextWithSamePopCount(int mask)`
+  - **class** `EnumerateSubsets`
+    - `public static int Count(int superMask)`
+    - `public static void Run(int superMask, int* dst)`
+    - `public static int EnumerateUntil(int superMask, int* dst, int maxResults)`
+  - **class** `EnumerateSupersets`
+    - `public static int Run(int subMask, int maxMask, int* dst)`
+
+### IAFahim.Search.Suffix
+- **Path**: `src/IAFahim.Search.Suffix`
+- **Description**: Curious cat uses suffix‑based search to compare or rank string tails. It supports fast substring and lexicographic queries.
+- **C# Source Files**:
+  - `IAFahim.Search.Suffix/Suffix.cs`
+- **Public APIs**:
+  - **class** `SuffixSums`
+    - `public static long Run(long* ptr, int len)`
+    - `public static int Run(int* ptr, int len)`
+    - `public static T Run<T>(T* ptr, int len) where T : unmanaged`
+    - `public static T Sum<T>(T* ptr, int len) where T : unmanaged`
+    - `public static T RangeSum<T>(T* ptr, int l, int r) where T : unmanaged`
+  - **class** `SuffixMin`
+    - `public static T Run<T>(T* ptr, int len) where T : unmanaged, IComparable<T>`
+    - `public static int MinIndex<T>(T* ptr, int len) where T : unmanaged, IComparable<T>`
+  - **class** `SuffixMax`
+    - `public static T Run<T>(T* ptr, int len) where T : unmanaged, IComparable<T>`
+    - `public static int MaxIndex<T>(T* ptr, int len) where T : unmanaged, IComparable<T>`
+
+### IAFahim.Search.TwoPointer
+- **Path**: `src/IAFahim.Search.TwoPointer`
+- **Description**: Curious cat uses two pointers to scan ranges with moving bounds. It is perfect for windows that expand and shrink.
+- **C# Source Files**:
+  - `IAFahim.Search.TwoPointer/TwoPointers.cs`
+- **Public APIs**:
+  - **class** `TwoPointers`
+    - `public static int CountPairsWithSum(int* a, int aLen, int* b, int bLen, int target)`
+    - `public static bool HasPairWithSum(int* a, int aLen, int* b, int bLen, int target)`
+    - `public static int MergeSorted<T>(T* a, int aLen, T* b, int bLen, T* dst) where T : unmanaged, IComparable<T>`
+
+### IAFahim.Search.Window
+- **Path**: `src/IAFahim.Search.Window`
+- **Description**: Curious cat uses sliding window techniques to maintain rolling answers. It keeps the current segment fresh without recomputation.
+- **C# Source Files**:
+  - `IAFahim.Search.Window/Heap.cs`
+  - `IAFahim.Search.Window/SlidingWindowMax.cs`
+  - `IAFahim.Search.Window/SlidingWindowMin.cs`
+- **Public APIs**:
+  - **class** `Heap`
+    - `public static int Parent(int i) => (i - 1) >> 1;`
+    - `public static int Left(int i) => (i << 1) + 1;`
+    - `public static int Right(int i) => (i << 1) + 2;`
+    - `public static void PushInt32(int* ptr, int len, int val)`
+    - `public static int PopInt32(int* ptr, int len)`
+    - `public static void FixInt32(int* ptr, int i, int len)`
+    - `public static void HeapifyInt32(int* ptr, int len)`
+  - **class** `SlidingWindowMax`
+    - `public static void Run(int* src, int* dst, int len, int windowSize)`
+  - **class** `SlidingWindowMin`
+    - `public static void Run(int* src, int* dst, int len, int windowSize)`
+
+### IAFahim.Sort.Insertion
+- **Path**: `src/IAFahim.Sort.Insertion`
+- **Description**: Curious cat uses insertion sort for tiny arrays or nearly sorted data. It is simple and cache‑friendly.
+- **C# Source Files**:
+  - `IAFahim.Sort.Insertion/Insertion.cs`
+- **Public APIs**:
+  - **class** `Insertion`
+    - `public static void Run<T>(T* ptr, int len) where T : unmanaged, IComparable<T>`
+    - `public static void RunDescending<T>(T* ptr, int len) where T : unmanaged, IComparable<T>`
+
+### IAFahim.Sort.Merge
+- **Path**: `src/IAFahim.Sort.Merge`
+- **Description**: Curious cat uses merge sort for stable, reliable ordering at scale. It keeps performance predictable.
+- **C# Source Files**:
+  - `IAFahim.Sort.Merge/Merge.cs`
+- **Public APIs**:
+  - **class** `MergeSorted`
+    - `public static void Run<T>(T* a, int aLen, T* b, int bLen, T* dst) where T : unmanaged, IComparable<T>`
+    - `public static void RunInPlace<T>(T* ptr, int len) where T : unmanaged, IComparable<T>`
+
+### IAFahim.Sort.Partition
+- **Path**: `src/IAFahim.Sort.Partition`
+- **Description**: Curious cat uses partitioning to split arrays around a pivot. It powers quickselect and quicksort‑style workflows.
+- **C# Source Files**:
+  - `IAFahim.Sort.Partition/Partition.cs`
+- **Public APIs**:
+  - **class** `Partition`
+    - `public static int Run<T>(T* ptr, int len, int pivotIdx) where T : unmanaged, IComparable<T>`
+    - `public static bool TryGetNthElement<T>(T* ptr, int len, int n, out T result) where T : unmanaged, IComparable<T>`
+
+### IAFahim.Sort.QuickSort
+- **Path**: `src/IAFahim.Sort.QuickSort`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Sort.QuickSort/QuickSort.cs`
+- **Public APIs**:
+  - **class** `QuickSort`
+    - `public static void Run<T>(T* ptr, int len) where T : unmanaged, IComparable<T>`
+    - `public static void Run<T>(T* ptr, int lo, int hi) where T : unmanaged, IComparable<T>`
+    - `public static void RunInt32(int* ptr, int len)`
+    - `public static void RunInt32(int* ptr, int lo, int hi)`
+
+### IAFahim.Sort.RadixSort
+- **Path**: `src/IAFahim.Sort.RadixSort`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.Sort.RadixSort/RadixSort.cs`
+- **Public APIs**:
+  - **class** `RadixSortLsd`
+    - `public static void Run(int* ptr, int len)`
+    - `public static void RunWithResult(int* ptr, int len, int* result)`
+    - `public static void RunLong(long* ptr, int len)`
+
+### IAFahim.Sort.Specialized
+- **Path**: `src/IAFahim.Sort.Specialized`
+- **Description**: Curious cat uses specialized sorting when data has structure or constraints. It picks tailored orderings for speed.
+- **C# Source Files**:
+  - `IAFahim.Sort.Specialized/SortInt64s.cs`
+  - `IAFahim.Sort.Specialized/SortInts.cs`
+  - `IAFahim.Sort.Specialized/SortPairs.cs`
+- **Public APIs**:
+  - **class** `SortInt64s`
+    - `public static void Run(long* ptr, int len)`
+  - **class** `SortInts`
+    - `public static void Run(int* ptr, int len)`
+  - **class** `SortPairs`
+  - **struct** `Pair`
+    - `public int Key;`
+    - `public int Value;`
+
+### IAFahim.String
+- **Path**: `src/IAFahim.String`
+- **Description**: Curious cat uses string algorithms for common text transformations and checks. It helps when parsing or validating input.
+- **C# Source Files**:
+  - `IAFahim.String/DeBruijn.cs`
+  - `IAFahim.String/Enumeration.cs`
+  - `IAFahim.String/Probabilistic.cs`
+  - `IAFahim.String/SpecialStructures.cs`
+  - `IAFahim.String/StringAdvanced.cs`
+  - `IAFahim.String/StringCore.cs`
+- **Public APIs**:
+  - **class** `DeBruijn`
+    - `public static void SequenceBuild(int n, int k, int* sequence, int* seqLen)`
+    - `public static void GraphBuild(int n, int k, int* adj)`
+    - `public static void EulerianPath(int n, int k, int* path, int* pathLen)`
+  - **class** `Enumeration`
+    - `public static int ShortestCommonSupersequence(byte* a, int aLen, byte* b, int bLen, byte* c, int* dp)`
+    - `public static int ShortestAbsentSubsequence(byte* s, int len, int alphabetSize, byte* result, int* nextOcc, int* dp, int* path)`
+    - `public static int ShortestMissingSubstring(byte* s, int len, int alphabetSize, byte* result, bool* seen)`
+  - **struct** `SimpleRand`
+    - `public SimpleRand(uint seed)`
+    - `public uint Next()`
+    - `public long NextLong(long min, long max)`
+  - **class** `Probabilistic`
+    - `public static bool FreivaldsMatrixVerify(long* a, long* b, long* c, int n, int iterations, long mod, long* r, long* br, long* abr, long* cr)`
+    - `public static bool SchwartzZippelTest(delegate* managed<long*, long, long> eval, int numVariables, long degree, int iterations, long mod, long* points)`
+    - `public static int RabinKarpLasVegas(byte* text, int textLen, byte* pattern, int patternLen)`
+    - `public static bool RandomizedMstVerify(int numVertices, int numEdges, int* u, int* v, long* weight, bool* inMst, int* parent, int* depth, int* up, long* maxEdge)`
+  - **struct** `XmlNode`
+    - `public int TagHash;`
+    - `public int ValueHash;`
+    - `public int ChildStart;`
+    - `public int ChildCount;`
+  - **struct** `JsonElement`
+    - `public int KeyHash;`
+    - `public int ValueHash;`
+    - `public int Type;`
+    - `public int ChildStart;`
+    - `public int ChildCount;`
+  - **struct** `ChildInfo`
+    - `public int KeyHash;`
+    - `public uint HashVal;`
+  - **class** `SpecialStructures`
+    - `public static uint XmlTreeHash(XmlNode* nodes, int nodeIndex, int* childIndices, uint* calculatedHashes)`
+    - `public static uint JsonCanonicalHash(JsonElement* elements, int elementIndex, int* childIndices, uint* calculatedHashes)`
+  - **class** `KmpPrefix`
+    - `public static void Run(byte* s, int len, int* fail)`
+  - **class** `KmpSearch`
+    - `public static int Run(byte* text, int textLen, byte* pattern, int patLen, int* matches)`
+  - **class** `ZAlgorithm`
+    - `public static void Run(byte* s, int len, int* z)`
+  - **class** `HashBuild`
+    - `public static void Run(byte* s, int len, ulong* hash, ulong* pow)`
+  - **class** `HashRange`
+    - `public static ulong Run(ulong* hash, ulong* pow, int l, int r)`
+  - **class** `HashConcat`
+    - `public static ulong Run(ulong h1, ulong h2, int len2)`
+  - **class** `DoubleHashBuild`
+    - `public static void Run(byte* s, int len, ulong* hash1, ulong* hash2, ulong* pow1, ulong* pow2)`
+  - **class** `RollingHash`
+    - `public static ulong Run(byte* s, int len)`
+  - **class** `SuffixArrayBuild`
+    - `public static void Run(byte* s, int n, int* sa)`
+  - **class** `SuffixLcpBuild`
+    - `public static void Run(byte* s, int n, int* sa, int* lcp, int* rank)`
+  - **class** `SuffixCompare`
+    - `public static int Run(byte* s, int n, int* sa, int* rank, byte* pattern, int patLen)`
+  - **class** `SuffixLowerBound`
+    - `public static int Run(byte* s, int n, int* sa, byte* pattern, int patLen)`
+  - **class** `EditDistance`
+    - `public static int Run(byte* a, int la, byte* b, int lb)`
+  - **class** `Levenshtein`
+    - `public static int Run(byte* a, int la, byte* b, int lb)`
+  - **class** `Lcs`
+    - `public static int Run(byte* a, int la, byte* b, int lb, byte* result)`
+  - **class** `LcsLength`
+    - `public static int Run(byte* a, int la, byte* b, int lb)`
+  - **class** `ScsLength`
+    - `public static int Run(byte* a, int la, byte* b, int lb)`
+  - **class** `WildcardMatch`
+    - `public static bool Run(byte* text, int textLen, byte* pattern, int patLen)`
+  - **class** `SuffixAutomatonExtend`
+    - `public static int Run(int* link, int* len_, int* next, int last, int c, int* size)`
+  - **class** `SuffixAutomatonBuild`
+    - `public static int Run(byte* s, int len, int* link, int* len_, int* next)`
+  - **class** `AhoBuild`
+    - `public static void Run(int* trie, int* fail, int node, int alphaSize)`
+  - **class** `AhoNext`
+    - `public static int Run(int* trie, int node, int c, int alphaSize)`
+  - **class** `AhoMatch`
+    - `public static int Run(int* trie, int* fail, byte* s, int len, int alphaSize)`
+  - **class** `AhoCount`
+    - `public static int Run(int* trie, int* fail, byte* s, int len, int alphaSize)`
+  - **class** `PalindromicTreeAdd`
+    - `public static int Run(int* len_, int* link, int* next, int* last, byte* s, int pos)`
+  - **class** `PalindromicTreeBuild`
+    - `public static int Run(byte* s, int len, int* len_, int* link, int* next)`
+  - **class** `RegexNfaBuild`
+    - `public static int Run(byte* pattern, int patLen, int* transitions, int alphaSize)`
+  - **class** `RegexMatch`
+    - `public static bool Run(int* transitions, int startState, int acceptState, byte* s, int len, int alphaSize)`
+  - **class** `ParseExpression`
+    - `public static int Run(byte* s, int len)`
+  - **class** `ParseInteger`
+    - `public static int Run(byte* s, int len, out int consumed)`
+  - **class** `Tokenize`
+    - `public static int Run(byte* s, int len, int* types, int* values)`
+  - **class** `ManacherOdd`
+    - `public static void Run(byte* s, int len, int* radii)`
+  - **class** `ManacherEven`
+    - `public static void Run(byte* s, int len, int* radii)`
+  - **class** `DuvalLyndon`
+    - `public static int Run(byte* s, int len, int* starts, int* lengths)`
+  - **class** `MinCyclicShift`
+    - `public static int Run(byte* s, int len)`
+  - **class** `RunLengthEncode`
+    - `public static int Run(byte* s, int len, byte* values, int* counts)`
+  - **class** `RunLengthDecode`
+    - `public static int Run(byte* values, int* counts, int runCount, byte* dst)`
+  - **class** `StringPeriod`
+    - `public static int Run(byte* s, int len)`
+  - **class** `MinPeriod`
+    - `public static int Run(byte* s, int len)`
+  - **class** `Borders`
+    - `public static int Run(byte* s, int len, int* borders)`
+  - **class** `CountOccurrences`
+    - `public static int Run(byte* text, int textLen, byte* pattern, int patLen)`
+
+### IAFahim.String.Automata
+- **Path**: `src/IAFahim.String.Automata`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.String.Automata/FiniteAutomaton.cs`
+  - `IAFahim.String.Automata/SubsequenceAutomaton.cs`
+- **Public APIs**:
+  - **class** `FiniteAutomaton`
+  - **struct** `Dfa`
+    - `public int** Transitions;`
+    - `public bool* IsAccept;`
+    - `public int StateCount;`
+    - `public int AlphabetSize;`
+  - **class** `SubsequenceAutomaton`
+    - `public static void Build(byte* text, int len, int* next, int sigma)`
+    - `public static bool Contains(int* next, byte* pattern, int patLen, int sigma)`
+    - `public static long CountDistinct(int* next, int len, int sigma, int MOD)`
+
+### IAFahim.String.Compress
+- **Path**: `src/IAFahim.String.Compress`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.String.Compress/Arithmetic.cs`
+  - `IAFahim.String.Compress/Huffman.cs`
+  - `IAFahim.String.Compress/Lz77.cs`
+  - `IAFahim.String.Compress/Lz78.cs`
+  - `IAFahim.String.Compress/LzFactorization.cs`
+  - `IAFahim.String.Compress/MoveToFront.cs`
+  - `IAFahim.String.Compress/ZivLempel.cs`
+- **Public APIs**:
+  - **class** `Arithmetic`
+    - `public static void Encode(byte* input, int len, long* output, int* outLen, long precision)`
+    - `public static int Decode(long* input, int len, byte* output, int* outLen, long precision)`
+  - **class** `Huffman`
+  - **struct** `Code`
+    - `public int Length;`
+    - `public long Bits;`
+  - **struct** `Node`
+    - `public int Freq;`
+    - `public int Symbol;`
+    - `public int Left;`
+    - `public int Right;`
+  - **class** `Lz77`
+  - **struct** `Token`
+    - `public int Offset;`
+    - `public int Length;`
+    - `public byte Literal;`
+  - **class** `Lz78`
+  - **struct** `Token`
+    - `public int Phrase;`
+    - `public byte Literal;`
+  - **class** `LzFactorization`
+  - **struct** `Factor`
+    - `public int Position;`
+    - `public int Length;`
+    - `public byte Literal;`
+  - **class** `MoveToFront`
+    - `public static void Encode(byte* input, int len, byte* output, int sigma)`
+    - `public static void Decode(byte* input, int len, byte* output, int sigma)`
+  - **class** `ZivLempel`
+    - `public static int Factorize(byte* input, int len, LzFactorization.Factor* output)`
+
+### IAFahim.String.FMIndex
+- **Path**: `src/IAFahim.String.FMIndex`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.String.FMIndex/Bwt.cs`
+  - `IAFahim.String.FMIndex/FMIndex.cs`
+- **Public APIs**:
+  - **class** `BurrowsWheeler`
+    - `public const int DefaultSigma = 256;`
+    - `public static int Transform(int* text, int len, int* bwt, int* sa)`
+    - `public static void Inverse(int* bwt, int len, int primary, int sigma, int* text, int* count, int* LF)`
+  - **class** `FMIndex`
+    - `public static void Build(int* text, int len, int sigma, int* occ)`
+    - `public static int Count(int* text, int len, int* pattern, int patLen, int* sa)`
+    - `public static void Locate(int* text, int len, int* occ, int* pattern, int patLen, int* sa, int* result, int* count)`
+
+### IAFahim.String.Grammar
+- **Path**: `src/IAFahim.String.Grammar`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.String.Grammar/GrammarCompress.cs`
+  - `IAFahim.String.Grammar/Slp.cs`
+- **Public APIs**:
+  - **class** `GrammarCompress`
+  - **struct** `Rule`
+    - `public int Left;`
+    - `public int Right;`
+  - **class** `StraightLineProgram`
+    - `public const int NoRule = -1;`
+  - **struct** `Rule`
+    - `public int Left;`
+    - `public int Right;`
+    - `public int Len;`
+    - `public byte Char;`
+    - `public bool IsTerminal;`
+
+### IAFahim.String.Match
+- **Path**: `src/IAFahim.String.Match`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.String.Match/AhoCorasick.cs`
+  - `IAFahim.String.Match/AhoOffline.cs`
+  - `IAFahim.String.Match/ApproximateMatch.cs`
+  - `IAFahim.String.Match/Crochemore.cs`
+  - `IAFahim.String.Match/DictionaryMatch.cs`
+  - `IAFahim.String.Match/DynamicKmp.cs`
+  - `IAFahim.String.Match/EditDistance.cs`
+  - `IAFahim.String.Match/MainLorentz.cs`
+  - `IAFahim.String.Match/PatternMatch.cs`
+  - `IAFahim.String.Match/PrefixFunction.cs`
+  - `IAFahim.String.Match/RollingHash.cs`
+  - `IAFahim.String.Match/Runs.cs`
+  - `IAFahim.String.Match/ZAlgorithm.cs`
+- **Public APIs**:
+  - **class** `AhoCorasick`
+  - **struct** `State`
+    - `public int Link;`
+    - `public int Out;`
+    - `public int ExitLink;`
+    - `public fixed int Next[256];`
+  - **class** `AhoOffline`
+    - `public static int Query(byte* text, int textLen, int* go, int* fail, int* out_, int outCount, int* matches)`
+  - **class** `ApproximateMatch`
+    - `public static void Find(byte* text, int textLen, byte* pattern, int patLen, int k, int* results, int* count)`
+    - `public static void LandauVishkin(byte* text, int textLen, byte* pattern, int patLen, int k, int* results, int* count, int* curr, int* prev)`
+  - **class** `Crochemore`
+  - **struct** `Repetition`
+    - `public int Position;`
+    - `public int Period;`
+    - `public int Length;`
+  - **class** `DictionaryMatch`
+    - `public static int Match(byte* text, int textLen, byte** patterns, int* patLens, int patCount, int* matches)`
+  - **class** `DynamicKmp`
+    - `public static void Build(byte* pattern, int len, int* fail)`
+    - `public static int Search(byte* text, int textLen, byte* pattern, int patLen, int* fail, int* matches)`
+  - **class** `EditDistance`
+    - `public static int Hamming(byte* a, byte* b, int len)`
+    - `public static int Levenshtein(byte* a, int lenA, byte* b, int lenB, int maxDist)`
+    - `public static bool Ukkonen(byte* a, int lenA, byte* b, int lenB, int k, int* v, bool* trace)`
+  - **class** `MainLorentz`
+  - **struct** `Run`
+    - `public int Start;`
+    - `public int Period;`
+    - `public int Length;`
+  - **class** `PatternMatch`
+    - `public static bool Abelian(byte* a, int lenA, byte* b, int lenB, int* cntA, int* cntB)`
+    - `public static bool Parameterized(byte* a, int lenA, byte* b, int lenB, int* mapA, int* mapB)`
+  - **class** `PrefixFunction`
+    - `public static void Run(byte* ptr, int len, int* piPtr)`
+  - **class** `RollingHash`
+    - `public static ulong Compute(byte* ptr, int len)`
+    - `public static void Build(byte* ptr, int len, ulong* prefix, ulong* power)`
+    - `public static ulong Query(ulong* prefix, ulong* power, int l, int r)`
+  - **class** `Runs`
+    - `public static int FindLyndonRuns(byte* s, int n, int* starts, int* lengths)`
+    - `public static int Count(int* lcp, int* sa, int n)`
+  - **class** `ZAlgorithm`
+    - `public static void Run(byte* ptr, int len, int* zPtr)`
+    - `public static void Run(int* ptr, int len, int* zPtr)`
+
+### IAFahim.String.MinRotation
+- **Path**: `src/IAFahim.String.MinRotation`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.String.MinRotation/MinRotation.cs`
+- **Public APIs**:
+  - **class** `Booth`
+    - `public static int Run(byte* s, int len)`
+    - `public static int Run(int* s, int len)`
+
+### IAFahim.String.Palindrome
+- **Path**: `src/IAFahim.String.Palindrome`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.String.Palindrome/DynamicPalindromicTree.cs`
+  - `IAFahim.String.Palindrome/LyndonFactorization.cs`
+  - `IAFahim.String.Palindrome/Manacher.cs`
+  - `IAFahim.String.Palindrome/OccurrenceCount.cs`
+  - `IAFahim.String.Palindrome/PalindromicAutomaton.cs`
+  - `IAFahim.String.Palindrome/PalindromicTree.cs`
+- **Public APIs**:
+  - **class** `DynamicPalindromicTree`
+    - `public static void Init(int maxLen)`
+    - `public static int Add(byte c)`
+  - **class** `LyndonFactorization`
+    - `public static int Factorize(byte* s, int n, int* starts, int* lengths)`
+  - **class** `Manacher`
+    - `public static void Odd(byte* s, int n, int* d)`
+    - `public static void Even(byte* s, int n, int* d)`
+  - **class** `OccurrenceCount`
+    - `public static long Count(byte* s, int n)`
+  - **class** `PalindromicAutomaton`
+    - `public static int SeriesLink(int* linkPtr, int* diffPtr, int* slinkPtr, int stateCount)`
+  - **class** `PalindromicTree`
+  - **struct** `Node`
+    - `public int Next0;`
+    - `public int Len;`
+    - `public int Link;`
+    - `public long Occ;`
+
+### IAFahim.String.Parse
+- **Path**: `src/IAFahim.String.Parse`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.String.Parse/Earley.cs`
+  - `IAFahim.String.Parse/LlParse.cs`
+  - `IAFahim.String.Parse/LrParse.cs`
+  - `IAFahim.String.Parse/Parsing.cs`
+  - `IAFahim.String.Parse/SuffixOracle.cs`
+- **Public APIs**:
+  - **class** `Earley`
+  - **struct** `State`
+    - `public int Rule;`
+    - `public int Dot;`
+    - `public int Origin;`
+  - **class** `LlParse`
+    - `public static bool Parse(byte* input, int len, int* table, int nontermCount, int termCount)`
+  - **class** `LrParse`
+  - **struct** `Action`
+    - `public int Type;`
+    - `public int Target;`
+  - **class** `Cyk`
+    - `public static bool Parse(int* terminals, int* productions, int prodCount, int startVar, byte* input, int len)`
+  - **class** `SuffixOracle`
+    - `public static void Build(byte* text, int len, int sigma)`
+    - `public static bool Contains(byte* pattern, int patLen)`
+
+### IAFahim.String.Pattern
+- **Path**: `src/IAFahim.String.Pattern`
+- **Description**: Curious cat uses pattern matching to find motifs in text. It is the cat’s sniff test for repeated substrings.
+- **C# Source Files**:
+  - `IAFahim.String.Pattern/AhoPersistent.cs`
+- **Public APIs**:
+  - **class** `AhoPersistentBuild`
+    - `public static void Insert(byte* str, int len,`
+  - **class** `AhoPersistentQuery`
+    - `public static long Run(byte* text, int len, int* roots, int activeMask, int* nexts, int* counts, int sigma = 26, byte baseChar = (byte)'a')`
+
+### IAFahim.String.SuffixArray
+- **Path**: `src/IAFahim.String.SuffixArray`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.String.SuffixArray/DynamicSuffixArray.cs`
+  - `IAFahim.String.SuffixArray/LcpInterval.cs`
+  - `IAFahim.String.SuffixArray/LcpIntervalTree.cs`
+  - `IAFahim.String.SuffixArray/Locate.cs`
+  - `IAFahim.String.SuffixArray/SuffixArray.cs`
+- **Public APIs**:
+  - **struct** `DynamicStringNode`
+    - `public int Priority;`
+    - `public int Size;`
+    - `public byte Value;`
+    - `public ulong Hash;`
+    - `public DynamicStringNode* Left;`
+    - `public DynamicStringNode* Right;`
+  - **class** `DynamicSuffixArray`
+    - `public const ulong BASE = 313;`
+    - `public static int GetSize(DynamicStringNode* node) => node == null ? 0 : node->Size;`
+    - `public static ulong GetHash(DynamicStringNode* node) => node == null ? 0 : node->Hash;`
+    - `public static void Pull(DynamicStringNode* node, ulong* powers)`
+    - `public static void Split(DynamicStringNode* node, int k, DynamicStringNode** left, DynamicStringNode** right, ulong* powers)`
+    - `public static DynamicStringNode* Merge(DynamicStringNode* left, DynamicStringNode* right, ulong* powers)`
+    - `public static void Insert(ref DynamicStringNode* root, int index, DynamicStringNode* node, ulong* powers)`
+    - `public static void Erase(ref DynamicStringNode* root, int index, ulong* powers)`
+    - `public static ulong GetSubstringHash(ref DynamicStringNode* root, int l, int r, ulong* powers)`
+    - `public static int Lcp(ref DynamicStringNode* root, int i, int j, ulong* powers)`
+    - `public static int CompareSuffix(ref DynamicStringNode* root, int i, int j, ulong* powers)`
+  - **class** `LcpInterval`
+    - `public static int Find(int* sa, int* lcp, int len, int* lcpIntv, int queryStart, int queryLen)`
+  - **class** `LcpIntervalTree`
+  - **struct** `Node`
+    - `public int Lcp;`
+    - `public int Left;`
+    - `public int Right;`
+    - `public int Child;`
+    - `public int Sibling;`
+  - **class** `Locate`
+    - `public static int Find(int* sa, int saLen, byte* text, int textLen, byte* pattern, int patLen)`
+  - **class** `SuffixArray`
+    - `public static void Build(byte* ptr, int len, int* sa, int* rank, int* tmpSa, int* count, int* tmpRank)`
+
+### IAFahim.String.SuffixAutomaton
+- **Path**: `src/IAFahim.String.SuffixAutomaton`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.String.SuffixAutomaton/GeneralizedSam.cs`
+  - `IAFahim.String.SuffixAutomaton/KthSubstring.cs`
+  - `IAFahim.String.SuffixAutomaton/LexicographicKth.cs`
+  - `IAFahim.String.SuffixAutomaton/LinkTree.cs`
+  - `IAFahim.String.SuffixAutomaton/OccurrencePositions.cs`
+  - `IAFahim.String.SuffixAutomaton/PersistentSam.cs`
+  - `IAFahim.String.SuffixAutomaton/SuffixAutomaton.cs`
+- **Public APIs**:
+  - **class** `GeneralizedSam`
+    - `public static void Build(byte** strings, int* lengths, int count, int sigma, int* intText, SuffixAutomaton.State* st, SuffixAutomaton.Edge* e, ref int stSize, ref int stLast, ref int edgeCount)`
+  - **class** `KthSubstring`
+    - `public static bool Find(SuffixAutomaton.State* stPtr, SuffixAutomaton.Edge* e, int stateCount, long k, int* outLen, int* outPtr, long* dp)`
+  - **class** `LexicographicKth`
+    - `public static bool Find(byte* text, int textLen, long k, byte* outBuf, int* outLen)`
+  - **class** `LinkTree`
+    - `public static void Traverse(int* linkPtr, int stateCount, int root, delegate*<int, void> callback, int* stack)`
+  - **class** `OccurrencePositions`
+    - `public static int Find(int* linkPtr, int* lenPtr, int stateCount, int root, int targetLen, int* outPos)`
+  - **class** `PersistentSam`
+  - **struct** `Version`
+    - `public int Root;`
+    - `public int Len;`
+  - **class** `SuffixAutomaton`
+  - **struct** `State`
+    - `public int Link;`
+    - `public int Len;`
+    - `public int Head;`
+  - **struct** `Edge`
+    - `public int To;`
+    - `public int Char;`
+    - `public int Next;`
+
+### IAFahim.String.SuffixTree
+- **Path**: `src/IAFahim.String.SuffixTree`
+- **Description**: No README.md
+- **C# Source Files**:
+  - `IAFahim.String.SuffixTree/SuffixTree.cs`
+- **Public APIs**:
+  - **class** `SuffixTreeUkkonen`
+  - **struct** `Node`
+  - **struct** `Edge`
+
+### IAFahim.Unique
+- **Path**: `src/IAFahim.Unique`
+- **Description**: Curious cat uses uniqueness helpers to deduplicate sequences. It keeps only distinct items without heavy overhead.
+- **C# Source Files**:
+  - `IAFahim.Unique/UniqueInt64s.cs`
+  - `IAFahim.Unique/UniqueInts.cs`
+- **Public APIs**:
+  - **class** `UniqueInt64s`
+    - `public static int Run(long* ptr, int len)`
+  - **class** `UniqueInts`
+    - `public static int Run(int* ptr, int len)`

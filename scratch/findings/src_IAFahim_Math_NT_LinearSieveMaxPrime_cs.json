@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.NT/LinearSieveMaxPrime.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/LinearSieveMaxPrime.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Same n/i bound substitution to remove the per-iteration 64-bit multiply.",
+   "currentCost": "prod = (long)i * primes[j] each inner iteration; used only for the bound test and as the index maxPrime[(int)prod].",
+   "proposedChange": "int lim = n / i; once per i; inner: if (primes[j] > lim) break; maxPrime[i * primes[j]] = maxPrime[i]; if (i % primes[j] == 0) break;",
+   "rationale": "One division per outer i replaces a 64-bit multiply + 64-bit compare per inner iteration; the kept multiply is 32-bit and provably non-overflowing (<= n). This is the simplest of the three sieves so the relative win is largest.",
+   "risk": "None; primes[j] <= n/i is the exact equivalent break for positive ints, and i*primes[j] <= n fits int. maxPrime[i] is loop-invariant within the inner loop and can additionally be hoisted into a local (int mpi = maxPrime[i];)."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/LinearSieveMaxPrime.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist maxPrime[i] into a local across the inner loop.",
+   "currentCost": "maxPrime[(int)prod] = maxPrime[i]; reloads maxPrime[i] every inner iteration; the store target index (i*primes[j] >= 2i) never equals i, but the compiler may not prove non-aliasing through int*.",
+   "proposedChange": "int mpi = maxPrime[i]; before the inner loop; then maxPrime[i*primes[j]] = mpi;",
+   "rationale": "Guarantees a single load of maxPrime[i] instead of one per inner iteration, removing a load-after-store hazard the optimizer cannot always discharge.",
+   "risk": "None; write index >= 2i > i so maxPrime[i] is never overwritten inside the inner loop. Same output."
+  }
+ ]
+}

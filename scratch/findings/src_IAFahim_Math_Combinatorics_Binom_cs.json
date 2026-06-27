@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.Combinatorics/Binom.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Combinatorics/Binom.cs",
+   "symbol": "Binom.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Eliminate per-iteration ExtGcd modular inverse; accumulate numerator and denominator separately and invert once.",
+   "currentCost": "k iterations each calling ModInverse -> ExtGcd which is O(log mod) recursion with two divisions per level. Total O(k log mod) with a deep dependency chain and recursive call overhead in the inner loop.",
+   "proposedChange": "Compute num = prod((n-i) mod mod) and den = prod((i+1) mod mod) in a single pass (each O(1) per step), then result = num * ModInverse(den, mod) % mod with ONE inverse at the end. Optionally use the symmetry k = min(k, n-k) to halve iterations.",
+   "rationale": "Replaces k modular inverses (each ~log mod modmuls/divs) with one, turning an O(k log mod) hot loop into O(k) plus a single O(log mod) inversion. Far shorter dependency chain, no recursion in the loop body, fewer divisions.",
+   "risk": "den must be coprime to mod for the inverse to exist; original code already assumes mod is prime/coprime (ModInverse returns -1 otherwise, which the current per-step code also mishandles), so semantics are preserved for the valid prime-mod inputs this API targets. Intermediate products stay < mod so result*x fits in long when mod < 2^31; same constraint as existing code."
+  },
+  {
+   "file": "src/IAFahim.Math.Combinatorics/Binom.cs",
+   "symbol": "Binom.ExtGcd / BinomLarge.ExtGcd",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Convert recursive ExtGcd to an iterative loop.",
+   "currentCost": "Recursive ExtGcd allocates a stack frame and out-params per level (O(log mod) depth); each level does a / b and a % b separately (two divisions).",
+   "proposedChange": "Rewrite ExtGcd as an iterative extended-Euclid loop using locals (old_r,r,old_s,s) and a single DivRem-style quotient q = a/b reused for both the remainder and coefficient updates.",
+   "rationale": "Removes call/return and frame setup per level, lets Burst keep everything in registers, and reuses the quotient instead of computing a/b and a%b separately (one division instead of two per step).",
+   "risk": "None functional; produces identical Bezout coefficients. Same code duplicated in Binom, BinomLarge, LinearCongruence, MathHelper \u2014 consolidating to one iterative helper also removes duplicate code (purity/maintainability)."
+  }
+ ]
+}

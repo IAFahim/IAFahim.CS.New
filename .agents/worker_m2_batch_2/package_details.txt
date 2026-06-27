@@ -1,0 +1,638 @@
+========================================
+PACKAGE: IAFahim.DS.Mo
+========================================
+--- File: MoAlgorithm.cs ---
+   6: public static unsafe class MoAdd
+   9: public static void Run(int* freq, int val) => freq[val]++;
+  12: public static unsafe class MoRemove
+  15: public static void Run(int* freq, int val) => freq[val]--;
+  18: public static unsafe class MoAnswer
+  21: public static int Run(int* freq, int n)
+  28: public static int DistinctCount(int* freq, int n)
+  36: public static unsafe class MoSort
+  83: public static void Run(int* queries, int* l, int* r, int* block, int q, int blockSize)
+  90: public static unsafe class MoRollback
+  93: public static void Run(int* freq, int n) { for (int i = 0; i < n; i++) freq[i] = 0; }
+  96: public static unsafe class MoDistinctCounter
+  99: public static void AddInt(int* freq, int* curDistinct, int val) { if (freq[val] == 0) (*curDistinct)++; freq[val]++; }
+ 102: public static void RemoveInt(int* freq, int* curDistinct, int val) { freq[val]--; if (freq[val] == 0) (*curDistinct)--; }
+--- File: MoUpdates.cs ---
+   6: public struct Query3D
+  11: public struct Update
+  16: public static unsafe class MoWithUpdates
+  24: public static void Run(int n, int* arr, int qCount, Query3D* queries, int uCount, Update* updates, int* ans, int blockSize, int* freq)
+
+========================================
+PACKAGE: IAFahim.DS.OrderedSet
+========================================
+--- File: OrderedSet.cs ---
+   6: public static unsafe class OrderedSet
+   9: public static int Insert<T>(T* ptr, int len, T key) where T : unmanaged, IComparable<T>
+  20: public static int Erase<T>(T* ptr, int len, T key) where T : unmanaged, IComparable<T>
+  30: public static int Rank<T>(T* ptr, int len, T key) where T : unmanaged, IComparable<T>
+  36: public static T Kth<T>(T* ptr, int len, int k) where T : unmanaged, IComparable<T>
+
+========================================
+PACKAGE: IAFahim.DS.PerfectHashMap
+========================================
+--- File: NativePerfectHashMap.cs ---
+  11: public unsafe struct NativePerfectHashMap<TKey, TValue>
+  23: public NativePerfectHashMap(NativeArray<TKey> keys, NativeArray<TValue> values, TValue nullValue, AllocatorManager.AllocatorHandle allocator)
+  61: public void Dispose()
+  83: public bool TryGetValue(TKey key, out TValue item)
+--- File: UnsafePerfectHashMap.cs ---
+  12: public unsafe struct UnsafePerfectHashMap<TKey, TValue> : IDisposable
+  28: public UnsafePerfectHashMap(NativeArray<TKey> keys, NativeArray<TValue> values, TValue nullValue, AllocatorManager.AllocatorHandle allocator)
+  64: public static UnsafePerfectHashMap<TKey, TValue>* Alloc(
+  76: public static void Free(UnsafePerfectHashMap<TKey, TValue>* data)
+ 120: public void Dispose()
+ 131: public bool TryGetValue(TKey key, out TValue item)
+
+========================================
+PACKAGE: IAFahim.DS.PersistentDsu
+========================================
+--- File: PersistentDsu.cs ---
+   6: public static unsafe class PersistentDsu
+   8: public static int Build(int l, int r, int* parent, int* size, int* allocCnt, int* lc, int* rc)
+  18: public static int Update(int root, int lIn, int rIn, int idx, int val, int s, int* parent, int* size, int* allocCnt, int* lc, int* rc)
+  37: public static int Query(int root, int l, int r, int idx, int* parent, int* lc, int* rc, out int s, int* size)
+  49: public static int Find(int root, int n, int x, int* parent, int* lc, int* rc, int* size, out int s)
+  59: public static int Union(int root, int n, int a, int b, int* parent, int* size, int* allocCnt, int* lc, int* rc)
+
+========================================
+PACKAGE: IAFahim.DS.PersistentTreap
+========================================
+--- File: Treap.cs ---
+   6: public static unsafe class PersistentTreapNode
+  11: public static int NewNode<T>(T* nodes, int* left, int* right, int* prio, int* size, T val, int* allocCnt)
+  21: public static int CloneNode<T>(T* nodes, int* left, int* right, int* prio, int* size, int src, int* allocCnt)
+  34: public static void Update(int* left, int* right, int* size, int x)
+  41: public static unsafe class PersistentTreapSplit
+  43: public static void Run<T>(T* nodes, int* left, int* right, int* prio, int* size, int root, T key, int* outLeft, int* outRight, int* allocCnt)
+  54: public static unsafe class PersistentTreapMerge
+  56: public static int Run<T>(T* nodes, int* left, int* right, int* prio, int* size, int l, int r, int* allocCnt)
+  68: public static unsafe class PersistentTreapInsert
+  70: public static int Run<T>(T* nodes, int* left, int* right, int* prio, int* size, int* allocCnt, int root, T val)
+  79: public static unsafe class PersistentTreapErase
+  83: public static int Run<T>(T* nodes, int* left, int* right, int* prio, int* size, int* allocCnt, int root, T val)
+ 107: public static unsafe class PersistentTreapFind
+ 109: public static bool Run<T>(T* nodes, int* left, int* right, int root, T val)
+
+========================================
+PACKAGE: IAFahim.DS.PieceTable
+========================================
+--- File: PieceTable.cs ---
+   7: public unsafe struct Piece
+  16: public unsafe struct PieceTableState
+  26: public static unsafe class PieceTableInsert
+  28: public static void Run(ref PieceTableState s, int pos, byte* data, int len,
+  76: public static unsafe class PieceTableDelete
+  78: public static void Run(ref PieceTableState s, int pos, int len,
+
+========================================
+PACKAGE: IAFahim.DS.RollbackSeg
+========================================
+--- File: Retroactive.cs ---
+   6: public static unsafe class Retroactive
+   8: public static void RetroactiveQueueInsert() { }
+   9: public static void RetroactiveQueueDelete() { }
+  10: public static void RetroactivePriorityQueueInsert() { }
+  11: public static void RetroactivePriorityQueueDelete() { }
+  12: public static void OfflineDeleteSegmentTree() { }
+  13: public static void RetroactiveConnectivity() { }
+--- File: RollbackBasis.cs ---
+   6: public static unsafe class RollbackBasis
+   8: public static void LinearBasisRollbackInsert() { }
+   9: public static void LinearBasisRollbackMax() { }
+  10: public static void RangeBasisQuery() { }
+--- File: RollbackSeg.cs ---
+   6: public static unsafe class RollbackSegBuild
+   8: public static void RunInt32(int* arr, int* tree, int node, int l, int r)
+  19: public static void RunInt64(long* arr, long* tree, int node, int l, int r)
+  31: public static unsafe class RollbackSegUpdate
+  33: public static void RangeAddInt64(long* tree, long* lazy, int* histNode, long* histVal, byte* histType, int* top, int node, int l, int r, int ql, int qr, long val)
+  73: public static void PointSetInt64(long* tree, int* histNode, long* histVal, byte* histType, int* top, int node, int l, int r, int idx, long val)
+  99: public static unsafe class RollbackSegQuery
+ 101: public static long RangeSumInt64(long* tree, long* lazy, int node, int l, int r, int ql, int qr)
+ 122: public static unsafe class RollbackSegRollback
+ 124: public static void Run(long* tree, long* lazy, int* histNode, long* histVal, byte* histType, int* top, int checkpoint)
+ 137: public static void UndoLast(long* tree, long* lazy, int* histNode, long* histVal, byte* histType, int* top)
+ 148: public static int GetCheckpoint(int* top) => *top;
+ 151: public static unsafe class DynamicLiChaoAdd
+ 153: public static void Run(long* seg, int* left, int* right, long m, long b, int node, long xl, long xr)
+ 185: public static unsafe class DynamicLiChaoQuery
+ 187: public static long Run(long* seg, int* left, int* right, int node, long xl, long xr, long x)
+ 207: public static unsafe class DivideConquerHull
+ 209: public static void Run(long* dp, long* a, long* b, long* c, int n, int k, int* opt, int lo, int hi, int l, int r)
+ 229: public static unsafe class SegmentTreeDivideConquer
+ 231: public static void Run(long* seg, long* dp, long* temp, int node, int l, int r, int ql, int qr, long val, int k)
+ 245: public static unsafe class IntervalStabbing
+ 247: public static int Run(int* starts, int* ends, int n, int point)
+ 256: public static unsafe class RectangleStabbing
+ 258: public static int Run(int* x1, int* y1, int* x2, int* y2, int n, int px, int py)
+--- File: RollbackSegVariants.cs ---
+   6: public static unsafe class RollbackSegVariants
+   8: public static void RollbackSegmentTreeUpdate() { }
+   9: public static void RollbackSegmentTreeQuery() { }
+  10: public static void SegmentTreeDivideConquer() { }
+  11: public static void IntervalStabbingQuery() { }
+  12: public static void RectangleStabbingQuery() { }
+
+========================================
+PACKAGE: IAFahim.DS.RollbackStack
+========================================
+--- File: RollbackStack.cs ---
+   5: public static unsafe class RollbackStack
+   7: public static void Init(void* mem, int capacity)
+  12: public static int Snapshot(void* mem)
+  17: public static void Rollback(void* mem, int targetSize, int sizeOfT)
+  23: public static unsafe class UndoableUnionFind
+  26: public static int Snapshot(int* parent, int* size, int* history, int histSize)
+  32: public static void Rollback(int* parent, int* size, int* history, int targetHistSize, int* currentHistSize)
+  46: public static int Find(int* parent, int x)
+  53: public static bool Union(int* parent, int* size, int* history, int* histSize, int a, int b)
+  70: public static unsafe class UndoableBipartiteDsu
+  73: public static int Snapshot(int* parent, int* parity, int* history, int histSize)
+  79: public static void Rollback(int* parent, int* parity, int* history, int targetHistSize, int* currentHistSize)
+  94: public static int Find(int* parent, int* parity, int x)
+ 114: public static bool Union(int* parent, int* parity, int* history, int* histSize, int a, int b)
+ 149: public static unsafe class UndoableHeap
+ 152: public static int Parent(int i) => (i - 1) >> 1;
+ 155: public static int Left(int i) => (i << 1) + 1;
+ 158: public static int Right(int i) => (i << 1) + 2;
+ 161: public static bool Less<T>(T* ptr, int* priority, int a, int b)
+ 167: public static void HeapifyDown<T>(T* ptr, int* priority, int* heapIdx, int* history, int* histSize, int n, int i)
+ 192: public static void HeapifyUp<T>(T* ptr, int* priority, int* heapIdx, int* history, int* histSize, int i)
+ 217: public static int Snapshot(int* histSize)
+ 227: public static void Rollback<T>(T* ptr, int* priority, int* heapIdx, int* history, int targetHistSize, int* currentHistSize, int* heapSize, int targetHeapSize)
+
+========================================
+PACKAGE: IAFahim.DS.Rope
+========================================
+--- File: Rope.cs ---
+   8: public unsafe struct RopeNode
+  17: internal static unsafe class RopeShared
+  20: public static int Size(RopeNode* n) => n == null ? 0 : n->Size;
+  23: public static void Update(RopeNode* n)
+  29: public static void SplitAt(RopeNode* root, int k, RopeNode** left, RopeNode** right)
+  46: public static RopeNode* Merge(RopeNode* a, RopeNode* b)
+  60: public static unsafe class RopeInsert
+  62: public static RopeNode* Run(RopeNode* root, int pos, RopeNode* node)
+  70: public static unsafe class RopeErase
+  72: public static RopeNode* Run(RopeNode* root, int pos, int len)
+  81: public static unsafe class RopeSubstring
+  83: public static RopeNode* Run(RopeNode* root, int pos, int len, byte* buf, out int count)
+
+========================================
+PACKAGE: IAFahim.DS.SegmentTree
+========================================
+--- File: ChairmanTree.cs ---
+   5: public static unsafe class ChairmanTreeBuild
+   7: public static int Run(int* arr, int n, int lo, int hi,
+  21: public static unsafe class ChairmanTreeUpdate
+  23: public static int Run(int prev, int lo, int hi, int idx, int addCount, long addSum,
+  46: public static unsafe class ChairmanTreeKth
+  48: public static int Run(int lRoot, int rRoot, int lo, int hi, int k,
+  62: public static unsafe class ChairmanTreeCount
+  64: public static int Run(int lRoot, int rRoot, int lo, int hi, int ql, int qr,
+  75: public static unsafe class ChairmanTreeSum
+  77: public static long Run(int lRoot, int rRoot, int lo, int hi, int ql, int qr,
+--- File: DualSegment.cs ---
+   6: public static unsafe class DualSegmentApply
+   9: public static void RangeAddInt64(long* bit, int n, int l, int r, long val)
+  16: public static void AddInt64(long* bit, int n, int idx, long val)
+  28: public static void RangeAddInt32(int* bit, int n, int l, int r, int val)
+  35: public static void AddInt32(int* bit, int n, int idx, int val)
+  47: public static unsafe class DualSegmentGet
+  50: public static long RangeSumInt64(long* bit, int n, int l, int r)
+  59: public static long PrefixSumInt64(long* bit, int n, int idx)
+  72: public static int RangeSumInt32(int* bit, int n, int l, int r)
+  81: public static int PrefixSumInt32(int* bit, int n, int idx)
+--- File: KineticDS.cs ---
+   6: public static unsafe class KineticDS
+   8: public static void KineticTournamentBuild() { }
+   9: public static void KineticTournamentUpdate() { }
+  10: public static void KineticTournamentWinner() { }
+  11: public static void KineticSegmentTreeBuild() { }
+  12: public static void KineticSegmentTreeQuery() { }
+--- File: LazySegmentTree.cs ---
+   6: public static unsafe class LazySegmentBuild
+   8: public static void RunInt32(int* arr, int* tree, int node, int l, int r)
+  22: public static unsafe class LazySegmentApply
+  24: public static void RangeAddInt32(int* tree, int* lazy, int node, int l, int r, int ql, int qr, int val)
+  44: public static void RangeSetInt32(int* tree, int* lazy, bool* hasLazy, int node, int l, int r, int ql, int qr, int val)
+  96: public static unsafe class LazySegmentPush
+  98: public static void Run(int* tree, int* lazy, int node, int l, int r)
+ 112: public static unsafe class LazySegmentPull
+ 114: public static void Run(int* tree, int node)
+ 120: public static unsafe class LazySegmentQuery
+ 122: public static int RangeSumInt32(int* tree, int* lazy, int node, int l, int r, int ql, int qr)
+ 133: public static unsafe class LazySegmentUpdate
+ 135: public static void RangeAddInt32(int* tree, int* lazy, int node, int l, int r, int ql, int qr, int val)
+--- File: LiChaoTree.cs ---
+   6: public static unsafe class LiChaoTree
+   8: public struct Line
+  11: public long Eval(long x) => M * x + C;
+  14: public static void PersistentLiChaoAdd() { }
+  15: public static void PersistentLiChaoQuery() { }
+  16: public static void DynamicLiChaoRollback() { }
+  17: public static void LiChaoRollback() { }
+  18: public static void DivideConquerHullOptimization() { }
+  19: public static void OnlineChtAdd() { }
+  20: public static void OnlineChtQuery() { }
+--- File: MergeSortTree.cs ---
+   5: internal static unsafe class MergeSortTreeShared
+   8: public static int UpperBound(int* a, int n, int val)
+  16: public static int LowerBound(int* a, int n, int val)
+  23: public static void Sort(int* a, int n)
+  48: public static unsafe class MergeSortTreeBuild
+  50: public static void Run(int* arr, int n, int** nodes, int* sizes, int* pool, ref int poolSize)
+  68: public static unsafe class MergeSortTreeKth
+  70: public static int Run(int n, int ql, int qr, int k, int** nodes, int* sizes)
+  92: public static unsafe class MergeSortTreeCountLess
+  94: public static int Run(int n, int ql, int qr, int val, int** nodes, int* sizes) => Count(0, 0, n - 1, ql, qr, val, nodes, sizes);
+ 104: public static unsafe class MergeSortTreeCountGreater
+ 106: public static int Run(int n, int ql, int qr, int val, int** nodes, int* sizes) => Count(0, 0, n - 1, ql, qr, val, nodes, sizes);
+ 116: public static unsafe class MergeSortTreePredecessor
+ 118: public static bool TryRun(int n, int ql, int qr, int val, int** nodes, int* sizes, out int result)
+ 140: public static unsafe class MergeSortTreeSuccessor
+ 142: public static bool TryRun(int n, int ql, int qr, int val, int** nodes, int* sizes, out int result)
+--- File: MergeableSegmentTree.cs ---
+   5: public static unsafe class MergeableSegmentTreeMerge
+   7: public static int Run(int aNode, int bNode,
+  23: public static unsafe class MergeableSegmentTreeUpdate
+  25: public static void Run(int* root, int lo, int hi, int idx, int val,
+  46: public static unsafe class MergeableSegmentTreeQuery
+  48: public static int Run(int node, int lo, int hi, int ql, int qr,
+--- File: PersistentLazySeg.cs ---
+   5: public static unsafe class PersistentLazySegmentUpdate
+   7: public static int Run(int prev, int lo, int hi, int ql, int qr, long val,
+  48: public static unsafe class PersistentLazySegmentQuery
+  50: public static long Run(int node, int lo, int hi, int ql, int qr, long inherited,
+--- File: PersistentTree.cs ---
+   6: public static unsafe class PersistentSegmentBuild
+   8: public static int RunInt32(int* arr, int* roots, int* left, int* right, int* tree, int prev, int l, int r)
+  32: public static unsafe class PersistentSegmentUpdate
+  34: public static int RunInt32(int* tree, int* left, int* right, int prev, int lIn, int rIn, int idx, int val)
+  96: public static unsafe class PersistentSegmentQuery
+  98: public static int RunInt32(int* tree, int* left, int* right, int node, int l, int r, int ql, int qr)
+ 108: public static unsafe class DynamicSegmentUpdate
+ 110: public static void Run(int* tree, int* left, int* right, int* alloc, int node, int lIn, int rIn, int idx, int val)
+ 142: public static unsafe class DynamicSegmentQuery
+ 144: public static int Run(int* tree, int* left, int* right, int node, int l, int r, int ql, int qr)
+--- File: SegTreeOnTree.cs ---
+   5: public static unsafe class SegmentTreeOnTreeMerge
+   7: public static int Run(int aRoot, int bRoot, int lo, int hi,
+  29: public static unsafe class PersistentMergeableSegmentTree
+  31: public static int Update(int prev, int lo, int hi, int idx, int val,
+  52: public static int Merge(int aNode, int bNode, int lo, int hi,
+  71: public static int Query(int node, int lo, int hi, int ql, int qr,
+--- File: SegmentTree.cs ---
+   6: public static unsafe class SegmentTreeBuild
+   8: public static void RunInt32(int* arr, int* tree, int node, int l, int r)
+  21: public static void RunInt64(long* arr, long* tree, int node, int l, int r)
+  35: public static unsafe class SegmentTreeSet
+  37: public static void RunInt32(int* tree, int node, int l, int r, int idx, int val)
+  52: public static void RunInt64(long* tree, int node, int l, int r, int idx, long val)
+  68: public static unsafe class SegmentTreeAdd
+  70: public static void RunInt32(int* tree, int node, int l, int r, int idx, int val)
+  86: public static unsafe class SegmentTreeQuery
+  88: public static int RunInt32(int* tree, int node, int l, int r, int ql, int qr)
+  97: public static long RunInt64(long* tree, int node, int l, int r, int ql, int qr)
+ 107: public static unsafe class SegmentTreeMaxRight
+ 109: public static int Run(int* tree, int n, int l, long target)
+ 149: public static unsafe class SegmentTreeMinLeft
+ 151: public static int Run(int* tree, int n, int r, long target)
+
+========================================
+PACKAGE: IAFahim.DS.Sparse
+========================================
+--- File: Sparse.cs ---
+   6: public static unsafe class SparseTableBuild
+   8: public static void RunInt32(int* arr, int* table, int* log, int n)
+  35: public static void RunInt64(long* arr, long* table, int* log, int n)
+  63: public static unsafe class DisjointSparseBuild
+  65: public static void RunInt64(long* arr, long* table, int* blockSize, int n)
+ 111: public static unsafe class SparseTableQuery
+ 114: public static int MinInt32(int* table, int* log, int l, int r, int n)
+ 123: public static unsafe class SqrtDecomposeBuild
+ 125: public static void Run(int* arr, int* block, int* blockSize, int n)
+ 139: public static unsafe class SqrtQuery
+ 141: public static int RangeMin(int* arr, int* block, int blockSize, int l, int r, int n)
+ 159: public static unsafe class DisjointSparseQuery
+ 162: public static long RangeMinInt64(long* table, int* blockSize, int l, int r)
+
+========================================
+PACKAGE: IAFahim.DS.SpatialMap
+========================================
+--- File: ISpatialPosition.cs ---
+   5: public interface ISpatialPosition
+  10: public interface ISpatialPosition3
+--- File: LocalSpatialMap.cs ---
+  19: public unsafe struct LocalSpatialMap<T> : IDisposable
+  29: public LocalSpatialMap(float quantizeStep, int size, Allocator allocator = Allocator.Persistent)
+  41: public void Dispose()
+  55: public JobHandle Build(NativeList<T> positions, JobHandle dependency, ResizeKeys resizeStub = default, QuantizeJob quantizeStub = default)
+  61: public JobHandle Build(
+  92: public ReadOnly AsReadOnly()
+  98: public struct ResizeKeys : IJob
+ 105: public void Execute()
+ 113: public struct QuantizeJob : IJobFor
+ 127: public void Execute(int index)
+ 166: public struct UpdateMap : IJob
+ 172: public void Execute()
+ 180: public readonly struct ReadOnly
+ 186: public ReadOnly(float quantizeStep, int quantizeWidth, int2 halfSize, UnsafePartialKeyedMap<T>* map)
+ 195: public UnsafePartialKeyedMap<T>* Map { get; }
+ 198: public int2 Quantized(float2 position)
+ 204: public int Hash(int2 quantized)
+ 211: public static class PartialSpatialMap
+ 214: public static int2 Quantized(float2 position, float step, int2 halfSize)
+ 220: public static int Hash(int2 quantized, int width)
+--- File: SpatialHexMap.cs ---
+  16: public struct SpatialHexMap<T> : IDisposable
+  28: public SpatialHexMap(float quantizeStep, int size, Allocator allocator = Allocator.Persistent)
+  40: public void Dispose()
+  45: public void Dispose(JobHandle dependency)
+  50: public JobHandle Build(
+  57: public JobHandle Build(
+  86: public SpatialHexMap.ReadOnly AsReadOnly()
+ 113: public struct ResizeNativeParallelHashMapJob : IJob
+ 120: public void Execute()
+ 134: public unsafe struct QuantizeJob : IJobFor
+ 148: public void Execute(int index)
+ 196: public static class SpatialHexMap
+ 202: public static int2 Quantized(float2 position, float outerRadius)
+ 210: public static float2 Center(int2 axial, float outerRadius)
+ 218: public static int Hash(int2 axial, int2 boundsMin, int boundsWidth)
+ 225: public static bool IsWithinBounds(int2 axial, int2 boundsMin, int2 boundsSize)
+ 232: public static int SearchRange(float radius, float outerRadius)
+ 239: public static float CellMinDistanceSq(float2 position, int2 axial, float outerRadius)
+ 247: public static int2 Direction(int index)
+ 266: public readonly struct ReadOnly
+ 272: public ReadOnly(float outerRadius, int2 boundsMin, int2 boundsSize, NativeParallelMultiHashMap<int, int> map)
+ 281: public NativeParallelMultiHashMap<int, int> Map { get; }
+ 284: public int2 Quantized(float2 position)
+ 290: public float2 Center(int2 axial)
+ 296: public int Hash(int2 axial)
+ 302: public bool IsWithinBounds(int2 axial)
+ 308: public int SearchRange(float radius)
+ 314: public float CellMinDistanceSq(float2 position, int2 axial)
+ 320: public int2 Direction(int index)
+ 327: internal struct CalculateMap : IJob
+ 331: public void Execute()
+--- File: SpatialKeyedMap.cs ---
+  17: public struct SpatialKeyedMap<T> : IDisposable
+  26: public SpatialKeyedMap(float quantizeStep, int size, Allocator allocator = Allocator.Persistent)
+  37: public void Dispose()
+  42: public void Dispose(JobHandle dependency)
+  47: public JobHandle Build(NativeList<T> positions, JobHandle dependency, ResizeNativeKeyedMapJob resizeStub = default, QuantizeJob quantizeStub = default)
+  53: public JobHandle Build(NativeArray<T> positions, JobHandle dependency, ResizeNativeKeyedMapJob resizeStub = default, QuantizeJob quantizeStub = default)
+  81: public SpatialKeyedMap.ReadOnly AsReadOnly()
+  87: public struct ResizeNativeKeyedMapJob : IJob
+  94: public void Execute()
+ 108: public unsafe struct QuantizeJob : IJobFor
+ 122: public void Execute(int index)
+ 165: public static class SpatialKeyedMap
+ 168: public static int2 Quantized(float2 position, float step, int2 halfSize)
+ 174: public static int Hash(int2 quantized, int width)
+ 179: public readonly struct ReadOnly
+ 185: public ReadOnly(float quantizeStep, int quantizeWidth, int2 halfSize, NativeKeyedMap<int> map)
+ 194: public NativeKeyedMap<int> Map { get; }
+ 197: public int2 Quantized(float2 position)
+ 203: public int Hash(int2 quantized)
+ 210: internal struct CalculateMap : IJob
+ 214: public void Execute()
+--- File: SpatialMap.cs ---
+  10: public struct SpatialMap<T> : IDisposable
+  19: public SpatialMap(float quantizeStep, int size, Allocator allocator = Allocator.Persistent)
+  30: public readonly void Dispose()
+  35: public readonly JobHandle Dispose(JobHandle dependency)
+  40: public readonly SpatialMapReadOnly AsReadOnly()
+  45: public JobHandle Build(
+  75: public struct ResizeNativeParallelHashMapJob : IJob
+  82: public void Execute()
+  95: public unsafe struct QuantizeJob : IJobFor
+ 108: public void Execute(int index)
+ 139: public struct CalculateMapJob : IJob
+ 143: public void Execute()
+ 150: public static class SpatialMapUtility
+ 153: public static int2 Quantized(float2 position, float step, int2 halfSize)
+ 159: public static int Hash(int2 quantized, int width)
+ 165: public readonly struct SpatialMapReadOnly
+ 171: public SpatialMapReadOnly(float quantizeStep, int quantizeWidth, int2 halfSize, NativeParallelMultiHashMap<int, int> map)
+ 179: public NativeParallelMultiHashMap<int, int> Map { get; }
+ 182: public int2 Quantized(float2 position)
+ 188: public int Hash(int2 quantized)
+--- File: SpatialMap3.cs ---
+  10: public struct SpatialMap3<T> : IDisposable
+  19: public SpatialMap3(float quantizeStep, int size, Allocator allocator = Allocator.Persistent)
+  30: public readonly void Dispose()
+  35: public readonly JobHandle Dispose(JobHandle dependency)
+  40: public readonly SpatialMapReadOnly3 AsReadOnly()
+  45: public JobHandle Build(
+  76: public struct ResizeNativeParallelHashMapJob : IJob
+  83: public void Execute()
+  96: public unsafe struct QuantizeJob : IJobFor
+ 110: public void Execute(int index)
+ 141: public struct CalculateMapJob : IJob
+ 145: public void Execute()
+ 152: public static class SpatialMapUtility3
+ 155: public static int3 Quantized(float3 position, float step, int3 halfSize)
+ 161: public static long Hash(int3 quantized, int width, int depth)
+ 167: public readonly struct SpatialMapReadOnly3
+ 173: public SpatialMapReadOnly3(float quantizeStep, int quantizeWidth, int3 halfSize, NativeParallelMultiHashMap<long, int> map)
+ 181: public NativeParallelMultiHashMap<long, int> Map { get; }
+ 184: public int3 Quantized(float3 position)
+ 190: public long Hash(int3 quantized)
+
+========================================
+PACKAGE: IAFahim.DS.Splay
+========================================
+--- File: Splay.cs ---
+   8: public unsafe struct SplayNode
+  17: public static unsafe class Splay
+  20: public static void Update(SplayNode* x)
+  29: public static void Rotate(SplayNode** root, SplayNode* x)
+  57: public static void Splay_(SplayNode** root, SplayNode* x)
+--- File: SplayRangeQuery.cs ---
+   5: public static unsafe class SplayRangeQuery
+  38: public static long QuerySum(SplayRevNode** root, int l, int r)
+--- File: SplayRangeReverse.cs ---
+   7: public unsafe struct SplayRevNode
+  18: public static unsafe class SplayRangeReverse
+  21: public static void Update(SplayRevNode* x)
+  34: public static void Push(SplayRevNode* x)
+  96: public static void Splay(SplayRevNode** root, SplayRevNode* x)
+ 147: public static void Reverse(SplayRevNode** root, int l, int r)
+
+========================================
+PACKAGE: IAFahim.DS.Treap
+========================================
+--- File: Treap.cs ---
+   8: public unsafe struct TreapNode
+  19: public static unsafe class Treap
+  34: public static void Update(TreapNode* node)
+  41: public static void Push(TreapNode* node)
+  53: public static TreapNode* Merge(TreapNode* a, TreapNode* b)
+  73: public static void Split(TreapNode* root, int key, TreapNode** left, TreapNode** right)
+  94: public static void Insert(TreapNode** root, TreapNode* node)
+ 119: public static void Erase(TreapNode** root, int key)
+ 141: public static TreapNode* Find(TreapNode* root, int key)
+ 153: public static TreapNode* Kth(TreapNode* root, int k)
+ 164: public static int Rank(TreapNode* root, int key)
+ 185: public static void Reverse(TreapNode* node)
+ 190: public static long RangeQuery(TreapNode** root, int l, int r)
+--- File: TreapAffineRange.cs ---
+   7: public unsafe struct TreapAffineNode
+  20: public static unsafe class TreapAffineRange
+  23: public static int Size(TreapAffineNode* n) => n == null ? 0 : n->Size;
+  26: public static long Sum(TreapAffineNode* n) => n == null ? 0 : n->Sum;
+  29: public static void Update(TreapAffineNode* n)
+  55: public static void Push(TreapAffineNode* n)
+  65: public static void Split(TreapAffineNode* root, int k,
+  88: public static TreapAffineNode* Merge(TreapAffineNode* a, TreapAffineNode* b)
+ 105: public static void AffineRange(ref TreapAffineNode* root, int l, int r, long a, long b)
+ 116: public static long QuerySum(ref TreapAffineNode* root, int l, int r)
+--- File: TreapImplicit.cs ---
+   8: public unsafe struct TreapImplicitNode
+  21: public static unsafe class TreapImplicit
+  24: public static int Size(TreapImplicitNode* n) => n == null ? 0 : n->Size;
+  27: public static long Sum(TreapImplicitNode* n) => n == null ? 0 : n->Sum;
+  30: public static void Update(TreapImplicitNode* n)
+  37: public static void Push(TreapImplicitNode* n)
+  68: public static void SplitBySize(TreapImplicitNode* root, int k,
+  91: public static TreapImplicitNode* Merge(TreapImplicitNode* a, TreapImplicitNode* b)
+ 111: public static void AddRange(ref TreapImplicitNode* root, int l, int r, long val)
+ 122: public static long QueryRange(ref TreapImplicitNode* root, int l, int r)
+ 134: public static void ReverseRange(ref TreapImplicitNode* root, int l, int r)
+--- File: TreapRangeMin.cs ---
+   7: public unsafe struct TreapMinNode
+  19: public static unsafe class TreapRangeMin
+  24: public static int Size(TreapMinNode* n) => n == null ? 0 : n->Size;
+  27: public static long Min(TreapMinNode* n) => n == null ? MaxVal : n->Min;
+  30: public static void Update(TreapMinNode* n)
+  50: public static void Push(TreapMinNode* n)
+  58: public static void Split(TreapMinNode* root, int k,
+  81: public static TreapMinNode* Merge(TreapMinNode* a, TreapMinNode* b)
+  98: public static long QueryMin(ref TreapMinNode* root, int l, int r)
+ 110: public static void AssignRange(ref TreapMinNode* root, int l, int r, long val)
+--- File: TreapRangeReverse.cs ---
+   7: public unsafe struct TreapRevNode
+  18: public static unsafe class TreapRangeReverse
+  21: public static int Size(TreapRevNode* n) => n == null ? 0 : n->Size;
+  24: public static long Sum(TreapRevNode* n) => n == null ? 0 : n->Sum;
+  27: public static void Update(TreapRevNode* n)
+  34: public static void Push(TreapRevNode* n)
+  45: public static void Split(TreapRevNode* root, int k,
+  68: public static TreapRevNode* Merge(TreapRevNode* a, TreapRevNode* b)
+  85: public static void Reverse(ref TreapRevNode* root, int l, int r)
+--- File: TreapRangeRotate.cs ---
+   5: public static unsafe class TreapRangeRotate
+   7: public static TreapRevNode* Rotate(ref TreapRevNode* root, int l, int r, int k)
+--- File: TreapRangeSum.cs ---
+   7: public unsafe struct TreapSumNode
+  18: public static unsafe class TreapRangeSum
+  21: public static int Size(TreapSumNode* n) => n == null ? 0 : n->Size;
+  24: public static long Sum(TreapSumNode* n) => n == null ? 0 : n->Sum;
+  27: public static void Update(TreapSumNode* n)
+  43: public static void Push(TreapSumNode* n)
+  51: public static void Split(TreapSumNode* root, int k,
+  74: public static TreapSumNode* Merge(TreapSumNode* a, TreapSumNode* b)
+  91: public static void AddRange(ref TreapSumNode* root, int l, int r, long val)
+ 102: public static long QuerySum(ref TreapSumNode* root, int l, int r)
+
+========================================
+PACKAGE: IAFahim.DS.Trie
+========================================
+--- File: Trie.cs ---
+   6: public static unsafe class TrieInsert
+   8: public static void Run(int* trie, int node, byte* s, int len)
+  27: public static unsafe class TrieDelete
+  29: public static bool Run(int* trie, int node, byte* s, int len)
+  62: public static unsafe class TrieFind
+  64: public static bool Run(int* trie, int node, byte* s, int len)
+  78: public static unsafe class TriePrefixCount
+  80: public static int Run(int* trie, int node, byte* s, int len)
+ 109: public static unsafe class BinaryTrieInsert
+ 111: public static void Run(int* trie, int node, int val, int bits)
+ 130: public static unsafe class BinaryTrieErase
+ 132: public static void Run(int* trie, int node, int val, int bits)
+ 156: public static unsafe class BinaryTrieMaxXor
+ 158: public static int Run(int* trie, int node, int val, int bits)
+ 182: public static unsafe class BinaryTrieMinXor
+ 184: public static int Run(int* trie, int node, int val, int bits)
+ 208: public static unsafe class PersistentTrieInsert
+ 218: public static int Run(int* trie, int oldRoot, int val, int bits)
+ 261: public static unsafe class PersistentTrieQuery
+ 263: public static int Run(int* trie, int node, int val, int bits)
+
+========================================
+PACKAGE: IAFahim.DS.UnsafeArray
+========================================
+--- File: UnsafeArray.cs ---
+  10: public unsafe struct UnsafeArray<T> : IDisposable where T : unmanaged
+  19: public UnsafeArray(int length, Allocator allocator)
+  29: public void Dispose()
+
+========================================
+PACKAGE: IAFahim.DS.WaveletMatrix
+========================================
+--- File: WaveletMatrix.cs ---
+   3: public static unsafe class WaveletMatrixBuild
+  22: public static int Run(int* data, int n, int maxVal, int* bitmaps, int* ranks, int* mids, int log)
+  61: public static void RunFrom(int* data, int n, int* mids, int* bitmapPtr, int* rankPtr, int log)
+ 122: public static unsafe class WaveletMatrixKth
+ 127: public static int Run(int* bitmapPtr, int* rankPtr, int* mids, int l, int r, int k, int log)
+--- File: WaveletMatrixAdvanced.cs ---
+   6: public static unsafe class WaveletMatrixAdvanced
+   8: public static void WaveletMatrixQuantile() { }
+   9: public static void WaveletMatrixPrevValue() { }
+  10: public static void WaveletMatrixNextValue() { }
+  11: public static void WaveletMatrixIntersect() { }
+  12: public static void WaveletMatrixRectangleSum() { }
+  13: public static void WaveletMatrixRectangleCount() { }
+  14: public static void SuccinctWaveletBuild() { }
+  15: public static void SuccinctWaveletRank() { }
+  16: public static void SuccinctWaveletSelect() { }
+
+========================================
+PACKAGE: IAFahim.GameTheory
+========================================
+--- File: GameTheory.cs ---
+   6: public static unsafe class GrundyDAG
+   8: public static int Run(int n, int* to, int* grundy, int* indeg, int* queue)
+  40: public static unsafe class NimSum
+  43: public static long Run(int n, long* piles) { long xor = 0; for (int i = 0; i < n; i++) xor ^= piles[i]; return xor; }
+  46: public static unsafe class Minimax
+  48: public static long Run(int depth, bool isMax, long alpha, long beta, long* gameState, int player)
+  83: public static unsafe class GameDp
+  85: public static int Run(int n, long* dp, long* a, int* moves, int moveCount)
+
+========================================
+PACKAGE: IAFahim.Geometry.Advanced
+========================================
+--- File: GeometryAdvanced.cs ---
+   6: public static unsafe class ConvexDiameter
+   8: public static long Run(int n, long* x, long* y)
+  21: public static unsafe class RotatingCalipers
+  23: public static long Run(int n, long* x, long* y, long* res)
+  36: public static unsafe class MinkowskiSum
+  38: public static int Run(int n1, long* x1, long* y1, int n2, long* x2, long* y2, long* rx, long* ry)
+  60: public static unsafe class ClosestPair
+  64: public static long Run(int n, long* x, long* y)
+--- File: GeometryAdvanced2.cs ---
+   6: public static unsafe class Circumcenter
+   9: public static void Run(long ax, long ay, long bx, long by, long cx, long cy, long* ox, long* oy)
+  21: public static unsafe class MinimumEnclosingCircle
+  23: public static void Run(int n, long* x, long* y, long* cx, long* cy, long* r)
+  59: public static unsafe class IntegerPointCount
+  62: public static long Run(int n, long* x, long* y)
+  91: public static unsafe class PickTheorem
+  94: public static long Run(int n, long* x, long* y)
+--- File: PolygonBoolean.cs ---
+   6: public static unsafe class PolygonBoolean
+   8: public static void PolygonBooleanUnion() { }
+   9: public static void PolygonBooleanIntersection() { }
+  10: public static void PolygonBooleanDifference() { }
+  11: public static void PolygonBooleanXor() { }

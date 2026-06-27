@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Graph.SCC/TarjanScc.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.SCC/TarjanScc.cs",
+   "symbol": "TarjanScc.Dfs",
+   "severity": "critical",
+   "category": "off-by-one",
+   "summary": "Adjacency-list traversal uses `e != 0` as the loop terminator, but the module's graph representation uses -1 as the empty/end-of-list sentinel and 0-based edge indices (as built by TarjanScc's own test). This both (a) skips the edge stored at index 0 and (b) reads out of bounds when the chain reaches the -1 sentinel, since `-1 != 0` is true and the loop body then dereferences to[-1]/next[-1].",
+   "triggeringInput": "The graph from TarjanSccTests.TarjanScc_Basic: N=4, edges added in order (0->1)=e0,(1->2)=e1,(2->0)=e2,(2->3)=e3, with head[i] initialized to -1. Then head[0]==0 and the leaf vertex 3 has head[3]==-1. Calling TarjanScc.Find(4, head, next, to, tin, low, stack, inStack, sccId, ref sccCount).",
+   "rootCause": "In `for (int e = head[u]; e != 0; e = next[e])`, the sentinel value compared against is 0 instead of -1. Callers (and the in-module test) initialize head/next empty slots to -1 and assign edge indices starting at 0, so: edge index 0 (here head[0]=0, the 0->1 edge) is treated as 'no edge' and never visited, breaking SCC computation (vertex 0 becomes a spurious singleton SCC). Worse, when a vertex's list ends at -1 (e.g. vertex 3 with head[3]=-1), `-1 != 0` is true, so the loop enters its body and dereferences to[e]/next[e] at index -1 \u2014 an out-of-bounds pointer read (undefined behavior / crash).",
+   "suggestedFix": "Change the loop condition to use the -1 sentinel: `for (int e = head[u]; e != -1; e = next[e])`, matching the convention in SccAugmentation.Dfs1/Dfs2 and OnlineScc which correctly use `e != -1`."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.SCC/TarjanScc.cs",
+   "symbol": "Dfs",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Remove AggressiveInlining from the recursive Dfs method; it cannot be inlined into itself and the attribute only risks code-size bloat at the (single) call site in Find.",
+   "currentCost": "[MethodImpl(AggressiveInlining)] on a self-recursive method. The JIT/Burst cannot inline a directly recursive call, so the hint is at best ignored and at worst inflates the one non-recursive call site, hurting I-cache.",
+   "proposedChange": "Drop the AggressiveInlining attribute on Dfs (keep the method otherwise identical). Same for the public Find wrapper, which is also not a hot leaf.",
+   "rationale": "Inlining hints are only useful on small hot leaf methods. A recursive traversal is neither; removing the hint avoids speculative code duplication and keeps the hot recursion body compact in I-cache.",
+   "risk": "None \u2014 purely a compilation hint; observable behavior is unchanged. Burst still compiles the recursion normally."
+  },
+  {
+   "file": "src/IAFahim.Graph.SCC/TarjanScc.cs",
+   "symbol": "Dfs",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist low[u] into a local register across the neighbor loop instead of re-reading and re-writing low[u] through the pointer on every relaxation.",
+   "currentCost": "Inside the for-loop, 'low[u]' is loaded and conditionally stored via the pointer up to deg(u) times. Because low is aliased (the recursive call writes low[v]), the compiler must reload low[u] after each recursive call, creating a memory dependency chain.",
+   "proposedChange": "int lowU = low[u]; iterate using lowU for the min updates (if (low[v] < lowU) lowU = low[v]; / if (tin[v] < lowU) lowU = tin[v];), then write low[u] = lowU once after the loop and use lowU in the 'low[u] == tin[u]' test. Note the recursive Dfs(v,...) call may itself read low[v] (fine) but never reads low[u], so hoisting is safe.",
+   "rationale": "Keeps the running minimum in a register, eliminating per-edge load/store of low[u] and breaking the store-to-load alias dependency the compiler otherwise must assume. Fewer memory ops and a shorter dependency chain in the hottest loop of Tarjan.",
+   "risk": "Must confirm no callee reads low[u] mid-loop \u2014 it does not (children only touch low[v] for their own v). The single post-loop store preserves identical final values. Safe."
+  },
+  {
+   "file": "src/IAFahim.Graph.SCC/TarjanScc.cs",
+   "symbol": "Find",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "The init loop writes four arrays (tin, low, inStack, sccId) per index; tin and low are both zeroed and could be cleared with a single contiguous memset-style fill if laid out adjacently, but at minimum sccId=-1 is the only non-zero write.",
+   "currentCost": "Per-element scalar stores of 0 to tin/low/inStack plus -1 to sccId. Three of the four are zero-fills that Burst could vectorize, but interleaving them with the -1 store and different element widths (int vs byte) prevents a clean wide store.",
+   "proposedChange": "Split into homogeneous fills: zero tin[0..n], zero low[0..n], zero inStack[0..n] (byte), then set sccId[0..n] = -1 in separate tight loops. Each loop is then trivially vectorizable / lowerable to a memset by Burst.",
+   "rationale": "Separate same-type, same-value fills let Burst emit wide SIMD stores or memset intrinsics, whereas the interleaved mixed-width loop forces scalar stores. Lower instruction count over n elements.",
+   "risk": "None \u2014 same values written. Minor: trades one loop for four, but each is memset-shaped; net win for large n, negligible for small n."
+  }
+ ]
+}

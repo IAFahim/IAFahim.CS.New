@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Algebra.Polynomial/Gcd.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/Gcd.cs",
+   "symbol": "Gcd.Run",
+   "severity": "high",
+   "category": "overflow",
+   "summary": "Stack buffer overflow when the second polynomial has higher degree than the first (lenB > lenA). The working buffer `u` is sized only `stackalloc long[lenA]`, but the Euclidean loop performs `u <- v` via `CopyArray(v, u, lenV)` where `lenV` can be as large as `lenB`. When lenB > lenA this writes past the end of `u`, corrupting the stack (undefined behavior).",
+   "triggeringInput": "a = {1} (lenA=1, the constant polynomial 1's-style input, leading coeff nonzero), b = {2,0,3} (lenB=3, i.e. 3x^2+2). First DivMod with lenA<lenB returns r = a (lenR=1); then CopyArray(v, u, lenV=3) writes 3 longs into u which was stackalloc long[1].",
+   "rootCause": "`u` is allocated with size lenA only, but after the first swap it must hold the previous `v`, whose length is bounded by lenB, not lenA. GCD has no precondition that deg(a) >= deg(b), so lenB > lenA is a valid input.",
+   "suggestedFix": "Allocate both working buffers with the maximum length, e.g. `int m = Math.Max(lenA, lenB); long* u = stackalloc long[m]; long* v = stackalloc long[m];` (and ensure the q/r buffers and the final gcd output are sized to this max as well)."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/Gcd.cs",
+   "symbol": "Run",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Right-size the q/r scratch buffers; remainder length is bounded by lenV, not Max(lenA,lenB)+1.",
+   "currentCost": "Two stackalloc buffers of Math.Max(lenA,lenB)+1 longs each are allocated for q and r. In the Euclidean loop the quotient degree is lenU-lenV+1 and remainder degree < lenV, both bounded by max(lenA,lenB). The +1 padding and Max sizing are conservatively correct but the stack footprint is 2*(max+1)*8 bytes held for the whole call.",
+   "proposedChange": "Keep q sized to Math.Max(lenA,lenB)+1 (quotient can reach that), but the combined u/v/q/r stack usage can be reduced by noting r never exceeds lenB initially; more importantly, document the bound. If stack pressure matters on mobile, the four buffers (u,v,q,r) total ~4*max longs; consider reusing q's space across iterations (already done) \u2014 no change needed unless mobile stack is tight.",
+   "rationale": "On mobile, deep stackalloc in an AggressiveInlining method that may be inlined into a caller already holding large stackallocs risks stack overflow; tightening r to lenB and keeping q at max+1 trims one buffer's worst case.",
+   "risk": "Quotient length in DivMod can be lenU-lenV+1 which for the first division is lenA-lenV+1 <= lenA, so q must remain max-sized. Only r can be safely capped at lenB (initial divisor length) since subsequent remainders shrink. Verify DivMod.Run never writes past lenB into r before applying; if unsure, leave as-is. Low confidence without DivMod's exact write contract."
+  },
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/Gcd.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist the (long)MOD cast in the normalization loop.",
+   "currentCost": "The final normalization loop does gcd[i] = (u[i]*inv) % (long)MOD with the int->long cast inside the loop, and ModInv is called with (long)MOD cast separately.",
+   "proposedChange": "long m = (long)MOD; once, reuse in ModInv call and the loop: gcd[i] = (u[i] * inv) % m;",
+   "rationale": "Single invariant register operand instead of per-iteration sign-extension; trivial but free.",
+   "risk": "None; identical semantics."
+  },
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/Gcd.cs",
+   "symbol": "ModInv",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Fuse the a -= t*b then swap into the canonical single-temp extended-Euclid form to cut register shuffles.",
+   "currentCost": "The loop uses an explicit tmp variable twice and computes a -= t*b before swapping, doing the division t=a/b and then a separate multiply t*b. Standard form computes both quotient and remainder structurally.",
+   "proposedChange": "Use: while (b != 0) { long t = a / b; long na = a - t*b; a = b; b = na; long nu = u - t*v; u = v; v = nu; } This removes the tmp aliasing and lets the compiler keep values in registers; optionally use a single divrem if available. Note loop condition can be b != 0L since b stays non-negative here.",
+   "rationale": "Fewer named temporaries and a cleaner data-flow graph; the compiler emits one idiv producing quotient and the remainder is the cheap a-t*b. Marginal but removes the double-tmp pattern.",
+   "risk": "b > 0 vs b != 0: in this Euclid b stays non-negative (remainders of positive mod), so b != 0 is equivalent; keep b > 0L if any chance b goes negative. Behavior otherwise identical."
+  }
+ ]
+}

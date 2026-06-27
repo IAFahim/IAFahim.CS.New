@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.String/Enumeration.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String/Enumeration.cs",
+   "symbol": "ShortestMissingSubstring",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "The overflow/non-overflow if/else branches are byte-for-byte identical, and the per-length limit loop re-multiplies the alphabet power that FindMissing immediately recomputes.",
+   "currentCost": "Both branches of the if (overflow || limit > len) statement call FindMissing with the exact same arguments and the same return logic, so the branch and its dead computation are pure overhead. FindMissing then recomputes limit = alphabetSize^subLen from scratch each call (a full subLen-iteration multiply loop) duplicating the work the outer loop just did to detect overflow.",
+   "proposedChange": "Collapse the if/else into a single block: compute limit incrementally once (carry it across subLen iterations as runningLimit *= alphabetSize), pass the already-computed limit into FindMissing instead of recomputing it inside, and call FindMissing exactly once per subLen. Remove the dead 'overflow' bool entirely since both paths are identical.",
+   "rationale": "Eliminates a redundant branch and the inner subLen-length multiply loop inside FindMissing (called once per length). Passing the precomputed limit removes O(subLen) work per FindMissing invocation. Code size and instruction count drop with no behavioral change.",
+   "risk": "None for behavior: the two branches are provably identical so collapsing is semantics-preserving. Passing limit in requires FindMissing to keep its same seen[]-reset and scan loops; ensure limit type stays long to match current overflow semantics."
+  },
+  {
+   "file": "src/IAFahim.String/Enumeration.cs",
+   "symbol": "FindMissing",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Inner hash loop recomputes the full subLen-length polynomial hash for every window position instead of using a rolling hash.",
+   "currentCost": "For each of (len - subLen + 1) start positions it runs a subLen-iteration loop computing hash = hash*alphabetSize + val, i.e. O(len*subLen) multiply-adds plus a bounds check per char.",
+   "proposedChange": "Maintain a rolling base power highPow = alphabetSize^(subLen-1) and slide the window: on advancing i, subtract s[i-1]*highPow and multiply by alphabetSize then add the new char, tracking a count of out-of-range chars in the current window to preserve the 'valid' gate. Falls back to recompute only when a window contains an out-of-alphabet char.",
+   "rationale": "Reduces the seen-marking pass from O(len*subLen) to O(len) amortized multiply-adds, a subLen-factor reduction. subLen grows with input so this is a real asymptotic improvement on the dominant pass.",
+   "risk": "Must replicate the exact 'valid' semantics: a window is only marked when ALL chars are in [0,alphabetSize). Track inrange-char count in the window; only mark seen when count==subLen. Subtraction term must use the same alphabetSize base and long arithmetic to avoid overflow for large subLen."
+  },
+  {
+   "file": "src/IAFahim.String/Enumeration.cs",
+   "symbol": "ShortestAbsentSubsequence",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "nextOcc index expressions recompute (long)i * alphabetSize repeatedly; the row base can be hoisted.",
+   "currentCost": "In the backward fill and DP loops, each access computes (long)i * alphabetSize + c with a 64-bit multiply per inner-loop iteration (alphabetSize iterations per i).",
+   "proposedChange": "Hoist long rowBase = (long)i * alphabetSize (and (long)(i+1)*alphabetSize) outside the c-loop, then index nextOcc[rowBase + c]. Same for the DP path-reconstruction accesses.",
+   "rationale": "Removes one 64-bit multiply per inner iteration, turning it into a single add. Over alphabetSize*len iterations this is a measurable constant-factor win and shortens the dependency chain feeding the load.",
+   "risk": "None; pure strength reduction of an invariant subexpression. Keep long type to preserve large-index addressing."
+  },
+  {
+   "file": "src/IAFahim.String/Enumeration.cs",
+   "symbol": "ShortestCommonSupersequence",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "DP fill recomputes row-base index products i*cols and (i-1)*cols repeatedly in the inner loop.",
+   "currentCost": "Inner j-loop computes dp[i*cols+j], dp[(i-1)*cols+j], dp[i*cols+(j-1)], dp[(i-1)*cols+(j-1)] each with a multiply i*cols or (i-1)*cols per iteration: ~3-4 multiplies per cell over aLen*bLen cells.",
+   "proposedChange": "Hoist int rowBase = i*cols and int prevRowBase = (i-1)*cols before the j-loop; index as dp[rowBase+j], dp[prevRowBase+j], etc. Optionally keep a running pointer int* row = dp + rowBase; int* prevRow = dp + prevRowBase.",
+   "rationale": "Removes the per-cell multiply, replacing it with additions/index offsets and shortening the address-generation dependency chain. Over O(aLen*bLen) cells this is a clear constant-factor win and helps Burst vectorize the row scan.",
+   "risk": "None; pure strength reduction of loop-invariant subexpressions. Same applies to the traceback's dp[(idxA-1)*cols+idxB] accesses (minor, traceback is O(len))."
+  }
+ ]
+}

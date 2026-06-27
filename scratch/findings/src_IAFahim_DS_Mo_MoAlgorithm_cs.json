@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.DS.Mo/MoAlgorithm.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.Mo/MoAlgorithm.cs",
+   "symbol": "MoSort.QuickSort",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Recurse only into the smaller partition and loop on the larger to bound stack depth to O(log q).",
+   "currentCost": "Two unconditional recursive calls QuickSort(left,j) and QuickSort(i,right). Worst-case (already-sorted / adversarial) input gives O(q) recursion depth, risking stack overflow for large q and adding call overhead Burst cannot elide.",
+   "proposedChange": "Convert to a hybrid: after partitioning, recurse into the smaller side and tail-loop (while-loop reassigning left/right) on the larger side. Guarantees recursion depth <= log2(q). Optionally cut to insertion sort for ranges < ~16.",
+   "rationale": "Bounds stack to O(log q) regardless of input, eliminating worst-case deep recursion and halving call-frame overhead; preserves identical ordering.",
+   "risk": "Pure refactor of the same partition scheme \u2014 output order unchanged. Must keep the parallel arrays (q,l,r,b) swapped together exactly as now."
+  },
+  {
+   "file": "src/IAFahim.DS.Mo/MoAlgorithm.cs",
+   "symbol": "MoSort.Run",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "The 'queries'/q array (parallel to l,r,b) is permuted by Swap but never read inside the sort; confirm it carries the query id payload, otherwise it is dead work.",
+   "currentCost": "Swap permutes q[i]/q[j] on every swap (one extra load/store/temp per swap) but Less and QuickSort never read q. If q holds query ids that callers need reordered alongside l/r/b, this is necessary; if not, it is pure overhead per swap.",
+   "proposedChange": "If q is the id payload meant to be reordered with the keys, keep it but document that contract clearly. If it is unused, drop the q parameter and the q[] swap to remove one quarter of the swap cost.",
+   "rationale": "Either eliminates ~25% of per-swap memory traffic in the sort, or clarifies a load-bearing-but-unobvious data dependency. Sorts do many swaps in the hot path.",
+   "risk": "Removing q changes the public Run signature and would break callers relying on reordered ids \u2014 only do this after confirming q is unused downstream. Keeping it has no correctness risk."
+  },
+  {
+   "file": "src/IAFahim.DS.Mo/MoAlgorithm.cs",
+   "symbol": "MoDistinctCounter.AddInt",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Branchless distinct-count update: derive the increment from the pre-increment value instead of an if.",
+   "currentCost": "if (freq[val] == 0) (*curDistinct)++; then freq[val]++ \u2014 a data-dependent branch per element in the hottest inner loop of Mo's traversal (called O((n+q)*n^{2/3}) times). Mispredicts are common because add/remove order is irregular.",
+   "proposedChange": "int f = freq[val]; *curDistinct += (f == 0) ? 1 : 0; freq[val] = f + 1; \u2014 or use the comparison result directly: *curDistinct += (int)(f == 0). Symmetrically for RemoveInt: freq[val] = f - 1 then *curDistinct -= (int)((f - 1) == 0). Lets the JIT/Burst emit a setcc instead of a branch.",
+   "rationale": "Removes a frequently-mispredicted branch from the innermost Mo loop, converting it to a branchless conditional add; this loop dominates total runtime.",
+   "risk": "Semantics identical (the (f==0)?1:0 add equals the conditional increment). Must read freq[val] once into a local to avoid an extra load and to keep the pre/post values consistent. No overflow concern for realistic frequencies."
+  }
+ ]
+}

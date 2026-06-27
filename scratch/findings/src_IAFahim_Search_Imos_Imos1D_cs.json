@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Search.Imos/Imos1D.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.Imos/Imos1D.cs",
+   "symbol": "Imos1D.Build",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Remove the unused 'using System;' (and in Imos2D) to keep translation units clean; not a perf change but reduces noise. The Build loop itself is already an optimal single-pass prefix sum.",
+   "currentCost": "using System; is imported but System is unused in Imos1D.cs; harmless but unnecessary. The prefix-sum loop is already minimal (one read, one write, one add per element) and correct.",
+   "proposedChange": "Drop the unused using. No change to the loop \u2014 it is already the canonical scalar prefix sum. Note: prefix sums are inherently serial (carry dependency), so SIMD would require a parallel-prefix rewrite that is usually not worth it for int on mobile; leaving scalar is the right call.",
+   "rationale": "Purely hygiene/ergonomics; confirms the hot loop is already optimal so no cycles are left on the table here.",
+   "risk": "None. This is the lowest-value item; included only to certify Imos1D.Build needs no algorithmic change."
+  }
+ ]
+}

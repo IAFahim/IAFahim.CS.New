@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Graph.Matching/MinimumCostBipartiteBMatching.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Matching/MinimumCostBipartiteBMatching.cs",
+   "symbol": "MinimumCostBipartiteBMatching.Run",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Unimplemented stub returning 0; nothing to optimize until an actual min-cost-flow / SSP algorithm exists.",
+   "currentCost": "Always returns 0. The cost and capacity pointers are unused. AggressiveInlining attribute on an empty body is dead.",
+   "proposedChange": "Implement via successive-shortest-paths (SPFA/Bellman-Ford with potentials -> Dijkstra) min-cost max-flow over the CSR graph, reusing the head/to/next layout. Until then there is no perf surface.",
+   "rationale": "Empty body has no cycles or memory to tune; flagging to prevent it being counted as optimized. A potentials-based SSP gives O(F * E log V) which is the right asymptotic target for this signature.",
+   "risk": "Implementation changes observable output (currently always 0); coordinate with tests. Not a semantics-preserving micro-opt."
+  }
+ ]
+}

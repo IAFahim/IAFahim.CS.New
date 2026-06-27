@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.String.Automata/SubsequenceAutomaton.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.String.Automata/SubsequenceAutomaton.cs",
+   "symbol": "SubsequenceAutomaton.Build",
+   "severity": "critical",
+   "category": "off-by-one",
+   "summary": "Build constructs the subsequence-automaton transition table with an off-by-one in the update order: it writes next[(i-1)*sigma+c] = last[c] BEFORE applying last[text[i-1]] = i. As a result, the transition for state (i-1) excludes the character at position i itself, so every state's 'next occurrence' table is shifted/missing one position. The whole automaton is corrupt, and the dependent Contains and CountDistinct return wrong results.",
+   "triggeringInput": "text = \"ab\" (bytes {0x61,0x62}), len=2, sigma=128. Produces next[0]['a']=0 (should be 1) and next[1]['b']=0 (should be 2). Then Contains(next, \"a\", 1, 128) returns false although 'a' is a subsequence of \"ab\"; Contains(next, \"ab\", 2, 128) returns false although \"ab\" is a subsequence; CountDistinct(next, 2, 128, 1000000007) returns 1 instead of the correct 3 (a, b, ab).",
+   "rootCause": "In the loop `for (int i = len; i >= 1; i--)`, the writes `next[(i-1)*sigma+c] = last[c]` for all c are done first, and only afterwards `last[text[i-1]] = i` is executed. State (i-1) must be able to reach the character that sits at position i (i.e. the next state should include position i), but because last is updated after the write, position i is never recorded into state (i-1)'s transitions. Concretely the first occurrence of any character is lost for the start state (state 0), and each state misses its immediately-following character. The standard build updates last (i.e. sets next[i][text[i]] = i+1) before/while copying the row.",
+   "suggestedFix": "Move the `last` update before the inner write loop so the current position is included:\n    for (int i = len; i >= 1; i--)\n    {\n        last[text[i - 1]] = i;\n        for (int c = 0; c < sigma; c++)\n            next[(i - 1) * sigma + c] = last[c];\n    }\nEquivalently, use the standard forward form: for i = len-1 downto 0, copy row i+1 into row i, then set next[i*sigma + text[i]] = i + 1."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Automata/SubsequenceAutomaton.cs",
+   "symbol": "CountDistinct",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace the modulo in the hot DP accumulation with a branchless/conditional subtraction since operands are already reduced.",
+   "currentCost": "dp[nxt] = (dp[nxt] + dp[i]) % MOD runs inside the O(len*sigma) inner loop, performing a 64-bit integer division (high-latency, ~20-90 cycles, not vectorizable) on every transition.",
+   "proposedChange": "Maintain the invariant 0 <= dp[k] < MOD. Then dp[nxt]+dp[i] < 2*MOD, so replace % with: long v = dp[nxt] + dp[i]; dp[nxt] = v >= MOD ? v - MOD : v; (or branchless: v - (MOD & -(long)(v >= MOD))). Apply the same to the final 'total' accumulation loop.",
+   "rationale": "Eliminates a 64-bit div per inner-loop iteration, replacing it with an add + compare + conditional subtract that Burst can render branchless. Massive constant-factor win on the dominant loop since dp values are provably < MOD by construction.",
+   "risk": "Correctness depends on MOD <= 2^62 so that dp[nxt]+dp[i] does not overflow long (true for typical MODs like 1e9+7). If MOD could exceed 2^62 the add could overflow; guard by documenting MOD < 2^62. Otherwise exactly equal to the % result because both operands are in [0,MOD)."
+  },
+  {
+   "file": "src/IAFahim.String.Automata/SubsequenceAutomaton.cs",
+   "symbol": "CountDistinct",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Drop the explicit dp zeroing loop; stackalloc memory can be cleared more cheaply or fused.",
+   "currentCost": "A separate for-loop writes dp[0..len]=0 before the algorithm, a full pass over len+1 longs distinct from the compute loop.",
+   "proposedChange": "Use 'long* dp = stackalloc long[len + 1]; ' with an initializer-free clear via Unsafe.InitBlockUnaligned / a single memset-style fill, or rely on the fact only dp[0] needs a known value if you restructure to read-before-write. Set dp[0]=1 then clear dp[1..len] in one InitBlock.",
+   "rationale": "Replaces an element-by-element store loop with a single bulk clear that Burst/JIT lowers to vectorized stores, reducing instruction count and improving the clear's memory bandwidth utilization.",
+   "risk": "Must still guarantee dp[1..len] are zero before accumulation. InitBlock over the tail is equivalent. Low impact since it is an O(len) pass dwarfed by the O(len*sigma) main loop."
+  },
+  {
+   "file": "src/IAFahim.String.Automata/SubsequenceAutomaton.cs",
+   "symbol": "Contains",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist patLen==0 handling / guard and cache the sigma stride; minor but the state*sigma multiply repeats each iteration.",
+   "currentCost": "Each iteration computes next[state * sigma + pattern[i]], a multiply by sigma plus add per step. The first access uses 0*sigma which is dead arithmetic.",
+   "proposedChange": "Drop the 0*sigma (use next[pattern[0]]). The state*sigma multiply is inherent to the row-major layout, but it could be strength-reduced if sigma is a known power of two via shift; otherwise leave as-is. The dead 0 multiply removal is free.",
+   "rationale": "Removes one constant-folding-resistant multiply-by-zero expression and clarifies intent. If callers always pass a power-of-two sigma (e.g. 256 for byte alphabet), a sigma-as-shift overload would turn the per-step multiply into a shift.",
+   "risk": "0*sigma is already folded by any optimizer, so this is cosmetic unless a power-of-two-stride specialization is added. No semantic change. patLen>=1 is assumed by Run convention (pattern[0] dereferenced unconditionally)."
+  }
+ ]
+}

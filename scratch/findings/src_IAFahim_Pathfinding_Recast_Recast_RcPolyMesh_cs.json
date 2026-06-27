@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Recast/RcPolyMesh.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/RcPolyMesh.cs",
+   "symbol": "RcPolyMesh.Dispose",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Trailing `this = default` re-zeroes the entire struct after every pointer field was already manually nulled, performing a redundant ~80-byte clear on the teardown path.",
+   "currentCost": "Each pointer is set to null in its own guarded block, then `this = default` zeroes all ~80 bytes of the struct again (verts/polys/regs/flags/areas pointers, all ints, two float3, floats, plus the Allocator backing field). The manual nulls become dead stores; alternatively the manual nulls are redundant given the final default.",
+   "proposedChange": "Pick one strategy: either keep the per-field `= null` and drop the trailing `this = default;`, or drop the five `= null` assignments and rely solely on `this = default;`. Either removes one full redundant pass over the struct. Same trade-off applies to RcContourSet, RcHeightfieldLayer, RcHeightfieldLayerSet, RcHeightfield Dispose bodies.",
+   "rationale": "Eliminates a duplicated write of every field on dispose. Cold path, so impact is low, but it is a real redundant memory clear (and the Allocator readonly backing field being overwritten by `this = default` is only incidentally harmless).",
+   "risk": "Low. Must keep idempotency: if Dispose can be called twice, the surviving strategy must still null the pointers so the second call is a no-op (the null guards depend on it). Keeping the per-field nulls and dropping `this = default` preserves double-dispose safety; dropping the nulls and keeping `this = default` also preserves it. Do not drop both. Note Allocator is a get-only property whose backing field is currently reset by `this = default`; removing that reset leaves Allocator intact, which is harmless since pointers are null."
+  }
+ ]
+}

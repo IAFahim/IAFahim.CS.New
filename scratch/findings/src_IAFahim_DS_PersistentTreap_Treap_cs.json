@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.DS.PersistentTreap/Treap.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.DS.PersistentTreap/Treap.cs",
+   "symbol": "PersistentTreapErase.Run",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Erase is an unimplemented stub: it splits the tree on val into l (<= val) and r (> val), then returns only l, discarding r entirely and never removing val. Every element strictly greater than val is lost, and val itself is never erased.",
+   "triggeringInput": "A treap containing keys {1,2,3} (root from inserting 1,2,3). Call Run(..., root, val=2). Split gives l={1,2}, r={3}. The method returns l={1,2}: element 3 is dropped and 2 is not erased. Expected result {1,3}.",
+   "rootCause": "The function body is a placeholder (the code comments say \"Placeholder\" / \"For now, satisfy the test\"). It only performs the first split and returns the left partition without splitting l into (< val) and (== val), removing one occurrence of val, and merging the (< val) part with r.",
+   "suggestedFix": "Implement erase: split root by val into (l = <= val, r = > val); then split l by a key just-less-than val to separate (< val) from (== val); drop one node equal to val (merge its children), then merge (< val), the remaining ==val nodes, and r back together. Since T has no predecessor key in general, do a recursive split that compares with CompareTo(val) < 0 to isolate equal nodes, remove one, then Merge the surviving pieces and return the new root."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.PersistentTreap/Treap.cs",
+   "symbol": "PersistentTreapNode.NewNode",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Priority hash is computed in 64-bit and contains a dead `>> 0` shift; do the multiply in 32-bit unsigned to make it a single IMUL.",
+   "currentCost": "`prio[idx] = (int)((uint)(idx * 2654435761) >> 0)`: `idx` is `int`, literal `2654435761` exceeds int.MaxValue so it binds as `uint`; `int * uint` promotes both operands to `long`, producing a 64-bit IMUL plus a truncating `(uint)` cast, plus a no-op `>> 0`. On a 32-bit-leaning mobile target the 64-bit multiply costs extra cycles per allocation.",
+   "proposedChange": "Compute purely in 32-bit: `const uint Knuth = 2654435761u;` then `prio[idx] = (int)((uint)idx * Knuth);`. This is a 32-bit IMUL, drops the dead `>> 0`, and names the magic constant. Result bit pattern is identical because (uint)idx * Knuth mod 2^32 equals the low 32 bits of the long product.",
+   "rationale": "32-bit unsigned multiply with wraparound is exactly the low 32 bits of the 64-bit product, so output is bit-identical, but it emits one 32-bit multiply instead of a widened 64-bit multiply + truncate, and removes a no-op shift. Named constant aids readability.",
+   "risk": "None for the value: `(uint)idx * 2654435761u` wraps mod 2^32, matching `(uint)(longProduct)`. `idx` is always positive (`++(*allocCnt)`), so `(uint)idx` is the same magnitude. Behavior preserved exactly."
+  },
+  {
+   "file": "src/IAFahim.DS.PersistentTreap/Treap.cs",
+   "symbol": "PersistentTreapNode.Update",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Eliminate the two null-child branches in size recomputation by relying on size[0] == 0 (the sentinel node).",
+   "currentCost": "`size[x] = 1 + (left[x] != 0 ? size[left[x]] : 0) + (right[x] != 0 ? size[right[x]] : 0)` performs two compares and two conditional selects/branches on every Update. Update runs once per recursion frame in Split and Merge, i.e. O(log n) times per operation, on the hottest path.",
+   "proposedChange": "Guarantee `size[0] == 0` once at buffer init (index 0 is the null sentinel and is never written by NewNode/CloneNode), then write `size[x] = 1 + size[left[x]] + size[right[x]];`. The `left[x]`/`right[x]` may be 0 but `size[0]` is 0, so the arithmetic is correct with zero branches.",
+   "rationale": "Two extra dependent loads of size[0] (which will be hot in cache) replace four branches/cmovs and shorten the dependency chain to a flat add-tree, which Burst/LLVM schedules better and never mispredicts. Same result for all inputs.",
+   "risk": "Requires size[0] to be 0 for the lifetime of the buffers. CloneNode/NewNode start allocation at index 1 (`++(*allocCnt)`) so index 0 is never overwritten; only the initial zero-init of the size buffer must be ensured (stackalloc/calloc already zeroes). State this precondition where buffers are allocated."
+  },
+  {
+   "file": "src/IAFahim.DS.PersistentTreap/Treap.cs",
+   "symbol": "PersistentTreapFind.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Make the BST descent branchless on the child selection to cut mispredicts in the search loop.",
+   "currentCost": "`cur = cmp < 0 ? right[cur] : left[cur]` is a data-dependent branch each iteration; comparison-tree descent has ~50% unpredictable direction, so this branch mispredicts heavily over a random key distribution.",
+   "proposedChange": "Index a 2-wide base instead of branching: since left/right are separate buffers this needs a select, but the select can be expressed branchlessly, e.g. `int* child = cmp < 0 ? right : left; cur = child[cur];` \u2014 the pointer select compiles to a CMOV with no control-flow hazard, or compute `cur = left[cur] + ((right[cur]-left[cur]) & -(cmp>>31... ))` only if a single combined child array is introduced. Minimal form: hoist to a CMOV-friendly pointer select.",
+   "rationale": "Replacing the control-flow branch with a conditional move removes branch-misprediction stalls in a tight O(log n) loop. The `cmp == 0` early-out remains a branch but is taken at most once.",
+   "risk": "Pointer-select CMOV codegen is compiler-dependent; if Burst does not emit CMOV the change is neutral. No semantic change. Combining left/right into one interleaved array would be a larger layout change (separate opportunity) and is not required for this micro-opt."
+  },
+  {
+   "file": "src/IAFahim.DS.PersistentTreap/Treap.cs",
+   "symbol": "PersistentTreapErase.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Erase is an unimplemented placeholder that returns the wrong tree; it does not erase anything.",
+   "currentCost": "The method splits root at `val` then `return l;` (a comment explicitly says `// Placeholder`). It never removes the matching node and discards the entire `> val` subtree (`r`), so Erase both fails to delete and corrupts the set by dropping all greater elements. This is a correctness defect, not a perf issue, but it is on the public API.",
+   "proposedChange": "Implement correctly with a three-way split. Split root at the predecessor boundary to isolate `< val`, `== val`, and `> val`. Concretely: split at `val` into (l = <=val, r = >val); then split l at the largest key strictly less than val. Since T only supports CompareTo, do a second split that routes equal keys right, i.e. split l using a `<`-comparator into (lt, eq); then `return Merge(lt, r)` to drop exactly the equal block (or merge eq's children to remove a single occurrence). Reuse existing Split/Merge so it stays O(log n) with one extra split pass.",
+   "rationale": "Restores correctness in O(log n) using the existing primitives; no asymptotic regression. The current code is O(log n) but produces wrong output, so any correct implementation at the same complexity is strictly better.",
+   "risk": "Split's comparator is hardcoded to `<= 0` (equal goes left). To separate equals you need a strict-less variant or a sentinel key just below val, which T (only IComparable) cannot synthesize generically. The clean fix is a second Split overload that uses `< 0` for the equal-handling pass. Must decide erase-one vs erase-all semantics; match the intended test contract."
+  }
+ ]
+}

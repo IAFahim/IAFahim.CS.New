@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.DS.FixedCollections/UnmanagedPool.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.FixedCollections/UnmanagedPool.cs",
+   "symbol": "UnmanagedPool..ctor",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "length and spinner are two separate heap allocations (and a third for buffer); the int length and SpinLock (also an int) could share one cache-line-sized control allocation, halving allocator calls and improving locality.",
+   "currentCost": "Three Unmanaged.Allocate calls per pool: buffer, length (sizeof int), spinner (sizeof SpinLock = int). Two tiny 4-byte allocations sit on independent cache lines far from each other; TryAdd/TryGet touch both length and spinner every call, so they may straddle two cache lines and incur an extra miss. Three Free calls on Dispose.",
+   "proposedChange": "Allocate a single small control block (e.g. a struct { SpinLock spinner; int length; } padded to CacheLineSize) in one Unmanaged.Allocate, and point length/spinner into it. Reduces ctor from 3 to 2 allocations and Dispose from 3 to 2 frees, and co-locates the two fields touched together under the lock.",
+   "rationale": "Fewer allocator round-trips at construction; spinner and length share one cache line so the locked critical section touches a single line instead of two, cutting one potential cache miss per TryAdd/TryGet. Keeping them on a dedicated padded line also avoids false sharing with buffer contents.",
+   "risk": "Must keep the control struct unmanaged/blittable and correctly aligned (AlignOf of the control struct). Pointer arithmetic into the block must respect field offsets. Behavior identical. Padding to a full cache line trades a few bytes of RAM for avoiding false sharing \u2014 acceptable given the pool is shared across threads."
+  },
+  {
+   "file": "src/IAFahim.DS.FixedCollections/UnmanagedPool.cs",
+   "symbol": "UnmanagedPool.TryAdd / UnmanagedPool.TryGet",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Inside the lock, *this.length is dereferenced multiple times through the pointer; load it once into a local to shorten the dependency chain and avoid redundant loads the compiler may not coalesce across the volatile-like pointer.",
+   "currentCost": "TryAdd reads *this.length for the compare, again for the index store, again for the increment store (3 pointer dereferences). TryGet reads it for compare, decrement, and index. Each is a load/store through a raw pointer; the JIT/Burst may reload because it cannot always prove no aliasing.",
+   "proposedChange": "In TryAdd: 'int len = *this.length; if (len < this.capacity) { this.buffer[len] = element; *this.length = len + 1; ... }'. In TryGet: 'int len = *this.length; if (len > 0) { len -= 1; element = this.buffer[len]; *this.length = len; ... }'.",
+   "rationale": "Caching the length in a register removes two redundant pointer loads per call and shortens the read-modify-write dependency chain executed while the spinlock is held, reducing critical-section length (which directly reduces contention on the lock).",
+   "risk": "Safe: the value is only mutated by the current thread inside the lock, so no other writer can change *this.length within the critical section. Single-threaded-within-lock invariant makes the local equivalent. No semantic change."
+  },
+  {
+   "file": "src/IAFahim.DS.FixedCollections/UnmanagedPool.cs",
+   "symbol": "UnmanagedPool.TryAdd / UnmanagedPool.TryGet",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Release is called on both branches with duplicated code; a single release at the end (with the result in a local) is cleaner and avoids the duplicated Release call site without lengthening the locked region.",
+   "currentCost": "Both methods call this.spinner->Release() twice (once per branch). Duplication is harmless but error-prone for future edits and slightly larger code.",
+   "proposedChange": "Compute a bool result inside the if/else while holding the lock, then a single this.spinner->Release(); return result; after. Keep the critical section minimal (the work already done under lock is unchanged).",
+   "rationale": "Single release site reduces code size and maintenance risk without changing the amount of work done under the lock.",
+   "risk": "Must ensure Release still executes on every path including potential future early returns; structure as one exit. No behavior change since the unlocked sections do no shared work."
+  },
+  {
+   "file": "src/IAFahim.DS.FixedCollections/UnmanagedPool.cs",
+   "symbol": "UnmanagedPool.IsCreated",
+   "dimension": "purity",
+   "impact": "low",
+   "summary": "IsCreated is not marked readonly even though the struct is a readonly struct; minor, but TryAdd/TryGet mutate through pointers in a readonly struct which is correct but worth confirming GetCapacity/IsCreated stay side-effect-free.",
+   "currentCost": "No functional cost; the struct is 'readonly unsafe struct' and IsCreated only reads buffer. It is implicitly fine, but explicit readonly on the property getter documents purity and can enable defensive-copy elision in some call sites.",
+   "proposedChange": "No change required for correctness; optionally annotate IsCreated getter as readonly is already implied by the readonly struct. Leave as-is.",
+   "rationale": "Confirms purity; no real optimization. Listed low-impact to note the readonly-struct design is already correct and TryAdd/TryGet legitimately mutate heap memory through pointers without violating the readonly contract.",
+   "risk": "No change recommended; included for completeness."
+  }
+ ]
+}

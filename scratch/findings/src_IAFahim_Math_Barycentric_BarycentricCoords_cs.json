@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Math.Barycentric/BarycentricCoords.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Barycentric/BarycentricCoords.cs",
+   "symbol": "Compute2D",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Compute2D lifts 2D points into float3 with z=0 and calls the 3D Compute, running five 3-lane dot products on a guaranteed-zero z lane. Implement a native 2D barycentric via a 2x2 determinant (Cramer's rule).",
+   "currentCost": "Three new float3(.,0) constructions, five 3-component math.dot (each carrying a wasted zero z lane), a full 3D denom, then bary.x discarded. The z=0 lanes contribute only zero multiplies = pure waste, plus float3 packing moves.",
+   "proposedChange": "float2 v0=b-a, v1=c-a, v2=p-a; float det = v0.x*v1.y - v0.y*v1.x; if(math.abs(det*det)<Epsilon) return new float2(1f/3f,1f/3f); float inv=1f/det; float v=(v1.y*v2.x - v1.x*v2.y)*inv; float w=(v0.x*v2.y - v0.y*v2.x)*inv; return new float2(v,w);",
+   "rationale": "Drops from 5 three-lane dots + 3D denom to a few 2-lane mul-adds and one 2x2 determinant: roughly 2-3x fewer FLOPs, no float3 packing, shorter dependency chain, lower register pressure on mobile.",
+   "risk": "The old 3D denom d00*d11-d01*d01 equals |v0|^2|v1|^2-(v0.v1)^2 = (v0 x v1)^2 = det^2, so the old fallback threshold is abs(det^2)<Epsilon, i.e. abs(det)<1e-4. To preserve EXACT degenerate behavior the guard must be math.abs(det*det)<Epsilon, NOT math.abs(det)<Epsilon. With that guard, results are algebraically identical up to float rounding."
+  },
+  {
+   "file": "src/IAFahim.Math.Barycentric/BarycentricCoords.cs",
+   "symbol": "Compute",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "For the common many-points-vs-one-triangle pattern, d00,d01,d11,denom,invDenom and the degenerate flag depend only on a,b,c. Add a prepared overload that hoists them out of the per-point inner loop.",
+   "currentCost": "Every call recomputes v0=b-a, v1=c-a, d00,d01,d11, denom, abs-compare branch and the 1/denom reciprocal even when a,b,c are fixed across thousands of point queries (rasterization, closest-point sweeps).",
+   "proposedChange": "Introduce an unmanaged GramCache struct {float3 a,v0,v1; float d11,d01,d00,invDenom; bool degenerate;} built once via BuildCache(a,b,c), and ComputePrepared(in GramCache g, float3 p) that only does v2=p-a, d20,d21 (2 dots), two mul-adds and two muls by invDenom.",
+   "rationale": "Hoists 3 dots, 1 mul, 1 sub, 1 reciprocal and the abs-compare out of the inner loop, roughly halving per-point cost and removing a branch from the vectorizable body.",
+   "risk": "Adds API surface; identical results when the cache is built from the same a,b,c. Caller must rebuild when the triangle changes. No edge-case change."
+  },
+  {
+   "file": "src/IAFahim.Math.Barycentric/BarycentricCoords.cs",
+   "symbol": "SignedArea",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "SignedArea computes math.length(cross) (a sqrt) and despite its name returns a non-negative magnitude. Add a squared-area variant for comparison-only callers to drop the sqrt, and document the non-signed behavior.",
+   "currentCost": "math.cross (6 mul, 3 sub) + math.length (sqrt, ~10-20 non-pipelined cycles) + 1 mul, on every call even when callers only compare areas.",
+   "proposedChange": "Add public static float AreaSq(float3 a,float3 b,float3 c){ float3 ab=b-a; float3 ac=c-a; return math.lengthsq(math.cross(ab,ac))*0.25f; } and document that SignedArea returns >=0 (a true signed area in 3D needs a reference normal).",
+   "rationale": "Area uses like largest-triangle selection or degeneracy tests need only ordering; comparing squared magnitudes is ordering-preserving for non-negative values and removes the sqrt entirely.",
+   "risk": "AreaSq is additive; SignedArea unchanged. Squared comparison preserves ordering only for non-negative magnitudes, which always holds here. The naming note is documentation-only."
+  },
+  {
+   "file": "src/IAFahim.Math.Barycentric/BarycentricCoords.cs",
+   "symbol": "Compute",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Use a single-scalar float3 splat for the degenerate 1/3 return and a named constant.",
+   "currentCost": "new float3(1f/3f,1f/3f,1f/3f) expresses three separate immediates and a 3-arg ctor on the cold degenerate branch.",
+   "proposedChange": "Add const float Third = 1.0f/3.0f and return new float3(Third) (scalar-splat ctor).",
+   "rationale": "Splat ctor lowers to one broadcast rather than three scalar moves and reads clearer; the named constant matches house style.",
+   "risk": "Cold-branch constant-factor only; Burst already folds the literal, so real impact is negligible. Semantics identical."
+  }
+ ]
+}

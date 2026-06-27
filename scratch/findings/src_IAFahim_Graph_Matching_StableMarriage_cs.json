@@ -1,0 +1,38 @@
+{
+ "file": "src/IAFahim.Graph.Matching/StableMarriage.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Matching/StableMarriage.cs",
+   "symbol": "StableMarriage.Run",
+   "severity": "critical",
+   "category": "pointer-ub",
+   "summary": "The scratch buffer is partitioned with womanRank at offset n (size n*n) but the proposal stack at offset 3n. For n>=3 these regions overlap (n + n*n > 3n), so initializing/pushing the stack corrupts womanRank entries (and vice versa), producing a wrong matching and out-of-range writes.",
+   "triggeringInput": "n=3 (e.g. manPref={1,0,2, 0,1,2, 0,1,2}, womanPref={0,1,2, 0,1,2, 0,1,2}); womanRank occupies scratch indices [3,12) while stack starts at scratch+9, so womanRank[w=2] (indices 9,10,11) is overwritten by the initial stack push, corrupting the rank comparison in ProcessProposal.",
+   "rootCause": "manNext = scratch (n ints), womanRank = scratch + n (n*n ints, occupying [n, n+n^2)), but stack = scratch + n*3. Since n + n^2 > 3n for all n > 2, the womanRank block and the stack block alias the same memory. The stack base should be scratch + n + n*n, not scratch + 3*n.",
+   "suggestedFix": "Place the stack after womanRank: int* stack = scratch + n + n*n; and document the required scratch size as at least n + n*n + (max stack depth, up to n*n). Apply the same correction to GaleShapley.RunWithHistory which uses the identical (buggy) layout."
+  },
+  {
+   "file": "src/IAFahim.Graph.Matching/StableMarriage.cs",
+   "symbol": "GaleShapley.RunWithHistory",
+   "severity": "critical",
+   "category": "pointer-ub",
+   "summary": "Same scratch-partition aliasing as StableMarriage.Run: womanRank at scratch+n (size n*n) overlaps the stack placed at scratch+n*3 for n>=3, corrupting womanRank/stack data and yielding a wrong matching plus out-of-range writes.",
+   "triggeringInput": "n=3 with any complete preference lists (e.g. manPref/womanPref all equal to {0,1,2} per row); womanRank for w=2 lands at scratch indices 9,10,11 which the stack initialization (stack=scratch+9) overwrites before the matching loop reads them.",
+   "rootCause": "womanRank = scratch + n occupies [n, n+n^2) but stack = scratch + n*3; n + n^2 > 3n for n>2 so the two buffers alias.",
+   "suggestedFix": "Set int* stack = scratch + n + n*n; (after the womanRank block) and size scratch accordingly."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Matching/StableMarriage.cs",
+   "symbol": "StableMarriage.ProcessProposal / CheckStabilityForMan",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Repeated recomputation of the womanRank row base `w*n` (and `m*n`) within rank comparisons.",
+   "currentCost": "Line 46: `womanRank[w*n + m] < womanRank[w*n + m2]` computes `w*n` twice. Line 41 recomputes `m*n` for manPref. Minor but on the hot proposal loop which runs O(n^2) times.",
+   "proposedChange": "Hoist `int* wrow = womanRank + (long)w * n;` then compare `wrow[m] < wrow[m2]`. Similarly cache `int* mrow = manPref + (long)m * n;` in ProcessProposal.",
+   "rationale": "Removes one integer multiply per comparison and shortens the address-computation dependency chain on the O(n^2) proposal path.",
+   "risk": "Index arithmetic must use the same width as existing `w*n` (int) to avoid changing results for very large n; use long base offset to be safe. No behavioral change."
+  }
+ ]
+}

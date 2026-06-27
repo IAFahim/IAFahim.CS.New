@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Graph.Flow/MinimumWeightClosure.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Flow/MinimumWeightClosure.cs",
+   "symbol": "MinimumWeightClosure.Run",
+   "severity": "critical",
+   "category": "pointer-ub",
+   "summary": "Edges are built with edgeId initialized to 1, so the first edge pair gets ids 1 and 2. The reverse-edge xor trick e^1 used by DinicDfs (flow[e^1]) requires forward edges at EVEN ids (pairs 2/3, 4/5, ...). With a forward edge at id 1, its reverse is 1^1=0, the sentinel/unused slot, so the true reverse edge (id 2) is never updated. The residual graph is corrupted and DinicMaxFlow returns a wrong max flow, yielding a wrong min-cut and wrong inClosure result. Flow.cs (MaxFlowLowerBounds) correctly uses edgeId=2, confirming the intended even-start convention.",
+   "triggeringInput": "n=1, s=n=1? Use n=1 with nodeWeight[0]=5 (>=0): the first AddEdge(s=newGraph source, 0, w=5) creates forward edge id 1 (s->0) and reverse id 2 (0->s). Dinic augments along id 1 and does flow[1^1]=flow[0]-=tr, touching the sentinel slot instead of the real reverse edge id 2, so residual bookkeeping is wrong. Any instance with at least one edge mis-pairs the reverse edge.",
+   "rootCause": "edgeId starts at 1 instead of 2; the e^1 reverse-edge pairing only holds when each forward edge sits at an even index. Edge id 1's complement under xor-1 is 0, the loop sentinel slot, not its paired reverse edge.",
+   "suggestedFix": "Initialize edgeId = 2 (matching MaxFlowLowerBounds in Flow.cs) so edge pairs occupy (2,3),(4,5),... and e^1 maps each forward edge to its true reverse edge."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Flow/MinimumWeightClosure.cs",
+   "symbol": "MinimumWeightClosure.Run",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "newTo/newNext/newCap/newFlow oversized at n*4 and one buffer (newFlow only needs edgeId entries)",
+   "currentCost": "Four arrays stackalloc[n*4] (lines 12-15) = 4*4*n*4 bytes = 64*n bytes of stack plus newHead. The actual edge count is 2*(n source/sink edges) + 2*(original edge count) entries; n*4 covers only n original edges. If the input graph has more than ~n edges this UNDER-allocates (latent overflow); if fewer, it over-allocates. newFlow needs exactly edgeId+1 entries, not n*4.",
+   "proposedChange": "Size buffers from the real edge budget: 2*(n + E) + 2 where E is the original edge count passed in or counted in one pass. At minimum, size newFlow to edgeId after construction (or pass E in). Document the edge-count assumption as a named constant.",
+   "rationale": "Correct, tight allocation: removes both the overflow risk for dense graphs and wasted stack for sparse ones; smaller working set improves cache residency of the Dinic passes.",
+   "risk": "Requires knowing E. Safe fix: count edges in one O(V+E) pass before allocating, or add an E parameter (ergonomics). Do not silently keep n*4 if callers can exceed n edges."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/MinimumWeightClosure.cs",
+   "symbol": "MinimumWeightClosure.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Final inClosure write uses a redundant ternary on an already-boolean byte",
+   "currentCost": "Line 42: inClosure[u] = (byte)(reachable[u] == 1 ? 1 : 0). reachable[u] is already exactly 0 or 1, so the compare+select is dead work per node.",
+   "proposedChange": "Write inClosure[u] = reachable[u]; directly (both are byte and reachable holds only 0/1).",
+   "rationale": "Removes a compare and a conditional-select per vertex; straight copy is more vectorizable by Burst.",
+   "risk": "None provided reachable is only ever assigned 0 or 1 (it is: init 0, set 1). Behavior identical."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/MinimumWeightClosure.cs",
+   "symbol": "MinimumWeightClosure.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "newCap[e]-newFlow[e] and newTo[e] reloaded multiple times in BFS",
+   "currentCost": "Lines 36-38 read newTo[e] up to three times and recompute the residual. Same pattern as MinimumSTCutAll.",
+   "proposedChange": "Cache int v=newTo[e]; and the residual once per edge.",
+   "rationale": "Fewer dependent loads on the residual-BFS hot path.",
+   "risk": "None; loop-invariant within edge body."
+  }
+ ]
+}

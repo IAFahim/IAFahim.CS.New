@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Geometry.Spatial/KdTree.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Spatial/KdTree.cs",
+   "symbol": "KdTree.BuildRecursive",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Build uses an O(count^2) selection-style bubble sort at every recursion level, making tree construction O(n^2 log n) instead of O(n log n).",
+   "currentCost": "The nested i/j loops fully sort each subarray with ~count^2/2 comparisons and swaps per node; summed over levels this is O(n^2 log n). For n in the thousands this dominates everything.",
+   "proposedChange": "Replace the full sort with an in-place quickselect (nth_element) on the chosen axis to partition around 'mid' in expected O(count). You only need the median positioned and elements partitioned around it, not a total order. This reduces build to expected O(n log n).",
+   "rationale": "Median-of-the-array is all the kd-tree needs; quickselect gives expected linear partition per node, turning the per-level cost from O(n^2) into O(n) and total build from O(n^2 log n) to O(n log n).",
+   "risk": "Quickselect tie-handling must keep left subtree size == mid and elements < pivot on the left to preserve identical tree shape; with duplicate coordinates the exact node assignment may differ from the stable bubble sort. If exact tree identity matters for downstream tests, use a deterministic pivot and stable partition."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Spatial/KdTree.cs",
+   "symbol": "KdTree.BuildRecursive",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Each recursion allocates two fresh stackalloc index buffers (leftIndices/rightIndices) and copies into them, causing O(n log n) extra stack traffic and risking stack overflow on deep/large n.",
+   "currentCost": "Per node: stackalloc[mid] + stackalloc[rightCount] plus two copy loops. Stackalloc inside a recursive method accumulates frames (it is NOT freed until the method returns), so total live stack is O(n log n) worst case \u2014 a real overflow hazard for large n under Burst.",
+   "proposedChange": "Partition the single 'indices' array in place around the median (as quickselect does) and recurse on the [0,mid) and (mid,count) slices of the same buffer via pointer offset + length, eliminating both per-call stackallocs and the copy loops.",
+   "rationale": "In-place partitioning removes all auxiliary allocation and the copy passes, cuts stack growth from O(n log n) to O(n) for the index array (single buffer) plus O(log n) recursion frames, and improves cache locality.",
+   "risk": "Must ensure the in-place partition leaves the left half entirely before mid and right half after, matching the recursion contract. Recursion depth still O(log n) after balanced median selection; guard against degenerate depth if quickselect picks bad pivots (use median-of-three)."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Spatial/KdTree.cs",
+   "symbol": "KdTree.BuildRecursive",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "axis is 'depth % 2' and the inner swap test branches on 'axis == 0' / 'axis == 1' separately every comparison.",
+   "currentCost": "depth % 2 is a modulo (compiler likely lowers to AND, but not guaranteed under all paths), and the comparison evaluates two independent if-branches per (i,j) pair inside the hot O(count^2) loop, adding a redundant compare.",
+   "proposedChange": "Compute 'axis = depth & 1' (power-of-two mask, always valid for non-negative depth). Hoist the axis decision out of the inner loop by selecting the coordinate pointer once: 'double* key = (axis == 0) ? xs : ys;' then compare 'key[indices[j]] < key[indices[i]]'. Combined with quickselect this disappears, but even with the current sort it removes a branch per comparison.",
+   "rationale": "& 1 is a single-cycle mask vs a potential div/rem; selecting the key pointer once turns two per-iteration branches into a straight-line compare, shortening the dependency chain in the innermost loop.",
+   "risk": "depth is always >= 0 so '& 1' is exactly '% 2' here \u2014 safe. Pointer-select keeps identical comparison semantics."
+  }
+ ]
+}

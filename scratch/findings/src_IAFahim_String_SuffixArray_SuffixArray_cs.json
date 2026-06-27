@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.String.SuffixArray/SuffixArray.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.SuffixArray/SuffixArray.cs",
+   "symbol": "SuffixArray.InitializeSuffixArray",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The rank-clear loop writes 2*len entries to -1, but the first len are unconditionally overwritten on the next line; only the sentinel half [len, 2*len) needs clearing.",
+   "currentCost": "len redundant stores: `for (i in 0..2*len) rank[i] = -1` then `for (i in 0..len) rank[i] = ptr[i]` rewrites the lower half. That is len wasted writes plus the dirtied cache lines.",
+   "proposedChange": "Clear only the sentinel region: `for (int i = len; i < len * 2; i++) rank[i] = -1;`. The lower half is fully initialized by the subsequent `rank[i] = ptr[i]` loop.",
+   "rationale": "Halves the store traffic of the clear and avoids touching/dirtying cache lines that are immediately rewritten, lowering memory bandwidth \u2014 meaningful for large len on mobile.",
+   "risk": "None for valid input: every rank[0..len) is assigned ptr[i] before any read. The +h sentinel reads (rank[sa[i]+h]) only index into [len, 2*len), which is still cleared. Requires rank buffer length >= 2*len, which the existing code already assumes."
+  },
+  {
+   "file": "src/IAFahim.String.SuffixArray/SuffixArray.cs",
+   "symbol": "SuffixArray.UpdateRank",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The trailing `for (i) rank[i] = tmpRank[i]` full copy can be eliminated by ping-ponging the rank and tmpRank buffers across doubling rounds.",
+   "currentCost": "O(len) copy every doubling round (~log len rounds), i.e. an extra len*log(len) stores plus a full second buffer read each round, purely to move the new ranks back into `rank`.",
+   "proposedChange": "Have Build swap the `rank`/`tmpRank` pointers after UpdateRank instead of copying, and write the new ranks into tmpRank (already done). On loop exit ensure `rank` points at the final buffer (one conditional copy or swap-count parity fixup at the end). Keep SortByRank reading from whichever pointer currently holds the live ranks.",
+   "rationale": "Removes a full O(len) pass per round, turning ~log(len) memcpys into pointer swaps. Reduces both instruction count and L1/L2 traffic on the hottest loop of the construction.",
+   "risk": "Caller-visible: which physical buffer holds the result changes per parity. Must guarantee on exit that `rank` (the buffer the caller expects to read) holds the final ranks \u2014 do a single final copy if the swap parity left them in tmpRank, or document the parity. Use Unsafe.CopyBlockUnaligned for the final copy. Semantics preserved as long as the final ranks land in the caller's rank buffer."
+  }
+ ]
+}

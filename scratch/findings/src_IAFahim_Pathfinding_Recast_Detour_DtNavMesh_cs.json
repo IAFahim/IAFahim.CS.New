@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Detour/DtNavMesh.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/DtNavMesh.cs",
+   "symbol": "ClosestPointOnDetailEdges / GetPolyHeight (per-vertex index switch)",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Triangle vertex selection uses a 3-way `j switch { 0=>tri->x, 1=>tri->y, _=>tri->z }` inside the innermost loops, generating branchy non-vectorizable code.",
+   "currentCost": "In ClosestPointOnDetailEdges (lines ~1286, ~1301-1302) and GetPolyHeight (line ~1394) every triangle vertex fetch evaluates a switch on a loop index to pick x/y/z from a byte4 `tri`. This is 2-3 compares/branches per vertex per triangle, repeated over triCount*3, defeating Burst's ability to keep the triangle indices in a vector register.",
+   "proposedChange": "Load the triangle once into a local `byte4 t = *tri;` and index it positionally via a fixed-size local array or the byte4's component accessor by stuffing `(&t.x)[j]` (byte4 is a sequential struct of bytes), or precompute `int3 idx = new int3(tri->x, tri->y, tri->z);` and read `idx[j]`. Unity.Mathematics int3 indexer is branchless. Same for the k/jLoop pair in the edge loop.",
+   "rationale": "Replaces a data-dependent branch ladder with a single indexed load (int3 indexer compiles to a shuffle/extract), shortening the dependency chain and letting Burst vectorize the surrounding triangle iteration. Fewer mispredicted branches on irregular detail meshes.",
+   "risk": "byte4 raw-pointer indexing relies on sequential layout (it is [StructLayout? confirm] a plain x,y,z,w struct, so `(&t.x)[j]` is valid only if no padding \u2014 int3 path avoids that concern). Use the int3 local to stay fully safe; semantics identical since it only reorders the same reads."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/DtNavMesh.cs",
+   "symbol": "GetPolyHeight (stackalloc verts + double work on fallback)",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "On the edge-fallback path GetPolyHeight re-walks all detail triangles via ClosestPointOnDetailEdges after already walking them once, and re-fetches poly verts it already gathered.",
+   "currentCost": "Lines ~1361-1418: GetPolyHeight gathers poly verts into a stackalloc Span (PointInPolygon), then loops all detail tris calling ClosestHeightPointTriangle; if none succeed it calls ClosestPointOnDetailEdges which loops the SAME detail tris again and re-derives the SAME triangle vertices from scratch. The poly->verts gather is also redundant with what ClosestPointOnDetailEdges recomputes.",
+   "proposedChange": "The fallback is documented as rare, so the double-walk is acceptable, but the per-triangle vertex derivation (the j-switch from the other finding) is shared; factoring a single `GetDetailTriVerts(tile, poly, pd, tri, out float3x3 v)` AggressiveInlining helper removes duplicated index logic and lets both the height loop and edge loop reuse identical, branch-reduced code. No extra correctness risk since it is a pure extraction.",
+   "rationale": "Deduplicates the hottest inner computation (vertex fetch) into one inlinable unit, reducing code size / I-cache pressure and giving Burst one well-shaped loop body to optimize instead of two divergent copies.",
+   "risk": "Pure refactor; must keep the `triIndex < poly->vertCount` branch semantics identical (main verts vs detail verts). No numeric change."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/DtNavMesh.cs",
+   "symbol": "DecodePolyId / DecodePolyIdSalt / DecodePolyIdTile (64-bit mask recompute)",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Per-call recomputation of constant bit masks in the non-DT_POLYREF32 (default 64-bit) decode path.",
+   "currentCost": "In the #else branch, DecodePolyId (lines ~1156-1161) and the single-field decoders recompute `(1ul << Detour.DTSaltBits)-1` etc. on every call. These are compile-time constants (DTSaltBits/DTTileBits/DTPolyBits are consts), so the JIT/Burst should fold them, but the shifts are written as runtime expressions. DecodePolyId is called on essentially every link/neighbour visit in every search (GetTileAndPolyByRef* hot path).",
+   "proposedChange": "Promote the masks to `private const DtPolyRef SaltMask64 = (1ul << Detour.DTSaltBits) - 1;` (and TileMask64/PolyMask64) named constants and use them directly. This guarantees constant-folding regardless of Burst const-propagation and documents intent. The methods already carry AggressiveInlining.",
+   "rationale": "Removes any residual shift/sub from the decode and guarantees the masks are immediates. Even if Burst already folds them, making them named consts removes risk of de-optimization and tidies the hottest decode used by GetTileAndPolyByRefUnsafe in every A* expansion.",
+   "risk": "None functional; constants equal the current expressions. Only applies to the 64-bit branch (the shipped default per code layout)."
+  }
+ ]
+}

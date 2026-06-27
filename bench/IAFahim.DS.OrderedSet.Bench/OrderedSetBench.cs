@@ -41,6 +41,7 @@ namespace IAFahim.DS.OrderedSet.Bench
         [Benchmark(Baseline = true)]
         public void OrderedSetInsert()
         {
+            ResetSorted();
             for (int i = 0; i < N; i++)
                 _sortedLen = OrderedSet.Insert(_sorted, _sortedLen, _data[i]);
         }

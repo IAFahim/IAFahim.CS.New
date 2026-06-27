@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.NT/LinearSieveDivisorSum.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/LinearSieveDivisorSum.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Same n/i bound substitution to drop the per-iteration 64-bit multiply (mirror of DivisorCount).",
+   "currentCost": "prod = (long)i * primes[j] computed every inner iteration just for the bound test and index.",
+   "proposedChange": "int lim = n / i; once per i; inner: if (primes[j] > lim) break; int ip = i * primes[j]; (32-bit, no overflow).",
+   "rationale": "Replaces a 64-bit multiply + 64-bit compare per inner iteration with one division per outer i and a 32-bit compare. Identical break semantics for positive ints.",
+   "risk": "None; primes[j] <= n/i  <=> i*primes[j] <= n. ip <= n fits int. Note the values sp/sigma remain long and can be large, but the index arithmetic is bounded by n."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/LinearSieveDivisorSum.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Cache sp[i], sigma[i], and primes[j] into locals in the multiple-of-prime branch.",
+   "currentCost": "sp[ip] = sp[i]*primes[j]+1; sigma[ip] = sigma[i]/sp[i]*sp[ip]; reloads sp[i] twice and primes[j], through long* with non-provable non-aliasing to sp[ip]/sigma[ip].",
+   "proposedChange": "long spi = sp[i]; long sigi = sigma[i]; long pj = primes[j]; long spip = spi * pj + 1; sp[ip] = spip; sigma[ip] = sigi / spi * spip;",
+   "rationale": "Fewer dependent loads, explicit non-aliasing (ip > i), shorter critical path through the divide. The divide sigma[i]/sp[i] is exact by construction; caching does not change it.",
+   "risk": "None; ip = i*primes[j] > i so stores to sp[ip]/sigma[ip] cannot clobber sp[i]/sigma[i]. Same results."
+  }
+ ]
+}

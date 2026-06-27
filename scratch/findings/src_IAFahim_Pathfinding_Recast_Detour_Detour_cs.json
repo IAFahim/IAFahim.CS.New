@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Detour/Detour.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/Detour.cs",
+   "symbol": "DtStraightPathOptions",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "DtStraightPathOptions lacks an explicit underlying type, defaulting to int while every sibling flags enum in this file is explicitly typed (uint or byte).",
+   "currentCost": "Enum implicitly backed by System.Int32 (4 bytes). Inconsistent with DtStraightPathFlags (: byte), DtStatus/DtFindPathOptions/DtRaycastOptions (: uint) and DtDetailTriEdgeFlags (: byte) in the same file.",
+   "proposedChange": "Declare 'public enum DtStraightPathOptions : byte' (values are 0x01/0x02/0x04, all fit in a byte) to match the codebase convention for small flag enums. If ABI/interop with native Detour expects a wider type, use ': uint' instead to match the other Dt* flag enums.",
+   "rationale": "Consistency makes the intended storage width explicit and avoids accidental signed-vs-unsigned semantics on bit operations. It is currently passed only as a method argument (DtNavMeshQuery), never stored in a blittable struct, so this is API hygiene, not a layout win.",
+   "risk": "None observable for the bit-test usages (& / != 0) found in DtNavMeshQuery. Only matters if the type is ever marshalled to native code with a fixed-width expectation; pick the width (byte vs uint) that matches that ABI. No behavior change for the current managed callers."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/Detour.cs",
+   "symbol": "DtStatus",
+   "dimension": "purity",
+   "impact": "low",
+   "summary": "Detail flags (WrongMagic..AlreadyOccupied) use signed int literals (1 << n) inside a uint-backed [Flags] enum, mixing signed and unsigned literal forms.",
+   "currentCost": "Mixed literal styles: high bits use '1u << 31', detail bits use '1 << 0'. The signed literals are implicitly converted to uint at compile time; correct today but stylistically inconsistent and a latent hazard if a future flag uses bit 31 with the signed form.",
+   "proposedChange": "Write all flag values with unsigned literals: 1u << 0, 1u << 1, ... 1u << 7, matching the Failure/Success/InProgress entries and the enum's ': uint' base.",
+   "rationale": "Uniform unsigned literals eliminate any implicit signed->unsigned narrowing and make the all-uint intent explicit, reducing the chance of a sign-extension surprise on a future high-bit flag.",
+   "risk": "Zero behavior change for the current values (all in bits 0-7, identical numerically). Pure source-level consistency fix."
+  }
+ ]
+}

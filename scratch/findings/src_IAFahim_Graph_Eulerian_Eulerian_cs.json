@@ -1,0 +1,125 @@
+{
+ "file": "src/IAFahim.Graph.Eulerian/Eulerian.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Eulerian/Eulerian.cs",
+   "symbol": "EulerianPathUndirected.Run",
+   "severity": "critical",
+   "category": "off-by-one",
+   "summary": "Path is written at indices path[n-1-top], assuming the Euler path has exactly n vertices, but an Euler path has (numEdges+1) vertices. When numEdges+1 > n (any connected graph with a cycle, e.g. a multigraph or a triangle) this writes to NEGATIVE indices (out-of-bounds write / UB); when numEdges+1 < n it writes the path at a positive offset while the function still returns n, so the caller reads garbage at path[0..]. The vertex count of the path is unrelated to n.",
+   "triggeringInput": "Undirected triangle: n=3, vertices 0-1-2-0 with 3 edges, start=0. There are 3 edges so 4 vertices are popped. The first pop sets top=3 and writes path[n-1-top] = path[3-1-3] = path[-1], an out-of-bounds negative write (UB).",
+   "rootCause": "The code conflates the number of vertices n with the number of vertices on the Euler path (numEdges+1). Indexing path[n-1-top] and returning n is only correct in the degenerate case numEdges+1 == n; for any graph with cycles numEdges >= n and the index n-1-top goes negative.",
+   "suggestedFix": "Compute the edge count m (as the directed version does), size/index the path by m+1, write reversed via path[m - writeCount] or fill forward and reverse, and return m+1 instead of n. E.g. keep a counter c starting at 0 and write path[m - c++] on each pop, returning m+1."
+  },
+  {
+   "file": "src/IAFahim.Graph.Eulerian/Eulerian.cs",
+   "symbol": "EulerianPathUndirected.Run",
+   "severity": "critical",
+   "category": "pointer-ub",
+   "summary": "edgeUsed = stackalloc int[n*4] is never zero-initialized (unlike the directed Run on line 70). The author attempts to mask this with the 'ec > 0 &&' guard on line 32, but that only skips the used-check on the very first traversed edge. From the second edge onward the code reads edgeUsed[e] for edges that were never written, i.e. uninitialized stack memory. A garbage nonzero value causes a valid, unused edge to be wrongly skipped, truncating the Euler path; reading uninitialized memory is undefined behavior regardless.",
+   "triggeringInput": "Any undirected graph with more than one edge from the starting traversal, e.g. n=3 path 0-1-2 with edges {0-1,1-2}, start=0. After the first edge (ec becomes 1), edgeUsed[e] for the not-yet-used edge is read while uninitialized; if that stack slot is nonzero the edge is skipped and the path is wrong.",
+   "rootCause": "Missing initialization loop 'for (i=0;i<n*4;i++) edgeUsed[i]=0;'. The 'ec > 0' guard is an incorrect substitute that only protects the first edge, not subsequent reads of garbage entries.",
+   "suggestedFix": "Zero-initialize edgeUsed exactly as the directed version does (for (int i=0;i<n*4;i++) edgeUsed[i]=0;) and remove the 'ec > 0 &&' guard so the check becomes 'if (edgeUsed[e] != 0) continue;'."
+  },
+  {
+   "file": "src/IAFahim.Graph.Eulerian/Eulerian.cs",
+   "symbol": "EulerianPathDirected.Run",
+   "severity": "high",
+   "category": "logic",
+   "summary": "For directed graphs the popped vertices in Hierholzer's algorithm form the Euler path in REVERSE order and must be reversed before returning. This method writes them in pop order via path[pathLen++] = u and returns that, so it outputs the path backwards. Since edges are directed, the reversed sequence is not a valid Euler path (it traverses edges against their direction). Note the undirected version correctly reverses via path[n-1-top]; the directed one fails to.",
+   "triggeringInput": "Directed graph n=3 with edges 0->1, 1->2, start=0. Pops produce path = [2,1,0], but the correct Euler path is [0,1,2]. The returned sequence walks edges 2->1->0 which do not exist.",
+   "rootCause": "Hierholzer emits vertices in reverse on pop; the code fills path forward (path[pathLen++]) instead of reversed, omitting the final reversal step.",
+   "suggestedFix": "Fill the path in reverse like the undirected version: write path[m - c] for a counter c (with m = edge count, path length m+1), or fill forward then reverse the path array in place before returning."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Eulerian/Eulerian.cs",
+   "symbol": "EulerianPathUndirected.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Hierholzer inner loop never advances curHead past edges it skips via `continue`, so used edges at the front of each adjacency list are rescanned on every revisit \u2014 turning the traversal into O(V*E) worst case instead of O(E).",
+   "currentCost": "On line 30-40, when `edgeUsed[e] != 0` the loop `continue`s without moving `curHead[u]`. A vertex revisited d times rescans up to d already-used edges each time -> O(sum of degree^2) total edge scans.",
+   "proposedChange": "Always advance the cursor when skipping a dead edge: replace `if (ec > 0 && edgeUsed[e] != 0) continue;` with logic that does `curHead[u] = next[e];` before `continue` (i.e. monotonically advance curHead even for used edges). Since each undirected edge is consumed exactly once and the cursor only moves forward, every edge slot is visited O(1) times -> O(E) total.",
+   "rationale": "Monotone cursor advancement is the standard linear-time Hierholzer formulation; it removes the repeated O(degree) rescans, reducing asymptotic work from O(V*E) to O(E) and improving cache behavior (each next[] cell read once).",
+   "risk": "Must advance curHead BEFORE the break for the live-edge case as well (already done) and BEFORE continue for the dead-edge case. Correctness preserved because once an edge is marked used it never needs to be revisited; the cursor never needs to point back at it. This also lets the `ec > 0` guard (next item) be removed since stale edgeUsed entries are simply skipped-and-advanced."
+  },
+  {
+   "file": "src/IAFahim.Graph.Eulerian/Eulerian.cs",
+   "symbol": "EulerianPathUndirected.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "The `ec > 0 &&` guard on the edgeUsed test exists only to avoid reading an unzeroed edgeUsed buffer on the very first edge; it adds a branch to every inner-loop iteration.",
+   "currentCost": "Line 32 `if (ec > 0 && edgeUsed[e] != 0) continue;` evaluates `ec > 0` on every edge scan for the entire traversal, purely to handle the first-edge cold-buffer case.",
+   "proposedChange": "Zero `edgeUsed` once up front (a single tight `for` over the used range, like the directed version does on line 70) and drop the `ec > 0` term, leaving `if (edgeUsed[e] != 0) continue;`. ec then only needs to remain if used elsewhere (it is not read after), so `ec` and its increment can be removed entirely.",
+   "rationale": "Removes a per-iteration comparison and a per-push increment from the hot loop, and removes a live integer from the dependency chain. The one-time zeroing is amortized O(E) and predictable/vectorizable.",
+   "risk": "Only the edge slots actually reachable need zeroing; zero the same n*4 range the directed path uses to stay safe. edgeUsed[e]!=0 for paired edges still set via e^1, so semantics identical. Note: edgeUsed[e^1]=1 means each physical edge is one logical edge; behavior unchanged."
+  },
+  {
+   "file": "src/IAFahim.Graph.Eulerian/Eulerian.cs",
+   "symbol": "EulerianPathUndirected.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Parity test `deg[i] % 2 == 1` uses signed modulo; degrees are non-negative so a bitmask is equivalent and cheaper.",
+   "currentCost": "Line 16 emits signed-remainder codegen (a div/mul/sub or a sign-correcting sequence) per vertex.",
+   "proposedChange": "Replace `if (deg[i] % 2 == 1) oddCount++;` with `if ((deg[i] & 1) != 0) oddCount++;`.",
+   "rationale": "`& 1` is a single AND instruction with no sign-correction; Burst lowers it to a clean masked test and it vectorizes/branch-predicts identically.",
+   "risk": "`%2==1` and `&1!=0` diverge only for negative operands; deg[] is a pure accumulation of non-negative increments so it is always >= 0. Safe."
+  },
+  {
+   "file": "src/IAFahim.Graph.Eulerian/Eulerian.cs",
+   "symbol": "EulerianPathUndirected.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Degree is computed in a separate full pass over all adjacency lists solely to count odd-degree vertices, but only the parity of each degree is needed.",
+   "currentCost": "Lines 10-16: a stackalloc int[n] plus a full O(E) pass building exact degrees, then an O(n) pass extracting parity. The exact magnitudes are discarded.",
+   "proposedChange": "Track parity directly: use a byte/bit buffer (or accumulate XOR) so the degree pass writes `parity[u] ^= 1` and the second pass tests parity[i] directly; this also shrinks the scratch buffer from int[n] to byte[n]. Alternatively fold the odd-count accumulation so the int[n] `deg` buffer is avoided entirely.",
+   "rationale": "Halves/quarters the scratch working set (int[n] -> byte[n]) reducing stack pressure and cache footprint on mobile, and removes storing full counts that are immediately reduced to a single bit.",
+   "risk": "XOR-parity accumulation gives identical odd/even classification. Keep the buffer in the same stackalloc style (byte* via stackalloc byte[n]) to satisfy the unmanaged/raw-pointer house rule."
+  },
+  {
+   "file": "src/IAFahim.Graph.Eulerian/Eulerian.cs",
+   "symbol": "EulerianPathDirected.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Same non-advancing-cursor rescan as the undirected version: skipped used edges are not stepped over, giving O(V*E) worst case.",
+   "currentCost": "Lines 80-88: `if (edgeUsed[e] != 0) continue;` leaves curHead[u] untouched, so every revisit of u rescans already-consumed prefix edges. Total work O(sum of outdeg^2).",
+   "proposedChange": "Advance the cursor unconditionally when skipping: set `curHead[u] = next[e];` before the `continue` so the head only ever moves forward. Each directed edge is then examined O(1) times -> O(E) traversal.",
+   "rationale": "Linear Hierholzer; eliminates repeated prefix rescans. Since directed edges are single (no e^1 pairing), once edgeUsed[e]=1 the slot is permanently dead and the cursor can safely skip past it forever.",
+   "risk": "None for correctness: a used directed edge never becomes live again, so advancing past it loses nothing. Preserves output path order."
+  },
+  {
+   "file": "src/IAFahim.Graph.Eulerian/Eulerian.cs",
+   "symbol": "EulerianPathDirected.Run",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "`m` (total edge count) is computed in a dedicated O(E) pass but is never read afterward \u2014 it is dead computation.",
+   "currentCost": "Lines 72-74 run a full second traversal of every adjacency list accumulating `m`, an extra O(E) pass plus a live local, with no subsequent use of `m` (return is pathLen).",
+   "proposedChange": "Delete the `int m = 0;` declaration and its counting double-loop. If a validity check on the result was intended (Eulerian path should have m+1 vertices), it is currently absent, so removing the unused pass changes nothing observable.",
+   "rationale": "Removes an entire O(E) scan and its memory traffic for zero functional benefit.",
+   "risk": "None \u2014 `m` is provably unused (no read between assignment and method end). If a future caller wants validation, reintroduce a single `outdeg`-sum reduction instead of re-walking lists."
+  },
+  {
+   "file": "src/IAFahim.Graph.Eulerian/Eulerian.cs",
+   "symbol": "EulerianPathDirected.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "indeg/outdeg are read only to find the unique start/end via `outdeg-indeg`; the difference can be computed once and the two int[n] buffers collapsed to one.",
+   "currentCost": "Lines 51-62 keep two stackalloc int[n] buffers but only their per-vertex difference is consulted (==1 / ==-1). The classification loop recomputes `outdeg[i]-indeg[i]` twice per vertex.",
+   "proposedChange": "Maintain a single `int* netdeg = stackalloc int[n]` updated as `netdeg[to[e]]--; netdeg[u]++;`, then in the scan compute `int d = netdeg[i];` once and branch on `d`. Halves the degree scratch and removes the duplicate subtraction.",
+   "rationale": "Cuts scratch RAM from 2*int[n] to int[n] (relevant on mobile stack budgets) and removes one redundant subtraction per vertex in the classification pass.",
+   "risk": "`outdeg-indeg` net value is identical whether stored as two arrays or one net array; start/end selection unchanged. Overflow not a concern (degree bounded by E, same as before)."
+  },
+  {
+   "file": "src/IAFahim.Graph.Eulerian/Eulerian.cs",
+   "symbol": "EulerianPathDirected.Run",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "edgeUsed is zeroed with a scalar loop over n*4 entries; a bulk clear is cheaper and the directed graph only needs m flags, not n*4.",
+   "currentCost": "Line 70 zeroes n*4 ints one at a time. n*4 may also over- or under-allocate relative to actual edge-id range depending on the indexing convention.",
+   "proposedChange": "Use a single bulk clear (Unsafe.InitBlockUnaligned / a memset-style fill Burst recognizes) over the actually-used edge-id span, or size the buffer to the true max edge id. Prefer a byte buffer (stackalloc byte[edges]) since edgeUsed only stores 0/1.",
+   "rationale": "Bulk zeroing is vectorized by Burst and a byte buffer quarters the footprint and bandwidth of the clear; smaller working set improves cache residency in the hot traversal that reads edgeUsed[e] repeatedly.",
+   "risk": "Edge-id range must cover all valid e values; keep the buffer at least as large as the current n*4 unless the indexing convention guarantees a tighter bound. byte flags are sufficient since only 0/1 is stored."
+  }
+ ]
+}

@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Geometry.Intersect/Sphere.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Intersect/Sphere.cs",
+   "symbol": "LineIntersection",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Tangent branch (disc<1e-12) recomputes -b/(2.0*a); and the citardauq path divides by 2.0*a twice via separate constant divides.",
+   "currentCost": "Two divides by (2.0*a) implied; the disc<1e-12 path computes 2.0*a fresh. r*r, b*b, 4.0*a*c form a moderate dependency chain feeding sqrt.",
+   "proposedChange": "Hoist double inv2a = 0.5 / a (one divide) and reuse it: tangent t = -b*inv2a. Keep the numerically-stable citardauq form for the two-root case (q/a and c/q are already good). Precompute double rr = r*r once.",
+   "rationale": "Replaces a long-latency divide in the tangent branch with a multiply by a precomputed reciprocal; 0.5/a is computed once and shared. Divides are ~20-30 cycles on mobile FPUs, mults ~4.",
+   "risk": "0.5/a vs -b/(2.0*a): floating-point result can differ in the last ULP. Acceptable for a geometric tangent root, but if exact bit-reproducibility with the current build is contractual, reject. State the ULP caveat."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Intersect/Sphere.cs",
+   "symbol": "SphereIntersection",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "dx/d, dy/d, dz/d are each computed twice (once for center, once for normal) \u2014 six divides where three suffice; r1*r1 and r2*r2 also recomputed.",
+   "currentCost": "Lines 77-85 perform dx/d, dy/d, dz/d twice = 6 divides total. r1*r1 appears at lines 73 and 74; r2*r2 at line 73. Each divide is ~20-30 cycles.",
+   "proposedChange": "Compute double invD = 1.0/d once, then nxv=dx*invD, nyv=dy*invD, nzv=dz*invD into locals; write *nx=nxv etc. and *cx=x1+a*nxv etc. Precompute double r1r1=r1*r1, r2r2=r2*r2 and reuse in the 'a' formula and hSq.",
+   "rationale": "Cuts 6 divides to 1 (reciprocal) plus 6 mults, and removes 1 redundant square. This is the dominant cost in this routine; on mobile the divide reduction alone is a large win and shortens the dependency chain feeding the output writes.",
+   "risk": "Multiply-by-reciprocal differs from direct divide by up to ~1 ULP per component. If bit-exact reproducibility is required reject; otherwise geometrically negligible. Behavior (return value, sign) unchanged."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Intersect/Sphere.cs",
+   "symbol": "SphereIntersection",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Early-reject tests use d=sqrt(dSq) but could be done on squared quantities, deferring the sqrt until after rejection.",
+   "currentCost": "sqrt(dSq) at line 67 is always paid even when the spheres are clearly separated/contained and the function returns false at lines 69-71.",
+   "proposedChange": "Rewrite the separation test d > r1+r2 as dSq > (r1+r2)^2 and containment d < |r1-r2| as dSq < (r1-r2)^2 (both sides non-negative), with epsilon folded appropriately, so sqrt is only computed once the pair is confirmed intersecting.",
+   "rationale": "Avoids a long-latency sqrt on the common rejection paths in broad-phase-style usage. Squared comparisons are exact-sign equivalent since all operands are non-negative.",
+   "risk": "Epsilon semantics shift: 'd > r1+r2+1e-12' is not identical to 'dSq > (r1+r2+1e-12)^2' at the boundary. To preserve exact behavior, compare dSq against (r1+r2)*(r1+r2) plus a derived tolerance, or keep the epsilon in linear space by only skipping sqrt on the clearly-true squared rejections and falling back. Flag as needing careful epsilon handling; reject if epsilon boundary must match bit-for-bit."
+  }
+ ]
+}

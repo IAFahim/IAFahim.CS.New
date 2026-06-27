@@ -1,0 +1,16 @@
+{
+ "file": "src/IAFahim.String/StringAdvanced.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.String/StringAdvanced.cs",
+   "symbol": "SuffixLowerBound.Run",
+   "severity": "high",
+   "category": "off-by-one",
+   "summary": "SuffixLowerBound returns the index AFTER a suffix that equals/prefix-matches the pattern instead of pointing at it. When the inner comparison loop ends with all compared characters equal (suffix has pattern as a prefix, or suffix == pattern), the local flag 'less' is never set to false, so the code falls into the 'else if (less) lo = mid + 1' branch and advances past the matching suffix. The first guard 'less && len < patLen && s[sa[mid]+len-1]==pattern[len-1]' also advances lo for a partial prefix match. Result: a true lower bound for a pattern that is present in the text returns one position too far, so the suffix array range used for occurrence counting/locating is wrong (e.g. reports a present pattern as having an empty or shifted range).",
+   "triggeringInput": "s = {1} (n=1), sa = {0}, pattern = {1}, patLen = 1. The only suffix \"1\" equals the pattern, so the lower bound must be 0, but the method returns 1. Another: s = {1,1,2,2,2,1}, sa = {5,0,1,4,3,2}, pattern = {1}, patLen = 1 returns 3 instead of 0.",
+   "rootCause": "The loop only distinguishes 'strictly less' (break with less=true) from 'strictly greater' (less=false), and never has a branch for the equal/prefix-match case. After the loop, less==true is treated unconditionally as 'suffix < pattern -> go right (lo=mid+1)'. There is no tiebreak like SuffixCompare's '(n - sa[mid]).CompareTo(patLen)' to keep hi=mid when the suffix matches the pattern prefix or is equal, so matching suffixes are skipped over.",
+   "suggestedFix": "Track three-way comparison like SuffixCompare. After comparing min(patLen, n-sa[mid]) chars, if all equal then the suffix starts with the pattern (a match) and should move hi = mid (not lo), so the lower bound points at the first matching suffix. Concretely: compute cmp by character; if cmp==0 after the loop, set less=false (treat prefix match / equal as NOT less) so the 'else hi = mid' branch runs. Remove the special 'len < patLen && s[...]==pattern[len-1]' clause, which incorrectly advances lo on a partial prefix match."
+  }
+ ],
+ "perf": []
+}

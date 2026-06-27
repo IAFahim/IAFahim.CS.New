@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Geometry.Azimuth/SphericalAzimuth.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Azimuth/SphericalAzimuth.cs",
+   "symbol": "SphericalAzimuth.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Eliminate the duplicate Math.Cos(lat2) transcendental call via common-subexpression elimination.",
+   "currentCost": "Math.Cos(lat2) is evaluated twice (line 12 in y, line 13 in x). The method also re-derives Math.Sin(lat1), Math.Cos(lat1), Math.Sin(lat2), Math.Cos(dLon) \u2014 currently 6 distinct trig evaluations but cos(lat2) is computed twice for a total of 7 trig calls.",
+   "proposedChange": "Hoist into locals: double sinDLon = Math.Sin(dLon); double cosDLon = Math.Cos(dLon); double sinLat1 = Math.Sin(lat1); double cosLat1 = Math.Cos(lat1); double sinLat2 = Math.Sin(lat2); double cosLat2 = Math.Cos(lat2); then y = sinDLon * cosLat2; x = cosLat1 * sinLat2 - sinLat1 * cosLat2 * cosDLon. This removes the second cos(lat2) evaluation (7 trig -> 6).",
+   "rationale": "Math.Cos is a libm transcendental costing tens to ~100+ cycles. The JIT/Burst cannot CSE it because it is not provably side-effect-free/pure to the optimizer, so the duplicate call is emitted as-is. Manual CSE guarantees a single evaluation, saving one full cos per call in a hot leaf.",
+   "risk": "None. Math.Cos is deterministic for a given input, so reusing the value is bit-identical to recomputing it. Pure refactor, identical IEEE result."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Azimuth/SphericalAzimuth.cs",
+   "symbol": "SphericalAzimuth.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Same branchless normalization and TwoPi constant as CartesianAzimuth.Run.",
+   "currentCost": "Duplicate if (angle < 0.0) angle += 2.0 * Math.PI pattern: a data-dependent branch plus a runtime 2.0 * Math.PI literal multiply after Atan2.",
+   "proposedChange": "Introduce a shared private const double TwoPi = 2.0 * Math.PI (or a small internal helper static method NormalizeTwoPi(double) tagged AggressiveInlining shared by both azimuth files) and use a ternary select for the add. Centralizing also improves ergonomics/consistency between the two azimuth implementations.",
+   "rationale": "Removes a mispredictable branch and a redundant runtime multiply; a shared inlined normalizer keeps the two Run methods consistent without cost.",
+   "risk": "Same as CartesianAzimuth: select is value-identical to the branch for all inputs. -0.0 handling matches. No semantic change."
+  }
+ ]
+}

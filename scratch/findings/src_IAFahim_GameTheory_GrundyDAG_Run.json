@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.GameTheory/GrundyDAG.Run",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.GameTheory/GrundyDAG.Run",
+   "symbol": "GrundyDAG.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Zero the `seen` scratch with a bulk memset instead of an element-by-element loop.",
+   "currentCost": "`int* seen = stackalloc int[n]; for (int i = 0; i < n; i++) seen[i] = 0;` is an n-iteration scalar store loop. stackalloc memory is not auto-zeroed here, so the clear is needed, but a scalar loop is slower than a vectorized clear.",
+   "proposedChange": "Use `Unsafe.InitBlockUnaligned(seen, 0, (uint)(n * sizeof(int)));` or `UnsafeUtility.MemClear(seen, (long)n * sizeof(int))`. Both lower to a vectorized/rep-stos memset under Burst.",
+   "rationale": "A single bulk memset issues wide SIMD/rep stores (16-32 bytes/iter) versus 4 bytes/iter scalar, roughly 4-8x fewer store uops and better cache streaming for large n. Also removes the loop branch overhead.",
+   "risk": "None for correctness \u2014 clears the same bytes. Ensure the byte count uses the element size (sizeof(int)=4). InitBlockUnaligned is Burst-friendly and unmanaged-safe."
+  },
+  {
+   "file": "src/IAFahim.GameTheory/GrundyDAG.Run",
+   "symbol": "GrundyDAG.UpdateNeighbor",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist the decrement/compare and mark UpdateNeighbor / FindMex AggressiveInlining as hot leaf methods.",
+   "currentCost": "UpdateNeighbor and FindMex are private leaf calls inside the BFS hot loop. Without inlining hints the JIT/Burst may keep call overhead (arg marshalling of 6 pointers/refs for UpdateNeighbor).",
+   "proposedChange": "Add `[MethodImpl(MethodImplOptions.AggressiveInlining)]` to `FindMex`, `UpdateNeighbor`, and `InitializeQueue`. These are tiny, single-use leaves; inlining removes the call/ret and lets Burst keep `rear`/`seen` in registers across the loop body.",
+   "rationale": "Eliminates call overhead and enables register allocation across the fused loop body; the `ref int rear` becomes a register update rather than a memory round-trip through a callee.",
+   "risk": "None semantically. Inlining a method taking `ref` is always safe; only code-size grows slightly, negligible for single call sites."
+  }
+ ]
+}

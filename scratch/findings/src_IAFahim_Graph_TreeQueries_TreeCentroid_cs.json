@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Graph.TreeQueries/TreeCentroid.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.TreeQueries/TreeCentroid.cs",
+   "symbol": "AllCentroids",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist n/2 (the centroid threshold) out of the per-node IsCentroid loop and inline IsCentroid.",
+   "currentCost": "IsCentroid is called once per node in the n-iteration loop; each call recomputes n/2 (a signed integer division the JIT/Burst does not strength-reduce to a shift for signed n) and incurs a non-inlined call (IsCentroid lacks AggressiveInlining).",
+   "proposedChange": "Compute int half = n >> 1; once before the loop (n is a vertex count, always >= 0, so >>1 == /2 exactly). Inline the body: int rem = n - size[i]; int mc = maxChild[i] > rem ? maxChild[i] : rem; if (mc <= half) centroids[centroidCount++] = i; Removes one div and one call per node.",
+   "rationale": "n is loop-invariant, so n/2 is recomputed n times for no reason; hoisting yields a single shift. For non-negative n, n>>1 is bit-identical to n/2, turning a division into a 1-cycle shift. Inlining removes call overhead on the hot scan.",
+   "risk": "n>>1 differs from n/2 only for negative n; n is a vertex count and always non-negative here, so the result is identical. No observable behavior change."
+  }
+ ]
+}

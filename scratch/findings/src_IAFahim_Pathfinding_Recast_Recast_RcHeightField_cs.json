@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Recast/RcHeightField.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/RcHeightField.cs",
+   "symbol": "RcHeightfield.Dispose",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Local `var next = this.Pools->Next` uses inferred type, inconsistent with explicit-type house rule.",
+   "currentCost": "`var next = ...` \u2014 inferred RcSpanPool*. Style inconsistency only.",
+   "proposedChange": "Use `RcSpanPool* next = this.Pools->Next;`.",
+   "rationale": "Consistency with house constraint (explicit raw-pointer types). No codegen impact.",
+   "risk": "None. Identical IL."
+  }
+ ]
+}

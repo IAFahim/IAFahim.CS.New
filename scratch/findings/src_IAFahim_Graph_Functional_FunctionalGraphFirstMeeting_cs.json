@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Graph.Functional/FunctionalGraphFirstMeeting.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Functional/FunctionalGraphFirstMeeting.cs",
+   "symbol": "FunctionalGraphFirstMeeting.Run",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Unimplemented stub: returns -1 unconditionally; not an optimization target.",
+   "currentCost": "Body is `return -1;`. No traversal of f for u and v occurs, so there is no work to optimize.",
+   "proposedChange": "No optimization possible until implemented. When implemented (first common node of the two trajectories from u and v in a functional graph), an O(n) approach computes depth-to-cycle for each via tortoise-hare, aligns the longer tail, then advances both pointers in lockstep; or detect shared cycle and compare entry points. Keep it allocation-free over raw pointers; n bounds the walk.",
+   "rationale": "Flagging placeholder status so it is not treated as live hot-path code.",
+   "risk": "None; reporting state only."
+  }
+ ]
+}

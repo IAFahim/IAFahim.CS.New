@@ -1,0 +1,102 @@
+{
+ "file": "src/IAFahim.Math.NT/BitOps.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.NT/BitOps.cs",
+   "symbol": "BitCompress.Run",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Bit packing produces corrupted output because the 32-bit `buffer` cannot hold the carry, and the post-flush shift `(int)((uint)buffer >> 32)` is a no-op (C# masks the shift count by &31, so >>32 == >>0), so the flushed bits are never cleared and high bits of straddling values are silently lost.",
+   "triggeringInput": "bits=1, len=33, src = all 1s. Expected packed words dst[0]=0xFFFFFFFF, dst[1]=0x00000001. Actual: after i=31 the flush leaves buffer unchanged (0xFFFFFFFF) and bitCount=0, then i=32 ORs into the still-full buffer, yielding dst[1]=0xFFFFFFFF. Also bits=20,len=2,src={1,0xFFFFF}: bits 32..39 of the second value never enter the 32-bit buffer and are lost.",
+   "rootCause": "`buffer` is `int` (32 bits) but the algorithm assumes it can retain up to 31 residual bits plus a new value before flushing; `src[i] << bitCount` discards bits beyond bit 31, and `buffer = (int)((uint)buffer >> 32)` evaluates to `buffer >> 0` (shift count masked to 0 per ECMA-335 / C# spec) instead of 0, so the word is never cleared after being emitted.",
+   "suggestedFix": "Use a 64-bit accumulator: `ulong buffer; buffer |= (ulong)(uint)src[i] << bitCount; while (bitCount >= 32) { dst[outIdx++] = (int)(uint)buffer; buffer >>= 32; bitCount -= 32; }`. The final `buffer >>= 32` on a `ulong` shifts by a valid 0..63 count and correctly clears the emitted word."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/BitOps.cs",
+   "symbol": "BitDecompress.Run",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Bit unpacking corrupts values that straddle a 32-bit word boundary: residual bits sit in the low part of the 32-bit `buffer`, then `buffer |= src[i] << bitCount` shifts the new 32-bit word left by `bitCount` and loses its top `bitCount` bits, so values spanning two source words are reconstructed incorrectly.",
+   "triggeringInput": "bits=20, len=2, srcLen=2, with a value packed across the word boundary (e.g. compressing {1, 0xFFFFF} then decompressing). The second decoded value comes back missing its top bits instead of 0xFFFFF.",
+   "rootCause": "`buffer` is a 32-bit `int`; after extracting a value `bitCount` residual bits remain in `buffer`, and `buffer |= src[i] << bitCount` with `bitCount` up to `bits-1` shifts the freshly read 32-bit word past bit 31, discarding its high `bitCount` bits. A 32-bit accumulator cannot simultaneously hold leftover bits and a full incoming 32-bit word.",
+   "suggestedFix": "Use a 64-bit accumulator: `ulong buffer; buffer |= (ulong)(uint)src[i] << bitCount; bitCount += 32; ... dst[outIdx++] = (int)(buffer & mask); buffer >>= bits; bitCount -= bits;` so no bits are dropped when residual and new word coexist."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/BitOps.cs",
+   "symbol": "BitCount.Run",
+   "severity": "high",
+   "category": "edge-case",
+   "summary": "BitCount infinite-loops on any negative input because `x >>= 1` is an arithmetic (sign-propagating) shift, so negative values never reach 0.",
+   "triggeringInput": "BitCount.Run(-1) (int overload) or BitCount.Run(-1L) (long overload): the loop condition `x != 0` is never satisfied because -1 >> 1 == -1, hanging forever.",
+   "rootCause": "Population count is computed by repeatedly testing `x & 1` and doing `x >>= 1`; for signed types `>>` is arithmetic, so negative inputs sign-extend and the high bit is never cleared, producing an infinite loop. No contract restricts the input to non-negative.",
+   "suggestedFix": "Use the unsigned/logical shift `>>>` (cast to uint/ulong first), e.g. iterate over `(uint)x` / `(ulong)x` with `x >>>= 1`, or use `System.Numerics.BitOperations.PopCount`."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/BitOps.cs",
+   "symbol": "BitLength.Run",
+   "severity": "high",
+   "category": "edge-case",
+   "summary": "BitLength infinite-loops on any negative input because `x >>= 1` arithmetic-shifts a negative value, which never becomes 0.",
+   "triggeringInput": "BitLength.Run(-1) or BitLength.Run(-1L): the while loop never terminates since -1 >> 1 == -1. This also makes NextBit.Run(0x80000000-pattern) and any caller passing a negative hang.",
+   "rootCause": "Bit length is computed by counting how many `x >>= 1` operations are needed to reach 0; the signed arithmetic shift sign-extends negatives, so the loop never ends. No contract restricts input to non-negative.",
+   "suggestedFix": "Use logical shift `>>>` (or cast to uint/ulong) so the sign bit is shifted out, or compute via `32 - LeadingZeroCount((uint)x)` / `64 - LeadingZeroCount((ulong)x)`."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/BitOps.cs",
+   "symbol": "BitCount.Run(int) / BitCount.Run(long)",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace the O(bitwidth) loop popcount with a hardware/intrinsic-friendly SWAR or System.Numerics.BitOperations.PopCount.",
+   "currentCost": "Loop iterates once per set-or-cleared bit position up to 32/64 times, each iteration a shift, an AND, an add and a branch test (~32-64 dependent iterations, fully serial).",
+   "proposedChange": "Use System.Numerics.BitOperations.PopCount((uint)x) / ((ulong)x), or a branchless SWAR popcount (x = x - ((x>>1)&0x5555...); x = (x&0x3333...) + ((x>>2)&0x3333...); ... ; ((x * 0x0101...) >> 56)). Burst lowers PopCount to POPCNT/CNT.",
+   "rationale": "Constant ~5 instruction SWAR or single POPCNT vs up to 64 serial loop iterations; removes the data-dependent trip count and the per-iteration branch, dramatically shortening the dependency chain.",
+   "risk": "SWAR must use unsigned shifts ((uint)/(ulong)) to avoid sign-extension on negative inputs; current loop already terminates correctly for negatives only because >> on negative int eventually reaches -1 then... actually current code loops forever conceptually is avoided because x>>=1 on negative reaches -1 (never 0) -> the existing loop is already wrong for negative inputs, so SWAR/PopCount on the unsigned reinterpretation is the correct fix and matches intended semantics for non-negative inputs."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/BitOps.cs",
+   "symbol": "BitLength.Run(int) / BitLength.Run(long)",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace the linear shift loop with a leading-zero-count based bit length.",
+   "currentCost": "Up to 31/63 serial iterations (increment + shift + compare) to find the position of the highest set bit.",
+   "proposedChange": "Return x == 0 ? 0 : 32 - BitOperations.LeadingZeroCount((uint)x) (and 64 - LZCNT for long). Burst maps LeadingZeroCount to LZCNT/CLZ.",
+   "rationale": "Single LZCNT instruction vs a serial loop of up to 63 dependent iterations; collapses an O(bitwidth) dependency chain to O(1).",
+   "risk": "Inputs are assumed non-negative (negative int would currently loop ~31 times and return 32); reinterpret as unsigned for LZCNT. Used by NextBit/PrevBit which only call with positive values, so behavior is preserved for valid inputs."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/BitOps.cs",
+   "symbol": "BitDecompress.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the loop-invariant mask computation out of the inner while loop.",
+   "currentCost": "int mask = (1 << bits) - 1; is recomputed on every inner-loop emit (a shift and a subtract per decoded element).",
+   "proposedChange": "Compute int mask = (1 << bits) - 1; once before the outer for loop and reuse it inside the inner while.",
+   "rationale": "bits is constant across the whole call, so the mask is a true loop invariant; hoisting removes one shift+sub from the hottest inner statement (per output element).",
+   "risk": "None; pure hoist of an invariant. Burst would likely hoist it anyway, but making it explicit is free and guarantees it."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/BitOps.cs",
+   "symbol": "BitDecompress.Run",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "buffer |= src[i] << bitCount with bitCount up to 31 then 'bitCount += 32' makes bitCount reach 63 while buffer is a 32-bit int, so high bits are lost; the accumulator should be 64-bit (ulong) to actually buffer 32 incoming bits on top of leftover bits.",
+   "currentCost": "When bitCount > 0 and a new 32-bit word is OR'd in at offset bitCount, bits shifted beyond bit 31 are discarded, and bitCount grows past 32 while only 32 bits of storage exist, corrupting subsequent extractions.",
+   "proposedChange": "Use ulong buffer; OR (ulong)(uint)src[i] << bitCount, extract with (int)(buffer & mask), buffer >>= bits, all in 64-bit so up to 31 leftover + 32 new bits fit.",
+   "rationale": "Correctness/robustness: a 64-bit accumulator is the standard for bit-unpacking where the carry-over plus a full word can exceed 32 bits; it also removes the implicit truncation hazard without extra cost on 64-bit targets.",
+   "risk": "This changes observable output for cases where leftover bitCount>0 \u2014 but those cases are currently incorrect; if the design guarantees bits divides 32 evenly and inputs never leave residue, the change is a no-op. State this guard explicitly: only equivalent when bitCount is always 0 at word boundaries; otherwise it is a bug fix, not a pure micro-opt."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/BitOps.cs",
+   "symbol": "BitCompress.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "buffer = (int)((uint)buffer >> 32) is a shift by 32 on a 32-bit value (undefined/no-op masked to shift-by-0 in IL -> yields buffer unchanged) and buffer & 0xFFFFFFFFu is the full word; the 32-bit accumulator cannot hold bits beyond a word so the same 64-bit accumulator fix applies.",
+   "currentCost": "Per flushed word: an AND with 0xFFFFFFFF (no-op mask) and a >>32 that does not clear the buffer as intended, leaving stale bits.",
+   "proposedChange": "Use ulong buffer; dst[outIdx++] = (int)(uint)buffer; buffer >>= 32; bitCount -= 32; so leftover bits are preserved across words.",
+   "rationale": "C# shift counts are taken mod 32 for int, so (uint)buffer >> 32 == buffer (a no-op), meaning the residual bits are never cleared \u2014 a 64-bit accumulator gives correct, branch-light packing and removes the pointless AND mask.",
+   "risk": "Changes output only for inputs where packing crosses word boundaries with residue (currently mishandled). If bits*len is always a multiple of 32 with no carry, it is equivalent; otherwise it is a correctness fix. Flag, do not silently apply."
+  }
+ ]
+}

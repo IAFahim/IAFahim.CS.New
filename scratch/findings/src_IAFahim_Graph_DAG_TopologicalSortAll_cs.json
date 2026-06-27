@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Graph.DAG/TopologicalSortAll.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.DAG/TopologicalSortAll.cs",
+   "symbol": "TopologicalSortAll.Run",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Remove AggressiveInlining from this self-recursive method; inlining a recursive function yields no benefit and can bloat codegen.",
+   "currentCost": "Line 7 marks a directly self-recursive method (line 28 calls Run) with MethodImplOptions.AggressiveInlining. Recursion cannot be fully inlined, so the attribute either no-ops or causes one level of inline expansion that increases code size and instruction-cache pressure without removing call overhead.",
+   "proposedChange": "Drop the `[MethodImpl(MethodImplOptions.AggressiveInlining)]` attribute on Run (keep it on genuine leaf helpers only).",
+   "rationale": "AggressiveInlining is for hot non-recursive leaf methods. On a recursive enumerator it cannot eliminate the dominant recursive call cost and only risks larger code/I-cache footprint on mobile.",
+   "risk": "None functionally; identical results. Pure codegen/size consideration."
+  },
+  {
+   "file": "src/IAFahim.Graph.DAG/TopologicalSortAll.cs",
+   "symbol": "TopologicalSortAll.Run (node scan per level)",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Optional frontier of indegree-zero nodes to avoid rescanning all n nodes at every recursion level.",
+   "currentCost": "Each recursion level does `for (int i = 0; i < n; i++) if (indegree[i] == 0)`, an O(n) scan, giving O(n) per emitted prefix. For dense enumeration the total work has an extra n factor versus tracking the available (indegree==0) set incrementally.",
+   "proposedChange": "Maintain an explicit stack/list of currently-available nodes (indegree just reached 0), pushing successors that hit zero during the decrement pass and restoring it on backtrack, so each level iterates only over the live frontier rather than all n nodes. Implement with a caller-provided `int*` scratch buffer to stay within the no-managed-collections constraint.",
+   "rationale": "Replaces the per-level O(n) rescan with O(frontier) iteration; reduces constant/asymptotic factor when n is large but the frontier is small.",
+   "risk": "Backtracking must restore the frontier exactly (order-independent enumeration must still visit each candidate once per level) \u2014 easy to introduce duplicate or missed orderings. Adds a scratch buffer and code complexity; only worthwhile for large n. For small n the current simple scan is cheaper and clearer, so this is low priority."
+  }
+ ]
+}

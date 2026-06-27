@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Optimization.Knapsack/BoundedKnapsack.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Knapsack/BoundedKnapsack.cs",
+   "symbol": "ProcessItemBinary",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist invariant pointer dereferences w[i], v[i] and cast (int)tw out of the inner j-loop; precompute w[i] once.",
+   "currentCost": "Inside the while-loop, tw = take*w[i] and tv = take*v[i] re-read w[i]/v[i] each split iteration. The inner for-loop recomputes (int)tw on every j via dp[j - (int)tw], a per-iteration sign-checked long->int narrowing inside the hottest loop.",
+   "proposedChange": "Read 'long wi = w[i]; long vi = v[i];' once at method entry. In the inner loop hoist 'int itw = (int)tw;' before the loop so the body is 'long cand = dp[j - itw] + tv;'. Iterate 'for (int j = cap; j >= itw; j--)'.",
+   "rationale": "Removes a redundant long->int conversion (which under Burst is a branch/checked narrowing pattern) and two memory loads from each inner-loop iteration, shortening the dependency chain to a single load-add-compare-store. The inner loop runs O(cap) times per split, O(cap*log(cnt)) per item, so removing the cast is the dominant win.",
+   "risk": "None: tw is loop-invariant within the inner for, so hoisting the cast is identical. take*w[i] already computed as long; behavior unchanged."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Knapsack/BoundedKnapsack.cs",
+   "symbol": "ProcessRemainderGroup",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Eliminate redundant recomputation of dp[r + q[head]*wi], q[head]*vi and dp[r + j*wi]; the monotone-queue inner loop recomputes the same indexed loads/multiplies up to 3x per j.",
+   "currentCost": "Per j the loop computes 'dp[r + j*wi]' three separate times (lines 44, 49 read, 49 write base) and 'r + q[tail-1]*wi', 'q[tail-1]*vi' inside the dequeue while, plus 'q[head]*vi' and 'dp[r + q[head]*wi]'. Each is a multiply + add + pointer load on the hottest loop of the whole class.",
+   "proposedChange": "Precompute 'int baseIdx = r + j*wi; long dpj = dp[baseIdx];' once. Reuse dpj for 'val = dpj - j*vi', the final compare, and write to dp[baseIdx]. Cache 'q[tail-1]' into a local before the while test. Cache the head index 'int qh = q[head]; long bestBase = dp[r + qh*wi] + (j - qh)*vi;'.",
+   "rationale": "Cuts repeated j*wi multiplies and dp[] loads from ~3 to 1 per iteration and removes the duplicate r+q[tail-1]*wi computation in the eviction loop. Fewer multiplies and loads shorten the per-iteration critical path; the eviction-loop comparison value can be precomputed once per pushed j rather than recomputed for the same tail element.",
+   "risk": "None: all reused expressions are pure functions of loop state that does not change between the duplicate reads within one j iteration; dp[baseIdx] is only written at the end so caching the load is safe."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Knapsack/BoundedKnapsack.cs",
+   "symbol": "ProcessRemainderGroup",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Store the precomputed monotone-queue key (dp[idx] - j*vi) alongside the index instead of recomputing it from dp during eviction.",
+   "currentCost": "The eviction while-loop recomputes 'dp[r + q[tail-1]*wi] - q[tail-1]*vi' for the stored index each comparison. The deque only stores the bare index j.",
+   "proposedChange": "Keep a parallel value in the same monotone structure: since q is int* the cleanest is to also cache the last-pushed key in a local 'long lastKey' and compare 'val >= lastKey', updating lastKey on push/pop. For multi-element eviction, a second long* key buffer parallel to q removes all repeated dp loads in the while.",
+   "rationale": "Trades recomputation (load + 2 multiplies) for a sequential read of an already-warm buffer, removing dp[] random-ish loads from the eviction path and shortening the dependency chain.",
+   "risk": "Requires an extra long* scratch buffer of size maxJ+1 passed in (API change) for the full version; the single-local 'lastKey' variant handles only the common single-pop case. Caller-provided buffer must be sized; document it. Behavior identical."
+  }
+ ]
+}

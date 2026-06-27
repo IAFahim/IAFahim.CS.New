@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Graph.Flow/FlowRecoverLowerBound.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Flow/FlowRecoverLowerBound.cs",
+   "symbol": "FlowRecoverLowerBound.Run",
+   "severity": "critical",
+   "category": "off-by-one",
+   "summary": "Auxiliary graph is built with edgeId starting at 1, so forward edges land on odd indices and the reverse-edge pairing e^1 used by Dinic points to the wrong (or sentinel) edge, corrupting the residual network and producing wrong max flow / feasibility results.",
+   "triggeringInput": "n=2, s=0, t=1 with a single edge 0->1 lower=1 upper=3 (head[0] points to that edge). The reference MaxFlowLowerBounds.Run and the DinicMaxFlow test both use edgeId=2.",
+   "rootCause": "DinicDfs accesses the reverse residual edge via flow[e^1] and MinCostFlowAddEdge stores forward/reverse as consecutive ids. Correctness requires the first forward edge to have an EVEN id so that (2k)^1 = 2k+1 is its reverse. With edgeId=1 the first forward edge is id 1, and 1^1 = 0 which is the head[] 'no edge' sentinel, while reverse edge id 2 has 2^1 = 3 (a different edge). The residual updates therefore hit the wrong edges and Dinic computes an incorrect flow, so feasibility (result < sumPos) and the recovered flow are wrong.",
+   "suggestedFix": "Initialize edgeId = 2 (matching MaxFlowLowerBounds.Run and the DinicMaxFlow test) so forward edges occupy even indices and e^1 yields their reverse."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Flow/FlowRecoverLowerBound.cs",
+   "symbol": "FlowRecoverLowerBound.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "sumNeg is accumulated in the b-summation loop but never used; only sumPos is read.",
+   "currentCost": "Line 29-30 compute both sumPos and sumNeg; only sumPos is consumed at line 31. The 'else sumNeg -= b[i]' work and the sumNeg variable are wasted.",
+   "proposedChange": "Drop sumNeg: 'long sumPos = 0; for (int i = 0; i < n; i++) if (b[i] > 0) sumPos += b[i];'. The else branch and sumNeg variable are removed.",
+   "rationale": "Eliminates one accumulator and the negative-branch work; the loop only needs to sum positive deficits for the feasibility check 'result < sumPos'. Fewer ops and a simpler branch the compiler can predict/vectorize.",
+   "risk": "None. sumNeg has no reader (confirmed by grep). The remaining 'if (b[i] > 0)' guard preserves the exact value of sumPos."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/FlowRecoverLowerBound.cs",
+   "symbol": "FlowRecoverLowerBound.Run",
+   "dimension": "purity",
+   "impact": "medium",
+   "summary": "Run mutates the caller-owned upper[] array in place (upper[e] -= lower[e]), a hidden destructive side effect.",
+   "currentCost": "Line 17 'upper[e] = upper[e] - lower[e];' overwrites the caller's upper-bound array. The residual capacity (hi-lo) is needed only locally to build newCap, yet it is persisted into upper[], corrupting input for any subsequent caller use and making the function non-idempotent (a second call would subtract lower twice).",
+   "proposedChange": "Compute the residual locally without mutating upper: read 'int residual = upper[e] - lower[e];' and pass residual where the new edge capacity is needed (mirroring FlowWithEdgeDemands which uses local 'hi - lo'). Remove the write-back to upper[e]. Note: this file currently never builds newCap from upper[e] at all (the MinCostFlowAddEdge call at line 22 only adds the t->s edge), so the entire line 17 mutation appears to be pure unused side effect \u2014 confirm against intended graph-build before deleting.",
+   "rationale": "Restores referential transparency / determinism: same inputs always yield same outputs and the caller's buffers are untouched, matching the sibling FlowWithEdgeDemands design. Also removes a per-edge store from the build loop.",
+   "risk": "Behavioral: if any later code (here or in the caller) reads the mutated upper[e], removing the write changes results. Within this method upper[] is not read after line 17, so removal is safe here; the only risk is an external contract where the caller expects upper[] to be decremented. Flag for caller-contract confirmation before removing rather than just refactoring."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/FlowRecoverLowerBound.cs",
+   "symbol": "FlowRecoverLowerBound.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "lower[e] is loaded three times and to[e] twice per edge in the deficit-build loop.",
+   "currentCost": "Lines 15-17 each re-dereference lower[e] (3x) and to[e] (2x) through pointers. Pointer loads are not hoisted by the compiler when aliasing with b[] cannot be proven (b is a distinct stackalloc, but the optimizer may be conservative).",
+   "proposedChange": "Hoist into locals: 'int lo = lower[e]; int v = to[e]; b[u] -= lo; b[v] += lo;' (drop the upper write per the purity item). This matches the load pattern already used in FlowWithEdgeDemands.",
+   "rationale": "Reduces redundant pointer dereferences and the dependency chain in a per-edge loop that runs O(E) times, the dominant cost of the build phase. Identical semantics \u2014 same values, same order of b[] updates.",
+   "risk": "None for lo/v hoisting; loads are read-only and b[] is a separate buffer, so caching the source values cannot change results."
+  }
+ ]
+}

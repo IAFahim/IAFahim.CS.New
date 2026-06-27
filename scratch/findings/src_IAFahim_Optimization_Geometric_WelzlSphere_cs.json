@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Optimization.Geometric/WelzlSphere.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Optimization.Geometric/WelzlSphere.cs",
+   "symbol": "WelzlSphere.Run",
+   "severity": "critical",
+   "category": "wrong-recurrence",
+   "summary": "The outer loop is bounded by `for (int i = 0; i < n && i < 4; i++)`, so only the first 4 points (after the in-place Fisher-Yates shuffle) are ever examined. Every point at shuffled index >= 4 is completely ignored and may lie far outside the returned sphere. For any n > 4 where an extreme point lands at a shuffled slot >= 4, the result is not an enclosing sphere at all (it does not contain all input points), let alone the minimum one. This is not Welzl's algorithm: real Welzl/incremental MEB must process all n points and restart the scan when a point falls outside the current support set.",
+   "triggeringInput": "n=6 with the six (x,y,z) points (in original order) = (0,0,0),(1,0,0),(1000,0,0),(2,0,0),(3,0,0),(4,0,0). The deterministic shuffle maps original index 2 (the value 1000) into slot 5, which the `i<4` loop never visits. Run returns center=(2,0,0), R=2.0; the point (1000,0,0) is at distance 998 \u2014 far outside the sphere. The true minimum enclosing sphere is center (500,0,0), R=500.",
+   "rootCause": "The `&& i < 4` clause was presumably intended to cap the boundary/support set at 4 points (the max needed in 3D), but it was placed on the loop that iterates over ALL candidate points to be enclosed, not on a separate support set. As written it caps the number of points considered for enclosure at 4, discarding points 4..n-1 entirely. The inner j/k loops also never re-validate or restart after the sphere is updated, so even within the first 4 points the construction is a non-restarting greedy rather than correct Welzl.",
+   "suggestedFix": "Implement actual Welzl/incremental MEB: iterate i over all n points (drop the `i < 4` bound), and when point i is outside the current sphere, rebuild the sphere with i on the boundary by scanning points 0..i-1 (and recursively 2- and 3-point support sets), restarting the inner scan whenever the candidate sphere changes \u2014 analogous to the correct 2D Solve2/Solve3 structure in MinEnclosingBall.cs. The boundary/support set is what should be capped at 4, not the enclosure loop."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Geometric/WelzlSphere.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace three sqrt+Math.Max in the 3-point case with a single sqrt of the max squared distance.",
+   "currentCost": "Lines 50-53 do s.R=0 then three Math.Max(s.R, Math.Sqrt(Dist2(...))) calls = 3 sqrt + 3 max per innermost hit. sqrt is ~15-30 cycle latency on a dependency chain.",
+   "proposedChange": "Compute d2i=Dist2(s,i...), d2j=Dist2(s,j...), d2k=Dist2(s,k...); take m=Math.Max(d2i,Math.Max(d2j,d2k)); s.R=Math.Sqrt(m). One sqrt instead of three.",
+   "rationale": "sqrt is monotonic, so max(sqrt(a),sqrt(b),sqrt(c))==sqrt(max(a,b,c)). Folds 3 transcendental ops + their long dependency chains into 1, while the Max comparisons stay on cheap doubles.",
+   "risk": "Bit-identical: sqrt monotone over non-negative doubles and Math.Max ordering preserved. No NaN inputs here since all distances are non-negative sums of squares."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Geometric/WelzlSphere.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist the redundant Dist2 used to compute R in the 2-point case.",
+   "currentCost": "Line 42 calls Dist2(s, xs[j],ys[j],zs[j]) to get R, after the loop guard at line 37 already evaluated Dist2 for point j against the OLD sphere. The center has changed so it cannot be reused directly, but R can be derived from the diameter without a fresh full Dist2 read.",
+   "proposedChange": "Compute half-extents once: hx=(xs[i]-xs[j])*0.5, hy=(ys[i]-ys[j])*0.5, hz=(zs[i]-zs[j])*0.5; set center to xs[j]+hx etc.; s.R=Math.Sqrt(hx*hx+hy*hy+hz*hz). Avoids re-reading xs[j]/ys[j]/zs[j] a second time and the subtraction-from-center round-trip.",
+   "rationale": "Reuses the i-j deltas already needed for the midpoint instead of recomputing center-minus-point, removing 3 redundant loads and 3 subtractions per 2-point update.",
+   "risk": "Algebraically identical (midpoint-to-endpoint distance == half the i-j distance). Floating-point result differs only in last ULP from the current center-subtraction form; if exact bit-reproducibility with prior output is contractual, keep current form."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Geometric/WelzlSphere.cs",
+   "symbol": "Run",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Remove AggressiveInlining from the large Run method.",
+   "currentCost": "Line 13 marks Run [MethodImpl(AggressiveInlining)]. Run is a ~50-line triple-nested-loop method; forcing inlining bloats every call site, hurts I-cache, and gives Burst no benefit.",
+   "proposedChange": "Drop the [MethodImpl(MethodImplOptions.AggressiveInlining)] attribute on the public Run entry point. Keep it only on the tiny leaf Dist2.",
+   "rationale": "Inlining pays off for small hot leaves, not for big entry points. Removing it shrinks call-site code and lets the JIT/Burst keep Run out-of-line where it belongs.",
+   "risk": "None functional; attribute is only a hint. Behavior unchanged."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Geometric/WelzlSphere.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Apply the same Lemire multiply-shift to the inline Fisher-Yates shuffle.",
+   "currentCost": "Line 22 seed % (ulong)(i+1): a 64-bit division per element on the O(n) shuffle that precedes every solve.",
+   "proposedChange": "j=(int)(((seed>>32)*(ulong)(i+1))>>32) replacing the modulo.",
+   "rationale": "Same division-elimination rationale as MinEnclosingBall.Shuffle; multiply+shift is pipelined and far cheaper than 64-bit udiv.",
+   "risk": "Produces a different (still valid) permutation; Welzl is permutation-invariant for correctness. Only change exact-shuffle-dependent tests would notice."
+  }
+ ]
+}

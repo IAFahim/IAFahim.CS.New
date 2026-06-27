@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Algebra.Polynomial/SquareFree.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/SquareFree.cs",
+   "symbol": "SquareFree.Factor",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Remove redundant (long) casts and reorder the derivative computation to reduce one mod per term.",
+   "currentCost": "Line 17: deriv[i-1] = ((long)i % (long)MOD * poly[i]) % (long)MOD does two mods per coefficient and casts i and MOD to long repeatedly. The (long)MOD casts are redundant once one operand is long; '(long)i % MOD' is usually i itself since i < lenPoly is typically << MOD.",
+   "proposedChange": "Compute deriv[i-1] = (long)i * poly[i] % MOD; (single mod). i is a small loop index that fits in long; only reduce i mod MOD if lenPoly can exceed MOD, which it cannot for a degree-<MOD polynomial. Drop the explicit (long) on MOD since the left operand is already long.",
+   "rationale": "Saves one mod per derivative coefficient and removes superfluous sign-extension casts, tightening an O(lenPoly) setup loop. Single multiply-then-mod is the standard modular form.",
+   "risk": "'(long)i % MOD' differs from 'i' only when i >= MOD; for a polynomial reduced mod MOD the degree (lenPoly-1) is < MOD by construction, so i < MOD and the inner mod is a no-op \u2014 safe to drop. If callers can pass lenPoly > MOD, keep the i%MOD. (long)i*poly[i] must fit in long: i < MOD and poly[i] < MOD, same envelope as existing code's intermediate."
+  }
+ ]
+}

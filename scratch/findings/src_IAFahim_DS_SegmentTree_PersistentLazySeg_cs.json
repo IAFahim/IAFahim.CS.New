@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.DS.SegmentTree/PersistentLazySeg.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.DS.SegmentTree/PersistentLazySeg.cs",
+   "symbol": "PersistentLazySegmentQuery.Run",
+   "severity": "critical",
+   "category": "wrong-recurrence",
+   "summary": "Query double-counts a node's own lazy value. For a fully-covered node it returns sumArr[node] + (inherited + lazyArr[node]) * cnt, but sumArr[node] already incorporates the node's own lazy (Update does sumArr[node] += val * cntArr[node] when fully covered). Adding lazyArr[node]*cnt again double-applies the node's own pending update, producing wrong sums whenever a queried node carries its own lazy.",
+   "triggeringInput": "Tree over range [0,3] with 4 leaves, cntArr root=4, [0,1]=2, [2,3]=2, leaves=1. Update1: add val=5 to [0,1] (left node gets lazyArr=5, sumArr=10). Update2: add val=3 to [0,3] (root gets lazyArr=3, sumArr=22). Then Query [0,1]: true answer (5+3)*2=16, but Run returns 26 (root contributes inherited=3 to child; left computes lazy=3+5=8, returns sumArr[left]=10 + 8*2=16 => 26).",
+   "rootCause": "Inconsistent lazy invariant between Update and Query. Update's full-cover branch bakes own lazy into sumArr (sumArr += val*cnt), so at query time only the ANCESTOR-inherited lazy should be added. The query instead recomputes lazy = inherited + lazyArr[node] and applies it to a sum that already contains lazyArr[node]'s contribution, double counting. (Update is itself self-inconsistent: the partial branch recomputes sumArr[node]=sumArr[left]+sumArr[right], which drops the node's own lazy from the sum, contradicting the full-cover branch.)",
+   "suggestedFix": "Pick one consistent convention. If sumArr[node] is to EXCLUDE its own lazy (push-down model), change Update's full-cover branch to NOT add val*cnt to sumArr (only set lazyArr) and keep the parent recompute as sumArr[node]=sumArr[left]+sumArr[right]+lazyArr[node]*cntArr[node]; keep query as is. Alternatively, if sumArr INCLUDES own lazy, the query for a fully-covered node must add only the inherited (ancestor) lazy: return sumArr[node] + inherited * cnt, and the recursion must pass inherited+lazyArr[node] down (current pass) while the leaf/full match uses inherited only \u2014 and Update's partial branch must add lazyArr[node]*cntArr[node] back when recomputing sumArr[node]."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.SegmentTree/PersistentLazySeg.cs",
+   "symbol": "PersistentLazySegmentUpdate.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Five separate `prev != 0 ? ... : 0` ternaries recompute the same predicate; branch once and copy.",
+   "currentCost": "Lines 11-15 evaluate `prev != 0` five times and do five conditional loads. The predicate is identical each time; the compiler may not fully CSE the branch across five distinct array bases, costing redundant compares and poor branch grouping per node creation (every update allocates O(log n) nodes).",
+   "proposedChange": "Replace with a single branch: `if (prev != 0) { leftChild[node]=leftChild[prev]; rightChild[node]=rightChild[prev]; sumArr[node]=sumArr[prev]; lazyArr[node]=lazyArr[prev]; cntArr[node]=cntArr[prev]; } else { leftChild[node]=0; rightChild[node]=0; sumArr[node]=0; lazyArr[node]=0; cntArr[node]=0; }`. Since pools are not guaranteed zero-initialized the else must still clear.",
+   "rationale": "One predictable branch instead of five evaluations of the same condition; the copy block is a straight run of loads/stores the compiler can schedule densely. Reduces instruction count on the per-node hot path of every persistent update.",
+   "risk": "Semantically identical only if the else-branch zeroing matches the original (each ternale yields 0 when prev==0). Must keep the zero-store else block \u2014 do not assume node memory is pre-zeroed. No observable change."
+  },
+  {
+   "file": "src/IAFahim.DS.SegmentTree/PersistentLazySeg.cs",
+   "symbol": "PersistentLazySegmentQuery.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Redundant `node != 0` re-test on line 43 after the function already returned for node==0 on line 42.",
+   "currentCost": "Line 42 returns when `node == 0`. Line 43 then computes `inherited + (node != 0 ? lazyArr[node] : 0)` \u2014 but node is provably non-zero here, so the ternary and its branch are dead work executed on every non-trivial query node.",
+   "proposedChange": "Replace line 43 with `long lazy = inherited + lazyArr[node];`. The `node != 0` guard is unreachable-false-removed by the early return above.",
+   "rationale": "Eliminates a per-node compare-and-select that can never take the zero path, shrinking the dependency chain before the recursive split. Pure constant-factor win on the query hot path.",
+   "risk": "None \u2014 line 42's early return guarantees node != 0 at line 43. Strictly behavior-preserving."
+  }
+ ]
+}

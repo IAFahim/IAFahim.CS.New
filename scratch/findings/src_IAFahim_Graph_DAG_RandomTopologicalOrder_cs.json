@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Graph.DAG/RandomTopologicalOrder.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.DAG/RandomTopologicalOrder.cs",
+   "symbol": "RandomTopologicalOrder.Run",
+   "severity": "high",
+   "category": "overflow",
+   "summary": "The Lemire-style random index r = (long)((state * (ulong)total) >> 32) + 1 overflows ulong when the number of topological orderings 'total' exceeds 2^32, producing an r outside [1, total]. When that happens the inner selection loop never matches (cumulative counts sum exactly to total < r), so order[step] is left unwritten and currentMask is not updated, yielding a garbage/incomplete topological order on the very next iterations.",
+   "triggeringInput": "adjMask = all zeros (no edges), n = 13, dp/order sized 2^13/13, any state. Then total = dp[full] = 13! = 6,227,020,800 > 2^32 = 4,294,967,296. With state near 2^32-1, state*total = ~65-bit value that wraps modulo 2^64, so (product>>32) and r are arbitrary and can exceed total; the step then selects no node.",
+   "rootCause": "Lemire's bounded-random reduction (rand32 * range) >> 32 requires the product (range * 2^32) to fit in 64 bits, i.e. range < 2^32. Here range == total can be as large as n! (e.g. n>=13 with sparse constraints), so the ulong multiplication state*(ulong)total overflows and the high-32-bit extraction no longer maps uniformly into [0,total-1]; r can fall outside [1,total], leaving the per-step search with no match.",
+   "suggestedFix": "Compute the bounded random with a method that cannot overflow for total up to n! (n can be ~20, total up to ~2.4e18). E.g. draw a full 64-bit random (combine two LCG advances) and reduce modulo total: state = state*1664525+1013904223; ulong hi = state; state = state*1664525+1013904223; ulong rnd = (hi<<32) | state; long r = (long)(rnd % (ulong)total) + 1; (accepting the tiny modulo bias) or use a 128-bit mulhi for the Lemire reduction. This keeps r guaranteed within [1,total]."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.DAG/RandomTopologicalOrder.cs",
+   "symbol": "RandomTopologicalOrder.Run (forward DP inner loop)",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the per-i bit value (1 << i) inside the forward DP inner loop instead of recomputing it twice per iteration.",
+   "currentCost": "Lines 19 and 21 each evaluate `1 << i` separately, so the hot inner loop (executed up to 2^n * n times) issues two shift instructions plus re-derives the same value for the mask-test and the dp index. The dependency chain redundantly recomputes a value that is invariant within the iteration.",
+   "proposedChange": "Inside `for (int i = 0; i < n; i++)` compute `int bit = 1 << i;` once, then use it for both `(mask & bit) == 0` and `dp[mask | bit] += dp[mask];`. Optionally also hoist `long cur = dp[mask];` after the `dp[mask] == 0` check to avoid reloading dp[mask] on every i.",
+   "rationale": "Removes one shift per inner iteration and shortens the dependency chain; `dp[mask]` becomes a single register load reused across all n iterations rather than reloaded n times. In a 2^n*n loop these are the dominant constant factors.",
+   "risk": "None. `bit` is exactly the value already computed inline; identical results for all inputs. `1 << i` for i in [0,n) with n small is unchanged."
+  },
+  {
+   "file": "src/IAFahim.Graph.DAG/RandomTopologicalOrder.cs",
+   "symbol": "RandomTopologicalOrder.Run (reconstruction inner loop)",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist (1 << i) in the backward reconstruction loop, where it is computed three times per iteration.",
+   "currentCost": "Lines 36 and 42 evaluate `1 << i` three times (`currentMask ^ (1 << i)` appears at line 36 twice via the masked test and at line 42). The reconstruction runs n*n times and recomputes the same shift and the same XOR `currentMask ^ bit` redundantly.",
+   "proposedChange": "Inside the inner `for (int i = n - 1; i >= 0; i--)` compute `int bit = 1 << i;` and `int prevMask = currentMask ^ bit;` once, then use `(currentMask & bit) != 0`, `(adjMask[i] & prevMask) == adjMask[i]`, `dp[prevMask]`, and on the hit set `currentMask = prevMask;`. This also reuses the single `dp[prevMask]` load for the `count` comparison.",
+   "rationale": "Collapses three shifts and two XORs into one each, and reuses prevMask for both the predecessor-subset test and the dp index, cutting the per-iteration op count roughly in half on the selection hot path.",
+   "risk": "None. prevMask = currentMask ^ bit equals the inline expression; on the break path `currentMask ^= (1 << i)` is exactly `currentMask = prevMask`."
+  },
+  {
+   "file": "src/IAFahim.Graph.DAG/RandomTopologicalOrder.cs",
+   "symbol": "RandomTopologicalOrder.Run (maxMask / currentMask)",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Reuse maxMask to derive the full mask instead of recomputing 1 << n.",
+   "currentCost": "Line 10 computes `1 << n` into maxMask; line 26 recomputes `1 << n` for `(1 << n) - 1`. One redundant shift.",
+   "proposedChange": "Replace `int currentMask = (1 << n) - 1;` with `int currentMask = maxMask - 1;`.",
+   "rationale": "maxMask already holds `1 << n`; subtracting 1 yields the all-bits-set mask without a second shift. Trivial but free.",
+   "risk": "None. maxMask == 1 << n by construction, so maxMask - 1 == (1 << n) - 1 exactly."
+  },
+  {
+   "file": "src/IAFahim.Graph.DAG/RandomTopologicalOrder.cs",
+   "symbol": "RandomTopologicalOrder.Run (ranged-random multiply)",
+   "dimension": "purity",
+   "impact": "low",
+   "summary": "Document/guard the 32-bit Lemire-style ranged random which silently breaks when the topological-order count reaches 2^32.",
+   "currentCost": "Line 32 `(long)((state * (ulong)total) >> 32) + 1` uses a 32-bit-fraction multiply-high to map the uniform `state` into [1,total]. This is correct only while `total < 2^32`. For larger n the number of topological orderings (up to n!) exceeds 2^32; then `(ulong)state * (ulong)total` can exceed 2^64 and wrap, producing r outside [1,total]. If r > total the reconstruction inner loop never finds a match and `order[step]` is left unwritten (silent garbage), and even without wrap the distribution is truncated/biased.",
+   "proposedChange": "Either (a) document the invariant `total < 2^32` (i.e. n small enough that the order count fits 32 bits) as a Run precondition, or (b) for full range use a 64-bit reduction: draw a 64-bit random `rng` and compute `r = (long)(((unsigned __int128)rng * (ulong)total) >> 64) + 1` (emulate via Math.BigMul / mulhi). Given the unchecked-Run convention, (a) is sufficient and zero-cost.",
+   "rationale": "Makes the determinism/range contract explicit so callers don't feed n that overflows the 32-bit ranged-random, which is a correctness (not perf) hazard. No behavior change for in-domain inputs.",
+   "risk": "This is a contract/clarity note, not a code rewrite. The 64-bit variant changes the produced random sequence, so it must NOT be applied if exact reproducibility of current output is required; only the documentation option is fully semantics-preserving."
+  }
+ ]
+}

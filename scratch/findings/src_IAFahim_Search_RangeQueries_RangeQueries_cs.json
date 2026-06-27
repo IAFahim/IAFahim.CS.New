@@ -1,0 +1,82 @@
+{
+ "file": "src/IAFahim.Search.RangeQueries/RangeQueries.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Search.RangeQueries/RangeQueries.cs",
+   "symbol": "RangeInversionQuery.RunFenwick",
+   "severity": "critical",
+   "category": "wrong-recurrence",
+   "summary": "The Fenwick-based inversion count is completely wrong: it iterates over the SORTED array (sorted[i]) instead of the original array order, and it both queries and updates a SUFFIX of the BIT (bit[rank..len]) instead of a prefix. Because elements are processed in non-decreasing rank order, every query counts all previously inserted (smaller-or-equal) elements, so the result is effectively len*(len-1)/2-style garbage and never equals the true inversion count. It disagrees with the naive Run() in the same class on virtually every non-sorted input.",
+   "triggeringInput": "arr = [3,1,2,4], l=0, r=3, n=4, bit = int[6] zeroed. Correct inversion count (and naive Run) = 2, but RunFenwick returns 10.",
+   "rootCause": "Inversion counting requires processing elements in ORIGINAL order, mapping each to its compressed rank, and querying the count of already-inserted elements with a STRICTLY GREATER rank (a prefix/suffix consistent with the update direction). This code instead loops over sorted[i] (sorted order), computes rank against the sorted array, and does a suffix query+suffix update, which structurally cannot produce the inversion count. The pre-sort destroys the original permutation entirely, so no positional information about inversions remains.",
+   "suggestedFix": "Process the original elements in input order: for i from 0..len-1, take v = arr[l+i], find its rank via binary search in the sorted/compressed array, add to inv the number of already-inserted elements with rank > rank(v) (i.e. query suffix bit[rank+1..len] using a standard Fenwick prefix-sum structure), then point-update bit at rank(v). Use the compressed[] buffer (currently allocated but never used) for coordinate compression and a proper BIT update/query (i += i & -i) rather than the linear suffix loops."
+  },
+  {
+   "file": "src/IAFahim.Search.RangeQueries/RangeQueries.cs",
+   "symbol": "RangeMedianQuery.RunInt64",
+   "severity": "medium",
+   "category": "edge-case",
+   "summary": "RunInt64 takes a long* array but returns the median as int via an unconditional (int) cast, silently truncating long values that do not fit in int. For valid 64-bit array contents the returned median is wrong.",
+   "triggeringInput": "sorted = [5000000000L] (one element 5e9), n=1, l=0, r=0. len=1, index l+(0>>1)=0, value 5000000000 cast to int = 705032704, a wrong median.",
+   "rootCause": "The return type was left as int while the data type was widened to long; the (int) cast truncates the high bits of any long median value outside the int range.",
+   "suggestedFix": "Change the return type of RunInt64 to long and remove the (int) cast: return sorted[l + (len >> 1)];"
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.RangeQueries/RangeQueries.cs",
+   "symbol": "RangeInversionQuery.RunFenwick",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Replace the O(len^2) rank computation and O(len) Fenwick walks with proper coordinate compression plus logarithmic Fenwick operations, reducing the whole method from O(len^2) to O(len log len).",
+   "currentCost": "For each of len elements it (a) scans all len elements to compute rank: O(len) -> O(len^2) total; (b) walks bit[rank..len] to accumulate inv: O(len); (c) walks bit[rank..len] to increment: O(len). Both Fenwick loops are linear instead of logarithmic, so the entire routine is O(len^2). This defeats the purpose of using a Fenwick tree at all.",
+   "proposedChange": "After insertion-sorting `sorted`, compute each element's rank with a binary search into the dedup'd sorted array (lower_bound) instead of the inner O(len) count loop. Then use real Fenwick update/prefix-sum: update via `for (int j = rank; j <= len; j += j & -j) bit[j]++;` and query via `for (int j = rank-1; j > 0; j -= j & -j) sum += bit[j];`, counting already-inserted elements with value > current. This yields O(len log len).",
+   "rationale": "Inversions over a range is fundamentally O(len log len) with a Fenwick tree; the current code does O(len) work per Fenwick operation and an extra O(len) rank scan, collapsing to O(len^2) \u2014 asymptotically no better than the naive double loop in Run, while using extra memory and being far more complex. A logarithmic Fenwick plus binary-search rank restores the intended complexity.",
+   "risk": "Must preserve tie-handling semantics: current code counts inversions where equal values are NOT inversions (rank uses strict `<` plus index tie-break, and counts bit[rank..len] i.e. strictly greater ranks). With distinct ranks per element (stable via index tie-break) the binary-search lower_bound must replicate the same strict ordering. Bit array must be zeroed by caller across the [1..len] window actually used; with the smaller log-walk footprint the same [1..len] indices are touched, so zeroing contract is unchanged."
+  },
+  {
+   "file": "src/IAFahim.Search.RangeQueries/RangeQueries.cs",
+   "symbol": "RangeInversionQuery.RunFenwick",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "The `long* compressed` stackalloc is allocated but never used; remove it.",
+   "currentCost": "`long* compressed = stackalloc long[len];` reserves 8*len bytes of stack that is never read or written, inflating the stack frame and risking stack overflow for large `len` on mobile where stack is tighter.",
+   "proposedChange": "Delete the line `long* compressed = stackalloc long[len];` entirely. It has no readers.",
+   "rationale": "Dead stackalloc consumes stack and zero-init cost (Burst/IL zero-inits stackalloc) for nothing; removing it shrinks the working set by 8*len bytes and eliminates the implicit memset.",
+   "risk": "None \u2014 the pointer is never referenced after allocation, so removal is purely subtractive and semantics-preserving."
+  },
+  {
+   "file": "src/IAFahim.Search.RangeQueries/RangeQueries.cs",
+   "symbol": "RangeLcmQuery.Run / RangeGcdQuery.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Add an early-exit when the running result reaches the absorbing element (gcd==1, or lcm overflow/0) and mark Gcd/Lcm with AggressiveInlining.",
+   "currentCost": "RangeGcdQuery.Run keeps calling Gcd even after res==1 (gcd can never drop below 1 for positive inputs), wasting a full Euclid call per remaining element. RangeLcmQuery.Run keeps multiplying after res becomes 0. Gcd/Lcm are hot leaf functions called once per element but are not inlined.",
+   "proposedChange": "In RangeGcdQuery.Run add `if (res == 1) return 1;` inside the loop (guarding for arr containing 1). In RangeLcmQuery.Run add `if (res == 0) return 0;`. Annotate Gcd and Lcm with `[MethodImpl(MethodImplOptions.AggressiveInlining)]`.",
+   "rationale": "Early-out turns an O(len) sweep into O(distance-to-absorbing-element) in common cases (a 1 in a gcd range, a 0 in an lcm range). Inlining removes call overhead and lets Burst hoist the Euclid loop into the caller for register allocation.",
+   "risk": "For Gcd early-exit, valid only if all values are non-negative such that gcd>=1; if zeros/negatives are possible the absorbing value is not necessarily 1, so guard as `res==1` specifically (gcd of 1 with anything is 1, always safe regardless of sign since |gcd|=1). For Lcm, res==0 stays 0 only when Lcm(0,x)=0 which the code already guarantees \u2014 safe."
+  },
+  {
+   "file": "src/IAFahim.Search.RangeQueries/RangeQueries.cs",
+   "symbol": "RangeChminChmaxChadd / RangeAffineUpdate / RangeAssignUpdate / RangeModuloUpdate",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the repeated `node*2` / `(l+r)>>1` subexpressions into locals to cut redundant integer ops on the hot segment-tree recursion paths.",
+   "currentCost": "Each Run/Apply/Push computes `node * 2` and `node * 2 + 1` two-to-four times per call (e.g. RunMin lines 112-114 recompute node*2 and node*2+1 three times; ApplyMin recomputes them twice). PushMin/PushMax recompute `(l + r) >> 1` twice in the same statement (lines 127-128, 153-154). These are in the per-node recursion executed O(log n) times per query but with a large constant.",
+   "proposedChange": "Introduce `int left = node << 1; int right = left | 1; int mid = (l + r) >> 1;` once at the top of each recursive/apply/push method and reuse. Use `node << 1` (equivalent to *2 for valid 1-based node indices well below INT_MAX).",
+   "rationale": "Removes 2-4 redundant integer multiplies/adds and a duplicated shift per node visit; shortens the dependency chain and gives Burst CSE-friendly form. `left | 1` for the right child is one op vs `left + 1` and identical since left is even.",
+   "risk": "`node << 1` equals `node * 2` only while node stays non-negative and < 2^30; segment-tree node indices are bounded by ~2n, far below that, so safe. `left | 1` == `left + 1` requires left even (node>=1 even product) \u2014 always true. No observable change."
+  },
+  {
+   "file": "src/IAFahim.Search.RangeQueries/RangeQueries.cs",
+   "symbol": "RangeMajorityQuery.BoyerMoore.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Skip the verification pass when no candidate can be a majority, and avoid re-reading arr[start+i] by advancing a pointer.",
+   "currentCost": "Always runs a second full O(len) verification loop even when len==0 trivially has no majority. Both loops recompute `arr[start + i]` (base+index add) each iteration instead of walking a pointer.",
+   "proposedChange": "Compute `int* p = arr + start;` and index `p[i]` (or post-increment a cursor) in both loops to drop the per-iteration `start + i` addition. Optionally short-circuit `if (len == 0) return -1;` at entry.",
+   "rationale": "Pointer walking removes one add per element across two passes (2*len adds saved); minor but free. Burst auto-vectorizes the simple count-compare verification loop better when the base is a single pointer.",
+   "risk": "Semantics identical: Boyer-Moore still needs the verification pass for correctness in the general case; only the redundant address arithmetic is removed. len==0 guard preserves the `count > 0` false result (returns -1) exactly."
+  }
+ ]
+}

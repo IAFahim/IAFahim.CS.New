@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.String.Parse/LlParse.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Parse/LlParse.cs",
+   "symbol": "LlParse.Parse",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "The per-rule `int* rhs = stackalloc int[rhsLen]` inside the while loop stack-allocates repeatedly in a loop.",
+   "currentCost": "stackalloc inside a loop body: in C# the stack space is not freed until method return, so each iteration grows the frame \u2014 effectively unbounded stack growth proportional to number of expansions, risking stack overflow and defeating the bounded-frame assumption. The rhs copy is also redundant.",
+   "proposedChange": "Eliminate the rhs temporary entirely: push directly from the table in reverse order: for (int i = rhsLen-1; i>=0; i--) stack[top++] = table[rhsStart + i]. No stackalloc, no copy.",
+   "rationale": "Removes a stackalloc-in-loop (potential unbounded frame growth and stack overflow) and an O(rhsLen) copy pass per expansion. Burst/JIT will not hoist a loop-body stackalloc, so this is a real frame-size and cycle win.",
+   "risk": "None \u2014 table[rhsStart+i] is read in the same reverse order the copy produced; observable behavior identical. Strictly safer."
+  },
+  {
+   "file": "src/IAFahim.String.Parse/LlParse.cs",
+   "symbol": "LlParse.Parse",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "AggressiveInlining on a method containing stackalloc and an unbounded parse loop is unlikely to help and may bloat callers.",
+   "currentCost": "[MethodImpl(AggressiveInlining)] on a large method with stackalloc; inlining a stackalloc into the caller can enlarge the caller frame and is often ignored by the JIT/Burst for big bodies.",
+   "proposedChange": "Drop AggressiveInlining here (keep it on genuine hot leaf methods like SuffixOracle.Contains). After removing the in-loop stackalloc, the remaining stackalloc[len*2+2] is the only frame allocation.",
+   "rationale": "Avoids code-size bloat at call sites and misleading intent; inlining a top-level parser entry point rarely pays off. Keeps Burst codegen focused.",
+   "risk": "Purely an attribute change; no semantic effect. Verify no caller relied on inlining for a measured win (none expected for an entry point)."
+  }
+ ]
+}

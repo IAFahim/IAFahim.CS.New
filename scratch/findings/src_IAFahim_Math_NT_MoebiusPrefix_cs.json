@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Math.NT/MoebiusPrefix.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.NT/MoebiusPrefix.cs",
+   "symbol": "MoebiusPrefix.Run",
+   "severity": "high",
+   "category": "overflow",
+   "summary": "The linear-sieve inner loop computes the candidate composite as a 32-bit int ('i * primes[j]' in the loop condition on line 38, and 'i * p' on lines 41, 44, 49). For large n the product i*primes[j] exceeds int.MaxValue and wraps to a negative value. The wrapped negative value still satisfies '<= n', so the loop body executes and writes isPrime[i*p] / mu[i*p] at a negative (out-of-bounds) index, corrupting memory and producing wrong Mobius values. The sibling class MobiusSieve.cs (line 27) correctly casts with '(long)i * primes[j]', confirming the intended guard is missing here.",
+   "triggeringInput": "n = 2000000000 (caller supplies result/mu/isPrime arrays of size n+1, primes large enough). When the outer index reaches i = 1200000000 with primes[0] = 2, the condition 'i * primes[0] <= n' evaluates 2400000000 which overflows int32 to -1894967296; that is <= n, so the body runs 'isPrime[-1894967296] = false', a negative out-of-bounds write. Any n where some i*primes[j] crosses 2^31 while i*primes[j-1] <= n triggers it.",
+   "rootCause": "Product of two ints used both in the loop-bound comparison and as an array index without widening to long; 32-bit overflow yields a negative value that passes the '<= n' test and is then used to index isPrime/mu.",
+   "suggestedFix": "Compute the product as long, exactly like MobiusSieve: use 'long product = (long)i * primes[j];' guard the loop with 'product <= n' and index with '(int)product' only after the bound check. E.g. replace the for-condition and body accesses to use the long product."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/MoebiusPrefix.cs",
+   "symbol": "MoebiusPrefix.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The product i*primes[j] is recomputed up to four times per inner iteration (loop guard, isPrime index, two mu writes).",
+   "currentCost": "Per inner iteration: 'i*primes[j]<=n' in the for-guard plus 'i*p' computed again at isPrime[i*p], mu[i*p]=0, mu[i*p]=-mu[i] \u2014 2-4 integer multiplies where 1 suffices.",
+   "proposedChange": "Inside the loop compute 'int p = primes[j]; int ip = i*p;' then test 'if (ip > n) break;' and reuse ip for isPrime[ip] and mu[ip]. Convert the for-loop bound out of the header so the product is computed exactly once.",
+   "rationale": "Cuts redundant multiplies on the hottest loop of the sieve (executed O(n) times overall) and shortens the dependency chain, helping Burst keep the value in a register instead of reissuing the multiply.",
+   "risk": "Behavior identical for valid input. Note i*p is int arithmetic and can overflow int for large i*p near int.MaxValue before the >n test in the original guard too, so this is no worse; under house 'valid caller input' (n small enough) it is safe. Could widen to long for the guard only if overflow is a concern, matching MobiusSieve's (long) cast pattern."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/MoebiusPrefix.cs",
+   "symbol": "MoebiusPrefix.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "mu[i] is initialized to 1 for all i in a dedicated loop, but every mu[i] for i>=1 is reassigned by the sieve; only the composite-default of 1 is actually consumed via -mu[i] propagation.",
+   "currentCost": "Separate full pass 'mu[i]=1' over [0,n]. The isPrime init is a second full pass over [2,n]. Two O(n) prologue passes.",
+   "proposedChange": "Fuse the mu-init and isPrime-init into a single loop over [2,n] (mu[i]=1; isPrime[i]=true), and set mu[0]=mu[1]=1 outside. This halves the number of loop setups/branches and improves locality if mu and isPrime are adjacent. mu values for primes/composites are still overwritten correctly.",
+   "rationale": "Reduces two sequential O(n) passes to one fused pass, cutting loop overhead and giving the prefetcher a single streaming pattern.",
+   "risk": "mu[i]=1 default IS needed (the recurrence mu[i*p]=-mu[i] reads mu[i] for i that are products of distinct primes, and a freshly-seen prime power chain relies on the seeded 1 for the smallest cases). Keep the default-1 seed; only the loop fusion changes, not the values. Verify mu[0] handling matches original (original sets mu[0]=1 in the i=0 pass; preserve that)."
+  }
+ ]
+}

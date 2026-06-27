@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Optimization.Treewidth/RankDp.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Optimization.Treewidth/RankDp.cs",
+   "symbol": "RankDp.Run",
+   "severity": "high",
+   "category": "logic",
+   "summary": "Run indexes the parent array with the loop variable i (an order-position) but parent is keyed by vertex id (filled as parent[order[i]]=order[i-1] in ComputeOrder), so parent lookups use the wrong key whenever the BFS order is not the identity permutation, dropping/mis-routing dp contributions and returning a wrong total.",
+   "triggeringInput": "A graph whose BFS-from-0 order is non-identity, e.g. n=3 with order={2,0,1} (vertices relabeled so BFS visits 2 then 0 then 1). ComputeOrder sets parent (by vertex): parent[0]=2, parent[1]=0, parent[2]=-1. In Run the loop reaches i=2 intending to process order[2]=vertex 1 (whose real parent is vertex 0), but it tests parent[2]=-1 and skips, so vertex 1's dp+edge contribution is never added to its parent. The returned dp[order[0]] is therefore too small / incorrect.",
+   "rootCause": "Index-space mismatch: parent is indexed by vertex id, while Run treats the loop index i as an order position (it passes i as the order index to ComputeEdgeSum and reads dp[order[i]]). It accesses parent[i] instead of parent[order[i]], so for any permutation where order[i]!=i the parent edge is read from the wrong vertex.",
+   "suggestedFix": "Replace parent[i] with parent[order[i]] in both the guard and the accumulation: `if (parent[order[i]] >= 0) dp[parent[order[i]]] += dp[order[i]] + wSum;`."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Treewidth/RankDp.cs",
+   "symbol": "RankDp.ComputeEdgeSum",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "edgeW[order[i]*n + order[j]] is loaded twice per j (once in the != 0 test, once in the add), and order[i]*n is recomputed every iteration.",
+   "currentCost": "Per j: two pointer derefs into edgeW for the same cell, plus order[i]*n multiply, plus a branch. The branch is also pointless: adding 0 when the value is 0 yields the same sum.",
+   "proposedChange": "Hoist int oi = order[i]; long* row = edgeW + (long)oi * n; before the loop. Then `for (int j = i+1; j < n; j++) sum += row[order[j]];` \u2014 drop the != 0 test entirely (adding zero is a no-op) and read each cell once.",
+   "rationale": "Halves edgeW loads, removes a multiply per iteration via row-base hoisting, and removes a branch since the conditional add is semantically identical to unconditional add of a possibly-zero value. Tighter loop, better for Burst auto-vectorization (pure load+add reduction).",
+   "risk": "Only safe if edgeW entries cannot be a sentinel where 'absent' is encoded as a nonzero value that must be skipped \u2014 but the current code sums exactly the nonzero entries and adding zero entries changes nothing, so the sum is identical. Watch long overflow is unchanged (same accumulation order)."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Treewidth/RankDp.cs",
+   "symbol": "RankDp.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "dp[order[i]] is read after parent check; order[i] and parent[i] indexed without hoisting; the n-element zero init can be combined but is already minimal.",
+   "currentCost": "Per i: parent[i] load, branch, then order[i] load and dp[order[i]] load plus dp[parent[i]] read-modify-write. order[i] is recomputed implicitly.",
+   "proposedChange": "Hoist int p = parent[i]; int oi = order[i]; once per iteration: `if (p >= 0) dp[p] += dp[oi] + wSum;` where ComputeEdgeSum is also passed oi to avoid re-reading order[i] inside it (or inline the hoisted oi).",
+   "rationale": "Removes duplicate order[i] indexing shared between Run and ComputeEdgeSum and shortens the dependency on parent[i]. Minor constant-factor win in an O(n^2) routine dominated by ComputeEdgeSum.",
+   "risk": "None; pure reindexing of the same values, identical results and accumulation order."
+  }
+ ]
+}

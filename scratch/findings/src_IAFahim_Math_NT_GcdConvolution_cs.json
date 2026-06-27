@@ -1,0 +1,49 @@
+{
+ "file": "src/IAFahim.Math.NT/GcdConvolution.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.NT/GcdConvolution.cs",
+   "symbol": "GcdConvolution.Forward",
+   "severity": "critical",
+   "category": "wrong-recurrence",
+   "summary": "Forward zeta-over-multiples transform iterates d in DESCENDING order (d=n..1), which double-counts. For the in-place accumulation f[d]+=f[j] (j a multiple of d) to equal sum_{d|i} f[i], d must be iterated ASCENDING so f[2d], f[3d]... still hold their ORIGINAL values when read. With descending d, f[2d] has already absorbed f[4d],f[6d]... before f[d] reads it, so multiples-of-multiples are counted multiple times and f[d] is wrong for any d that has a multiple chain (already wrong at n=4).",
+   "triggeringInput": "f = [_, 1, 1, 1, 1] (1-indexed, n=4). Forward gives f[1]=1+f[2]+f[3]+f[4]; but f[2] was already updated to 1+f[4]=2, so f[1]=1+2+1+1=5 instead of the correct sum_{1|i}f[i]=4. Concretely a=[_,1,1,1,1],b=[_,1,1,1,1],n=4: Run yields wrong result vs the true gcd-convolution.",
+   "rootCause": "In-place divisor-zeta accumulation requires ascending outer index so multiples are read before they are themselves modified; descending order reads already-mutated (over-counted) multiple entries.",
+   "suggestedFix": "Change the outer loop to ascending: `for (int d = 1; d <= n; d++)` in Forward."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/GcdConvolution.cs",
+   "symbol": "GcdConvolution.Inverse",
+   "severity": "critical",
+   "category": "wrong-recurrence",
+   "summary": "Inverse (Mobius inversion of the multiples-zeta) is wrong twofold: (1) it multiplies by mu[j/d], but the in-place inverse of the in-place zeta is NOT a single Mobius-weighted pass \u2014 the correct in-place inverse is simply f[d] -= sum_{j=2d,3d,..} f[j] (no mu weighting, since the divisor-zeta/Mobius cancellation telescopes when done in-place); and (2) it iterates d ASCENDING, but the in-place subtractive inverse must iterate d DESCENDING so the multiple entries f[j] still hold their (not-yet-inverted) zeta values when subtracted. Both errors make Run produce wrong gcd-convolution output.",
+   "triggeringInput": "a=[_,1,1,1,1], b=[_,1,1,1,1], n=4, mu computed correctly. After a correct Forward, Inverse(result,...) returns result[1] etc. not equal to the brute-force h[k]=sum_{gcd(i,j)=k}a[i]b[j]. Verified mismatch at n=4 (e.g. random a=[_,*],b=[_,*] over [-9,9] gives result[1] off, e.g. got -5 want -17 for one seed).",
+   "rootCause": "Misformulated inverse: applied a Mobius-weighted single pass in ascending order instead of the in-place descending subtractive inverse f[d]-=f[j]; the mu array and j/d indexing are spurious for an in-place transform.",
+   "suggestedFix": "Replace Inverse body with descending plain difference: `for (int d = n; d >= 1; d--) for (int j = 2*d; j <= n; j += d) f[d] -= f[j];`. The mu parameter is then unused (can be dropped, along with mu from Run)."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/GcdConvolution.cs",
+   "symbol": "GcdConvolution.Inverse",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Eliminate the per-iteration integer division j/d in the inner loop by tracking the multiple index as an incrementing counter.",
+   "currentCost": "One 64/32-bit integer division (mu[j / d]) on every inner-loop iteration. The total iteration count is the harmonic sum ~ n*ln(n), so this is O(n log n) integer divisions, each ~20-40 cycles and unpipelined, dominating the loop's cost.",
+   "proposedChange": "Since j advances by d starting at 2*d, j is always exactly d*k for k = 2,3,4,...  Replace the inner loop with: for (int j = 2 * d, k = 2; j <= n; j += d, k++) f[d] -= mu[k] * f[j];  The mu index k is now a free running counter instead of j/d.",
+   "rationale": "Removes one of the most expensive scalar integer ops (DIV) from the innermost loop and replaces it with a single ADD, cutting the per-iteration dependency chain. Asymptotically the same O(n log n) iterations but each is several times cheaper; also helps Burst keep the loop in registers.",
+   "risk": "None for semantics: j == d*k exactly for all iterations because j starts at 2*d and steps by d, and mu is read-only here. k cannot overflow int before j (which is also int) exceeds n."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/GcdConvolution.cs",
+   "symbol": "GcdConvolution.Run",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Add [MethodImpl(AggressiveInlining)] to nothing here, but fuse the pointwise-multiply pass with the start of Inverse is not safe; instead mark Forward/Inverse leaf-friendly and note vectorization of the pointwise loop.",
+   "currentCost": "The pointwise multiply loop (result[i]=a[i]*b[i], i=1..n) is a separate clean pass; it is already auto-vectorizable. Forward/Inverse have variable stride d so they do not vectorize, which is inherent.",
+   "proposedChange": "Leave Forward/Inverse as-is (strided gather/scatter, not vectorizable). For the pointwise loop, ensure it is written 0-based contiguous if callers permit, or keep 1-based; either way it already maps to SIMD under Burst. No change needed beyond the j/d fix above; this entry documents that the file is otherwise close to optimal.",
+   "rationale": "Confirms the strided sieve loops are already minimal (single ADD/SUB plus the multiply, with the only removable cost being the division addressed separately). High-signal: avoid inventing work on the sieve loops.",
+   "risk": "None \u2014 no code change proposed here beyond the separately listed division removal."
+  }
+ ]
+}

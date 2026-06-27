@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Math.Modular/ModSqrt.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Modular/ModSqrt.cs",
+   "symbol": "ModSqrt.Run / InitializeTonelliShanks",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The Euler/Legendre exponent (mod-1)/2 is recomputed repeatedly, and the non-residue search re-divides it every iteration of the z loop.",
+   "currentCost": "(mod-1)/2 is computed at line 13 and again per-iteration inside InitializeTonelliShanks' while loop (line 23: ModPow.Run(z,(mod-1)/2,mod)). Each z probe is a full ModPow (~log mod modmuls); recomputing the divisor is minor, but passing the same exponent object lets it be hoisted, and the legendre check at line 13 can be reused conceptually.",
+   "proposedChange": "Compute long half = (mod - 1) >> 1 once (mod is positive and odd on this path so (mod-1) is even, shift == /2 exactly) and reuse it for the line-13 Legendre test and inside the z-search loop. Hoist it out of the while in InitializeTonelliShanks.",
+   "rationale": "Replaces repeated 64-bit division by a single shift and removes recomputation inside a loop. Small but free; the division is otherwise re-executed on every non-residue probe.",
+   "risk": "mod is guaranteed positive (Legendre test passed) and odd (mod%4==3 branch already returned for the 4k+3 case, and even mod cannot have these residues), so mod-1>=0 and >>1 equals /2. No signed-shift hazard since mod-1>=0."
+  },
+  {
+   "file": "src/IAFahim.Math.Modular/ModSqrt.cs",
+   "symbol": "ModSqrt.ComputeB2",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Loop bound (int)(m - i - 1) is recomputed and cast on every iteration of the for loop.",
+   "currentCost": "for (int j = 0; j < (int)(m - i - 1); j++) re-evaluates the long subtraction m-i-1 and the long->int cast each iteration as the loop condition.",
+   "proposedChange": "Hoist: int bound = (int)(m - i - 1); for (int j = 0; j < bound; j++) b2 = ModMul.Run(b2,b2,mod);",
+   "rationale": "Removes a per-iteration 64-bit subtraction and narrowing cast from a loop whose body otherwise contains only one cheap-to-medium modmul; helps the compiler keep the bound in a register and may aid Burst unrolling.",
+   "risk": "None; m-i-1 is loop-invariant within this call (m and i are parameters, not mutated). Value range is small (<= s <= 62), cast is safe."
+  },
+  {
+   "file": "src/IAFahim.Math.Modular/ModSqrt.cs",
+   "symbol": "SolveTonelliShanks / FindFirstOne / ComputeB2 (m as long)",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "m carries s (a bit-count <= 62) but is typed long, forcing 64-bit arithmetic and a long->int cast in ComputeB2.",
+   "currentCost": "long m = s; ... m = i; passes m as long into ComputeB2 which then casts (int)(m - i - 1). All m arithmetic is 64-bit for a value that never exceeds the bit-length of mod (<=62).",
+   "proposedChange": "Type m as int (s is already int, i is int). Then ComputeB2 takes int m and the bound is simply m - i - 1 with no cast. Drop the long type throughout the m chain.",
+   "rationale": "Narrower type removes an unnecessary cast and uses 32-bit ops; mostly clarity/correctness-of-intent plus eliminating the narrowing conversion. Negligible cycles but removes a code smell and a cast in a loop condition.",
+   "risk": "s = popcount-of-trailing-zeros of mod-1 <= 62 for any long mod, well within int. Safe. Must update ComputeB2 signature accordingly (internal, no external callers)."
+  },
+  {
+   "file": "src/IAFahim.Math.Modular/ModSqrt.cs",
+   "symbol": "SolveTonelliShanks",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Dead t==0 check inside the main loop; t can never become 0 once entered with a nonzero quadratic residue.",
+   "currentCost": "if (t == 0) return 0; is evaluated every iteration of the infinite loop. a!=0 is guaranteed by ModSqrt.Run (returns early when a==0) and mod is prime on this path, so t = a^q is a nonzero residue and stays nonzero under multiplication by units; the branch is never taken.",
+   "proposedChange": "Remove the t==0 guard from the loop (and the corresponding guard is redundant with the t==1 termination). Keep only if (t==1) return Min(r, mod-r).",
+   "rationale": "Removes one comparison+branch per Tonelli-Shanks iteration. Minor, but the inputs guarantee it is dead code under the documented unchecked contract.",
+   "risk": "Only safe under the precondition that mod is prime and a is a nonzero residue (already enforced by the Legendre test at line 13 and the a==0 early return). If callers may pass composite mod, t==0 could theoretically occur; keep the guard if the unchecked contract permits composite moduli. State explicitly: requires prime mod."
+  }
+ ]
+}

@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Recast/RcContour.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/RcContour.cs",
+   "symbol": "Dispose",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Same redundant-null-then-default pattern as RcCompactHeightfield.Dispose: Verts/RVerts nulled individually before 'this = default'.",
+   "currentCost": "Two 'this.X = null;' stores immediately followed by 'this = default;' which zeroes the whole struct anyway, so the per-field stores are dead writes.",
+   "proposedChange": "Remove 'this.Verts = null;' and 'this.RVerts = null;'; keep the null-checks guarding Free, then rely on the single trailing 'this = default;' to clear both pointers plus NVerts/NRVerts/Reg/Area/Allocator.",
+   "rationale": "Eliminates 2 redundant stores; the trailing block-zero already covers them.",
+   "risk": "None: final observable state is the all-zero struct, identical to current. Free still executes before zeroing."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/RcContour.cs",
+   "symbol": "RcContour",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "int4* Verts/RVerts: int4 is 16-byte aligned in Unity.Mathematics; confirm the AllocatorManager.Free/alloc sites allocate with 16-byte alignment so SIMD loads of contour vertices are aligned, otherwise Burst emits unaligned loads.",
+   "currentCost": "If the backing allocation for Verts/RVerts is allocated with default (e.g. 4- or 8-byte) alignment, every int4 load/store in contour simplification (Recast.Contour.cs) is an unaligned 128-bit access, which is slower on some mobile (ARMv7/older ARM64) targets and prevents aligned-load codegen.",
+   "proposedChange": "At the allocation sites for Verts/RVerts (in the contour build code, not this struct), pass alignment = 16 (UnsafeUtility.SizeOf<int4>() alignment) to AllocatorManager.Allocate so int4 arrays are 16-byte aligned. This struct file is the right place to document the alignment requirement in the field remark.",
+   "rationale": "Aligned 128-bit loads/stores are the fast path for Burst SIMD; contour passes iterate vertex arrays linearly, so alignment turns these into clean vectorized accesses.",
+   "risk": "Only a perf/codegen concern, not correctness \u2014 unaligned access is functionally correct on x86/ARM64. Verify the actual Allocate call sites; if they already request natural alignment for int4 this is a no-op. Do not change the struct layout itself (memory must match C++ rcContour)."
+  }
+ ]
+}

@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Graph.Flow/MinimumSTCutAll.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Flow/MinimumSTCutAll.cs",
+   "symbol": "MinimumSTCutAll.Run",
+   "severity": "high",
+   "category": "logic",
+   "summary": "The cut-edge enumeration scans the wrong side of the partition. It iterates source vertices u with visited[u]==0 (T-side) and records edges whose endpoint to[e] is on the S-side (visited==1) with flow[e]>0. Min-cut edges go from S (reachable) to T (unreachable); the loop direction is inverted, so it misses the actual saturated S->T cut edges and can report zero or wrong cut edges.",
+   "triggeringInput": "n=2, s=0, t=1, single edge 0->1 with cap 1 (paired layout). After Dinic, maxflow=1, residual of 0->1 is 0, so visited={0}. The loop: u=1 has visited[1]==0, its only edge is the reverse edge 1->0 with flow=-1 (not >0); u=0 is skipped because visited[0]==1. Result cutCount=0, but the correct minimum cut is the single edge (0,1).",
+   "rootCause": "The S/T sides are swapped in the predicate. Cut edges are forward, saturated edges from the reachable set S to the unreachable set T; the code instead looks at T-side vertices and S-side targets, and the reverse residual edge into S carries negative flow so nothing matches.",
+   "suggestedFix": "Iterate u with visited[u]==1 and collect edges where visited[to[e]]==0 and the edge is a saturated forward edge, e.g. cap[e]>0 && cap[e]-flow[e]==0 (equivalently the forward edge with flow[e]>0). Set cutU[cnt]=u; cutV[cnt]=to[e]."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Flow/MinimumSTCutAll.cs",
+   "symbol": "MinimumSTCutAll.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Redundant repeated pointer dereferences of to[e] and reachable indexing in BFS and cut-scan",
+   "currentCost": "In the BFS loop (lines 21-23) to[e] is read up to three times per edge and visited[to[e]] indexed twice. In the cut-scan (lines 28-31) visited[to[e]] and to[e] are re-read. Each is a separate load the compiler may not coalesce across the cap/flow load fence.",
+   "proposedChange": "Cache int v=to[e]; once per edge in both loops and reuse v for visited[v] / cutV[cnt]=v. Also hoist int diff=cap[e]-flow[e] used in the condition.",
+   "rationale": "Fewer dependent loads on the hot edge-iteration path; lets the compiler keep v in a register and improves the chance of vectorization-friendly straight-line code. Pure constant-factor but on every residual edge.",
+   "risk": "None; values are loop-invariant within the edge body and not mutated between reads."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/MinimumSTCutAll.cs",
+   "symbol": "MinimumSTCutAll.Run",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "visited init loop separate from declaration; could use direct zeroing",
+   "currentCost": "visited is stackalloc[n] then zeroed via an explicit loop (line 14). For large n this is a scalar byte store loop the compiler may not turn into a block clear.",
+   "proposedChange": "Keep the loop but note it is the only zeroing needed; alternatively document that callers needing speed can rely on Burst lowering. Minor: the q buffer is sized n which is correct since each vertex enqueued once.",
+   "rationale": "Marginal; flagged only for completeness. The scalar byte-clear is the lone avoidable overhead and is bounded by n.",
+   "risk": "None."
+  }
+ ]
+}

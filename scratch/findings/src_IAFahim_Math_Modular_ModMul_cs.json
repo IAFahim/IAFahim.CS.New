@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.Modular/ModMul.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Modular/ModMul.cs",
+   "symbol": "ModMul.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Russian-peasant O(log b) loop is only needed when a*b can overflow Int64; for small moduli a direct (a*b)%mod is one multiply.",
+   "currentCost": "Up to ~63 iterations, each with 2 conditional doublings/adds, a branch on the low bit, a shift, and repeated (mod - a)/(mod - result) subexpressions. This runs every single modular multiply, including the inner loop of ModInv/ModDiv and any exponentiation built on it.",
+   "proposedChange": "Fast-path when the product cannot overflow: after the % mod and sign fixups, if (mod <= 3037000499L) { return (a * b) % mod; } 3037000499^2 < 2^63, so a,b in [0,mod) gives a*b < 2^63 with no overflow. Fall through to the existing peasant loop only when mod exceeds that bound. This collapses the common 32-bit-modulus case from ~60 dependent iterations to a single mul+rem.",
+   "rationale": "For the overwhelmingly common case of moduli that fit in ~31 bits (e.g. 1e9+7, 998244353), one hardware MUL + one DIV replaces a 60-iteration dependency chain. Removes a long serial dependency that Burst/CPU cannot pipeline.",
+   "risk": "Threshold must be a named const and provably correct: floor(sqrt(2^63 - 1)) = 3037000499; (3037000499)^2 = 9223372030926249001 < 9223372036854775807, safe. Inputs a,b must already be reduced to [0,mod) (they are, after the existing %/sign fixups). For mod above the threshold, behavior is unchanged. No signed-mod hazard since operands are non-negative at that point."
+  },
+  {
+   "file": "src/IAFahim.Math.Modular/ModMul.cs",
+   "symbol": "ModMul.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Recomputed (mod - a) and (mod - result) and the conditional add/sub can be tightened to one subtract-with-correction per branch.",
+   "currentCost": "Each iteration computes (mod - a) up to twice and (mod - result) up to twice via the ternary, plus a comparison. The expression result = (mod - result <= a) ? result - (mod - a) : result + a hides two subtractions on the taken path.",
+   "proposedChange": "If the peasant loop is retained (large-mod path), hoist t = mod - a once per iteration and reuse: add step becomes a = (a >= t) ? a - t : a + a; reduce step for result similarly with d = mod - result computed once. Each branch then does at most one subtraction instead of forming (mod - a) twice.",
+   "rationale": "Cuts redundant subtractions in the hot per-iteration body and shortens the dependency chain, helping the large-modulus path that the overflow-safe fast path does not cover.",
+   "risk": "Pure arithmetic refactor; operands remain in [0,mod) so all intermediates stay non-negative and within range. Semantics identical. Only relevant on the slow path; keep as named local, not magic recompute."
+  }
+ ]
+}

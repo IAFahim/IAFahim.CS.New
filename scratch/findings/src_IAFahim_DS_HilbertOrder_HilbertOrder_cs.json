@@ -1,0 +1,114 @@
+{
+ "file": "src/IAFahim.DS.HilbertOrder/HilbertOrder.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.DS.HilbertOrder/HilbertOrder.cs",
+   "symbol": "HilbertOrder.Encode",
+   "severity": "critical",
+   "category": "wrong-recurrence",
+   "summary": "Hilbert d-index accumulation is wrong: it unconditionally adds 1L<<(2*i-2) (= s*s) each level plus a tiny (rx<<1)+ry term, instead of adding s*s*((3*rx)^ry). The result is not a Hilbert curve mapping and is not even a bijection.",
+   "triggeringInput": "x=0,y=0,logN=3 returns 21 (correct Hilbert index is 0); over the whole 8x8 grid Encode produces only 10 distinct values in [21,30] instead of a bijection onto [0,64).",
+   "rootCause": "The per-level contribution to the distance d must be (segmentIndex)*s*s where s=1<<(i-1) and segmentIndex = (3*rx)^ry in 0..3. The code instead does d += 1L<<(2*i-2) (which is s*s, i.e. segment index hard-wired to 1) and separately d += (rx<<1)+ry, so the quadrant index is never multiplied by the level area. This collapses the range and destroys uniqueness/ordering.",
+   "suggestedFix": "Replace the two d-updates with a single d += (1L<<(2*i-2)) * (long)((3*rx)^ry); compute rx/ry, add that contribution, then call RotateHilbert(ref x, ref y, rx, ry-style) using the standard rotate condition (rotate when ry==0). Match the reference xy2d: rx=(x>>(i-1))&1, ry=(y>>(i-1))&1, d += s*s*((3*rx)^ry), then rotate."
+  },
+  {
+   "file": "src/IAFahim.DS.HilbertOrder/HilbertOrder.cs",
+   "symbol": "HilbertOrder.Run",
+   "severity": "critical",
+   "category": "wrong-recurrence",
+   "summary": "Recursive Hilbert Run only adds subSize on the seg==3 branch and adds nothing for seg 0/1/2, and uses an incorrect quadrant-to-offset mapping. The output is not a Hilbert ordering and is not a bijection.",
+   "triggeringInput": "pow=3,rot=0 over the 8x8 grid yields only 7 distinct values with max 21 (must cover [0,64) bijectively). E.g. many (x,y) map to the same code.",
+   "rootCause": "A correct Hilbert recursion adds quadrantIndex*subSize at each level for quadrantIndex in 0..3 and recurses into the corresponding sub-square with the proper coordinate transform/rotation. Here seg==0/1/2 branches recurse without adding any offset (offset effectively 0,0,0) so three of the four quadrants share the same numeric base, and only seg==3 adds subSize. The segment computation and rotation handling (GetHilbertSegment) also do not implement the standard Hilbert quadrant ordering, causing massive collisions.",
+   "suggestedFix": "Add offset = seg*subSize at every level (not just seg==3), and route each seg value to the correct rotated/reflected sub-square coordinates per the canonical Hilbert mapping. Simplest fix: replace Run with the iterative reference algorithm equivalent to a corrected Encode (d += s*s*((3*rx)^ry) with proper rotate)."
+  },
+  {
+   "file": "src/IAFahim.DS.HilbertOrder/HilbertOrder.cs",
+   "symbol": "BlockOrder.Decode",
+   "severity": "critical",
+   "category": "wrong-recurrence",
+   "summary": "Decode does not invert Encode for odd blocks. Encode subtracts r from block*int.MaxValue for odd blocks, which underflows the block multiple, so integer division recovers block-1 and the remainder recovers a huge wrong r.",
+   "triggeringInput": "l=4,r=3,blockSize=4: Encode -> block=1, code = 1*int.MaxValue - 3 = 2147483644. Decode -> *l = (int)(2147483644/2147483647)*4 = 0 (should be 4), *r = abs(2147483644 % 2147483647) = 2147483644 (should be 3).",
+   "rootCause": "For odd blocks Encode stores block*INT - r. Since 0<r<INT, code falls below block*INT into the (block-1) bucket, so code/INT truncates to block-1 and code%INT = INT-r (then abs) is not r. The signed offset breaks the positional encoding the decode assumes (it assumes the offset is always a non-negative remainder in [0,INT)).",
+   "suggestedFix": "Use a non-negative offset for the snake order, e.g. store r when even and (blockSize-1 or maxR)-r... more robustly: encode as block*INT + (odd ? (INT-1 - r_capped) : r) using a strictly non-negative offset, and decode block = code/INT, off = code%INT, then r = (block&1)!=0 ? (INT-1 - off) : off. Ensure r stays within [0,INT) so it never crosses bucket boundaries. Also blockSize must be validated/nonzero by the caller (division by zero otherwise)."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.HilbertOrder/HilbertOrder.cs",
+   "symbol": "HilbertOrder.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace if/else-if cascade on seg with a single switch-free arithmetic dispatch and remove the redundant x>=hpow / y>=hpow re-evaluation",
+   "currentCost": "Run recomputes x>=hpow and y>=hpow inside GetHilbertSegment AND again in the seg==3 tail (line 18). The seg dispatch is a chain of up to 3 branch tests (seg==0,1,2) creating a dependency chain; each recursion level repeats this.",
+   "proposedChange": "Compute int gx = x>=hpow?1:0; int gy = y>=hpow?1:0; once, pass them (or derived subtraction) into the segment computation, and reuse gx/gy for the line-18 subtraction (x - gx*hpow). Reorder the seg tests so the most common case is first, or convert the 4-way seg dispatch to a switch which Burst lowers to a jump table.",
+   "rationale": "Eliminates two redundant signed comparisons per recursion level and shortens the branch-dependency chain, cutting cycles in the hot recursive path; a jump table replaces a linear branch cascade.",
+   "risk": "Must preserve exact seg semantics from GetHilbertSegment (the XOR with rot&2 and rot&1 parity term). gx/gy hoisting is purely a CSE and is semantics-preserving since x,y,hpow are unchanged between the two uses."
+  },
+  {
+   "file": "src/IAFahim.DS.HilbertOrder/HilbertOrder.cs",
+   "symbol": "HilbertOrder.Run",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Convert tail recursion to an iterative loop to remove call overhead and enable accumulation",
+   "currentCost": "Run is fully tail-recursive (every return is a single recursive call, with seg==3 adding subSize). Even with AggressiveInlining, recursion across `pow` levels cannot be inlined (self-call), so each level pays a call/return + stack-frame cost, and subSize is recomputed via 1L<<(2*pow-2) each level.",
+   "proposedChange": "Rewrite as a while(pow>0) loop accumulating `result`: mutate x,y,rot in place and add subSize only on the seg==3 branch. subSize for level p is 1L<<(2*p-2); accumulate by shifting a running base. This is the same structure Encode already uses.",
+   "rationale": "Removes per-level call/return and frame setup, turns the function into a flat loop Burst can keep in registers, and lets subSize be tracked incrementally instead of recomputed with a shift each level.",
+   "risk": "Behavior identical because the recursion is genuine tail recursion with simple accumulation; care needed to apply the seg==1 argument swap (Run(y,x,...)) and the seg==3 coordinate subtraction in the right order inside the loop."
+  },
+  {
+   "file": "src/IAFahim.DS.HilbertOrder/HilbertOrder.cs",
+   "symbol": "HilbertOrder.GetHilbertSegment",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Make GetHilbertSegment branchless and AggressiveInlined; replace the ((a)==(b)?0:1) and multiply with XOR",
+   "currentCost": "Three ternary branches: two for x>=hpow / y>=hpow and one for the (x>=hpow)==(y>=hpow)?0:1 parity, plus an integer multiply (rot&1)*parity. No inlining attribute on this hot leaf called once per recursion level.",
+   "proposedChange": "Add [MethodImpl(AggressiveInlining)]. Compute int gx=(int)(((ulong)(x-hpow))>>63)... or use comparison results directly: int gx = x>=hpow?1:0 still branches; instead use gx = -(x>=hpow) tricks are not needed \u2014 better: parity = gx ^ gy gives exactly the !=  predicate, so replace ((x>=hpow)==(y>=hpow)?0:1) with (gx ^ gy), and replace (rot&1)*parity with ((rot&1) & (gx^gy)) \u2014 both operands are 0/1 so AND equals multiply.",
+   "rationale": "Removes one branch and one integer multiply per level, replacing them with a single XOR/AND; AND-of-0/1 is a cheaper, branchless equivalent of the multiply. Inlining removes the leaf call overhead.",
+   "risk": "gx^gy equals 1 exactly when gx!=gy, matching the != predicate; (rot&1)&(x) equals (rot&1)*x only when both are 0/1, which holds here. Semantics preserved. Comparison-to-0/1 conversions in Burst are already branchless via setcc, so no signed-shift hack is required."
+  },
+  {
+   "file": "src/IAFahim.DS.HilbertOrder/HilbertOrder.cs",
+   "symbol": "HilbertOrder.Encode",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist loop-invariant shift amounts and fold RotateHilbert into the loop branchlessly; precompute (1L<<i)-1 masks",
+   "currentCost": "Per iteration: computes 1L<<(2*i-2), (rx<<1)+ry, and calls RotateHilbert which recomputes (1L<<i)-1 twice and branches on rx. The d += 1L<<(2*i-2) term is a fixed geometric series (sum equals (4^logN-1)/3) computed via a shift every iteration.",
+   "proposedChange": "Maintain a running `bit = 1L<<(2*i-2)` updated by >>2 each iteration instead of recomputing the shift. Inline RotateHilbert: compute mask=(1L<<i)-1 once, and do the rx==1 conditional reflection branchlessly via mask. Note the d += 1L<<(2*i-2) over all iterations is a constant for given logN \u2014 it could be added once as the closed-form ((1L<<(2*logN))-1)/3 outside the loop.",
+   "rationale": "The summed term is loop-invariant in aggregate (closed form), eliminating logN shifts and adds. Running `bit` avoids recomputing 2*i-2 shifts. Inlining RotateHilbert removes a call and the duplicate (1L<<i)-1 computation.",
+   "risk": "Closed-form replacement of sum of 1L<<(2*i-2) must use integer floor division ((4^logN-1)/3) which is exact since the sum is an integer; verify for logN up to 31 to avoid 1L<<(2*logN) overflow at logN=32. RotateHilbert reorders x/y but only the rx==1 path reflects, so the swap must still always execute \u2014 preserve the unconditional swap after the conditional reflect."
+  },
+  {
+   "file": "src/IAFahim.DS.HilbertOrder/HilbertOrder.cs",
+   "symbol": "HilbertOrder.RotateHilbert",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Add AggressiveInlining and compute the reflection mask once",
+   "currentCost": "Called once per Encode iteration without an inlining hint; computes (1L<<i)-1 twice when rx==1.",
+   "proposedChange": "Add [MethodImpl(AggressiveInlining)] and compute long mask=(1L<<i)-1 once, reusing it for both x and y reflection.",
+   "rationale": "Removes call overhead in the hot Encode loop and one redundant shift+sub when rx==1.",
+   "risk": "Pure refactor; mask reuse is identical arithmetic. The unconditional x/y swap must remain after the conditional reflection."
+  },
+  {
+   "file": "src/IAFahim.DS.HilbertOrder/HilbertOrder.cs",
+   "symbol": "GilbertOrder.EncodeRecursive",
+   "dimension": "purity",
+   "impact": "low",
+   "summary": "EncodeRecursive is a non-functional placeholder returning x*h+y \u2014 flag as incorrect / dead before optimizing",
+   "currentCost": "Comment says 'Placeholder for real Gilbert curve logic'; it never recurses and returns x*h+y, so GilbertOrder.Encode does not compute a Gilbert curve index. Math.Abs on the sum is wasted work given the placeholder.",
+   "proposedChange": "Either implement the real generalized Hilbert (gilbert2d) recursion or mark the API clearly as unimplemented. Do not micro-optimize a placeholder; once implemented, the ax/ay/cx/cy parameters that are currently always 0 should be exploited (the w>=h/h>w split passes constant zeros).",
+   "rationale": "Optimizing a placeholder wastes effort and could entrench wrong behavior; correctness must precede performance. Noting it prevents false confidence in the module.",
+   "risk": "This is a correctness/design flag, not a behavior-preserving micro-opt. No change should be applied silently; implementing the algorithm changes observable output (currently wrong) intentionally."
+  },
+  {
+   "file": "src/IAFahim.DS.HilbertOrder/HilbertOrder.cs",
+   "symbol": "BlockOrder.Encode/Decode",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace division/modulo by int.MaxValue and blockSize with cheaper ops where blockSize is power-of-two; precompute l/blockSize once",
+   "currentCost": "Encode computes l/blockSize twice (line 69) and multiplies by int.MaxValue (a non-power-of-two odd constant forcing real 64-bit multiply) and uses % indirectly via the sign branch. Decode uses code/int.MaxValue and Math.Abs(code%int.MaxValue) \u2014 two expensive 64-bit divides by a non-power-of-two constant.",
+   "proposedChange": "Compute int block = l/blockSize once and reuse for both the multiply and the parity test. If blockSize is constrained to a power of two, replace l/blockSize with l>>log2(blockSize). The int.MaxValue radix is awkward; if a power-of-two stride (e.g. 1L<<31) were used instead, code/stride and code%stride become shift and mask. Decode's Math.Abs(code % int.MaxValue) can drop Math.Abs if r is known non-negative.",
+   "rationale": "Eliminates one redundant integer division in Encode and replaces div/mod by a constant with shift/mask when the stride is a power of two, removing the slowest integer ops on mobile cores; CSE of l/blockSize saves one div.",
+   "risk": "Switching the stride from int.MaxValue to a power of two changes the encoded values (observable) and must be a deliberate format change, not silent. The pure CSE of l/blockSize and the power-of-two shift for blockSize are semantics-preserving ONLY if blockSize is guaranteed positive power-of-two; otherwise keep the divide. Signed l/blockSize differs from >> for negative l, so guard l>=0."
+  }
+ ]
+}

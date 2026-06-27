@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Optimization.DivideConquer/OnlineDp.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.DivideConquer/OnlineDp.cs",
+   "symbol": "Recompute",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the `j > 0` test out of the inner candidate loop by special-casing j==0.",
+   "currentCost": "The inner loop evaluates `calc(mid, j) + (j > 0 ? dp[j-1] : 0)` for every j in [start,end]; the `j > 0` ternary is checked every iteration even though it is false at most once (only when start==0).",
+   "proposedChange": "Compute the j==0 candidate (if start==0) once before the loop, then run the loop from `max(start,1)` to end with the unconditional body `calc(mid, j) + dp[j-1]`. Keeps best/bestPos tracking identical.",
+   "rationale": "Removes a per-iteration branch from the divide-and-conquer inner loop (total work O((r-l) * k) across recursion), improving the candidate loop's straight-line throughput and predictability.",
+   "risk": "Must preserve tie-breaking: original picks the first j achieving best (strict `<`). Evaluating j==0 first then iterating j>=1 keeps the same scan order and strict-less comparison, so bestPos ties resolve identically. Behavior preserved."
+  },
+  {
+   "file": "src/IAFahim.Optimization.DivideConquer/OnlineDp.cs",
+   "symbol": "Recompute",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Tail-call / iterative conversion of one recursion arm to cap stack depth and avoid recursion overhead.",
+   "currentCost": "Two recursive self-calls per node; recursion depth is O(log(r-l)) which is fine, but each call has frame setup and the `delegate*` is passed by value each time. Burst supports recursion but deep call frames hurt mobile stack and inlining.",
+   "proposedChange": "Convert the second recursive call (`Recompute(dp, mid+1, r, bestPos, optR, k, calc)`) into a loop by reassigning l=mid+1, optL=bestPos and looping, keeping only the first arm recursive. Standard half-iterative D&C transform.",
+   "rationale": "Halves recursion frame count and shortens the call dependency chain; the delegate* and bounds stay in registers across the iterative arm instead of being re-marshalled per call. Lower stack pressure matters on mobile.",
+   "risk": "Must keep the first arm (l..mid-1) recursive and the second iterative to preserve the [optL,bestPos]/[bestPos,optR] monotonic-opt invariant. Pure refactor; outputs in dp[] are unchanged. Verify mid/optR recomputation order matches original."
+  }
+ ]
+}

@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.Modular/ModInv.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.Modular/ModInv.cs",
+   "symbol": "ModInv.Run",
+   "severity": "high",
+   "category": "modular-sign",
+   "summary": "Modular inverse fails (returns -1 \"no inverse\") for negative inputs whose true gcd with mod is 1, because ExtendedGcd returns a NEGATIVE gcd g for negative a, so the check `g != 1` is wrong.",
+   "triggeringInput": "ModInv.Run(a=-1, mod=2): ExtendedGcd returns g = -1 (not +1), so `g != 1` is true and the method returns -1, but the inverse of -1 \u2261 1 (mod 2) is 1. Also ModInv.Run(-3, ...) family: any negative a where the Euclidean reduction reaches a negative base value (e.g. a=-1 mod=2, a=-3 mod=50, a=-41 mod=50) yields g = -1.",
+   "rootCause": "ExtendedGcd.Run(a, mod, ...) returns the raw value `a` at its base case, which is signed and can be negative when the initial `a` is negative (C# `%` is sign-preserving). The mathematical gcd is |g|, so for a valid coprime negative input the true gcd is 1 while g = -1. ModInv only accepts `g == 1`, so it incorrectly reports no inverse for genuinely invertible negative residues. ModDiv.Run inherits this: ModDiv.Run(1, -1, 2) returns the -1 error sentinel instead of 1.",
+   "suggestedFix": "Compare the magnitude: use `if (g != 1 && g != -1) return -1;` (or normalize the gcd sign), then `return ModNormalize.Run(x, mod);` (ModNormalize already maps any x into [0,mod), so the negative-g sign on x is handled there). Equivalently, reduce a with ModNormalize before calling ExtendedGcd so the first argument is always non-negative."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Modular/ModInv.cs",
+   "symbol": "ModInv.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "y is computed by ExtendedGcd but never used by ModInv.",
+   "currentCost": "ExtendedGcd fully computes y (and the y = x1 - (a/b)*y1 chain at every recursion level) but ModInv only reads x. Every level pays for the y update.",
+   "proposedChange": "Provide an x-only variant (e.g. ExtendedGcd.RunX returning g with single out x, or an inverse-specific routine) that drops the y recurrence entirely. ModInv calls that. The y update (a/b)*y1 and its division vanish from every level.",
+   "rationale": "Halves the per-level work of the GCD recursion for the inverse path \u2014 removes one multiply, one subtract, and the a/b division per level that exist solely to maintain y.",
+   "risk": "Only safe if no other caller relies on ExtendedGcd via ModInv for y; ModInv discards y already, so an x-only path is observably identical for ModInv/ModDiv. Keep the full ExtendedGcd for callers that need both. API addition, not a breaking change."
+  }
+ ]
+}

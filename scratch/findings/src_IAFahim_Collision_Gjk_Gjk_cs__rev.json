@@ -1,0 +1,37 @@
+{
+ "file": "src/IAFahim.Collision.Gjk/Gjk.cs",
+ "correctness": [
+  {
+   "severity": "critical",
+   "category": "revision",
+   "symbol": "REVISION",
+   "summary": "REVISION: prior fix gave WRONG distances for vertex/edge nearest features. Implement the full Johnson/Ericson signed-volume GJK sub-distance so it returns the TRUE minimum. Required test cases: unit boxes (half-extent 1) at (0,0,0) and (5,5,5) must return 3*sqrt(3)=5.19615 (NOT sqrt(59)=7.681); boxes at (0,0,0) and (5,5,0) must return 3*sqrt(2)=4.24264 (NOT sqrt(34)=5.831); face case box at (5,0,0) returns 3.0; overlapping returns 0. Verify against these before finishing.",
+   "triggeringInput": "see summary",
+   "rootCause": "prior fix incomplete/incorrect",
+   "suggestedFix": "REVISION: prior fix gave WRONG distances for vertex/edge nearest features. Implement the full Johnson/Ericson signed-volume GJK sub-distance so it returns the TRUE minimum. Required test cases: unit boxes (half-extent 1) at (0,0,0) and (5,5,5) must return 3*sqrt(3)=5.19615 (NOT sqrt(59)=7.681); boxes at (0,0,0) and (5,5,0) must return 3*sqrt(2)=4.24264 (NOT sqrt(34)=5.831); face case box at (5,0,0) returns 3.0; overlapping returns 0. Verify against these before finishing."
+  },
+  {
+   "file": "src/IAFahim.Collision.Gjk/Gjk.cs",
+   "symbol": "Gjk.ComputeClosestPointToOrigin / Gjk.Distance",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "ComputeClosestPointToOrigin only handles simplex count 1 and 2; for count==3 (triangle) and count==4 (tetrahedron) it falls through and returns float3.zero. In Distance(), once the witness simplex grows to 3 vertices, dir = -ComputeClosestPointToOrigin(...) becomes the zero vector. The next iteration computes w = supportA(0)-supportB(0) with dw = dot(w,0) = 0, which satisfies the (dw>-Epsilon && dw<Epsilon) branch and returns 0.0f. Likewise if the loop exits with count 3 or 4, ComputeDistanceToOrigin returns length(float3.zero) = 0. Result: Distance() reports 0 (touching/penetrating) for genuinely separated shapes whenever the closest CSO feature is a triangle/tetrahedron face (vertex-face or edge-edge proximity), instead of the true positive separation distance.",
+   "triggeringInput": "Gjk.Distance(A,B) where A is a single point at (0,0,0) (ConvexHullSupport count=1) and B is a triangle in plane x=5 spanning well past the origin's projection, e.g. points (5,-10,-10),(5,10,-10),(5,0,20). True distance is 5, but the method returns 0. Verified empirically: prints 0 instead of 5. The same occurs for any two boxes/hulls whose nearest feature is a face producing a 3- or 4-vertex distance simplex.",
+   "rootCause": "ComputeClosestPointToOrigin (Gjk.cs lines 277-291) implements the point-to-triangle and point-to-tetrahedron closest-point sub-cases as 'return float3.zero' fall-through rather than computing the actual barycentric closest point. ComputeDistanceToOrigin (lines 265-275) inherits the same gap. The zero direction then short-circuits the Distance loop via the dw\u22480 early return at lines 95-98.",
+   "suggestedFix": "Implement the count==3 (closest point on triangle to origin) and count==4 (closest point on tetrahedron, with face reduction) cases in ComputeClosestPointToOrigin, reducing the simplex to the closest sub-feature and updating count accordingly (the standard Johnson/Signed-volume distance sub-algorithm). At minimum, never return float3.zero unless the origin is truly enclosed; return the barycentric closest point on the triangle/tetra so dir stays non-zero and the search converges to the real distance."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Collision.Gjk/Gjk.cs",
+   "symbol": "Distance / ComputeClosestPointToOrigin",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Distance's simplex handling only ever resolves point and segment cases; ComputeClosestPointToOrigin returns float3.zero for count>=3, silently dropping triangle/tetra closest-point logic, so the loop wastes support evaluations that cannot improve the result.",
+   "currentCost": "When count reaches 3 or 4, ComputeClosestPointToOrigin returns float3.zero, so dir = -zero = zero, the next support(0) is meaningless, and ComputeDistanceToOrigin also returns length(zero)=0 for count>=3. The loop keeps calling supportA/supportB (2 delegate calls per iter, up to 32 iters) producing no useful refinement and can return a wrong 0 distance.",
+   "proposedChange": "Either (a) implement the triangle and tetrahedron closest-point-to-origin cases so the GJK-distance subalgorithm is correct and converges early, or (b) cap simplex growth at 2 and reduce after each step so the segment path is exercised, removing dead support calls. At minimum, cap count and break once the closest feature stops improving to avoid running the full MaxIterations on a no-op path.",
+   "rationale": "Removes up to ~30 redundant delegate-pair evaluations per Distance call on the degenerate path and fixes a latent correctness gap (count>=3 returning 0). Fewer indirect calls (delegates defeat inlining/vectorization) is a real cycle win in addition to correctness.",
+   "risk": "This touches Distance's numerical results for inputs whose simplex grows past a segment, so it is NOT purely behavior-preserving \u2014 flag as a correctness fix, validate against NUnit distance tests. If strict behavior preservation is mandatory, only apply variant (b)'s early-out when ComputeClosestPointToOrigin would return zero, since that path already yields 0."
+  }
+ ]
+}

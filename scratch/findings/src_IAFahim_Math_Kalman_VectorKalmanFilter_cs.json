@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Math.Kalman/VectorKalmanFilter.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Kalman/VectorKalmanFilter.cs",
+   "symbol": "Run / PredictCovariance / Update",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the loop-invariant float3 splats (processNoise*dt and measurementNoise) out of the per-iteration path.",
+   "currentCost": "Inside the loop each iteration constructs 'new float3(processNoise * dt)' in PredictCovariance and 'new float3(measurementNoise)' plus 'new float3(1.0f)' in Update. processNoise, dt, measurementNoise are loop-invariant, so these splats and the processNoise*dt multiply are recomputed every iteration.",
+   "proposedChange": "Precompute before the loop: float3 covInc = new float3(processNoise * dt); float3 measNoise = new float3(measurementNoise); float3 one = new float3(1.0f); and pass/use them inside. Or inline the math in Run using these hoisted vectors.",
+   "rationale": "Removes a scalar multiply plus several scalar->float3 broadcast constructions from each iteration. On SIMD the splat is cheap but still an instruction; hoisting shortens the body and frees the scheduler. Burst may hoist automatically, but making it explicit guarantees it.",
+   "risk": "None; values are loop-invariant and identical, results bit-for-bit unchanged. Only consideration is whether to change the helper signatures (API break) versus inlining in Run."
+  },
+  {
+   "file": "src/IAFahim.Math.Kalman/VectorKalmanFilter.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Peel first iteration to drop the per-iteration 'if (i > 0)' branch and the redundant outStates[i-1] vector load.",
+   "currentCost": "Each iteration evaluates 'if (i > 0)' and, when true, reloads the float3 outStates[i-1] (12 bytes) from memory though it equals the previous iteration's 'state' held in registers.",
+   "proposedChange": "Handle i==0 before the loop (no velocity update), keep a 'float3 prev = state' register, then loop i=1..count computing velocity = (state - prev) / dt; prev = state; outStates[i] = state. Removes the branch and the memory reload.",
+   "rationale": "Eliminates count branch checks and count-1 float3 loads, and turns the velocity update into a register-only op, shortening the dependency chain and improving SIMD scheduling.",
+   "risk": "Add an explicit 'if (count <= 0) return;' guard before the peeled prologue. Outputs are identical since outStates[i-1] always equals the prior state."
+  },
+  {
+   "file": "src/IAFahim.Math.Kalman/VectorKalmanFilter.cs",
+   "symbol": "file header",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Remove unused 'using System;' import.",
+   "currentCost": "'using System;' is imported but nothing from System is referenced (only Unity.Mathematics.float3 and MethodImpl).",
+   "proposedChange": "Delete the 'using System;' directive.",
+   "rationale": "Dead import; trivial clarity cleanup with zero runtime effect.",
+   "risk": "None."
+  }
+ ]
+}

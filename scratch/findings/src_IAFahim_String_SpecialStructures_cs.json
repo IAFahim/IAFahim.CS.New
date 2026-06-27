@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.String/SpecialStructures.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String/SpecialStructures.cs",
+   "symbol": "XmlTreeHash",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "Recursive stackalloc inside the recursion: each XmlTreeHash frame stackallocs node.ChildCount uints, so deep/wide trees can blow the stack and Burst dislikes per-frame variable stackalloc.",
+   "currentCost": "uint* tempHashes = stackalloc uint[node.ChildCount] executes on every recursive call; stack usage is sum of childCounts along the deepest path, unbounded by tree shape. Burst's stack frame for recursive stackalloc is hard to bound.",
+   "proposedChange": "Reuse the caller-provided calculatedHashes buffer (already O(nodeCount)) as the scratch for child hashes instead of a fresh per-frame stackalloc: gather child hashes by reading calculatedHashes[childIdx] (each child already wrote its hash before returning), and sort indices/hashes using a small region of a single shared scratch buffer passed in once. This removes recursion-local stackalloc.",
+   "rationale": "Eliminates O(depth * width) cumulative stack growth and per-frame stackalloc, making stack usage bounded and Burst-friendly. Since each child already stores its hash in calculatedHashes, the temp array is redundant \u2014 read from there.",
+   "risk": "Insertion sort needs a mutable scratch region; reusing calculatedHashes in place would corrupt stored hashes, so a single caller-provided scratch buffer of max-childCount is needed. The canonical (sorted) ordering of child hashes must be preserved exactly to keep the same output hash."
+  },
+  {
+   "file": "src/IAFahim.String/SpecialStructures.cs",
+   "symbol": "HashUpdate",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "FNV multiply constant is fine, but the tree-hash insertion sort is O(childCount^2) which dominates for high-fan-out nodes.",
+   "currentCost": "Both XmlTreeHash and JsonCanonicalHash sort children with insertion sort: O(childCount^2) comparisons/moves per node. For wide nodes (large ChildCount) this is the bottleneck.",
+   "proposedChange": "For uint key sorting in XmlTreeHash, use an in-place radix/counting sort over the 32-bit keys (4 passes of 8-bit buckets) when ChildCount exceeds a small threshold (e.g. 32); keep insertion sort below it. JsonCanonicalHash sorts ChildInfo by KeyHash (int) \u2014 same radix approach on the key, carrying the HashVal payload.",
+   "rationale": "Drops the per-node sort from O(w^2) to O(w) for wide nodes, an asymptotic win on fan-out-heavy XML/JSON. Insertion sort retained for small w where its low constant wins.",
+   "risk": "Radix sort needs a scratch buffer (caller-provided, per house rules) and a stable ordering to match insertion sort's result for equal keys; FNV folding of equal hashes is order-independent for duplicates so stability is not observable, but verify equal-key handling produces identical final folded hash. Threshold must be tuned; below it keep current path to avoid regressions."
+  },
+  {
+   "file": "src/IAFahim.String/SpecialStructures.cs",
+   "symbol": "JsonCanonicalHash",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "ChildInfo struct stores KeyHash redundantly when it equals elements[childIdx].KeyHash already in memory; the gather duplicates data only to sort.",
+   "currentCost": "stackalloc ChildInfo[elem.ChildCount] (8 bytes each) duplicates each child's KeyHash and computed HashVal per frame, recursively, growing stack by 8*childCount per level.",
+   "proposedChange": "Sort child indices (a single int per child) by elements[childIdx].KeyHash rather than copying KeyHash+HashVal into a parallel struct array, reading KeyHash via the already-resident elements[] and HashVal via calculatedHashes[childIdx]. This halves scratch footprint and reuses existing storage.",
+   "rationale": "Reduces per-frame scratch from 8 bytes/child to 4 bytes/child and avoids duplicating data already present in elements[] and calculatedHashes[], shrinking the recursive stack working set and cache pressure.",
+   "risk": "Sorting indices by an indirect key adds an indirection per comparison (load elements[idx].KeyHash); for small fan-out the extra load may offset the savings. The final fold order must remain by ascending KeyHash exactly as today. Type==1 (object) sorts; Type other (array) preserves order \u2014 must keep that distinction."
+  }
+ ]
+}

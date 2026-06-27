@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Graph.Flow/HopcroftKarpBfs.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Flow/HopcroftKarpBfs.cs",
+   "symbol": "HopcroftKarpBfs.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "dist[u] + 1 is recomputed on every edge inside the inner relaxation loop.",
+   "currentCost": "Lines 24-25 compute 'dist[u] + 1' once per outgoing edge of u (twice textually, in both branches), each requiring a load of dist[u] (pointer deref) plus an add, for every edge scanned in the BFS \u2014 O(E) loads/adds total.",
+   "proposedChange": "Hoist before the inner for-loop: 'int du1 = dist[u] + 1;' then use 'dist[pu] = du1;' and 'found = du1;'. dist[u] is invariant across u's edge scan since only dist[pu] (pu != u) is written inside.",
+   "rationale": "dist[u] does not change during the inner loop (the loop only assigns dist[pu] for unvisited pu, never dist[u]), so 'dist[u]+1' is a loop invariant. Hoisting saves one pointer load and one add per edge and shortens the per-edge dependency chain.",
+   "risk": "None. pu is always a matched left vertex distinct from u that currently has dist==-1, so dist[u] is provably not aliased/overwritten within the inner loop; the hoisted value equals the recomputed one."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/HopcroftKarpBfs.cs",
+   "symbol": "HopcroftKarpBfs.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Branch structure re-tests pu against -1 twice; can be reordered to a single compare.",
+   "currentCost": "Lines 23-25: loads pu = pairV[v], then 'if (pu != -1 && dist[pu] == -1)' else 'if (pu == -1)'. The pu==-1 case is the common 'found' signal; the two-way compare adds a redundant test.",
+   "proposedChange": "Restructure as: 'if (pu == -1) { found = du1; } else if (dist[pu] == -1) { dist[pu] = du1; q[qt++] = pu; }'. Single primary branch on the -1 sentinel, the unmatched case handled first.",
+   "rationale": "Collapses two separate conditionals testing the same value into one if/else-if, removing a redundant comparison and improving branch predictability. Identical outcomes for all three states (pu==-1, pu matched+unvisited, pu matched+visited).",
+   "risk": "None \u2014 exhaustive case mapping is preserved: pu==-1 sets found; pu matched & dist==-1 enqueues; pu matched & dist!=-1 falls through (no-op), exactly as before."
+  }
+ ]
+}

@@ -1,0 +1,83 @@
+{
+ "file": "src/IAFahim.Geometry.Frame/ParallelTransport.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Geometry.Frame/ParallelTransport.cs",
+   "symbol": "ParallelTransport.Compute",
+   "severity": "high",
+   "category": "edge-case",
+   "summary": "The R1 reflection in the double-reflection rotation-minimizing-frame loop is guarded by `c1 > Threshold` where `c1 = dot(v1,v1)` is the SQUARED segment length, but `Threshold = 1e-6` was chosen as a LENGTH cutoff (it is compared against the non-squared `len = math.length(diff)` at line 43 for tangents). This makes the R1 step silently skipped for any segment whose length is below 1e-3 (since c1 = len^2 < 1e-6 \u21d4 len < 1e-3), even though such segments are perfectly valid and produce correct unit tangents. With R1 skipped, only one of the two reflections is applied, so the frame is no longer parallel-transported / rotation-minimizing and the normal drifts \u2014 a wrong result for densely-sampled curves.",
+   "triggeringInput": "positions = a polyline of >=3 points spaced 1e-4 apart along a curving path, e.g. positions[0]=(0,0,0), positions[1]=(1e-4,0,0), positions[2]=(1e-4,1e-4,0), count=3, initialNormal=(0,0,1). Each |segment|=1e-4 > 1e-6 so tangents are valid units, but c1=(1e-4)^2=1e-8 < 1e-6 so R1 is skipped on every step, yielding an incorrectly transported up/right frame at index 2.",
+   "rootCause": "Threshold (1e-6) is a length-scale constant but is compared against a squared length (c1 = dot(v1,v1)) at line 83. The effective length cutoff for skipping R1 becomes sqrt(1e-6)=1e-3 instead of the intended 1e-6, inconsistent with the tangent degeneracy test at line 43 which uses the un-squared length. Segments in (1e-6, 1e-3] are wrongly treated as degenerate, dropping the first Householder reflection of the double-reflection RMF algorithm and breaking the transport.",
+   "suggestedFix": "Compare against the squared threshold for the squared quantity: `if (c1 > Threshold * Threshold)` at line 83 (and correspondingly use a squared cutoff for c2 at line 93 if a length-scale skip is intended). Alternatively compute c1 = math.length(v1) and keep comparing to Threshold, but the squared form is cheaper \u2014 just square the constant. This makes the R1 skip consistent with the tangent degeneracy cutoff (len <= 1e-6) so only truly zero-length segments skip the reflection."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Frame/ParallelTransport.cs",
+   "symbol": "Compute (main loop)",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "v1 == positions[i+1]-positions[i] is identical to diff already computed in the tangents pass; c1 = dot(v1,v1) is the squared length recomputed from scratch every iteration. Precompute and reuse.",
+   "currentCost": "Each loop iteration recomputes v1 = pNext - pI (3 subs) and c1 = dot(v1,v1) (3 mul + 2 add). The first tangent pass already computed diff = positions[i+1]-positions[i] and len = length(diff) (which includes a sqrt of exactly this quantity). c1 here equals len*len.",
+   "proposedChange": "Store the per-segment squared length (lenSq) in a small stackalloc float* segLenSq[count-1] during the first pass (segLenSq[i] = math.lengthsq(diff)), or reuse the already-known diff. In the main loop set v1 = pNext - pI only if needed, and c1 = segLenSq[i]. Better: since v1 is used as a reflection plane vector and c1 is its squared length, both come directly from the tangent pass.",
+   "rationale": "Removes 3 subtractions and a 5-op dot product per iteration (O(count) saved), plus eliminates a redundant data dependency chain on positions loads. The squared length was effectively already computed (len = sqrt(lengthsq)) in the tangent pass.",
+   "risk": "lenSq must be the exact same float bit pattern as dot(v1,v1) to preserve the c1 > Threshold branch outcome. math.lengthsq(diff) == math.dot(diff,diff) == dot(v1,v1) since v1==diff, so bit-identical. Costs (count-1)*4 bytes extra stackalloc; acceptable, or fold into reusing diff directly. No semantic change."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Frame/ParallelTransport.cs",
+   "symbol": "Compute (main loop reflections)",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "(Two / c1) and (Two / c2) are scalar divides on the hot path; combine each with its dot product into a single reciprocal-scaled scalar to cut the dependency chain and hoist the constant.",
+   "currentCost": "Per iteration up to two divisions: (Two / c1) and (Two / c2). Division is ~20-40 cycle latency on mobile ARM and is on the critical dependency path. Each reflection also forms (Two/c)*dot(...)*v as three separate scalar/vector mults.",
+   "proposedChange": "Compute float s1 = (math.dot(v1,nI) + math.dot(v1,tI)) ... no \u2014 keep separate dots but fold: float inv1 = Two / c1; uI = nI - (inv1*math.dot(v1,nI))*v1; tIL = tI - (inv1*math.dot(v1,tI))*v1; (inv1 computed once, already partially done). The real win: compute the scalar coefficient k = inv1*dot first (scalar), then k*v1 (one vector mul), reducing to 1 div + 2 scalar muls + 2 vector muls per reflection instead of recomputing Two/c1 implicitly twice.",
+   "rationale": "Hoisting inv1 = Two/c1 to a single named scalar shares one divide across the two reflections of plane v1 (currently the source reads (Two / c1) twice on lines 85-86, which the compiler may or may not CSE under fast-math off). Explicit hoist guarantees one divide and shortens the chain.",
+   "risk": "Burst with default (non-fast) float math may treat (Two/c1) as a strict op; manual CSE is safe and bit-identical since both expressions are textually equal. Reordering dot/scale must keep the same rounding: k=inv1*dot then k*v1 vs inv1*dot*v1 is the same left-to-right association already used; preserve order to stay bit-exact."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Frame/ParallelTransport.cs",
+   "symbol": "Compute (outUp[i] reload)",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "nI is read from outUp[i] (memory) each iteration, but nNext written to outUp[i+1] in the previous iteration is exactly that value \u2014 carry it in a register instead of round-tripping through the output pointer.",
+   "currentCost": "Each iteration does float3 nI = outUp[i]; a 12-byte load from the caller's outUp buffer that was just stored the previous iteration (store-to-load forwarding, but still a memory dependency and pointer arithmetic per iter).",
+   "proposedChange": "Maintain a loop-carried local float3 nPrev initialized to n0 before the loop; use nPrev in place of outUp[i]; at the end set nPrev = nNext. This removes the dependent load from outUp[i] and the indexed address computation.",
+   "rationale": "Eliminates a 12-byte load and address calc per iteration and breaks the artificial dependency on the just-written output, helping Burst keep the normal in registers across iterations and aiding vectorization/scheduling.",
+   "risk": "None semantically: nPrev holds exactly what outUp[i] would; outUp is still written. Pure register reuse. Only caveat: if caller aliases outUp with positions/tangents (it must not for correctness anyway), behavior is unchanged because we still write outUp[i+1] identically."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Frame/ParallelTransport.cs",
+   "symbol": "Compute (tangents stackalloc)",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "tangents stackalloc float3[count] (12*count bytes) can overflow the stack for large count and is the only scratch buffer; the per-iteration tangent could be derived on the fly, or the buffer narrowed/guarded.",
+   "currentCost": "stackalloc float3[count] = 12*count bytes on the stack. For count in the thousands (e.g. dense curves) this risks stack overflow on mobile (typical 512KB-1MB thread stacks: ~40k-80k points). The buffer stores normalized tangents that are mostly consumed sequentially (tI and tNext for adjacent i).",
+   "proposedChange": "Either (a) document/guard a max count, or (b) restructure to keep only tCur and tNext as loop-carried locals: compute tNext from positions[i+1]-positions[i+2] inside the loop, removing the O(count) scratch buffer entirely and dropping RAM to O(1). The last-segment duplication (tangents[count-1]=tangents[count-2]) becomes a simple branch on the final iteration.",
+   "rationale": "Drops working set from O(count)*12 bytes to O(1), eliminating the stack-overflow failure mode and improving cache behavior (no scratch buffer traffic). tangents are only ever used as tI (current) and tNext (next), so two registers suffice.",
+   "risk": "Must preserve exact tangent values including the len>Threshold fallback to (0,0,1) and the final-segment duplication. Recomputing tNext each iter adds one normalize per iter but removes count normalizes from the prepass and all buffer load/store traffic \u2014 net neutral on math, strictly better on RAM. Order of operations must stay identical for bit-exact tangents."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Frame/ParallelTransport.cs",
+   "symbol": "Compute (count==1 and prelude)",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "The orthonormalization fallback logic (pick alternate axis when tangent/normal nearly parallel, then cross + normalize) is duplicated between the count==1 path and the count>1 prelude with subtly different structure; unify into one inlined helper to reduce code size and divergence risk.",
+   "currentCost": "Lines 21-36 (count==1) and 47-67 (prelude) implement near-identical Gram-Schmidt-with-fallback against different reference vectors. Duplicated branch-heavy code inflates instruction footprint (I-cache pressure on mobile) and risks the two paths drifting.",
+   "proposedChange": "Extract a private static [MethodImpl(AggressiveInlining)] BuildFrame(float3 tangent, float3 normalHint, out float3 right, out float3 up) that does the parallel check + fallback axis selection + cross/normalize, and call it from both sites. Keeps Burst-friendliness (by-value float3, out params, no managed types).",
+   "rationale": "Single source of truth for the orthonormal-frame construction, smaller code, easier to keep bit-identical. AggressiveInlining preserves the current inlined cost.",
+   "risk": "count==1 uses fwd=(0,0,1) as the seed tangent and a different fallback ordering ((0,1,0) then keep) than the prelude (alt=(0,1,0) then (0,0,1)). The helper must reproduce each call site's exact branch sequence and normalize order to remain bit-exact; if the two cannot be reconciled without changing rounding, keep separate. Low impact, refactor-only."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Frame/ParallelTransport.cs",
+   "symbol": "Compute (final cross/normalize)",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "bNext = normalize(cross(tNext, nNext)) normalizes a cross product whose operands are already unit and (after the reflections) nearly orthogonal; the normalize may be droppable or cheaper, and the dependency chain shortened.",
+   "currentCost": "Per iteration: normalize(cross(tNext,nNext)) = cross (6 mul, 3 sub) + length (dot+sqrt) + reciprocal + 3 muls. The sqrt+div is the longest-latency op in the loop body.",
+   "proposedChange": "After nNext=normalize(nNext), tNext is unit and nNext is unit. If they are guaranteed orthogonal, cross is already unit and normalize is redundant. They are NOT exactly orthogonal here (nNext came from reflections, not re-orthogonalized against tNext), so instead Gram-Schmidt nNext against tNext first (nNext -= dot(tNext,nNext)*tNext; normalize) which both improves frame orthogonality AND lets bNext = cross(tNext,nNext) skip its normalize. Net: replaces one sqrt-normalize with one dot+mul+sub, often a latency win.",
+   "rationale": "Trades a sqrt-bearing normalize for a cheaper Gram-Schmidt step while also producing a more orthonormal frame. Removes one sqrt from the critical path per iteration.",
+   "risk": "This CHANGES output bits (re-orthogonalizing nNext against tNext alters nNext and bNext slightly). It improves orthonormality but is NOT bit-preserving, so it must be gated as an opt-in/behavioral improvement, not applied silently. Only adopt if the library treats frame orthonormality tolerance as the contract rather than exact bits. Flagged low because of the semantics caveat."
+  }
+ ]
+}

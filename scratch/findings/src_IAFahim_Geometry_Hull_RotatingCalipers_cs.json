@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Geometry.Hull/RotatingCalipers.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Hull/RotatingCalipers.cs",
+   "symbol": "MinArea",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Recomputes identical Cross/Dot calls multiple times per iteration; cache the base-edge results.",
+   "currentCost": "Each loop iteration calls Cross(...,t) and Cross(...,t+1) inside the while condition AND again to compute height; Dot(...,ri), Dot(...,l) computed in both the while-loop guards and again in the width calc. Cross/Dot each do 4 mul + several sub. The two while loops re-evaluate Cross(...,xs[t],ys[t]) / Dot(...,xs[ri]) on the fixed t/ri endpoint every comparison even though it only changes when t/ri advance. This is the inner hot loop of an O(n) rotating-calipers pass.",
+   "proposedChange": "Hoist the base point and edge vector once per i (px=xs[i],py=ys[i],ex=xs[nxt]-px,ey=ys[nxt]-py). Then compute support values as projections: cross_t = ex*(ys[t]-py)-ey*(xs[t]-px) etc., keeping a running 'current' value for t/ri/l so the while guard reuses the cached current instead of recomputing Cross(...,xs[t]). After each advance, update current. Reuse the final cross_t for the height computation (line 62) and the final Dot values for the width computation (line 63) instead of calling Cross/Dot a third time.",
+   "rationale": "Cuts redundant 4-mul Cross/Dot evaluations: currently ~5-6 Cross/Dot calls per iteration plus per-advance recomputation of the stationary endpoint; caching the stationary endpoint value removes one full Cross/Dot per while-iteration, and reusing the final values removes 3 more calls per outer iteration. Fewer multiplies, shorter dependency chains.",
+   "risk": "Pure arithmetic re-association of the same expressions; identical IEEE results if the exact same subtraction/mul ordering is preserved. Must keep operand order (x2-x1)*(y3-y1)-(y2-y1)*(x3-x1) to be bit-identical; if reordered, results differ by rounding \u2014 to stay strictly semantics-preserving keep the expanded form matching Cross/Dot exactly."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Hull/RotatingCalipers.cs",
+   "symbol": "MinArea/MinWidth",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace `(t + 1) % n` advance with a branchless/cheap wrap since the index only ever increments by 1.",
+   "currentCost": "Inside the calipers while-loops, `t = (t + 1) % n` executes an integer division (DIV ~20-40 cycles, not vectorizable) on every advance. n is runtime so Burst cannot strength-reduce to a mask. Same for ri, l, and the outer `nxt = (i+1) % n`.",
+   "proposedChange": "Since t increments by exactly 1, replace with `int tn = t + 1; if (tn == n) tn = 0; t = tn;` (or branchless `t = t + 1; t = t == n ? 0 : t;`). Same for ri, l, and nxt = i+1>=n?0:i+1. The `(t+1)%n` used to read the lookahead point also becomes a precomputed `t+1==n?0:t+1`.",
+   "rationale": "Removes integer DIV from the hottest inner loops, replacing it with add + compare + cmov. On mobile ARM, idiv is especially expensive (10-12+ cycles, non-pipelined); a predicated select is ~1-2 cycles.",
+   "risk": "Semantics identical only because the incremented value is always in [1, n] (advance is always +1 from a value in [0,n-1]); the simple wrap is exact. Verified: every modulo argument here is prev/cur index +1, never a larger jump."
+  }
+ ]
+}

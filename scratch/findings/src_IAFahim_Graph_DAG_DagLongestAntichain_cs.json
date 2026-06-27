@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Graph.DAG/DagLongestAntichain.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.DAG/DagLongestAntichain.cs",
+   "symbol": "DagLongestAntichain.Run",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Run is a non-functional stub that always returns n (the number of vertices) instead of the longest antichain size. By Dilworth's theorem the answer equals the minimum path cover of the transitive closure, which is never computed; the reachabilityMatrix argument is completely ignored.",
+   "triggeringInput": "reachabilityMatrix for a 3-vertex total order (chain) 0->1->2 with n=3: longest antichain is 1, but Run returns 3.",
+   "rootCause": "The method body contains only 'return n;' with a comment noting the real algorithm is unimplemented. It does not perform any path-cover / matching computation and ignores reachabilityMatrix entirely.",
+   "suggestedFix": "Implement the algorithm: build the bipartite graph from reachabilityMatrix (u on left, v on right with edge when u can reach v, u!=v), compute maximum bipartite matching M, and return n - M. Until implemented, the method must not be presented as a working API."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.DAG/DagLongestAntichain.cs",
+   "symbol": "Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Run is a non-functional stub: returns n instead of the longest antichain.",
+   "currentCost": "reachabilityMatrix and the Dilworth relationship are not used; the function returns n unconditionally, which is correct only when the DAG has no comparable pairs.",
+   "proposedChange": "Compute the answer as min path cover of the transitive closure (Dilworth): build the bipartite graph from reachabilityMatrix (i->j edge when reachable, i!=j) and return n - max_matching via DagMinimumPathCover. Accept the required matching scratch buffers as parameters to stay allocation-free and Burst-friendly.",
+   "rationale": "Provides the correct asymptotic algorithm (matching-based, O(V^2.5) region) rather than a constant. Reuses the matching routine so the closure-to-antichain pipeline is consistent across the module.",
+   "risk": "Functional gap, not a perf tweak \u2014 current result is wrong for non-trivial inputs. Fixing it changes behavior by design and depends on DagMinimumPathCover being implemented first."
+  }
+ ]
+}

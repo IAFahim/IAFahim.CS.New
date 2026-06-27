@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Geometry.Curve/CubicBezier.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Curve/CubicBezier.cs",
+   "symbol": "Evaluate",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace the Bernstein-basis evaluation with the Horner/expanded power-basis form to cut multiplies and shorten the chain in the hottest leaf.",
+   "currentCost": "Computes u, uu, uuu, tt, ttt (5 scalar muls) then p = uuu*p0 + 3*uu*t*p1 + 3*u*tt*p2 + ttt*p3: that is many scalar muls to form the 4 Bernstein weights plus 4 scalar*vector products and 3 vector adds. Called SampleCount(128) times in IntegrateArcLength and again per output sample in UniformSample, so it dominates both.",
+   "proposedChange": "Precompute power-basis coefficients once is not possible per-call without p inputs, but per call use Horner on the expanded cubic: c0=p0; c1=3*(p1-p0); c2=3*(p0-2*p1+p2); c3=-p0+3*p1-3*p2+p3; then p = c0 + t*(c1 + t*(c2 + t*c3)) (3 vector mads). Alternatively, if many points are sampled for the SAME control points (IntegrateArcLength/UniformSample), hoist c0..c3 out of the loop and pass them to an inner evaluator so they are computed once instead of per sample.",
+   "rationale": "Hoisting c0..c3 out of the 128-iteration loops turns ~12 vector coefficient ops per sample into 3 mads per sample, computing the coefficients once per curve instead of 128+count times. This is a large constant-factor win on the dominant inner loop, with better FMA vectorization under Burst.",
+   "risk": "Last-ULP differences from reassociation/FMA versus the current Bernstein expression; reject only if bit-exact parity is contractually required. The two power-basis evaluations are mathematically identical to the Bernstein form for all t."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Curve/CubicBezier.cs",
+   "symbol": "IntegrateArcLength",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "IntegrateArcLength duplicates UniformSample's LUT-building loop; the total length is exactly lut[SampleCount]. Share one inner routine.",
+   "currentCost": "IntegrateArcLength runs a 128-iteration loop summing math.distance, and UniformSample runs the identical loop to build lut. The arc length is precisely lut[SampleCount] that UniformSample already computes, so callers wanting both length and samples pay for the loop twice.",
+   "proposedChange": "Factor a private BuildArcLengthLut(p0..p3, float* lut) that fills lut[0..SampleCount] and returns lut[SampleCount]. Have IntegrateArcLength call it into a stackalloc (or a length-only variant that skips storing), and UniformSample call it directly, then reuse the returned total instead of re-reading. Removes the duplicated distance-accumulation logic.",
+   "rationale": "Eliminates a redundant 128-iteration sqrt-heavy loop (math.distance does a sqrt each step) when both arc length and uniform samples are needed; also centralizes the sampling so the Horner/hoisting win above is applied in one place.",
+   "risk": "If IntegrateArcLength must avoid the extra SampleCount+1 floats of stack, keep a length-only overload that accumulates without storing. Behavior identical. Low risk."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Curve/CubicBezier.cs",
+   "symbol": "EvaluateTangent",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Precompute the shared difference vectors and use the power-basis derivative to reduce multiplies, and hoist for the per-curve sampling loops.",
+   "currentCost": "tangent = 3*uu*(p1-p0) + 6*u*t*(p2-p1) + 3*tt*(p3-p2) computes u, uu, tt and three scalar*vector terms each call; called once per output sample in UniformSample.",
+   "proposedChange": "The derivative of the Horner cubic p = c0 + t(c1 + t(c2 + t c3)) is c1 + t*(2*c2 + 3*t*c3). Reuse the same hoisted c1,c2,c3 from Evaluate so tangent needs only 2 mads plus the 2c2/3c3 scaling (which can also be hoisted as d1=c1, d2=2*c2, d3=3*c3 once per curve). Provide an evaluator that takes the hoisted coefficients.",
+   "rationale": "Sharing c1..c3 between position and tangent and precomputing the derivative coefficients d2=2c2, d3=3c3 once per curve removes per-sample reconstruction of the basis, leaving 2 mads per tangent. Cuts work in UniformSample's per-sample tangent path.",
+   "risk": "Last-ULP differences from the algebraically-equivalent power-basis form; reject if bit-exact parity required. Otherwise identical for all t."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Curve/CubicBezier.cs",
+   "symbol": "FindT",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Replace per-target binary search over the LUT with a single linear merge pass, since target distances are monotonically increasing.",
+   "currentCost": "UniformSample calls FindT once per output sample; each FindT does an O(log SampleCount) binary search restarting from [0,SampleCount]. Total O(count * log 128).",
+   "proposedChange": "Since targetDist = i*targetStep is strictly increasing in i, maintain a running cursor index into lut that only advances forward across the whole output loop (a two-pointer merge). Each lut entry is visited at most once overall, giving O(count + SampleCount) instead of O(count log SampleCount), with branch-predictable forward scans Burst handles well.",
+   "rationale": "Monotone queries against a sorted prefix-sum array are the classic case where a forward merge beats repeated binary search: it removes the log factor and the binary search's data-dependent, hard-to-predict branches, replacing them with a sequential, prefetch-friendly scan.",
+   "risk": "Must preserve the same low/high bracket and interpolation factor that the current binary search selects (low is the largest index with lut[low] < targetDist, clamped within [0,SampleCount]); replicate the segmentLength>0 guard and edge handling exactly so output t values are identical. Moderate care to match boundary semantics, but no float change when brackets match."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Curve/CubicBezier.cs",
+   "symbol": "(file)",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Remove unused using System and unused constants; consider Run/Try naming consistency for UniformSample.",
+   "currentCost": "using System; is unused. UniformSample silently returns on count<=0 (a Try-style contract) while sibling Run methods assume valid input; the convention is mixed.",
+   "proposedChange": "Drop using System;. Optionally rename UniformSample to follow the library's Run/Try* convention (e.g. an unchecked RunUniformSample assuming count>=1, plus the guard living in a Try wrapper) to match house API style.",
+   "rationale": "Hygiene and discoverability; aligns with the documented Run/Try* convention without changing the perf model. No runtime cost.",
+   "risk": "Renaming is a public-API change; only do it if it matches the established convention and callers are updated. The using removal is risk-free."
+  }
+ ]
+}

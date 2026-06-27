@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Math.NT/MinPrimeFactor.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/MinPrimeFactor.cs",
+   "symbol": "MinPrimeFactor.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The trial-division loop guard 'p*p <= n' recomputes a multiply every iteration; n is invariant so iterate while p <= isqrt(n) or compare against a hoisted limit.",
+   "currentCost": "One 64-bit multiply per loop iteration just for the bound check, plus the % p each step. For prime n this loop runs ~sqrt(n)/2 times, so the multiply is on the critical path of every iteration.",
+   "proposedChange": "Compute the bound once: 'long limit = (long)System.Math.Sqrt(n);' guard 'while (p <= limit)' with a final correction (limit*limit may be off-by-one due to FP), or keep p*p but note the multiply. Alternatively hoist by maintaining 'pSq += 4*p+4' incrementally? Simpler: precompute limit via integer sqrt to drop the per-iteration multiply.",
+   "rationale": "Replaces a per-iteration 64-bit multiply with a single sqrt + a cheap p<=limit compare, cutting the dominant per-iteration cost for the common prime/hard-to-factor case.",
+   "risk": "FP sqrt can be off by one near perfect squares; must clamp limit (e.g. while((limit+1)*(limit+1)<=n) limit++; while(limit*limit>n) limit--;) to stay exact. If exactness is hard to guarantee under Burst's fast-math, keep p*p<=n \u2014 flag as optional. Semantics must remain identical for all n."
+  }
+ ]
+}

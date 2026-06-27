@@ -1,0 +1,15 @@
+PASS(test)  IAFahim.Graph.TreeQueries
+FAIL(test)  IAFahim.Graph
+PASS(build) IAFahim.Linear.Matrix
+PASS(test)  IAFahim.Math.BigInt
+PASS(test)  IAFahim.Math.NT
+PASS(test)  IAFahim.Math.Polynomial
+PASS(build) IAFahim.Math.Transform.AnyMod
+PASS(test)  IAFahim.Math.Transform
+PASS(build) IAFahim.Optimization.DivideConquer
+PASS(build) IAFahim.Optimization.Exact
+PASS(build) IAFahim.Optimization.Games
+PASS(build) IAFahim.Optimization.Geometric
+PASS(build) IAFahim.Optimization.Knapsack
+PASS(build) IAFahim.Optimization.Treewidth
+=== SWEEP DONE ===

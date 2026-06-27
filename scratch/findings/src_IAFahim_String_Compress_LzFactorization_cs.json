@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.String.Compress/LzFactorization.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Compress/LzFactorization.cs",
+   "symbol": "Factorize",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Brute-force O(n^2 \u00b7 matchLen) longest-previous-factor search; replace with a suffix-automaton / suffix-array LPF or hash-chain to reach near-linear LZ factorization.",
+   "currentCost": "For each i it scans all j<i (line 24) and extends byte-by-byte (line 27), giving O(n^2 \u00b7 avgMatchLen) \u2014 the classic quadratic LZ factorization. Dominant cost.",
+   "proposedChange": "Compute the LZ factorization via a suffix automaton or the LPF array from a suffix array + LCP (Crochemore/Ilie), or a bounded hash-chain match finder, all expressible with native stackalloc arrays.",
+   "rationale": "Drops the asymptotic from quadratic to O(n) or O(n log n), the single largest improvement for this routine on non-trivial inputs.",
+   "risk": "The current code selects the longest match and ties break to the smallest j (first found, strict `>`). An LPF/automaton must reproduce the same length and the same chosen position to keep output bit-identical; if only length-equivalence is required (any valid factor of max length), the constraint relaxes. State which contract holds before swapping."
+  },
+  {
+   "file": "src/IAFahim.String.Compress/LzFactorization.cs",
+   "symbol": "Factorize",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist invariant bound and remove redundant per-byte comparison in the inner extend loop; remove misleading AggressiveInlining on this large method.",
+   "currentCost": "Inner loop tests `i + l < len && j + l < i` each byte; `len` and the `j < i` cap are loop-invariant-derivable into a single `maxL = min(len - i, i - j)` bound, halving the per-byte comparisons. Also `[MethodImpl(AggressiveInlining)]` on this large method only bloats I-cache.",
+   "proposedChange": "Precompute `int maxL = (len - i) < (i - j) ? (len - i) : (i - j); int l = 0; while (l < maxL && input[j+l] == input[i+l]) l++;` and drop the AggressiveInlining attribute.",
+   "rationale": "One bound compare per byte instead of two, with the bound branchless-min'd once per j; fewer instructions on the hottest loop. Attribute removal avoids needless code-size growth.",
+   "risk": "min(len-i, i-j) exactly reproduces the original two-condition termination, so output unchanged. AggressiveInlining removal is a hint-only change."
+  }
+ ]
+}

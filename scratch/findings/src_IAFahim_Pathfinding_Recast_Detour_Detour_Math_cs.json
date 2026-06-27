@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Detour/Detour.Math.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/Detour.Math.cs",
+   "symbol": "DistancePtPolyEdgesSqr",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Per-edge DistancePtSegSqr2D call recomputes pq = vi-vj and its length, while the inside-test already loads both vertices; the division (vj.z-vi.z) is redundant with segment work.",
+   "currentCost": "For each edge the loop computes the crossing test using (vj.x-vi.x), (vj.z-vi.z) and a divide, then calls DistancePtSegSqr2D(pt, vj, vi,...) which recomputes pq = vi.xz - vj.xz and lengthsq(pq). The edge vector and its squared length are computed twice per edge.",
+   "proposedChange": "Inline the segment-distance math into the loop reusing the already-loaded vi, vj and the edge delta. Compute pq=vi.xz-vj.xz once, reuse for both the parametric t and (if needed) the inside test. Avoid the second function-call frame and duplicate subtraction.",
+   "rationale": "Eliminates a redundant vector subtract and lengthsq per edge in a function called per polygon-edge during point-location queries (hot in pathfinding). Fewer ops, shorter dependency chain.",
+   "risk": "Low. DistancePtSegSqr2D is AggressiveInlining-absent; inlining manually must preserve the pqLenSqr>0 guard and clamp exactly to keep identical t/distance for degenerate edges."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/Detour.Math.cs",
+   "symbol": "RandomPointInConvexPoly",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Triangle areas are computed and stored into a scratch buffer, then re-read in a second loop; the two passes can be fused.",
+   "currentCost": "First loop fills areas[i] and accumulates areasum; second loop re-reads areas[i] to find the weighted triangle. Two passes plus a scratch buffer write/read of npts floats.",
+   "proposedChange": "Note the selection needs areasum (total) before thresholding, so a single pass cannot pick the triangle without the total. But the max(0.001f, area) clamp used in the sum is NOT applied when reading areas[i] in the second loop (it uses raw areas[i] for dacc) - this is a latent inconsistency. If intended, keep two passes but store the clamped value to avoid recomputation; if not, document. At minimum hoist pts[0] load out of TriArea2D calls.",
+   "rationale": "Reduces scratch traffic and clarifies the clamp semantics; storing the clamped area makes the second-loop dacc consistent with the running sum, avoiding selection skew. Flagged primarily for correctness-of-intent.",
+   "risk": "Medium: changing dacc to the clamped value alters which triangle/u is selected for degenerate (near-zero-area) triangles - that is a semantics change. Only apply if the clamp inconsistency is confirmed a bug; otherwise leave as-is. Reported as a flag, not a blind edit."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/Detour.Math.cs",
+   "symbol": "PointInPolygon / DistancePtPolyEdgesSqr",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "The point-in-polygon crossing test reloads verts[i] and verts[j] each iteration though verts[j] equals verts[i] of the previous iteration.",
+   "currentCost": "With the j=i++ idiom, vj at iteration i is vi from iteration i-1, but the code reloads verts[j] from memory each time (a redundant load of a float3 = 12 bytes per edge).",
+   "proposedChange": "Carry the previous vertex in a local: load vi once per iteration, set vj=prev, then prev=vi at loop end. Saves one float3 load per edge.",
+   "rationale": "Removes a redundant 12-byte load per polygon edge in hot per-poly geometry tests. Pure load elimination, identical math.",
+   "risk": "None; the algebraic relation vj_i == vi_{i-1} holds for the standard edge walk. Initialize prev = verts[nverts-1] before the loop."
+  }
+ ]
+}

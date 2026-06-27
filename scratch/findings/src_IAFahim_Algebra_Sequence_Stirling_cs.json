@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Algebra.Sequence/Stirling.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Algebra.Sequence/Stirling.cs",
+   "symbol": "First",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "First(n,k) and Second(n,k) generate the entire row via FirstRow/SecondRow (O(n^2) work) just to return a single entry row[k]; if many single-entry queries are made this is wasteful, and the row buffer is discarded.",
+   "currentCost": "O(n^2) modular mults to fill row[0..n], then return one element; buffer freed immediately.",
+   "proposedChange": "Document that First/Second are O(n^2) single-shot helpers and expose the existing FirstRow/SecondRow (already public) as the batched API for callers needing multiple k; optionally early-out the inner UpdateSecondRow/UpdateFirstRow to stop maintaining indices > k is NOT valid (recurrence needs full row), so the real win is API guidance: prefer FirstRow when more than one k is queried for the same n.",
+   "rationale": "No cheaper algorithm exists for a single Stirling number than building the row, so the win is ergonomic/purity: steer batch callers to the row API to avoid recomputing the whole O(n^2) row per k. Prevents quadratic-per-query blowup in loops.",
+   "risk": "Ergonomic guidance only; no behavior change. If kept as-is it is already correct. Mark low-priority."
+  },
+  {
+   "file": "src/IAFahim.Algebra.Sequence/Stirling.cs",
+   "symbol": "UpdateFirstRow",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "factor is recomputed via two nested % operations though (i-1) < MOD for all realistic i, making the outer reductions redundant.",
+   "currentCost": "((long)MOD - ((long)(i-1) % MOD)) % MOD per row: two modulo ops where i-1 is a small loop index almost always < MOD.",
+   "proposedChange": "long factor = (long)(MOD - (i - 1)); when i-1 < MOD (guaranteed when n < MOD, the normal case), giving the negative-coefficient directly without the inner %; keep the general form only if i-1 can exceed MOD.",
+   "rationale": "Removes two modulo operations per row (n total) on a value that is provably in [0,MOD) under the normal n<MOD precondition, replacing with a single subtraction.",
+   "risk": "Valid only if i-1 < MOD (i.e. n <= MOD). Since these tables are stackalloc'd of size n+1 and MOD is a large prime, n<MOD effectively always holds; state this guard. If n could exceed MOD, keep one % on (i-1)."
+  }
+ ]
+}

@@ -1,0 +1,38 @@
+{
+ "file": "src/IAFahim.Collections.NoDeps/UnsafeKeyedMap.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Collections.NoDeps/UnsafeKeyedMap.cs",
+   "symbol": "KeyedMapData.ReallocateHashMap",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "On grow, the per-region copy of Buckets uses the WRONG source pointer arithmetic relative to recomputed offsets, but more importantly the Next region is only initialized to -1 for indices [oldKeyCapacity, newCapacity); the old Next entries are MemCpy'd correctly, yet the value region copy size is data->KeyCapacity*SizeOf<TValue>() which is correct. The actual defect: after Add grows KeyCapacity, BucketCapacity is unchanged, so buckets[key]=idx writes are valid, but ReallocateHashMap copies buckets from old layout offset into new layout offset where bucketOffset shifts because keysSize/nextSize grew. The MemCpy on line 83 copies data->Buckets (old bucket region) to newBuckets (new bucket region) using BucketCapacity*4 bytes \u2014 this is correct. Re-examined: no defect here.",
+   "triggeringInput": "N/A",
+   "rootCause": "On closer inspection the reallocation correctly recomputes offsets and copies each region by its own pointer; not a defect.",
+   "suggestedFix": "No change needed."
+  },
+  {
+   "file": "src/IAFahim.Collections.NoDeps/UnsafeKeyedMap.cs",
+   "symbol": "UnsafeKeyedMap.Add",
+   "severity": "high",
+   "category": "logic",
+   "summary": "Add grows KeyCapacity via ReallocateHashMap when Length>=KeyCapacity, but ReallocateHashMap copies the Next array using data->KeyCapacity*SizeOf<int>() and then sets newNext[oldKeyCapacity..newCapacity) to -1. However the freshly grown Next slots are only valid if Clear initialized them; on the very first grow path the bucket list links remain consistent. This is actually correct. No defect.",
+   "triggeringInput": "N/A",
+   "rootCause": "Reallocation initializes new Next slots to -1 correctly.",
+   "suggestedFix": "No change needed."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Collections.NoDeps/UnsafeKeyedMap.cs",
+   "symbol": "ReallocateHashMap",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist UnsafeUtility.SizeOf<TValue>()/SizeOf<int>() out of the MemCpy argument list; they are compile-time constants but the repeated calls obscure intent and the int sizeof is a literal 4.",
+   "currentCost": "Three MemCpy calls each recompute SizeOf<int>() (and one SizeOf<TValue>()). Under Burst these fold, but `data->KeyCapacity * UnsafeUtility.SizeOf<int>()` is clearer and the same as `data->KeyCapacity * 4`.",
+   "proposedChange": "Cache `int sizeOfInt = sizeof(int);` and `int sizeOfTValue = sizeof(TValue);` once; reuse. Cosmetic/defensive \u2014 main value is ensuring constant folding is obvious and consistent with CalculateDataSize which already caches them.",
+   "rationale": "No asymptotic change; ensures the multiplies use compile-time constants and reduces reliance on the optimizer to dedupe the SizeOf calls. Low impact since Burst likely already folds.",
+   "risk": "None; identical values."
+  }
+ ]
+}

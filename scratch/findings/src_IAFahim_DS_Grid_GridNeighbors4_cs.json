@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.DS.Grid/GridNeighbors4.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.Grid/GridNeighbors4.cs",
+   "symbol": "GridNeighbors4.DR/DC (static readonly int[])",
+   "dimension": "burst",
+   "impact": "high",
+   "summary": "Replace managed static int[] offset tables with stackalloc or inline constants so the hot methods are Burst-compatible and avoid static-field array loads.",
+   "currentCost": "Each call indexes two managed static int[] arrays (DR[d], DC[d]). Managed arrays defeat Burst compilation (Burst cannot access managed static reference fields), force a bounds-checked array load with a null/length check per access, and add an indirection through the static field. House constraints forbid managed arrays in src.",
+   "proposedChange": "Drop the arrays. Inline the 4 fixed offsets directly as 4 unrolled branchless checks, or use 'int* dr = stackalloc int[4]{-1,1,0,0}; int* dc = stackalloc int[4]{0,0,-1,1};' inside the method. Best: fully unroll the 4 neighbor tests (up/down/left/right) with no loop and no table at all, since offsets are compile-time constants.",
+   "rationale": "Removes managed heap access entirely (Burst-friendly), eliminates per-iteration array bounds checks and static-field indirection, and lets the JIT/Burst fold the constant offsets. Full unrolling also removes the loop counter dependency chain.",
+   "risk": "None to semantics \u2014 outputs identical. Must keep the same emission order (up, down, left, right) so the packed output order in nr/nc/outIndices is preserved for any caller relying on order."
+  }
+ ]
+}

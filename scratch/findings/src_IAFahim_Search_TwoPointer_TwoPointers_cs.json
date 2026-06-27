@@ -1,0 +1,70 @@
+{
+ "file": "src/IAFahim.Search.TwoPointer/TwoPointers.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Search.TwoPointer/TwoPointers.cs",
+   "symbol": "TwoPointers.CountPairsWithSum",
+   "severity": "high",
+   "category": "logic",
+   "summary": "Two-pointer pair counting undercounts when a and b contain duplicate values equal to half of (or complementary to) target. On a match it advances BOTH pointers once, counting only one diagonal pair instead of the full block of equal-valued duplicates, so the count of all (i,j) with a[i]+b[j]==target is wrong.",
+   "triggeringInput": "a=[1,1], aLen=2, b=[1,1], bLen=2, target=2. Returns 2 but the true number of pairs (i,j) with a[i]+b[j]==2 is 4.",
+   "rootCause": "When sum==target the code does left++ and right-- simultaneously, which only pairs index i with index j once and skips cross pairs among equal elements. The standard count-pairs-over-two-sorted-arrays algorithm must, on a tie, count the size of the equal-run in a multiplied by the equal-run in b (cntA*cntB), then skip both runs. Single-step advancement only works for the unique-element case.",
+   "suggestedFix": "On sum==target, count the number of consecutive equal elements at a[left] (cntA) and at b[right] (cntB), advance left by cntA and right by cntB, and add cntA*cntB to count (or, if a value equals its complement within the same run handling, treat accordingly). Alternatively document that arrays are required to be duplicate-free."
+  },
+  {
+   "file": "src/IAFahim.Search.TwoPointer/TwoPointers.cs",
+   "symbol": "TwoPointers.HasPairWithSum",
+   "severity": "medium",
+   "category": "overflow",
+   "summary": "sum = a[left] + b[right] is computed as int+int and can overflow for representable int inputs, corrupting both the equality test and the pointer-advancement decision, yielding a wrong true/false.",
+   "triggeringInput": "a=[2000000000], aLen=1, b=[2000000000], bLen=1, target=-294967296. True sum 4000000000 overflows int to -294967296, so the method returns true even though no pair actually sums to -294967296; conversely large legitimate sums can be misrouted causing false negatives.",
+   "rootCause": "int arithmetic wraps on overflow; the comparison sum<target then steers the pointer in the wrong direction and the equality can spuriously match the wrapped value.",
+   "suggestedFix": "Compute the sum in long: long sum = (long)a[left] + b[right]; and compare against (long)target."
+  },
+  {
+   "file": "src/IAFahim.Search.TwoPointer/TwoPointers.cs",
+   "symbol": "TwoPointers.CountPairsWithSum",
+   "severity": "medium",
+   "category": "overflow",
+   "summary": "Same int+int overflow as HasPairWithSum: sum = a[left] + b[right] can wrap for representable ints, corrupting the comparison and miscounting.",
+   "triggeringInput": "a=[2000000000], aLen=1, b=[2000000000], bLen=1, target=-294967296. Wrapped sum equals target so count becomes 1 for a pair that does not actually sum to the target.",
+   "rootCause": "int overflow in a[left]+b[right] wraps, making sum==target spuriously true and sum<target steer the wrong pointer.",
+   "suggestedFix": "Use long sum = (long)a[left] + b[right]; and compare to (long)target."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.TwoPointer/TwoPointers.cs",
+   "symbol": "MergeSorted<T>",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "Generic IComparable<T> constraint forces interface-based comparison that defeats Burst and is non-blittable-friendly for the comparison path; redundant indexed loads in the hot ternary.",
+   "currentCost": "`a[i].CompareTo(b[j]) <= 0 ? a[i++] : b[j++]` reloads a[i] (and the ternary reloads either a[i] or b[j]) and dispatches through IComparable<T>.CompareTo. Under Burst, IComparable<T> is a managed interface; Burst only compiles it if the concrete type is statically known and the call devirtualizes. A generic over an interface constraint can fail Burst compilation or fall back to a virtual/boxing path, and CompareTo for a struct still imposes a call boundary the JIT may not fully inline. The ternary also re-indexes the chosen array a second time to read the value being stored.",
+   "proposedChange": "Hoist the two operands into locals before comparing/storing to remove redundant indexed loads: `T av = a[i]; T bv = b[j]; if (av.CompareTo(bv) <= 0) { dst[k++] = av; i++; } else { dst[k++] = bv; j++; }`. Additionally, provide non-generic concrete overloads (e.g. MergeSortedInt32(int*,int,int*,int,int*), MergeSortedInt64, MergeSortedSingle) that compare with primitive operators (`av <= bv`) so the comparison is a single branch with no interface dispatch \u2014 these are what Burst vectorizes/inlines cleanly. Keep the generic version for ergonomics.",
+   "rationale": "Caching av/bv eliminates 2 redundant pointer loads per iteration (one for the re-read in the taken ternary branch, one because CompareTo and the store both index the array). Primitive-operator overloads turn CompareTo's call into a single compare instruction Burst can branchlessly select on, removing the interface dispatch entirely and keeping the loop in fully-compiled Burst code.",
+   "risk": "Behavior-preserving: CompareTo(b)<=0 for int/long/float matches `a<=b` for all finite inputs; stability (a chosen on ties) is preserved by keeping `<= 0`. Float caveat: NaN ordering differs between CompareTo (total order, NaN largest) and `<=` (NaN comparisons false) \u2014 so a float overload must either document no-NaN inputs or fall back to CompareTo; do NOT silently swap operators for floating types if NaN inputs are valid."
+  },
+  {
+   "file": "src/IAFahim.Search.TwoPointer/TwoPointers.cs",
+   "symbol": "CountPairsWithSum",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hot-loop indexed loads a[left] and b[right] are recomputed each iteration even when only one pointer advanced; minor dependency-chain shortening possible.",
+   "currentCost": "Each iteration recomputes `a[left] + b[right]`. When sum<target only left advances (b[right] unchanged) and when sum>target only right advances (a[left] unchanged), yet both array elements are reloaded from memory every pass. The equality branch increments count and both pointers.",
+   "proposedChange": "Cache the two endpoint values in locals and reload only the one that moved: maintain `int av = a[left];` reloaded only after left++, `int bv = b[right];` reloaded only after right--. On the equality case both move so reload both. Compare `int sum = av + bv;`.",
+   "rationale": "Halves the number of pointer dereferences in the two common branches, shortening the load->add->compare dependency chain and reducing cache/load-port pressure in the inner loop. Loop trip count is unchanged so this is a pure constant-factor win.",
+   "risk": "Must reload av/bv exactly when their index changes and guard the final reload against going out of bounds (reload only inside the loop after the increment, before the next compare uses it). Overflow of a[left]+b[right] is pre-existing and unchanged. Net code is slightly longer for a modest gain \u2014 low impact; reject if branch-prediction on the reload guards costs more than the saved loads on the target ISA."
+  },
+  {
+   "file": "src/IAFahim.Search.TwoPointer/TwoPointers.cs",
+   "symbol": "HasPairWithSum",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "CountPairsWithSum and HasPairWithSum duplicate the identical two-pointer scan; HasPairWithSum is just CountPairsWithSum with early-exit. No correctness issue, only API/maintenance consistency.",
+   "currentCost": "Two near-identical loops must be kept in sync by hand. No Try* naming convention applied even though HasPairWithSum is effectively a boolean Try-style query.",
+   "proposedChange": "Keep both for the perf model (early-exit must stay a separate hot path, not a flag on the counting loop), but document them as a pair and consider renaming to follow the library's Run/Try convention (e.g. TryHasPairWithSum is unnecessary, but aligning naming with the rest of the module). Optionally add `out int pairCount` is NOT advised since it would force the full scan. No code-gen change.",
+   "rationale": "Pure ergonomics/discoverability; preserves the two distinct compiled hot paths so the perf model is untouched.",
+   "risk": "None functionally. Do not merge the two methods behind a bool flag \u2014 that would add a per-iteration branch to the counting path and defeat the early-exit specialization. This is the lowest-priority item."
+  }
+ ]
+}

@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Algebra.Sequence/Transform.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Algebra.Sequence/Transform.cs",
+   "symbol": "Transform.ComputeInverseBinomialTerm",
+   "severity": "high",
+   "category": "wrong-recurrence",
+   "summary": "InverseBinomial uses the wrong sign parity (-1)^k instead of (-1)^(n-k), so it is NOT the inverse of Binomial. For every odd index n2 the result is the negation of the correct value, making the round-trip Binomial->InverseBinomial fail to recover the original sequence.",
+   "triggeringInput": "a = {3,5,7,11}, n=4, MOD=998244353. Compute b = Binomial(a), then InverseBinomial(b). Expected to recover {3,5,7,11}; actual recovers {3, 998244348(=-5), 7, 998244342(=-11)}. Equivalently, calling InverseBinomial directly on b={3,5,7,11} for n2=1 yields 998244351(=-2) instead of the correct 2.",
+   "rootCause": "The inverse binomial transform is a_n = sum_{k=0..n} (-1)^(n-k) C(n,k) b_k. Line 47 sets sign = (k % 2 == 0) ? 1 : MOD-1, i.e. (-1)^k, which differs from the required (-1)^(n2-k) by an overall factor of (-1)^n2. For even n2 the two agree, but for odd n2 every term has its sign flipped, producing the additive inverse of the correct term and breaking inversion of the forward transform.",
+   "suggestedFix": "Make the sign depend on the parity of (n2 - k): change line 47 to `long sign = ((n2 - k) % 2 == 0) ? 1L : (long)MOD - 1L;`. With C(n2,k) symmetric and comb already iterating over k, this restores a_n = sum (-1)^(n-k) C(n,k) b_k and makes InverseBinomial a true inverse of Binomial."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Algebra.Sequence/Transform.cs",
+   "symbol": "Binomial / ComputeBinomialTerm",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Precompute modular inverses of 1..n-1 once instead of calling ModPow inside the O(n^2) double loop, cutting a log(MOD) factor.",
+   "currentCost": "Binomial runs the outer loop n times; ComputeBinomialTerm runs an inner loop of up to n2+1 iterations, and every non-terminal iteration calls Combinatorial.ModPow(k+1, MOD-2, MOD). ModPow is O(log MOD) ~= 30 modmuls. Total cost is O(n^2 * log MOD) modular multiplications, all to obtain modular inverses of the integers 1..n2.",
+   "proposedChange": "In Binomial, before the outer loop, stackalloc a long* inv of length n (inv of 1..n-1) and fill it with the standard linear-sieve modular-inverse recurrence: inv[1]=1; for i in 2..n-1: inv[i] = (MOD - (MOD / i) * inv[MOD % i] % MOD) % MOD (valid only when MOD is prime, which the Fermat ModPow already assumes). Pass inv into a modified ComputeBinomialTerm and replace the ModPow(k+1,...) call with inv[k+1]. The incremental comb recurrence is unchanged.",
+   "rationale": "Replaces O(n^2 log MOD) work with O(n) precompute + O(n^2) inner work => drops a ~30x log-MOD factor on the dominant term. The linear inverse sieve computes all inverses 1..n-1 in O(n) total, and each inner-loop inverse becomes a single array load instead of a 30-multiply modular exponentiation, also shortening the modmul dependency chain.",
+   "risk": "The inverse sieve requires MOD prime, which is already an implicit precondition of the existing Fermat-based ModPow(.., MOD-2). Requires MOD > n so that no i in 1..n-1 is divisible by MOD (i.e. every i is invertible); for the unchecked Run-style contract this matches the existing assumption that k+1 is invertible mod MOD. inv[i] uses inv[MOD % i] where MOD % i < i, so the table is filled before use. Extra n*8 bytes of stack; acceptable for the same n already stackalloc'd elsewhere in the module."
+  },
+  {
+   "file": "src/IAFahim.Algebra.Sequence/Transform.cs",
+   "symbol": "InverseBinomial / ComputeInverseBinomialTerm",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Same precomputed-inverse-table optimization as Binomial, plus drop the per-iteration sign branch by alternating a multiplier.",
+   "currentCost": "O(n^2 * log MOD) from the inner ModPow(k+1, MOD-2, MOD) call, identical to Binomial. Additionally, each inner iteration evaluates a branch 'long sign = (k % 2 == 0) ? 1L : MOD-1L' which is a data-dependent branch and a signed modulo.",
+   "proposedChange": "Hoist a stackalloc inv[] table (filled by the linear inverse sieve) and replace ModPow(k+1,...) with inv[k+1]. For the sign, replace the branch with a toggling value: initialize 'long sign = 1L' before the loop and at the end of each iteration do 'sign = MOD - sign' (i.e. 1 -> MOD-1 -> 1 ...), eliminating the k%2 modulo and the ternary branch.",
+   "rationale": "Removes the ~30x log-MOD factor on the dominant term as in Binomial. The sign toggle removes a signed % and an unpredictable branch from every inner iteration, shortening each iteration to straight-line modular arithmetic that Burst schedules better.",
+   "risk": "Inverse sieve needs MOD prime and MOD > n (same as Binomial). For the sign toggle, MOD - sign where sign in {1, MOD-1} yields {MOD-1, 1}, matching the original mapping exactly for all k, so semantics are preserved provided MOD >= 2 (true for any valid prime modulus). No overflow: MOD-sign stays within long."
+  },
+  {
+   "file": "src/IAFahim.Algebra.Sequence/Transform.cs",
+   "symbol": "SetPartition",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Precompute inverses of 1..n once to remove the ModPow call from the O(n^2) Bell-number double loop.",
+   "currentCost": "SetPartition builds the Bell triangle via a double loop: outer i in 1..n, inner k in 0..i-1, each inner iteration calling Combinatorial.ModPow(k+1, MOD-2, MOD). Total O(n^2 * log MOD) modular multiplications just to get inverses of 1..i-1.",
+   "proposedChange": "After 'long* bell = stackalloc long[n + 1];', also stackalloc 'long* inv = stackalloc long[n + 1];' and fill inv[1..n] with the linear inverse-sieve recurrence (inv[1]=1; inv[i] = (MOD - (MOD/i)*inv[MOD%i] % MOD) % MOD). Replace the inner 'Combinatorial.ModPow((long)(k + 1), (long)MOD - 2L, (long)MOD)' with 'inv[k + 1]'. The binom incremental recurrence is otherwise unchanged.",
+   "rationale": "Cuts O(n^2 log MOD) down to O(n) precompute + O(n^2) inner work, removing the ~30x log-MOD factor on the hot path and turning each inverse into a single load. This is the same proven incremental-binomial pattern the function already uses, just sourcing the inverse from a table.",
+   "risk": "Requires MOD prime (already assumed by Fermat ModPow) and MOD > n so every i in 1..n is invertible. inv[i] depends on inv[MOD % i] with MOD % i < i, so it is computed before use. Adds (n+1)*8 bytes of stack alongside the existing bell buffer; bounded by the same n."
+  }
+ ]
+}

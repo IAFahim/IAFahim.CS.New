@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.String.Match/RollingHash.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Match/RollingHash.cs",
+   "symbol": "RollingHash.MOD",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Dead constant MOD = ulong.MaxValue is never referenced; hashing uses natural mod-2^64 ulong overflow.",
+   "currentCost": "An unused private const that misleads readers into thinking the hash is computed mod (2^64 - 1) (a Mersenne-style modulus), when in fact Compute/Build/Query all rely on plain ulong wraparound (mod 2^64).",
+   "proposedChange": "Remove the `private const ulong MOD = ulong.MaxValue;` line, or, if a true Mersenne modulus was intended, document the discrepancy. As-is it is purely dead and should be deleted. Also drop the unused `using System;` in all three files (no System type is referenced).",
+   "rationale": "Eliminates a dead symbol and removes the false implication that any modular reduction is happening. No codegen change (const is already folded away / unused), but it removes a correctness trap: a future edit that 'restores' `% MOD` with MOD=ulong.MaxValue would silently break Query, since Query's identity prefix[r]-prefix[l]*power[r-l] only holds for the ring Z/2^64 (power-of-two modulus), not for mod (2^64-1).",
+   "risk": "None for removal. If instead someone wires MOD into the arithmetic, Query breaks because subtraction-based range hashing requires a consistent ring and ulong.MaxValue is not 2^64; must NOT introduce % MOD. Pure deletion is fully semantics-preserving."
+  },
+  {
+   "file": "src/IAFahim.String.Match/RollingHash.cs",
+   "symbol": "RollingHash.Compute / Build",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Per-iteration multiply-add chain has a serial dependency on `hash`; widening the byte load and unrolling can shorten the critical path, but the dependency is inherent to polynomial hashing.",
+   "currentCost": "Compute's loop body `hash = hash * Base + ptr[i]` is a strict serial dependency chain: one 64-bit multiply + add per byte, latency-bound (~3-4 cycles/byte on the mul), no ILP because each iteration needs the previous hash. Build is the same but emits two independent streams (prefix and power) which already overlap.",
+   "proposedChange": "For Compute, process the data in K independent lanes using horner blocking: maintain K partial hashes h0..h3 each consuming every 4th byte, then combine with precomputed Base^k powers at the end (h = ((h0*B + h1)*B + h2)*B + h3 style, with the correct Base^4 stride multipliers). This breaks the single latency chain into 4 parallel chains, trading a few extra multiplies for ~4x more ILP. Keep AggressiveInlining only if call sites are few; otherwise the unrolled body may bloat callers.",
+   "rationale": "The current loop is latency-bound, not throughput-bound, so parallel Horner lanes hide multiply latency and let Burst/the CPU issue independent muls every cycle. This is a real constant-factor win on long strings (the typical RollingHash use case).",
+   "risk": "Must use modular-arithmetic-consistent stride powers of Base under the SAME mod-2^64 ring (ulong overflow), which is associative/commutative, so the lane-combine yields bit-identical results to sequential Horner. Tail handling for len not divisible by K must replicate the exact left-to-right weighting. Build cannot be lane-split (it must materialize every prefix), so leave Build unchanged."
+  }
+ ]
+}

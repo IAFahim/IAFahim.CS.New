@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Optimization.Games/MeanPayoff.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Games/MeanPayoff.cs",
+   "symbol": "MeanPayoff.Solve",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Branchless / fused relaxation and early-exit are fine, but the final feasibility check repeats the relaxation expression; compute potential[v]+w[e] once.",
+   "currentCost": "In the relax loop `potential[v] + w[e]` is computed into nxt (good). In the final check loop (line 30) `potential[v] + w[e]` is recomputed inline; minor. More importantly each edge does two array index loads for from/to every Bellman-Ford pass (n*m total).",
+   "proposedChange": "This is textbook Bellman-Ford and largely optimal. The only real win: there is no need to special-case \u2014 the structure is already tight. If `from`/`to`/`w` are frequently co-iterated, consider a struct-of-arrays-to-AoS packed edge `{int from; int to; long w;}` so each edge is one cache line load instead of three separate streams, improving locality across the n passes.",
+   "rationale": "Packing the three parallel arrays into one contiguous edge array turns three independent strided loads per edge into one sequential load, cutting cache misses across the O(n*m) relaxation. The repeated final-check expression is negligible.",
+   "risk": "Changing the parameter layout from three pointers to one packed pointer is an API/ergonomics change and requires the caller to build the AoS buffer; only worth it if callers can adopt it. Behavior is identical. Without the layout change, the function is already near-optimal \u2014 report as low-priority."
+  }
+ ]
+}

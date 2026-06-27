@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Memory.Allocators/Ptr.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Memory.Allocators/Ptr.cs",
+   "symbol": "GetHashCode",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "The pointer hash `(int)(long)Value` discards the high 32 bits and the low ~3-4 alignment bits, clustering aligned allocations into few buckets; mix the full 64-bit value to a 32-bit hash to cut collisions.",
+   "currentCost": "GetHashCode returns the low 32 bits of the pointer. Heap allocations are typically 8/16-byte aligned, so the low 3-4 bits are constant, and contiguous allocations differ only in low bits \u2014 producing long open-addressing probe chains in any NativeHashSet<Ptr> (used by MemoryAllocator and previously by the pool), degrading Add/Contains/Remove toward O(n) under clustering.",
+   "proposedChange": "Mix the full 64-bit address, e.g. `ulong x = (ulong)Value; x ^= x >> 32; return unchecked((int)(x * 0x9E3779B97F4A7C15UL >> 32));` (a fibonacci/xorshift finalizer), or at minimum `(int)((long)Value ^ ((long)Value >> 32))`. This spreads both halves and avoids alignment clustering.",
+   "rationale": "A well-mixed hash shortens probe chains in open-addressed Unity hash sets, directly speeding every Add/Contains/Remove that uses Ptr as a key. Low constant cost (a multiply + shift) for materially fewer cache-missing probes when the set is the data structure in play.",
+   "risk": "Behavior preserved: Equals is unchanged (still pointer identity), and GetHashCode only needs equal objects to hash equal \u2014 they still do. This becomes irrelevant if MemoryAllocator switches off the hash set (other ram opportunity) and the pool drops its set, so weigh against those; if any hash-set-of-Ptr remains, this is a clear win. Keep it unchecked to preserve wrap semantics."
+  }
+ ]
+}

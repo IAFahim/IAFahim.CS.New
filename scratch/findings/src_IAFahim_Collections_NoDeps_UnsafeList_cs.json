@@ -1,0 +1,70 @@
+{
+ "file": "src/IAFahim.Collections.NoDeps/UnsafeList.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Collections.NoDeps/UnsafeList.cs",
+   "symbol": "UnsafeList.this[int].get/set",
+   "severity": "high",
+   "category": "overflow",
+   "summary": "Indexer computes byte offset as `_buffer + index * _elementSize` using 32-bit int arithmetic for `index * _elementSize`. For a large list where index*_elementSize exceeds int.MaxValue (e.g. element size 16, index >= 134,217,728), the multiplication overflows int and produces a wrong/negative offset, reading/writing the wrong memory location (pointer UB) even though the index is in-range for the list's length.",
+   "triggeringInput": "UnsafeList<T> where sizeof(T)=16 and length>134217728; access list[134217728] -> index*_elementSize overflows Int32",
+   "rootCause": "`index * _elementSize` is evaluated in 32-bit int before being added to the IntPtr; no widening to long/nint as is done elsewhere (e.g. AddRange uses (long) casts).",
+   "suggestedFix": "Cast to long/nint before multiply: `_buffer + (nint)index * _elementSize` or `_buffer + (long)index * _elementSize`. Same fix in Add (line 153), AddRange dst (line 167), RemoveAt (lines 182-184), RemoveRange (lines 201-203), Resize (line 240) which all use 32-bit `_length/index * _elementSize`."
+  },
+  {
+   "file": "src/IAFahim.Collections.NoDeps/UnsafeList.cs",
+   "symbol": "UnsafeList.RemoveRange",
+   "severity": "high",
+   "category": "off-by-one",
+   "summary": "RemoveRange validates `index < 0 || count < 0 || index >= _length` but does NOT clamp/validate when index==_length is excluded incorrectly: when count==0 it still decrements length by 0 (fine). The real defect: after clamping `count = _length - index`, the byteCount computation `(_length - index) * _elementSize` uses the ALREADY-decremented _length (line 197 did `_length -= count`), so it copies (newLength - index) elements which is correct. No defect.",
+   "triggeringInput": "N/A",
+   "rootCause": "byteCount uses post-decrement _length intentionally to move the tail; correct.",
+   "suggestedFix": "No change needed."
+  },
+  {
+   "file": "src/IAFahim.Collections.NoDeps/UnsafeList.cs",
+   "symbol": "UnsafeList.RemoveRange",
+   "severity": "medium",
+   "category": "overflow",
+   "summary": "byteCount `(_length - index) * _elementSize` (line 203) and RemoveAt byteCount (line 184) are int*int producing int; for large lists the byte count overflows int before being passed to MemCpy (which takes long), copying a truncated/negative byte count and corrupting data.",
+   "triggeringInput": "UnsafeList<T> sizeof(T)=16, length=200,000,000; RemoveAt(0) -> byteCount=(199999999)*16 overflows Int32",
+   "rootCause": "Element count times element size kept in 32-bit int instead of widening to long before multiply.",
+   "suggestedFix": "Compute `(long)(_length - index) * _elementSize` for byteCount in RemoveAt and RemoveRange."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Collections.NoDeps/UnsafeList.cs",
+   "symbol": "_elementSize",
+   "dimension": "burst",
+   "impact": "high",
+   "summary": "Replace the static readonly _elementSize field with sizeof(T) so index math becomes a compile-time constant.",
+   "currentCost": "Every indexer, Add, AddRange, RemoveAt, RemoveRange, Resize reads the static field `_elementSize` to compute byte offsets. A static field load is a memory access Burst cannot constant-fold, and the multiply `index * _elementSize` stays a runtime multiply instead of a shift/immediate.",
+   "proposedChange": "Use `sizeof(T)` (T is unmanaged, so `sizeof(T)` is legal and a Burst compile-time constant) directly in offset math, or `private static int ElementSize => sizeof(T);`. Remove the static field. For power-of-two element sizes Burst then strength-reduces the multiply to a shift.",
+   "rationale": "sizeof(T) folds to a literal at compile time, turning `index * _elementSize` into `index * const` (often a shift), eliminating a static-field load on every element access. Static readonly fields also add a class-constructor/initialization concern that is unnecessary in a Burst struct.",
+   "risk": "None functionally \u2014 sizeof(T) equals UnsafeUtility.SizeOf<T>() for unmanaged T. Pure win; just changes a runtime read to a constant."
+  },
+  {
+   "file": "src/IAFahim.Collections.NoDeps/UnsafeList.cs",
+   "symbol": "this[int] / Add / RemoveAt",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Index offset `index * _elementSize` uses 32-bit int arithmetic; widen to long/nint to avoid overflow for large lists and to match the 64-bit pointer add.",
+   "currentCost": "`_buffer + index * _elementSize` computes `index * _elementSize` in 32-bit int. For a list with length*elementSize > 2^31 (large element types) this overflows silently before the widening add to _buffer. Other methods (AddRange, RemoveRange) already use `(long)`/byte* casts inconsistently.",
+   "proposedChange": "Compute offsets as `(nint)index * sizeof(T)` (or `(long)`), matching ReallocateBuffer/AddRange which already cast. Make the offset type consistent across all accessors.",
+   "rationale": "Correctness for large buffers and consistency; nint arithmetic also avoids an implicit int->long sign extension juggling and produces the natural LEA addressing. No extra cost for normal sizes.",
+   "risk": "Behavior changes ONLY for inputs that currently overflow (already undefined/wrong), so observable behavior for valid in-range inputs is preserved. Low risk."
+  },
+  {
+   "file": "src/IAFahim.Collections.NoDeps/UnsafeList.cs",
+   "symbol": "CalculateNewCapacity",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Replace the `while (cap < needed) cap <<= 1` growth loop with a branchless next-power-of-two via leading-zero count.",
+   "currentCost": "Growing from 4 to a large capacity iterates log2(needed) times with a branch each iteration. Called on every resize past capacity.",
+   "proposedChange": "Compute `cap = needed <= 4 ? 4 : 1 << (32 - lzcnt((uint)(needed-1)))` using math.lzcnt/BitOperations-style intrinsic available under Burst, clamped to a 4 minimum.",
+   "rationale": "Single LZCNT + shift replaces a data-dependent loop, removing log2(n) branches. Minor but real on the resize path.",
+   "risk": "Must reproduce exact same capacities: for needed<=4 return 4; for needed a power of two return needed; for others next power of two. Validate edge needed==0 (returns 4, matching loop) and needed==1 (returns 4). Use needed-1 form to handle exact powers."
+  }
+ ]
+}

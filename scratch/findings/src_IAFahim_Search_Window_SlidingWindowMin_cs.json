@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Search.Window/SlidingWindowMin.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.Window/SlidingWindowMin.cs",
+   "symbol": "Run",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "Deque only needs windowSize slots, not len; oversized stackalloc risks stack overflow",
+   "currentCost": "Identical to SlidingWindowMax: stackalloc int[len] reserves 4*len bytes though at most windowSize candidate indices are ever live. Large len causes a multi-megabyte stackalloc that can overflow the stack on mobile.",
+   "proposedChange": "Size the buffer to windowSize and use ring-buffer indexing (head/tail/count modulo windowSize, mask if windowSize is power of two). The eviction comparison on absolute stored indices is unchanged.",
+   "rationale": "Reduces stack usage from O(len) to O(windowSize) and improves cache locality; same O(len) time.",
+   "risk": "Same as the Max variant: requires careful modular wrap and capacity of exactly windowSize. No observable behavior change for valid inputs."
+  },
+  {
+   "file": "src/IAFahim.Search.Window/SlidingWindowMin.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist src[i] load and reduce repeated index arithmetic in the inner loop",
+   "currentCost": "src[i] is reused but i-windowSize and i-windowSize+1 are recomputed each iteration, and the dst index duplicates the eviction expression.",
+   "proposedChange": "Hoist int cur = src[i]; compute evict = i - windowSize once; maintain a running output index incremented when i >= windowSize-1 instead of recomputing i-windowSize+1.",
+   "rationale": "Eliminates redundant subtractions and reloads per iteration on the hot loop; identical to the Max-variant micro-opt.",
+   "risk": "None for valid inputs; running output index must align with i-windowSize+1 at the first emitting iteration."
+  },
+  {
+   "file": "src/IAFahim.Search.Window/SlidingWindowMin.cs",
+   "symbol": "Run",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Remove unused 'using System;' and AggressiveInlining hint that cannot fire",
+   "currentCost": "using System; is unused, and AggressiveInlining on a stackalloc-containing looped method will not be honored, making the hint misleading.",
+   "proposedChange": "Remove using System; and the AggressiveInlining attribute from Run.",
+   "rationale": "Accurate intent and slightly cleaner file with no codegen impact.",
+   "risk": "None; cosmetic."
+  }
+ ]
+}

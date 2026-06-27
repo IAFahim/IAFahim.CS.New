@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Algebra.Polynomial/RootFind.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/RootFind.cs",
+   "symbol": "RootFind.EvaluatePolynomial",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace power-accumulation evaluation with Horner's method to halve the multiplies and shorten the dependency chain.",
+   "currentCost": "Per coefficient the loop does two multiplies (poly[i]*xPow and xPow*x) and two %, plus it carries an extra xPow state register. Each iteration's xPow depends on the previous xPow (serial mul+mod dependency chain) AND val depends on poly[i]*xPow, so there are two parallel mod-chains of length n.",
+   "proposedChange": "Evaluate as val = (val*x + poly[i]) % MOD iterating i from n-1 down to 0: long val = 0; for (int i = n-1; i >= 0; i--) val = (val * x + poly[i]) % MOD; return val<0? val+MOD: val. This removes the xPow variable entirely, doing one multiply + one add + one mod per term.",
+   "rationale": "Horner does n multiplies and n mods instead of 2n multiplies and 2n mods, removing the second multiply/mod dependency chain and one live register. On Burst this is a tighter, more vectorization-friendly reduction with fewer latency-bound mod ops (mod/div is the dominant cost here).",
+   "risk": "Inputs are reduced mod MOD only at the end of each step; products poly[i]*x*... must not overflow long. Same overflow envelope as the existing code (both assume coefficients and x kept < MOD with MOD small enough that a*b fits in long). Preserves output for all valid inputs; if any poly[i] could be negative the final non-negative normalization keeps result in [0,MOD) matching nothing currently (current code can return negative), so only add normalization if callers expect [0,MOD)."
+  },
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/RootFind.cs",
+   "symbol": "RootFind.Find",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Brute-force scan of all x in [0,MOD) is O(MOD * n); for finding all roots over a prime field this is the worst possible asymptotics when MOD is large.",
+   "currentCost": "The outer loop tries every field element 0..MOD-1, evaluating an n-term polynomial each time -> O(MOD*n) mod-multiplications. For MOD ~ 1e9 this is intractable; even for moderate MOD it dominates everything.",
+   "proposedChange": "For full root enumeration over GF(MOD), use the standard equal-degree / Cantor-Zassenhaus approach: compute gcd(poly, x^MOD - x) to isolate the product of linear factors, then split via gcd(poly, (x+r)^((MOD-1)/2) - 1). This is polynomial in deg(poly)*log(MOD) instead of linear in MOD. Keep the brute-force path only as a fallback for tiny MOD (e.g. MOD <= some threshold where MOD < deg*log(MOD)).",
+   "rationale": "Replaces O(MOD) field scanning with O(deg^2 * log MOD) factor-finding, an enormous asymptotic improvement for large prime moduli \u2014 the intended hard case. The library already has Gcd/DivMod/PowMod-style primitives (SquareFree uses Gcd.Run, DivMod.Run), so the building blocks exist.",
+   "risk": "Cantor-Zassenhaus is randomized and requires MOD prime; the brute force works for any MOD and is deterministic. Provide the fast path only when MOD is known prime and large, with the existing scan as fallback, to preserve current semantics for composite/small MOD. Larger implementation effort and needs careful testing."
+  }
+ ]
+}

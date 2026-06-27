@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.Sdf/SdfTransform.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Sdf/SdfTransform.cs",
+   "symbol": "Scale",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Scale does p / scale (3 divides); if the same scale is reused across a march loop the reciprocal could be hoisted by the caller.",
+   "currentCost": "3 vector divides per call. In a ray-march, the same scale vector is typically constant for an object, so dividing every evaluation is redundant work.",
+   "proposedChange": "Offer a companion that takes a precomputed inverse: 'public static float3 Scale(float3 p, float3 invScale) => p * invScale;' or document that callers hoist math.rcp(scale). Keep existing div-based overload for ergonomics.",
+   "rationale": "Multiply-by-reciprocal hoisted out of the hot loop removes 3 divides per SDF evaluation. Additive API; the existing semantics are unchanged.",
+   "risk": "Additive overload only; p*rcp(scale) vs p/scale may differ by one ULP. Note rounding caveat if bit-exactness required."
+  },
+  {
+   "file": "src/IAFahim.Math.Sdf/SdfTransform.cs",
+   "symbol": "Repeat",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Repeat computes p / cellSize then multiplies cellSize back; uses a divide that becomes mul-by-reciprocal if invCellSize is supplied.",
+   "currentCost": "3 divides (p/cellSize) plus round plus mul. The divide is the costly part and is loop-invariant in cellSize across a tiled domain.",
+   "proposedChange": "Add overload taking invCellSize: 'p - cellSize * math.round(p * invCellSize)'. Caller hoists math.rcp(cellSize) once. Keep current overload.",
+   "rationale": "Removes 3 divides per evaluation in tiled/instanced SDF scenes where cellSize is constant; replaced by precomputed rcp and muls.",
+   "risk": "Additive overload; rounding of round(p*invCellSize) vs round(p/cellSize) could land on a different integer exactly at cell boundaries (where p/cellSize is an exact .5). This is a genuine edge-case semantics risk at tile seams \u2014 guard by keeping the divide-based version as default and only using the rcp variant where seam exactness is not critical."
+  }
+ ]
+}

@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.Transform/SubsetTransform.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Transform/SubsetTransform.cs",
+   "symbol": "SubsetZeta.PerformZetaStep",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Hoist invariant shifts out of the inner loop in the long-path Zeta step (and mirror it in SubsetMobius)",
+   "currentCost": "The inner mask loop recomputes (1 << i) twice and the loop bound (1 << n) once per iteration. For a length-2^n array that is 2^n redundant shifts for the bit plus a re-evaluation of the bound expression every iteration, across n outer passes. The RunInt32 sibling already hoists 'bit' and proves this is the intended pattern.",
+   "proposedChange": "In PerformZetaStep compute 'int size = 1 << n; int bit = 1 << i;' once before the mask loop, use 'mask < size' as the bound, and replace (1 << i) with 'bit' in both the test and the XOR. Apply the identical change to SubsetMobius.PerformMobiusStep, SupersetZeta.PerformSupersetZetaStep, and SupersetMobius.PerformSupersetMobiusStep.",
+   "rationale": "Removes 2^n*n shift instructions and a per-iteration bound recomputation, shortening the dependency chain of the inner loop and matching the already-optimized RunInt32 path. Pure register hoist, no algorithmic change.",
+   "risk": "None. (1 << i) and (1 << n) are loop-invariant within their loops; values are identical. Note JIT may already hoist these, but Burst codegen benefits from making it explicit and it guarantees the optimization on all backends."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform/SubsetTransform.cs",
+   "symbol": "SubsetZeta.Run/SubsetMobius.Run/SupersetZeta.Run/SupersetMobius.Run",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Inline the per-step helper into Run for the long variants to match the RunInt32 structure and enable cross-loop hoisting",
+   "currentCost": "Run delegates to a private PerformZetaStep helper per outer i, which prevents hoisting 'size = 1 << n' to a single computation outside the outer loop and creates an inconsistent shape vs RunInt32 (which inlines everything).",
+   "proposedChange": "Fold PerformZetaStep's body directly into Run's outer loop (as RunInt32 already does), computing 'int size = 1 << n;' once before the outer i-loop and 'int bit = 1 << i;' once per outer iteration.",
+   "rationale": "Single computation of size for all n passes, consistent API surface between long and int32 paths, and removes the (already-likely-inlined but not guaranteed) call boundary that can block Burst hoisting.",
+   "risk": "None observable; same arithmetic. Keep method names/signatures of Run unchanged so callers are unaffected; only the private helpers are removed."
+  }
+ ]
+}

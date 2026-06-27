@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Math.Modular/ExtendedGcd.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Modular/ExtendedGcd.cs",
+   "symbol": "ExtendedGcd.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Recursive extended Euclid recomputes a%b and a/b as two separate division instructions per level, and recursion blocks Burst inlining.",
+   "currentCost": "Per recursion level: one '%' at line 18 plus one '/' at line 20 \u2014 two full 64-bit integer divisions on the same operand pair (each ~20-40 cycles on ARM, division is not pipelined). Plus recursive call overhead (stack frame, no inlining despite the AggressiveInlining hint, since self-recursion can't be inlined). Recursion depth is O(log min(a,b)).",
+   "proposedChange": "Rewrite as an iterative loop that computes the quotient once and derives the remainder from it: long q = a / b; long rem = a - q * b; then update (a,b)=(b,rem) and the Bezout coefficients with the same q. This reuses the single division's quotient to get the remainder via one multiply+subtract (mul ~3 cycles, sub ~1) instead of a second ~20-40 cycle division. Iterative form also eliminates the call stack and lets the whole routine inline at call sites (Crt, Excrt, ModInv).",
+   "rationale": "Halves the number of 64-bit divisions per Euclid step (the single most expensive op in the loop) by computing remainder as a-q*b, and removes recursion so Burst can inline and keep state in registers instead of stack frames. Same gcd and same Bezout coefficients x,y are produced (standard iterative extended Euclid is algebraically identical to the recursive form).",
+   "risk": "Iterative extended Euclid must thread the cofactor recurrence carefully (old_x/x and old_y/y swap-and-subtract). The product q*b cannot overflow because |q*b| <= |a| (q*b is the quotient times divisor, bounded by the dividend). Cofactors x,y stay within the same magnitude bounds as the recursive version (bounded by max(|a|,|b|)/(2g)), so no new overflow is introduced. Must reproduce exactly the base case b==0 -> (1,0)."
+  },
+  {
+   "file": "src/IAFahim.Math.Modular/ExtendedGcd.cs",
+   "symbol": "ExtendedGcd.Run",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "All three call sites (Crt, Excrt, ModInv) use only x; y is computed every level then discarded.",
+   "currentCost": "Line 20 computes y = x1 - (a/b)*y1 at every recursion level \u2014 one division, one multiply, one subtract per level \u2014 but Crt.cs line 30, Excrt.cs line 25, and ModInv all read only x. The entire y recurrence is dead work for these callers.",
+   "proposedChange": "Add a companion half-extended routine, e.g. long RunX(long a, long b, out long x), that maintains only the cofactor of a (single Bezout coefficient). Point Crt/Excrt/ModInv at it. The y cofactor can always be recovered as (g - a*x)/b if ever needed, so no functionality is lost library-wide.",
+   "rationale": "Eliminates roughly half the cofactor arithmetic (the y-recurrence: one mul, one sub, and the reuse of a/b) per Euclid step for every current caller. Same x and same gcd returned; observable outputs of Crt/Excrt/ModInv unchanged.",
+   "risk": "Pure addition of a new method plus repointing internal callers \u2014 no change to the existing Run signature, so external behavior is preserved. Must keep the original Run for any caller that genuinely needs y. Verify ModInv only needs x (confirmed: it uses x to build the inverse)."
+  },
+  {
+   "file": "src/IAFahim.Math.Modular/ExtendedGcd.cs",
+   "symbol": "ExtendedGcd.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Recursive extended GCD recomputes a/b and a%b separately and pays recursion + out-param overhead; an iterative version with fused divmod is cheaper.",
+   "currentCost": "Per level: one a % b AND a separate (a / b) (two division ops on the same operands), plus a recursive call with two out-parameters spilled to the stack. Depth is O(log min(a,mod)); each frame writes x1/y1 through pointers.",
+   "proposedChange": "Rewrite as an iterative loop tracking (old_r,r),(old_s,s): long q = old_r / r; then recover the remainder as old_r - q*r instead of a second % (one mul+sub vs a second DIV). Update old_r,r,old_s,s in registers; derive y at the end from the gcd relation. Eliminates recursion frames and the duplicate division.",
+   "rationale": "Replaces a second integer division (~20-40 cycles) per level with a multiply+subtract, removes recursive call/out-param spills, and keeps all state in registers \u2014 better for Burst which prefers flat loops over recursion.",
+   "risk": "Must reproduce identical x (and y) sign/values for downstream ModInv, which only uses x then ModNormalize. Standard iterative extended-Euclid yields the same Bezout x up to the canonical algorithm; verify against current outputs in the existing NUnit tests. b==0 base case (returns a, x=1, y=0) must be preserved for the a-coprime path. No overflow beyond existing q*y1 terms already present in the recursive form."
+  }
+ ]
+}

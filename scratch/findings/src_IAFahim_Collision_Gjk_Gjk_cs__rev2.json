@@ -1,0 +1,27 @@
+{
+ "file": "src/IAFahim.Collision.Gjk/Gjk.cs",
+ "correctness": [
+  {
+   "severity": "critical",
+   "category": "revision",
+   "symbol": "ClosestPointOnTetrahedron/PointOutsideFace",
+   "summary": "REVISION (degenerate tetra false-zero, found by adversarial fuzz). The current Gjk.cs has a full signed-volume sub-distance that PASSES the box cases (5,5,5)->5.196, (5,5,0)->4.243, (5,0,0)->3, overlap->0. BUT ClosestPointOnTetrahedron misclassifies a DEGENERATE/coplanar (zero-volume) 4-vertex simplex as 'origin enclosed' and returns float3.zero -> Distance returns 0 for genuinely SEPARATED shapes. Root cause: PointOutsideFace uses strict signOrigin*signRef<0; for a coplanar tetra signRef~0 so no face tests outside, bestI0<0, returns zero. Repro: Box A center(-5.717162,2.7831473,3.6242166) half(1.0077909,2.0135431,1.4081914) vs Box B center(-3.7377489,0.15825394,2.4147594) half(0.46894026,0.71724695,1.7185277): true gap=0.5026821, Gjk.Intersect=False, but Distance returns 0 (WRONG). Fuzz: 200000 box-box cases -> ~100 false zeros with true separation>0.05. FIX: guard for near-zero tetra signed volume; when degenerate, do NOT declare origin enclosed -- instead evaluate all four face triangles via ClosestPointOnTriangle and take the minimum-distance point. Only declare enclosed (return zero) when the tetra has meaningful positive volume AND origin is inside all four faces. Verify by re-running a box-box fuzz: zero false-zeros for separated shapes (Intersect=False => Distance>0).",
+   "triggeringInput": "see summary repro",
+   "rootCause": "coplanar tetra misclassified as enclosed",
+   "suggestedFix": "REVISION (degenerate tetra false-zero, found by adversarial fuzz). The current Gjk.cs has a full signed-volume sub-distance that PASSES the box cases (5,5,5)->5.196, (5,5,0)->4.243, (5,0,0)->3, overlap->0. BUT ClosestPointOnTetrahedron misclassifies a DEGENERATE/coplanar (zero-volume) 4-vertex simplex as 'origin enclosed' and returns float3.zero -> Distance returns 0 for genuinely SEPARATED shapes. Root cause: PointOutsideFace uses strict signOrigin*signRef<0; for a coplanar tetra signRef~0 so no face tests outside, bestI0<0, returns zero. Repro: Box A center(-5.717162,2.7831473,3.6242166) half(1.0077909,2.0135431,1.4081914) vs Box B center(-3.7377489,0.15825394,2.4147594) half(0.46894026,0.71724695,1.7185277): true gap=0.5026821, Gjk.Intersect=False, but Distance returns 0 (WRONG). Fuzz: 200000 box-box cases -> ~100 false zeros with true separation>0.05. FIX: guard for near-zero tetra signed volume; when degenerate, do NOT declare origin enclosed -- instead evaluate all four face triangles via ClosestPointOnTriangle and take the minimum-distance point. Only declare enclosed (return zero) when the tetra has meaningful positive volume AND origin is inside all four faces. Verify by re-running a box-box fuzz: zero false-zeros for separated shapes (Intersect=False => Distance>0)."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Collision.Gjk/Gjk.cs",
+   "symbol": "Distance / ComputeClosestPointToOrigin",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Distance's simplex handling only ever resolves point and segment cases; ComputeClosestPointToOrigin returns float3.zero for count>=3, silently dropping triangle/tetra closest-point logic, so the loop wastes support evaluations that cannot improve the result.",
+   "currentCost": "When count reaches 3 or 4, ComputeClosestPointToOrigin returns float3.zero, so dir = -zero = zero, the next support(0) is meaningless, and ComputeDistanceToOrigin also returns length(zero)=0 for count>=3. The loop keeps calling supportA/supportB (2 delegate calls per iter, up to 32 iters) producing no useful refinement and can return a wrong 0 distance.",
+   "proposedChange": "Either (a) implement the triangle and tetrahedron closest-point-to-origin cases so the GJK-distance subalgorithm is correct and converges early, or (b) cap simplex growth at 2 and reduce after each step so the segment path is exercised, removing dead support calls. At minimum, cap count and break once the closest feature stops improving to avoid running the full MaxIterations on a no-op path.",
+   "rationale": "Removes up to ~30 redundant delegate-pair evaluations per Distance call on the degenerate path and fixes a latent correctness gap (count>=3 returning 0). Fewer indirect calls (delegates defeat inlining/vectorization) is a real cycle win in addition to correctness.",
+   "risk": "This touches Distance's numerical results for inputs whose simplex grows past a segment, so it is NOT purely behavior-preserving \u2014 flag as a correctness fix, validate against NUnit distance tests. If strict behavior preservation is mandatory, only apply variant (b)'s early-out when ComputeClosestPointToOrigin would return zero, since that path already yields 0."
+  }
+ ]
+}

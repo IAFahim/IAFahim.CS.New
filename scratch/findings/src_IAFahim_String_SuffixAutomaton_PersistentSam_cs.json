@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.String.SuffixAutomaton/PersistentSam.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.SuffixAutomaton/PersistentSam.cs",
+   "symbol": "PushVersion",
+   "dimension": "ergonomics",
+   "impact": "medium",
+   "summary": "PushVersion takes a 'len' parameter that is completely ignored, and the Version struct it implies is never populated \u2014 dead/misleading API.",
+   "currentCost": "PushVersion(int* roots, ref int versionCount, int root, int len) writes only roots[versionCount++] = root; the 'len' argument is silently discarded. The Version struct (Root, Len) is declared but never stored or returned, so callers pass len believing it is recorded. This is a correctness/ergonomics hazard, not a perf cost.",
+   "proposedChange": "Either (a) remove the unused 'len' parameter and the Version struct if length-per-version is not a feature, or (b) actually store versions as Version*/SoA so GetVersion can return both Root and Len. Pick one to make the API honest. Current signature should not advertise a parameter it drops.",
+   "rationale": "Removes a silently-ignored argument that callers pay to compute and pass for no effect; makes the persistent-SAM version API self-consistent. No hot loop here, but it eliminates wasted argument setup and a misleading contract.",
+   "risk": "Changing the public signature is a source-break for any external caller. Grep of src shows no in-repo callers of PushVersion/GetVersion, so internal break risk is nil; confirm no Unity-side consumer before removing the parameter."
+  },
+  {
+   "file": "src/IAFahim.String.SuffixAutomaton/PersistentSam.cs",
+   "symbol": "using System / using System.Runtime.InteropServices",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Both using directives in PersistentSam.cs are unused.",
+   "currentCost": "Neither System nor System.Runtime.InteropServices is referenced \u2014 there is no StructLayout attribute or System type in the file. Dead directives.",
+   "proposedChange": "Remove 'using System;' (line 3) and 'using System.Runtime.InteropServices;' (line 4).",
+   "rationale": "Cleaner unit, explicit dependency surface, zero behavioral change. If [StructLayout] was intended on the Version struct for blittable Burst layout, add it explicitly instead of leaving the unused import.",
+   "risk": "None functionally. If the Version struct is meant to be blittable across Burst boundaries, consider adding [StructLayout(LayoutKind.Sequential)] explicitly (it is already sequential by default for this all-int struct, so no actual change needed)."
+  }
+ ]
+}

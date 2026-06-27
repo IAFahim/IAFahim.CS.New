@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Graph.DAG/DagReachabilityCompressed.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.DAG/DagReachabilityCompressed.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist offset recomputation and use a local pointer for the destination bitset row in the edge loop.",
+   "currentCost": "offset = u*ulongsPerNode is recomputed once per u (fine), but inside the edge loop bitsets[offset + w] is re-indexed from the base each of ulongsPerNode iterations per successor; vOffset = v*ulongsPerNode is a multiply per edge.",
+   "proposedChange": "Hoist ulong* dst = bitsets + offset once per u. Per edge compute ulong* src = bitsets + v*ulongsPerNode once, then inner loop dst[w] |= src[w]. This presents the OR as a clean pointer-stride loop the Burst auto-vectorizer recognizes, and removes repeated base+offset add chains.",
+   "rationale": "Shortens the address-computation dependency chain in the innermost OR loop and makes the contiguous ulong OR trivially vectorizable (it already is, but pointer form is the canonical vectorizable shape). dst pointer is loop-invariant across all edges of u, so it is hoisted above the edge loop.",
+   "risk": "Pure address-arithmetic refactor; identical loads/stores. No overflow concern beyond existing v*ulongsPerNode which already fits the indexing model."
+  }
+ ]
+}

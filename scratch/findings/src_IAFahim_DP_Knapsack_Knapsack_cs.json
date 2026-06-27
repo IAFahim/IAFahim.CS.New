@@ -1,0 +1,116 @@
+{
+ "file": "src/IAFahim.DP.Knapsack/Knapsack.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.DP.Knapsack/Knapsack.cs",
+   "symbol": "BitsetSubsetSum.Run",
+   "severity": "high",
+   "category": "off-by-one",
+   "summary": "The bitset word-count `size = (target+63)>>6` is one word too small whenever `target` is an exact multiple of 64. The word that holds the target bit (index `target>>6`) is then never allocated/processed, and the final check `targetIdx < size` is false, so the method always returns 0 even when the subset sum is achievable.",
+   "triggeringInput": "n=1, target=64, a=[64], bits buffer of size>=1. Expected result 1 (subset {64} sums to 64); method returns 0. Same for target=128 a=[64,64], or any reachable target that is a multiple of 64.",
+   "rootCause": "To hold bits 0..target inclusive you need (target>>6)+1 words (the bit `target` lives in word index target>>6, and word indices are 0-based). The formula (target+63)>>6 = ceil((target+1)/64) only equals (target>>6)+1 when target is NOT a multiple of 64; when target%64==0 it yields target/64, which is one word short. Consequently bits[targetIdx] is outside the [0,size) range the routine zeroes and updates, BitsetShiftOr's loop `j>=offset` skips the missing top word, and the return guard `targetIdx < size` (1<1) fails, forcing a 0 result.",
+   "suggestedFix": "Compute the word count as `int size = (int)((target >> 6) + 1);` (equivalently (target/64)+1) so the word containing bit `target` is always included; the caller's `bits` buffer must be sized accordingly. The shift-OR carry logic itself is correct and needs no change."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.DP.Knapsack/Knapsack.cs",
+   "symbol": "Knapsack01.UpdateKnapsack01 / InitializeDp / Run (indexing)",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "dp is indexed with (int) casts of long loop counters; the casts add work and force int-domain arithmetic on indices that are already known non-negative longs.",
+   "currentCost": "Each inner-loop access dp[(int)(c - weight)] and dp[(int)c] performs a long->int narrowing conversion (movsxd/cdqe-class), and the subtraction c-weight is recomputed as long then narrowed every iteration.",
+   "proposedChange": "Drive the inner loop with a native-width index (nint/long) and keep dp[idx] in the long domain so no per-iteration (int) cast is emitted. Hoist the read of dp[(int)(c-weight)] vs dp[(int)c]: iterate c from cap down to weight using two running pointers (long* cur=dp+c, long* prev=dp+c-weight) decremented together, eliminating both the subtraction and both casts per iteration.",
+   "rationale": "Pointer-walk form removes one subtraction and two narrowing casts per iteration in the hottest loop (O(n*cap)), shortening the dependency chain to a compare+cmov+store. dp index domain stays identical so addresses are unchanged.",
+   "risk": "None for valid input: cap and c-weight are non-negative and < array length by contract, so the int cast was already lossless; pointer form yields identical addresses. Ensure pointers use the same element type (long) to keep scaling correct."
+  },
+  {
+   "file": "src/IAFahim.DP.Knapsack/Knapsack.cs",
+   "symbol": "Knapsack01.UpdateKnapsack01",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Branchy max update (if val > dp[c]) prevents Burst from emitting a branchless cmov and may mispredict on adversarial weight/value patterns.",
+   "currentCost": "Per iteration: compare + conditional store with a data-dependent branch; mispredicts flush the pipeline.",
+   "proposedChange": "Replace 'long val = prev+value; if (val > cur) cur = val;' with 'dp[c] = math.max(dp[c], prev+value);' (branchless). Under Burst, math.max(long,long) lowers to compare+cmov; even hand-written 'cur ^= (cur ^ val) & -(long)(val>cur)' is branchless but math.max is cleaner.",
+   "rationale": "Removes a data-dependent branch from an O(n*cap) loop, converting it to straight-line code Burst can pipeline/vectorize-friendlier. Identical result.",
+   "risk": "Semantically identical (max). The XOR-mask trick relies on (val>cur) producing 0/1 then negation to all-ones; prefer math.max to avoid sign/overflow subtlety. No behavior change."
+  },
+  {
+   "file": "src/IAFahim.DP.Knapsack/Knapsack.cs",
+   "symbol": "KnapsackUnbounded.UpdateKnapsackUnbounded",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Loop nesting is inverted vs the cache-friendly form: outer over capacity, inner over items, so w[i]/v[i] are re-streamed for every one of the `cap` capacities, and the (int) casts plus per-iteration w[i] reload dominate.",
+   "currentCost": "O(cap*n) with item arrays w[]/v[] fully re-read cap times (poor temporal locality of the item stream), plus a branch 'if (w[i] <= c)' and three (int) casts per accepted item.",
+   "proposedChange": "Invert loops to outer-over-items, inner-over-capacity (the standard unbounded form): for each item, for c = w[i] .. cap: dp[c] = max(dp[c], dp[c-w[i]] + v[i]). This streams w[i]/v[i] once per item (kept in registers across the whole inner sweep), removes the per-iteration 'w[i] <= c' branch (loop starts at w[i]), and lets the inner loop use a pointer walk to drop the (int) casts. Result is identical because unbounded knapsack is order-independent over the forward sweep.",
+   "rationale": "Hoists w[i]/v[i] out of the inner loop (loop-invariant for the inner sweep), removes a branch, improves locality of dp[] sequential access, and removes casts. Same asymptotic class but far better constant factor and cache behavior.",
+   "risk": "Must keep the FORWARD sweep (c increasing) for unbounded semantics \u2014 that is what allows reusing the current item multiple times. Behavior is identical to the current code, which also reuses items within the same c. No overflow change."
+  },
+  {
+   "file": "src/IAFahim.DP.Knapsack/Knapsack.cs",
+   "symbol": "KnapsackBounded.UpdateBoundedCap / ProcessBoundedItem",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Bounded knapsack uses naive per-cap multiplicity scan: O(cap * maxUse) per item, giving O(n * cap * count) overall. Binary (power-of-two) decomposition reduces it to O(n * cap * log(count)).",
+   "currentCost": "ProcessBoundedItem's count>1 path runs, for each of cap+1 capacities, an inner loop up to maxUse iterations each doing k*weight and k*value multiplies \u2014 O(cap*maxUse) per item, multiplications recomputed every k.",
+   "proposedChange": "Decompose count into powers of two (1,2,4,...,remainder) and run a standard 0/1 update for each piece with combined weight=p*weight, value=p*value. This turns each item into O(log count) virtual items, each an O(cap) 0/1 sweep: total O(n*cap*log count) instead of O(n*cap*count). Also eliminates the inner k*weight/k*value multiplies (precompute pieceWeight/pieceValue once per piece).",
+   "rationale": "Asymptotically tighter for count>1 and removes repeated multiplications; the 0/1 sweep is the already-optimized branchless/pointer-walk loop. Standard, provably equivalent bounded-knapsack result.",
+   "risk": "Must reuse the existing 0/1 sweep semantics (descending c) for each piece. Watch overflow: p*value can be large \u2014 but it is <= count*value which the current code already computes (k*value up to maxUse*value), so no new overflow domain. Equivalent optimal value guaranteed by binary representation completeness."
+  },
+  {
+   "file": "src/IAFahim.DP.Knapsack/Knapsack.cs",
+   "symbol": "KnapsackBounded.ProcessBoundedItem",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The count>1 path iterates c from cap down to 0, but for c < weight the inner UpdateBoundedCap loop body 'c >= k*weight' (k starts at 1) is always false, doing useless iterations.",
+   "currentCost": "For c in [0, weight-1] the outer loop still calls UpdateBoundedCap which immediately fails its guard; that is up to `weight` wasted outer iterations per item plus call overhead (if not inlined).",
+   "proposedChange": "Lower bound the outer loop to c >= weight (for (long c = cap; c >= weight; c--)), since no k>=1 can satisfy c >= k*weight when c < weight. If the binary-decomposition rewrite above is adopted this method disappears; otherwise this guard is a free win.",
+   "rationale": "Eliminates up to `weight` no-op outer iterations and their call/guard overhead per bounded item. Identical result.",
+   "risk": "None: when c < weight the original inner loop produced no writes, so skipping those c values changes nothing."
+  },
+  {
+   "file": "src/IAFahim.DP.Knapsack/Knapsack.cs",
+   "symbol": "KnapsackBounded.UpdateBoundedCap",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Inner loop recomputes k*weight and k*value each iteration via multiplication.",
+   "currentCost": "Two long multiplies per k (k*weight, k*value) plus the cast (int)(c - k*weight) each iteration.",
+   "proposedChange": "Strength-reduce to running accumulators: 'long cw = weight, cv = value;' then each iteration use cw/cv and do 'cw += weight; cv += value;'. Replaces two multiplies/iteration with two adds. (Moot if binary decomposition is adopted, which removes this loop entirely.)",
+   "rationale": "Add is cheaper than imul and shortens the dependency chain; identical values produced.",
+   "risk": "None for valid input; accumulator path reaches the same cw=k*weight, cv=k*value values. Overflow domain unchanged (same maximum products as multiply form)."
+  },
+  {
+   "file": "src/IAFahim.DP.Knapsack/Knapsack.cs",
+   "symbol": "SubsetSum.Run / UpdateSubsetSum",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "A dedicated bool[] DP is used while BitsetSubsetSum already provides a 64x-denser, ~64x-faster bitset variant; the bool variant is redundant and the slowest path for reachability.",
+   "currentCost": "bool* dp uses target+1 bytes and the inner loop processes one capacity per iteration with a data-dependent branch (if dp[s-val]) \u2014 O(n*target) byte stores, 64x more memory traffic than the bitset.",
+   "proposedChange": "For the reachability (subset-sum boolean) use case, route callers to BitsetSubsetSum (already present), or at minimum document SubsetSum as the simple/reference path. If SubsetSum.Run must stay, make its inner store branchless: 'dp[(int)s] |= dp[(int)(s-val)];' (OR into target) instead of 'if (dp[s-val]) dp[s]=true;', removing the branch.",
+   "rationale": "Bitset form is 64x less RAM and ~64x fewer operations for the identical reachability answer; even keeping the bool form, the branchless OR removes a misprediction-prone branch in the O(n*target) loop.",
+   "risk": "Branchless OR is semantically identical for bool (true stays true, only sets when source true). Steering to bitset is an API/ergonomics change for callers, not a behavior change in the result bit."
+  },
+  {
+   "file": "src/IAFahim.DP.Knapsack/Knapsack.cs",
+   "symbol": "BitsetSubsetSum.BitsetShiftOr",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hot shift loop recomputes the carry index check 'j - offset - 1 >= 0' as a branch inside the per-word loop.",
+   "currentCost": "Per word j: a branch 'if (j - offset - 1 >= 0)' guarding the carry-in OR. The guard only fails for the single lowest word (j == offset); branching every iteration to handle one boundary word.",
+   "proposedChange": "Peel the boundary: run the main loop for j from size-1 down to offset+1 doing the full two-term OR unconditionally (j-offset-1 >= 0 always holds there), then handle j == offset separately with only the 'bits[j] |= bits[0] << shift' term. Removes the per-iteration boundary branch.",
+   "rationale": "Eliminates a branch from the inner O(size) word loop (run n times => O(n*size) overall); the peeled iteration runs once per item. Identical bit result.",
+   "risk": "None: the peeled j==offset case omits exactly the carry term that the original guard already skipped (since j-offset-1 = -1 < 0). Word ordering of the OR-into-self descending sweep is preserved, so no read-after-write hazard is introduced."
+  },
+  {
+   "file": "src/IAFahim.DP.Knapsack/Knapsack.cs",
+   "symbol": "Knapsack01.RunSpaceEfficient / KnapsackUnbounded.RunSpaceEfficient",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "RunSpaceEfficient is an exact alias of Run (already 1D/space-efficient), implying a distinction that does not exist and risking caller confusion.",
+   "currentCost": "Two public symbols with identical behavior; no perf cost but discoverability/maintenance cost and an implied 2D-vs-1D contract that isn't real.",
+   "proposedChange": "Either remove RunSpaceEfficient (Run is already the space-efficient 1D form) or document explicitly that Run IS the space-efficient implementation and the alias exists only for API symmetry. Keep the AggressiveInlining alias if external API stability is required.",
+   "rationale": "Clarifies the API surface (Run/Try* convention) without a perf model change; reduces the chance a caller assumes RunSpaceEfficient is cheaper.",
+   "risk": "Removing a public method is a source-breaking API change; if external callers depend on it, keep the alias and only add documentation. No runtime behavior change either way."
+  }
+ ]
+}

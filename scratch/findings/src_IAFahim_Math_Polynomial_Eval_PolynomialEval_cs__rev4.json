@@ -1,0 +1,81 @@
+{
+ "file": "src/IAFahim.Math.Polynomial.Eval/PolynomialEval.cs",
+ "correctness": [
+  {
+   "severity": "critical",
+   "category": "revision",
+   "symbol": "REVISION",
+   "summary": "REVISION (round-3 reject). REVISION (both judges). ChirpZTransform.Run still wrong: you correctly fixed the signed lower-half kernel exponent C(-s,2), but there is an OFF-BY-ONE in the output index k / post-multiply, so res[k] is shifted/wrong. Get the Bluestein chirp-Z exactly right: res[k] must equal the intended transform (direct evaluation) for ALL k in [0,m). VALIDATE against a brute-force direct computation (res[k] = sum_i a[i] * w^(i*k) or the documented chirp-z definition) over random inputs mod 1e9+7, n up to ~8: every res[k] must match. Fix the kernel center/offset indexing (h[n-1+t]) and the res[k] post-multiply alignment.\n\nJUDGE FEEDBACK:\njudge1: BLOCKING: the critical correctness bug in ChirpZTransform.Run is NOT correctly fixed; the fix introduces a new, different wrong-semantics (off-by-one in k).\n\nFile: /home/l/Github/IAFahim.CS.New/src/IAFahim.Math.Polynomial.Eval/PolynomialEval.cs\n\nWhat the new code computes (verified numerically, mod=1e9+7, n=5, c=7, d=13, random a):\n- g[i] = a[i]*c^i*d^(C(i,2)); h[n-1+t] = d^(-C(t,2)) for signed t (upper half line 56, lower half line 72); post-multiply res[k] = prod[n-1+k]*d^(+C(k,2)) (line 84).\n- Therefore res[k] = sum_i a[i]*c^i*d^(C(i,2)+C(k,2)-C(k-i,2)).\n\nThe bug: with C(x,2)=x(x-1)/2, the Bluestein subtractive identity does NOT give ik. Algebraically C(i,2)+C(k,2)-C(k-i,2) = [i^2-i+k^2-k-(k-i)^2+(k-i)]/2 = i(k-1), NOT ik. So the code computes res[k] = sum_i a[i]*c^i*d^(i(k-1)) \u2014 the intended CZT answer sum_i a[i]*c^i*d^(ik) shifted by one index in k (an extra d^(-i) factor per term).\n\nNumeric proof: new=[37782698, 530099353, 686691478, 928300235, 186489289]; true CZT ik=[530099353, 686691478, 928300235, 186489289, 828064109]; closed-form i(k-1)=[37782698, ...] matches new exactly\njudge2: BLOCKING correctness defect in ChirpZTransform.Run (file: src/IAFahim.Math.Polynomial.Eval/PolynomialEval.cs, line 53).\n\nWhat the fix did right:\n- The original critical finding (symmetric kernel using |k-i| instead of signed k-i) is partially addressed: the lower convolution half is now built with the correct SIGNED exponent C(-s,2)=s(s+1)/2 via the negPow/negMul loop (lines 67-74). That half is correct.\n- The two perf items (duplicate FastPow on identical exponent; O(n log mod) -> O(n) incremental running powers) are applied and the incremental power recurrences for dPow/invDPow/cPow/negPow/fPow are internally consistent (each correctly tracks d^C(i,2), invD^C(i,2), etc.).\n- MultiPointEval.Run hoisting the per-coefficient normalization into a single O(n) stackalloc pass (lines 10-12) and the AggressiveInlining hints are correct and semantics-preserving. stackalloc long[n] is fine for n=0. NaiveConvolve loop-bound rewrite (line 95) is equivalent (i+j monotonic in j). Project builds cleanly (0 warnings/errors).\n\nThe remaining bug \u2014 g[] uses the wrong triangular exponent:\n- The code co",
+   "triggeringInput": "see judge feedback",
+   "rootCause": "prior fix incomplete/contract-break",
+   "suggestedFix": "REVISION (both judges). ChirpZTransform.Run still wrong: you correctly fixed the signed lower-half kernel exponent C(-s,2), but there is an OFF-BY-ONE in the output index k / post-multiply, so res[k] is shifted/wrong. Get the Bluestein chirp-Z exactly right: res[k] must equal the intended transform (direct evaluation) for ALL k in [0,m). VALIDATE against a brute-force direct computation (res[k] = sum_i a[i] * w^(i*k) or the documented chirp-z definition) over random inputs mod 1e9+7, n up to ~8: every res[k] must match. Fix the kernel center/offset indexing (h[n-1+t]) and the res[k] post-multiply alignment."
+  },
+  {
+   "file": "src/IAFahim.Math.Polynomial.Eval/PolynomialEval.cs",
+   "symbol": "ChirpZTransform.Run",
+   "severity": "critical",
+   "category": "wrong-recurrence",
+   "summary": "The Chirp-Z / Bluestein transform builds the kernel h symmetrically as h[n-1+i] = h[n-1-i] = d^(-C(i,2)), i.e. it uses C(|k-i|,2) as the convolution exponent. But C(x,2)=x(x-1)/2 is not symmetric (C(1,2)=0 vs C(-1,2)=1), so the Bluestein identity i*k = C(i,2)+C(k,2)-C(k-i,2) requires the SIGNED value C(k-i,2). For terms where i>k the exponent of d is wrong, so res[k] is incorrect for every k except k=0. The whole transform produces wrong output for any n>=2.",
+   "triggeringInput": "mod=998244353, n=5, a=[random nonzero], c,d arbitrary nonzero generators. E.g. a={938753228,...}: true CZT res[1] should differ from computed; verified numerically that only res[0] matches and res[1..n-1] are all wrong.",
+   "rootCause": "h[n-1-i] (the lower convolution half) is set to FastPow(invD, C(i,2)) instead of the value that yields the signed exponent C(k-i,2). Because the kernel is mirrored using the magnitude of k-i rather than its sign, the convolution prod[n-1+k] = sum_i g[i]*d^(-C(|k-i|,2)) gives exponent C(i,2)-C(|k-i|,2)+C(k,2), which equals i*k only when i<=k. For i>k the exponent is off, corrupting the result.",
+   "suggestedFix": "The mirrored kernel must encode d^(-C(j,2)) where j = (k - i) is allowed to be negative. Reformulate so the convolution produces exponent C(i,2) + C(k,2) - C(k-i,2) with the signed (k-i). Concretely, precompute w[t] = d^(C(t,2)) for t in [-(n-1)..(n-1)] using the actual signed t (t(t-1)/2, which differs for negative t), build g[i]=a[i]*c^i*d^(-C(i,2)) and h indexed so that h[k-i] picks d^(C(k-i,2)) for the true signed difference, then res[k] = (sum) * d^(-C(k,2)). Do not collapse the two halves to the same FastPow(invD,C(i,2)) value."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Polynomial.Eval/PolynomialEval.cs",
+   "symbol": "ChirpZTransform.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Duplicate FastPow(invD, i*(i-1)/2, mod) computed twice in the same loop iteration (lines 43 and 46)",
+   "currentCost": "Each iteration of the i-loop computes invDPow = FastPow(invD, binomial_i_2, mod) at line 43, then recomputes the byte-for-byte identical FastPow(invD, (long)i*(i-1)/2, mod) at line 46. That is two O(log e) modular exponentiations where one suffices, doubling the modpow work for the h[] setup.",
+   "proposedChange": "Reuse the already-computed local: replace line 46's call with the value from line 43, e.g. `if (n - 1 - i >= 0) h[n - 1 - i] = invDPow;` (binomial_i_2 == (long)i*(i-1)/2 by construction).",
+   "rationale": "Eliminates one of two identical modpow calls per iteration. The two expressions are provably equal (same base invD, same exponent binomial_i_2 = i*(i-1)/2), so reusing the local removes ~n log(mod) multiply/mod operations with zero change in output.",
+   "risk": "None. The exponents are identical by construction; invD is loop-invariant. Pure constant-factor win, no edge cases."
+  },
+  {
+   "file": "src/IAFahim.Math.Polynomial.Eval/PolynomialEval.cs",
+   "symbol": "ChirpZTransform.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Per-coefficient FastPow on triangular exponents i*(i-1)/2 can be replaced by an incremental running power, dropping O(n log mod) to O(n)",
+   "currentCost": "For each i in [0,n) the loop calls FastPow(d, binomial_i_2) and FastPow(invD, binomial_i_2), and the final k-loop calls FastPow(invD, binomial_k_2) again. Each FastPow is O(log mod) modmuls, so the powers cost O(n log mod). cPow is already incremental, but the d^{C(i,2)} powers are recomputed from scratch every iteration.",
+   "proposedChange": "Maintain running powers using the identity C(i,2) - C(i-1,2) = i-1: keep `dPow` and `invDPow` as state and update `dPow = dPow * dStep % mod; dStep = dStep * d % mod;` per iteration (dStep starts at d^0=1 giving multiplier d^{i-1}). Same for invD. Then the k-loop's FastPow(invD, binomial_k_2) values are exactly the invDPow sequence already produced in the first loop, so cache them into a small stackalloc (or reuse h's structure) instead of recomputing.",
+   "rationale": "Each modpow over a log-mod exponent (~60 modmuls for a 60-bit mod) is replaced by 1-2 modmuls per step. Turns O(n log mod) into O(n) for all the triangular-exponent powers, a genuine asymptotic reduction of the dominant non-convolution cost.",
+   "risk": "Must seed the running multipliers correctly (C(0,2)=C(1,2)=0, first nonzero step at i=2). Verify with the existing N=1/N=2 tests. No overflow risk beyond existing modmul (all kept reduced mod). Caching invDPow for the k-loop needs a buffer of n longs (or reuse, since h[n-1+i] already stores invDPow)."
+  },
+  {
+   "file": "src/IAFahim.Math.Polynomial.Eval/PolynomialEval.cs",
+   "symbol": "MultiPointEval.EvaluateAt",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Poly coefficients are re-normalized ((poly[j]%mod+mod)%mod) on every one of the m evaluation points",
+   "currentCost": "Run calls EvaluateAt m times; each call walks all n coefficients computing `(poly[j] % mod + mod) % mod` (two %, one +). That is m*n redundant normalizations of the same poly array plus m*n modmuls in the Horner step.",
+   "proposedChange": "In Run, normalize poly once into a stackalloc/scratch buffer `pn[j] = (poly[j] % mod + mod) % mod` (n entries), then have EvaluateAt take the pre-normalized buffer and skip the per-coefficient normalization, doing only `val = (val * xi + pn[j]) % mod`.",
+   "rationale": "Reduces coefficient normalization from O(m*n) to O(n). Each saved normalization is two divides and an add per coefficient per point; divides are the most expensive integer op, so hoisting them out of the m-loop is a large constant-factor win when m is large.",
+   "risk": "Needs O(n) scratch (stackalloc long[n]); acceptable under house rules. Semantics identical because normalization is independent of the evaluation point. If n can be large enough to risk stack overflow the caller could pass the buffer, but for typical NTT-sized n stackalloc is fine."
+  },
+  {
+   "file": "src/IAFahim.Math.Polynomial.Eval/PolynomialEval.cs",
+   "symbol": "ChirpZTransform.NaiveConvolve",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "NaiveConvolve re-zeros res that the caller already zeroed, and exploits no sparsity of g (only first n entries are nonzero, but g is read as length-n already)",
+   "currentCost": "Line 50 zeros prod (convLen entries), then line 64 zeros res (== prod) again: a redundant convLen-length clear. Also the inner-loop bound `if (i + j < resLen)` is evaluated an*bn times.",
+   "proposedChange": "Drop the line-64 zeroing loop (caller guarantees prod is zero), or drop the caller's line-50 loop and keep the one inside NaiveConvolve. Additionally, since the only out-of-range writes occur when i+j >= resLen, split the inner loop bound to `for (int j = 0; j < bn && i + j < resLen; j++)` so the branch is hoisted into the loop condition rather than a per-iteration if inside the body.",
+   "rationale": "Removes one O(convLen) memset pass and converts the per-iteration in-body branch into a loop-bound test the compiler/Burst can strength-reduce, improving the tight an*bn inner loop's branch behavior and enabling better vectorization.",
+   "risk": "Removing one of the two zeroings requires confirming the single remaining clear covers all of res; keep exactly one. The loop-bound rewrite is equivalent because i+j is monotincreasing in j, so `i+j<resLen` failing means all larger j also fail."
+  },
+  {
+   "file": "src/IAFahim.Math.Polynomial.Eval/PolynomialEval.cs",
+   "symbol": "FastPow",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Mark FastPow (and the leaf modmul-heavy helpers) with AggressiveInlining; redundant `1 % mod` when mod>1",
+   "currentCost": "FastPow is a hot leaf called many times per Run; without inlining hints Burst/JIT may keep it out-of-line, adding call overhead in the inner power loops. `res = 1 % mod` does a divide that is only needed for the degenerate mod==1 case.",
+   "proposedChange": "Add [MethodImpl(MethodImpl Options.AggressiveInlining)] to FastPow. If mod==1 is not a valid input per the unchecked-Run contract, replace `long res = 1 % mod` with `long res = 1` to drop a divide.",
+   "rationale": "Inlining removes call/return overhead and lets Burst fuse the modmul dependency chain with the caller. Removing `1 % mod` saves one divide per FastPow call when mod>1 is guaranteed.",
+   "risk": "`1 % mod` -> `1` changes output only when mod==1 (where everything is 0); only safe if the library contract excludes mod<=1. If mod==1 must be supported, keep the modulo. Inlining is always semantics-preserving."
+  }
+ ]
+}

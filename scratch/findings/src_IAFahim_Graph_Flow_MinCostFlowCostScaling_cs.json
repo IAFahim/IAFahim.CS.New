@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Graph.Flow/MinCostFlowCostScaling.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Flow/MinCostFlowCostScaling.cs",
+   "symbol": "MinCostFlowCostScaling.Run",
+   "severity": "critical",
+   "category": "wrong-recurrence",
+   "summary": "Both the potential-update phase (lines 26-41) and the push phase (lines 49-68) only ever traverse/push along edges whose reduced cost is strictly negative. With all-positive edge costs and zero initial potentials, every forward edge has rcost = cost[e] > 0, so the BFS never relaxes any node (dist stays long.MaxValue), potentials are never updated (line 41), and no flow is ever pushed (line 61 is gated by rcost<0 on line 59). excess[s] remains int.MaxValue, so the outer 'any' check (lines 71-77) is always true and the while(true) loop never terminates -> infinite loop on the normal MCF case.",
+   "triggeringInput": "n=2, s=0, t=1; one forward edge 0->1 cap=5 cost=1 (id 2) with reverse id 3 cap=0 cost=-1; head/to/next set so head[0]=2. Run never returns (infinite loop); should return 5*1=5 by pushing min(demand,5).",
+   "rootCause": "The algorithm restricts both shortest-path discovery and flow pushing to rcost<0 edges. Min-cost flow requires pushing along tight (rcost==0) admissible edges after correct potential computation; a proper Bellman-Ford/Dijkstra must relax all residual edges (rcost can be >=0), not only negative ones. As written no progress is ever made when costs are positive.",
+   "suggestedFix": "Compute genuine shortest-path distances over ALL residual edges (relax when dist[u]+rcost < dist[v], not only when rcost<0), update potentials, then push flow along admissible edges (rcost==0). Alternatively replace with a correct SSP/cost-scaling kernel. Ensure the outer loop terminates when no augmenting path to t exists."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Flow/MinCostFlowCostScaling.cs",
+   "symbol": "Run",
+   "dimension": "burst",
+   "impact": "high",
+   "summary": "bucket, inBucket stackalloc'd inside while(true); plus three separate O(n) init loops that can be fused.",
+   "currentCost": "Per outer iteration: stackalloc int[n] bucket and inBucket inside the loop, plus separate loops `for(i)bucket[i]=-1`, `for(i)inBucket[i]=0`, and earlier `for(i)dist[i]=long.MaxValue`. Three passes over [0,n).",
+   "proposedChange": "Hoist bucket and inBucket above while(true). Fuse the bucket/inBucket reset into a single loop (both length n). dist reset stays separate only because it is long vs int, but it can share the same index loop too.",
+   "rationale": "One stack reservation instead of per-iteration; fewer loop-overhead instructions by fusing inits; better write locality streaming two arrays per index.",
+   "risk": "None for hoisting/fusing \u2014 independent arrays, same length, lifetime already method-scoped."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/MinCostFlowCostScaling.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Redundant recomputation of residual cap[e]-flow[e] (computed in the continue-guard then again for Math.Min) and rcost components.",
+   "currentCost": "In the bucket loop, `cap[e]-flow[e]` is computed in the guard `if (cap[e]-flow[e] <= 0) continue;` and recomputed in `Math.Min(excess[u], cap[e]-flow[e])`. Same in Dijkstra/PrimalDual/Spfa the residual is recomputed in the augment min-pass and again in the apply-pass.",
+   "proposedChange": "Cache `int res = cap[e] - flow[e];` once per edge and reuse for both the guard and the push amount. In the augment loops, the structure already separates passes (acceptable), but within the bucket scan reuse the single res value.",
+   "rationale": "Removes one load-load-sub per qualifying edge in the hot scan; shortens the dependency chain feeding Math.Min.",
+   "risk": "None \u2014 flow[e] is not mutated between the guard and the Math.Min within the same edge iteration, so the cached value is identical."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/MinCostFlowCostScaling.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Shortest-path relaxation loop only relaxes edges with rcost<0, which makes it a partial Bellman-Ford that may not converge to true distances; potential update may be suboptimal causing extra outer iterations.",
+   "currentCost": "The first inner while loop guards relaxation with `if (rcost < 0 && dist[v] > dist[u] + rcost)`. Restricting relaxation to negative-reduced-cost edges means non-negative residual edges never tighten dist, so `potential` updates can be incomplete, potentially increasing the number of outer scaling iterations (each O(V+E)).",
+   "proposedChange": "Relax on the standard condition `dist[v] > dist[u] + rcost` (drop the rcost<0 precondition) so the potential function is the true reduced-cost shortest path, matching the textbook cost-scaling/SPFA potential maintenance used in the sibling files. This typically reduces total outer iterations.",
+   "rationale": "Correct potentials reduce the number of negative-cost relaxation rounds in the bucket phase and overall outer loops, lowering aggregate O((V+E)) passes \u2014 an algorithmic constant-to-iteration-count win.",
+   "risk": "High \u2014 this changes the computed potentials and therefore the augmentation order and possibly the iteration count and intermediate state. Only valid if final min-cost flow value is unchanged (it should be for a correct MCMF). Must be validated against existing tests; treat as behavior-affecting, not a blind micro-opt."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/MinCostFlowCostScaling.cs",
+   "symbol": "Run",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "parent and parentEdge arrays are allocated but never used in this algorithm.",
+   "currentCost": "`int* parent = stackalloc int[n]; int* parentEdge = stackalloc int[n];` are declared but never read or written anywhere in the cost-scaling routine (it uses bucket-based pushing, not path parent tracking).",
+   "proposedChange": "Remove the parent and parentEdge stackallocs from MinCostFlowCostScaling.Run.",
+   "rationale": "Frees 2*n*4 bytes of stack frame and removes two reservations; reduces frame size and cache footprint with zero functional effect.",
+   "risk": "None \u2014 both are provably unused in this method (copy-paste residue from the path-based variants)."
+  }
+ ]
+}

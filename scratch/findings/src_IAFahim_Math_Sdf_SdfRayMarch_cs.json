@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Math.Sdf/SdfRayMarch.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Sdf/SdfRayMarch.cs",
+   "symbol": "SdfFunction",
+   "dimension": "burst",
+   "impact": "high",
+   "summary": "SdfFunction is a managed delegate; invoking it (sdf(p)) on the hot march/normal/AO loops defeats Burst (managed call, no inlining, no vectorization) and is not blittable.",
+   "currentCost": "Every March step, every EstimateNormal (4 calls), and every AmbientOcclusion step invokes a managed delegate. Managed delegate dispatch in Burst is unsupported or extremely slow (virtual-style indirect call, GC type, blocks inlining of the SDF body into the loop).",
+   "proposedChange": "Replace 'public delegate float SdfFunction(float3 p);' usage with Burst-friendly 'FunctionPointer<SdfFunction>' (Unity.Burst) and invoke via .Invoke, or better, make March/EstimateNormal/AmbientOcclusion generic over an unmanaged 'ISdf' struct constraint 'where T : unmanaged, ISdf' and call sdf.Evaluate(p) so Burst can inline the concrete SDF into the loop. Mark the delegate [BurstCompile] if using FunctionPointer.",
+   "rationale": "Generic-struct dispatch lets Burst specialize and inline the distance function directly into the march loop, eliminating per-step indirect calls and enabling vectorization/constant folding; FunctionPointer at minimum makes it Burst-callable. This is the single biggest perf lever in the module.",
+   "risk": "API change. Generic-struct approach requires an ISdf interface used only as a generic constraint (allowed for Burst, resolved statically \u2014 not a managed virtual call). House rule forbids interfaces in src; if strictly enforced, use FunctionPointer<SdfFunction> instead, which keeps a delegate type for the signature but is Burst-invocable. Confirm which path the codebase permits."
+  },
+  {
+   "file": "src/IAFahim.Math.Sdf/SdfRayMarch.cs",
+   "symbol": "EstimateNormal",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "EstimateNormal uses 4 SDF evaluations (center d + 3 forward differences). A tetrahedral 4-tap scheme also uses 4 but the forward-difference here is fine; however math.normalize re-derives length with a sqrt that could short-circuit degenerate gradients.",
+   "currentCost": "4 SDF calls (1 center + 3). math.normalize does dot+rsqrt; if grad is near-zero (point exactly on a flat region) normalize produces NaN/inf silently.",
+   "proposedChange": "Keep 4 taps (changing to tetrahedral alters which samples are taken => different numeric normal, not semantics-preserving). Real win: the three offset float3 literals new float3(NormalEpsilon,0,0) etc. are compile-time constants \u2014 ensure they are 'static readonly'/const-folded; they already are literals so Burst folds them. Optionally route the final normalize through SafeNormalize(grad) to remove the NaN edge case (behavior change for degenerate input only).",
+   "rationale": "No free tap reduction without changing output. The only concrete, low-risk note is the optional SafeNormalize swap to harden degenerate gradients; otherwise this function is already minimal.",
+   "risk": "Switching math.normalize -> SafeNormalize changes output for zero-gradient inputs (returns (0,1,0) instead of NaN) \u2014 a semantics change at the edge; only adopt if that hardening is desired. Pure-tap changes (tetrahedral) are rejected as they change results."
+  },
+  {
+   "file": "src/IAFahim.Math.Sdf/SdfRayMarch.cs",
+   "symbol": "AmbientOcclusion",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "AmbientOcclusion computes dist = (float)i * stepSize each iteration via int->float convert + multiply; can be strength-reduced to an additive accumulator.",
+   "currentCost": "Per iteration: int-to-float conversion of i, then multiply by stepSize. The convert + mul is a small dependency each loop.",
+   "proposedChange": "Replace the loop counter math: keep 'float dist = stepSize;' before the loop and do 'dist += stepSize;' at the end of each iteration (starting i=1 => first dist=stepSize). Removes the (float)i cast and the multiply, replacing with one add.",
+   "rationale": "Strength-reduces a per-iteration int->float convert + fmul into a single fadd, shortening the loop body. For small step counts the win is tiny but real and free.",
+   "risk": "Floating-point accumulation order changes: i*stepSize vs repeated addition can differ in the last ULP for large step counts. For AO (a clamped 0..1 aesthetic term, few steps) this is imperceptible, but it is a bit-level semantics change \u2014 flag if exact reproduction required."
+  }
+ ]
+}

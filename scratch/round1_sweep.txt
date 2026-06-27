@@ -1,0 +1,10 @@
+PASS(test)  IAFahim.Graph
+PASS(test)  IAFahim.Graph.Flow
+PASS(build) IAFahim.Geometry.Spatial
+PASS(test)  IAFahim.Graph.Matching
+PASS(build) IAFahim.Optimization.Games
+PASS(test)  IAFahim.String
+PASS(build) IAFahim.String.Automata
+PASS(test)  IAFahim.Search.Range
+PASS(build) IAFahim.Optimization.Exact
+=== SWEEP DONE ===

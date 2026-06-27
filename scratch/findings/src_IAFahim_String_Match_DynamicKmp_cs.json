@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.String.Match/DynamicKmp.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Match/DynamicKmp.cs",
+   "symbol": "DynamicKmp",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Build duplicates PrefixFunction.Run verbatim; consolidating removes duplicate code and a second I-cache footprint.",
+   "currentCost": "Two identical prefix-function implementations (DynamicKmp.Build and PrefixFunction.Run) maintained separately; duplicate instruction-cache pressure and divergence risk.",
+   "proposedChange": "Have DynamicKmp.Build call PrefixFunction.Run (both AggressiveInlining) instead of reimplementing the loop, or delete Build and document that callers use PrefixFunction.Run.",
+   "rationale": "Eliminates code duplication; with AggressiveInlining the abstraction is free at runtime and reduces maintenance/divergence risk.",
+   "risk": "None functionally \u2014 the loops are byte-for-byte equivalent (fail vs piPtr naming only)."
+  }
+ ]
+}

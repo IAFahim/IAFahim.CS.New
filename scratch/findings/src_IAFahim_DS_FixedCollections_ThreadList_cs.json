@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.DS.FixedCollections/ThreadList.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.FixedCollections/ThreadList.cs",
+   "symbol": "ThreadList..ctor",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "JobsUtility.ThreadIndexCount is read twice in the ctor (size calc and loop bound) and once per loop check; hoist to a local. Same pattern in Dispose.",
+   "currentCost": "JobsUtility.ThreadIndexCount appears in the totalSize expression and as the loop condition (re-evaluated each iteration if the JIT cannot prove the property is pure). Property accesses are not always inlined/CSE'd under Burst.",
+   "proposedChange": "int count = JobsUtility.ThreadIndexCount; use 'count' for totalSize, the init loop bound, and in Dispose. Same for ThreadRandom.",
+   "rationale": "Guarantees a single read of the property and a loop with a register-resident bound, enabling the compiler to better optimize the init loop; avoids repeated property dispatch the JIT may not hoist.",
+   "risk": "ThreadIndexCount is a fixed process-wide count, so caching it within a single ctor/Dispose call is safe. No semantic change."
+  }
+ ]
+}

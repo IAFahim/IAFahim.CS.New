@@ -1,0 +1,59 @@
+{
+ "file": "src/IAFahim.Graph.Flow/MinCostFlowCapacityScaling.cs",
+ "correctness": [
+  {
+   "severity": "critical",
+   "category": "revision",
+   "symbol": "REVISION",
+   "summary": "REVISION (round-2 reject). Judge2 rejected: beyond the queue-overflow fix, the min-cost-flow result may still be wrong. REWRITE/VERIFY the full capacity-scaling MCMF so it returns the correct min cost AND max flow. Validate against an independent oracle (SSP/Bellman-Ford min-cost-flow brute force) on random small graphs; results must match exactly. Mirror the correct house pattern in MinCostFlowSpfa.cs / MinCostFlowCancelCycle.cs.\n\nJUDGE FEEDBACK:\njudge2: Verified the diff for src/IAFahim.Graph.Flow/MinCostFlowCapacityScaling.cs. The fix correctly addresses the finding's queue out-of-bounds write: it hoists the stackalloc buffers, adds inqueue[]/cnt[] guards, makes the queue circular (qh/qt wrap with `>=n` => 0), and uses `while (qh != qt)`, mirroring the house pattern in MinCostFlowSpfa.cs / MinCostFlowCancelCycle.cs. The circular buffer cannot overflow now (a node is in-queue at most once via inqueue[], so at most n-1 live entries since the dequeued node uu has inqueue=0 before its edge loop; valid flow graphs have no negative self-loops to re-enqueue uu). Build is clean (0 warnings/0 errors). No house-rule violations introduced: only stackalloc + raw pointers (int*/long*/byte*), explicit types, no var/managed/boxing. The dist[uu] hoist (du) and `qh != qt` change are semantics-preserving.\n\nBLOCKING DEFECT (partial fix \u2014 function still b",
+   "triggeringInput": "see judge feedback",
+   "rootCause": "prior fix incomplete/non-compiling",
+   "suggestedFix": "Judge2 rejected: beyond the queue-overflow fix, the min-cost-flow result may still be wrong. REWRITE/VERIFY the full capacity-scaling MCMF so it returns the correct min cost AND max flow. Validate against an independent oracle (SSP/Bellman-Ford min-cost-flow brute force) on random small graphs; results must match exactly. Mirror the correct house pattern in MinCostFlowSpfa.cs / MinCostFlowCancelCycle.cs."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/MinCostFlowCapacityScaling.cs",
+   "symbol": "MinCostFlowCapacityScaling.Run",
+   "severity": "critical",
+   "category": "pointer-ub",
+   "summary": "The Bellman-Ford/SPFA-style relaxation pushes a node into the queue every time its distance improves, with no in-queue guard and a non-circular queue of size n, so qt can exceed n and q[qt++] writes past the stackalloc[n] buffer (stack out-of-bounds write / UB).",
+   "triggeringInput": "Any graph where total relaxations exceed n. E.g. n=4 (queue size 4), s=0, t=3, with edges 0->1, 1->2, 2->3 and a residual/reverse path that re-relaxes nodes: pushing s plus repeated improvements of nodes 1,2,3 quickly drives qt past 4, overrunning q. Reverse residual edges carry negative cost (cost negated in MinCostFlowAddEdge), making re-relaxations and thus overflow easy.",
+   "rootCause": "Line 25 allocates 'int* q = stackalloc int[n]' but line 36 does 'q[qt++] = vv' inside the relaxation with no inqueue[] dedup and no circular wrap (unlike Spfa in MinCostFlowCancelCycle which wraps with qt>=n => qt=0). A node can be enqueued many times, so the number of live queue entries is not bounded by n and qt overruns the buffer.",
+   "suggestedFix": "Add an inqueue[] guard so each node is queued at most once at a time AND use a circular buffer with wrap-around (qt>=n => qt=0) sized for SPFA, or size the queue large enough for the worst-case number of relaxations; mirror the Spfa implementation in MinCostFlowCancelCycle."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Flow/MinCostFlowCapacityScaling.cs",
+   "symbol": "Run",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "Hoist the four per-iteration stackalloc buffers (parent, dist, parentEdge, q) out of the doubly-nested scaling/iteration loops.",
+   "currentCost": "Lines 20-25 allocate parent (4n), dist (8n), parentEdge (4n), q (4n) = ~20n bytes inside `for delta` x `for iter` \u2014 i.e. O(log(maxCap) * n) localloc emissions. Buffers are fully reset at line 23 each pass anyway, so the allocation itself buys nothing.",
+   "proposedChange": "Declare the four stackalloc buffers once, before the `for (int delta = ...)` loop. Retain the line-23 reset loop (dist=MaxValue, parent=-1) inside the inner loop; q is reset implicitly via qh=qt=0. parentEdge needs no reset because it is only read along chains where parent != -1.",
+   "rationale": "Single stack reservation instead of one per inner iteration; smaller, stable hot working set; lets Burst/JIT keep the base pointers in registers across iterations. Pure instruction-count and code-size reduction with identical behavior.",
+   "risk": "None. Every consumed element is reinitialized by the line-23 loop or by the BFS fill before being read. Stack frame size unchanged."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/MinCostFlowCapacityScaling.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist the loop-invariant `cap[e2] - flow[e2]` reload and avoid re-reading to[e2]/cost[e2] redundantly in the inner relaxation.",
+   "currentCost": "Inner BFS (lines 31-37) reads cap[e2], flow[e2], to[e2], cost[e2] each via separate indexed loads. The residual `cap[e2]-flow[e2]` is computed for the `< delta` guard then the same edge's to/cost are loaded again; dist[uu] is reloaded each edge though invariant across the inner for-loop.",
+   "proposedChange": "Cache `long du = dist[uu];` once per uu before the edge loop (line 31). It is invariant over e2 and removes a dependent 8-byte load per edge. Minor: compute residual into a local `int res = cap[e2]-flow[e2];` reused only by the guard (no second use here, so limited), but the dist[uu] hoist is the real win.",
+   "rationale": "dist[uu] is loop-invariant w.r.t. the edge iteration; hoisting it removes one memory load per edge in the hottest loop and shortens the dependency chain feeding `nd = du + cost[e2]`. Helps Burst vectorize/schedule the relaxation.",
+   "risk": "None: dist[uu] is not written inside the edge loop (only dist[vv] for vv != uu when nd<dist[vv]; vv==uu cannot improve since nd=dist[uu]+cost and a 0-cost self-loop would still not satisfy nd<dist[uu]). Self-loop with negative cost would be a pre-existing algorithmic concern, not introduced here."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/MinCostFlowCapacityScaling.cs",
+   "symbol": "Run",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "The inner shortest-path is a BFS-order relaxation that can re-enqueue nodes via plain FIFO without a closed/settled check, giving worse-than-necessary bounds; using the existing PotentialDijkstra/SPFA with potentials would tighten cost per phase.",
+   "currentCost": "Lines 28-38 relax edges in FIFO order and push vv whenever dist improves, but there is no dedup/inqueue flag and no potential reweighting, so on graphs with varying costs a node can be pushed many times and q (sized n) can overflow on a single phase since qt is never wrapped (unlike Spfa in CancelCycle which wraps qh/qt). This is both a potential correctness bound issue and extra work.",
+   "proposedChange": "Either (a) reuse the module's PotentialDijkstra (Flow.cs:112) with maintained potentials for O(E log V) per phase and guaranteed non-negative reduced costs, or (b) at minimum add an inqueue flag and a circular q (qh/qt wrap like MinCostFlowSpfa) sized to n and cap re-enqueues, matching the proven pattern already in CancelCycle.",
+   "rationale": "A potentials-based Dijkstra gives a strictly better and more predictable per-phase bound than unbounded FIFO relaxation, and avoids the fixed-size q[n] overflow when more than n enqueues happen in one phase. Capacity scaling with Dijkstra+potentials is the standard, asymptotically tighter formulation.",
+   "risk": "This is the most invasive change and borders on algorithmic redesign rather than a micro-opt; it can alter the order of equal-cost augmentations (but not the returned totalCost for a correct min-cost-flow). Validate against existing tests. The q-overflow concern should be confirmed against the assumed input bounds before relying on it; if callers guarantee <= n distinct enqueues per phase, only the relaxation-count win remains."
+  }
+ ]
+}

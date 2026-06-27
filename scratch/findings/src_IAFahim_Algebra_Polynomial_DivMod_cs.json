@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Algebra.Polynomial/DivMod.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/DivMod.cs",
+   "symbol": "DivMod.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Inner subtraction loop recomputes the base index i-(lenB-1) every j and applies (... - sub + MOD) % MOD with a modulo where a branchless correction suffices since sub is already reduced.",
+   "currentCost": "Line 50: temp[i-(lenB-1)+j] = (temp[...] - sub + MOD) % MOD computes i-(lenB-1) per iteration and one 64-bit % per element across the O(lenA*lenB) loop.",
+   "proposedChange": "Hoist int base = i-(lenB-1) outside the j loop (or walk a pointer long* row = temp + (i-(lenB-1))). Replace (x - sub + MOD) % MOD with long t = temp[base+j] - sub; temp[base+j] = t + ((t>>63)&MOD), branchless since sub=(q_i*b[j])%MOD is in [0,MOD) and temp entries are in [0,MOD) so t in (-MOD,MOD).",
+   "rationale": "Removes a repeated subtraction-and-multiply for the index from the inner loop and converts a 64-bit divide to a shift+and+add per element, the dominant cost on mobile. Pointer walk is Burst-vectorization-friendly.",
+   "risk": "Requires temp[*] and sub in [0,MOD); temp is reduced on each update and sub is explicitly %MOD, so t in (-MOD,MOD) and the branchless add-if-negative is exact. q_i*b[j] < MOD^2 < 2^62 for int MOD (no overflow). Safe for int MOD."
+  }
+ ]
+}

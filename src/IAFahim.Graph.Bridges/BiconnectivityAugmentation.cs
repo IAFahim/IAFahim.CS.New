@@ -2,6 +2,7 @@ namespace IAFahim.Graph.Bridges
 {
     using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     public static unsafe class BiconnectivityAugmentation
     {
@@ -32,18 +33,33 @@ namespace IAFahim.Graph.Bridges
         public static int MinEdgesFor2EdgeConnected(int n, int* head, int* next, int* to)
         {
             if (n <= 1) return 0;
-            int* tin = stackalloc int[n], low = stackalloc int[n], comp = stackalloc int[n], stack = stackalloc int[n];
-            for (int i = 0; i < n; i++) { tin[i] = 0; low[i] = 0; comp[i] = -1; }
-            int timer = 0, top = 0, compCount = 0, trees = 0;
-            for (int i = 0; i < n; i++) if (tin[i] == 0) { DfsEdge(i, -1, head, next, to, tin, low, ref timer, comp, stack, ref top, ref compCount); trees++; }
-            if (compCount <= 1) return 0;
+            int* tin = (int*)Marshal.AllocHGlobal(sizeof(int) * n);
+            int* low = (int*)Marshal.AllocHGlobal(sizeof(int) * n);
+            int* comp = (int*)Marshal.AllocHGlobal(sizeof(int) * n);
+            int* stack = (int*)Marshal.AllocHGlobal(sizeof(int) * n);
+            int* degree = null;
+            try
+            {
+                for (int i = 0; i < n; i++) { tin[i] = 0; low[i] = 0; comp[i] = -1; }
+                int timer = 0, top = 0, compCount = 0, trees = 0;
+                for (int i = 0; i < n; i++) if (tin[i] == 0) { DfsEdge(i, -1, head, next, to, tin, low, ref timer, comp, stack, ref top, ref compCount); trees++; }
+                if (compCount <= 1) return 0;
 
-            int* degree = stackalloc int[compCount];
-            for (int i = 0; i < compCount; i++) degree[i] = 0;
-            ComputeComponentDegrees(n, head, next, to, comp, degree);
+                degree = (int*)Marshal.AllocHGlobal(sizeof(int) * compCount);
+                for (int i = 0; i < compCount; i++) degree[i] = 0;
+                ComputeComponentDegrees(n, head, next, to, comp, degree);
 
-            ClassifyComponents(degree, compCount, out int leaves, out int isolated);
-            return trees > 1 ? leaves / 2 + isolated + trees - 1 : (leaves + 1) / 2;
+                ClassifyComponents(degree, compCount, out int leaves, out int isolated);
+                return trees > 1 ? leaves / 2 + isolated + trees - 1 : (leaves + 1) / 2;
+            }
+            finally
+            {
+                Marshal.FreeHGlobal((IntPtr)tin);
+                Marshal.FreeHGlobal((IntPtr)low);
+                Marshal.FreeHGlobal((IntPtr)comp);
+                Marshal.FreeHGlobal((IntPtr)stack);
+                if (degree != null) Marshal.FreeHGlobal((IntPtr)degree);
+            }
         }
 
         private static void ComputeComponentDegrees(int n, int* head, int* next, int* to, int* comp, int* degree)

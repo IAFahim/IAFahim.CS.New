@@ -1,0 +1,83 @@
+{
+ "file": "src/IAFahim.DP.Optimization/Optimization.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.DP.Optimization/Optimization.cs",
+   "symbol": "LiChaoAddLine.Run",
+   "severity": "critical",
+   "category": "wrong-recurrence",
+   "summary": "Li Chao tree descends children using the INDEX midpoint mid=(l+r)>>1 for the index range [l,mid)/[mid,r) but a SEPARATE, divergent COORDINATE midpoint midX=x1+(x2-x1)/2 for the x range [x1,midX]/[midX,x2]. Because integer index-halving and integer coordinate-halving do not agree, a single index-leaf ends up spanning multiple distinct x-coordinates while storing only one line, and the betterAtMid/descent comparisons route lines into the wrong subtree. Lines that are optimal in part of a leaf's nominal x-range are silently dropped from the entire tree, so subsequent minimum queries return a value larger than the true minimum (wrong result). The base case r-l==1 (index based) terminates before x1==x2, leaving leaves that own >1 x value.",
+   "triggeringInput": "Run over domain l=0,r=4,x1=0,x2=3 (node=1), inserting the four lines (m,b) = (0,2), (1,-4), (-2,4), (1,-2) in that order into a seg buffer initialized to all zeros. Querying at x=3: the structure can return at best -1 (line (1,-4)), but the true minimum is -2 from line (-2,4); a full scan of every node shows line (-2,4) is absent from the tree entirely (stored lines are only (0,0),(1,-4),(1,-2)).",
+   "rootCause": "Index subdivision (l+r)>>1 and coordinate subdivision x1+(x2-x1)/2 are computed independently and generally disagree (e.g. l=0,r=4 -> mid=2 splits indices evenly, but x1=0,x2=3 -> midX=1 splits x unevenly into [0,1] and [1,3]). The leaf index range [1,2) then maps to x range [0,1] (two x values) and the rightmost coordinate x2=3 is never a decision point at any leaf. The whole insertion routing (which child is recursed via m*x1+b<curMidM*x1+curMidB and termination via r-l==1) is therefore inconsistent with the x-domain, dropping optimal lines.",
+   "suggestedFix": "Drive the recursion by a single domain. Use coordinate-based recursion throughout: mid coordinate midX=x1+(x2-x1)/2, recurse left on [x1,midX] and right on [midX+1,x2] (for integer x), terminating when x1==x2; or build over a fixed power-of-two index domain and map x to index consistently. Do not maintain two independent midpoints. Also note seg slots use node*2/node*2+1 with children node*2+1/node*2+2, which is a valid distinct-slot layout but the recursion's correctness still hinges on a single consistent subdivision."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.DP.Optimization/Optimization.cs",
+   "symbol": "KnuthOptimization.FindBestSplit",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Hoist the loop-invariant cost term (a[j+1]-a[i]) out of the inner k-loop and add it once after the loop.",
+   "currentCost": "Inside the hot k-loop, every iteration computes a[j+1]-a[i] (two loads + subtract) and adds it into val, even though this term is identical for all k. That is 2 loads + 2 adds per candidate split, plus the comparison only needs the variable part.",
+   "proposedChange": "Compute 'long cost = a[j + 1] - a[i];' once before the loop. In the loop compute 'long val = dp[i*n+k] + dp[(k+1)*n+j];' and compare those; after selecting bestK return 'best + cost' (guarding the long.MaxValue sentinel case where bestK==-1 by returning best unchanged). Since cost is added uniformly to every candidate, argmin over (val) equals argmin over (val+cost), so bestK is unchanged and the returned value best+cost is identical.",
+   "rationale": "Removes 2 memory loads and 1 add from each inner-loop iteration (the dominant O(n^3)-ish total work via Knuth's O(n^2) split ranges). The two array loads a[j+1], a[i] also no longer pollute the dependency chain of the comparison, shortening the critical path and improving Burst vectorization/ILP.",
+   "risk": "If the loop never executes (start>end), best stays long.MaxValue; adding cost would overflow. Guard: only add cost when bestK != -1 (i.e. 'return bestK == -1 ? best : best + cost;'). With the original code this case returns long.MaxValue unchanged, so the guard preserves exact semantics."
+  },
+  {
+   "file": "src/IAFahim.DP.Optimization/Optimization.cs",
+   "symbol": "KnuthOptimization.FindBestSplit",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the invariant base index i*n out of the k-loop to strength-reduce address computation.",
+   "currentCost": "Each inner iteration recomputes dp[i*n+k] requiring the multiply i*n every time (and i*n+j-1 etc are recomputed for the opt reads). i is fixed for the whole call.",
+   "proposedChange": "Compute 'int rowI = i * n;' once and index 'dp[rowI + k]'. Also reuse rowI for 'opt[rowI + j]' / 'opt[rowI + (j-1)]' and the final 'opt[rowI + j] = bestK;'. The (k+1)*n term still varies with k but can be kept as a running offset 'kp1Row += n' incremented each iteration instead of a multiply.",
+   "rationale": "Replaces a multiply on the address-generation path per iteration with an add/precomputed base, reducing dependency-chain length and freeing the multiplier unit. Maintaining (k+1)*n as a running accumulator turns a multiply into a single add per step.",
+   "risk": "Pure index algebra; identical addresses. n*(k+1) fits in int for realistic n (same as existing code which already does (k+1)*n in int). No overflow change versus current behavior."
+  },
+  {
+   "file": "src/IAFahim.DP.Optimization/Optimization.cs",
+   "symbol": "KnuthOptimization.InitializeDp",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Recompute-free bound and fuse: n*n is recomputed every iteration of the clear loop, and the dp=0 clear is redundant work that can be narrowed.",
+   "currentCost": "'for (int i = 0; i < n*n; i++)' recomputes n*n each iteration (Burst likely hoists this, but it is not guaranteed at source level), and it clears dp[i]=0 across the full n*n region even though only the upper-triangular dp[i*n+j] (j>=i) entries are ever read.",
+   "proposedChange": "Hoist 'int total = n * n;' before the loop and use it as the bound. Optionally, since dp's diagonal is left 0 and Run only reads dp[i*n+j] for j>=i (all of which are written by ComputeRow or are the len==1 diagonal which stays 0), the dp clear is only needed for entries the algorithm reads; but the simplest safe win is just hoisting total. The opt[i]=-1 init is required as a sentinel.",
+   "rationale": "Guarantees the bound multiply is computed once. Linear-pass init is memory-bound; ensuring no per-iteration multiply keeps it purely streaming, which Burst vectorizes (it can emit a vector store of zeros for dp and broadcast -1 for opt if split into two simple loops).",
+   "risk": "Hoisting total is exact. Splitting the combined loop into two separate streaming loops (one zeroing dp, one setting opt=-1) changes write ordering but not final state; both arrays are distinct so no aliasing concern."
+  },
+  {
+   "file": "src/IAFahim.DP.Optimization/Optimization.cs",
+   "symbol": "LiChaoAddLine.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Eliminate redundant midpoint recomputation and the wasteful swap-then-store pattern; write the better line directly.",
+   "currentCost": "midX is computed as x1+(x2-x1)/2 but 'mid=(l+r)>>1' is also computed and used only in recursion bounds \u2014 both are needed, fine. However the swap path does Swap(ref m,ref curMidM); Swap(ref b,ref curMidB); then stores curMid back: that is 6 assignments plus two stores when a direct 'store new line, keep old as the descending line' needs fewer moves.",
+   "proposedChange": "Replace the swap+store with branch that picks (loM,loB) = better-at-mid line to store and (hiM,hiB)=other line to recurse with: 'bool better = m*midX+b < curMidM*midX+curMidB; long keepM = better? m:curMidM; long keepB = better? b:curMidB; long passM = better? curMidM:m; long passB = better? curMidB:b; seg[node*2]=keepM; seg[node*2+1]=keepB;' then recurse with passM/passB. This removes the two ref-Swap calls and the conditional double-store, leaving exactly two unconditional stores and branchless selects.",
+   "rationale": "Turns a data-dependent swap (two XCHG-like sequences + conditional store) into branchless conditional-move selects plus two unconditional stores, shortening the critical path and removing a branch Burst would otherwise predicate awkwardly. Fewer ref-parameter Swap calls also avoids any aliasing pessimization.",
+   "risk": "Must preserve which line continues downward. In the original, after swapping, the line that recurses is the one NOT kept at mid (the displaced m,b). The select formulation keeps that exact assignment, so behavior is identical. Note seg stores were previously skipped when !betterAtMid; making them unconditional rewrites the same values (no change) but adds a store on the no-swap path \u2014 if that store-back of identical data is undesirable, guard it with 'if(better)'; recommend keeping the guard to avoid an extra write per node."
+  },
+  {
+   "file": "src/IAFahim.DP.Optimization/Optimization.cs",
+   "symbol": "LiChaoAddLine.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "midX division can be a shift only if (x2-x1) is known non-negative; current /2 on a signed long is a real divide.",
+   "currentCost": "midX = x1 + (x2 - x1) / 2 performs a signed 64-bit division by 2, which the compiler must emit as (val + (val>>63 & 1))>>1 to round toward zero, not a plain arithmetic shift.",
+   "proposedChange": "If x2 >= x1 is an invariant of the coordinate domain (it is, since x1<x2 for a valid Li Chao segment), replace '(x2 - x1) / 2' with '(x2 - x1) >> 1'. For a non-negative dividend, >>1 equals /2 exactly.",
+   "rationale": "Replaces the signed-division-by-2 fixup sequence (add of sign bit then shift) with a single arithmetic shift, removing 1-2 ops on the recursion's per-node path.",
+   "risk": "Only valid if (x2 - x1) >= 0. For signed values this holds iff x1 <= x2, which is the standard Li Chao precondition (the tree spans [x1,x2] with x1<x2). If callers could pass x1>x2, >>1 rounds toward negative infinity and differs; since these are 'Run' unchecked methods assuming valid input, the x1<=x2 invariant makes it safe. State the invariant in docs."
+  },
+  {
+   "file": "src/IAFahim.DP.Optimization/Optimization.cs",
+   "symbol": "KnuthOptimization.ComputeRow / FindBestSplit",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "AggressiveInlining on the leaf hot helpers to ensure Burst/JIT inlines across the call boundary.",
+   "currentCost": "FindBestSplit and ComputeRow are separate private methods called per cell/row; without inlining hints there is call overhead and lost cross-procedure optimization (the i*n hoist and cost hoist span ComputeRow->FindBestSplit).",
+   "proposedChange": "Annotate FindBestSplit (and optionally ComputeRow) with [MethodImpl(MethodImplOptions.AggressiveInlining)]. The using for System.Runtime.CompilerServices is already present.",
+   "rationale": "Inlining FindBestSplit into ComputeRow exposes the loop-invariant i*n and the (a[j+1]-a[i]) cost to the enclosing scope, enabling the hoists above and removing per-cell call overhead in the O(n^2)-cells loop.",
+   "risk": "Inlining a sizeable method can increase code size / I-cache pressure; Burst usually already inlines static unmanaged helpers, so the hint is advisory. No semantic change."
+  }
+ ]
+}

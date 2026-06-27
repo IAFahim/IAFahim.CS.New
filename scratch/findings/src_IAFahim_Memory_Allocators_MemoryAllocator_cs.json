@@ -1,0 +1,49 @@
+{
+ "file": "src/IAFahim.Memory.Allocators/MemoryAllocator.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Memory.Allocators/MemoryAllocator.cs",
+   "symbol": "MemoryAllocator.CreateList<T>",
+   "severity": "medium",
+   "category": "edge-case",
+   "summary": "For element types larger than 64 bytes, 64 / UnsafeUtility.SizeOf<T>() truncates to 0, so the minimum-capacity floor is lost; combined with an unvalidated capacity argument of 0 this yields newCapacity = math.ceilpow2(0) = 0, producing a zero-length list whose backing buffer comes from Create<T>(0) (count==0 trips Debug.Assert(count>0) and requests an allocation of 0 items).",
+   "triggeringInput": "CreateList<T>(0) where struct T has UnsafeUtility.SizeOf<T>() > 64 (e.g. a 128-byte struct)",
+   "rootCause": "int division 64 / SizeOf<T>() rounds down to 0 once SizeOf<T>() exceeds 64, defeating the 'at least 64 bytes worth of elements' floor. math.max(0, 0) then leaves newCapacity at 0, and ceilpow2(0) is 0, so a degenerate/empty UnsafeList with a 0-item allocation is returned.",
+   "suggestedFix": "Compute the byte-based floor with a minimum of 1 element: int floor = math.max(1, 64 / UnsafeUtility.SizeOf<T>()); int newCapacity = math.ceilpow2(math.max(capacity, floor)); and/or guard capacity > 0."
+  },
+  {
+   "file": "src/IAFahim.Memory.Allocators/MemoryAllocator.cs",
+   "symbol": "MemoryAllocator.CreateList<T>",
+   "severity": "medium",
+   "category": "overflow",
+   "summary": "math.ceilpow2 of a large requested capacity overflows int to a negative/wrong value, which is then passed to Create<T> and UnsafeList as the capacity, causing a wrong (negative) allocation size and corrupt list capacity.",
+   "triggeringInput": "CreateList<int>(0x40000001) (capacity just above 2^30); ceilpow2 yields 2^31 which wraps to int.MinValue",
+   "rootCause": "math.ceilpow2 returns the next power of two as a 32-bit int; for inputs in (2^30, 2^31) it produces 2^31 = 0x80000000 which overflows to a negative int. That negative newCapacity flows into Create<T>(count) -> Allocate(..., items) and into the UnsafeList length/capacity, producing an invalid allocation size and out-of-range list metadata.",
+   "suggestedFix": "Validate/clamp capacity before ceilpow2, or compute capacity in long and reject values whose next power of two exceeds int.MaxValue."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Memory.Allocators/MemoryAllocator.cs",
+   "symbol": "CreateList",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace the integer-division `64 / UnsafeUtility.SizeOf<T>()` with a precomputed/branchless minimum-capacity expression and avoid the div in the hot path.",
+   "currentCost": "CreateList computes `64 / UnsafeUtility.SizeOf<T>()` \u2014 an integer division (20-40+ cycle latency, not pipelined) \u2014 on every call, even though SizeOf<T>() is a compile-time-constant per specialization under Burst. Then math.ceilpow2 runs on the result.",
+   "proposedChange": "SizeOf<T>() is constant per generic instantiation, so Burst can already fold `64 / SizeOf<T>()` to a constant; ensure that by keeping it as `const`-foldable. If Burst does not fold it (managed/IL2CPP path), hoist it: compute `int minCap = 64 / sizeOf;` once is unavoidable, but you can replace the division with `(64 >> log2(sizeOf))` only when sizeOf is a power of two \u2014 not guaranteed. Safer: since the only goal is 'at least one cache line of elements', compute `math.max(capacity, (64 + sizeOf - 1) / sizeOf)` is still a div; the real win is to mark intent and let Burst constant-fold, and to drop ceilpow2 work when capacity already dominates. Concretely: `int minCap = 64 / sizeOf; int newCapacity = math.ceilpow2(math.max(capacity, minCap));` keeps one div but removes the double assignment to newCapacity (currently two statements / two writes).",
+   "rationale": "Folding the per-type constant removes a true integer division from a list-creation path; collapsing the two-statement `newCapacity` assignment into one nested expression removes a redundant store and lets the optimizer keep the value in a register. Under Burst with constant SizeOf<T> the entire min/div folds away.",
+   "risk": "Low. math.ceilpow2 of a value <=0 is undefined, but maxItems/capacity here are >=1 and minCap>=1 (64/sizeOf, sizeOf<=64 typical), so the existing domain is preserved. If sizeOf>64 (large structs) minCap becomes 0 and ceilpow2(max(capacity,0)) \u2014 same as today's code, so no regression. Do not switch the div to a shift unless sizeOf is provably power-of-two."
+  },
+  {
+   "file": "src/IAFahim.Memory.Allocators/MemoryAllocator.cs",
+   "symbol": "MemoryAllocator",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Tracking every allocation in a NativeHashSet<Ptr> doubles bookkeeping memory and adds a hash+probe per Allocate; a growable UnsafeList<Ptr> (append-only) is sufficient since FreeAll iterates all entries anyway.",
+   "currentCost": "Every Allocate() does this.allocated.Add(ptr) = hash(ptr) + open-addressed probe + possible rehash/resize; the hash set stores buckets+slots (sparse, ~2x load-factor overhead) for pointers that are only ever bulk-freed. FreeAll() then copies the whole set to a NativeArray<Ptr>(Temp) (a second allocation + full copy) just to iterate it.",
+   "proposedChange": "Replace `NativeHashSet<Ptr> allocated` with `UnsafeList<Ptr> allocated`. Allocate() does allocated.Add(ptr) (amortized O(1) tail write, sequential, no hashing). FreeAll() iterates allocated.Ptr[0..Length] directly freeing each, then allocated.Clear() \u2014 no ToNativeArray(Temp) copy and no Temp allocation. This removes per-allocation hashing, the set's bucket overhead, and the FreeAll scratch array.",
+   "rationale": "The set's uniqueness guarantee is unused: AllocatorManager.Allocate never returns a duplicate live pointer, so dedup is dead work. A contiguous list gives sequential append (cache-friendly, branch-light), eliminates the hash computation per Allocate, removes the FreeAll Temp NativeArray allocation+copy, and frees in allocation order (sequential pointer walk) instead of hash order (random walk) \u2014 better for the OS/allocator free path too.",
+   "risk": "Medium. If any caller relied on FreeAll being safe under accidental double-registration of the same pointer (set would dedup), a list would free it twice \u2014 but Allocate is the only writer and returns unique pointers, so this cannot occur for valid use. Free of individual pointers is not supported by this type today (only FreeAll), so no removal semantics are lost. Keep Ptr.GetHashCode for other users."
+  }
+ ]
+}

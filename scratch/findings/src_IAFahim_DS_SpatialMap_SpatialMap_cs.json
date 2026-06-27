@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.DS.SpatialMap/SpatialMap.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.DS.SpatialMap/SpatialMap.cs",
+   "symbol": "SpatialMap.QuantizeJob.Execute",
+   "severity": "high",
+   "category": "edge-case",
+   "summary": "When a position quantizes outside the map (math.any(quantized >= QuantizeWidth)), the loop does `continue` and never writes keys[entityInQueryIndex] / values[entityInQueryIndex]. ResizeNativeParallelHashMapJob calls SetAllocatedIndexLength which allocates that slot but does not zero it, so the slot retains uninitialized garbage. RecalculateBuckets then hashes the garbage key into a bucket. A later TryGetFirstValue for some cell can match that garbage key (if it hashes to the same value) and return a spurious entity index (also garbage from the uninitialized value slot), and the skipped entity is silently dropped. This is the production code path (no [Conditional] guard, unlike the keyed-map variants).",
+   "triggeringInput": "new SpatialMap<P>(quantizeStep:1, size:4) built over positions = [{Position=(1e9f,1e9f)}, {Position=(0f,0f)}], workerCount=1. Entity 0 is out of bounds \u2192 its key/value slots stay uninitialized; after RecalculateBuckets, querying the cell whose hash collides with the garbage key returns a bogus value, and entity 0 is missing from its (out-of-range, but representable) bucket.",
+   "rootCause": "`continue` skips writing the key/value pair, but the slot was already allocated by SetAllocatedIndexLength and is not initialized to a sentinel/empty value, so stale memory participates in bucket recalculation.",
+   "suggestedFix": "On the out-of-bounds branch, write a deterministic sentinel that cannot collide with valid cells, e.g. keys[entityInQueryIndex] = -1 (or QuantizeWidth*QuantizeWidth) and values[entityInQueryIndex] = -1, instead of `continue`. Better: also reject negative quantized (quantized < 0) so every allocated slot holds a defined, non-colliding key."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.SpatialMap/SpatialMap.cs",
+   "symbol": "SpatialMap<T>.QuantizeJob.Execute",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist GetUnsafeBucketData() out of the two separate calls; it is invoked twice per Execute, each call re-fetching the same bucket struct.",
+   "currentCost": "Two calls to this.Map.GetUnsafeBucketData() (lines 118-119), each returning a struct and reloading keys/values base pointers. The accessor is not guaranteed to be free; it copies a UnsafeParallelHashMapBucketData struct each time.",
+   "proposedChange": "Call var bucketData = this.Map.GetUnsafeBucketData(); once, then int* keys = (int*)bucketData.keys; int* values = (int*)bucketData.values; \u2014 exactly as SpatialHexMap.QuantizeJob already does at lines 158-160.",
+   "rationale": "Removes one redundant struct-returning call and the associated field loads per worker invocation. Burst may already CSE this, but the source-level duplication is unnecessary and the sibling files already use the single-call form, so this also unifies the pattern.",
+   "risk": "None; identical observable behavior. GetUnsafeBucketData returns the same data for both fields within one Execute."
+  },
+  {
+   "file": "src/IAFahim.DS.SpatialMap/SpatialMap.cs",
+   "symbol": "SpatialMap<T>.QuantizeJob.Execute",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "length, start, end and the index==Workers-1 tail correction are loop-invariant per Execute but the per-element bounds branch (math.any(quantized >= QuantizeWidth)) prevents vectorization; the design intent (skip vs throw) differs from siblings but the divide-by-Workers chunking recomputes Positions.Length/Workers and %Workers redundantly.",
+   "currentCost": "Positions.Length / Workers and Positions.Length % Workers are two integer divisions; division is ~20-40 cycles on mobile ARM. Done once per Execute (acceptable) but the same division pair is recomputed in every sibling QuantizeJob too.",
+   "proposedChange": "Compute int total = Positions.Length; int q = total / Workers; int start = index * q; int end = (index == Workers - 1) ? total : start + q; \u2014 replacing the separate add of (total % Workers) with a direct assignment to total on the last worker, eliminating one division.",
+   "rationale": "The last-worker branch end = start + q + (total % Workers) equals total exactly (since start = (Workers-1)*q and (Workers-1)*q + q + total%Workers = Workers*q + total%Workers = total). Replacing with end = total removes the modulo division entirely on the hot last-chunk path and is provably identical.",
+   "risk": "None: algebraically exact for all positive Workers. Guard: Workers is math.max(1, ...) at call sites so Workers>=1; division by zero impossible."
+  },
+  {
+   "file": "src/IAFahim.DS.SpatialMap/SpatialMap.cs",
+   "symbol": "SpatialMap<T>.QuantizeJob.Execute / SpatialMapUtility.Quantized",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Division by quantizeStep per entity can be turned into a multiply by a precomputed reciprocal stored on the struct.",
+   "currentCost": "Quantized does (position + halfSize) / step \u2014 two FP divisions (componentwise float2 / float) per entity in the hot loop. Division is not pipelined; ~10-20 cycles each on ARM.",
+   "proposedChange": "Add a precomputed float invQuantizeStep = 1f/quantizeStep (computed once in the SpatialMap constructor) and pass it into QuantizeJob / Quantized, replacing /step with *invStep: new int2(math.floor((position + halfSize) * invStep)). Apply identically to SpatialMap, SpatialKeyedMap, LocalSpatialMap (PartialSpatialMap.Quantized) ReadOnly paths.",
+   "rationale": "Converts a per-entity vector division into a per-entity vector multiply by a value computed once at build setup. floor of a product vs quotient differs only by fast-math rounding which Burst already permits. Large entity counts make this a real build-time win.",
+   "risk": "Reciprocal multiply can produce a value epsilon below an integer where true division gave exactly the integer, flipping floor() to the cell below on boundary-aligned positions. Burst fast-math already makes this non-bit-exact, so within existing tolerance; if exact floor on grid-aligned coordinates is contractual, reject. Must change all four Quantized variants consistently to keep maps interchangeable."
+  },
+  {
+   "file": "src/IAFahim.DS.SpatialMap/SpatialMap.cs",
+   "symbol": "SpatialMapUtility.Quantized (and PartialSpatialMap / SpatialKeyedMap / SpatialHexMap duplicates)",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Quantized and Hash are duplicated verbatim across four files (SpatialMapUtility, PartialSpatialMap, SpatialKeyedMap, with the hex variant differing); consolidating removes divergence risk and ensures one place to apply the reciprocal optimization.",
+   "currentCost": "Four near-identical static Quantized/Hash implementations. No runtime cost, but any perf fix (e.g. reciprocal) must be applied 3-4 times and can drift (e.g. SpatialMap casts size to float at line 22 but SpatialKeyedMap/LocalSpatialMap do not, line 29/32).",
+   "proposedChange": "Extract the grid Quantized/Hash into a single internal static helper used by SpatialMap, SpatialKeyedMap and PartialSpatialMap. Note the existing inconsistency: SpatialMap.cs line 22 uses (float)size/quantizeStep while SpatialKeyedMap line 29 and LocalSpatialMap line 32 use size/quantizeStep (int division before ceil) \u2014 these produce DIFFERENT quantizeSize for the same inputs and should be reconciled.",
+   "rationale": "Single source of truth lets the reciprocal/strength-reduction land once and stay correct; also surfaces a real latent bug where integer size/quantizeStep truncates before math.ceil, under-sizing the map versus the float version.",
+   "risk": "Behavior-changing if you 'fix' the int-vs-float divide; flag for human decision \u2014 SpatialMap (float div) and SpatialKeyedMap/LocalSpatialMap (int div) currently compute different sizes. Pure refactor of identical bodies is safe; reconciling the divide is a semantics change requiring sign-off."
+  }
+ ]
+}

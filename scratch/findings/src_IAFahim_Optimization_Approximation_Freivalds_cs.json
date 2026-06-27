@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Optimization.Approximation/Freivalds.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Approximation/Freivalds.cs",
+   "symbol": "Freivalds.MatrixVectorMultiply",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "i*n is recomputed every inner iteration; hoist the row base pointer to remove a multiply from the inner loop and shorten the address dependency chain.",
+   "currentCost": "Inner loop indexes mat[i*n + j], recomputing i*n (a multiply) on each of the n*n iterations across both overloads.",
+   "proposedChange": "Before the inner loop: int* row = mat + i * n; (or long*) then sum += (long)row[j] * vec[j];. The compiler may already strength-reduce this, but the explicit row pointer guarantees a single add-stride access pattern Burst vectorizes cleanly.",
+   "rationale": "Replaces an inner-loop multiply with a hoisted base-plus-stride pointer, improving the chance Burst emits a contiguous SIMD load over row[j]. Same applies to both int* and long* overloads.",
+   "risk": "None. Pure index reassociation; identical results for all inputs."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Approximation/Freivalds.cs",
+   "symbol": "Freivalds.PerformCheck",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Three stackalloc long[n] buffers are allocated on every PerformCheck call (once per Freivalds iteration); the br/cr intermediate buffers can be reused and the allocation hoisted out of the iters loop.",
+   "currentCost": "Per iteration: 3*n*8 bytes of fresh stack frame setup. Across iters iterations this re-stack-allocates repeatedly. cr is only needed transiently for the final compare.",
+   "proposedChange": "Allocate ar/br/cr once in Verify (outside the it-loop) and pass them in, reusing across iterations. Additionally, fold the c*r==a*(b*r) compare to avoid materializing cr fully: compute cr[i] inline and compare against ar[i] in one fused pass, dropping one buffer (2*n*8 bytes instead of 3).",
+   "rationale": "Hoisting stackalloc out of the loop removes repeated frame adjustment; fusing the final MatrixVectorMultiply(c) with the comparison eliminates the cr buffer and one full pass over results, cutting working set by a third and saving n stores+loads.",
+   "risk": "stackalloc inside a loop is technically reused frame space in C#, so RAM may already be constant; the real win is the fused c-multiply/compare dropping a buffer and a pass. Behavior identical: ar[i] != (c row . r) is the same test as ar[i] != cr[i]."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Approximation/Freivalds.cs",
+   "symbol": "Freivalds.InitializeRandomVector",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "r[i] = (int)((*seed & 1) * 2 - 1) repeatedly dereferences seed and uses a multiply; load seed into a local register for the whole loop and use a branchless bit-to-sign.",
+   "currentCost": "Each iteration reloads *seed (pointer dereference, no register caching across the xorshift) and computes a multiply-subtract to map {0,1}->{-1,1}.",
+   "proposedChange": "uint s = *seed; inside loop update s with the xorshift, write r[i] = (int)((s & 1u) << 1) - 1; and store *seed = s; once after the loop. The <<1 replaces the *2.",
+   "rationale": "Caching seed in a local removes a pointer round-trip per iteration and enables register allocation of the xorshift state; <<1 is a strength reduction of *2. Shortens the per-element dependency chain.",
+   "risk": "None. (s&1)<<1 - 1 yields exactly -1/1 as before. Writing seed back once preserves the same final RNG state, so subsequent iterations are identical."
+  }
+ ]
+}

@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Math.Spline/CubicHermite.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Spline/CubicHermite.cs",
+   "symbol": "Evaluate",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Factor the Hermite basis polynomials by Horner form on the scalar coefficients to cut multiplies before the float3 SIMD combine.",
+   "currentCost": "Computes tt and ttt (2 mul), then each of h00,h10,h01,h11 with explicit Two*ttt, Three*tt etc. ~10 scalar muls + adds, plus 4 float3 scalar-vector muls and 3 float3 adds.",
+   "proposedChange": "Note h00+h01 and h10/h11 share structure. h00 = ((Two*t - Three)*tt + One) via Horner: h00 = One + tt*(Two*t - Three). h01 = -h00 + One? Actually h01 = -Two*ttt+Three*tt = -(h00 - One) = One - h00. So compute h00 once and set h01 = One - h00, removing the second cubic. Similarly h11 = ttt - tt = tt*(t - One); h10 = h11 + (t - tt) so h10 = ttt - Two*tt + t = h11 - tt + t. Reuse subexpressions to remove ~3-4 scalar muls.",
+   "rationale": "h01 = 1 - h00 is an exact algebraic identity (2t^3-3t^2+1 + (-2t^3+3t^2) = 1), so one cubic evaluation and a subtract replaces a full second polynomial. Fewer scalar ops shorten the dependency chain feeding the float3 FMA combine; Burst still vectorizes the final accumulate.",
+   "risk": "Pure float reassociation: 1 - h00 vs -Two*ttt+Three*tt are not bit-identical under IEEE rounding, so output can differ in the last ULP. Acceptable for a spline evaluator but technically not bit-exact; reject if bit-exact reproducibility is required."
+  },
+  {
+   "file": "src/IAFahim.Math.Spline/CubicHermite.cs",
+   "symbol": "IntegrateArcLength",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Hoist the loop-invariant float-to-step setup and replace per-iteration (float)i * step with an additive accumulator; inline-expand Evaluate's invariant basis-independent work.",
+   "currentCost": "Per iteration: int->float cast of i, one mul for t, a full Evaluate call (10+ scalar muls, 4 vector muls, 3 vector adds), a math.distance (sub, dot, sqrt). The (float)i*step recompute and int conversion are redundant each loop.",
+   "proposedChange": "Replace `float t = (float)i * step;` with an accumulator `t += step;` initialized to step before the loop, removing the int->float conversion and using one add instead of cast+mul per iteration. Keep last t snapped to 1.0f if exactness at endpoint matters.",
+   "rationale": "Removes one int-to-float conversion and converts a multiply into an add on the loop's critical scalar path each iteration (sampleCount iterations). Lower-latency dependency chain for the t value feeding Evaluate.",
+   "risk": "Accumulating t += step drifts from i*step by accumulated rounding (~sampleCount ULPs), shifting sample positions slightly and thus the summed arc length. For a numerical-integration estimate this is within tolerance, but it is not bit-identical to the multiply form. Guard: if endpoint t must be exactly 1.0, set t = One on the final iteration."
+  },
+  {
+   "file": "src/IAFahim.Math.Spline/CubicHermite.cs",
+   "symbol": "IntegrateArcLength",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Add a guard or document that sampleCount must be >= 1; division by sampleCount is unchecked.",
+   "currentCost": "step = One / (float)sampleCount produces +Inf/NaN for sampleCount==0 and a negative/garbage walk for negative input, with no Try* variant or documented precondition.",
+   "proposedChange": "Either rename to a Run-style unchecked contract documenting sampleCount>=1, or add a TryIntegrateArcLength that returns false for sampleCount<=0, consistent with the library's Run/Try* convention.",
+   "rationale": "Matches the stated Run/Try* API convention and makes the precondition discoverable without changing the hot-path cost of the existing method.",
+   "risk": "Pure API/documentation change; no behavior change for valid inputs (sampleCount>=1)."
+  }
+ ]
+}

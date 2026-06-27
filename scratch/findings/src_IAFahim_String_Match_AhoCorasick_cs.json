@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.String.Match/AhoCorasick.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Match/AhoCorasick.cs",
+   "symbol": "BuildLinks",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "GetNext(st, link, c) is evaluated up to three times for the same (link, c) in the link-assignment expression.",
+   "currentCost": "Line 69 calls GetNext(st, link, c) twice plus the while loop's final probe; each is a st[link].Next[c] load. The ternary recomputes the same value it just tested.",
+   "proposedChange": "Hoist int viaLink = GetNext(st, link, c); after the while loop, then st[u].Link = (v == 0) ? 0 : (viaLink != -1 ? viaLink : 0);. Build runs once so impact is on construction time, but it removes 2 redundant gathers per edge.",
+   "rationale": "Eliminates duplicate fixed-buffer indexing; one load instead of three. Construction is not the hot search path, hence medium not high.",
+   "risk": "viaLink captures the post-loop value of GetNext(st,link,c); identical to current. No behavior change."
+  },
+  {
+   "file": "src/IAFahim.String.Match/AhoCorasick.cs",
+   "symbol": "Search",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Search re-reads st[v].Out and st[v].ExitLink as separate indexed loads when a single State* sv = &st[v] base pointer would serve both.",
+   "currentCost": "Per character: Transition plus st[v].Out, st[v].ExitLink each re-index the State array; the exit-link walk re-indexes st[exit] twice per node (Out and ExitLink).",
+   "proposedChange": "After v = Transition(...), take State* sv = st + v; use sv->Out and sv->ExitLink. In the exit walk, State* se = st + exit; read se->Out and se->ExitLink from the one base. Optionally mark Transition AggressiveInlining (it is a small leaf).",
+   "rationale": "Reduces repeated address computation into the State array (each State is large: 256*4 + 12 bytes, so indexing is a shift+add per access); caching the base pointer trims the dependency chain in the per-character loop.",
+   "risk": "Pure pointer-strength reduction; same loads, fewer recomputations. Identical output."
+  },
+  {
+   "file": "src/IAFahim.String.Match/AhoCorasick.cs",
+   "symbol": "State",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "State always reserves fixed int Next[256] (1024 bytes) even when sigma is much smaller, and uses int per transition where the trie rarely needs 31 bits.",
+   "currentCost": "sizeof(State) ~= 1036 bytes regardless of sigma; for a DNA/byte-subset alphabet (sigma=4 or sigma small) over 99% of each State is unused, wrecking cache locality across states during Search/BuildLinks.",
+   "proposedChange": "If sigma is known small and fixed at compile sites, template/duplicate the struct with fixed int Next[Sigma], or store transitions in a separately sized flat int* table (size*sigma) indexed as table[v*sigma + c] so memory scales with sigma. Where state counts fit, use short/int32 is already minimal; the win is the 256 stride.",
+   "rationale": "Shrinking the per-state stride from 1KB to sigma*4 bytes dramatically improves cache-line utilization in the BFS and search loops (more states per line, fewer misses), which dominates this gather-bound algorithm.",
+   "risk": "Requires sigma to be fixed/known for the flat layout; the fixed[256] form is simplest if sigma can exceed compile-time bounds. Indexing math (v*sigma+c) must match Build/Search consistently. Behavior identical when sigma is respected."
+  }
+ ]
+}

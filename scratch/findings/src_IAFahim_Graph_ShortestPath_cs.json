@@ -1,0 +1,92 @@
+{
+ "file": "src/IAFahim.Graph/ShortestPath.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph/ShortestPath.cs",
+   "symbol": "Johnson.Run",
+   "severity": "critical",
+   "category": "wrong-recurrence",
+   "summary": "Johnson's per-source Dijkstra uses the wrong reduced edge weight: it adds h[s] (the source potential) instead of h[u] (the edge-tail potential). The reduced cost of edge u->v must be w + h[u] - h[v], but line 360 computes 'd + ew[i] + h[s] - h[v]'. This makes the algorithm's reweighting incorrect on any path with an intermediate vertex u != s, so shortest distances are wrong precisely on the negative-edge graphs Johnson exists to handle.",
+   "triggeringInput": "n=3, m=2, edges (0->1, w=-1) and (1->2, w=-1). Potentials become h[0]=0, h[1]=-1, h[2]=-2. Run returns dist[0*3+2] = -1, but the true shortest distance 0->2 is -2.",
+   "rootCause": "Line 360 'long nd = d + ew[i] + h[s] - h[v];' references the source potential h[s] rather than the current vertex's potential h[u]. The reduced weight w(u,v)+h[u]-h[v] is what keeps the un-reduction at line 373 (dist - h[s] + h[t]) consistent; using h[s] in the relaxation breaks that invariant by an additive error of (h[s]-h[u]) per traversed edge.",
+   "suggestedFix": "Change line 360 to 'long nd = d + ew[i] + h[u] - h[v];' (use the edge tail u, not the source s)."
+  },
+  {
+   "file": "src/IAFahim.Graph/ShortestPath.cs",
+   "symbol": "Johnson.Run",
+   "severity": "medium",
+   "category": "edge-case",
+   "summary": "Johnson.Run returns bool (signalling feasibility, like BellmanFord.Run which returns false on a negative cycle) but never detects negative cycles. After the n Bellman-Ford relaxation passes over the augmented graph it unconditionally returns true, so on a graph containing a negative cycle it claims success and writes meaningless (non-converged) potentials and distances.",
+   "triggeringInput": "n=2, m=2, edges (0->1, w=-1) and (1->0, w=-1): a negative cycle. Run returns true and dist[] contains garbage instead of returning false.",
+   "rootCause": "No post-relaxation check: after the Bellman-Ford loop (lines 329-342) there is no extra pass verifying that no edge can still be relaxed, and the method ends with an unconditional 'return true;' at line 376.",
+   "suggestedFix": "After computing bfDist, run one more pass over all m+n augmented edges; if any edge with bfDist[uu] != long.MaxValue can still relax bfDist[vv], return false to signal a negative cycle."
+  },
+  {
+   "file": "src/IAFahim.Graph/ShortestPath.cs",
+   "symbol": "ZeroOneShortestPath.Run",
+   "severity": "high",
+   "category": "overflow",
+   "summary": "The 0-1 BFS deque is a circular buffer of exactly n ints, but the algorithm performs no in-queue deduplication: a vertex is (re)enqueued on every strict distance improvement, so the same vertex can occupy several live slots and the number of simultaneously queued entries (cnt) can exceed n. When cnt > n the head/tail wrap (dh<0 -> n-1, dt>=n -> 0) overwrite still-live entries, corrupting the queue and producing wrong distances / reading stale vertex ids.",
+   "triggeringInput": "n=5, start=0, edges: 0->1(w1), 0->3(w1), 0->4(w1), 0->2(w0), 2->1(w0), 2->3(w0). After popping 0 the deque holds {2 (front), 1,3,4} (cnt=4); popping 2 front-pushes both 1 and 3 (their dist drops 1->0), driving cnt to 6 > n=5 and overwriting a live slot in the size-5 buffer.",
+   "rootCause": "The deque 'dq' is allocated as stackalloc int[n] (line 386) and there is no inqueue/dedup guard, yet a dedup-free 0-1 BFS deque can hold more than n entries; the wrap-around arithmetic assumes total live entries never exceed n.",
+   "suggestedFix": "Allocate the deque with capacity for the worst case (e.g. 2*n, or m+1) since a vertex may be pushed multiple times, or add an in-queue check to bound simultaneous entries to n."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph/ShortestPath.cs",
+   "symbol": "Johnson.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Inner Dijkstra scans all m edges per popped vertex instead of using an adjacency list, making each of the n single-source runs O(V * (V + E_scan*m)).",
+   "currentCost": "For every Pop (up to nodes processed) the loop `for (int i=0;i<m;i++){ if(eu[i]!=u) continue; ... }` walks the entire edge array. Per source that is O(P * m) where P is pops; over n sources O(n * V * m). For a graph with m edges this is far worse than Johnson's intended O(n * (E + V log V)).",
+   "proposedChange": "Build a CSR/linked adjacency over (eu,ev,ew) once before the s-loop (head[n], to[m], next[m], w[m] in stackalloc/single allocation) and in the inner Dijkstra iterate `for (int e=head[u]; e!=...; e=next[e])` like the other Dijkstra variants, instead of the linear `eu[i]!=u` filter.",
+   "rationale": "Replaces an O(m) membership scan per vertex pop with O(deg(u)) neighbor iteration, restoring Johnson to its asymptotic E*V + V^2 log V cost. The reduced-weight formula at the edge is unchanged, so outputs are identical.",
+   "risk": "Must preserve the existing (unusual) reduced-cost expression `d + ew[e] + h[s] - h[v]` exactly when porting to the adjacency walk; adjacency build must store the original ew alongside to/next. No signedness change."
+  },
+  {
+   "file": "src/IAFahim.Graph/ShortestPath.cs",
+   "symbol": "SpMinHeap..ctor / Dispose",
+   "dimension": "burst",
+   "impact": "high",
+   "summary": "Heap allocates three separate Marshal.AllocHGlobal blocks (and three FreeHGlobal) per Dijkstra/Johnson invocation; Johnson does this n times inside its loop.",
+   "currentCost": "3 syscalls-class allocations + 3 frees per heap lifetime. In Johnson.Run a fresh SpMinHeap is created and disposed inside the `for (int s...)` loop => 3n allocations + 3n frees. Marshal.AllocHGlobal is also a managed interop call that does not play well with Burst hot paths.",
+   "proposedChange": "Either (a) coalesce the three arrays into one AllocHGlobal of size n*(sizeof(long)+2*sizeof(int)) with pointer offsets (1 alloc/free instead of 3), or (b) since every caller already knows n and the heap is single-threaded scratch, pass caller-provided stackalloc buffers (Dist/V/Pos) into the heap and drop Marshal entirely. In Johnson, hoist the heap (and its buffers) outside the s-loop and reset Size/Pos per source.",
+   "rationale": "Fewer allocations cut per-call overhead from 3 (or 3n) heap ops to 1 (or 0 with stackalloc), removes managed interop from the Burst path, and improves locality by keeping the three arrays contiguous.",
+   "risk": "stackalloc variant requires n small enough for stack; library already uses stackalloc[n] elsewhere so consistent. Hoisting in Johnson requires resetting Pos[]=-1 and Size=0 each source; must re-init Pos fully to avoid stale positions."
+  },
+  {
+   "file": "src/IAFahim.Graph/ShortestPath.cs",
+   "symbol": "FloydWarshall.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Innermost loop recomputes i*n, k*n and re-reads dist[i*n+k] every j iteration; the i*n+k term is loop-invariant in j.",
+   "currentCost": "Per j iteration: two multiplies (i*n, k*n) plus an extra load of dist[i*n+k]. Over the triple loop that is O(n^3) redundant multiplies and loads on the hottest loop in the library.",
+   "proposedChange": "Hoist `long dik = dist[i*n+k];` and `int inBase = i*n; int knBase = k*n;` outside the j-loop (dik is already guarded non-MAX by the line-290 continue), then inner body uses `dist[knBase+j]`, `nd = dik + dist[knBase+j]`, compare/write `dist[inBase+j]`. Also hoist k*n outside the i-loop where j uses knBase.",
+   "rationale": "Removes a multiply and a redundant memory load from the n^3 inner loop, shortening the dependency chain and freeing the load/store ports; classic Floyd-Warshall hoist that Burst will then vectorize more readily.",
+   "risk": "None semantically: dik is invariant once i,k fixed; the existing `continue` already guarantees dist[i*n+k] != MAX so caching its value before the j-loop is exact."
+  },
+  {
+   "file": "src/IAFahim.Graph/ShortestPath.cs",
+   "symbol": "Dijkstra.Run / DijkstraSparse.Run / DijkstraDense.Run",
+   "dimension": "ergonomics",
+   "impact": "medium",
+   "summary": "Dijkstra.Run and DijkstraSparse.Run have byte-identical bodies (lines 83-110 vs 115-142); DijkstraDense is the only behaviorally distinct variant.",
+   "currentCost": "Two literal copies of the same heap-Dijkstra increase code size (icache pressure, more to maintain/verify) with zero behavioral difference; a future fix to one can silently diverge.",
+   "proposedChange": "Have DijkstraSparse.Run forward to Dijkstra.Run (or extract a single internal static helper both call). Keep the three public class names for API stability, but a single implementation behind them.",
+   "rationale": "Eliminates duplicated machine code and the divergence hazard without changing any observable output; smaller code footprint helps icache on mobile.",
+   "risk": "Pure refactor; must keep public signatures identical so callers are unaffected. No perf regression since forwarding is a tail call Burst inlines."
+  },
+  {
+   "file": "src/IAFahim.Graph/ShortestPath.cs",
+   "symbol": "Johnson.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "h[s] is loop-invariant within the inner Dijkstra edge loop but is re-read and re-added on every edge relaxation.",
+   "currentCost": "Line 360 `nd = d + ew[i] + h[s] - h[v]` reloads h[s] for each edge of each pop; h[s] is constant for the whole s iteration.",
+   "proposedChange": "Hoist `long hs = h[s];` once at the top of the `for (int s...)` body and use `nd = d + ew[i] + hs - h[v]`.",
+   "rationale": "Removes one load + keeps a register-resident constant in the relaxation inner loop, shortening the arithmetic dependency chain by one operand fetch.",
+   "risk": "None: h[] is not modified during the s iteration, so caching h[s] is exact."
+  }
+ ]
+}

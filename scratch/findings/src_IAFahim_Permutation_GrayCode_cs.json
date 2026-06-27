@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Permutation/GrayCode.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Permutation/GrayCode.cs",
+   "symbol": "GrayCode.FromGray",
+   "severity": "high",
+   "category": "logic",
+   "summary": "FromGray uses arithmetic (sign-extending) right shifts on a signed int, so it is NOT the inverse of ToGray for any code whose high bit is set. The XOR-cascade Gray decode requires logical (unsigned) shifts; with int the sign bit propagates and corrupts the result.",
+   "triggeringInput": "FromGray(unchecked((int)0xFFFFFFFF)) i.e. g = -1 returns 0, but the value whose Gray code is 0xFFFFFFFF is 0xAAAAAAAA. Likewise FromGray(ToGray(-1)) = FromGray(0) = 0 != -1, and FromGray(ToGray(int.MinValue)) returns int.MaxValue instead of int.MinValue. Confirmed by running the actual C# code: FromGray(ToGray(x)) != x for x in {-1, int.MinValue, 0xAAAAAAAA, -12345}.",
+   "rootCause": "n ^= n >> 1; n ^= n >> 2; ... operate on `int`, whose >> is arithmetic and sign-extends. The standard prefix-XOR Gray-to-binary conversion assumes zero-fill (logical) shifts, so the introduced sign bits flip incorrect positions whenever bit 31 of g is 1.",
+   "suggestedFix": "Perform the decode in unsigned arithmetic: cast to uint and use logical shifts, e.g. uint u = (uint)g; u ^= u>>1; u^=u>>2; u^=u>>4; u^=u>>8; u^=u>>16; return (int)u;"
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Permutation/GrayCode.cs",
+   "symbol": "GrayCode.Generate",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Generate computes ToGray(i) per index; can be produced incrementally with a single XOR using the previous value.",
+   "currentCost": "Per iteration: i>>1 and i^(i>>1) (2 ops) plus the store. Across count = 2^bits iterations.",
+   "proposedChange": "Keep a running prev = ToGray(i-1) and emit dst[i] = prev ^ (i ^ (i-1))... simpler: standard reflected-Gray incremental dst[i] = dst[i-1] ^ (lowest changed bit). Practically, the cleanest equivalent is to keep ToGray(i) but mark it clearly; the per-element shift+xor is already near-minimal, so the incremental form saves only the shift (1 op/iter).",
+   "rationale": "Removing the >>1 per iteration trims one shift from a tight 2^bits loop; marginal but real for large bits. Burst will likely vectorize the existing form well, so impact is low.",
+   "risk": "Incremental forms are error-prone; only adopt if a correctness test covers all i. The shift-based form is already branchless and vectorizable, so reject if it endangers Burst auto-vectorization."
+  }
+ ]
+}

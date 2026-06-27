@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.String.Parse/Parsing.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.String.Parse/Parsing.cs",
+   "symbol": "Cyk.Parse",
+   "severity": "high",
+   "category": "edge-case",
+   "summary": "Empty input (len==0) leads to an out-of-bounds read dp[0][-1][startVar], which dereferences an unallocated/zero-length dp table (UB / crash).",
+   "triggeringInput": "input=any, len=0, prodCount=1, startVar=0. n=0, so the dp allocation loops never run (dp is a 0-byte pointer block), and line 48 reads dp[0][n-1] = dp[0][-1].",
+   "rootCause": "Line 12 sets n=len=0; line 13 allocates 0 bytes for dp and the population loops (lines 14-47) never execute. Line 48 unconditionally evaluates dp[0][n-1][startVar] = dp[0][-1][startVar], reading dp[0] (out of bounds of the 0-byte block) and then indexing [-1].",
+   "suggestedFix": "Special-case len==0 before allocating: return whether the empty string is accepted (typically false unless the grammar derives epsilon) instead of indexing dp[0][n-1]."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Parse/Parsing.cs",
+   "symbol": "Cyk.Parse",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "Replace the jagged bool*** triple-pointer DP table with a single flat bool[n*n*256] allocation.",
+   "currentCost": "n*n separate AllocHGlobal calls (each 256 bytes) plus n AllocHGlobal for the row pointer arrays plus 1 for the top array = n^2 + n + 1 heap allocations and the same number of frees. Every dp[i][j][s] access is a triple pointer-chase (3 dependent loads) which serializes and thrashes cache; the inner production loop does dp[i][k][left] and dp[k+1][j][right] each costing 3 chained loads.",
+   "proposedChange": "Allocate one block: bool* dp = (bool*)Marshal.AllocHGlobal((long)n*n*256); index as dp[((i*n)+j)*256 + s]. Free with a single FreeHGlobal. Precompute row base offsets (i*n+j)*256 once per cell.",
+   "rationale": "Collapses O(n^2) allocations to 1, eliminating malloc/free overhead and pointer-array storage (n^2 pointers + n pointers of 8 bytes each = ~8*n^2 extra bytes). Triple dependent load becomes a single base+offset computed load, shortening the dependency chain in the hottest inner loop (4 nested loops) and giving contiguous, cache/vectorizer-friendly memory.",
+   "risk": "n*n*256 can overflow int; use long for the byte count and size_t-style nint indexing. Behavior identical for valid inputs. Semantics preserved exactly."
+  },
+  {
+   "file": "src/IAFahim.String.Parse/Parsing.cs",
+   "symbol": "Cyk.Parse",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Hoist production-table field loads out of the innermost (i,k,p) loops by precomputing left/mid/right per production once.",
+   "currentCost": "left=productions[p*3], mid=productions[p*3+1], right=productions[p*3+2] are reloaded for every (i,k) pair inside the O(n^3 * prodCount) loop. The p*3 multiply and three loads repeat n^3 times per production.",
+   "proposedChange": "Iterate productions in the inner loop but read productions[] via a precomputed pointer (prod = productions + p*3; left=prod[0]; mid=prod[1]; right=prod[2]) and consider restructuring so the (i,k) loops sit inside the p loop only where it helps; at minimum compute the p*3 base once and reuse. Combined with the flat dp array, dp[i][k][left] base for row (i,k) is loop-invariant across p and can be hoisted to a pointer rowIK = dp + ((i*n+k)*256).",
+   "rationale": "Removes a multiply and converts three indexed loads into pointer-relative loads; hoisting the (i,k) and (k+1,j) row base pointers out of the p loop turns two 3-term address computations per production into one add per production. Fewer integer ops in the tightest loop of an O(n^3) algorithm.",
+   "risk": "None; pure reassociation of address arithmetic. Output identical."
+  },
+  {
+   "file": "src/IAFahim.String.Parse/Parsing.cs",
+   "symbol": "Cyk.Parse",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "The 256-wide variable axis assumes nonterminal ids < 256 but uses a full byte-per-bool dense array; pack into bitset or use the actual variable count.",
+   "currentCost": "Each cell stores 256 bytes regardless of how many nonterminals exist; total n*n*256 bytes. Inner loop zero-inits 256 bools per diagonal cell.",
+   "proposedChange": "If the grammar variable count V is known/passable, size the third axis to V instead of 256, or pack booleans into a ulong bitset (256 bits = 32 bytes, 8x smaller). Bitset also enables testing dp[i][k][left] via (word >> bit)&1 and lets the production loop be partially vectorized.",
+   "rationale": "8x smaller working set (32 vs 256 bytes/cell) dramatically lowers cache pressure for the O(n^2) table; fewer bytes to zero-init. Better fit in L1/L2 for medium n.",
+   "risk": "Requires variable-id range guarantee (<256) which the code already assumes via the literal 256. Bitset indexing must use unsigned shifts. API may need a variable-count parameter to be fully safe; otherwise keep 256-bit bitset."
+  },
+  {
+   "file": "src/IAFahim.String.Parse/Parsing.cs",
+   "symbol": "Cyk.Parse",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Drop the redundant explicit zero-init of diagonal cells when the allocation can be zeroed in bulk.",
+   "currentCost": "Inner loop `for (int s=0;s<256;s++) dp[i][i][s]=false;` runs n*256 stores; off-diagonal cells are never explicitly zeroed and rely on... actually they ARE only written true, so they need zeroing too.",
+   "proposedChange": "After a single flat AllocHGlobal, memset the whole block to 0 once (e.g. Unsafe.InitBlockUnaligned / a tight loop) instead of per-cell loops. This both fixes the latent correctness assumption (off-diagonal cells must start false) and replaces scattered zeroing with one linear pass the prefetcher/vectorizer handles well.",
+   "rationale": "One contiguous zeroing pass is faster than scattered per-cell loops and is auto-vectorizable; removes the per-diagonal 256-store loop.",
+   "risk": "Must ensure ALL cells are zeroed (current code only zeroes diagonal explicitly; off-diagonal correctness depends on AllocHGlobal not zeroing \u2014 bulk memset makes it correct and explicit). Verify no cell is read before being conditionally set."
+  }
+ ]
+}

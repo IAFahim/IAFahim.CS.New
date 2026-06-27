@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Algebra.Polynomial/Ntt.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/Ntt.cs",
+   "symbol": "Crt",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Hoist the loop-invariant m12 % MOD out of the per-element loop.",
+   "currentCost": "Inside the n-iteration loop, result[i] = (a12 + (m12 % (long)MOD) * k3) % (long)MOD recomputes m12 % (long)MOD every iteration, and casts MOD to long twice per iteration. m12, MOD are all loop-invariant.",
+   "proposedChange": "Before the loop compute long m = (long)MOD; long m12modM = m12 % m; then result[i] = (a12 + m12modM * k3) % m;. Also hoist the cast of MOD once.",
+   "rationale": "Removes one 64-bit division (the % m12) and two sign-extensions from every iteration of the hot CRT combine loop; a 64-bit div is ~20-40 cycles, so this is a large constant-factor win over n elements.",
+   "risk": "m12 % MOD is constant across i, so hoisting is exact. m12 = MOD1*MOD2 = 998244353*985661441 fits in long (~9.8e17 < 2^63), so no overflow introduced. Semantics identical."
+  },
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/Ntt.cs",
+   "symbol": "Crt",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Drop the redundant a1 % m2 reduction when a1 is a residue mod MOD1 < m2.",
+   "currentCost": "k2 computes (a2 - a1 % m2 + m2) % m2. a1 is an NTT residue mod MOD1 (998244353) and m2 = MOD2 = 985661441 < MOD1, so a1 % m2 is needed in general. But a3 - a12 % m3: a12 = a1 + m1*k2 can exceed m3, so that one is required.",
+   "proposedChange": "Leave a1 % m2 as-is (it is genuinely needed since MOD1 > MOD2). Reject the a1%m2 removal. However, the trailing reductions chain (% m2, % m3) each include an add-then-mod that can use the branchless conditional-subtract form: since (a2 - a1%m2) is in (-m2, m2), replace (x + m2) % m2 with a branchless add-back: long t = a2 - (a1 % m2); t += (t >> 63) & m2; using arithmetic shift to add m2 only when negative.",
+   "rationale": "Replaces a 64-bit modulo (after the +m2) with a sign-mask conditional add, eliminating one division on the dependency-critical path per element. (t >> 63) is all-ones when t<0, all-zeros otherwise, so & m2 adds m2 iff negative. Same trick applies to the (a3 - a12%m3 + m3) % m3 numerator before multiplying by inv12.",
+   "risk": "Valid only because a2 - a1%m2 lies in (-m2, m2): both a2 and a1%m2 are in [0,m2), so the difference is in (-m2,m2) and a single add-back fully normalizes. For the m3 term, a3 in [0,m3) and a12%m3 in [0,m3), difference in (-m3,m3), single add-back suffices. Right-shift of signed long is arithmetic in C#/.NET (guaranteed), so >> 63 is portable. Must keep these as the *pre-multiply* normalization; the post-multiply * inv1 % m2 still needs its real modulo."
+  }
+ ]
+}

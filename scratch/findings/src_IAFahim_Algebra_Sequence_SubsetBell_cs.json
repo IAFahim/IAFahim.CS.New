@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Algebra.Sequence/SubsetBell.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Algebra.Sequence/SubsetBell.cs",
+   "symbol": "ComputeBellRow",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "The binomial coefficient in the Bell-row recurrence is updated using a ModPow(k+1, MOD-2) modular inverse every inner iteration, when C(i-1,k+1) can be advanced by an exact integer division-free multiplicative step using inverse-factorial tables or by precomputed inverses.",
+   "currentCost": "Inner loop over k does a ModPow(k+1,MOD-2) (~30 mod-mults) each iteration => O(n^2 log MOD) for the full Bell triangle.",
+   "proposedChange": "Precompute inv[1..n] (modular inverses of 1..n) once in O(n) using the linear inverse recurrence inv[1]=1; inv[x]=(MOD-(MOD/x)*inv[MOD%x]%MOD)%MOD, then binom *= (i-1-k)%MOD then binom *= inv[k+1]. Replaces the per-iteration ModPow with a table lookup.",
+   "rationale": "Linear sieve of modular inverses costs O(n) total instead of O(log MOD) per element; turns the row cost from O(n log MOD) to O(n). For the whole triangle O(n^2 log MOD) -> O(n^2).",
+   "risk": "Linear inverse recurrence requires prime MOD (already assumed via Fermat). inv table needs an n-length stackalloc, within house rules. Same values mod MOD. Ensure MOD%x and MOD/x use the prime modulus; valid for 1<=x<=n<MOD."
+  },
+  {
+   "file": "src/IAFahim.Algebra.Sequence/SubsetBell.cs",
+   "symbol": "Run",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "The Bell numbers are built via the binomial recurrence (C(i-1,k) sum) which needs modular inverses; the Bell triangle recurrence computes the same b[i] with pure additions and no inverses.",
+   "currentCost": "O(n^2) additions plus O(n^2) ModPow inverses (current) for the binomial form.",
+   "proposedChange": "Use the Bell triangle: maintain a row where T[0]=last row's last value, T[j]=T[j-1]+prevRow[j-1]; Bell(i)=T[0] of row i. This yields b[0..n] with only modular additions, zero multiplications and zero inverses, in O(n^2) adds.",
+   "rationale": "Eliminates all multiplications and all modular inverses from Bell-number generation, leaving only adds \u2014 far cheaper per element and Burst-vectorizable, while keeping O(n^2) which is optimal for generating all Bell numbers up to n.",
+   "risk": "Requires one extra n-length row buffer (stackalloc, in-place rolling possible). Produces identical Bell numbers mod MOD. No prime-MOD requirement at all for the triangle, strictly more robust."
+  }
+ ]
+}

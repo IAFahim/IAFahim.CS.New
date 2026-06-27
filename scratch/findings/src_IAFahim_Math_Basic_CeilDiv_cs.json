@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Math.Basic/CeilDiv.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Basic/CeilDiv.cs",
+   "symbol": "CeilDiv.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Computes both a/b and a%b (two division-class ops) plus a branchy ternary; can be reduced to one division plus branchless arithmetic.",
+   "currentCost": "Hardware integer divide is typically 20-40+ cycles; this issues both `a/b` and `a%b`. Although some compilers fuse div+rem, Burst/LLVM may not always, and the ternary `?1:0` introduces a branch the CPU must predict.",
+   "proposedChange": "For non-negative inputs the canonical branchless form is `(a + b - 1) / b` (single divide). To preserve the existing signed semantics (which only rounds up when sign(a)==sign(b) and remainder nonzero), compute q=a/b and r=a-q*b once (reusing q avoids the second divide): `int q = a / b; int r = a - q * b; return q + (((r != 0) & ((a ^ b) >= 0)) ? 1 : 0);`. Replacing a%b with a-q*b removes one div-class instruction. Optionally make the increment branchless: `q + (int)(((uint)(r | -r) >> 31) & (uint)(~(a ^ b) >> 31))`-style mask, but only if Burst doesn't already if-convert.",
+   "rationale": "r = a - q*b is one multiply + subtract (a few cycles) versus a second modulo (full divide latency). Net removes a high-latency division from every call on hot paths.",
+   "risk": "a - q*b equals a%b exactly for C# truncating division across all sign combinations (no overflow since |q*b| <= |a|). Behavior for b==0 is unchanged (still throws/UB same as a/b). The naive (a+b-1)/b form is NOT semantics-preserving for negative/mixed-sign inputs and for a+b-1 overflow, so do not use it; use the q,r form."
+  }
+ ]
+}

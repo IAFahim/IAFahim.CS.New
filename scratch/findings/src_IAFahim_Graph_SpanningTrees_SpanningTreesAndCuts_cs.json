@@ -1,0 +1,83 @@
+{
+ "file": "src/IAFahim.Graph.SpanningTrees/SpanningTreesAndCuts.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.SpanningTrees/SpanningTreesAndCuts.cs",
+   "symbol": "MinimumFeedbackArcSetApprox.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Precompute per-vertex net score (outDeg-inDeg) once instead of recomputing two subtractions with four indexed loads per edge.",
+   "currentCost": "For each of m edges: 4 dependent array loads (outDeg[eu[i]], inDeg[eu[i]], outDeg[ev[i]], inDeg[ev[i]]) plus 2 subtractions. The score of a vertex is recomputed every time the vertex appears on an edge endpoint (degree times).",
+   "proposedChange": "After building inDeg/outDeg, fold them into a single 'score' array in-place: reuse outDeg as score via score[v]=outDeg[v]-inDeg[v] in one O(n) pass (write into outDeg buffer, no extra stackalloc). Then in the edge loop read sU=score[eu[i]], sV=score[ev[i]] (2 loads, 0 subtractions per edge).",
+   "rationale": "Reduces the hot edge loop from 4 loads + 2 subs to 2 loads + 0 subs per edge, and converts repeated per-edge recomputation into one O(n) precompute pass. Fewer dependent loads shortens the critical dependency chain feeding the branch on line 17.",
+   "risk": "None. score[v]=outDeg[v]-inDeg[v] is exact integer arithmetic; values fit in int (degrees <= m). Reusing the outDeg buffer is safe because inDeg is read before outDeg[v] is overwritten only for the same index in the same iteration. Observable output (remove[] and count) is identical."
+  },
+  {
+   "file": "src/IAFahim.Graph.SpanningTrees/SpanningTreesAndCuts.cs",
+   "symbol": "MinimumFeedbackArcSetApprox.Run / MinimumPathCoverDag.Run / MaximumAntichain.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Replace explicit zero-init loops over stackalloc buffers with a single bulk clear, and hoist repeated eu[i]/ev[i] loads into locals.",
+   "currentCost": "Lines 11, 28, 31, 75 perform scalar element-by-element zeroing loops. stackalloc memory is not pre-zeroed, so init is required, but the scalar loop is not vectorized as well as a bulk memclear and emits per-element store + index increment + compare.",
+   "proposedChange": "Use Unsafe.InitBlockUnaligned (System.Runtime.CompilerServices, already imported) to zero the buffers in one call, e.g. Unsafe.InitBlockUnaligned(inDeg, 0, (uint)(n*sizeof(int))). Also cache int u=eu[i], v=ev[i] into locals in tight loops (lines 12, 16-17, 29) to avoid reloading the same pointer-indexed value multiple times.",
+   "rationale": "InitBlockUnaligned lowers to a tight vectorized/rep-stos-style clear that Burst recognizes, beating a scalar loop for the common case. Caching eu[i]/ev[i] removes redundant loads and lets the compiler keep the value in a register across the two endpoint computations.",
+   "risk": "InitBlockUnaligned writes raw bytes; for int 0 and bool false the zero byte pattern is correct on all targets. Byte length must use sizeof(int)/sizeof(bool); off-by-one on the n+1 sized buffers must include the +1. Behavior identical when sizes match exactly."
+  },
+  {
+   "file": "src/IAFahim.Graph.SpanningTrees/SpanningTreesAndCuts.cs",
+   "symbol": "MinimumPathCoverDag.TryBfs / TryDfs",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the repeated t[e] and mR[t[e]] chained loads into a single local per edge in both BFS and DFS inner loops.",
+   "currentCost": "Line 41 evaluates mR[t[e]] up to three times per edge (condition, dist write target, queue push) \u2014 each is a two-level dependent load t[e] then mR[...]. Line 47 evaluates t[e] and mR[t[e]] multiple times per edge similarly. These are pointer-chasing dependent loads on the hottest path of Hopcroft-Karp.",
+   "proposedChange": "In TryBfs inner loop: int te = t[e]; int r = mR[te]; then use r. In TryDfs: int te = t[e]; int r = mR[te]; reuse r in the condition and the recursive call; on success assign mR[te]=u; mL[u]=te.",
+   "rationale": "Each hoist removes 2-3 redundant dependent memory loads per edge visit. Hopcroft-Karp does O(E*sqrt(V)) edge visits, so on dense transitive-closure inputs (Dilworth feeds up to n^2 edges) this is the dominant inner loop; cutting its dependency chain directly reduces stall cycles.",
+   "risk": "None within an iteration: mR[t[e]] is not written inside the BFS loop body, and in DFS it is only written on the success path after the value is consumed, so caching is value-equivalent. Recursion may mutate mR for other indices but te/r refer to the current edge only."
+  },
+  {
+   "file": "src/IAFahim.Graph.SpanningTrees/SpanningTreesAndCuts.cs",
+   "symbol": "MinimumPathCoverDag.TryDfs",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "Recursive DFS defeats Burst inlining/optimization and risks deep stack; convert to an explicit iterative augmenting-path search using a stackalloc stack.",
+   "currentCost": "TryDfs is self-recursive (line 47). Burst cannot inline recursion and recursion can blow the native stack for long augmenting paths (depth up to n); each call also re-passes 7 pointer args. On mobile the limited stack makes deep recursion a hard hazard.",
+   "proposedChange": "Rewrite the augmenting-path DFS iteratively: maintain an explicit edge-iterator stack (stackalloc int for current edge pointer per level, depth <= n) and walk it, performing the mR/mL assignment on unwind. This is the standard iterative Hopcroft-Karp augment.",
+   "rationale": "Removes function-call overhead per node, lets Burst keep the whole search in one frame with registers, and bounds stack usage deterministically (one stackalloc proportional to n) instead of unbounded native recursion. Better instruction cache behavior and no per-call argument marshaling.",
+   "risk": "Must preserve exact matching semantics (same augmenting path chosen: first eligible edge in adjacency order). Iterative version must restore dist[u]=int.MaxValue on failure exactly as line 48 does. Careful equivalence testing needed; this is a larger refactor than the micro-opts."
+  },
+  {
+   "file": "src/IAFahim.Graph.SpanningTrees/SpanningTreesAndCuts.cs",
+   "symbol": "DilworthDecomposition.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Avoid materializing the dense transitive-closure edge list (up to n^2 edges) and the O(n^2) extra stackalloc; pass the closure bitmatrix directly into a matching that iterates it row by row.",
+   "currentCost": "Lines 61-64 count tcE (up to n^2) closure edges, stackalloc two int[tcE] arrays (up to 2*n^2*4 bytes on the stack), fill them, then MinimumPathCoverDag rebuilds adjacency lists (another t[m+1], nx[m+1] of size n^2). For n=1000 that is ~4MB of stackalloc for tceu/tcev alone \u2014 a stack-overflow risk on mobile, plus full duplicate storage of edges already present in tc.",
+   "proposedChange": "Add an overload of MinimumPathCoverDag that consumes the n x n bool* tc directly: build the bipartite adjacency by scanning tc rows (vertex u's neighbors are columns j with tc[u*n+j]) instead of an explicit edge array. Eliminates tceu/tcev and the tcE counting pass; the closure matrix already encodes every edge.",
+   "rationale": "Removes an O(n^2) stack allocation and two O(n^2) fill/count passes, and removes duplicate edge storage (the closure is already in tc). Same asymptotic matching cost but far smaller working set and no second materialization of the dense edge set, improving cache locality and removing the mobile stack-overflow hazard.",
+   "risk": "MinimumPathCoverDag currently builds reverse adjacency (h indexed by eu+1). The tc-row scan must reproduce the same neighbor ordering the matching relies on; Hopcroft-Karp result (path cover size) is order-independent in value, so width is preserved, but the new code path needs validation that it indexes 1-based vertices consistently with the existing convention."
+  },
+  {
+   "file": "src/IAFahim.Graph.SpanningTrees/SpanningTreesAndCuts.cs",
+   "symbol": "DilworthDecomposition.Run / TransitiveReductionDag.Run (Warshall closure)",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace the per-bit bool transitive-closure (O(n^3) with branch per element) by a bit-packed (ulong word) Warshall closure, giving 64x fewer inner iterations and branchless OR.",
+   "currentCost": "Lines 58-60 and 94-96: classic Warshall over bool* tc. Inner loop does, for each (i,k) with tc[i*n+k], a full j-loop of n branches (if tc[k*n+j]) plus a byte store. That is O(n^3) byte operations with a data-dependent branch on every inner element \u2014 poor for Burst vectorization and 1 byte per bit of memory.",
+   "proposedChange": "Store the closure as ulong* rows of ceil(n/64) words. The inner step becomes: if bit(i,k) set, then row_i |= row_k (a word-wise OR over ceil(n/64) ulongs, no per-element branch). Use math/intrinsics-friendly OR loop Burst vectorizes. Memory drops from n^2 bytes to n^2/8 bytes.",
+   "rationale": "Reduces inner work by ~64x (one ulong OR covers 64 columns), removes the data-dependent inner branch entirely (branchless |=), and shrinks the matrix 8x improving cache residency. This is the standard bitset-Warshall and is the single biggest win for both classes since closure dominates their runtime on dense graphs.",
+   "risk": "Bit indexing must be exact (word = c>>6, mask = 1UL<<(c&63)). The tail word beyond n must stay zero so spurious high bits never set tc[i*n+j] for j>=n. The public bool* tc buffer signature would change (or a conversion step added); callers (MaximumAntichain reads tc[(u-1)*n+j], TransitiveReductionDag reads tc[eu*n+k]) must be updated to bit-test accessors. Larger change; counting (line 61) becomes popcount."
+  },
+  {
+   "file": "src/IAFahim.Graph.SpanningTrees/SpanningTreesAndCuts.cs",
+   "symbol": "TransitiveReductionDag.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist eu[i]*n and ev[i] out of the k-loop redundancy check; the row base tc[eu[i]*n] is recomputed every k iteration.",
+   "currentCost": "Line 101: per edge, the k-loop of length n recomputes eu[i], ev[i], and the products eu[i]*n (for tc[eu[i]*n+k]) and indexes tc[k*n+ev[i]] (k*n recomputed each k). eu[i] and ev[i] are reloaded from memory inside the inner loop n times per edge.",
+   "proposedChange": "Before the k-loop: int u=eu[i], v=ev[i]; bool* rowU=tc+u*n; Then inner loop tests k!=u && k!=v && rowU[k] && tc[k*n+v]. Precompute the row pointer to drop one multiply per inner iteration.",
+   "rationale": "Removes the eu[i]*n multiply and the eu[i]/ev[i] reloads from the O(n) inner loop run for each of m edges (O(m*n) savings). rowU[k] is a single-add address vs base+u*n+k each time. Pure strength reduction with no semantic change.",
+   "risk": "None. u, v, rowU are loop-invariant across k; tc is not mutated during this loop (closure already complete). Output keep[] and count identical. (If the bit-packed closure opt is adopted, this hoist applies to the word-test variant instead.)"
+  }
+ ]
+}

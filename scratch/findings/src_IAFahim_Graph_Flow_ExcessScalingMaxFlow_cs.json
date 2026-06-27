@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Graph.Flow/ExcessScalingMaxFlow.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Flow/ExcessScalingMaxFlow.cs",
+   "symbol": "ExcessScalingMaxFlow.Run",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Final flow value is computed by summing flow[e] over EVERY edge index in all adjacency lists. Since both the forward edge e and its reverse e^1 are stored in the lists and flow[e]+flow[e^1]==0 for every pair, the total sum is always 0, so Run always returns 0/2 = 0 regardless of the actual max flow. It should sum only the flow on edges leaving the source s.",
+   "triggeringInput": "n=3, s=0, t=2, one path s->a->t with caps 5 (edges added via the standard add-edge pairing). True max flow = 5, but Run returns 0.",
+   "rootCause": "Lines 67-70 iterate over all u and all e in head[u], which visits each forward edge and each reverse edge exactly once; the +f and -f contributions cancel to 0 before the /2.",
+   "suggestedFix": "Replace the all-edge sum with a sum over outgoing edges of the source: for (int e=head[s]; e!=0; e=next[e]) totalFlow += flow[e]; and return totalFlow (no /2)."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Flow/ExcessScalingMaxFlow.cs",
+   "symbol": "ExcessScalingMaxFlow.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "rcap = cap[e]-flow[e] is recomputed in two separate loops; also level[u]+1 reloaded per edge in both BFS and push phases.",
+   "currentCost": "The residual-BFS (line 37) and the push phase (line 54) each recompute cap[e]-flow[e]; line 55 reloads level[u] and adds 1 for every edge; line 40 reloads level[u] too. These are the two hottest inner loops, run once per scaling level (O(log maxCap) levels).",
+   "proposedChange": "In each inner loop, after 'int u = q[qh++];' compute 'int lu1 = level[u] + 1;' once and compare 'level[v] == lu1'. rcap is already local per edge (fine). For the BFS phase use lu1 for the assignment 'level[v] = lu1;'.",
+   "rationale": "Eliminates a redundant load+add per edge in both phases across all scaling iterations; u is invariant within its expansion.",
+   "risk": "None; u dequeued once, level[u] not written during its expansion."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/ExcessScalingMaxFlow.cs",
+   "symbol": "ExcessScalingMaxFlow.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Final totalFlow accumulation sums all residual flow[e] then divides by 2; net source outflow is cheaper and avoids the full edge scan.",
+   "currentCost": "Lines 67-70 iterate every node and every edge (O(V+E)) summing flow[e] then '/2'. This duplicates information already implicitly tracked and touches the whole edge array (cache-cold final pass).",
+   "proposedChange": "Maintain a running 'totalFlow' accumulator incremented by net push out of s during the push phases (sum of pushed on edges leaving s minus reverse), or sum only flow[e] for edges with head[s]. Then drop the full O(E) final scan.",
+   "rationale": "Replaces an O(E) cache-cold pass with O(deg(s)) or O(1) bookkeeping; max flow value equals net flow out of source.",
+   "risk": "Medium: must correctly account for flow pushed back to s on reverse edges across scaling levels. Safer variant: keep the per-edge sum but only over edges incident to s (sum positive flow[e] for e in head[s] adjacency), which is provably the flow value. Verify against existing tests before adopting."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/ExcessScalingMaxFlow.cs",
+   "symbol": "ExcessScalingMaxFlow.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Initial reset loop writes flow[i], excess[i], level[i] for i<n but flow is indexed by edge id, not node.",
+   "currentCost": "Line 14 sets flow[i]=0 for i in [0,n). flow is an edge-indexed array (used as flow[e]); zeroing only the first n entries is inconsistent with how flow is later indexed by edge id (which can exceed n). This is either a latent bug (relies on caller pre-zeroing flow) or wasted/incorrect work.",
+   "proposedChange": "Clarify the contract: if caller guarantees flow pre-zeroed, drop 'flow[i]=0' from line 14 entirely (saves n stores). If not, zero flow over the true edge count, not n. Currently zeroing exactly n flow entries is almost certainly wrong for any graph with more than n edges.",
+   "rationale": "Either removes n redundant stores (caller-zeroed contract) or fixes a correctness gap; current form is dimensionally inconsistent.",
+   "risk": "Behavioral: removing flow zeroing changes semantics if caller relies on it. Treat as a contract question, not a blind micro-opt. Flagging because it is dimensionally suspect."
+  }
+ ]
+}

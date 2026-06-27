@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.String.Match/DictionaryMatch.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Match/DictionaryMatch.cs",
+   "symbol": "Match",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "patLens[p] is reloaded every inner-loop iteration and patterns[p] is re-dereferenced per character instead of being hoisted.",
+   "currentCost": "Inner char loop re-reads patLens[p] (loop bound) and indexes patterns[p][j] through a double indirection each iteration; the bound check j < patLens[p] re-loads from memory every step.",
+   "proposedChange": "Hoist int pl = patLens[p]; byte* pat = patterns[p]; byte* tw = text + i; before the j-loop, then compare tw[j] != pat[j] with bound j < pl. Also hoist the early-out i + pl > textLen using pl.",
+   "rationale": "Removes a memory load from the inner-loop bound and collapses the double pointer indirection to a single base+offset, shortening the per-character dependency chain in the brute-force matcher.",
+   "risk": "None; pat and pl are loop-invariant within the j-loop. Identical results."
+  },
+  {
+   "file": "src/IAFahim.String.Match/DictionaryMatch.cs",
+   "symbol": "Match",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Match is brute force O(textLen * patCount * maxPatLen); for many patterns an Aho-Corasick pass (already present in this module) is asymptotically better.",
+   "currentCost": "Every text position is compared against every pattern fully. With P patterns of length up to L over text n, worst case O(n*P*L).",
+   "proposedChange": "Document/redirect multi-pattern callers to the AhoCorasick path (Build/AddPattern/BuildLinks/Search) which runs in O(n + total matches) after an O(sum of pattern lengths) build. Keep Match only as a small-P fallback.",
+   "rationale": "Aho-Corasick removes the per-position per-pattern rescan, turning O(n*P*L) into O(n) search; the module already implements it, so this is wiring not new code.",
+   "risk": "Aho-Corasick reports matches by pattern id at end positions; the brute-force Match reports id at start positions per (i,p). Caller-facing match coordinate semantics differ and must be reconciled, so this is a guarded recommendation, not a drop-in swap."
+  }
+ ]
+}

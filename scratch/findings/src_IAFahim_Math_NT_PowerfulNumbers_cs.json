@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Math.NT/PowerfulNumbers.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.NT/PowerfulNumbers.cs",
+   "symbol": "PowerfulNumbers.BuildRawPowerful",
+   "severity": "high",
+   "category": "edge-case",
+   "summary": "maxA is computed with (long)Math.Sqrt((double)(limit/b3)) and the inner loop emits a*a*b3 up to a==maxA with NO guard that a*a*b3 <= limit. Math.Sqrt overshoots for many large arguments (the double result rounds up to an m where m*m > x), so a==maxA can produce a powerful number strictly greater than limit, which is wrongly included in the output set.",
+   "triggeringInput": "limit = 19074829799285647 (b=1 => b3=1 => maxA=(long)Math.Sqrt(1.9074829799285647e16)=138111657, but 138111657*138111657 = 19074829799285649 > limit, yet res[count++] = 19074829799285649 is emitted as a 'powerful number <= limit'.)",
+   "rootCause": "Floating-point sqrt of a 64-bit integer is not exact for large values; (long)Math.Sqrt can return a value whose square exceeds the original. The generation loop trusts maxA blindly instead of bounding the product against limit, so it can emit a*a*b3 > limit.",
+   "suggestedFix": "After computing maxA via Math.Sqrt, correct it with a loop (while (maxA*maxA*b3 > limit) maxA--; while ((maxA+1)*(maxA+1)*b3 <= limit) maxA++;), or test 'a*a*b3 <= limit' inside the loop before emitting/continuing. This eliminates both the overshoot (emitting > limit) and the symmetric undershoot (missing a valid value)."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/PowerfulNumbers.cs",
+   "symbol": "PowerfulNumbers.BuildRawPowerful",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Inner loop recomputes a*a each iteration; strength-reduce a*a*b3 to an incremental update, and b*b*b can be incrementally maintained too.",
+   "currentCost": "`res[count++] = a * a * b3` does two multiplies per inner iteration. The outer `b*b*b` is computed in the condition AND again as b3 (two cube computations, partly redundant) every outer step.",
+   "proposedChange": "Replace a*a with an incremental odd-number accumulator: a*a grows as 1,4,9,... where (a+1)^2 = a^2 + 2a+1, so keep `long aSq = 1, aOdd = 3; ... aSq += aOdd; aOdd += 2;` then `res[count++] = aSq * b3` (one multiply). For the outer loop compute b3 once and reuse it in the condition: `for (long b=1; (b3 = b*b*b) <= limit; b++)`.",
+   "rationale": "Cuts the inner hot loop from 2 multiplies to 1 multiply + 2 adds (adds are cheaper and pipeline better), and eliminates the duplicate cube computation in the outer condition. The inner loop is the dominant cost since it runs sum over b of sqrt(limit/b^3) times.",
+   "risk": "Incremental aSq must not overflow before exceeding maxA \u2014 but aSq<=maxA^2 and maxA*maxA*b3<=limit by construction, so aSq*b3<=limit fits in long whenever the original did. The condition assignment-in-for is a style choice; house rules allow explicit code, may need to hoist b3 declaration above the loop. Semantics identical."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/PowerfulNumbers.cs",
+   "symbol": "PowerfulNumbers.QuickSort",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Recursive QuickSort can hit O(n^2) / O(n) stack depth on adversarial or already-structured input; recurse on the smaller partition and loop on the larger (tail-call elimination) to bound stack to O(log n).",
+   "currentCost": "Two recursive calls per level; worst-case (e.g. many duplicates or sorted runs from the structured generator) gives O(n) recursion depth \u2014 stack overflow risk and poor cache behavior. The generator produces highly structured, partially-sorted data, a known QuickSort pathological case.",
+   "proposedChange": "Convert to semi-iterative: recurse only into the smaller side, set left/right to the larger side and `continue` the while loop. Optionally add an insertion-sort cutoff for partitions < 16 to cut overhead. Guarantees O(log n) stack depth.",
+   "rationale": "Bounding recursion to the smaller partition caps stack at O(log n) regardless of pivot quality, removing the stack-overflow failure mode without changing the sorted output. Insertion-sort cutoff reduces recursion overhead on the many small partitions.",
+   "risk": "None to output ordering \u2014 same sorted result. Median-of-three pivot would further harden against the structured input but is optional. The structured/duplicate-heavy input is exactly where naive Hoare quicksort degrades, so this is a real robustness fix, not cargo-cult."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/PowerfulNumbers.cs",
+   "symbol": "PowerfulNumbers.BuildRawPowerful",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Generation produces duplicates (e.g. 64 = 8^2*1 = 4^2*... ) then sorts+dedups; a duplicate-free generation by canonical factorization would avoid the sort entirely, but the sort-then-unique is simpler \u2014 flag only if dedup cost dominates.",
+   "currentCost": "All a^2*b^3 are emitted including duplicates where the same powerful number has multiple (a,b) representations, then a full O(k log k) sort plus a linear unique pass over k raw entries.",
+   "proposedChange": "Restrict to squarefree b (b not divisible by any square>1) so each powerful number n=a^2*b^3 has a unique representation, eliminating duplicates at the source and removing the need for Unique (sort still needed for ordering). Requires a squarefree test per b.",
+   "rationale": "Unique representation via squarefree b is the standard powerful-number enumeration; it shrinks the raw count, the buffer, and the sort input, lowering both RAM and the n log n sort cost.",
+   "risk": "Requires a squarefree predicate (small trial division up to cbrt(limit)) per b \u2014 adds cost that may exceed savings for small limits. Output set is identical. Mark low impact since correctness of dedup currently already holds; this is a RAM/throughput refinement, not a bug."
+  }
+ ]
+}

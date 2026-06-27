@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Algebra.GraphPoly/Matching.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Algebra.GraphPoly/Matching.cs",
+   "symbol": "Matching.Polynomial",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Find the lowest set bit v with BitOperations.TrailingZeroCount instead of a linear scan, and hoist 1<<v.",
+   "currentCost": "For every mask in [1,2^n), an inner loop scans i=0..n until the first set bit is found (up to n iterations + branch each), recomputing 1<<i each step. This runs ~2^n times.",
+   "proposedChange": "int v = System.Numerics.BitOperations.TrailingZeroCount((uint)mask); int vbit = 1 << v; int maskWithoutV = mask ^ vbit. mask is always >=1 here so TrailingZeroCount is well-defined (input nonzero).",
+   "rationale": "Replaces an O(n) branch loop with a single tzcnt/ctz instruction under Burst, removing a variable-length dependency chain from the hot per-mask path; also caches 1<<v.",
+   "risk": "TrailingZeroCount on uint 0 returns 32, but the loop starts at mask=1 so the argument is always nonzero \u2014 safe. uint cast harmless since mask<2^n with n<=30 is positive. adj index (long)v*n+u can also drop to int v*n+u (n<=30 -> <2^31), shaving the 64-bit multiply."
+  }
+ ]
+}

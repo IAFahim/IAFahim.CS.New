@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Detour/DtQueryFilter.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/DtQueryFilter.cs",
+   "symbol": "DtQueryFilter.GetCost",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "math.distance computes a sqrt every edge; document/expose that cost cannot avoid it but ensure areaCost lookup is the only added work.",
+   "currentCost": "GetCost = math.distance(pa,pb) * areaCost[curPoly->GetArea()]. math.distance performs a length (sqrt) per call; this runs once per traversed edge during A* expansion, so it is genuinely hot.",
+   "proposedChange": "Keep math.distance (the cost model requires true Euclidean length, not squared), but confirm GetArea() is a cheap masked field read and consider caching curPoly->GetArea() result if GetCost is called alongside other GetArea() reads in the caller. No change to this method beyond verifying AggressiveInlining (already present).",
+   "rationale": "The sqrt is semantically required (path cost must be additive linear distance), so it cannot be strength-reduced without changing results. The only safe win is ensuring the area lookup and inlining are optimal, which they already are.",
+   "risk": "Replacing distance with lengthsq would change cost semantics (non-additive), so it is rejected. No safe cycle reduction exists here - reported as already near-optimal."
+  }
+ ]
+}

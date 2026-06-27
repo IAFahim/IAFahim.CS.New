@@ -1,0 +1,373 @@
+==================================================
+Package: IAFahim.Graph.DAG
+  File: DagPathCoverRestore.cs -> Class: DagPathCoverRestore
+    public static int Run(int* match, int n, int* nextInPath)
+  File: RandomTopologicalOrder.cs -> Class: RandomTopologicalOrder
+    public static void Run(int* adjMask, int n, long* dp, int* order, ref uint state)
+  File: DagKthPath.cs -> Class: DagKthPath
+    public static int Run(int* head, int* next, int* to, long* pathCount, int u, long k, int* pathOut)
+  File: DagLexicographicKthPath.cs -> Class: DagLexicographicKthPath
+    public static int Run(int* head, int* next, int* to, long* pathCount, int u, long k, int* pathOut)
+  File: OnlineTopologicalOrdering.cs -> Class: OnlineTopologicalOrdering
+    public static bool AddEdge(int u, int v, int* ord, int* head, int* next, int* to, int* edgeCount)
+  File: DagTransitiveReduction.cs -> Class: DagShared
+    public static void ComputeReachability(bool* adjMatrix, int n, bool* reach)
+    public static void Run(bool* adjMatrix, int n, bool* reach)
+  File: LinearExtensionCountApprox.cs -> Class: LinearExtensionCountApprox
+    public static double Run(int* adjMask, int n)
+  File: DagHashCanonical.cs -> Class: DagHashCanonical
+    public static void Run(int* head, int* next, int* to, int* topoOrder, ulong* hashes, int n)
+  File: IncrementalCycleDetection.cs -> Class: IncrementalCycleDetection
+    public static bool AddEdge(int u, int v, int* head, int* next, int* to, int* edgeCount, int* visited, int* stack, int runId)
+  File: TopologicalSortAll.cs -> Class: TopologicalSortAll
+    public static int Run(int* head, int* next, int* to, int* indegree, int n, int* currentOrder, int count, int* totalFound)
+  File: DagReachabilityCompressed.cs -> Class: DagReachabilityCompressed
+    public static void Run(int* head, int* next, int* to, int* topoOrder, ulong* bitsets, int n, int ulongsPerNode)
+  File: KthTopologicalOrder.cs -> Class: KthTopologicalOrder
+    public static bool Run(int* adjMask, int n, long* dp, long k, int* order)
+  File: MinimumEquivalentDigraph.cs -> Class: MinimumEquivalentDigraph
+    public static void Run(bool* adjMatrix, int n)
+  File: DagCountingPaths.cs -> Class: DagCountingPaths
+    public static void Run(int* head, int* next, int* to, int* topoOrder, long* pathCount, int n)
+  File: CountTopologicalOrders.cs -> Class: CountTopologicalOrders
+    public static long Run(int* adjMask, int n, long* dp)
+  File: DagMinimumPathCover.cs -> Class: DagMinimumPathCover
+    public static int Run(int* head, int* next, int* to, int* match, int* dist, int* queue, int n)
+  File: DagLongestAntichain.cs -> Class: DagLongestAntichain
+    public static int Run(bool* reachabilityMatrix, int* matchRight, bool* visited, int n)
+==================================================
+Package: IAFahim.Graph.Decomposition
+==================================================
+Package: IAFahim.Graph.Dominator
+==================================================
+Package: IAFahim.Graph.DynamicTrees
+  File: TopTree.cs -> Class: TopTreeNode
+    public static void Init(TopTreeNode* nodes, int n)
+    public static bool IsRoot(TopTreeNode* nodes, int u)
+    public static void PushUp(TopTreeNode* nodes, int u)
+    public static void ApplyAdd(TopTreeNode* nodes, int u, long val)
+    public static void PushDown(TopTreeNode* nodes, int u)
+    public static void Rotate(TopTreeNode* nodes, int x)
+    public static void Splay(TopTreeNode* nodes, int x)
+    public static int Access(TopTreeNode* nodes, int u)
+    public static void Reroot(TopTreeNode* nodes, int u)
+    public static int FindRoot(TopTreeNode* nodes, int u)
+    public static void Link(TopTreeNode* nodes, int u, int v)
+    public static void Cut(TopTreeNode* nodes, int u, int v)
+    public static long PathQuery(TopTreeNode* nodes, int u, int v)
+  File: EulerTourTree.cs -> Class: EttNode
+    public static void Init(EttNode* nodes, int n)
+    public static void PushUp(EttNode* nodes, int u)
+    public static int GetRoot(EttNode* nodes, int u)
+    public static int GetIndex(EttNode* nodes, int u)
+    public static void Split(EttNode* nodes, int root, int k, out int l, out int r)
+    public static int Merge(EttNode* nodes, int l, int r)
+    public static int Reroot(EttNode* nodes, int u, ref uint randState)
+    public static void Link(EttNode* nodes, int u, int v, int uv, int vu, ref uint randState)
+    public static void Cut(EttNode* nodes, int uv, int vu, ref uint randState)
+    public static bool Connected(EttNode* nodes, int u, int v)
+    public static int GetPredecessor(EttNode* nodes, int u)
+    public static int PredNode(EttNode* nodes, int u)
+    public static long SubtreeQuery(EttNode* nodes, int u)
+  File: LinkCutTree.cs -> Class: LctNode
+    public static void Init(LctNode* nodes, int n)
+    public static bool IsRoot(LctNode* nodes, int u)
+    public static void PushUp(LctNode* nodes, int u)
+    public static void ApplyAdd(LctNode* nodes, int u, long val)
+    public static void PushDown(LctNode* nodes, int u)
+    public static void Rotate(LctNode* nodes, int x)
+    public static void Splay(LctNode* nodes, int x)
+    public static int Access(LctNode* nodes, int u)
+    public static void MakeRoot(LctNode* nodes, int u)
+    public static int FindRoot(LctNode* nodes, int u)
+    public static void Link(LctNode* nodes, int u, int v)
+    public static void Cut(LctNode* nodes, int u, int v)
+    public static void PathAdd(LctNode* nodes, int u, int v, long val)
+    public static long PathMin(LctNode* nodes, int u, int v)
+    public static long PathMax(LctNode* nodes, int u, int v)
+    public static long SubtreeQuery(LctNode* nodes, int u)
+==================================================
+Package: IAFahim.Graph.Eertree
+  File: Eertree.cs -> Class: Node
+    public static void Build(int* s, int len, Node* nodes, Next* next, ref int nodeCount, ref int nextCount, ref int last, ref int cur)
+==================================================
+Package: IAFahim.Graph.Eulerian
+  File: Eulerian.cs -> Class: EulerShared
+    public static void ReversePath(int* path, int len)
+    public static int BuildTrail(int n, int* head, int* to, int* next, int startNode, int* path, bool markReverse)
+    public static int Run(int n, int* head, int* to, int* next, int start, int* path)
+    public static int Run(int n, int* head, int* to, int* next, int start, int* path)
+==================================================
+Package: IAFahim.Graph.Flow
+  File: BfsLayerGraph.cs -> Class: BfsLayerGraph
+    public static bool Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow, int* level)
+  File: MinCostFlowDijkstra.cs -> Class: MinCostFlowDijkstra
+    public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, int* flow)
+  File: HopcroftKarpBfs.cs -> Class: HopcroftKarpBfs
+    public static int Run(int nLeft, int nRight, int* head, int* to, int* next, int* pairU, int* pairV, int* dist, int* q)
+  File: MinCostFlowSpfa.cs -> Class: MinCostFlowSpfa
+    public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, int* flow)
+  File: MinimumSTCutAll.cs -> Class: MinimumSTCutAll
+    public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow, int* cutU, int* cutV, int* cutCount)
+  File: FlowWithEdgeDemands.cs -> Class: FlowWithEdgeDemands
+    public static bool Run(int n, int s, int t, int* head, int* to, int* next, int* lower, int* upper, int* flow, int* result)
+  File: MinCostFlowCapacityScaling.cs -> Class: MinCostFlowCapacityScaling
+    public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, int* flow)
+  File: MaximumClosureProjectSelection.cs -> Class: MaximumClosureProjectSelection
+    public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow, int* profit, int* prerequisiteHead, int* prerequisiteTo, int* prerequisiteNext, int* reqEdgeId)
+  File: MaximumClosureFlow.cs -> Class: MaximumClosureFlow
+    public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow, int* nodeWeight)
+  File: IsapGapOptimization.cs -> Class: IsapGapOptimization
+    public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow)
+  File: DynamicTreeMaxFlow.cs -> Class: DinicWithLinkCut
+    public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow)
+  File: HopcroftKarpDfs.cs -> Class: HopcroftKarpDfs
+    public static bool Run(int u, int nLeft, int nRight, int* head, int* to, int* next, int* pairU, int* pairV, int* dist, int* it)
+  File: MinCostFlowNetworkSimplex.cs -> Class: MinCostFlowNetworkSimplex
+    public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, int* flow)
+  File: PicardQueyranneClosure.cs -> Class: PicardQueyranneClosure
+    public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, int* flow, int* nodeWeight)
+  File: ExcessScalingMaxFlow.cs -> Class: ExcessScalingMaxFlow
+    public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow)
+  File: MinCostFlowPrimalDual.cs -> Class: MinCostFlowPrimalDual
+    public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, int* flow)
+  File: MinCostFlowSsp.cs -> Class: MinCostFlowSsp
+    public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, int* flow)
+  File: FlowRecoverLowerBound.cs -> Class: FlowRecoverLowerBound
+    public static long Run(int n, int s, int t, int* head, int* to, int* next, int* lower, int* upper, int* flow, int* newHead, int* newTo, int* newNext, int* newCap, int* newFlow)
+  File: MinCostFlowCancelCycle.cs -> Class: MinCostFlowCancelCycle
+    public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, int* flow)
+  File: MinimumWeightClosure.cs -> Class: MinimumWeightClosure
+    public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow, int* nodeWeight, byte* inClosure)
+  File: Flow.cs -> Class: MinHeap
+    public void PushOrUpdate(int v, long d)
+    public int Pop(out long d)
+    public static void Run(int* head, int* to, int* next, int* cost, int* cap, int* edgeId, int u, int v, int c, int w)
+    public static bool Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow, int* level, int* it)
+    public static int Run(int u, int t, int pushed, int* head, int* to, int* next, int* cap, int* flow, int* level, int* it)
+    public static bool Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, long* pot, long* dist, int* parent, int* parentEdge, MinHeap* pq)
+    public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost)
+    public static long Run(int n, int s, int t, int* head, int* to, int* next, int* lower, int* upper, int* flow, int* newHead, int* newTo, int* newNext, int* newCap, int* newCost)
+    public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow)
+    public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow)
+    public static (long flow, long minCost) Run(int n, int s, int t, int* head, int* to, int* next, int* cost, int* cap)
+  File: PushRelabelGap.cs -> Class: PushRelabelGap
+    public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow)
+  File: FlowWithVertexCapacities.cs -> Class: FlowWithVertexCapacities
+    public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow, int* vCap)
+  File: DinicCurrentArc.cs -> Class: DinicCurrentArc
+    public static void Init(int n, int* ptr, int* head, int* currentArc, int s)
+    public static int Advance(int u, int* head, int* to, int* next, int* cap, int* flow, int* level, int* currentArc)
+  File: MinCostFlowCostScaling.cs -> Class: MinCostFlowCostScaling
+    public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* cost, int* flow)
+  File: MinimumCutRecover.cs -> Class: MinimumCutRecover
+    public static void Run(int* head, int* to, int* next, int* cap, int n, int s, byte* visited)
+    public static void Run(int n, int s, int* head, int* to, int* next, int* cap, byte* visited)
+  File: PushRelabelGlobalRelabel.cs -> Class: PushRelabelGlobalRelabel
+    public static long Run(int n, int s, int t, int* head, int* to, int* next, int* cap, int* flow)
+==================================================
+Package: IAFahim.Graph.Functional
+  File: FunctionalGraphComponent.cs -> Class: FunctionalGraphComponent
+    public static int Run(int* f, int n, int* comp)
+  File: FunctionalGraphKthSuccessor.cs -> Class: FunctionalGraphKthSuccessor
+    public static int Run(int* f, int n, int u, long k)
+  File: FunctionalGraphPathAggregate.cs -> Class: FunctionalGraphPathAggregate
+    public static long Run(int* f, long* w, int n, int u, long k)
+  File: PermutationCyclePower.cs -> Class: PermutationCyclePower
+    public static void Run(int* p, int n, long k, int* res)
+  File: FunctionalGraphReroot.cs -> Class: FunctionalGraphReroot
+    public static void Run(int* f, int n, int u)
+  File: PermutationLog.cs -> Class: PermutationLog
+    public static long Run(int* p1, int* p2, int n)
+  File: PermutationSqrt.cs -> Class: PermutationSqrt
+    public static bool Run(int* p, int n, int* res)
+  File: PermutationNthRoot.cs -> Class: PermutationNthRoot
+    public static bool Run(int* p, int n, int k, int* res)
+  File: FunctionalGraphFirstMeeting.cs -> Class: FunctionalGraphFirstMeeting
+    public static int Run(int* f, int n, int u, int v)
+  File: FunctionalGraphCycleEntry.cs -> Class: FunctionalGraphCycleEntry
+    public static int Run(int* f, int n, int u)
+==================================================
+Package: IAFahim.Graph.Matching
+  File: HospitalResidentsMatching.cs -> Class: HospitalResidentsMatching
+    public static void Run(int* residentPref, int* hospitalPref, int* hospitalCapacities, int numResidents, int numHospitals, int* matchResident)
+  File: StableRoommates.cs -> Class: StableRoommates
+    public static int ScratchSize(int n) => 3 * n * n + 7 * n;
+    public static bool Run(int* pref, int n, int* match, int* scratch)
+  File: MaximumBipartiteBMatching.cs -> Class: MaximumBipartiteBMatching
+    public static int Run(int* head, int* next, int* to, int* capacitiesLeft, int* capacitiesRight, int nLeft, int nRight)
+  File: Blossom.cs -> Class: BlossomGeneral
+    public static int Run(int n, int* head, int* to, int* next, int* match, int* base_, int* p, int* v, int* blossom, int* scratch)
+    public static int Run(int n, int* head, int* to, int* next, int* match, int* base_, int* p, int* v, int* blossom)
+    public static long Run(int n, long* w, int* match)
+  File: BottleneckAssignment.cs -> Class: BottleneckAssignment
+    public static int Run(int* cost, int n, int* match)
+  File: Hungarian.cs -> Class: HungarianMin
+    public static long Run(int n, long* a, long* matchL, long* matchR)
+    public static long Run(int n, long* a, int* matchL, int* matchR)
+    public static bool Run(int n, long* cost, int* assign, long* totalCost)
+  File: StableMarriage.cs -> Class: StableMarriage
+    public static void Run(int n, int* manPref, int* womanPref, int* manMatch, int* womanMatch, int* scratch)
+    public static bool IsStable(int n, int* manPref, int* womanPref, int* manMatch, int* womanMatch, int* scratch)
+    public static void Run(int n, int* proposerPref, int* receiverPref, int* proposerMatch, int* receiverMatch, int* scratch)
+    public static void RunWithHistory(int n, int* manPref, int* womanPref, int* manMatch, int* womanMatch, int* history, int* histSize, int* scratch)
+  File: StableMarriageIncomplete.cs -> Class: StableMarriageIncomplete
+    public static void Run(int* prefMen, int* prefWomen, int* numPrefMen, int* numPrefWomen, int n, int m, int* matchMen, int* matchWomen)
+  File: AssignmentAuctionAlgorithm.cs -> Class: AssignmentAuctionAlgorithm
+    public static void Run(int* cost, int n, int* match, int* prices)
+  File: Kuhn.cs -> Class: KuhnMatch
+    public static int Run(int nLeft, int nRight, int* head, int* to, int* next, int* matchRight)
+    public static int RunDense(int nLeft, int nRight, int* adj, int* matchRight)
+    public static int Run(int nLeft, int nRight, int* head, int* to, int* next, int* pairU, int* pairV)
+    public static bool Run(int n, int* head, int* to, int* next, int* color)
+    public static int Run(int nLeft, int nRight, int* head, int* to, int* next, int* matchLeft, int* matchRight)
+    public static int Run(int n, int* head, int* to, int* next, int* matchLeft, int* matchRight, int* cover)
+    public static int Run(int n, int* cover)
+  File: AssignmentHungarianRectangular.cs -> Class: AssignmentHungarianRectangular
+    public static void Run(int* cost, int n, int m, int* matchLeft, int* matchRight)
+  File: MinimumCostBipartiteBMatching.cs -> Class: MinimumCostBipartiteBMatching
+    public static int Run(int* head, int* next, int* to, int* cost, int* capacitiesLeft, int* capacitiesRight, int nLeft, int nRight)
+==================================================
+Package: IAFahim.Graph.Misc
+  File: GraphMisc.cs -> Class: TopologicalDp
+    public static long Run(int n, int* order, long* dp, int* to, int* next, int* head)
+    public static long Run(int n, long* dp, int* next, long* values)
+    public static long Run(int n, int* sccId, long* sccSum, int* sccEdges, int* sccNext, int* sccHead, int sccCount)
+    public static void Run(int n, int* order, long* reachable, int* to, int* next, int* head, long* bitsets, int bitsetSize)
+    public static void Run(int n, int* adj, int* closure)
+    public static void Run(int n, long* adj, long* closure, int wordsPerRow)
+==================================================
+Package: IAFahim.Graph.RandomWalk
+==================================================
+Package: IAFahim.Graph.SCC
+  File: OnlineScc.cs -> Class: OnlineScc
+    public static void AddEdge(int u, int v,
+    public static void Init(int n, int* parent, int* head, int* visited)
+  File: TarjanScc.cs -> Class: TarjanScc
+    public static void Dfs(int u, int* head, int* next, int* to,
+    public static void Find(int n, int* head, int* next, int* to,
+  File: SccAugmentation.cs -> Class: SccAugmentation
+    public static int MinEdgesForStronglyConnected(int n, int m, int* u, int* v)
+==================================================
+Package: IAFahim.Graph.ShortestPath
+  File: ShortestPaths.cs -> Class: KthShortestPathEppstein
+    public static void Run(int n, int m, int k, int* eu, int* ev, long* ew, int s, long* dists)
+    public static void Run(int n, int m, int* eu, int* ev, long* ew, int s, int t, int pLen, int* pEdges, long* res)
+    public static void Run(int n, long* a, long* b, long* c)
+    public static void EdgeDecreased(int n, long* dist, int u, int v, long newW)
+    public static double Run(int n, int m, int* eu, int* ev, long* ew, long* dp)
+==================================================
+Package: IAFahim.Graph.SpanningTrees
+  File: SpanningTreesAndCuts.cs -> Class: StShared
+    public static void BuildTransitiveClosure(int* eu, int* ev, int m, int n, bool* tc)
+    public static int CountTrue(bool* arr, int len)
+    public static int Run(int n, int m, int* eu, int* ev, bool* remove)
+    public static int Run(int n, int m, int* eu, int* ev, int* mL, int* mR)
+    public static int Run(int n, int m, int* eu, int* ev, int* mL, int* mR, bool* tc)
+    public static int Run(int n, int m, int* eu, int* ev, bool* inAnti, bool* tc)
+    public static int Run(int n, int m, int* eu, int* ev, bool* keep, bool* tc)
+==================================================
+Package: IAFahim.Graph.Tree
+  File: TreeAdvanced.cs -> Class: HldBuild
+    public static void Run(int u, int p, int* head, int* to, int* next, int* parent, int* depth, int* heavy, int* size)
+    public static void Decompose(int u, int h, int* head, int* to, int* next, int* parent, int* heavy, int* headChain, int* pos, ref int curPos)
+    public static long Run(int u, int v, long* segTree, int* headChain, int* pos, int* parent, int* depth, int n)
+    public static int Run(int n, int root, int* head, int* to, int* next, int* size, bool* removed)
+    public static void Run(int root, int n, int* head, int* to, int* next, ulong* hash, ulong* dpUp)
+    public static void Run(int* arr, int n, int* parent, int* left, int* right)
+  File: TreeBasic.cs -> Class: LcaBuild
+    public static void Run(int n, int root, int* head, int* to, int* next, int* parent, int* depth, int* ancestors, int logN)
+    public static int Run(int u, int v, int* depth, int* ancestors, int logN)
+    public static int Run(int u, int v, int* depth, int* ancestors, int logN)
+    public static void Run(int n, int root, int* parent, int* ancestors, int logN)
+    public static int Run(int node, int k, int* ancestors, int logN)
+    public static int Run(int n, int u, int* head, int* to, int* next, bool* removed, int* size)
+    public static void Run(int n, int u, int* head, int* to, int* next, bool* removed, int* size, int* cparent)
+    public static void Run(int u, int* head, int* to, int* next, int* parent, int* depth, int* size)
+    public static void Run(int n, int root, int* head, int* to, int* next, int* parent)
+    public static void Run(int n, int root, int* head, int* to, int* next, int* depth)
+    public static void Run(int n, int root, int* head, int* to, int* next, int* size)
+    public static int Run(int n, int root, int* head, int* to, int* next)
+    public static int Run(int n, int* head, int* to, int* next, int* centers)
+==================================================
+Package: IAFahim.Graph.TreeDecomposition
+  File: TreeDecompositionDp.cs -> Class: TreeDecompositionDp
+    public static long MaxIndependentSet(
+  File: PathwidthDp.cs -> Class: PathwidthDpAlgorithm
+    public static long PathwidthDpIndependentSet(
+  File: MoAlgorithmOnTree.cs -> Class: MoQuery
+    public static void BuildEulerTour(
+    public static void SortQueries(MoQuery* queries, int q)
+    public static void TreeMoQuery(
+  File: TreeDecompositionKnapsack.cs -> Class: TreeDecompositionKnapsackAlgorithm
+    public static long TreeDecompositionKnapsack(
+  File: NiceTreeDecomposition.cs -> Class: NiceTreeDecomposition
+    public static void TreeDecompositionNice(
+  File: HeavyLightDecomposition.cs -> Class: HldSegNode
+    public static void TreePathDecompose(
+    public static void BuildSumTree(long* tree, int node, int start, int end, long* initialValues)
+    public static void SumTreeAdd(
+    public static void SumTreeAssign(
+    public static long SumTreeQuery(
+    public static HldSegNode MergeMaxSubarray(HldSegNode l, HldSegNode r)
+    public static void BuildMaxSubarrayTree(HldSegNode* tree, int node, int start, int end, long* initialValues)
+    public static void MaxSubarrayTreeAssign(
+    public static HldSegNode MaxSubarrayTreeQuery(
+    public static void PathAdd(
+    public static void PathAssign(
+    public static long PathSumQuery(
+    public static HldSegNode PathMaxSubarray(
+==================================================
+Package: IAFahim.Graph.TreeIsomorphism
+  File: RootedTreeAutomorphisms.cs -> Class: RootedTreeAutomorphisms
+    public static long Run(int n, int root, int* head, int* to, int* next, long mod)
+  File: RootedTreeCanonicalForm.cs -> Class: RootedTreeCanonicalForm
+    public static void Run(int* p, int n, int* outHash)
+  File: UnrootedTreeAutomorphisms.cs -> Class: UnrootedTreeAutomorphisms
+    public static int Run(int* p, int n)
+  File: OrderedTreeEditDistance.cs -> Class: OrderedTreeEditDistance
+    public static int Run(int* p1, int* p2, int n1, int n2)
+  File: UnrootedTreeCanonicalForm.cs -> Class: UnrootedTreeCanonicalForm
+    public static void Run(int* p, int n, int* outHash)
+  File: TreeIsomorphismCenterHash.cs -> Class: TreeIsomorphismCenterHash
+    public static bool Run(int* p1, int* p2, int n)
+  File: TreeIsomorphismAhU.cs -> Class: TreeIsomorphismAhU
+    public static bool Run(int* p1, int* p2, int n)
+  File: UnorderedTreeEditDistance.cs -> Class: UnorderedTreeEditDistance
+    public static int Run(int* p1, int* p2, int n1, int n2)
+==================================================
+Package: IAFahim.Graph.TreeQueries
+  File: TreeCentroid.cs -> Class: TreeCentroid
+    public static void AllCentroids(
+    public static int WeightedMedian(
+  File: TreePathColor.cs -> Class: PathColorNode
+    public static void Build(PathColorNode* tree, int node, int start, int end, int* initialColors)
+    public static void Update(PathColorNode* tree, int node, int start, int end, int l, int r, int color)
+    public static PathColorNode Query(PathColorNode* tree, int node, int start, int end, int l, int r)
+    public static void PathColorUpdate(
+    public static int PathColorQueryCount(
+  File: TreeDp.cs -> Class: TreeDp
+    public static int MinVertexCover(int n, int* head, int* to, int* next)
+    public static int MaxIndependentSet(int n, int* head, int* to, int* next)
+    public static int DominatingSet(int n, int* head, int* to, int* next)
+    public static long MatchingDp(int n, int* head, int* to, int* next, long* edgeWeight)
+    public static long SteinerTree(int n, int* head, int* to, int* next, long* edgeWeight, byte* isTerminal, int terminalCount)
+  File: TreeHashing.cs -> Class: TreeHashing
+    public static ulong CanonicalHashRooted(int u, int p, int* head, int* to, int* next, ulong* subHash)
+    public static ulong CanonicalHash(int n, int* head, int* to, int* next)
+    public static long AutomorphismCount(int n, int* head, int* to, int* next, long mod)
+    public static bool EmbeddingCheck(int n1, int* head1, int* to1, int* next1, int n2, int* head2, int* to2, int* next2)
+    public static long AutomorphismCountRooted(int u, int p, int* head, int* to, int* next, ulong* subHash, long mod)
+    public static bool EmbeddingCheckRooted(int u1, int p1, int u2, int p2, int* head1, int* to1, int* next1, int* head2, int* to2, int* next2)
+    public static int TreeEditDistance(int n1, int* head1, int* to1, int* next1, int n2, int* head2, int* to2, int* next2)
+==================================================
+Package: IAFahim.Linear.Matrix
+  File: Recurrence.cs -> Class: BerlekampMassey
+    public static int Run(long* s, int n, long* c)
+    public static long Run(int k, long* init, long* trans, long n, long mod)
+  File: Matrix.cs -> Class: MatrixMul
+    public static void Run(int n, int m, int p, long* a, long* b, long* c)
+    public static void Run(int n, long* a, long* result, long exp)
+    public static int Run(int n, int m, long* a, long* b, long* x)
+    public static long Run(int n, long* a)
+    public static bool Run(int n, long* a, long* inv)

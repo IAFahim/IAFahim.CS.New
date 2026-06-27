@@ -1,0 +1,80 @@
+{
+ "file": "src/IAFahim.DS.WaveletMatrix/WaveletMatrix.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.DS.WaveletMatrix/WaveletMatrix.cs",
+   "symbol": "WaveletMatrixKth.Run / GetCountInLevel",
+   "severity": "critical",
+   "category": "wrong-recurrence",
+   "summary": "kth-smallest branch logic is inverted: GetCountInLevel returns rankPtr[ri+1]-rankPtr[li] which is the count of ONES (bit==1) in the range, but Run compares 'k < leftCount' and on true descends into the bit==0 (smaller) branch. For kth-smallest, the count steering you into the smaller/zero branch must be the number of ZEROS, i.e. (ri+1-li) - ones. As written, k is compared against the wrong population, so any query over a range that contains both a 0-bit and a 1-bit at some level returns the wrong value.",
+   "triggeringInput": "Build data={1,0,1}, n=3, log=1 (ranks=[0,1,1,2], mids[0]=2); then Run(...,l=0,r=2,k=1,log=1). Sorted range is {0,1,1} so the answer must be 1, but Run returns 0.",
+   "rootCause": "leftCount counts ones (rankPtr[ri+1]-rankPtr[li]) yet is used as the size of the bit==0 partition. The smaller-value partition at a level is the zeros, whose count is (ri+1-li) - (rankPtr[ri+1]-rankPtr[li]). The comparison 'if (k < leftCount) -> zero branch' is therefore backwards.",
+   "suggestedFix": "Compute zerosCount = (ri - li + 1) - (rankPtr[ri+1]-rankPtr[li]); use 'if (k < zerosCount)' to take the bit==0 branch, else 'k -= zerosCount' and take the bit==1 branch."
+  },
+  {
+   "file": "src/IAFahim.DS.WaveletMatrix/WaveletMatrix.cs",
+   "symbol": "WaveletMatrixKth.Run / UpdateIndicesZero / UpdateIndicesOne",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "The query reads rank data for the wrong level. WaveletMatrixBuild stores level b's prefix-rank table at ranks[b*(n+1) + i] (offset = b*(n+1)). But Run and its helpers index rankPtr[li], rankPtr[ri+1] with NO per-level offset, so for every level b>0 they read level-0's rank/mid mapping instead of level b's. Index remapping between levels is thus computed from stale data.",
+   "triggeringInput": "Build data={3,1,2,0}, n=4, log=2; Run(...,l=0,r=3,k=2,log=2). Sorted range is {0,1,2,3} so answer must be 2, but Run returns 3 (full observed output for k=0..3 is 0,0,3,3 instead of 0,1,2,3).",
+   "rootCause": "rankPtr is passed unchanged into the per-level helpers and indexed as rankPtr[li] without adding the level stride b*(n+1) that Build used when writing ranks[offset+i]. The pointer is never advanced (no rankPtr += (n+1)) and no b-derived offset is applied.",
+   "suggestedFix": "Advance the rank table per level: compute int off = b*(n+1) and index rankPtr[off+li], rankPtr[off+ri+1] in GetCountInLevel/UpdateIndicesZero/UpdateIndicesOne, or pass rankPtr += (n+1) each iteration (and likewise account for bitmaps layout)."
+  },
+  {
+   "file": "src/IAFahim.DS.WaveletMatrix/WaveletMatrix.cs",
+   "symbol": "WaveletMatrixBuild.Run / ComputeBitmapsAndCountOnes / FinalizeLevel",
+   "severity": "critical",
+   "category": "wrong-recurrence",
+   "summary": "The wavelet-matrix build never performs the stable partition (zeros-then-ones reordering) of the data between levels. Each level b extracts bit b directly from the ORIGINAL data array, so the bitmap/rank tables at level b>0 do not correspond to the partitioned array the kth/rank query index-remapping assumes. A wavelet matrix requires that after producing level b's bitmap the array is stably split into [all bit==0] followed by [all bit==1], and level b+1 is built on that reordered array.",
+   "triggeringInput": "Build data={3,1,2,0}, n=4, log=2: at level 1 the bitmaps are computed from {3,1,2,0} rather than from the level-0 stable partition {2,0,1,3}, so ranks at level 1 do not match the index remapping in WaveletMatrixKth.Run; Run(...,0,3,k,2) yields 0,0,3,3 instead of 0,1,2,3.",
+   "rootCause": "ComputeBitmapsAndCountOnes always reads data[i] (the unmodified input) for every level b; there is no reordering pass that produces the next level's array as the stable concatenation of the zero-bucket then the one-bucket of the current level.",
+   "suggestedFix": "After computing each level's bitmap, build the next-level array by stably partitioning the current array: place elements with bit==0 (in order) first, then elements with bit==1 (in order), and use that array as input for level b+1. Also store mids consistently as the zero-count boundary so the query's mid offset matches."
+  },
+  {
+   "file": "src/IAFahim.DS.WaveletMatrix/WaveletMatrix.cs",
+   "symbol": "WaveletMatrixKth.UpdateIndicesOne",
+   "severity": "high",
+   "category": "logic",
+   "summary": "mids[b] is set to the number of ONES at the level (FinalizeLevel: mids[b]=ones), but UpdateIndicesOne uses it as the start offset of the ones region: li = mid + (li - rankPtr[li]). In a zeros-first stable partition the ones region begins at the number of ZEROS = n - ones, not at 'ones'. Even after fixing the offset/partition bugs, using mid=ones places the one-branch indices into the wrong half whenever zeros != ones.",
+   "triggeringInput": "Any level where ones != zeros, e.g. Build data={1,1,1,0}, n=4: ones=3, zeros=1; the ones region should start at index 1 (after the single zero) but mid=3 is used, so one-branch li/ri are computed off the wrong base.",
+   "rootCause": "Mismatch between FinalizeLevel storing mids[b]=ones and the query convention that 'mid' is the boundary index where the ones bucket starts (which equals the zero count n-ones for a zeros-first layout).",
+   "suggestedFix": "Store mids[b] = n - ones (the zero count / ones-bucket start), or change UpdateIndicesOne/Zero to use the zero count consistently; ensure GetCountInLevel, UpdateIndicesZero, UpdateIndicesOne and mids all agree on the same zeros/ones convention."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.WaveletMatrix/WaveletMatrix.cs",
+   "symbol": "WaveletMatrixBuild.Run / ComputeBitmapsAndCountOnes + FinalizeLevel",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Fuse the bitmap-write pass and the rank prefix-sum pass into a single loop per level.",
+   "currentCost": "Per level the algorithm walks the n elements twice: once in ComputeBitmapsAndCountOnes (read data, shift, write bitmaps[i], count ones) and once in FinalizeLevel (read bitmaps[i-1], accumulate into ranks[i]). The second pass reloads bitmaps values that were just written, doubling memory traffic over the n*log inner work and incurring store-to-load forwarding/cache pressure on the bitmaps array.",
+   "proposedChange": "Compute the prefix sum inline while writing bitmaps: keep a running 'acc' initialized to 0, set ranks[offset+i]=acc before/while writing bit=(data[i]>>b)&1, then acc+=bit. After the loop ranks[offset+n]=acc and mids[b]=acc (the final running total IS the ones count). This eliminates the separate FinalizeLevel pass and the separate 'ones' counter entirely.",
+   "rationale": "Halves the per-level passes over n (one streaming pass instead of two), removes the redundant bitmaps re-read, and folds the ones-count and prefix-sum into the same accumulator so the loop becomes a single fused streaming kernel that Burst can vectorize/scalar-pipeline more tightly. Asymptotically still O(n*log) but ~2x fewer memory-bound iterations.",
+   "risk": "Must preserve the exact ranks definition: ranks[offset+i] = prefix sum of bits over [0,i) (i.e. ranks[offset]=0, ranks[offset+n]=ones). Writing ranks[i] from the running acc before adding the current bit reproduces this exactly. mids[b]=ones still holds since acc==ones at loop end. bitmaps[offset+n]=0 sentinel must still be written. No signed/overflow concern: bit is 0/1, acc<=n."
+  },
+  {
+   "file": "src/IAFahim.DS.WaveletMatrix/WaveletMatrix.cs",
+   "symbol": "WaveletMatrixBuild bitmaps storage",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "The bitmaps array is dead after build for Kth queries \u2014 it can be dropped, or stored as packed bits, to shrink the working set by ~4x or eliminate it.",
+   "currentCost": "bitmaps is allocated as int[log*(n+1)] storing only 0/1 values (4 bytes each, 31 bits wasted per element). WaveletMatrixKth.Run never reads bitmaps \u2014 it uses only rankPtr and mids. So bitmaps is build-only scratch that nonetheless persists in the caller-provided buffer, inflating RAM and cache footprint on mobile.",
+   "proposedChange": "Two options: (a) If callers only need Kth, treat bitmaps purely as transient and compute ranks/mids directly (per the fusion above), so the persistent structure is just ranks[log*(n+1)] + mids[log]. (b) If a bit array is genuinely needed for rank/select queries, store it as packed uint64 words (n/64 words per level) and derive rank via blockRank + popcount, cutting bitmaps storage ~64x and making rank cache-friendly.",
+   "rationale": "Smaller working set means fewer cache lines touched during build and queries \u2014 directly fewer cache misses on memory-bound traversal. Option (a) removes an entire log*(n+1)*4-byte buffer; option (b) is the standard succinct-bitvector layout the empty SuccinctWavelet stubs imply is intended.",
+   "risk": "Behavior-preserving for Kth (it ignores bitmaps). If any future/external API exposes bitmaps as output, dropping it changes the contract \u2014 verify no caller reads bitmaps. Packed-bit option requires rewriting rank as word-popcount and must keep the n+1 prefix semantics; popcount path must stay branchless/Burst-friendly."
+  },
+  {
+   "file": "src/IAFahim.DS.WaveletMatrix/WaveletMatrix.cs",
+   "symbol": "WaveletMatrixKth.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Restructure the per-bit branch to a branchless select and hoist rankPtr[ri+1]/rankPtr[li] reads (each currently loaded up to twice).",
+   "currentCost": "Inside the log-iteration loop: GetCountInLevel reads rankPtr[ri+1] and rankPtr[li]; then on the taken branch UpdateIndicesZero re-reads the same rankPtr[li] and rankPtr[ri+1], or UpdateIndicesOne re-reads them. That is up to 4 dependent loads where 2 suffice. The if/else is also data-dependent on query values, so it is poorly predictable and serializes the dependency chain across the (typically ~20-30) levels.",
+   "proposedChange": "Load r0=rankPtr[li] and r1=rankPtr[ri+1] once per iteration. leftCount=r1-r0. Compute both candidate (li,ri) pairs from r0,r1,mids[b] and select with a branchless mask: int take=(k>=leftCount); k-=take*leftCount; val|=take<<b; li = take? mid+(li-r0) : r0; ri = take? mid+(ri-r1+1)-1 : r1-1; using arithmetic-mask selection (e.g. (-take) masks) to stay branchless.",
+   "rationale": "Cuts redundant rank loads roughly in half on the hot per-level path and removes a hard-to-predict branch from a long serial dependency chain, shortening the critical path per level and helping Burst emit conditional-move/predicated code instead of branches. Constant-factor but applied across log iterations per query.",
+   "risk": "Must reproduce exact index updates: zero-branch li=r0, ri=r1-1; one-branch li=mid+(li-r0), ri=mid+(ri-r1+1)-1; val|=1<<b only when taken; k-=leftCount only when taken. Branchless masking must use correct signed arithmetic (take is 0/1; -take is 0 or -1 for AND-masks). Verify no overflow in mid+(...) \u2014 same range as current code, so safe."
+  }
+ ]
+}

@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.String.Automata/FiniteAutomaton.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Automata/FiniteAutomaton.cs",
+   "symbol": "BuildDfa",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Remove the dead tempNext allocation that is allocated and freed but never read or written.",
+   "currentCost": "One Marshal.AllocHGlobal of maxDfaStates*4 bytes (up to ~8GB when nfaStates approaches 31) plus a FreeHGlobal, with zero uses. Pure wasted heap traffic, page commits, and two syscalls per call.",
+   "proposedChange": "Delete the tempNext allocation (line 38), its tempBytes computation (line 36), and the corresponding FreeHGlobal in the finally block (line 103). tempNext is never referenced anywhere in the body.",
+   "rationale": "Eliminates a large, fully unused allocation/free pair. Fewer cycles (two fewer P/Invoke transitions), and for large nfaStates it halves committed scratch memory, reducing the chance of an allocation failure / OOM on mobile.",
+   "risk": "None. Static analysis shows tempNext has no reads or writes; removing it is behavior-preserving."
+  },
+  {
+   "file": "src/IAFahim.String.Automata/FiniteAutomaton.cs",
+   "symbol": "BuildDfa",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Fuse the BFS discovery pass and the transition-table rebuild pass; the subset-transition bitmask for every reachable state is computed twice identically.",
+   "currentCost": "The O(maxDfaStates * sigma * nfaStates) inner triple loop is executed twice: once during BFS (lines 51-65) to discover states, and again in the rebuild loop (lines 76-98). For reachable states this is fully redundant work, doubling the dominant cost. The rebuild loop also scans ALL maxDfaStates masks (including unreachable ones, skipped via stateMap[mask]==-1) instead of only the reachable subsets already enqueued.",
+   "proposedChange": "During BFS, store each computed transition target 'next' directly into dfa->Transitions[stateMap[subset]][c] = (will be patched) and remember the raw next-mask, OR keep a parallel per-(state,c) next-mask buffer produced in the BFS so the rebuild loop only maps masks to ids via stateMap[next] without recomputing the OR-reduction. Also iterate only over the 'queue' of reachable subsets (head 0..stateCount) rather than 0..maxDfaStates, eliminating the stateMap[mask]==-1 scan over up to 2^nfaStates entries.",
+   "rationale": "Removes a full duplicate of the asymptotically dominant computation and removes a sweep over up to 2^nfaStates unreachable masks. For automata with sparse reachable subsets (the common case) this changes the rebuild from O(2^n * sigma * n) to O(reachable * sigma * n), a potentially exponential reduction, plus a 2x constant-factor win on the rest.",
+   "risk": "Must preserve identical Transitions and IsAccept contents. Storing the raw next-masks needs a buffer of stateCount*sigma ints; tempNext (after repurposing) could hold per-state next ids. Accept flags must still be computed per reachable subset. Ordering of stateMap assignment must remain so ids match the original BFS numbering."
+  },
+  {
+   "file": "src/IAFahim.String.Automata/FiniteAutomaton.cs",
+   "symbol": "BuildDfa",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Iterate only set bits of the subset using bit-tricks instead of scanning all nfaStates bits.",
+   "currentCost": "Inner loop 'for s in 0..nfaStates' tests (subset & (1<<s)) for every bit, so cost is O(nfaStates) per (subset,c) regardless of population count. Most subsets have far fewer set bits than nfaStates.",
+   "proposedChange": "Replace the per-bit scan with a popcount-driven loop: for (int m = subset; m != 0; m &= m - 1) { int s = TrailingZeroCount(m); if (nfaTrans[s][c] >= 0) next |= 1 << nfaTrans[s][c]; }. Burst lowers tzcnt/blsr to single instructions (math.tzcnt / Bmi1).",
+   "rationale": "Cost drops from O(nfaStates) to O(popcount(subset)) per (subset,c), and removes the per-bit branch on the mask test, shortening the dependency chain to one blsr + tzcnt per active state.",
+   "risk": "Hoist this transition computation into a shared helper so the BFS and rebuild passes (or the fused pass) stay identical. 1<<nfaTrans[s][c] requires nfaTrans[s][c] < 32, which the existing 1<<s scheme already assumes. Semantics-identical for valid NFAs with <32 states."
+  },
+  {
+   "file": "src/IAFahim.String.Automata/FiniteAutomaton.cs",
+   "symbol": "BuildDfa",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist the 1<<s and nfaTrans[s] row pointer out of the alphabet loop, or swap loop nesting so the NFA row is loaded once per state.",
+   "currentCost": "In both inner passes, for each (c,s) the code recomputes (1<<s) and dereferences nfaTrans[s][c] through two pointer indirections, with the s-loop nested inside the c-loop so nfaTrans[s] is re-fetched sigma times per state.",
+   "proposedChange": "Cache int* row = nfaTrans[s] once per s, and precompute bit = 1<<s. If the transition OR is restructured per-state (loop s outer, accumulate into a small per-c next array of size sigma in registers/stack), nfaTrans[s] is dereferenced once per state instead of once per (state,c).",
+   "rationale": "Removes redundant outer-pointer loads (nfaTrans[s]) and shift recomputation; improves spatial locality by reading each NFA transition row contiguously across c.",
+   "risk": "Restructuring needs a sigma-sized scratch for the per-c next masks; with sigma typically small (e.g. 26 or 256) this fits in stackalloc. Behavior identical as long as all c are accumulated before mapping."
+  }
+ ]
+}

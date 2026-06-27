@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Graph.DAG/DagTransitiveReduction.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.DAG/DagTransitiveReduction.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Hoist row base and the reach[i*n+k] guard out of the inner j-loop in the Floyd-Warshall closure.",
+   "currentCost": "The triple loop recomputes i*n+k, k*n+j, i*n+j every inner iteration (3 multiplies + adds per j) and re-reads reach[i*n+k] (loop-invariant in j) for all n inner iterations even when it is false, in which case the whole j-loop does nothing.",
+   "proposedChange": "In the k/i/j closure: compute int iN = i*n and int kN = k*n once per i; load bool rik = reach[iN+k] once per (k,i); if (!rik) continue to skip the entire j-loop; else inner loop does reach[iN+j] |= reach[kN+j] using precomputed iN/kN bases. This removes ~2 multiplies/iter and skips n inner iterations whenever rik is false (the common sparse case).",
+   "rationale": "Reduces the inner-loop arithmetic to a single add for indexing and eliminates an entire O(n) inner pass for every (k,i) where i cannot reach k. In a sparse DAG closure most (i,k) pairs are unreachable, turning many n^2 row scans into a single branch \u2014 a large constant-factor and often near-quadratic-per-k reduction. Branchless OR (|=) also keeps Burst happy.",
+   "risk": "Pure index/control-flow reassociation; identical writes. reach[i*n+j] stays monotonically set to true, so converting the if to |= preserves results. n*n must fit int (already assumed via the (int)totalBytes cast)."
+  },
+  {
+   "file": "src/IAFahim.Graph.DAG/DagTransitiveReduction.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist i*n in the reduction pass and precompute m*n indexing; the m-loop also re-multiplies repeatedly.",
+   "currentCost": "The final reduction loop computes i*n+j, i*n+m, m*n+j with full multiplies inside the innermost m-loop (reach[i*n+m], reach[m*n+j]) for every m, despite i*n being invariant across j and m, and i*n+m being a simple increment over m.",
+   "proposedChange": "Compute int iN = i*n once per i; reuse for adjMatrix[iN+j] and reach[iN+m] (the latter is reach[iN + m], a base-plus-index load). Keep m*n as int mN accumulated by += n across the m-loop instead of multiplying. Also skip the m-loop early when adjMatrix[iN+j] is false (already guarded) \u2014 fine as is.",
+   "rationale": "Removes a multiply per m iteration (replaced by an add) and a multiply per j iteration, shrinking the dependency chain in the hottest loop. reach[iN+m] becomes a contiguous-stride read that Burst can prefetch/vectorize the comparison over.",
+   "risk": "Pure strength reduction of address arithmetic; no behavioral change. mN += n stays within int as long as n*n fits int, already assumed."
+  },
+  {
+   "file": "src/IAFahim.Graph.DAG/DagTransitiveReduction.cs",
+   "symbol": "Run",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "stackalloc bool[n*n] can blow the stack for moderate n; scratch buffer should be caller-provided.",
+   "currentCost": "reach is stackalloc bool[n*n]. For n=1024 that is 1 MiB on the stack, for n=4096 it is 16 MiB \u2014 far over typical thread/Burst stack limits, causing stack overflow rather than a graceful failure. It also forces re-zeroing/copy work each call.",
+   "proposedChange": "Follow the module convention of caller-provided scratch: add a bool* reach parameter (or byte*/ulong* bitset) to Run so the n*n buffer is allocated/owned by the caller and reused across calls. Document size = n*n. This matches DagReachabilityCompressed/DagMinimumPathCover which already take all working buffers as pointers.",
+   "rationale": "Removes a per-call O(n^2) stack allocation that is both a correctness hazard at scale and a hidden cost; lets callers reuse one buffer across many reductions, eliminating repeated allocation and improving cache residency. Consistent with the rest of the DAG API.",
+   "risk": "Signature change (API/ergonomics) \u2014 breaks current callers. Behavior identical given a correctly-sized buffer; caller must pre-copy or the copy loop stays in Run."
+  },
+  {
+   "file": "src/IAFahim.Graph.DAG/DagTransitiveReduction.cs",
+   "symbol": "Run",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Use a bitset (ulong*) instead of bool[n*n] for the reachability scratch to cut working set 8x and improve cache behavior.",
+   "currentCost": "reach uses one byte per cell (n*n bytes). The Floyd-Warshall closure is memory-bound; a byte matrix wastes 7/8 of each cache line versus a packed bitset and prevents word-parallel OR.",
+   "proposedChange": "Store reach as ulong* with ulongsPerNode = (n+63)>>6 words per row. The closure inner j-loop becomes a word-parallel OR: for each (k,i) with bit (i,k) set, OR row k into row i over ceil(n/64) words instead of n byte compares. This is the same trick already used in DagReachabilityCompressed.",
+   "rationale": "Cuts the closure from O(n^3) scalar byte ops to O(n^3/64) word ops and shrinks the scratch 8x, drastically reducing cache misses on the dominant pass. Burst vectorizes the ulong OR loop well.",
+   "risk": "Larger change: bit indexing (word = j>>6, mask = 1UL<<(j&63)) and the reduction pass must read individual bits. Semantics preserved if bit set/test matches the bool semantics. Pairs naturally with the caller-provided-buffer change above."
+  }
+ ]
+}

@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.Polynomial/PolynomialMultipointEval.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Polynomial/PolynomialMultipointEval.cs",
+   "symbol": "PolynomialMultipointEval.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Multipoint evaluation is done by independent Horner per point: O(n*m). The standard subproduct-tree algorithm achieves O((n+m) log^2) and the file name implies that intent.",
+   "currentCost": "For each of m points a full O(n) Horner sweep -> O(n*m). For large n,m this is the asymptotic bottleneck the 'MultipointEval' name is meant to solve.",
+   "proposedChange": "Build a subproduct tree of (x - points[i]) and evaluate via remainder-tree (poly mod each subtree), giving O((n+m) log^2(n+m)) multiplications using the module's existing PolynomialMod/Mul building blocks. Keep the naive Horner as a documented small-input fallback.",
+   "rationale": "Reduces O(n*m) to quasi-linear; this is the canonical fast-multipoint-eval speedup and the only way the method earns its name for large inputs.",
+   "risk": "Significantly more code and scratch memory (the tree needs O(n log n) storage), only worthwhile above a crossover threshold; below it the current Horner is faster and should be retained. Must match exact modular results. Higher implementation risk \u2014 propose as a guarded fast path with a size threshold."
+  },
+  {
+   "file": "src/IAFahim.Math.Polynomial/PolynomialMultipointEval.cs",
+   "symbol": "PolynomialMultipointEval.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Final '(val + mod) % mod' is unnecessary because the Horner body already keeps val in [0,mod) given non-negative reduced inputs.",
+   "currentCost": "One extra add + modulo per point. val is produced by '(val*x + poly[j]) % mod' where val>=0, x = points[i]%mod >= 0, and poly[j] may be negative if the polynomial holds negative coefficients.",
+   "proposedChange": "If poly coefficients are guaranteed non-negative/pre-reduced, drop the trailing normalization. Otherwise, normalize poly[j] once up front, or keep the single correction but skip the redundant % when val is already non-negative.",
+   "rationale": "Saves one modulo per point in the common case where coefficients are already in [0,mod).",
+   "risk": "Real correctness risk: if poly[j] can be negative, the inner % can yield a negative val and the final '(val+mod)%mod' is the only fix \u2014 removing it would break those cases. Guard: only safe when poly is pre-normalized to [0,mod). Reject unless that precondition is documented."
+  }
+ ]
+}

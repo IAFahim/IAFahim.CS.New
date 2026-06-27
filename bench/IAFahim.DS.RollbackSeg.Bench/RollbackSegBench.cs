@@ -46,6 +46,7 @@ namespace IAFahim.DS.RollbackSeg.Bench
         [Benchmark]
         public void BuildAndUpdate()
         {
+            Reset();
             long* arr = stackalloc long[N];
             Random rng = new Random(42);
             for (int i = 0; i < N; i++) arr[i] = rng.Next(100);
@@ -64,6 +65,7 @@ namespace IAFahim.DS.RollbackSeg.Bench
         [Benchmark]
         public void QueryRangeSum()
         {
+            Reset();
             long* arr = stackalloc long[N];
             Random rng = new Random(42);
             for (int i = 0; i < N; i++) arr[i] = rng.Next(100);

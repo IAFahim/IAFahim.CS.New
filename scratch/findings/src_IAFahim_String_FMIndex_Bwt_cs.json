@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.String.FMIndex/Bwt.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.String.FMIndex/Bwt.cs",
+   "symbol": "BurrowsWheeler.Inverse",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Inverse BWT hardcodes the reconstruction start row to pos=0, but the correct start row is the matrix row whose suffix index is 0 (i.e. where sa[row]==0). Since Transform builds the BWT from a sentinel-less suffix array, whenever the original string is not the lexicographically smallest rotation (sa[0]!=0), Inverse returns a cyclic rotation of the original instead of the original, so the documented Transform/Inverse round-trip produces a WRONG result.",
+   "triggeringInput": "text=[3,1,2,1], len=4. Transform gives sa=[3,1,2,0], bwt=[2,3,1,1]. Inverse(bwt,4,...) returns text=[1,2,1,2] instead of [3,1,2,1].",
+   "rootCause": "The LF-mapping backward reconstruction (`int pos = 0; for i=len-1..0 { text[i]=bwt[pos]; pos=LF[pos]; }`) assumes row 0 of the sorted-rotation matrix corresponds to the original string's row. That holds only when sa[0]==0. The primary index (row where sa==0) produced by Transform is never stored, passed in, or recovered, so Inverse has no way to pick the right starting row. Additionally, because Transform uses a sentinel-less suffix-array BWT, strings with ambiguous/repeated rotations (e.g. [4,1,4,1,4]) are not uniquely invertible at all even with the correct start row.",
+   "suggestedFix": "Either (a) make Transform output a sentinel-terminated BWT and have Inverse start from the unique sentinel row, or (b) have Transform return the primary index p = the i with sa[i]==0 and pass it into Inverse to use as the starting pos instead of the hardcoded 0. With a proper sentinel the round-trip becomes well-defined for all inputs."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.FMIndex/Bwt.cs",
+   "symbol": "BurrowsWheeler.Transform",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace per-iteration modulo with a branch/conditional-subtract to avoid an integer division in the hot loop.",
+   "currentCost": "`text[(sa[i] - 1 + len) % len]` executes one integer % (a multi-cycle hardware divide, ~20-40 cycles on mobile ARM) per element, len times.",
+   "proposedChange": "Since sa[i] is in [0,len) and len>=1, (sa[i]-1+len) is in [len-1, 2*len-2), so the modulo result is either sa[i]-1 (when sa[i]>=1) or len-1 (when sa[i]==0). Replace with: `int p = sa[i]; bwt[i] = text[p != 0 ? p - 1 : len - 1];` or branchless `int p = sa[i] - 1; bwt[i] = text[p + (len & (p >> 31))];` (p>>31 is -1 when p<0 i.e. sa[i]==0, masking len; 0 otherwise).",
+   "rationale": "Eliminates the divide entirely, replacing it with a compare+select or a shift+and+add. Divides are the most expensive integer op and block the pipeline; the branchless form is fully data-parallel and Burst can vectorize the gather. Net ~20-40 cycles saved per element.",
+   "risk": "Branchless form relies on signed arithmetic shift (sa[i]-1 only ever -1 at minimum, so p>>31 is safe). Semantics identical for all valid sa in [0,len). No overflow since len fits in int and sa[i]<len."
+  },
+  {
+   "file": "src/IAFahim.String.FMIndex/Bwt.cs",
+   "symbol": "BurrowsWheeler.Inverse",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "The LF[] scratch buffer is unnecessary; the text can be reconstructed in a single backward pass using count[] directly, removing one len-sized buffer from the working set.",
+   "currentCost": "Two len-length passes plus a separate len-sized LF[] buffer (4*len bytes) that is written in one loop and read in another, doubling memory traffic over bwt and adding a cache-resident array.",
+   "proposedChange": "Drop the LF parameter and the LF-building loop. In the final loop, compute the next position inline: `for (int i = len - 1; i >= 0; i--){ int b = bwt[pos]; text[i] = b; pos = count[b]++; }`. This fuses the LF computation into the reconstruction walk. (count[] must hold cumulative starts at this point, which it already does after the prefix-sum.)",
+   "rationale": "Removes a 4*len-byte allocation and an entire len-length read/write pass, halving memory traffic in this phase and shrinking the cache footprint. Fewer passes = fewer cache misses on large len.",
+   "risk": "Changes the public method signature (drops LF*), an API/ergonomics break \u2014 callers must be updated. Behavior is identical: count[b]++ during the walk reproduces exactly the LF values that the separate loop precomputed, since the walk visits positions in the same relative order the prefix counts assume. If the LF param must stay for ABI reasons, reject; otherwise this is strictly better."
+  },
+  {
+   "file": "src/IAFahim.String.FMIndex/Bwt.cs",
+   "symbol": "BurrowsWheeler.Inverse",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "maxChar is hardcoded to 256 and zeroed/prefix-summed every call regardless of the actual alphabet; accept a sigma parameter to bound these O(256) loops to the real alphabet size.",
+   "currentCost": "Two fixed 256-iteration loops (zeroing count[] and prefix-sum) run unconditionally even when the text uses a small alphabet (e.g. DNA sigma=4), wasting ~512 iterations and touching 1KB of count[] memory per call.",
+   "proposedChange": "Add an `int sigma` parameter and use it in place of the literal 256 for the zero-init and prefix-sum loops: `for (int c = 0; c < sigma; c++)`. Keep 256 as a named default constant if a no-sigma overload is desired.",
+   "rationale": "For small alphabets this turns two 256-iteration loops into sigma-iteration loops, cutting fixed overhead and the count[] cache footprint. For sigma=256 it is identical.",
+   "risk": "API change (adds parameter). Caller must pass sigma >= max(bwt[i])+1 or results are wrong; document as unchecked-Run contract. The count loop `count[bwt[i]]++` already assumes bwt values < sigma."
+  }
+ ]
+}

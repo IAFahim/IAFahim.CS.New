@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Graph.DynamicTrees/TopTree.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.DynamicTrees/TopTree.cs",
+   "symbol": "PushAll",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "Same recursive-PushAll-with-AggressiveInlining anti-pattern as LinkCutTree; recursion defeats the inline hint and adds per-level call overhead before every Splay.",
+   "currentCost": "PushAll recurses to the splay root then PushDown on unwind; AggressiveInlining is ignored on recursive methods; each frame reloads nodes[u].Parent and re-passes the base pointer.",
+   "proposedChange": "Convert PushAll to an iterative top-down push using a stackalloc int* path buffer (collect path up to root, PushDown in reverse). Remove the AggressiveInlining attribute.",
+   "rationale": "Eliminates recursion call frames on the hot splay-preamble path and removes the ineffective inline attribute; iterative form is more amenable to Burst optimization and keeps the base pointer in a register.",
+   "risk": "Must preserve strict root-first PushDown ordering for correct lazy Add/Rev propagation; reverse the collected path. Buffer sized to safe max splay depth."
+  },
+  {
+   "file": "src/IAFahim.Graph.DynamicTrees/TopTree.cs",
+   "symbol": "Splay / Access / PushUp",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hot leaf methods repeatedly index nodes[x] / nodes[nodes[x].Right] etc., re-evaluating base+index*sizeof and reloading through pointers the compiler cannot prove non-aliasing; caching the node pointer per call shortens dependency chains.",
+   "currentCost": "Rotate reads nodes[x].Parent, nodes[y].Parent, nodes[y].Left, nodes[x].Right/Left multiple times; Access does nodes[x].VirSum += nodes[nodes[x].Right].AllSum with double indirection recomputed. Each `nodes[i]` is an address-multiply.",
+   "proposedChange": "Cache `TopTreeNode* px = nodes + x;` (and py = nodes + y, pz = nodes + z) at the start of Rotate/Access/Splay and access via px->Field. In Access, load `int rx = px->Right;` once and reuse for the AllSum read and the subsequent assignment.",
+   "rationale": "Removes redundant index arithmetic and dependent double-loads on the structures' hottest inner methods, shortening critical paths and helping Burst register-allocate the base pointer.",
+   "risk": "Through-pointer writes alias reads; must not cache a field value across an intervening write the algorithm re-reads. Caching the *pointer* (not stale field values) is always safe; caching field values requires confirming no aliased store in between."
+  },
+  {
+   "file": "src/IAFahim.Graph.DynamicTrees/TopTree.cs",
+   "symbol": "Init / LinkCutTree.Init / EulerTourTree.Init",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Init zeroes every field individually in a loop; for the many zero-valued fields this is more stores than necessary and is not the memset pattern Burst/JIT vectorize best.",
+   "currentCost": "Per node, ~9-11 individual field stores including several literal zeros (Val, LazyAdd, PathSum, VirSum, AllSum, Rev, etc.). The all-zero fields could be bulk-cleared; only Parent/Left/Right = -1 and PathSize/Size = 1 are non-zero.",
+   "proposedChange": "Zero the whole region once with Unsafe.InitBlockUnaligned(nodes, 0, (uint)(n * sizeof(TopTreeNode))) (a vectorizable memset), then in a tight loop set only the non-zero fields: Parent=Left=Right=-1 and PathSize/Size=1 (and Twin=-1 for ETT). This splits the work into one bulk clear plus a few stores per node.",
+   "rationale": "Replaces many scalar zero-stores with one wide memset the compiler vectorizes, reducing total store traffic and instruction count on initialization of large node arrays.",
+   "risk": "InitBlock requires the region be exactly the struct array with no managed/GC content (true: unmanaged blittable struct) and correct byte length via sizeof. -1 is not all-bits-zero so those fields still need explicit init; ensure they are set after the memset. Semantics identical to the field-by-field version."
+  }
+ ]
+}

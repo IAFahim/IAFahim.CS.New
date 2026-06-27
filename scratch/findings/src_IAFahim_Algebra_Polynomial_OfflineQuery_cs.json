@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Algebra.Polynomial/OfflineQuery.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/OfflineQuery.cs",
+   "symbol": "MultiEval",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Use Horner's method to halve modular multiplications and shorten the dependency chain.",
+   "currentCost": "Per iteration the loop does two 64-bit multiplies and two % MOD reductions: one for poly[i]*xPow and one to advance xPow = xPow*x. That is 2 muls + 2 mods over n iterations, plus the xPow accumulator is a serial dependency that runs in parallel to val.",
+   "proposedChange": "Evaluate from the high coefficient down using Horner: long val = 0L; long m = (long)MOD; for (int i = n - 1; i >= 0; i--) { val = (val * x + poly[i]) % m; } return val; This removes xPow entirely.",
+   "rationale": "Horner does exactly one multiply and one reduction per coefficient (1 mul + 1 mod vs 2+2), eliminates the separate xPow running-product state, and produces a single tight recurrence that Burst can schedule without the second parallel chain. Net ~2x fewer modular ops.",
+   "risk": "Result is mathematically identical for all inputs (same polynomial value mod MOD). Requires poly coefficients already reduced into [0,MOD) as the current code assumes (val*x stays < MOD*MOD < 2^63 for MOD up to ~3.0e9, matching the existing accumulation which already relies on poly[i]*xPow < 2^63). No signedness/overflow change versus current code."
+  },
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/OfflineQuery.cs",
+   "symbol": "MultiEval",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist the (long)MOD cast out of the loop body.",
+   "currentCost": "Each iteration casts the int MOD to long for the % operation; even if cheap, it is re-materialized each pass and the int parameter forces sign-extension at every use.",
+   "proposedChange": "Cache long m = (long)MOD; once before the loop and use m inside (already folded into the Horner rewrite above).",
+   "rationale": "Removes repeated sign-extension materialization and gives the JIT/Burst a single invariant register operand.",
+   "risk": "None; pure invariant hoist, identical semantics."
+  }
+ ]
+}

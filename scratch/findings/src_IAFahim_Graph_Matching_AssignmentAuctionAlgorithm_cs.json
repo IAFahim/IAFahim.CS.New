@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Graph.Matching/AssignmentAuctionAlgorithm.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Matching/AssignmentAuctionAlgorithm.cs",
+   "symbol": "AssignmentAuctionAlgorithm.Run",
+   "severity": "high",
+   "category": "logic",
+   "summary": "Run is an unimplemented stub: it initializes match[]=-1 and prices[]=0 and performs no auction iterations, so it never produces an assignment regardless of the cost matrix.",
+   "triggeringInput": "cost (n*n row-major) = {0,5, 5,0}, n=2, match=stackalloc int[2], prices=stackalloc int[2]. Expected an optimal assignment (e.g. match[0]=1, match[1]=0); actual leaves match all -1.",
+   "rootCause": "The auction bidding/price-update loop is missing; only initialization remains.",
+   "suggestedFix": "Implement the auction algorithm: repeated bidding rounds where unassigned bidders compute best/second-best net value, raise prices by the bid increment (plus epsilon-scaling), and reassign objects until all bidders are assigned; write final assignment to match[]."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Matching/AssignmentAuctionAlgorithm.cs",
+   "symbol": "Run",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Run is a stub that only initializes match/prices and never reads cost or runs the auction; the AggressiveInlining hint and cost/n parameters imply an unimplemented algorithm.",
+   "currentCost": "No algorithmic work performed; 'cost' parameter is unused, so callers get a no-op that returns nothing meaningful.",
+   "proposedChange": "Either implement the auction relaxation or mark the method clearly as initialization-only. If kept as init, the two init loops can be fused into one loop over i setting both match[i]=-1 and prices[i]=0 to halve loop overhead.",
+   "rationale": "Fusing the two independent O(n) init passes into one halves loop bookkeeping and improves cache behavior; currently there is only one loop already, so the main signal is that the algorithm body is missing.",
+   "risk": "Behavioral: implementing the algorithm changes outputs by design. The loop-fusion note does not apply (already a single loop); flagged primarily because the file appears to be an unfinished stub."
+  }
+ ]
+}

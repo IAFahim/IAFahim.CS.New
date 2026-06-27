@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Search.Specialized/UpperBound.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.Specialized/UpperBound.cs",
+   "symbol": "UpperBound.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Convert the data-dependent branch in the search loop to a branchless predicated update to eliminate branch mispredictions on random keys.",
+   "currentCost": "Each of the ~log2(len) iterations executes an unpredictable conditional branch (ptr[mid] > key). For random/uniform keys this branch mispredicts ~50% of the time; on PC and especially in-order/short-pipeline mobile cores each misprediction costs ~10-20 cycles, dominating the loop body which otherwise is a load + compare + a couple of adds/shifts.",
+   "proposedChange": "Replace the if/else updating hi/lo with a branchless half-width step: keep a base index and a length, and on each step compare the midpoint, then advance base by (half+1) only when ptr[base+half] <= key, decrementing the remaining length accordingly. Concretely:\nint baseIdx = 0; int n = len;\nwhile (n > 1) {\n  int half = n >> 1;\n  int mid = baseIdx + half;\n  int gt = -(ptr[mid] > key ? 0 : 1); // mask: 0 when ptr[mid] > key, -1 otherwise\n  baseIdx += half & gt;\n  n -= half;\n}\nreturn baseIdx + (ptr[baseIdx] <= key ? 1 : 0);\nThe ternaries here compile to setcc/cmov (predicated, no branch) under Burst/LLVM rather than a control-flow branch.",
+   "rationale": "The classic lower_bound/upper_bound restructured as base+half is the standard branchless form: it removes the only unpredictable branch from the hot loop, turning each iteration into a fixed-latency sequence (load, compare, conditional-move, add, shift) with no speculation penalty. Total cycle count becomes deterministic ~log2(len) iterations regardless of key distribution, which is a net win whenever the original branch is not highly biased.",
+   "risk": "Semantics must be verified to match exactly: upper_bound returns the count of elements <= key, i.e. first index where ptr[index] > key. The proposed loop must terminate with n==1 then do one final ptr[baseIdx] <= key correction; off-by-one in the final correction or the half/n update would change results. Must also preserve behavior for len==0 (return 0) and for keys outside the array. Reduces instruction-level branch predictability dependence but introduces a loop-carried dependency through baseIdx (cmov result feeds next address) which can slightly lengthen the critical path on wide OoO cores when the branch was actually well-predicted; the win holds for unpredictable keys, the common case for a general search primitive. No signed/overflow change: baseIdx+half stays within [0,len] as before."
+  },
+  {
+   "file": "src/IAFahim.Search.Specialized/UpperBound.cs",
+   "symbol": "(file header)",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Remove the unused 'using System;' directive.",
+   "currentCost": "'using System;' is imported but no System type is referenced in the file (only System.Runtime.CompilerServices.MethodImplOptions is used). It is dead source clutter, mirrored identically in LowerBound.cs.",
+   "proposedChange": "Delete line 1 'using System;'. Keep only 'using System.Runtime.CompilerServices;'.",
+   "rationale": "Zero runtime cost either way (unused usings are elided by the compiler), but removing it improves readability/consistency and avoids a misleading signal that System types are in play. Pure hygiene.",
+   "risk": "None. No behavioral change; the build still compiles since no System.* symbol is referenced. Purely cosmetic."
+  }
+ ]
+}

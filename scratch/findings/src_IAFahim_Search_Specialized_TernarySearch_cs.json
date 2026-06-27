@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Search.Specialized/TernarySearch.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.Specialized/TernarySearch.cs",
+   "symbol": "Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Ternary search on a sorted array is strictly worse than binary search; it does more comparisons per the same log-base reduction.",
+   "currentCost": "Each iteration computes two thirds (two divisions by 3) and up to 4 comparisons to cut the range to 1/3. Information-theoretically, comparison search on sorted data is optimal at binary (1 comparison -> halve); ternary uses ~2 comparisons to cut to 1/3, giving worst-case ~2*log3(n) = ~1.26*log2(n) comparisons vs log2(n) for binary \u2014 more comparisons AND two divisions by 3 (not power-of-two, not shiftable) per step.",
+   "proposedChange": "If the contract is just 'find key in sorted int array, return index or ~insertionPoint', replace the body with a binary search returning ~lo on miss. If ternary is required for API/teaching reasons, at minimum compute `third=(hi-lo)/3` once and reuse for both mid1=lo+third and mid2=hi-third to avoid the second division.",
+   "rationale": "Binary search dominates ternary on sorted-array membership: fewer comparisons, and mid via (hi-lo)>>1 is a shift versus /3 which is a real division (~20+ cycles, twice per ternary step). Even keeping ternary, hoisting `third` removes one division per iteration.",
+   "risk": "Switching to binary changes internal probe order but preserves the observable contract IF return value is index-on-hit and ~lo (insertion point) on miss \u2014 binary search yields the same insertion point. For arrays with duplicate keys the returned hit index may differ from ternary's (neither guarantees first/last), so only safe if callers accept any matching index. The `third` hoist is fully behavior-preserving and unconditional."
+  },
+  {
+   "file": "src/IAFahim.Search.Specialized/TernarySearch.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "(hi-lo)/3 is computed twice per iteration for mid1 and mid2.",
+   "currentCost": "mid1 = lo + (hi-lo)/3 and mid2 = hi - (hi-lo)/3 each evaluate the integer division (hi-lo)/3 independently => two divisions per loop iteration.",
+   "proposedChange": "Hoist `int third = (hi - lo) / 3;` then `int mid1 = lo + third; int mid2 = hi - third;`.",
+   "rationale": "Halves the number of (non-strength-reducible) integer divisions per iteration from 2 to 1; division is the most expensive arithmetic op here and sits on the critical path of every step.",
+   "risk": "None: identical values, single behavior-preserving CSE the JIT may or may not already perform across the two uses; making it explicit guarantees it under Burst."
+  }
+ ]
+}

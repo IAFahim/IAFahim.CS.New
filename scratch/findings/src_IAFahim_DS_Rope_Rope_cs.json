@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.DS.Rope/Rope.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.Rope/Rope.cs",
+   "symbol": "RopeShared.Update",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Update redundantly re-derives child sizes via two null-checked Size() calls; inline the null checks into a single branchless-friendly accumulation and mark the recomputation cheaper.",
+   "currentCost": "Update calls Size(n->Left) and Size(n->Right), each = 1 branch (null test) + 1 load (n->Size). Two separate conditional loads with a data-dependent branch each, executed on EVERY node touched during SplitAt and Merge (the hot path).",
+   "proposedChange": "Inline: 'RopeNode* l = n->Left; RopeNode* r = n->Right; int s = 1; if (l != null) s += l->Size; if (r != null) s += r->Size; n->Size = s;'. Optionally compute branchlessly when pointers are non-null on the common path. Keeps AggressiveInlining.",
+   "rationale": "Avoids two out-of-line-eligible Size() call frames and lets the compiler keep l/r in registers (they are re-loaded again by callers like Merge right after). Fewer redundant loads of Left/Right which were just written by the caller.",
+   "risk": "None \u2014 identical result. Size() is already inlined so the win is modest, but it removes the dependency on Size's exact codegen and enables register reuse of l/r."
+  },
+  {
+   "file": "src/IAFahim.DS.Rope/Rope.cs",
+   "symbol": "RopeShared.SplitAt",
+   "dimension": "burst",
+   "impact": "high",
+   "summary": "SplitAt is unbounded recursion (depth = tree height); under Burst on mobile this risks stack overflow and is not tail-call-optimized. Convert to an iterative split using the standard treap zig-zag pointer-chasing loop.",
+   "currentCost": "Recursion depth ~O(height) = O(log n) expected but O(n) worst-case for an adversarial/degenerate treap. Each frame spills root, k, left, right to the stack; Burst cannot guarantee TCO. On mobile thread stacks (often 512KB-1MB) a degenerate rope can fault.",
+   "proposedChange": "Rewrite SplitAt iteratively: walk from root maintaining the two 'attach point' double-pointers (RopeNode** for the growing left and right spines), updating sizes on the way back via an explicit ascent, or accumulate along the descent. Each merge/split in treaps has a well-known iterative form using two result spines.",
+   "rationale": "Removes recursion frames entirely -> no stack-overflow risk, smaller per-op cost (no call/ret, no frame setup), Burst-friendly straight-line loop that can keep the cursor pointers in registers. Same O(height) work, lower constant.",
+   "risk": "Iterative treap split must preserve exact Update ordering (sizes updated bottom-up). Must keep identical attach semantics so the resulting tree shape and all node Sizes match the recursive version. Verify against the recursive version with tests before shipping."
+  },
+  {
+   "file": "src/IAFahim.DS.Rope/Rope.cs",
+   "symbol": "RopeShared.Merge",
+   "dimension": "burst",
+   "impact": "high",
+   "summary": "Merge is unbounded recursion mirroring SplitAt's risk; convert to the iterative two-pointer treap merge to remove frames and stack-overflow risk under Burst.",
+   "currentCost": "Recursion depth up to O(height); each frame setup + the post-call Update forms a long dependency chain (each Update waits for the recursive Merge to return). On a degenerate tree this is O(n) deep on a constrained mobile stack.",
+   "proposedChange": "Iterative merge: maintain a cursor double-pointer; at each step compare priorities, advance into a->Right or b->Left, record the attach point; on completion walk the recorded spine back updating Size. Avoids recursion and the serialized return-then-Update chain.",
+   "rationale": "Eliminates call/ret overhead and frame spills, removes stack-overflow risk, and lets sizes be fixed in one ascending pass instead of interleaved with returns \u2014 shorter critical dependency chain, better for Burst straight-line codegen.",
+   "risk": "Must reproduce exact priority tie-break (a->Priority > b->Priority chooses a; equal goes to b) and identical Update bottom-up order so resulting Sizes are byte-identical. Tie-break direction is observable; preserve '>' (not '>=')."
+  },
+  {
+   "file": "src/IAFahim.DS.Rope/Rope.cs",
+   "symbol": "RopeSubstring.Collect",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "Collect is recursive in-order traversal writing one byte per node; recursion depth O(height) risks stack overflow and is slow. Convert to an iterative in-order walk (Morris or explicit cursor) writing into buf.",
+   "currentCost": "O(m) nodes but O(height) recursion depth, plus a call frame per node carrying buf and ref idx. The ref int idx forces a memory-resident counter passed by address across every frame, blocking it from staying in a register.",
+   "proposedChange": "Iterative in-order traversal: use Morris traversal (O(1) extra space, temporarily rethreads Right pointers and restores them) OR, since the subtree is small and bounded by len, an explicit stackalloc cursor stack sized to the known height. Keep idx as a local int in a register, return the count.",
+   "rationale": "Removes per-node call frames and the by-address idx, keeping the write index in a register -> tighter store loop into buf that Burst can keep dense. No recursion -> no stack-overflow risk. Morris keeps RAM at O(1).",
+   "risk": "Morris mutates Right pointers transiently \u2014 must fully restore them before Merge re-attaches mid, and is not safe if interrupted/concurrent. Explicit-stack variant avoids mutation but needs a height bound; size the stackalloc to a safe max or compute height first. Ensure idx advances in identical left-root-right order."
+  },
+  {
+   "file": "src/IAFahim.DS.Rope/Rope.cs",
+   "symbol": "RopeNode",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "RopeNode is 32 bytes due to padding around 'byte Value'; the int Size/Priority and byte fields leave 7 bytes of padding. Layout is already near-optimal but Priority width can likely shrink.",
+   "currentCost": "sizeof(RopeNode)=32 on 64-bit: Size(4)+Priority(4)+Value(1)+pad(7)+Left(8)+Right(8). Each node is a separate allocation; 32B is half a 64B cache line so two nodes per line \u2014 acceptable but the 7 padding bytes are pure waste.",
+   "proposedChange": "Leave field order (Size, Priority before pointers is already cache-friendly: hot Size loads precede pointer loads). Cannot reclaim the padding without shrinking pointers. If Priority's range is bounded (treap priorities are random ints), no change. Document that the struct is intentionally 32B/cache-line-friendly so future edits don't add fields that push it past 32B.",
+   "rationale": "Keeping the node at exactly 32 bytes guarantees two-per-cache-line and 8-byte pointer alignment with no false sharing within a node. The current layout already puts the frequently-read Size first.",
+   "risk": "None as-is; this is a guard against regressions. Do NOT reorder Value before the ints (would not help) and do NOT add a 5th field that breaks the 32B boundary. Narrowing Priority to short would NOT shrink the struct (padding absorbs it), so it's not worth the range risk."
+  }
+ ]
+}

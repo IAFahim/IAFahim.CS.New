@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Optimization.Exact/MinSetCover.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Optimization.Exact/MinSetCover.cs",
+   "symbol": "MinSetCover.Run/Search",
+   "severity": "critical",
+   "category": "wrong-recurrence",
+   "summary": "The completion test compares distinct-covered count against the SUM of set sizes (total element-slots counting cross-set duplicates), not against the number of distinct universe elements. When any element appears in more than one set, the success condition can never be met, so Run returns the failure sentinel m+1 even though a valid full cover exists.",
+   "triggeringInput": "m=2; sets[0]={0,1}, sets[1]={1,2}; setSizes=[2,2]. Universe = {0,1,2}, optimal cover uses both sets (answer 2). total = setSizes[0]+setSizes[1] = 4, but distinct elements = 3, so covCount maxes at 3 and 'covCount == remain' (==4) is never true. Run returns m+1 = 3 instead of 2. (Even sets[0]={0}, sets[1]={0} returns 3 instead of 1.)",
+   "rootCause": "CalculateTotalElements sums setSizes[i] (element occurrences with multiplicity across sets), but covCount accumulates only 'added' = first-time (0->1) covers, i.e. distinct elements covered. The two quantities are only equal when sets are pairwise disjoint. With any overlapping element, total > distinctCount >= covCount forever, so the 'covCount == remain' success branch in Search never fires.",
+   "suggestedFix": "Pass the true universe size (number of distinct elements) as the target instead of sum of set sizes. E.g. compute the max element index +1 or the count of distinct elements over all sets, and compare covCount against that. Keep CalculateTotalElements only if it deduplicates (e.g. mark seen elements in a boolean buffer and count distinct), not raw summation."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Exact/MinSetCover.cs",
+   "symbol": "Search",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "covCount==remain only succeeds when ALL elements are covered, but remain is total element-occurrences (with multiplicity) while covCount counts distinct newly-covered \u2014 the universe size is the real target and should be precomputed, and set-membership should use bitmasks for O(1) cover/uncover.",
+   "currentCost": "CoverSet/UncoverSet iterate every element of a set (O(setSize)) on every recursive visit, and covered[] is an int multiplicity array. The termination 'covCount == remain' uses 'remain' = sum of set sizes (line 9, total), which only equals the number of distinct universe elements when sets are disjoint \u2014 for overlapping sets covCount (distinct) can never reach remain (with-multiplicity), so the exact-cover shortcut at line 24 may never trigger and the search degrades to full enumeration.",
+   "proposedChange": "Compute the universe size U = number of distinct elements once, and terminate when covCount==U. Represent covered as a ulong bitset (when |universe|<=64) so CoverSet is 'added = popcount(setMask & ~covered); covered |= setMask' and UncoverSet restores a saved mask \u2014 O(1) instead of O(setSize).",
+   "rationale": "Fixes a likely-missed termination (correctness/perf: search currently can't early-exit on overlapping inputs) and replaces per-element O(setSize) scans with single-word bitset ops; the saved-mask restore removes the second full element scan in UncoverSet.",
+   "risk": "Confirm intended semantics of 'remain': if the library contractually requires disjoint sets then current code is correct and only the bitset speedup applies; otherwise using distinct-universe-size U is the correct target. Bitset form requires elem ids < 64 (or a small ulong array for larger universes) \u2014 keep unmanaged via stackalloc/caller buffer."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Exact/MinSetCover.cs",
+   "symbol": "CoverSet/UncoverSet",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "setSizes[i] is reloaded as the loop bound on every iteration, and sets[i] base pointer is re-derived.",
+   "currentCost": "Line 42 'j < setSizes[i]' reloads setSizes[i] each iteration; sets[i][j] re-derives the inner pointer per access.",
+   "proposedChange": "Hoist 'int sz = setSizes[i];' and 'int* s = sets[i];' before each loop; iterate j<sz over s[j]. Apply in both CoverSet and UncoverSet.",
+   "rationale": "Removes a dependent load from the loop condition and a pointer indirection per element, enabling Burst to treat s as a flat array for vectorization.",
+   "risk": "None; setSizes[i] and sets[i] are invariant within the call."
+  }
+ ]
+}

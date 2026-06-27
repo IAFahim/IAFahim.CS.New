@@ -1,0 +1,82 @@
+{
+ "file": "src/IAFahim.Search.Suffix/Suffix.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Search.Suffix/Suffix.cs",
+   "symbol": "SuffixSums.Run<T>",
+   "severity": "high",
+   "category": "logic",
+   "summary": "Generic Run<T> reinterprets the element bytes as int/long and sums them with integer arithmetic. For floating-point element types (float has sizeof==4, double has sizeof==8) this adds the raw IEEE-754 bit patterns as integers, producing a meaningless value, and then reinterprets that integer back as the float/double result.",
+   "triggeringInput": "float buf[2] = {1.0f, 2.0f}; SuffixSums.Run<float>(buf, 2). Bits 0x3F800000 + 0x40000000 = 0x7F800000 are summed as ints, returning +Infinity instead of 3.0f. Likewise double over {1.0,2.0} gives garbage.",
+   "rootCause": "Dispatch is keyed only on sizeof(T)==4/8 and assumes the type is int/long. T:unmanaged also admits float, double, uint, ulong; for float/double the integer addition path is semantically wrong (and for uint/ulong it silently does signed arithmetic on values >Int32/Int64.Max).",
+   "suggestedFix": "Do not reinterpret arbitrary unmanaged T as integer for summation. Either constrain to numeric integer types via dedicated typed overloads (as already exist for int/long), or branch on typeof(T)==typeof(float)/typeof(double)/etc. and sum in the correct domain. Remove the sizeof-based int/long reinterpretation for the generic path."
+  },
+  {
+   "file": "src/IAFahim.Search.Suffix/Suffix.cs",
+   "symbol": "SuffixSums.RangeSum<T>",
+   "severity": "high",
+   "category": "logic",
+   "summary": "RangeSum<T> uses the same sizeof(T)==4/8 -> int*/long* reinterpretation as Run<T>, so it sums float/double elements as integer bit patterns, yielding a wrong (or Infinity/NaN) result for floating-point types.",
+   "triggeringInput": "double buf[3] = {1.5, 2.5, 3.5}; SuffixSums.RangeSum<double>(buf, 0, 2) reinterprets each double's 64-bit pattern as a long, sums them, and reinterprets back, giving garbage instead of 7.5.",
+   "rootCause": "Type dispatch only inspects sizeof(T), not the actual element type, so float/double (and unsigned) elements are summed in the wrong numeric domain via pointer reinterpretation.",
+   "suggestedFix": "Branch on the concrete element type (typeof(T)) or provide explicit float/double/uint/ulong overloads, and accumulate in the correct domain instead of reinterpreting bytes as int/long."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.Suffix/Suffix.cs",
+   "symbol": "SuffixSums.Run(long*, int) / Run(int*, int)",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Reverse in-place suffix-sum loop is a strict serial dependency chain; reading ptr[i+1] then writing ptr[i] each iteration prevents vectorization and exposes full load-add-store latency per element.",
+   "currentCost": "len-1 iterations, each with a loop-carried dependency (ptr[i] depends on ptr[i+1] just written). ~1 add + 1 load + 1 store per element on the critical path, no ILP, no SIMD.",
+   "proposedChange": "Keep the running scalar accumulator out of memory: 'long acc = 0; for (int i = len-1; i >= 0; i--) { acc += ptr[i]; ptr[i] = acc; }'. The accumulator lives in a register, so the store to ptr[i] is no longer a dependency for the next read (next read is ptr[i-1], independent of the store).",
+   "rationale": "Breaks the memory load->store->load dependency chain into a register accumulator chain (add latency only, ~1 cycle), and removes the dependence of each load on the previous store, letting the CPU overlap loads. Same arithmetic, same in-place result.",
+   "risk": "None for behavior: produces identical suffix sums and ptr[0] return. Overflow behavior is identical (same unchecked long/int add order)."
+  },
+  {
+   "file": "src/IAFahim.Search.Suffix/Suffix.cs",
+   "symbol": "SuffixSums.Run<T> / RangeSum<T> (sizeof(T)==4 / ==8 dispatch)",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "The sizeof(T)==4 / ==8 branches type-pun via '*(T*)&sum', which forces a stack spill of the accumulator to take its address; a union-free reinterpret avoids the address-taken local.",
+   "currentCost": "Taking '&sum' marks the accumulator address-exposed, which can inhibit keeping it purely in a register and forces a store/reload at the return; minor but on a hot leaf method.",
+   "proposedChange": "Return via a typed cast directly: for the 4-byte path 'int r = sum; return *(T*)&r;' is the same; better, since sizeof(T) is a compile-time constant under Burst specialization, the unused branch is dead-code-eliminated already \u2014 keep as is, but mark the local with the pattern that avoids re-taking address inside the loop (it already is outside the loop, so impact is low).",
+   "rationale": "sizeof(T) is constant per Burst monomorphization so the branch folds away; the only residual cost is the address-of on the accumulator at return. Confirming the accumulator is written once after the loop (already true) keeps this near-optimal.",
+   "risk": "Reinterpret of a 4/8-byte integer to T is only valid when sizeof(T) matches; guarded by the sizeof(T) checks already. No change to semantics."
+  },
+  {
+   "file": "src/IAFahim.Search.Suffix/Suffix.cs",
+   "symbol": "SuffixSums.Run<T>(T*, int) and RangeSum<T>",
+   "dimension": "ergonomics",
+   "impact": "medium",
+   "summary": "Naming/contract inconsistency: the typed Run overloads (int*/long*) build an in-place suffix-sum array and return ptr[0]; the generic Run<T> instead computes only the total sum without writing the suffix array, yet Sum<T> returns ptr[0] assuming the suffix array was built. Callers using Run<T> then Sum<T>/RangeSum<T> get inconsistent results.",
+   "currentCost": "Run<T> does a forward total-sum and never populates the suffix array, so a subsequent Sum<T> (returns ptr[0]) yields the full sum only by coincidence, while RangeSum<T> re-scans O(r-l) instead of using O(1) suffix differences ptr[l]-ptr[r+1].",
+   "proposedChange": "Make generic Run<T> match the typed overloads: build the in-place suffix sums (acc-accumulator reverse loop), return ptr[0]. Then RangeSum<T> can become O(1): 'ptr[l] - ptr[r+1]' (with ptr[r+1] treated as 0 when r==len-1), instead of an O(n) rescan.",
+   "rationale": "Aligns the generic with the specialized overloads (consistent observable contract across the class) AND turns RangeSum from O(n) into O(1) once the suffix array exists \u2014 an asymptotic win for range queries, which is the entire point of a suffix-sum structure.",
+   "risk": "This CHANGES observable behavior of Run<T>/RangeSum<T> (Run<T> currently leaves the array untouched). It is a contract fix, not a semantics-preserving micro-opt: only adopt if the intended contract is 'Run builds the suffix array' as the typed overloads imply. RangeSum O(1) form requires the array to be a valid suffix-sum array and bounds r+1<=len."
+  },
+  {
+   "file": "src/IAFahim.Search.Suffix/Suffix.cs",
+   "symbol": "SuffixMin.Run<T> / SuffixMax.Run<T> / MinIndex / MaxIndex",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "IComparable<T>.CompareTo is an interface-dispatched call inside the hot loop; for the common blittable numeric types this defeats branchless SIMD min/max and risks a non-devirtualized virtual/interface call.",
+   "currentCost": "One interface call per element (CompareTo) plus a branch. Even when Burst devirtualizes, CompareTo's three-way result (>0/<0) is heavier than a single compare, and it blocks vectorized min/max.",
+   "proposedChange": "Provide sizeof(T)-dispatched specializations for the 4-byte and 8-byte integer/float cases (mirroring SuffixSums) using direct '<'/'>' on reinterpreted int/long/float/double, and a branchless select (e.g. min = a + ((b - a) & ((b - a) >> 63)) for longs, or math.min under Burst). Keep the IComparable<T> generic as the fallback.",
+   "rationale": "Direct relational operators on concrete numeric types are single-cycle, branch-predictable, and SIMD-friendly; Burst auto-vectorizes a running min/max reduction. Removes interface-dispatch overhead and the three-way CompareTo computation on the hot path.",
+   "risk": "Branchless integer min/max via sign-shift is signed-specific; for unsigned reinterpretation the shift trick is invalid \u2014 must dispatch by actual element type, not just sizeof. Float NaN ordering differs between CompareTo and '<', so the float path must preserve the existing CompareTo tie/NaN semantics or be documented as numeric-only."
+  },
+  {
+   "file": "src/IAFahim.Search.Suffix/Suffix.cs",
+   "symbol": "SuffixSums.Run(int*, int) suffix array building",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "RangeSum after a suffix-sum build still rescans O(r-l); the structure already supports O(1) range queries via ptr[l]-ptr[r+1].",
+   "currentCost": "RangeSum is O(r-l+1) per query, defeating the purpose of precomputing suffix sums.",
+   "proposedChange": "After Run builds the suffix-sum array, expose a RangeSum that returns ptr[l] - (r+1 < len ? ptr[r+1] : 0). This is O(1).",
+   "rationale": "A suffix-sum (or prefix-sum) array exists precisely to answer range-sum queries in O(1); the current O(n) rescan wastes the precomputation.",
+   "risk": "Requires ptr to actually hold suffix sums (post-Run) and r+1<=len. The current RangeSum makes no such assumption (it sums raw values), so this is a contract/semantics change, not a drop-in \u2014 only valid if RangeSum is defined to operate on a built suffix array."
+  }
+ ]
+}

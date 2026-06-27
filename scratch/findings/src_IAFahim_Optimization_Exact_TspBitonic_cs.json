@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Optimization.Exact/TspBitonic.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Exact/TspBitonic.cs",
+   "symbol": "Dist",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Dist recomputes sqrt of integer-truncated Euclidean distances repeatedly; the same pair distances are recomputed across the DP and can be precomputed once, and Dist should be AggressiveInlined.",
+   "currentCost": "Dist does a double subtract, two mults, an add, a sqrt and a (long) truncation. It is called inside the i,j,k DP (the k-loop at lines 30-37 calls Dist(k->i) for every k each time j==i-1, i.e. O(n^2) sqrt total) and again at line 43. sqrt is ~15-40 cycles and dominates.",
+   "proposedChange": "Precompute a lower-triangular (or full) distance matrix 'long* d = ...; d[a*n+b]=Dist(...)' once at the start of Run (O(n^2) sqrts), then index d[k*n+i], d[(i-1)*n+i], d[0*n+(n-1)] instead of recomputing. Also add [MethodImpl(AggressiveInlining)] to Dist (the using is already imported).",
+   "rationale": "The DP body re-evaluates Dist for the same coordinate pairs across iterations; caching makes each distance computed exactly once, turning O(n^2)+ sqrt calls into O(n^2) total with the DP doing pure long loads. AggressiveInlining removes call overhead and lets Burst hoist the sqrt.",
+   "risk": "None for correctness: distances are pure functions of coordinates. Extra O(n^2) long buffer (8 bytes/pair) \u2014 acceptable given dp is already O(n^2); the caller must supply the scratch (house style passes buffers in). Truncation order is unchanged since each pair is truncated identically."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Exact/TspBitonic.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Dist(xs[i-1],ys[i-1],xs[i],ys[i]) at line 43 is invariant in j but recomputed for every j in the inner loop.",
+   "currentCost": "For each i, the else branch (j != i-1) at line 43 recomputes the same Dist(i-1, i) for every j from 0..i-2 \u2014 O(n) redundant sqrt per i, O(n^2) total redundant sqrts.",
+   "proposedChange": "Hoist 'long step = Dist(xs[i-1],ys[i-1],xs[i],ys[i]);' once per i (before the j loop) and use it in line 43. (Subsumed if the full distance matrix from the previous item is adopted.)",
+   "rationale": "Removes O(n^2) redundant sqrt evaluations from the DP \u2014 sqrt is the most expensive op in the inner loop.",
+   "risk": "None; the value depends only on i, not j."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Exact/TspBitonic.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "long.MaxValue sentinel arithmetic (prev + Dist) risks overflow and forces per-cell !=MaxValue branches; row-base offsets j*n and i*n are recomputed.",
+   "currentCost": "Init loop fills dp with long.MaxValue; lines 41-43 add Dist to prev guarded by !=MaxValue. Indexing dp[j*n+i] and dp[i*n+j] recomputes j*n / i*n each access.",
+   "proposedChange": "Hoist row bases ('long* rowI = dp + i*n;') and reuse; keep the !=MaxValue guard (it prevents overflow of MaxValue+Dist, so it is load-bearing and must NOT be removed). Optionally use a named INF < MaxValue/2 sentinel to make the guard's overflow intent explicit and allow saturating compares.",
+   "rationale": "Removes repeated index multiplies; documents that the MaxValue guard exists to avoid signed overflow.",
+   "risk": "Do NOT drop the !=MaxValue checks \u2014 long.MaxValue + Dist overflows to negative and would corrupt the min. Changing the sentinel to INF<MaxValue/2 is safe only if all real distances stay below INF."
+  }
+ ]
+}

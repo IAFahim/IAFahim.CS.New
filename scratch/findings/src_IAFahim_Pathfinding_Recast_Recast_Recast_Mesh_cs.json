@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Mesh.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Mesh.cs",
+   "symbol": "ComputeVertexHash / AddVertex (lines 548-559)",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "ComputeVertexHash takes a y argument that is always passed as 0 by both callers, computing a dead h2*y term.",
+   "currentCost": "Both AddVertex (line 559) and the merge path call ComputeVertexHash(x, 0, z). The h2*(uint)y multiply-add (line 553) is therefore always +0 but still executed each hash, and the signature implies y participates in bucketing when it does not.",
+   "proposedChange": "Drop the y parameter: 'ComputeVertexHash(int x, int z) => (int)(((h1*(uint)x) + (h3*(uint)z)) & (VertexBucketCount-1));' and update both call sites. Mark AggressiveInlining (it is a 2-call leaf in the AddVertex hot loop).",
+   "rationale": "Removes one multiply and one add per AddVertex bucket computation and clarifies that vertices are bucketed by xz only (which matches the AddVertex merge test that ignores y up to +/-2). AddVertex runs once per contour vertex during mesh build and merge.",
+   "risk": "None to hash distribution: 0 contributed nothing, so bucket assignment is byte-identical. Pure refactor; keep VertexBucketCount mask unchanged."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Mesh.cs",
+   "symbol": "GetPolyMergeValue (lines 776-801)",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Shared-edge search recomputes (i+1)%na and (j+1)%nb with modulo every iteration of an O(na*nb) double loop.",
+   "currentCost": "Lines 779 and 788 do '% na' and '% nb' for the wrap of the next vertex on each of the na*nb iterations. na,nb are small (<=nvp) but not powers of two, so these are real integer-divide-backed modulos in a nested loop that runs for every candidate poly pair, and the whole GetPolyMergeValue is called O(npolys^2) per merge step inside an O(npolys) merge loop.",
+   "proposedChange": "Precompute the 'next' vertex without modulo: track va1 as pa[i+1 == na ? 0 : i+1] using a branch/conditional, or precompute pa's sorted edge endpoints once per outer poly before the inner loop. At minimum hoist va0/va1 (independent of j) out of the inner j-loop so the swap and read happen na times, not na*nb times.",
+   "rationale": "Hoisting the va0/va1 computation and its conditional swap out of the inner loop removes na*(nb-1) redundant reads+compares+swaps; replacing % with a compare avoids integer division. This sits inside the cubic-ish polygon merge phase of BuildPolyMesh/RemoveVertex, a known hotspot.",
+   "risk": "None. va0/va1 depend only on i; moving their computation above the j-loop is a pure loop-invariant hoist. Replacing 'x % n' with 'x>=n ? x-n : x' is exact for the 0<=x<2n range produced by (i+1) and (j+1)."
+  }
+ ]
+}

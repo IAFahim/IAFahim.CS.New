@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.String.SuffixAutomaton/LinkTree.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.SuffixAutomaton/LinkTree.cs",
+   "symbol": "Traverse",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Each popped node rescans all states to find children, making link-tree traversal O(stateCount^2).",
+   "currentCost": "For every node popped (stateCount of them) the inner loop scans linkPtr[0..stateCount) to find i with linkPtr[i]==v. Total O(stateCount^2) loads and branches even though the link tree has exactly stateCount-1 edges.",
+   "proposedChange": "Precompute a children adjacency in CSR form once: count children per parent (one pass over linkPtr), prefix-sum into head offsets, scatter child indices into a flat int* childBuf. Then traversal visits each node and iterates only its real children -> O(stateCount). Accept the two scratch buffers (childHead[stateCount+1], childBuf[stateCount]) as caller-provided pointers to honor the no-alloc rule.",
+   "rationale": "Reduces traversal from O(n^2) to O(n) with two linear passes; for n in the thousands this is orders of magnitude fewer memory accesses and far better cache behavior (sequential CSR scans vs repeated full-array sweeps).",
+   "risk": "Pure restructuring of iteration order; DFS visit set is identical. Visit ORDER changes (children grouped by parent rather than reverse-scan order) \u2014 if callback ordering is observable to callers, document it. Requires extra scratch buffers passed in by the caller."
+  }
+ ]
+}

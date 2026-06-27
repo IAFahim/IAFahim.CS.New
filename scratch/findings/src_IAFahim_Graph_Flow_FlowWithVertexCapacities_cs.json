@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Graph.Flow/FlowWithVertexCapacities.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Flow/FlowWithVertexCapacities.cs",
+   "symbol": "FlowWithVertexCapacities.Run",
+   "severity": "critical",
+   "category": "off-by-one",
+   "summary": "Split-vertex auxiliary graph is built with edgeId starting at 1, so Dinic's e^1 reverse-edge indexing is misaligned and the max flow under vertex capacities is computed incorrectly.",
+   "triggeringInput": "n=3, s=0, t=2, edges 0->1 and 1->2 each cap 5, vCap[1]=3. The first added edge (in->out for vertex 0) gets id 1, whose reverse via 1^1=0 collides with the head sentinel.",
+   "rootCause": "DinicMaxFlow/DinicDfs maintains residual capacity through flow[e]/flow[e^1] with forward/reverse edges stored as consecutive ids by MinCostFlowAddEdge. The pairing is only valid when forward ids are even. With edgeId=1 the parity is inverted: forward edges occupy odd ids and e^1 points to the wrong edge (and to index 0 for the very first edge), so the residual network is corrupted and the returned flow value (and copied flow[e]) is wrong.",
+   "suggestedFix": "Initialize edgeId = 2 so the first forward edge has an even id and e^1 correctly addresses its reverse."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Flow/FlowWithVertexCapacities.cs",
+   "symbol": "FlowWithVertexCapacities.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Per-vertex split-edge build recomputes i*2/i*2+1 and branches on s/t inside the loop.",
+   "currentCost": "Lines 19-24 loop over all n vertices computing inV=i*2, outV=i*2+1 and a 'i==s || i==t' branch every iteration to pick int.MaxValue vs vCap[i]. The two source/sink vertices are the only ones needing MaxValue, yet the branch is paid n times.",
+   "proposedChange": "Hoist the special cases out: run the loop unconditionally with 'int twoI = i << 1; MinCostFlowAddEdge.Run(..., twoI, twoI|1, 0, vCap[i]);' then, after the loop, overwrite only the s and t split-edge capacities to int.MaxValue (the in->out edge ids for s and t are deterministic: edge 2*s+? in build order). Alternatively, keep the branch but compute 'int twoI = i << 1; int outV = twoI | 1;' once. The i<<1 / |1 form is strength-reduced and avoids the separate +1 add.",
+   "rationale": "Removes n branch evaluations on a condition true for only 2 of n vertices, and replaces multiply+add with shift+or (equivalent since i>=0). Cuts work in an O(V) build loop; predictable straight-line code vectorizes/pipelines better.",
+   "risk": "Low. i is a non-negative loop index so i<<1 == i*2 and (i<<1)|1 == i*2+1 exactly. The post-loop overwrite must target the correct edge ids for s and t in MinCostFlowAddEdge's id sequence; if that edge-id arithmetic is gotten wrong it changes capacities \u2014 safer minimal version is to keep the branch and only apply the shift/or strength reduction (zero risk)."
+  }
+ ]
+}

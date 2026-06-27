@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Optimization.Exact/GraphColoring.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Optimization.Exact/GraphColoring.cs",
+   "symbol": "GraphColoring.Search",
+   "severity": "high",
+   "category": "wrong-algorithm",
+   "summary": "GraphColoring.Run is documented/named as an exact chromatic-number solver but actually returns the color count of the FIRST greedy DSATUR-style coloring it finds, which is only an upper bound, not the minimum number of colors. Search returns immediately on the first complete leaf (if (res > 0) return res), and BuildColorOrder always tries reusing existing colors before opening a new color, so the search greedily completes one valid coloring and never backtracks to find one using fewer colors. There is no branch-and-bound on the number of colors, so the result overcounts the chromatic number on many graphs.",
+   "triggeringInput": "n=9, undirected edges {(0,2),(0,4),(0,6),(0,7),(0,8),(1,2),(1,4),(1,8),(2,5),(2,6),(3,4),(3,6),(4,6),(4,8)} stored symmetrically in adj. Run returns 4 but the true chromatic number is 3 (verified by exhaustive brute force). Also reproducible on smaller dense random graphs.",
+   "rootCause": "The algorithm is a greedy/DSATUR heuristic dressed up as exact: Search returns on the first successful leaf and the color ordering prefers existing colors, so it finds one feasible coloring and reports its color count without ever exploring alternative colorings that use fewer colors. DSATUR happens to be optimal on bipartite/cycle graphs (why simple tests pass) but is suboptimal in general.",
+   "suggestedFix": "To be exact, perform branch-and-bound over the number of colors: maintain a global best and only accept a complete coloring if its color count beats the current best, pruning branches where used >= best, and continue the search (do not early-return on the first leaf) until the whole tree (subject to pruning) is exhausted. Equivalently, iteratively try k = lowerBound, lowerBound+1, ... and run a k-colorability feasibility search, returning the smallest feasible k."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Exact/GraphColoring.cs",
+   "symbol": "CanUseColor",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Restrict the neighbor scan to already-colored vertices (u < v) when checking color legality.",
+   "currentCost": "CanUseColor scans all n vertices testing adj[v*n+u] && colors[u]==c, but colors[u] is -1 for all u>v (not yet assigned in this DFS path), so those iterations can never return false.",
+   "proposedChange": "Change loop to `for (int u = 0; u < v; u++)` with a hoisted row pointer `bool* row = adj + v*n;`. Vertices are colored in increasing index order, so only u<v have a non-negative color.",
+   "rationale": "Halves the average scan length of this per-candidate-color check and drops the v*n multiply per iteration; this is called once per (vertex,candidate color) in an exponential branch-and-bound.",
+   "risk": "Depends on the invariant that vertices are assigned colors strictly in increasing index order (Search advances v -> v+1, and colors[v] is set to -1 initially and reset on backtrack). Holds in this code. If a future caller seeds colors out of order this breaks -- document the invariant."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Exact/GraphColoring.cs",
+   "symbol": "TryNewColor / UpdateSaturation",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist row/column base offsets (v*n) out of the per-u loops in TryNewColor and UpdateSaturation.",
+   "currentCost": "TryNewColor's loop computes both v*n+u and u*n+v each iteration (one multiply each, two total); UpdateSaturation recomputes v*n+u and u*n+c per iteration.",
+   "proposedChange": "In TryNewColor: `int* satRow = sat + v*n;` for the v*n+u term; the u*n+v term still needs per-u u*n but can be carried as a running pointer `sat + v` advanced by n. In UpdateSaturation: `bool* adjRow = adj + v*n;`.",
+   "rationale": "Removes redundant index multiplies from the saturation bookkeeping that runs on every color try/backtrack; strided pointer walks are Burst-vectorizer friendly.",
+   "risk": "The u*n+v access pattern is column-strided; converting to a pointer incremented by n per step is equivalent. No semantic change."
+  }
+ ]
+}

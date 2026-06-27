@@ -1,0 +1,72 @@
+{
+ "file": "src/IAFahim.Algebra.GraphPoly/Tutte.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Algebra.GraphPoly/Tutte.cs",
+   "symbol": "Tutte.Subset",
+   "severity": "high",
+   "category": "overflow",
+   "summary": "size = 1 << edges overflows int for edges >= 31, producing a negative size that makes the subset-enumeration loop run zero iterations and return 0 (and undefined shift behavior for edges >= 32).",
+   "triggeringInput": "n=2 with a 31-edge multigraph between two vertices (e.g. from[e]=0,to[e]=1 for e in 0..30), x=2, y=3, MOD=1000000007. edges=31 makes size = 1<<31 = int.MinValue (negative).",
+   "rootCause": "`int size = 1 << edges;` uses a 32-bit signed shift. For edges==31 this yields int.MinValue (negative); the subsequent `for (int mask = 0; mask < size; mask++)` loop condition 0 < negative is false, so the accumulation loop never runs and Subset returns the initial result 0 instead of the true Tutte/Whitney value. The earlier call CountComponents(..., size - 1, ...) also passes a corrupted mask. For edges >= 32 the shift is undefined behavior. Note: shift-distance overflow is silent here because edges is consumed directly as a shift amount and as a loop bound.",
+   "suggestedFix": "Compute size as a long (long size = 1L << edges;) and iterate mask over a long range, or explicitly require/validate edges <= 30. At minimum guard against edges >= 31 so the enumeration count and mask values stay representable, ensuring (mask & (1 << e)) and the loop bound remain correct."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Algebra.GraphPoly/Tutte.cs",
+   "symbol": "Subset / CalculateTerm / ModPow",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace the two per-mask ModPow calls with precomputed power tables for x and y, since both exponents are small bounded non-negative integers.",
+   "currentCost": "The main loop runs 2^edges iterations, and each iteration calls CalculateTerm which performs two ModPow calls. Each ModPow is an O(log exp) loop of 64-bit multiply+mod. So the inner cost is ~2*2^edges modular exponentiations, dominating runtime (e.g. 256 iterations * 2 modpows for edges=8).",
+   "proposedChange": "Before the loop, build two stackalloc tables: long* xPow = stackalloc long[n]; long* yPow = stackalloc long[edges + 1]; fill xPow[0]=1, xPow[i] = (xPow[i-1] * (x mod-normalized)) % MOD for i in 1..n-1, and similarly yPow[0..edges]. Inside the loop replace CalculateTerm's ModPow(x,xExp,..) / ModPow(y,yExp,..) with xPow[xExp] * yPow[yExp] % MOD. Inline xExp/yExp computation (xExp = rkE - rkA, yExp = eCount - rkA).",
+   "rationale": "Turns O(2^edges * log(exp)) modular exponentiations into O(n + edges) table setup plus one 64-bit multiply + one mod per mask. The exponents are tiny and highly repeated across masks, so memoizing all reachable powers removes the entire log-exp dependency chain from the hot loop. Cuts the dominant cost by roughly an order of magnitude.",
+   "risk": "Requires the exponents to be non-negative and within table bounds. Verified: rkA = n - comps in [0, n-1]; xExp = rkE - rkA in [0, rkE] subset of [0, n-1] because adding edges never increases components (comps >= compsE => rkA <= rkE); yExp = eCount - rkA in [0, edges] because a subgraph's rank rkA <= its edge count eCount and rkA >= 0. So xPow[n] and yPow[edges+1] sizes are sufficient and no negative index occurs. Must normalize base mod MOD (and add MOD if negative) exactly as ModPow does to preserve identical results; x,y are passed as long but the modular reduction must match. Edge case n could be small; xPow needs at least 1 slot (n>=1 guaranteed since stackalloc int[n] already assumes it)."
+  },
+  {
+   "file": "src/IAFahim.Algebra.GraphPoly/Tutte.cs",
+   "symbol": "PopCount",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace the hand-rolled Kernighan PopCount loop with System.Numerics.BitOperations.PopCount, which Burst and the JIT lower to a single hardware popcnt instruction.",
+   "currentCost": "PopCount runs a loop iterating once per set bit (up to edges iterations: m &= m-1; c++), executed once per mask = 2^edges times. Each call is a variable-length, data-dependent branchy loop.",
+   "proposedChange": "Return System.Numerics.BitOperations.PopCount((uint)m); (m is a mask in [0, 2^edges - 1], always non-negative, so the uint cast is exact). Remove the manual loop.",
+   "rationale": "BitOperations.PopCount is an intrinsic mapping to the POPCNT instruction (Burst recognizes it), replacing a multi-iteration loop with a single fixed-latency, branchless instruction. Removes a data-dependent branch from the hot path and shortens the dependency chain.",
+   "risk": "BitOperations.PopCount takes uint/ulong; cast (uint)m is safe because m = mask < 2^edges and edges <= 31 for the 1<<edges size computation to be valid, so m is always non-negative. Behavior identical for all valid inputs. Confirm Burst/target supports BitOperations (it does for popcount); otherwise keep the loop but mark unsigned."
+  },
+  {
+   "file": "src/IAFahim.Algebra.GraphPoly/Tutte.cs",
+   "symbol": "Subset",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the (long)MOD cast and reuse a single modL local; also the compsE/rkE full-graph CountComponents is correct to compute once but the per-mask result modulo and accumulation can avoid repeated casts.",
+   "currentCost": "Inside the loop, (long)MOD is recomputed/cast on every iteration in both the accumulation (result + term) % (long)MOD and inside CalculateTerm/ModPow. Repeated widening casts and the redundant module constant materialization add per-iteration overhead across 2^edges iterations.",
+   "proposedChange": "Compute long modL = (long)MOD once at the top of Subset and pass/use it everywhere instead of re-casting MOD. Combined with the power-table change, CalculateTerm becomes a tiny inline expression taking modL.",
+   "rationale": "Eliminates redundant int->long conversions inside the hottest loop and keeps the modulus in a register. Minor constant-factor win but free and compounds with the table change.",
+   "risk": "None; pure refactor, identical arithmetic. Casting MOD once vs many times yields the same value."
+  },
+  {
+   "file": "src/IAFahim.Algebra.GraphPoly/Tutte.cs",
+   "symbol": "CountComponents",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Replace per-mask popcount-style component recount (final loop scanning parent[i]==i) by decrementing a running component counter during unions, removing the second O(n) scan.",
+   "currentCost": "Each CountComponents call does: O(n) init, O(edges) union pass with Find, then a separate O(n) scan counting roots (parent[i]==i). The final scan is a full extra pass over parent every call, i.e. 2^edges * n extra reads.",
+   "proposedChange": "Initialize int comps = n; in the union pass, when u != v perform the union and decrement comps. Return comps directly, deleting the trailing for-loop that scans for roots. (Union only happens when u != v, which is exactly when two distinct components merge.)",
+   "rationale": "Removes a full O(n) pass per mask, halving the non-union work. Component count is exactly n minus the number of successful unions, which the existing if (u != v) branch already identifies, so the count is maintainable for free inside the existing branch.",
+   "risk": "Semantics preserved: a successful union (u != v) reduces distinct components by exactly one; duplicate/self edges (u == v) are skipped and must not decrement. With path-halving Find, roots are correct, so comps stays accurate. Identical result to the root-scan. Negligible risk."
+  },
+  {
+   "file": "src/IAFahim.Algebra.GraphPoly/Tutte.cs",
+   "symbol": "Subset",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Iterate masks in Gray-code order to reuse incremental state is NOT applicable (union-find lacks deletion); instead consider that compsE full-graph pass is redundant with mask=size-1 iteration.",
+   "currentCost": "compsE is computed via CountComponents(..., size-1, ...) separately, and the loop also evaluates mask = size-1 (the full edge set) inside the main loop, recomputing the same union-find a second time.",
+   "proposedChange": "compsE/rkE is needed before the loop for every term, so it must be computed first; but you can skip recomputation when mask == size-1 inside the loop by reusing the already-known compsE (comps for the full mask equals compsE). Branch is cheap (one compare per iteration) but only saves one CountComponents call total, so optionally just leave as-is. Document that Gray-code reuse is impossible because union-find does not support edge deletion.",
+   "rationale": "Avoids exactly one redundant CountComponents call (the full-mask one). Marginal at large edge counts; included for completeness so a future reader does not mistakenly attempt Gray-code incremental DSU, which is unsound here.",
+   "risk": "Adding a per-iteration branch to save one call is usually not worth it; net could be slightly negative for large 2^edges. Recommend NOT adding the branch and instead leaving compsE computation as the single source. This entry is primarily to flag that the asymptotic 2^edges * (n + edges) bound is essentially tight for the subset-sum Tutte definition; no better asymptotics without switching to deletion-contraction, which changes the algorithm."
+  }
+ ]
+}

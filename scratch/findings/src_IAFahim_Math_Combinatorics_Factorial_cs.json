@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Math.Combinatorics/Factorial.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Combinatorics/Factorial.cs",
+   "symbol": "Factorial.ModPow",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Mark ModPow (and the leaf Run methods) AggressiveInlining and reduce one redundant square at loop end.",
+   "currentCost": "ModPow is a private leaf called once per Factorial table build; not inlined. It also squares b on the final iteration even when e becomes 0 right after, wasting one modmul.",
+   "proposedChange": "Add [MethodImpl(AggressiveInlining)] to ModPow; restructure loop to skip the final b=b*b%mod when e>>=1 reaches 0 (test e after shift). Inlining lets Burst fold the single call site.",
+   "rationale": "Saves one 64-bit modmul per ModPow call and removes call overhead at the single hot site that builds invFact. Constant-factor but real.",
+   "risk": "Reordering must not change which bits are consumed; standard pattern is to break when e==0 after the shift. Verify last-iteration square elision keeps result identical (it does, the extra square is dead)."
+  }
+ ]
+}

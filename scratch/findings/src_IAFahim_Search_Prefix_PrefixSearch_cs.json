@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Search.Prefix/PrefixSearch.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.Prefix/PrefixSearch.cs",
+   "symbol": "PrefixSearch.LongestCommonPrefix",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "LCP compares one byte per iteration; for long common prefixes this is 8x slower than a word-at-a-time compare.",
+   "currentCost": "One byte load + compare + branch per matching byte; O(maxLen) byte ops with a per-byte branch that the predictor handles but still one iteration per byte.",
+   "proposedChange": "Compare 8 bytes at a time by loading (long*)a and (long*)b while i+8<=maxLen; on the first differing 8-byte chunk, XOR the two longs and use math.tzcnt (trailing-zero count, /8) to locate the exact mismatching byte; fall back to byte loop for the tail. Add [MethodImpl(AggressiveInlining)] retained.",
+   "rationale": "Word-wide compares cut loop trip count by 8x and tzcnt pinpoints the mismatch byte in one instruction; this is the standard memcmp/LCP fast path and Burst maps tzcnt to a single intrinsic.",
+   "risk": "Endianness: trailing-zero on the XOR gives the lowest-address mismatching byte only on little-endian (PC x86/x64 and ARM in normal config are LE). Must guard for unaligned loads (raw pointer loads of long are fine on x86/ARMv8). Tail handling must not read past maxLen."
+  },
+  {
+   "file": "src/IAFahim.Search.Prefix/PrefixSearch.cs",
+   "symbol": "PrefixSearch.Match / FindFirst / CountOccurrences",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "All three use the naive O(textLen*patLen) double-loop search. A first-byte-skip (memchr-style) on the inner alignment, or a proper sublinear algorithm, cuts the dominant cost.",
+   "currentCost": "Worst case O((textLen-patLen+1)*patLen) byte comparisons; for the common case the outer loop probes every position even when text[i] != pattern[0].",
+   "proposedChange": "Add a cheap first-byte filter: before the inner j-loop, scan i forward to the next position where text[i]==pattern[0] (a tight single-byte loop the compiler vectorizes), then verify the rest. For high-impact, offer a Boyer-Moore-Horspool bad-character variant: precompute a 256-entry stackalloc skip table once (shared across FindFirst/CountOccurrences) giving expected sublinear scanning.",
+   "rationale": "The first-byte filter skips the expensive inner loop setup for the ~255/256 of positions that fail on byte 0, and a vectorizable single-byte scan-to-match is far faster than per-position bool ok=true bookkeeping. Horspool gives O(textLen/patLen) expected on typical inputs versus O(textLen*patLen).",
+   "risk": "Horspool needs a 256-byte stackalloc skip table (allowed by house rules) and patLen<=255 fits byte shifts but shift values up to patLen need int storage; for patLen up to textLen use int[256] stackalloc. Match/FindFirst/CountOccurrences must keep identical found-position semantics (FindFirst returns first index, CountOccurrences counts all overlapping occurrences). The simple first-byte filter is zero-risk and preserves exact semantics."
+  },
+  {
+   "file": "src/IAFahim.Search.Prefix/PrefixSearch.cs",
+   "symbol": "PrefixSearch.Match",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Match duplicates FindFirst's entire body but only needs a boolean. It can delegate to FindFirst to remove duplicated code and benefit from any single optimization site.",
+   "currentCost": "Duplicated double-loop maintenance burden; Match and FindFirst can drift. No runtime cost difference today.",
+   "proposedChange": "Implement Match as return FindFirst(text,textLen,pattern,patLen) >= 0; (note: FindFirst returns -1 for patLen==0 whereas Match currently does NOT special-case patLen==0 \u2014 see risk). Centralizes the search algorithm so future fast-path work (first-byte filter, Horspool) lands in one place.",
+   "rationale": "Single source of truth lowers complexity and ensures both paths get the same optimized scanner; the JIT inlines FindFirst into Match given AggressiveInlining, so no added call cost.",
+   "risk": "Semantics differ for patLen==0: current Match returns true (empty pattern matches at i=0 because the inner loop never executes and ok stays true), while FindFirst returns -1 for patLen==0. Delegating would flip Match's empty-pattern result from true to false. Either keep an explicit if(patLen==0) return true; guard in Match, or do not delegate."
+  }
+ ]
+}

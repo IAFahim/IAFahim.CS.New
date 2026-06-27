@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Sort.Partition/Partition.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Sort.Partition/Partition.cs",
+   "symbol": "Partition.Run<T>",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Skip the self-swap when i == storeIdx in the Lomuto partition loop.",
+   "currentCost": "On every element that is < pivot, the code unconditionally does a 3-instruction swap (read ptr[i], read ptr[storeIdx], two writes). When i == storeIdx (which is the common case for any already-sorted or partially-sorted prefix, and ALWAYS the case until the first element >= pivot is seen), this performs a redundant load+store of the same slot \u2014 pure wasted memory traffic and a write that dirties the cache line for no reason.",
+   "proposedChange": "Inside the if-body, guard the swap: 'if (i != storeIdx) { T tmp = ptr[i]; ptr[i] = ptr[storeIdx]; ptr[storeIdx] = tmp; } storeIdx++;'. Alternatively, hoist the leading run: advance storeIdx with a tight prefix loop while ptr[i] < pivot && i==storeIdx, then enter the main loop.",
+   "rationale": "Eliminates a redundant store (and the false write-dependency it creates) on every leading in-order element. For nearly-sorted inputs this removes ~half the writes; for the very common leading-prefix run it removes them entirely until the first out-of-place element. Fewer stores = fewer dirty cache lines and a shorter store-to-load dependency chain.",
+   "risk": "Semantics identical: swapping a slot with itself is a no-op, so guarding it preserves output exactly. The added branch is well-predicted (taken in steady state once storeIdx lags i), so it is net-positive whenever T is wider than a register or memory bandwidth is the bottleneck; for tiny T (int) on a branchy mobile core the win is marginal but never a regression in cycles since the store is removed."
+  },
+  {
+   "file": "src/IAFahim.Sort.Partition/Partition.cs",
+   "symbol": "Partition.Run<T>",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist len-1 into a named local to make the loop bound and tail swaps share one value.",
+   "currentCost": "'len - 1' is written 4 times (lines 14,17,27,28). Under Burst/IL this is a trivial sub, but the loop condition 'i < len - 1' recomputes the bound expression each iteration in the IL; the optimizer normally folds it, but expressing it once removes any doubt and documents intent.",
+   "proposedChange": "Add 'int last = len - 1;' once after the bounds check, then use 'last' for the pivot-to-end swap, the loop bound 'i < last', and the final restore swaps.",
+   "rationale": "Guarantees the loop-bound subtraction is a loop-invariant computed once, shrinks the IL, and improves readability/maintainability without changing behavior.",
+   "risk": "None \u2014 pure value substitution. Burst almost certainly already hoists this, so the cycle win is essentially zero; value is mainly clarity/insurance, hence low impact."
+  },
+  {
+   "file": "src/IAFahim.Sort.Partition/Partition.cs",
+   "symbol": "Partition.TryGetNthElement<T>",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The 'i < hi' bounds guard in the right-scan inner loop is a per-iteration branch that the Hoare invariant can make a true sentinel eliminates, but only with a guaranteed sentinel \u2014 keep it unless a sentinel is established.",
+   "currentCost": "Inner loop line 54 evaluates 'i < hi && ptr[i].CompareTo(pivot) < 0' every step. The 'i < hi' test is an extra compare+branch on the hottest path of quickselect, executed O(n) times per partition level. Classic Hoare partition omits this guard because the pivot at ptr[lo] acts as a stopping sentinel for the j-scan, and the j<i termination bounds the i-scan.",
+   "proposedChange": "Do NOT blindly delete 'i < hi'. Establish correctness first: the i-scan can overrun only if every element in (lo,hi) is < pivot. Guard by special-casing or by ensuring the largest element sits at hi-1 as a sentinel. Safer concrete win: replace the guard with a loop-invariant sentinel by selecting pivot as median-of-three (ptr[lo],ptr[mid],ptr[hi-1]) so ptr[hi-1] >= pivot guarantees the i-scan stops without the 'i < hi' test \u2014 then drop 'i < hi'.",
+   "rationale": "Removing a compare+branch from the inner do-while halves the comparison overhead per i-step and shortens the dependency chain; median-of-three additionally mitigates the O(n^2) worst case of quickselect on sorted/adversarial input, improving expected behavior on degenerate distributions.",
+   "risk": "HIGH correctness sensitivity: deleting 'i < hi' WITHOUT a guaranteed right sentinel causes out-of-bounds reads/writes when the pivot is the maximum of the subrange. Only valid after a sentinel is provably placed at ptr[hi-1] (median-of-three with the max landing at the right end, or an explicit sentinel slot). Median-of-three also changes which element is chosen as pivot, so partition positions differ \u2014 but the FINAL nth-element result is unchanged because selection is order-statistic deterministic on value. Recommend treating as a guarded refactor, not a one-line edit."
+  },
+  {
+   "file": "src/IAFahim.Sort.Partition/Partition.cs",
+   "symbol": "Partition.TryGetNthElement<T>",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Cache the pivot comparison target and avoid re-reading ptr[j]/ptr[i] across the swap.",
+   "currentCost": "After the swap at lines 56-58, the outer while re-enters and the do-while loops re-load ptr[j] and ptr[i] which were just written, creating store-to-load forwarding dependencies. CompareTo is called via the IComparable<T> constraint; for blittable T Burst devirtualizes it, but the repeated pivot capture is already good (pivot is a local).",
+   "proposedChange": "Minor: ensure pivot stays in a register (already a local T pivot \u2014 good). No structural change needed beyond the median-of-three sentinel above. Leave the partition loop as-is unless sentinel work is done.",
+   "rationale": "The current code already hoists pivot into a local and uses index-only swaps, which is near-optimal for Hoare partition; the only remaining inner-loop overhead is the 'i < hi' guard addressed separately.",
+   "risk": "None proposed here; this entry documents that the loop body is otherwise already tight and should not be churned. Low impact / effectively no-op recommendation."
+  }
+ ]
+}

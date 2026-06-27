@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Search.LIS/Lis.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.LIS/Lis.cs",
+   "symbol": "Lis.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "The O(n) initialization loop is entirely dead work \u2014 all three buffers are fully written before being read in the main loop.",
+   "currentCost": "One full pass over len writing tail[i]=0, prev[i]=-1, idx[i]=0 for every i: 3 stores per element, len iterations, plus the loop overhead. On large inputs this is a second O(n) streaming pass that pollutes cache before the real work.",
+   "proposedChange": "Delete the `for (int i = 0; i < len; i++) { tail[i] = 0; prev[i] = -1; idx[i] = 0; }` line. tail[pos] and idx[pos] are always written (line 20-21) before any read of tail/idx at that position (LowerBound only reads tail[0..lisLen), and a slot at index==lisLen is written the same iteration it is first reached). prev[i] is written for every i in [0,len) at line 22 before the reconstruction loop reads prev[cur].",
+   "rationale": "Removes an entire O(n) pass and 3*len stores. Eliminates touching pages of stackalloc memory that the algorithm overwrites anyway, reducing cache footprint and total cycles.",
+   "risk": "Must confirm no read precedes a write. tail/idx: LowerBound(tail,lisLen,...) only reads indices < lisLen; the slot tail[lisLen]/idx[lisLen] is written in the iteration where pos==lisLen (and lisLen then grows), so every read-back is of a previously-written slot. prev: every i in [0,len) is assigned prev[i] in the main loop; reconstruction only follows indices reachable via idx[lisLen-1] and prev-chain, all of which were assigned. Safe and semantics-preserving. (Note: stackalloc is NOT zero-init-guaranteed to be relied upon, but the algorithm never reads uninitialized slots, so this is fine.)"
+  },
+  {
+   "file": "src/IAFahim.Search.LIS/Lis.cs",
+   "symbol": "Lis.RunLong",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Same dead initialization loop as Run; tail (long), prev, idx are all overwritten before read.",
+   "currentCost": "An O(n) pass writing tail[i]=long.MaxValue (8-byte store), prev[i]=-1, idx[i]=0 per element before any useful work.",
+   "proposedChange": "Delete `for (int i = 0; i < len; i++) { tail[i] = long.MaxValue; prev[i] = -1; idx[i] = 0; }`. The MaxValue sentinel is never needed because LowerBoundLong only scans indices < lisLen, all of which hold real written values; idx and prev are written before read identically to Run.",
+   "rationale": "Removes an O(n) prepass and len 8-byte + 2*len 4-byte stores, shrinking cache footprint and cycle count.",
+   "risk": "Identical reasoning to Run: every read of tail/idx/prev is of a slot written earlier in the algorithm. The long.MaxValue sentinel only mattered if LowerBoundLong could read an unwritten slot, which it cannot (hi=lisLen). Safe."
+  },
+  {
+   "file": "src/IAFahim.Search.LIS/Lis.cs",
+   "symbol": "Lis.Run",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "When result==null the caller only wants the LIS length, but Run still allocates and maintains prev and idx buffers.",
+   "currentCost": "stackalloc of prev[len] and idx[len] plus the per-iteration stores idx[pos]=i and prev[i]=... even on the length-only path where they are never consumed.",
+   "proposedChange": "Provide a fast length-only path (or a separate `RunLength(int* ptr, int len)` returning int) that maintains only the `tail` array and skips prev/idx entirely: drop the idx[pos]/prev[i] stores and the two extra stackalloc buffers. Keep current Run for the reconstruction case. This halves stackalloc working set and removes two stores per element when the caller passes result==null.",
+   "rationale": "Cuts stack memory from 3*len to 1*len and removes 2 stores/element on the common length-only query. Lower cache pressure, fewer dependency-carrying stores. Pure win on that path, and a cleaner Try*/Run-split API.",
+   "risk": "Ergonomic/API change if exposed as a new method (additive, non-breaking). If instead branched inside Run on result==null, the per-iteration branch is loop-invariant and the JIT/Burst will hoist it, but a cleaner separate method avoids any branch. No semantic change to outputs."
+  },
+  {
+   "file": "src/IAFahim.Search.LIS/Lis.cs",
+   "symbol": "Lis.LowerBound",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Binary search has a data-dependent branch per step; can be made branchless to remove mispredict cost on random data.",
+   "currentCost": "Per midpoint: a compare feeding an unpredictable branch that assigns either hi or lo. On random inputs this branch mispredicts ~50% of the time, stalling the pipeline each of the ~log2(len) steps.",
+   "proposedChange": "Rewrite as a branchless predicated update, e.g. keep a base+count form: `int baseIdx=0; int n=len; while(n>1){ int half=n>>1; int t=tail[baseIdx+half-1]; baseIdx += (t < val) ? half : 0; n -= half; }` then a final fixup, OR use the cmov-friendly `lo = cond ? mid+1 : lo` pattern so Burst/LLVM emits a conditional move instead of a branch.",
+   "rationale": "Replaces a hard-to-predict branch with a conditional move, removing branch-mispredict penalties on each of the log2(len) iterations of the hottest inner loop.",
+   "risk": "Must preserve lower-bound semantics (first index with tail[i] >= val) exactly, including the tail[mid] >= val (not >) comparison that makes LIS strictly increasing. Branchless rewrites are easy to get off-by-one; verify against the current contract. Whether LLVM/Burst actually emits cmov is not guaranteed, so the win is conditional \u2014 keep the current form if codegen already produces a cmov."
+  },
+  {
+   "file": "src/IAFahim.Search.LIS/Lis.cs",
+   "symbol": "Lis.Run",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "idx and prev could use a narrower index type when len is known small, but house rules favor int; the real packing win is noting idx duplicates information.",
+   "currentCost": "Three separate len-sized buffers (tail,prev,idx) \u2014 3*len*4 bytes for int / (8+4+4)*len for long.",
+   "proposedChange": "No safe narrowing under house constraints (len is int, indices need int range). Leave as-is. Flagging that idx[pos]=i stores the array index of the tail's owner; this is necessary for reconstruction and cannot be folded into prev without extra work, so no change recommended.",
+   "rationale": "Documenting that the layout is already near-minimal for the reconstruction algorithm; no further safe RAM reduction beyond the result==null path above.",
+   "risk": "None \u2014 this is a non-action (rejecting a tempting but unsafe narrowing)."
+  }
+ ]
+}

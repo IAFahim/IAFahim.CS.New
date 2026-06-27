@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Search.Prefix/Prefix.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Search.Prefix/Prefix.cs",
+   "symbol": "PrefixXor.RangeXor",
+   "severity": "high",
+   "category": "edge-case",
+   "summary": "RangeXor<T> only handles T of size 4 or 8. For any other unmanaged size (byte=1, short=2, sbyte, ushort, etc.) with l>0, it falls through both branches and returns default(T) instead of the correct range XOR.",
+   "triggeringInput": "T=byte, a prefix-xor array ptr={0x01, 0x03, 0x06} (built from {1,2,5}), l=1, r=2. Expected range XOR of original [1,2]= ptr[2]^ptr[0]=0x06^0x01=0x07, but method returns default(byte)=0.",
+   "rootCause": "The method dispatches on sizeof(T) with only ==4 and ==8 cases; the final 'return default' is hit for all other unmanaged sizes when l>0. The l==0 fast path uses generic indexing and works for any size, masking the bug only when l==0.",
+   "suggestedFix": "Handle sizeof(T)==1 and sizeof(T)==2 explicitly (byte*/short* reinterpret), or better, do the XOR generically. Since T:unmanaged and XOR isn't defined on generic T, branch on all valid sizes (1,2,4,8) or reinterpret to byte and XOR byte-by-byte over sizeof(T). Compute res = prefix[r] ^ prefix[l-1] using the size-appropriate integer type and return *(T*)&res."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.Prefix/Prefix.cs",
+   "symbol": "PrefixXor.RangeXor<T>",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "RangeXor reads ptr[r] without bounds context but, more importantly, the l==0 fast-path returns ptr[r] which is the prefix value, yet for l>0 it XORs two prefix entries \u2014 semantics are fine, but the type-punning via *(T*)&res defeats Burst vectorization and the sizeof branch is a runtime dispatch on a compile-time constant.",
+   "currentCost": "Two runtime if (sizeof(T)==4 / ==8) branches per call plus address-of type punning (*(T*)&res) which forces a stack spill and blocks Burst from keeping the value in a register.",
+   "proposedChange": "Replace the type-punning with Unsafe.As or directly compute res in T via System.Runtime.CompilerServices.Unsafe.Add/Read on ptr: T res = ptr[r]; then XOR with ptr[l-1] using a generic XOR only valid for integer T \u2014 since generic ^ is unavailable, instead provide concrete non-generic overloads RangeXor(int* ,int,int) and RangeXor(long*,int,int) mirroring the existing Run overloads, eliminating the sizeof branch and the *(T*)&res pun entirely.",
+   "rationale": "sizeof(T) is a JIT/Burst compile-time constant so the branch is dead-code-eliminated, but the *(T*)&res reinterpret writes res to a stack slot and reloads it as T, adding a store/load dependency the optimizer often cannot remove across the pointer cast. Concrete overloads let Burst keep everything in registers and match the established Run(int*/long*) API convention.",
+   "risk": "Behavior identical for int/long. For T whose sizeof is neither 4 nor 8 the current code returns default; concrete overloads simply would not exist for those, which is stricter but matches the rest of the module (only int/long Run overloads exist)."
+  },
+  {
+   "file": "src/IAFahim.Search.Prefix/Prefix.cs",
+   "symbol": "PrefixMin.Run<T> / PrefixMax.Run<T> / MinIndex / MaxIndex",
+   "dimension": "burst",
+   "impact": "high",
+   "summary": "The IComparable<T>.CompareTo constrained-generic call is an interface dispatch on the hot inner loop. Even with where T:unmanaged,IComparable<T>, Burst/IL2CPP may not always devirtualize boxing-free, and it blocks SIMD vectorization of the running min/max scan.",
+   "currentCost": "One interface/virtual CompareTo call per element (O(len) calls), each returning an int that is then compared to 0 \u2014 a long dependency chain plus potential boxing if devirtualization fails.",
+   "proposedChange": "Provide concrete numeric overloads (int*, long*, float*, etc.) using native < / > operators (branchless min/max via math.min/math.max where available), keeping the generic IComparable version as a fallback. The native-comparison loops vectorize and avoid the CompareTo call entirely.",
+   "rationale": "Native operator comparison on primitive types is a single CPU compare, branch-predictable or branchless, and Burst auto-vectorizes a running-min reduction; CompareTo is opaque to the vectorizer and adds call overhead per element.",
+   "risk": "Must replicate the exact tie-break semantics: Run uses > 0 (keep previous on equal) and < 0; MinIndex uses strict < (keeps earliest index on ties), MaxIndex strict > (earliest on ties). Concrete overloads must use the same strict/non-strict operators to preserve identical outputs including NaN handling for float (CompareTo orders NaN; native < does not \u2014 for float, keep CompareTo or define explicit NaN policy)."
+  },
+  {
+   "file": "src/IAFahim.Search.Prefix/Prefix.cs",
+   "symbol": "PrefixSums.Run / PrefixXor.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "The serial running-sum/xor recurrence ptr[i]+=ptr[i-1] has a loop-carried dependency that prevents vectorization; a log-step (Hillis-Steele) or blocked prefix scan exposes parallelism for large len.",
+   "currentCost": "Strict serial dependency chain of length len: each iteration waits on the previous store/load, ~1 add per cycle best case, no ILP across iterations.",
+   "proposedChange": "For large len, use a two-pass blocked prefix scan: compute per-block local prefix sums (vectorizable within independent blocks), then add carried block offsets. Or document that this is intentionally serial and gate the blocked path behind a len threshold so small inputs keep the cheap loop.",
+   "rationale": "In-place blocked scan breaks the single long dependency chain into independent SIMD-friendly chunks, raising throughput on large arrays where the recurrence latency dominates; small-len keeps current code via threshold.",
+   "risk": "Adds branch/complexity; only wins for large len (cache-resident, len in the thousands+). For small typical inputs the extra setup is a net loss, so it must be threshold-gated. Output must be bit-identical, which it is for integer add/xor (associative); fine for long/int."
+  }
+ ]
+}

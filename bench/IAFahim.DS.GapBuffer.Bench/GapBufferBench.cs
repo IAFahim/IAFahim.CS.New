@@ -49,6 +49,7 @@ namespace IAFahim.DS.GapBuffer.Bench
         [Benchmark(Baseline = true)]
         public void GapBufferInsert()
         {
+            ResetState();
             for (int i = 0; i < 32; i++)
                 global::IAFahim.DS.GapBuffer.GapBufferInsert.Run(ref *_state, i * 16, _insertBuf, 16);
         }

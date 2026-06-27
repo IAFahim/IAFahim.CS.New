@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Graph.Matching/StableMarriageIncomplete.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Matching/StableMarriageIncomplete.cs",
+   "symbol": "StableMarriageIncomplete.Run",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Run is a non-functional stub: it accepts men/women preference lists and list lengths but only initializes matchMen and matchWomen to -1 and returns, never running the Gale-Shapley with incomplete lists algorithm. Every proposer/receiver is left unmatched, so the result is wrong for any input where a non-empty stable matching exists.",
+   "triggeringInput": "n=1, m=1, numPrefMen[0]=1, numPrefWomen[0]=1, prefMen={0}, prefWomen={0} (man 0 and woman 0 each list the other). Expected stable matching: matchMen[0]=0, matchWomen[0]=0. Actual: matchMen[0]=-1, matchWomen[0]=-1 (both unmatched, unstable).",
+   "rootCause": "The method body contains no proposal/rejection loop, no preference-rank computation, and no free-proposer queue; it only performs the -1 initialization that should precede the actual algorithm. The core algorithm is entirely missing.",
+   "suggestedFix": "Implement the Gale-Shapley algorithm for incomplete preference lists: build rank tables for receivers, maintain a queue/stack of free proposers, have each free proposer propose down its list (length numPrefMen[i]), and let each receiver keep its most-preferred current suitor among those on its list, breaking previous tentative matches. Only leave entries at -1 when an agent genuinely cannot be matched within its list."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Matching/StableMarriageIncomplete.cs",
+   "symbol": "Run",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Method is an unimplemented stub; the actual Gale-Shapley algorithm body is absent, so no algorithmic optimization is possible until it is written.",
+   "currentCost": "Two O(n) and O(m) init loops set matchMen[i]=-1 and matchWomen[j]=-1. The pref/numPref/n/m parameters are accepted but completely unused; no matching is performed and unstable/incomplete output is always returned.",
+   "proposedChange": "Implement the Gale-Shapley deferred-acceptance algorithm for incomplete preference lists (proposer pointer per man, rank-inverse table for women to make 'prefers' an O(1) comparison instead of an O(list) scan). The two existing init loops are already optimal as the array-clear preamble.",
+   "rationale": "There is currently nothing to strength-reduce or vectorize beyond the two -1 fills, which Burst already lowers to a vectorized store loop. The only meaningful win is implementing the algorithm with an inverse-rank table so each acceptance test is O(1), giving overall O(n*m) instead of O(n*m^2).",
+   "risk": "Low risk for the observation itself. When implemented, building an inverse-rank table costs extra O(n*m) RAM (int* of size n*m); under the no-managed-array house rule the caller must supply that scratch buffer or it must be stackalloc'd, which is unsafe for large m on mobile stack limits. Flag scratch ownership in the API."
+  }
+ ]
+}

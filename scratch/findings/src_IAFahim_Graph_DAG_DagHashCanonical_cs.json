@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Graph.DAG/DagHashCanonical.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.DAG/DagHashCanonical.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Eliminate the first child-counting pass and the separate gather pass by stackalloc'ing once at max degree, fusing into a single edge walk.",
+   "currentCost": "Per node u the code walks the adjacency list three times: once to count children, once (after stackalloc) to gather child hashes, then sorts. Three list traversals (pointer-chasing 'next[e]', cache-unfriendly) where two could be one. The stackalloc inside the loop also re-grows the stack frame per node.",
+   "proposedChange": "Hoist a single 'ulong* childHashes = stackalloc ulong[maxDeg]' outside the i-loop (maxDeg = max out-degree, computable once or passed in), then per node do one walk that both counts and gathers: 'int childCount=0; for(e...) childHashes[childCount++]=hashes[to[e]];'. This removes the dedicated counting pass and the per-node stackalloc.",
+   "rationale": "Cuts adjacency traversals from 3 to 2 per node (count+gather fused), and a single hoisted stackalloc avoids repeatedly adjusting the stack pointer and re-zeroing concerns inside the loop. Fewer pointer-chase passes means fewer cache misses on next[]/to[].",
+   "risk": "Requires knowing max out-degree up front to size the hoisted buffer; if not available, computing it needs one O(E) prepass \u2014 still cheaper than per-node recount if reused. Stackalloc sizing must cover the largest degree to avoid overflow. Output hashes unchanged."
+  },
+  {
+   "file": "src/IAFahim.Graph.DAG/DagHashCanonical.cs",
+   "symbol": "Run",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Insertion sort of child hashes is O(d^2) per node; for high-degree nodes a sort-free order-independent combine avoids sorting entirely.",
+   "currentCost": "The canonical hash sorts children with insertion sort (O(d^2)) purely to make the FNV combine order-independent. For nodes with large out-degree d this dominates and is quadratic.",
+   "proposedChange": "If the only purpose of sorting is order-independence of the child-hash combine, replace sort+FNV with a commutative/associative mix (e.g. sum, XOR-with-mixing, or sum of a per-child avalanche-hashed value) so children can be combined in any order without sorting. E.g. 'acc += mix(hashes[v]);' then finalize. This makes the per-node cost O(d) instead of O(d^2) and removes the buffer.",
+   "rationale": "An order-independent reduction (sum/xor of well-mixed child hashes) gives the same canonical property the sort was providing, dropping per-node work from O(d^2) to O(d) and eliminating the childHashes buffer and stackalloc entirely.",
+   "risk": "This CHANGES the produced hash values (different algorithm) and collision profile, so it is only valid if the hash output is internal/canonical-only and no caller depends on the exact bit pattern. Plain XOR cancels duplicate children and plain sum is weak; must use an avalanche mix per child to preserve collision resistance. Reject if exact current hash values are part of the contract."
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Algebra.Sequence/Prufer.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Algebra.Sequence/Prufer.cs",
+   "symbol": "Rank",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Rank computes an entire first block (the 'pow' loop and the loop that accumulates into 'r') whose results r and the per-iteration pow are never used; only the second Horner loop's 'result' is returned. This is dead, expensive work including a ModPow.",
+   "currentCost": "First loop: n-2 mults to build pow. Second loop: n-2 iterations each doing a ModPow on i==0 (~30 mod-mults) or a modular division pow/n (integer division on longs, NOT modular inverse) and accumulating into unused r. All discarded.",
+   "proposedChange": "Delete the first 'pow' loop and the first accumulation loop entirely; keep only the final Horner evaluation that fills 'result'. The function reduces to: long result=0,pn=1; for(int i=n-3;i>=0;i--){result=(result+(long)seq[i]*pn)%MOD; pn=pn*n%MOD;} return result;",
+   "rationale": "Removes ~2*(n-2) iterations plus a ModPow that produce values never returned, cutting work roughly in half and eliminating a misleading non-modular 'pow / n' division. The returned value is unchanged.",
+   "risk": "Confirmed dead: r is local and never returned; the only return path uses 'result'. Pure removal, identical observable output. (Note the deleted code also contained a latent bug\u2014pow/n is not modular\u2014so removing it is strictly safe and clarifying.)"
+  }
+ ]
+}

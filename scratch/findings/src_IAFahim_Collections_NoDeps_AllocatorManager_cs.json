@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Collections.NoDeps/AllocatorManager.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Collections.NoDeps/AllocatorManager.cs",
+   "symbol": "AllocatorManager.Allocate(AllocatorHandle, long, int)",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Marshal.AllocHGlobal does not honor the requested alignment, and the alignInBytes parameter is silently ignored across all overloads.",
+   "currentCost": "AllocHGlobal returns memory aligned only to the platform malloc granularity (typically 16 bytes on 64-bit). Callers expecting larger alignInBytes (e.g. 32/64 for SIMD/cacheline) get misaligned pointers, forcing scalar or split loads in downstream Burst-vectorized code (a real per-iteration cycle cost in hot loops that consume these buffers).",
+   "proposedChange": "For the alignment-bearing overloads, over-allocate sizeInBytes + alignInBytes, align the returned pointer up via (p + (align-1)) & ~(nint)(align-1), and store the original base pointer in the bytes immediately preceding the aligned pointer so Free can recover it; or document that alignment is not honored. Since alignInBytes is a power of two by Unity convention, the round-up is a single add+and (branchless).",
+   "rationale": "Correct alignment lets downstream code use aligned vector loads/stores instead of unaligned or split accesses, and avoids cacheline-straddling reads. The align math itself is branchless add+and.",
+   "risk": "Changes the free path (must subtract the stored offset), so it is NOT a drop-in for the current Free which calls FreeHGlobal directly on the same pointer. This is a correctness-coupled change: only safe if Free is updated in lockstep. If callers never request alignment > malloc granularity, this is a no-op and can be skipped. Power-of-two alignment assumed (true for Unity allocators)."
+  },
+  {
+   "file": "src/IAFahim.Collections.NoDeps/AllocatorManager.cs",
+   "symbol": "AllocatorManager.Allocate<T>(AllocatorHandle, int)",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Marshal.AllocHGlobal / FreeHGlobal are managed P/Invoke calls that Burst cannot compile; on the hot path inside Burst-compiled jobs these allocators are not Burst-compatible.",
+   "currentCost": "Any Burst-compiled method that calls these allocators will fail to compile or fall back to managed (Mono) execution, losing all Burst vectorization/codegen for the calling job. This defeats the stated 'runs under Unity Burst' goal for allocation-bearing paths.",
+   "proposedChange": "For Burst compatibility use UnsafeUtility.Malloc/Free (or a raw malloc/free via a Burst-callable function pointer) instead of Marshal.AllocHGlobal/FreeHGlobal. If this module is intentionally the non-Burst fallback shim, annotate it so callers know allocation must happen outside Burst regions.",
+   "rationale": "UnsafeUtility.Malloc is Burst-intrinsified and also takes alignment directly, simultaneously fixing the alignment gap above. Removes the managed transition entirely.",
+   "risk": "This is the NoDeps module that deliberately avoids UnityEngine/Unity.Collections internals, so UnsafeUtility may be unavailable by design. If so, reject; this is a structural/dependency tradeoff, not a free micro-opt. Behavior of allocation size is identical; only the backing allocator changes."
+  }
+ ]
+}

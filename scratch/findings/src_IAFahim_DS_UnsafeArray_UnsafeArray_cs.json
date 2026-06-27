@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.DS.UnsafeArray/UnsafeArray.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.UnsafeArray/UnsafeArray.cs",
+   "symbol": "UnsafeArray(int,Allocator) constructor",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Unconditional MemClear forces an O(length) zeroing write pass on every allocation, even when the caller immediately overwrites the whole buffer.",
+   "currentCost": "UnsafeUtility.MemClear(Ptr, byteCount) touches every byte of the allocation (length * sizeof(T) stores), evicting useful cache lines and adding a full memory-write pass that callers who fully initialize the array (e.g. copy-from, fill, compute-into) pay for nothing.",
+   "proposedChange": "Add an overload / parameter mirroring Unity's convention: `UnsafeArray(int length, Allocator allocator, NativeArrayOptions options)` and only call MemClear when `options == NativeArrayOptions.ClearMemory`. Keep the existing 2-arg ctor delegating with ClearMemory for source compatibility, or add an explicit `bool clear` named-constant-driven path. Hot callers then pass UninitializedMemory and skip the pass.",
+   "rationale": "Eliminates an entire length-proportional store pass and its cache pollution for the common 'allocate then fully write' pattern; this is the standard NativeArray/UnsafeList design for exactly this reason. Pure constant-factor on small arrays but asymptotically the dominant cost when the caller's own init is also O(length).",
+   "risk": "Semantics change ONLY for callers that rely on zero-initialization; the default path must remain clearing to preserve observable behavior. Document that UninitializedMemory yields garbage contents. No Burst/blittability impact (NativeArrayOptions is a plain enum)."
+  },
+  {
+   "file": "src/IAFahim.DS.UnsafeArray/UnsafeArray.cs",
+   "symbol": "UnsafeArray(int,Allocator) constructor",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "`this = default;` zeroes the whole struct and is then immediately followed by writing all three fields, doubling writes to Length/Allocator/Ptr.",
+   "currentCost": "`this = default` issues a struct-wide zero store (Ptr=0, Length=0, Allocator=0) and the next three lines overwrite the same slots, so each field is written twice. The struct is tiny (8+4+4 bytes) so the win is small but the zeroing is redundant.",
+   "proposedChange": "Drop `this = default;` and assign every field directly: `Length = length; Allocator = allocator; Ptr = (T*)AllocatorManager.Allocate(...);`. All instance fields are definitely assigned, so the struct ctor is fully initialized without the default-zero step.",
+   "rationale": "Removes one redundant struct-wide store; each field is written exactly once. Fewer instructions on the allocation hot path.",
+   "risk": "None for behavior: every field is unconditionally assigned afterward, so removing the default-zero is observably identical. Only required because C# struct ctors must definitely-assign all fields \u2014 direct assignment already satisfies that."
+  },
+  {
+   "file": "src/IAFahim.DS.UnsafeArray/UnsafeArray.cs",
+   "symbol": "Dispose",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "`this = default;` in Dispose does a struct-wide zero store even when Ptr was already null.",
+   "currentCost": "On every Dispose, `this = default` writes the full struct. For a struct passed by value/copied this is dead work, and it forces nulling Length/Allocator that callers cannot observe after disposal.",
+   "proposedChange": "Set only `Ptr = null;` after Free (so a double-Dispose is still safe via the null check) instead of `this = default;`. Length/Allocator do not need clearing for correctness.",
+   "rationale": "Single pointer store instead of a full-struct zero; keeps the idempotent double-free guard (Ptr null check) intact with strictly less work.",
+   "risk": "Behavior differs only if external code reads Length/Allocator after Dispose and expects 0 \u2014 disposed-object field reads are already undefined by convention, so this is semantics-preserving for valid usage. Keep `Ptr = null` to preserve the existing double-Dispose safety."
+  }
+ ]
+}

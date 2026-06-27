@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Optimization.Games/Simplex.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Games/Simplex.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace the scalar tableau zeroing loop with a bulk block-clear.",
+   "currentCost": "`for (int i=0;i<rows*cols;i++) tab[i]=0;` zeroes the entire (m+2)*(n+m+2) tableau scalar-by-scalar of doubles. For a 50x50 problem that is ~2700 scalar stores before any real work.",
+   "proposedChange": "Use Unsafe.InitBlockUnaligned(tab, 0, (uint)(rows*cols*sizeof(double))) to clear in one vectorized pass.",
+   "rationale": "A single block-clear intrinsic is lowered to wide SIMD stores by Burst, far fewer instructions and a shorter dependency chain than rows*cols scalar zero stores.",
+   "risk": "Burst- and unmanaged-safe. Guard against rows*cols*8 overflowing uint only for pathologically huge tableaus; for normal LP sizes it is safe."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Games/Simplex.cs",
+   "symbol": "Pivot",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Strength-reduce division to a single reciprocal multiply, hoist the pivot-row base pointer, and skip near-zero pivot factors.",
+   "currentCost": "`tab[r*cols+j] /= v` performs a double division for every j (cols divisions per pivot). Division is ~20-40x the latency of multiply. The inner elimination loop recomputes `tab[r*cols+j]` (the normalized pivot row) for every non-pivot row i, re-indexing r*cols each time, and runs the full subtract even when f==0.",
+   "proposedChange": "Compute double inv = 1.0/v once; then in the normalize loop do tab[r*cols+j]*=inv. Hoist `double* prow = tab + r*cols;` and `double* row_i = tab + i*cols;` to base pointers so indexing is a single add, not a multiply, per element. In the elimination loop add `if (f==0.0 || (f<eps && f>-eps)) continue;` to skip rows whose pivot-column entry is already zero (common in sparse-ish tableaus), avoiding cols multiply-subtracts. Iterate j over the pointer directly.",
+   "rationale": "One reciprocal + cols multiplies replaces cols divisions: division latency is dominant, so this is a large win in the hottest routine (Pivot runs once per simplex iteration over the whole tableau). Hoisting the row base pointer removes a multiply per element and shortens the address dependency chain, enabling Burst to vectorize the j-loop as a fused multiply-add (row_i[j] -= f*prow[j]). Skipping f==0 rows removes entire inner passes.",
+   "risk": "Multiplying by reciprocal instead of dividing changes the last ULP of each normalized entry, which can alter pivoting decisions and the final Value/Status for ill-conditioned LPs \u2014 this is NOT strictly bit-identical. If exact reproduction is required, keep the division in the normalize step and only apply pointer hoisting + f==0 skip (both bit-exact). The f-skip uses eps consistent with the existing tolerance model so it matches the algorithm's intent; pure f==0.0 skip is fully exact."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Games/Simplex.cs",
+   "symbol": "FindPivotCol",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist the objective-row base pointer and the cols-2 constant out of the loop.",
+   "currentCost": "`tab[objRow*cols+j]` recomputes objRow*cols every iteration, and `j == cols-2` recomputes cols-2 each iteration plus branches on the phase1 flag inside the loop.",
+   "proposedChange": "Hoist `double* orow = tab + objRow*cols;` and `int skipCol = phase1 ? -1 : cols-2;`. Loop body: `if (j==skipCol) continue; double val=orow[j]; if (val<minC){minC=val;pc=j;}`. This removes the per-iteration multiply and lifts the phase1 branch out of the loop (skipCol is loop-invariant).",
+   "rationale": "Removes a multiply and a redundant branch per column iteration; orow[j] is a single indexed load. Loop-invariant code motion shortens the body and helps the branch predictor / vectorizer.",
+   "risk": "Bit-exact and semantics-preserving; skipCol=-1 can never equal a valid j (j>=0), so phase1 behavior is unchanged."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Games/Simplex.cs",
+   "symbol": "FindPivotRow",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Avoid per-row division in the ratio test by comparing cross-multiplied products.",
+   "currentCost": "For each candidate row it computes `r = tab[i*cols+cols-1] / tab[i*cols+pCol]` \u2014 a division per row just to compare ratios. Division is high-latency, and the running minimum forces a serial dependency.",
+   "proposedChange": "Track the best (bestNum, bestDen) and compare via cross-multiplication: a new candidate (num_i, den_i) with den_i>eps beats current best when num_i*bestDen < bestNum*den_i (both dens positive). Replace division with two multiplies + compare; only store num/den pair. Also hoist `double* row_i = tab + i*cols;` to index rhs and pivot-col entry with single adds.",
+   "rationale": "Replaces one division per row with two multiplies, much lower latency, in a loop that runs every simplex iteration. Cross-multiplication is the standard branchless-friendly ratio-test trick.",
+   "risk": "Cross-multiplication is only valid because all denominators considered are >eps>0, so inequality direction is preserved \u2014 guard already present (tab[i*cols+pCol]>eps). Floating-point: num*bestDen vs bestNum*den is not bit-identical to comparing the two quotients and can pick a different row on exact ties / ill-conditioned rows, slightly changing which optimal vertex is reported. If exact tie-breaking must match the original, keep the division. Otherwise behavior (an optimal solution) is preserved."
+  }
+ ]
+}

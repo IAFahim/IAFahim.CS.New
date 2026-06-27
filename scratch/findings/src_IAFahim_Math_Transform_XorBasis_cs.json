@@ -1,0 +1,49 @@
+{
+ "file": "src/IAFahim.Math.Transform/XorBasis.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.Transform/XorBasis.cs",
+   "symbol": "XorBasisKth.Run",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "K-th smallest XOR value maps k's bits to the wrong vectors (reversed), producing wrong results. The vectors in vec[] are collected in increasing order of highest set bit (vec[0] smallest, vec[cnt-1] largest), but the final loop assigns the LSB of k to vec[cnt-1] (the LARGEST vector) and the MSB of k to vec[0] (the smallest). For k-th smallest, the LSB of k must select the SMALLEST vector. The mapping is exactly inverted.",
+   "triggeringInput": "Insert 1,2,4 into the basis (basis[0]=1, basis[1]=2, basis[2]=4), then call XorBasisKth.Run(basis, k=1, size=3). Reachable values sorted are {0,1,2,3,4,5,6,7}; the 1st (0-indexed) should be 1, but the method returns 4 (it picks vec[2]=4 for k's LSB).",
+   "rootCause": "In the build loop (for i = cnt-1 .. 0), the bit index used is (cnt-1-i), so vec[cnt-1] (largest magnitude) is paired with bit 0 of k and vec[0] (smallest) with bit (cnt-1). Since vec is sorted ascending, this reverses the bit-to-vector correspondence required for k-th smallest.",
+   "suggestedFix": "Pair the i-th smallest vector with the i-th bit of k: iterate i from 0 to cnt-1 and use 'if ((k & (1 << i)) != 0) result ^= vec[i];' (vec already ascending), or equivalently keep vec ascending and index bit i directly."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform/XorBasis.cs",
+   "symbol": "XorBasisKth.Run",
+   "severity": "high",
+   "category": "logic",
+   "summary": "The Gaussian-elimination/canonicalization step uses bit position (63 - i) as the pivot for vec[i], but vec[i]'s actual pivot (highest set) bit is NOT 63-i unless the basis has exactly 64 vectors filling every bit. With fewer than 64 vectors the reduction eliminates against the wrong bit, so vec is not put into proper reduced echelon form and overlapping pivots remain, corrupting the k-th value enumeration.",
+   "triggeringInput": "Insert 6 then 4 (basis[2]=6, basis[1]=2). vec = {2,6} (cnt=2). The reduction loop tests bit (63-0)=63 for vec[0], which no vector has, so vec[1]=6 is never reduced by vec[0]=2 even though bit 1 of 6 should be eliminated. The enumeration over k then double-counts bit 1.",
+   "rootCause": "The code assumes vec[i]'s pivot bit equals 63-i (full-rank-over-all-64-bits layout), but vec is a compacted list of only the non-zero basis entries, so its pivot bits are the original highest-bit positions, not 63-i.",
+   "suggestedFix": "Track each vec[i]'s real pivot bit (e.g. the index it came from, since basis[idx] has highest bit idx) and eliminate using that bit: when (vec[j] >> pivot[i] & 1) != 0 do vec[j] ^= vec[i]. Then sort vec by pivot ascending before the enumeration."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Transform/XorBasis.cs",
+   "symbol": "XorBasisKth.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the (63 - i) shift amount and the per-iteration (1 << (cnt-1-i)) in the triangulation and reconstruction loops",
+   "currentCost": "In the triangulation double loop (78-85), '63 - i' is recomputed for vec[i]'s pivot test on every j, and the bit-extract '>> (63-i) & 1' is evaluated for vec[i] redundantly across the whole inner j-loop though it is invariant in j. In the reconstruction loop (87-91), '1 << (cnt-1-i)' is recomputed each iteration.",
+   "proposedChange": "Before the inner j-loop compute 'int sh = 63 - i; long pivotI = (vec[i] >> sh) & 1; if (pivotI == 0) continue;' then test only '(vec[j] >> sh) & 1'. In the reconstruction loop replace with a single bit that shifts: iterate so the k-bit is derived by a running shift rather than recomputing 1 << (cnt-1-i).",
+   "rationale": "Removes invariant recomputation from the inner loop (the vec[i] pivot test and the shift amount are constant across j) and turns a per-iteration variable-shift into a constant operation, reducing instructions in the O(cnt^2) triangulation.",
+   "risk": "None. The hoisted values are loop-invariant in j; if pivotI is 0 the original inner condition is always false so 'continue' is equivalent to doing nothing for that i. Behavior identical for all inputs."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform/XorBasis.cs",
+   "symbol": "XorBasisInsert.Run/XorBasisRank.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Use a single descending bit mask instead of recomputing (1L << i) each iteration, and skip directly to the top set bit",
+   "currentCost": "Both loops compute '(1L << i)' every iteration over 64 positions and test against x. Many high iterations are wasted when x has few high bits set.",
+   "proposedChange": "Maintain 'long bitMask = 1L << i' updated by '>>= 1' per step, or better, drive the loop from the highest set bit of x using a leading-zero-count intrinsic (System.Numerics.BitOperations.LeadingZeroCount) so only the set-bit positions that matter are visited; for each, index basis[i] directly.",
+   "rationale": "Replaces 64 variable shifts with either a single running shift or, via LZCNT, jumps straight to relevant bits, cutting iteration count when x is sparse. Constant-factor win on a hot small-loop primitive.",
+   "risk": "LeadingZeroCount path changes loop structure; must reproduce exact reduction order (process bits high-to-low, XOR with basis[i], recompute next-highest bit of the updated x). Equivalent result since elimination is high-to-low regardless of skipped zero bits. Ensure BitOperations is Burst-supported in the target Unity version; if not, keep the running-shift variant which is unconditionally safe."
+  }
+ ]
+}

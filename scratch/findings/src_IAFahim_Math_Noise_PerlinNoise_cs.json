@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Math.Noise/PerlinNoise.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Noise/PerlinNoise.cs",
+   "symbol": "Grad2D",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace per-call cos/sin gradient with a trig-free hash-to-direction, eliminating 8 transcendental calls per Noise2D.",
+   "currentCost": "Grad2D is called 4x per Noise2D; each call does math.cos + math.sin (two transcendental evals) plus a float divide in Hash2D and a multiply by 2*PI. That is 8 sin/cos per sample, by far the dominant cost. Even Burst's vectorized sincos is ~tens of cycles each.",
+   "proposedChange": "Drop the angle->cos/sin path. Take the 31-bit hash h and select one of N (e.g. 8 or 16, power of two) precomputed unit gradient vectors via (h & (N-1)) indexing a static readonly table, or derive a direction directly from hash bits (classic Perlin uses the low bits to pick from {(1,1),(-1,1),(1,-1),(-1,-1),(1,0),...} and normalizes). This removes both trig calls and the float divide entirely.",
+   "rationale": "Strength-reduces two transcendental functions and one divide per gradient down to a mask + table load (or a couple of sign flips). 8 sincos/sample is replaced by branchless bit work; this is the single largest cycle win in the file.",
+   "risk": "Changes the exact output values of the noise (different gradient set), so it is NOT bit-for-bit semantics preserving. Only adopt if the noise field identity is allowed to change. If exact output must be preserved, reject this and instead apply the cheaper sincos fusion below. Gradient table must be unit-length to preserve range; ensure table is blittable static readonly (float2[] is managed - use a fixed buffer or stackalloc-from-constants pattern to stay Burst/house-rule compliant)."
+  },
+  {
+   "file": "src/IAFahim.Math.Noise/PerlinNoise.cs",
+   "symbol": "Grad2D",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Use math.sincos and fold the 2*PI/2147483647 scale into a single constant to cut a divide and a redundant multiply.",
+   "currentCost": "Hash2D returns (h & 0x7fffffff) / 2147483647.0f (a float divide), then Grad2D multiplies by 2.0f * math.PI. math.PI is a double in Unity.Mathematics, so 2.0f * math.PI promotes the whole expression to double then narrows to float, doing double-precision multiplies on the hot path. cos and sin are also two separate calls.",
+   "proposedChange": "Define a single float constant TwoPiOverIntMax = (float)(2.0*Math.PI/2147483647.0). Inline Hash2D's integer h into Grad2D and compute angle = (float)(h & 0x7fffffff) * TwoPiOverIntMax (one multiply, no divide, all float). Replace the separate math.cos/math.sin with one math.sincos(angle, out s, out c).",
+   "rationale": "Removes one float divide per gradient, removes the double-precision promotion from 2.0f*math.PI, and sincos computes both with a shared range-reduction/dependency chain instead of two independent transcendental calls. This is semantics-preserving up to float rounding of the folded constant.",
+   "risk": "Folding /2147483647 * 2PI into one constant changes the last-ULP rounding versus the two-step computation, so output is not guaranteed bit-identical. If exact reproduction is required, keep the divide but still switch to math.sincos and avoid the double promotion by using a float Pi2 constant. math.sincos must exist in the target Unity.Mathematics version."
+  },
+  {
+   "file": "src/IAFahim.Math.Noise/PerlinNoise.cs",
+   "symbol": "Noise2D",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Reuse the floor result instead of recomputing, and reconstruct float2 dot operands without rebuilding constants.",
+   "currentCost": "d00..d11 each build a new float2 with tx, ty, tx-One, ty-One. tx-One and ty-One are each computed twice (in d10/d11 and d01/d11). math.floor is computed then cast to int and the fractional is p - floor; this is fine, but the (int)math.floor pair could use a single floor.",
+   "proposedChange": "Precompute float txm1 = tx - One; float tym1 = ty - One; once and reuse in the four dot calls. Minor: compute int2 i = (int2)math.floor(p) and float2 f = p - math.floor(p) using vectorized float2 ops so floor runs once on a float2 rather than twice on scalars, letting Burst use a single vector floor.",
+   "rationale": "Removes two redundant float subtractions per sample and lets floor vectorize over x/y, reducing the scalar dependency chain. Pure constant-factor but free and bit-exact.",
+   "risk": "Vectorizing floor(p) as float2 must produce identical results to two scalar math.floor calls (it does for IEEE float2). No semantic change; tx/ty values are reused so rounding is identical."
+  },
+  {
+   "file": "src/IAFahim.Math.Noise/PerlinNoise.cs",
+   "symbol": "Zero",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Remove the unused 'Zero' constant.",
+   "currentCost": "private const float Zero = 0.0f; is declared but never referenced in PerlinNoise (unlike SimplexNoise where it is used). Dead declaration, minor clutter.",
+   "proposedChange": "Delete the unused Zero constant from PerlinNoise.",
+   "rationale": "No codegen cost (const), but removes dead code and keeps the file consistent and discoverable.",
+   "risk": "None; purely removing an unreferenced compile-time constant."
+  }
+ ]
+}

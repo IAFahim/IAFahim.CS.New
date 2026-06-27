@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Math.NT/AntiprimeGenerate.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/AntiprimeGenerate.cs",
+   "symbol": "AntiprimeGenerate.Run",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "When k < count, the full HighlyCompositeNumbers list (up to 500 longs) is computed into a stackalloc temp then copied; the copy and the 500-long scratch are unavoidable given the underlying API, but the temp buffer can be sized/justified and the copy skipped when result could be passed directly.",
+   "currentCost": "4000 bytes of stackalloc temp plus a copy loop of writeCount longs, even though HighlyCompositeNumbers.Run already writes into a caller buffer.",
+   "proposedChange": "If k >= the maximum possible count (HCN under limit is bounded, ~a few dozen), write directly into result and skip temp entirely; otherwise call HighlyCompositeNumbers.Run with result as the target and only fall back to temp when k could be smaller than count. Alternatively pass result as the scratch result buffer and truncate in place (no copy) since HCN output is already sorted and result is the consumer.",
+   "rationale": "Removes a 4 KB stack frame and an O(writeCount) copy in the common path. HCN's count under 2e16 is small and bounded, so result can often be the direct sink, eliminating duplicate storage.",
+   "risk": "Requires result to have capacity >= count (not just k) if writing HCN output directly; guard with the known upper bound on HCN count under the fixed limit, or keep temp only when result capacity < count. Behavior preserved (same first writeCount sorted values)."
+  }
+ ]
+}

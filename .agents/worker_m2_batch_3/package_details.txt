@@ -1,0 +1,670 @@
+==================================================
+PACKAGE: IAFahim.Geometry.Arrangement
+Existing README: None
+File: Arrangement.cs
+  public static unsafe class PointLocationBuild
+  public static int Run(int* xs, int* ys, int n, int* grid, int gridSize)
+  public static void BuildKdTree(long* points, int* tree, int node, int l, int r, int depth) { if (l > r) return; int axis = depth & 1, m = Partition(points, l, r, axis); tree[node] = m; BuildKdTree(points, tree, node * 2, l, m - 1, depth + 1); BuildKdTree(points, tree, node * 2 + 1, m + 1, r, depth + 1); }
+  public static unsafe class PointLocationQuery
+  public static int Run(int* grid, int gridSize, int minX, int minY, int cellW, int cellH, int px, int py) { int cx = (px - minX) / cellW, cy = (py - minY) / cellH; if (cx < 0 || cx >= gridSize || cy < 0 || cy >= gridSize) return -1; return grid[cy * gridSize + cx]; }
+  public static int QueryKdTree(long* points, int* tree, int node, int depth, long px, long py)
+  public static unsafe class VerticalDecomposition
+  public static int Run(int* xs, int* ys, int n, int* outX, int* outY) { int* order = stackalloc int[n]; for (int i = 0; i < n; i++) order[i] = i; SortByX(xs, order, n); for (int i = 0; i < n; i++) { outX[i] = xs[order[i]]; outY[i] = ys[order[i]]; } return n; }
+  public static unsafe class TrapezoidalMapBuild
+  public static int Run(int* sx1, int* sy1, int* sx2, int* sy2, int n, int* tx1, int* ty1, int* tx2, int* ty2) { int m = 0; for (int i = 0; i < n; i++) { int loX = sx1[i] < sx2[i] ? sx1[i] : sx2[i], hiX = sx1[i] < sx2[i] ? sx2[i] : sx1[i]; tx1[m] = loX; ty1[m] = sy1[i]; tx2[m] = hiX; ty2[m] = sy2[i]; m++; tx1[m] = loX; ty1[m] = sy2[i]; tx2[m] = hiX; ty2[m] = sy1[i]; m++; } return m; }
+  public static unsafe class TrapezoidalMapQuery
+  public static int Run(int* tx1, int* ty1, int* tx2, int* ty2, int n, int px, int py) { for (int i = 0; i < n; i++) if (tx1[i] <= px && px <= tx2[i]) { int yL = ty1[i] < ty2[i] ? ty1[i] : ty2[i], yH = ty1[i] < ty2[i] ? ty2[i] : ty1[i]; if (yL <= py && py <= yH) return i; } return -1; }
+  public static unsafe class ArrangementFaces
+  public static int Run(int n, int* head, int* to, int* next, int* visited, int* outFace) { int count = 0; for (int i = 0; i < n; i++) for (int e = head[i]; e != 0; e = next[e]) if (visited[e] == 0) { visited[e] = visited[e ^ 1] = 1; outFace[count++] = i; break; } return count; }
+  public static unsafe class PolygonBooleanUnion
+  public static int Run(int* x1, int* y1, int* x2, int* y2, int n, int* outX, int* outY) { int count = 0; for (int i = 0; i < n; i++) { int xLo = Math.Min(x1[i], x2[i]), xHi = Math.Max(x1[i], x2[i]), yLo = Math.Min(y1[i], y2[i]), yHi = Math.Max(y1[i], y2[i]); outX[count] = xLo; outY[count++] = yLo; outX[count] = xLo; outY[count++] = yHi; outX[count] = xHi; outY[count++] = yLo; outX[count] = xHi; outY[count++] = yHi; } return count; }
+  public static unsafe class PolygonBooleanIntersection
+  public static int Run(int* x1, int* y1, int* x2, int* y2, int n, int* outX, int* outY) { for (int i = 0; i < n; i++) for (int j = i + 1; j < n; j++) { int l = Math.Max(x1[i], x1[j]), r = Math.Min(x2[i], x2[j]), b = Math.Max(y1[i], y1[j]), t = Math.Min(y2[i], y2[j]); if (l < r && b < t) { outX[0] = l; outY[0] = b; outX[1] = l; outY[1] = t; outX[2] = r; outY[2] = b; outX[3] = r; outY[3] = t; return 4; } } return 0; }
+File: PointLocation.cs
+  public static unsafe class PointLocation
+  public static void PointLocationBuild() { }
+  public static void PointLocationQuery() { }
+  public static void VerticalDecomposition() { }
+  public static void TrapezoidalMapBuild() { }
+  public static void TrapezoidalMapQuery() { }
+  public static void ArrangementBuild() { }
+  public static void ArrangementFaces() { }
+
+==================================================
+PACKAGE: IAFahim.Geometry.Azimuth
+Existing README: None
+File: SphericalAzimuth.cs
+  public static unsafe class SphericalAzimuth
+  public static double Run(double lat1, double lon1, double lat2, double lon2)
+File: SphericalDistance.cs
+  public static unsafe class SphericalDistance
+  public static double Run(double lat1, double lon1, double lat2, double lon2, double radius)
+File: CartesianAzimuth.cs
+  public static unsafe class CartesianAzimuth
+  public static double Run(double x1, double y1, double x2, double y2)
+
+==================================================
+PACKAGE: IAFahim.Geometry.Basic
+Existing README:
+# IAFahim.Geometry.Basic
+
+## Use case
+Curious cat uses basic geometry for distances, dot products, and simple intersections. It is the starter kit for 2D and 3D reasoning.
+
+File: GeometryBasic.cs
+  public static unsafe class GeometryPoint
+  public static void Run(long* x, long* y, long px, long py)
+  public static unsafe class PointAdd
+  public static void Run(long* ax, long* ay, long bx, long by, long* rx, long* ry)
+  public static unsafe class PointSub
+  public static void Run(long* ax, long* ay, long bx, long by, long* rx, long* ry)
+  public static unsafe class PointDot
+  public static long Run(long ax, long ay, long bx, long by)
+  public static unsafe class PointCross
+  public static long Run(long ax, long ay, long bx, long by)
+  public static unsafe class PointNorm
+  public static long Run(long x, long y)
+  public static unsafe class PointDist
+  public static long Run(long x1, long y1, long x2, long y2)
+  public static unsafe class PointRotate
+  public static void Run(long x, long y, long angleSin, long angleCos, long* rx, long* ry)
+  public static unsafe class PointAngle
+  public static long Run(long ax, long ay, long bx, long by)
+  public static unsafe class Orientation
+  public static int Run(long ax, long ay, long bx, long by, long cx, long cy)
+  public static unsafe class Ccw
+  public static int Run(long ax, long ay, long bx, long by, long cx, long cy)
+  public static unsafe class OnSegment
+  public static bool Run(long px, long py, long ax, long ay, long bx, long by)
+  public static unsafe class SegmentIntersect
+  public static bool Run(long ax, long ay, long bx, long by, long cx, long cy, long dx, long dy)
+  public static unsafe class LineIntersect
+  public static bool Run(long ax, long ay, long bx, long by, long cx, long cy, long dx, long dy, long* ix, long* iy)
+  public static unsafe class LineProjection
+  public static void Run(long px, long py, long ax, long ay, long bx, long by, long* rx, long* ry)
+  public static unsafe class LineReflection
+  public static void Run(long px, long py, long ax, long ay, long bx, long by, long* rx, long* ry)
+  public static unsafe class DistancePointLine
+  public static long Run(long px, long py, long ax, long ay, long bx, long by)
+  public static unsafe class DistancePointSegment
+  public static long Run(long px, long py, long ax, long ay, long bx, long by)
+  public static unsafe class DistanceSegmentSegment
+  public static long Run(long ax, long ay, long bx, long by, long cx, long cy, long dx, long dy)
+  public static unsafe class PolygonArea
+  public static long Run(int n, long* x, long* y)
+  public static unsafe class PolygonCentroid
+  public static void Run(int n, long* x, long* y, long* cx, long* cy)
+  public static unsafe class PolygonContains
+  public static int Run(int n, long* x, long* y, long px, long py)
+
+==================================================
+PACKAGE: IAFahim.Geometry.Bvh
+Existing README: None
+File: BvhTree.cs
+  public struct BvhNode
+  public float3 Min;
+  public float3 Max;
+  public int Left;
+  public int Right;
+  public int TriangleIndex;
+  public struct CentroidSortItem
+  public float3 Centroid;
+  public int TriangleIdx;
+  public static unsafe class BvhTree
+  public static int Build(
+  public static bool Raycast(
+
+==================================================
+PACKAGE: IAFahim.Geometry.Curve
+Existing README: None
+File: CatmullRom.cs
+  public static unsafe class CatmullRom
+  public static float3 Evaluate(float3 p0, float3 p1, float3 p2, float3 p3, float t)
+  public static float3 EvaluateTangent(float3 p0, float3 p1, float3 p2, float3 p3, float t)
+File: CubicBezier.cs
+  public static unsafe class CubicBezier
+  public static float3 Evaluate(float3 p0, float3 p1, float3 p2, float3 p3, float t)
+  public static float3 EvaluateTangent(float3 p0, float3 p1, float3 p2, float3 p3, float t)
+  public static float IntegrateArcLength(float3 p0, float3 p1, float3 p2, float3 p3)
+  public static void UniformSample(float3 p0, float3 p1, float3 p2, float3 p3, int count, float3* outPositions, float3* outTangents)
+
+==================================================
+PACKAGE: IAFahim.Geometry.Frame
+Existing README: None
+File: ParallelTransport.cs
+  public static unsafe class ParallelTransport
+  public static void Compute(float3* positions, int count, float3 initialNormal, float3* outRight, float3* outUp, float3* outForward)
+
+==================================================
+PACKAGE: IAFahim.Geometry.Hull
+Existing README: None
+File: MaximumInscribedCircle.cs
+  public static unsafe class MaximumInscribedCircle
+  public static double Run(double* xs, double* ys, int n)
+File: MinkowskiSum.cs
+  public static unsafe class MinkowskiSum
+  public static int Convex(double* ax, double* ay, int an, double* bx, double* by, int bn, double* outX, double* outY)
+  public static int Difference(double* ax, double* ay, int an, double* bx, double* by, int bn, double* outX, double* outY)
+File: StraightSkeleton.cs
+  public static unsafe class StraightSkeleton
+  public struct Event { public double T; public int V1, V2; }
+  public struct Node
+  public int Id;
+  public double X, Y;
+  public double Dx, Dy;
+  public double Nx1, Ny1; // Normal of left edge
+  public double Nx2, Ny2; // Normal of right edge
+  public int Prev, Next;
+  public bool Deleted;
+  public static int Build(double* xs, double* ys, int n, double* outX, double* outY, Node* scratchNodes)
+File: ConvexHullRollback.cs
+  public static unsafe class ConvexHullRollback
+  public static void ConvexHullRollbackAdd() { }
+  public static void ConvexHullRollbackQuery() { }
+File: ConvexHullTrick.cs
+  public static unsafe class ConvexHullTrick
+  public struct Line { public long M, B; }
+  public struct History
+  public int OldSize;
+  public static long Eval(Line l, long x) { return l.M * x + l.B; }
+  public static int Add(Line* hull, int* size, Line newLine)
+  public static int AddWithHistory(Line* hull, int* size, Line newLine, History* history)
+  public static void Rollback(Line* hull, int* size, History* history)
+  public static long Query(Line* hull, int size, long x)
+File: HalfSpaceIntersection.cs
+  public static unsafe class HalfSpaceIntersection
+  public struct HalfPlane { public double Nx, Ny, D, Angle; public int Id; }
+  public static int Run(double* nx, double* ny, double* d, int m, double* outX, double* outY, int* outSize, HalfPlane* scratchPlanes, int* scratchQ)
+File: RotatingCalipers.cs
+  public static unsafe class RotatingCalipers
+  public struct Rect { public double X, Y, W, H, Angle; }
+  public static Rect MinArea(double* xs, double* ys, int n)
+  public static double MinWidth(double* xs, double* ys, int n)
+File: ConvexHull3D.cs
+  public static unsafe class ConvexHull3D
+  public struct Face
+  public int A, B, C;
+  public int F0, F1, F2;
+  public bool Deleted;
+  public static int Build(double* xs, double* ys, double* zs, int n, Face* outFaces, Face* scratchFaces, int* scratchHead)
+
+==================================================
+PACKAGE: IAFahim.Geometry.Intersect
+Existing README: None
+File: Polyhedron.cs
+  public static unsafe class Polyhedron
+  public static double Volume(double* xs, double* ys, double* zs, int* faces, int faceCount)
+  public static int Faces(int vertexCount, int edgeCount)
+File: Sphere.cs
+  public static unsafe class Sphere
+  public static int LineIntersection(
+  public static bool SphereIntersection(
+File: Plane.cs
+  public static unsafe class Plane
+  public static double PointPlaneDistance(double px, double py, double pz, double nx, double ny, double nz, double d)
+  public static double PointPlaneDistanceNormalized(double px, double py, double pz, double nx, double ny, double nz, double d)
+  public static bool LinePlaneIntersection(double lx, double ly, double lz, double ldx, double ldy, double ldz, double nx, double ny, double nz, double d, double* t)
+  public static bool SegmentPlaneIntersection(double x1, double y1, double z1, double x2, double y2, double z2, double nx, double ny, double nz, double d, double* t)
+  public static bool PlaneIntersection(double n1x, double n1y, double n1z, double d1, double n2x, double n2y, double n2z, double d2,
+
+==================================================
+PACKAGE: IAFahim.Geometry.Mesh
+Existing README: None
+File: MeshProjection.cs
+  public static unsafe class MeshProjection
+  public static void DeformVertices(
+  public static void RecalculateNormals(
+
+==================================================
+PACKAGE: IAFahim.Geometry.Spatial
+Existing README: None
+File: CoverTree.cs
+  public static unsafe class CoverTree
+  public struct Node { public double X, Y; public int Level; public int Next; }
+  public static int Build(double* xs, double* ys, int n, Node* nodes)
+  public static int Nearest(Node* nodes, int n, double qx, double qy)
+File: KdTree.cs
+  public static unsafe class KdTree
+  public struct Node
+  public double X, Y;
+  public int PointIndex;
+  public int Left, Right;
+  public int Axis;
+  public static int Build(double* xs, double* ys, int n, Node* nodes)
+File: Quadtree.cs
+  public static unsafe class Quadtree
+  public struct Node
+  public double MinX, MinY, MaxX, MaxY;
+  public int FirstChild;
+  public int PointIndex;
+  public static int Build(double* xs, double* ys, int n, Node* nodes, int maxNodes)
+File: RangeTree.cs
+  public static unsafe class RangeTree
+  public struct Node
+  public double X, Y, Z;
+  public int Left, Right;
+  public int OriginalIndex;
+  public static int Build2D(double* xs, double* ys, int n, Node* nodes)
+  public static int Query2D(Node* nodes, int root, double x1, double y1, double x2, double y2, int* outIdx)
+  public static int Build3D(double* xs, double* ys, double* zs, int n, Node* nodes)
+  public static int Query3D(Node* nodes, int root, double x1, double y1, double z1, double x2, double y2, double z2, int* outIdx)
+File: Mst.cs
+  public static unsafe class Mst
+  public static double Manhattan(double* xs, double* ys, int n, int* outFrom, int* outTo, double* outW)
+  public static double Rectilinear(double* xs, double* ys, int n, int* outFrom, int* outTo, double* outW)
+  public static double Euclidean(double* xs, double* ys, int n, int* outFrom, int* outTo, double* outW)
+File: SegmentTree.cs
+  public static unsafe class SegmentTree
+  public struct Node
+  public double Lo, Hi;
+  public int Left, Right;
+  public double Min, Max;
+  public int OriginalIndex;
+  public static int Build2D(double* xs, double* ys, int n, Node* nodes)
+  public static int Query2D(Node* nodes, int root, double x1, double y1, double x2, double y2, int* outIdx)
+  public static int Build3D(double* xs, double* ys, double* zs, int n, Node* nodes)
+  public static int Query3D(Node* nodes, int root, double x1, double y1, double z1, double x2, double y2, double z2, int* outIdx)
+File: Octree.cs
+  public static unsafe class Octree
+  public struct Node { public double X, Y, Z, Size; public int C0, C1, C2, C3, C4, C5, C6, C7; public int FirstIndex, Count; }
+  public static int Build(double* xs, double* ys, double* zs, int n, Node* nodes, int maxDepth)
+  public static int RangeQuery(Node* nodes, int node, double* xs, double* ys, double* zs, double x1, double y1, double z1, double x2, double y2, double z2, int* outIdx)
+File: Wspd.cs
+  public static unsafe class Wspd
+  public struct Pair { public int A, B; public double S; }
+  public static int Build(double* xs, double* ys, int n, Pair* pairs, double s)
+File: BallTree.cs
+  public static unsafe class BallTree
+  public struct Node { public double X, Y; public double R; public int Left, Right; }
+  public static int Build(double* xs, double* ys, int n, Node* nodes)
+  public static int Nearest(Node* nodes, int root, double qx, double qy)
+File: Bit3D.cs
+  public static unsafe class Bit3D
+  public struct BIT3D
+  public int X, Y, Z;
+  public int Size;
+  public long* Tree;
+  public static void Init(BIT3D* bit, int x, int y, int z)
+  public static void Add(BIT3D* bit, int xi, int yi, int zi, long val)
+  public static long Sum(BIT3D* bit, int xi, int yi, int zi)
+
+==================================================
+PACKAGE: IAFahim.Geometry.Triangulation
+Existing README: None
+File: EarClipping.cs
+  public static unsafe class EarClipping
+  public static void Triangulate(
+
+==================================================
+PACKAGE: IAFahim.Geometry.Voronoi
+Existing README: None
+File: VisibilityGraph.cs
+  public static unsafe class VisibilityGraph
+  public static int Build(double* ox, double* oy, int n, int* outFrom, int* outTo, double* outW)
+File: Delaunay.cs
+  public static unsafe class Delaunay
+  public struct Triangle { public int A, B, C; }
+  public static int Build(double* xs, double* ys, int n, Triangle* outTri)
+  public static void Flip(Triangle* triangles, int* adj, int t1, int t2) { } // Placeholder for flip
+File: NearestNeighbor.cs
+  public static unsafe class NearestNeighbor
+  public struct PointIdx { public double X, Y; public int Idx; }
+  public struct KDNode
+  public double X, Y; public int Idx, Left, Right;
+  public double MinX, MinY, MaxX, MaxY;
+  public static int BuildKD(PointIdx* pts, KDNode* nodes, int left, int right, int depth, ref int nodeCount)
+  public static void SearchNearest(KDNode* nodes, int node, double qx, double qy, ref double bestDist, ref int bestIdx)
+  public static void SearchRange(KDNode* nodes, int node, double qx, double qy, double rSq, int* outIdx, ref int outCount)
+File: Fortune.cs
+  public static unsafe class Fortune
+  public static int Build(double* xs, double* ys, int n, double* outX, double* outY, int* outSize)
+File: ShortestPath.cs
+  public static unsafe class ShortestPath
+  public struct PQNode { public int V; public double Dist; }
+  public static double Run(double* ox, double* oy, int n, int src, int dst, int* from, int* to, double* w, int e, double* dist, PQNode* pq, int* head, int* next, int* toEdge, double* weight)
+
+==================================================
+PACKAGE: IAFahim.Graph
+Existing README:
+# IAFahim.Graph
+
+## Use case
+Curious cat uses general graph algorithms to traverse, classify, and analyze networks. It handles the bread‑and‑butter BFS/DFS style tasks.
+
+File: GraphBasic.cs
+  public static unsafe class AddEdge
+  public static void Run(int* head, int* to, int* next, int* edgeId, int u, int v, int* edgeCount)
+  public static unsafe class AddDirectedEdge
+  public static void Run(int* head, int* to, int* next, int* edgeId, int u, int v, int* edgeCount)
+  public static unsafe class AddWeightedEdge
+  public static void Run(int* head, int* to, int* next, int* weight, int* edgeId, int u, int v, int w, int* edgeCount)
+  public static unsafe class BuildAdjacency
+  public static void Run(int n, int m, int* edges, int* head, int* to, int* next, int* edgeId, bool directed)
+  public static unsafe class TransposeGraph
+  public static void Run(int n, int* head, int* to, int* next, int* revHead, int* revTo, int* revNext, int* revEdgeId)
+File: GraphAdvanced.cs
+  public static unsafe class MinimumCutGomoryHu
+  public static void Run(int n, int m, int* head, int* to, int* next, int* cap, int* p, int* w)
+  public static unsafe class StoerWagner
+  public static long Run(int n, int* head, int* to, int* next, int* weight)
+  public static unsafe class Hierholzer
+  public static int Run(int n, int m, int start, int* head, int* to, int* next, int* circuit)
+File: TwoSat.cs
+  public static unsafe class TwoSatAddClause
+  public static void Run(int i, bool f, int j, bool g, int* head, int* to, int* next, int* edgeCount)
+  public static unsafe class TwoSatSolve
+  public static bool Run(int n, int* head, int* to, int* next, int* result)
+  public static unsafe class GraphBridgeAdapter
+  public static int Run(int n, int* head, int* to, int* next, int* bu, int* bv)
+  public static unsafe class GraphArticulationPointAdapter
+  public static int Run(int n, int s, int* head, int* to, int* next, bool* result)
+File: Mst.cs
+  internal static unsafe class MstShared
+  public const int NoEdge = -1;
+  public static int FindSet(int* parent, int x)
+  public static void HeapSortEdgeIndices(int* ew, int* idx, int m)
+  internal unsafe struct MstMinHeap
+  public long* Dist;
+  public int* V;
+  public int* Pos;
+  public int Size;
+  public MstMinHeap(int n)
+  public void Dispose()
+  public void PushOrUpdate(int v, long d)
+  public int Pop(out long d)
+  public static unsafe class MinimumSpanningTreeKruskal
+  public static long Run(int n, int m, int* eu, int* ev, int* ew, int* mstEdges)
+  public static unsafe class MinimumSpanningTreePrim
+  public static long Run(int n, int* head, int* to, int* next, int* weight, int* mstEdges)
+  public static unsafe class SecondBestMst
+  public static long Run(int n, int m, int* eu, int* ev, int* ew)
+File: GraphBipartite.cs
+  public static unsafe class IsBipartite
+  public static bool Run(int n, int* head, int* to, int* next)
+  public static unsafe class ColorBipartite
+  public static bool Run(int n, int* head, int* to, int* next, int* color)
+  public static unsafe class ShortestPathUnweighted
+  public static void Run(int n, int start, int* head, int* to, int* next, int* dist, int* parent)
+  public static unsafe class BipartiteMatching
+  public static int Run(int nLeft, int nRight, int m, int* leftU, int* rightV, int* matchL, int* matchR)
+  public static unsafe class KuhnMatch
+  public static int Run(int n, int m, int* eu, int* ev, int* matchL, int* matchR)
+  public static unsafe class HopcroftKarp
+  public static int Run(int nLeft, int nRight, int m, int* eu, int* ev, int* matchL, int* matchR, int* dist)
+  public static unsafe class MinimumVertexCoverBipartite
+  public static int Run(int nLeft, int nRight, int m, int* eu, int* ev, int* matchL, int* matchR, int* coverL, int* coverR)
+  public static unsafe class MaximumIndependentSetBipartite
+  public static int Run(int nLeft, int nRight, int m, int* eu, int* ev, int* matchL, int* matchR, int* indepL, int* indepR)
+  public static unsafe class HungarianMin
+  public static long Run(int n, long* cost, long* assign)
+  public static unsafe class HungarianMax
+  public static long Run(int n, long* cost, long* assign)
+  public static unsafe class AssignmentSolve
+  public static int Run(int n, int m, long* cost, int* assign)
+  public static unsafe class GeneralMatchingBlossom
+  public static int Run(int n, int m, int* eu, int* ev, int* match)
+  public static unsafe class StableMarriage
+  public static void Run(int n, int* manPref, int* womanPref, int* manMatch, int* womanMatch)
+  public static unsafe class GaleShapley
+  public static void Run(int n, int* proposerPref, int* receiverPref, int* proposerMatch, int* receiverMatch, bool* proposerIsMan)
+File: ShortestPath.cs
+  internal static unsafe class SpArrays
+  public const long Infinity = long.MaxValue;
+  public const int NoParent = -1;
+  public static void InitDist(long* dist, int n)
+  public static void InitParent(int* parent, int n)
+  internal unsafe struct SpMinHeap
+  public long* Dist;
+  public int* V;
+  public int* Pos;
+  public int Size;
+  public SpMinHeap(int n)
+  public void Dispose()
+  public void PushOrUpdate(int v, long d)
+  public int Pop(out long d)
+  public static unsafe class Dijkstra
+  public static void Run(int n, int start, int* head, int* to, int* next, int* weight, long* dist, int* parent)
+  public static unsafe class DijkstraSparse
+  public static void Run(int n, int start, int* head, int* to, int* next, int* weight, long* dist, int* parent)
+  public static unsafe class DijkstraDense
+  public static void Run(int n, int start, int* head, int* to, int* next, int* weight, long* dist, int* parent)
+  public static unsafe class DijkstraRestorePath
+  public static int Run(int* parent, int target, int* path)
+  public static unsafe class BellmanFord
+  public static bool Run(int n, int start, int m, int* eu, int* ev, int* ew, long* dist, int* parent)
+  public static unsafe class Spfa
+  public static bool Run(int n, int start, int* head, int* to, int* next, int* weight, long* dist, int* parent, int* inqueue)
+  public static unsafe class FloydWarshall
+  public static void Run(int n, long* dist, int* parent)
+  public static unsafe class Johnson
+  public static bool Run(int n, int start, int m, int* eu, int* ev, int* ew, long* dist)
+  public static unsafe class ZeroOneShortestPath
+  public static void Run(int n, int start, int* head, int* to, int* next, int* weight, long* dist)
+  public static unsafe class PotentialDijkstra
+  public static void Run(int n, int start, int* head, int* to, int* next, long* weight, long* dist, int* parent, long* potential)
+File: GraphTraversal.cs
+  public static unsafe class Bfs
+  public static void Run(int n, int start, int* head, int* to, int* next, int* dist, int* parent)
+  public static unsafe class ZeroOneBfs
+  public static void Run(int n, int start, int* head, int* to, int* next, int* weight, int* dist)
+  public static unsafe class MultiSourceBfs
+  public static void Run(int n, int sourceCount, int* sources, int* head, int* to, int* next, int* dist)
+  public static unsafe class Dfs
+  public static void Run(int u, int* head, int* to, int* next, int* parent, int* depth, bool* visited, ref int time)
+  public static unsafe class IterativeDfs
+  public static void Run(int n, int start, int* head, int* to, int* next, int* parent, int* depth, int* order)
+File: MstVariants.cs
+  public static unsafe class MstVariants
+  public static long MinimumArborescenceDirected(int n, int root, int* u, int* v, long* w, int m, long* result)
+  public static long MaximumBranching(int n, int* u, int* v, long* w, int m, int* resultEdges, int* resultCount)
+  public static long BranchingMatroidIntersection(int n, int* u, int* v, long* w, int m, int* resultEdges, int* resultCount)
+  public static long ArborescenceCount(int n, int root, int* u, int* v, int m)
+  public static bool DegreeConstrainedMst(int n, int m, int* u, int* v, long* w, int r, int k, int* resultEdges, int* resultCount)
+  public static void CapacitatedMst(int n, int m, int* u, int* v, long* w, int r, int capacity, int* resultEdges, int* resultCount)
+  public static void MinimumDiameterSpanningTree(int n, int m, int* u, int* v, long* w, int* resultEdges, int* resultCount)
+  public static void MinimumBottleneckSpanningTree(int n, int m, int* u, int* v, long* w, int* resultEdges, int* resultCount)
+  public static long MinimumBottleneckPath(int n, int m, int* u, int* v, long* w, int src, int dest)
+  public static void MaximumCapacitySpanningTree(int n, int m, int* u, int* v, long* w, int* resultEdges, int* resultCount)
+  public static long WidestPath(int n, int m, int* u, int* v, long* w, int src, int dest)
+  public static long MaximumCapacityPath(int n, int m, int* u, int* v, long* w, int src, int dest)
+  public static bool LexicographicShortestPath(int n, int m, int* u, int* v, long* w, int src, int dest, int* path, int* pathLength)
+  public static void LexicographicMst(int n, int m, int* u, int* v, long* w, int* resultEdges, int* resultCount)
+  public static bool RandomizedMstVerify(int numVertices, int numEdges, int* u, int* v, long* weight, bool* inMst)
+  public static void KargerSteinMinCut(int n, int m, int* u, int* v, int* bestCutU, int* bestCutV, int* bestCutCount, ref uint seed)
+  public static void NagamochiIbarakiSparseCertificate(int n, int m, int* u, int* v, int k, int* certEdges, int* certCount)
+  public static void SparseCertificateBuild(int n, int m, int* u, int* v, int k, int* certEdges, int* certCount)
+  public static long CutTreeQuery(int n, int* parent, int* weight, int src, int dest)
+  public static int EdgeConnectivity(int n, int m, int* head, int* to, int* next, int* cap)
+  public static int VertexConnectivity(int n, int m, int* u, int* v)
+  public static long StoerWagnerPhase(int n, int phase, int* head, int* to, int* next, int* weight, long* add, long* dist, int* vis, int* last, int* prev)
+  public static long GomoryHuMinCutQuery(int n, int* parent, int* weight, int src, int dest)
+File: GraphRemaining.cs
+  internal unsafe struct RemMinHeap
+  public long* Dist;
+  public int* V;
+  public int* Pos;
+  public int Size;
+  public RemMinHeap(int n, long* dist, int* v, int* pos)
+  public void PushOrUpdate(int v, long d)
+  public int Pop(out long d)
+  public static unsafe class ChuLiuEdmonds
+  public static long Run(int n, int root, int* u, int* v, long* w, int m, long* result)
+  public static unsafe class Boruvka
+  public static long Run(int n, int* u, int* v, long* w, int m, int* mstEdges, int* used, int* edgeCount)
+  public static unsafe class KruskalReconstructionTree
+  public static int Build(int n, int* u, int* v, int m, int* parent, int* left, int* right, int* label)
+  public static unsafe class AStar
+  public static long Run(int n, int start, int target, int* head, int* to, int* next, long* dist, long* h, long* result)
+  public static unsafe class YenKShortestPaths
+  public static int Run(int n, int src, int dst, int k, int* head, int* to, int* next, long* dist, long* pathCosts, long* work)
+  public static unsafe class BiconnectedComponents
+  public static int Run(int n, int* head, int* to, int* next, int* disc, int* low, int* bccId, int* stackEdges, int* bccCount)
+  public static unsafe class EdgeBiconnectedComponents
+  public static int Run(int n, int* head, int* to, int* next, int* disc, int* low, int* parent, int* ebcId)
+  public static unsafe class DominatorTree
+  public static void Run(int n, int root, int* head, int* to, int* next, int* parent, int* semi, int* idom, int* ancestor, int* label, int* bucket, int* parentNode)
+File: Tournament.cs
+  public static unsafe class Tournament
+  public static void TournamentHamiltonianPath(int n, byte* adj, int* path)
+  public static bool TournamentHamiltonianCycle(int n, byte* adj, int* cycle)
+  public static void TournamentMedianOrder(int n, byte* adj, int* bestOrder)
+  public static int TournamentKingFind(int n, byte* adj)
+  public static bool EulerianOrientation(int n, int m, int* head, int* next, int* to, int* eu, int* ev, int* ou, int* ov)
+  public static bool StrongOrientation(int n, int m, int* head, int* next, int* to, int* eu, int* ev, int* ou, int* ov)
+  public static void OrientEdgesAcyclic(int m, int* eu, int* ev, int* ou, int* ov)
+  public static int FeedbackArcTournament(int n, byte* adj, int* ru, int* rv, int* rc)
+File: GraphTopo.cs
+  public static unsafe class Toposort
+  public static int Run(int n, int* head, int* to, int* next, int* order)
+  public static unsafe class KahnToposort
+  public static int Run(int n, int* head, int* to, int* next, int* order)
+  public static unsafe class DetectCycleDirected
+  public static bool Run(int n, int* head, int* to, int* next, int* parent, int* depth)
+  public static unsafe class DetectCycleUndirected
+  public static bool Run(int n, int* head, int* to, int* next, int* parent)
+  public static unsafe class ConnectedComponents
+  public static int Run(int n, int* head, int* to, int* next, int* comp)
+  public static unsafe class Kosaraju
+  public static void FirstDfs(int u, int* head, int* to, int* next, bool* visited, int* order, int* top)
+  public static void SecondDfs(int u, int* head, int* to, int* next, bool* visited, int* comp, int id)
+  public static int Run(int n, int* head, int* to, int* next, int* revHead, int* revTo, int* revNext, int* comp)
+  public static unsafe class TarjanScc
+  public static void Run(int u, int* head, int* to, int* next, int* index, int* lowlink, bool* onStack, int* stack, ref int stackSize, ref int idx, ref int sccCount, int* comp)
+  public static unsafe class CondenseGraph
+  public static void Run(int n, int* head, int* to, int* next, int* comp, int sccCount, int* condHead, int* condTo, int* condNext, int* condEdgeId)
+File: GraphInit.cs
+  public static unsafe class GraphInit
+  public static void Run(int n, int* head, int* parent, int* depth, int* size)
+File: Planar.cs
+  public static unsafe class Planar
+  public static void GomoryHuBuild(int n, int m, int* head, int* to, int* next, int* cap, int* parent, int* weight)
+  public static int GomoryHuQuery(int n, int* parent, int* weight, int u, int v)
+  public static bool SplittingOff(int n, int* m, int s, int* u, int* v, int* resultU, int* resultV, int* resultCount)
+  public static bool EarDecomposition(int n, int m, int* u, int* v, int* earEdges, int* earLengths, int* earCount)
+  public static bool StNumbering(int n, int m, int* u, int* v, int s, int t, int* stOrder)
+  public static bool PlanarEmbedding(int n, int m, int* u, int* v, int* embeddingHead, int* embeddingNext, int* embeddingTo)
+  public static bool PlanarDualBuild(int n, int m, int* u, int* v, int* embeddingHead, int* embeddingNext, int* embeddingTo, int* dualN, int* dualM, int* dualU, int* dualV, int* faceSizes)
+  public static void PlanarShortestPath(int n, int m, int* u, int* v, long* w, int src, int dest, long* dist)
+  public static bool PlanarSeparator(int n, int m, int* u, int* v, int* separator, int* separatorCount, int* partA, int* partACount, int* partB, int* partBCount)
+  public static long PlanarMaxFlow(int n, int s, int t, int* head, int* to, int* next, int* cap, int m)
+  public static long PlanarMinCut(int n, int s, int t, int* head, int* to, int* next, int* cap, int m, int* cutEdges, int* cutCount)
+  public static void FacePotentialSolve(int nf, int nde, int* du, int* dv, long* dw, double* pots)
+  public static bool KuratowskiSubgraph(int n, int m, int* u, int* v, int* ku, int* kv, int* kc)
+  public static bool OuterplanarCheck(int n, int m, int* u, int* v)
+  public static bool SeriesParallelDecompose(int n, int m, int* u, int* v, int s, int t)
+  public static int TriconnectedComponents(int n, int m, int* u, int* v, int* ct)
+  public static int SpqrTreeBuild(int n, int m, int* u, int* v, int* ct) => TriconnectedComponents(n, m, u, v, ct);
+  public static void MaximumPlanarMatching(int n, int m, int* u, int* v, int* mu, int* mv, int* mc)
+
+==================================================
+PACKAGE: IAFahim.Graph.Bridges
+Existing README: None
+File: BridgeAndArticulation.cs
+  public static unsafe class BridgeAndArticulation
+  public static void Dfs(int u, int p, int* head, int* next, int* to,
+  public static void Find(int n, int* head, int* next, int* to,
+File: DynamicBridges.cs
+  public static unsafe class IncrementalDynamicBridges
+  public struct Node
+  public int Parent;
+  public int Left;
+  public int Right;
+  public byte Rev;
+  public int Val;
+  public int Sum;
+  public int LazyCover;
+  public static void Init(Node* nodes, int n)
+  public static void AddEdge(Node* nodes, int u, int v, int edgeId, ref int bridgeCount)
+File: BiconnectivityAugmentation.cs
+  public static unsafe class BiconnectivityAugmentation
+  public static int MinEdgesFor2EdgeConnected(int n, int* head, int* next, int* to)
+
+==================================================
+PACKAGE: IAFahim.Graph.Cactus
+Existing README: None
+File: BlockCutTreeLca.cs
+  public static unsafe class BlockCutTreeLca
+  public static int Run(int u, int v)
+File: CactusCycleDecompose.cs
+  public static unsafe class CactusCycleDecompose
+  public static int Run(int* head, int* to, int* next, int n, int m, int* cycleId)
+File: CactusShortestPath.cs
+  public static unsafe class CactusShortestPath
+  public static int Run(int u, int v)
+File: BridgeTreeDiameter.cs
+  public static unsafe class BridgeTreeDiameter
+  public static int Run(int* head, int* to, int* next, int n, int m)
+File: CactusLca.cs
+  public static unsafe class CactusLca
+  public static int Run(int u, int v)
+
+==================================================
+PACKAGE: IAFahim.Graph.Centroid
+Existing README: None
+File: Centroid.cs
+  public static unsafe class CentroidDecomposition
+  public static int Build(int n, int* head, int* to, int* next, int* centroid, int* sz, byte* removed)
+  public static void Decompose(int n, int* head, int* to, int* next, int u, byte* removed, int* sz, int* centroids, int* centroidCount)
+
+==================================================
+PACKAGE: IAFahim.Graph.Clique
+Existing README:
+# IAFahim.Graph.Clique
+
+## Use case
+Curious cat uses clique algorithms when it needs fully connected groups. It helps the cat find tight clusters in a graph.
+
+
+==================================================
+PACKAGE: IAFahim.Graph.Connectivity
+Existing README: None
+File: DecrementalConnectivity.cs
+  public static unsafe class DecrementalConnectivity
+  public static void Run(int* queriesU, int* queriesV, int* queriesType, int q,
+File: IncrementalConnectivity.cs
+  public static unsafe class IncrementalConnectivity
+  public static void Init(int* parent, int* size, int n)
+  public static int Find(int* parent, int i)
+  public static bool Union(int* parent, int* size, int i, int j)
+  public static bool Connected(int* parent, int i, int j)
+File: DynamicReachabilityApprox.cs
+  public static unsafe class DynamicReachabilityApprox
+  public static bool Run(int* head, int* next, int* to, int n, bool* visited, int u, int v, int maxDepth)
+File: OfflineDynamicMst.cs
+  public struct RollbackOp
+  public int U;
+  public int V;
+  public static unsafe class OfflineDynamicMst
+  public static void Init(int* parent, int* size, int n)
+  public static int Find(int* parent, int i)
+  public static bool Union(int* parent, int* size, int i, int j, RollbackOp* history, ref int historyCount)
+  public static void Rollback(int* parent, int* size, RollbackOp* history, ref int historyCount, int targetCount)
+File: DynamicTransitiveClosure.cs
+  public static unsafe class DynamicTransitiveClosure
+  public static void Init(byte* reach, int n)
+  public static void AddEdge(byte* reach, int n, int u, int v)
+  public static bool CanReach(byte* reach, int n, int u, int v)
+File: OfflineDynamicConnectivity.cs
+  public struct EdgeInterval
+  public int U;
+  public int V;
+  public int StartTime;
+  public int EndTime;
+  public static unsafe class OfflineDynamicConnectivity
+  public static void Solve(
+File: FullyDynamicConnectivity.cs
+  public static unsafe class FullyDynamicConnectivity
+  public struct EdgeEvent : IComparable<EdgeEvent>
+  public int U, V, Time, Type, Id;
+  public int CompareTo(EdgeEvent o)
+  public static void Run(int* qU, int* qV, int* qT, int q, int* parent, int* size, int n, int* ans,
+
+==================================================
+PACKAGE: IAFahim.Graph.Cut
+Existing README:
+# IAFahim.Graph.Cut
+
+## Use case
+Curious cat uses cut algorithms to find bridges, articulation points, or min cuts. It reveals where the graph breaks if a link goes away.
+
+

@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Graph.Matching/Kuhn.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Matching/Kuhn.cs",
+   "symbol": "KuhnMatch.Run / RunDense",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "seen[] is fully re-zeroed (O(nRight)) before every left vertex even though most entries are untouched by the previous augmenting search.",
+   "currentCost": "Lines 15 and 45: `for (int i=0;i<nRight;i++) seen[i]=0` runs nLeft times = O(nLeft*nRight) just clearing the visited array, often dwarfing the actual DFS work in sparse graphs.",
+   "proposedChange": "Replace the boolean seen[] with a timestamp/iteration-stamp array: `int* seen = stackalloc int[nRight]` initialized to 0 once, plus an `int stamp` incremented per left vertex. Test `seen[v] == stamp` instead of `!= 0`, and write `seen[v] = stamp`. Drop the per-vertex clear loop entirely.",
+   "rationale": "Converts O(nLeft*nRight) clearing into O(nRight) one-time init plus O(1) stamp bump per vertex. For sparse bipartite graphs the augmenting paths touch far fewer than nRight nodes, so this removes the dominant overhead.",
+   "risk": "stamp could theoretically overflow after 2^31 left-vertex iterations; for any realistic n this never happens, but guard by re-zeroing seen and resetting stamp to 1 if stamp hits int.MaxValue. Otherwise behavior is identical."
+  },
+  {
+   "file": "src/IAFahim.Graph.Matching/Kuhn.cs",
+   "symbol": "KuhnMatchBipartiteCheck.Run",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "BFS queue q is stackalloc'd inside the per-component start loop, causing repeated O(n) stack reservations.",
+   "currentCost": "Line 144: `int* q = stackalloc int[n]` sits inside `for (int start...)`, so across components the stack pointer marches by n ints per component (not reclaimed until method return), O(n*components) cumulative stack reservation.",
+   "proposedChange": "Hoist `int* q = stackalloc int[n];` above the `for (int start = 0; start < n; start++)` loop. qh/qt are reset to 0 per component already, so no re-init needed.",
+   "rationale": "Single O(n) allocation reused across all components instead of one per component; avoids unbounded stack growth and keeps one queue buffer hot in cache.",
+   "risk": "None: q is logically reset by qh=qt=0 each component and fully overwritten before read. Semantics identical."
+  },
+  {
+   "file": "src/IAFahim.Graph.Matching/Kuhn.cs",
+   "symbol": "TryKuhn / TryKuhnDense",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Recursive augmenting-path DFS passes 5-6 pointer arguments and recurses, which Burst handles but with call overhead and a stack-depth risk up to O(nLeft).",
+   "currentCost": "Each recursive TryKuhn call re-passes head,to,next,matchRight,seen; deep alternating paths recurse up to nLeft frames. Recursion also blocks some Burst inlining/vectorization of the leaf scan.",
+   "proposedChange": "Add [MethodImpl(MethodImplOptions.AggressiveInlining)] is not viable for the recursive call, but converting to an explicit augmenting-path loop with a parent-pointer / iterative DFS over a stackalloc'd frame array removes recursion depth risk and the repeated argument marshaling.",
+   "rationale": "Iterative DFS bounds stack to a single stackalloc buffer and lets Burst keep the pointer args in registers across the inner edge scan, reducing per-edge call overhead on the O(V*E) path.",
+   "risk": "Iterative rewrite must faithfully reproduce the matchRight reassignment order on path success; non-trivial refactor, so verify against existing NUnit tests. Behavior must remain identical for all inputs."
+  }
+ ]
+}

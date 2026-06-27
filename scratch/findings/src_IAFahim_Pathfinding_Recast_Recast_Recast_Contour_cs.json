@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Contour.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Contour.cs",
+   "symbol": "BuildContours (boundary-marking loop, lines 64-92)",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Redundant pointer-indirect reloads of Spans[i].Reg and double GetCon(s,dir) calls in the per-span boundary-marking inner loop.",
+   "currentCost": "Per span the inner loop loads compactHeightfield->Spans[i].Reg three separate times (lines 68 twice, 82, 85) instead of using the already-fetched local 's', and per direction calls GetCon(s, dir) twice (line 77 condition and line 81 to form ai). Each Spans[i] access is a strided indirect load (RcCompactSpan stride) and a likely L1/L2 hit but on a tight 4x grid scan it dominates.",
+   "proposedChange": "Hoist 'ushort reg = s.Reg;' once after 's = Spans[i]'. Use it in the early-out test (reg == 0 || (reg & RCBorderReg)!=0) and in the per-dir comparison 'r == reg'. Cache 'int con = GetCon(s, dir);' once per dir and reuse for both the != RCNotConnected test and the ai computation.",
+   "rationale": "Eliminates ~2 redundant span loads per span and 1 redundant GetCon (a shift+mask) per direction (4 per span). Over w*h*spanCount iterations this removes a measurable constant factor and shortens the dependency chain feeding the branch.",
+   "risk": "None. 's' is a by-value copy of Spans[i] taken at line 67; Reg and Con are not mutated within the loop, so the cached values are identical to the re-reads. Semantics preserved exactly."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Contour.cs",
+   "symbol": "GetCornerHeight (lines 283-288)",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "regs[0] is zero-initialized then immediately overwritten unconditionally.",
+   "currentCost": "Line 284 sets regs[0]=regs[1]=regs[2]=regs[3]=0, then line 288 unconditionally assigns regs[0] = Spans[i].Reg | (Areas[i]<<16). The zero write to regs[0] is dead. Also Spans[i] is reloaded at 288 though 's' (line 279) already holds it.",
+   "proposedChange": "Initialize only regs[1]=regs[2]=regs[3]=0 and set regs[0] = s.Reg | ((uint)chf->Areas[i] << 16) using the cached 's'. This function is called once per emitted contour vertex inside WalkContour, a hot path.",
+   "rationale": "Removes one dead store and one redundant indirect span load per corner-height evaluation; shortens the small fixed prologue of a frequently-called leaf.",
+   "risk": "None; regs[0] is fully defined before any read. s.Reg equals chf->Spans[i].Reg since 's' was copied at line 279 and not mutated."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Contour.cs",
+   "symbol": "DistancePtSeg / SimplifyContour inner deviation loop (lines 454-480, 601-611)",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "DistancePtSeg recomputes segment-invariant quantities (pqx, pqz, d=pq.pq) for every point along the segment.",
+   "currentCost": "In the SimplifyContour tessellation loop (lines 601-611) DistancePtSeg is called for every raw point ci between endpoints, and each call recomputes pqx=qx-px, pqz=qz-pz and d=pqx*pqx+pqz*pqz from the same segment endpoints (ax,az,bx,bz). That is 2 subtractions, 2 mults, 1 add and a divide-guard per point that are constant across the whole inner while loop.",
+   "proposedChange": "Add a specialized inline variant that takes precomputed pqx, pqz and invD = d>0 ? 1/d : 0 (computed once before the while loop), then per point only computes dx,dz, t=(pqx*dx+pqz*dz)*invD, clamps, and returns squared distance. Mark it AggressiveInlining.",
+   "rationale": "Removes the per-point segment setup (and importantly the per-point division, replaced by one reciprocal multiply hoisted out of the loop), cutting the dependency chain and a division (~20-30 cycles each) from each iteration of an O(points^2)-ish simplification.",
+   "risk": "Floating divide replaced by reciprocal-multiply changes rounding by <=1 ULP, which can in principle flip the maxd comparison at an exact tie and alter which point is chosen. To stay bit-exact keep the division inside (t = num/d) but still hoist pqx,pqz,d out of the loop; that is fully semantics-preserving and still removes the redundant setup. Use the reciprocal form only if a tiny tessellation difference is acceptable."
+  }
+ ]
+}

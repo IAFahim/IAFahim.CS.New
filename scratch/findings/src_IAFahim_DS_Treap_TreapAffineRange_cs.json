@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.DS.Treap/TreapAffineRange.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.Treap/TreapAffineRange.cs",
+   "symbol": "Update",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Same redundant child re-load pattern as Treap.Update: Size(Left)+Sum(Left) and Size(Right)+Sum(Right) load each child pointer twice and null-check it twice.",
+   "currentCost": "4 child-pointer loads and 4 null-compares per Update; called on every Split/Merge frame in AffineRange/QuerySum.",
+   "proposedChange": "Hoist `TreapAffineNode* l = n->Left, r = n->Right;` once, then compute size and sum from the cached pointers with a single null test each.",
+   "rationale": "Cuts pointer loads and branches in half and exploits cache-line locality of Size/Sum within one node. Same win as Treap.Update; this is the per-frame hot leaf.",
+   "risk": "None. Local CSE, behavior identical."
+  },
+  {
+   "file": "src/IAFahim.DS.Treap/TreapAffineRange.cs",
+   "symbol": "Merge",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Merge Pushes BOTH a and b unconditionally at entry, but only one of them is descended into per call; pushing the non-chosen node propagates its lazy one level deeper than necessary, doing extra Apply work.",
+   "currentCost": "Two Push calls per Merge frame; the loser's Push (e.g. Push(b) when a wins) pushes b's lazy to b's children even though b is returned intact as a subtree root \u2014 extra Apply(Left)/Apply(Right) writes that were not required for correctness of this merge step.",
+   "proposedChange": "Push only the node being descended into: in the a-wins branch Push(a) before touching a->Right; in the b-wins branch Push(b) before touching b->Left. The other node needs no push because Merge does not read/restructure its children at this frame.",
+   "rationale": "Halves Push (and thus Apply) work per Merge frame, removing speculative lazy propagation. Fewer writes, shorter dependency chains.",
+   "risk": "Subtle correctness: must confirm the un-pushed node's lazy stays consistently pending for later access. Standard treap merge only needs to push the node whose child link is rewritten. Verify against tests before applying \u2014 medium-low confidence; if any caller relies on both being pushed, reject. Same pattern in TreapImplicit/TreapRangeMin/TreapRangeReverse Merge."
+  }
+ ]
+}

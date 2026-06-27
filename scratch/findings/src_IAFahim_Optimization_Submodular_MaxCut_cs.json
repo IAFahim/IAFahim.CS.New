@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Optimization.Submodular/MaxCut.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Submodular/MaxCut.cs",
+   "symbol": "LocalSearch",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Inner edge scan makes each improvement sweep O(n*m); precomputing per-vertex adjacency or scanning edges once per sweep yields O(m) per sweep instead of O(n*m).",
+   "currentCost": "For every vertex v (n of them) the code rescans ALL m edges to find incident ones, so one sweep is O(n*m). With a dense graph m~n^2 this is O(n^3) per sweep, and the outer while may run many sweeps.",
+   "proposedChange": "Build a CSR-style adjacency (offset array of length n+1 + neighbor/weight arrays of length 2m) once into caller-provided scratch (or stackalloc), then in the sweep iterate only the edges incident to v via adj[off[v]..off[v+1]]. This makes a full sweep O(n + sum(deg)) = O(n+2m). Alternatively, maintain a per-vertex 'inCut-outCut' delta array updated incrementally when a vertex flips, so each flip costs O(deg(v)) instead of an O(m) rescan.",
+   "rationale": "Removes the redundant full-edge rescan per vertex. For dense graphs this is an asymptotic drop from O(n*m) to O(n+m) per sweep; even sparse graphs avoid touching non-incident edges. Fewer total memory reads dominates the runtime here.",
+   "risk": "CSR build needs scratch memory (2m ints + 2m longs + n+1 offsets); must be unmanaged (stackalloc or caller buffer) to stay Burst/house-rule compliant. Behavior is identical: same in/out cut sums, same greedy flip order, same tie-breaking (outCut>inCut strict). Edge self-loops (from==to) are currently counted into neither branch via the if/else-if (u set once) \u2014 adjacency build must preserve that: a self-loop contributes once where from==v matches first, so replicate the same single-match semantics."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Submodular/MaxCut.cs",
+   "symbol": "LocalSearch",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Per-edge incidence test uses two branches and a sentinel; restructure to branchless/early classification and hoist partition[v].",
+   "currentCost": "Inner loop does `if(from[e]==v) u=to[e]; else if(to[e]==v) u=from[e]; if(u<0) continue;` plus a data-dependent `partition[v]!=partition[u]` branch every edge \u2014 3-4 unpredictable branches per edge, and partition[v] is reloaded each edge.",
+   "proposedChange": "Hoist `int pv = partition[v];` out of the edge loop. Compute incidence as `int fe=from[e], te=to[e]; bool inc = (fe==v)|(te==v); int u = (fe==v)?te:fe;` then `if(!inc) continue;`. Accumulate branchlessly: `long contrib=w[e]; bool diff = partition[u]!=pv; inCut += diff?contrib:0; outCut += diff?0:contrib;` (compiler/Burst lowers ternary to cmov/select). This keeps the same single-incidence semantics and removes the else-if dependency chain.",
+   "rationale": "Fewer mispredicted branches and a shorter dependency chain per edge; hoisting partition[v] removes a redundant load on every edge iteration. Burst vectorizes select-style accumulation better than divergent branches.",
+   "risk": "Must preserve that an edge with from==v and to==v (self-loop) is treated exactly as before. With `inc=(fe==v)|(te==v)` and `u=(fe==v)?te:fe`, a self-loop gives u==v, diff=false, adds to outCut \u2014 same as original (original set u=to=v, partition[v]!=partition[v] false -> outCut). Semantics preserved. No overflow change."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Submodular/MaxCut.cs",
+   "symbol": "GoemansWilliamson",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Misleading name and unused parameter: it does not run GW SDP rounding, ignores alpha, and hardcodes 1.138.",
+   "currentCost": "Method named GoemansWilliamson takes a `double alpha` that is never used and multiplies a local-search cut by a magic literal 1.138, allocating a stackalloc partition that is discarded. The name implies an SDP-based algorithm that is not implemented.",
+   "proposedChange": "Either remove the unused `alpha` parameter and rename to reflect that it returns a scaled local-search bound (e.g. LocalSearchScaledBound), or honor `alpha` by using it as the multiplier instead of the hardcoded 1.138. Promote 1.138 to a named const (e.g. GwApproxRatioInverse). Also let the caller pass the partition buffer rather than stackalloc-and-discard so the assignment is observable/reusable.",
+   "rationale": "Removes a dead parameter (smaller signature, no wasted arg setup) and a magic number; clarifies the perf/semantic contract. The stackalloc int[n] is currently pure waste since the partition is never returned.",
+   "risk": "Renaming/removing the parameter is a public API change \u2014 only do if callers permit. The numeric result for given inputs is unchanged if alpha continues to be ignored and 1.138 retained as a named const."
+  }
+ ]
+}

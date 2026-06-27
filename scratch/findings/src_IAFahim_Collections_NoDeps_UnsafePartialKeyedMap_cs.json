@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Collections.NoDeps/UnsafePartialKeyedMap.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Collections.NoDeps/UnsafePartialKeyedMap.cs",
+   "symbol": "RecalculateBuckets",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist this.Buckets, this.Next, this.keys into local pointers before the build loop to avoid repeated field loads through the struct.",
+   "currentCost": "The loop reads this.keys[idx], this.Next[idx], this.Buckets[key], this.Buckets[key]= each iteration. Each `this.Field` is a load from the struct's memory (the struct may be behind a pointer via Create), so 3-4 field loads per iteration over count elements.",
+   "proposedChange": "Local `int* buckets = this.Buckets; int* next = this.Next; int* k = this.keys;` before the loop, then index those locals. Mirrors how UnsafeKeyedMap.RecalculateBuckets already hoists.",
+   "rationale": "Removes redundant struct-field loads from the hot O(count) rehash loop, shortening the per-iteration dependency chain and freeing registers for the load-store of the bucket chain insert.",
+   "risk": "None; fields are not reassigned during the loop. Pure read hoist."
+  }
+ ]
+}

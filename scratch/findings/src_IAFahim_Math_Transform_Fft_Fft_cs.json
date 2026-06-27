@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Math.Transform.Fft/Fft.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Transform.Fft/Fft.cs",
+   "symbol": "FftTransform.PerformButterflyStep",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Twiddle factor recurrence accumulates floating-point error and creates a long serial dependency chain; for accuracy-tolerant use it is fine, but the per-iteration complex multiply for w is 4 mults + 2 adds purely to advance the angle.",
+   "currentCost": "Per butterfly pair: the w-update (lines 30-31) costs 4 mul + 2 add on the critical path and serializes the inner loop (each j depends on prior w). This dependency chain prevents the inner loop from being vectorized/pipelined by Burst.",
+   "proposedChange": "Precompute a twiddle table per FFT size once (cos/sin for indices 0..n/2-1) into a stackalloc/caller-provided buffer, then index it: wRe = tw[k], wIm = tw[k+stride]. This removes the serial w-recurrence, letting Burst SIMD the butterfly body and breaking the dependency chain. Alternatively expose a Run overload taking a precomputed twiddle pointer so repeated same-size transforms (the convolution case) reuse it.",
+   "rationale": "Replacing a 6-op serial recurrence with a table load removes the loop-carried dependency, enabling vectorization and pipelining; for repeated transforms of identical n (FftConvolution calls Forward 3x at the same size) the trig table is computed once instead of recomputed each call.",
+   "risk": "Table approach changes rounding slightly vs the recurrence (different but generally MORE accurate); observable double values may differ in low bits. If bit-exact parity with current output is required this is not semantics-preserving. Needs extra RAM (n/2 complex doubles) \u2014 acceptable via stackalloc for typical sizes but large n on mobile stack is a concern; prefer caller-provided buffer."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform.Fft/Fft.cs",
+   "symbol": "FftConvolution.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Inverse() negates imaginary parts before and after a full Forward, but the convolution discards the imaginary result entirely (line 72 reads only faRe), so the post-Inverse re-negation of im and its multiply are wasted work.",
+   "currentCost": "FftTransform.Inverse runs two full O(size) passes over im: pre-negate (line 37) and post-scale+negate (line 40, im[i] = -im[i]*invN). In Run the final imaginary array is never read, so the line-40 imaginary multiply/negate (size mul + size negate + size store) is pure waste, plus the line-37 pre-negate touches im.",
+   "proposedChange": "In Run, inline the inverse instead of calling Inverse: negate im once, call Forward, then scale only re by invN (skip all im work on the way out). I.e. for(i<size) faRe[i]*=invN. Saves one O(size) pass writing im plus the per-element imaginary mul/negate.",
+   "rationale": "Eliminates one full sweep over the imaginary buffer and ~size multiplies/negations/stores that produce a value the caller never consumes. Pure dead-store elimination the compiler cannot do across the pointer-aliased call boundary.",
+   "risk": "None for correctness \u2014 the discarded im values are provably unused (only faRe[0..n+m-2] is read). Burst/JIT cannot prove this itself because Inverse writes through pointers that could alias; doing it manually in Run is safe by construction."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform.Fft/Fft.cs",
+   "symbol": "FftConvolution.Run",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Four stackalloc buffers of `size` doubles (faIm, fbRe, fbIm in addition to faRe) total 4*size*8 bytes on the stack; size is rounded up to the next power of two, so worst case nearly doubles the needed memory and risks stack overflow for large inputs on mobile.",
+   "currentCost": "4 * size * 8 bytes stackalloc where size can be ~2*(n+m-1). For n+m-1 around 64k this is ~4MB on the stack \u2014 exceeds typical mobile thread stack and is undefined-behavior/crash territory; even moderate sizes pressure L1/L2.",
+   "proposedChange": "Provide a Run overload that takes a caller-supplied scratch pointer (4*size doubles) so the allocation strategy is the caller's choice (pooled/native buffer), and/or document a max safe size. At minimum keep the imaginary input buffers but note that faIm/fbIm start all-zero and could be folded with a real-input FFT path (real FFT halves storage and work).",
+   "rationale": "Moving large transient allocations off the stack avoids stack-overflow risk and lets callers reuse a single native buffer across calls (no repeated stackalloc cost, better cache reuse). A real-input FFT specialization would cut transform work and storage roughly in half since inputs are real.",
+   "risk": "API change (new overload) \u2014 keep the existing one for ergonomics. Real-FFT specialization is a larger algorithmic change and must reproduce identical outputs; only worth it if convolution is hot. No correctness risk in simply exposing a scratch-buffer overload."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform.Fft/Fft.cs",
+   "symbol": "FftTransform.Forward",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "`len / 2` is recomputed and passed each outer iteration and inside the inner loop `i + j + half` recomputes the base each j; minor strength-reduction and invariant hoisting available, and Cos/Sin are recomputed per len though the set of angles is fixed for a given n.",
+   "currentCost": "len/2 (a shift, cheap) recomputed per outer iter; Math.Cos/Math.Sin called log2(n) times per Forward \u2014 for FftConvolution's 3 same-size transforms that is 3*log2(n) trig evaluations of an identical angle set.",
+   "proposedChange": "Hoist `half = len >> 1` (use shift, semantically identical for positive len). For the convolution path, precompute the per-stage (wlenRe,wlenIm) pairs once into a small stackalloc[2*log2(size)] and reuse across the 3 Forward calls, avoiding redundant Cos/Sin. In the inner butterfly, advance pointers (re+idx) instead of recomputing idx1/idx2 = i+j(+half) each iteration to shorten address arithmetic.",
+   "rationale": "Removes redundant transcendental calls (Cos/Sin are tens of cycles each) across repeated transforms, and converts repeated index additions into pointer increments that Burst lowers to cheaper addressing.",
+   "risk": "len is always a positive power of two so len>>1 == len/2 exactly \u2014 no signed-division pitfall. Caching wlen across Forward calls requires threading a buffer through the API (only beneficial in the convolution path); standalone Forward already only computes log2(n) trig values so the win there is marginal."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform.Fft/Fft.cs",
+   "symbol": "FftTransform.Swap",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Small hot leaf helpers (Swap, and arguably PerformButterflyStep) lack [MethodImpl(AggressiveInlining)]; relying on JIT/Burst inlining heuristics for a ref-double swap in the bit-reversal hot loop.",
+   "currentCost": "Swap is called 2x per bit-reversal pair inside the i<n loop; without forced inlining there is a (potential) call overhead and the using-directive for MethodImpl is already imported but unused on leaf methods.",
+   "proposedChange": "Add [MethodImpl(MethodImplOptions.AggressiveInlining)] to Swap (and consider it on PerformButterflyStep). Burst typically inlines these anyway, but the attribute makes intent explicit and guarantees inlining under managed-IL fallback.",
+   "rationale": "Guarantees elimination of call/ref-arg overhead in the bit-reverse loop and removes reliance on heuristics, with zero behavioral change.",
+   "risk": "None \u2014 inlining a trivial swap is always safe; AggressiveInlining on the larger PerformButterflyStep could increase code size, so apply only to Swap with confidence."
+  }
+ ]
+}

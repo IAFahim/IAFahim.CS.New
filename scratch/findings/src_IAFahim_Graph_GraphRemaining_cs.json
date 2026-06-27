@@ -1,0 +1,103 @@
+{
+ "file": "src/IAFahim.Graph/GraphRemaining.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph/GraphRemaining.cs",
+   "symbol": "DominatorTree.Run / Dfs",
+   "severity": "critical",
+   "category": "overflow",
+   "summary": "The DFS-order array `vertex` is allocated with length n but indexed up to `time == n`, writing one element past the buffer (stack buffer overflow / UB) whenever all n vertices are reachable from root.",
+   "triggeringInput": "n=2, root=0, single edge 0->1 (head/to/next encoding that edge). Dfs sets time=1 then recurses and sets time=2, executing `vertex[2] = 1` on `int* vertex = stackalloc int[2]`, i.e. an out-of-bounds write.",
+   "rootCause": "`int* vertex = stackalloc int[n];` but `time` is 1-based and reaches n when all vertices are visited, so `vertex[time]` writes index n into a size-n buffer. The reverse-order loops then also read `vertex[time]` with time up to n.",
+   "suggestedFix": "Allocate `vertex` with length n+1 (since time is 1-based and ranges 1..n)."
+  },
+  {
+   "file": "src/IAFahim.Graph/GraphRemaining.cs",
+   "symbol": "DominatorTree.Run",
+   "severity": "high",
+   "category": "logic",
+   "summary": "The Lengauer-Tarjan implicit-dominator computation is wrong: idom is never seeded from the bucket processing, and the second pass uses idom[w] (always -1) plus Link with the wrong array, so idom values are not produced.",
+   "triggeringInput": "Any graph with n>=3 where a vertex's semidominator differs from its immediate dominator, e.g. root=0 with edges 0->1, 0->2, 1->3, 2->3 (n=4): idom[3] should be 0 but the algorithm leaves idom unresolved/-1.",
+   "rootCause": "Standard Lengauer-Tarjan, after `Link(parentNode[w], w)`, must immediately drain bucket[parentNode[w]] computing idom for each bucketed vertex via Eval. Here AddToBucket stores only a single vertex (bucket[v]=w overwrites), the bucket is never processed during the reverse pass, and the forward pass at lines 567-576 reads idom[w] (still -1) and calls Link(idom[u], w, ancestor, label) passing `label` as the `semi` parameter slot. As a result idom[] is left at its -1 init for most vertices.",
+   "suggestedFix": "Use a proper bucket list (per-vertex linked buckets, not a single int), process buckets right after each Link in the reverse pass setting idom[v] = (semi[Eval(v)]==semi[v]) ? semi[v] : Eval(v) sentinel, then finalize idom in forward order: if idom[w] != semi[w] then idom[w] = idom[idom[w]]."
+  },
+  {
+   "file": "src/IAFahim.Graph/GraphRemaining.cs",
+   "symbol": "ChuLiuEdmonds.Run",
+   "severity": "high",
+   "category": "logic",
+   "summary": "After contracting cycles and recursing, the code never expands the contracted cycles back to select the correct in-edges, so `result[]` (the parent/edge assignment) is left incorrect for vertices inside contracted cycles.",
+   "triggeringInput": "n=3, root=0 with edges forming a 2-cycle between 1 and 2 plus entry edges: (0->1 w=5),(1->2 w=1),(2->1 w=1). A cycle {1,2} is contracted; subRes is computed but the block at lines 151-161 contains a `while`/`for` loop with `break` that performs no assignment, so result[] for cycle vertices keeps the pre-contraction in-edge, giving a wrong arborescence.",
+   "rootCause": "The expansion loop at lines 151-161 is dead code: it computes nothing and immediately `break`s on the first outer iteration. The edge that enters each contracted super-node from the recursion is never mapped back to break the cycle correctly, so result[] is wrong for any input that actually requires contracting a cycle.",
+   "suggestedFix": "Implement cycle expansion: track for each super-node which original edge the recursion selected as its incoming edge, then for the real target vertex of that edge override result[target] and keep the cycle's other in-edges, breaking the cycle at the chosen vertex."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph/GraphRemaining.cs",
+   "symbol": "YenKShortestPaths.Dijkstra",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Each edge relaxation does a linear scan of the blocked-edge list to test if (u,v) is blocked, making relaxation O(blockCount) per edge.",
+   "currentCost": "Inside the per-edge loop: `for b in 0..blockCount: if blockedU[b]==u && blockedV[b]==v`. Over a Dijkstra run this is O(E*blockCount) extra comparisons, and Yen calls Dijkstra O(k*pathLen) times.",
+   "proposedChange": "Yen already maintains boolean arrays blockedU[]/blockedV[] indexed by node (set in the spur loop, lines 320/334-337). Pass those node-indexed boolean maps into Dijkstra and test `blockedFromU[u] && blockedToV[v]` in O(1) \u2014 but since multiple (u,v) pairs may be blocked, instead keep a per-source-node blocked-target structure: mark blocked targets in a reusable `int* blockEpoch` stamped with u so the test is a single compare. At minimum, early-out when blockCount==0 (currently still enters the loop body bookkeeping).",
+   "rationale": "Removes an inner O(blockCount) scan from the hottest loop in Yen; turns blocked-edge test into O(1). Blocked sets are tiny but the scan runs per relaxed edge across many Dijkstra invocations.",
+   "risk": "Must preserve exact blocking semantics: only the specific (u,v) directed pairs are blocked, not all edges out of u. An epoch-stamped per-u target set preserves this; a naive node-only boolean would over-block and change results. Reset/epoch handling must be correct."
+  },
+  {
+   "file": "src/IAFahim.Graph/GraphRemaining.cs",
+   "symbol": "RemMinHeap (ctor/Dispose)",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "The Dijkstra/A* heap heap-allocates three buffers via Marshal.AllocHGlobal on every construction; Yen and AStar create a fresh RemMinHeap per call (Yen: once per Dijkstra, i.e. O(k*pathLen) times).",
+   "currentCost": "Each RemMinHeap(n) does 3 AllocHGlobal + an O(n) Pos init, and Dispose does 3 FreeHGlobal. In YenKShortestPaths every spur Dijkstra allocates/frees the heap \u2014 hundreds of malloc/free pairs and O(n) inits, plus AllocHGlobal is a syscall-grade allocator hostile to Burst and to mobile fragmentation.",
+   "proposedChange": "Switch the heap to caller-provided scratch pointers (stackalloc or pre-allocated by the top-level Run), making PushOrUpdate/Pop operate on borrowed memory. Reset only the Pos entries actually touched (track a dirty list) instead of O(n) full clears per construction.",
+   "rationale": "Eliminates all per-call heap allocation on the hot path, removes Marshal interop (which Burst cannot compile), and replaces O(n) re-init with O(touched). Major win for Yen's inner loop.",
+   "risk": "Changes RemMinHeap's lifetime model and the signatures of AStar/Dijkstra to take scratch. Burst currently cannot compile Marshal.AllocHGlobal at all, so this is also a correctness/compilability fix. Must ensure Pos is fully -1 before reuse (epoch or dirty-list reset)."
+  },
+  {
+   "file": "src/IAFahim.Graph/GraphRemaining.cs",
+   "symbol": "RemMinHeap.PushOrUpdate / Pop",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Sift-up/down swap each level fully (3-way temp swap of Dist and V plus two Pos writes per level); a hole-based shift avoids per-level swaps.",
+   "currentCost": "Each sift level does: read parent, compare, then swap Dist (3 ops), swap V (3 ops), write Pos[V[p]] and Pos[V[idx]]. Over log(n) levels that's ~8*log(n) memory ops per push/pop, with the intermediate Pos writes immediately overwritten on the next level.",
+   "proposedChange": "Use the classic 'hole' technique: cache the incoming (d,v), shift parents/children down into the hole without swapping, and write the cached element plus its Pos exactly once at the final position. Mark Pop's leaf method and PushOrUpdate with [MethodImpl(AggressiveInlining)] since they are tiny hot leaves.",
+   "rationale": "Halves the data movement per level (one shift vs three-element swap) and removes redundant intermediate Pos updates, shortening the dependency chain in the tightest loop of every Dijkstra/A*.",
+   "risk": "Logic must keep heap invariant identical; only the final landing slot updates Pos. Inlining a recursive-free leaf is safe. Outputs identical."
+  },
+  {
+   "file": "src/IAFahim.Graph/GraphRemaining.cs",
+   "symbol": "Boruvka.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Component merging uses an O(n) relabel loop per accepted edge instead of union-find, and totalWeight adds bestW[i] (wrong index) where the cheapest edge was stored under cu/cv.",
+   "currentCost": "Inside the accept loop: `for j in 0..n: if comp[j]==cu comp[j]=cv` is O(n) per merge, and comp[u[i]] lookups give no path compression, so the whole routine is O(n*m + n^2) per round over up to n rounds. Plus `totalWeight += bestW[i]` indexes by component-slot i, not the cu/cv where the chosen edge's weight lives.",
+   "proposedChange": "Replace comp[] with a DSU (parent + Find with path halving, union by rank). Accumulate totalWeight from the actually chosen best edge's weight (bestW[cu]) at the point of acceptance, not bestW[i].",
+   "rationale": "DSU drops merge cost from O(n) to near-O(1) amortized, giving the textbook O(m*log n) Boruvka. Using the correct weight slot is a correctness fix that also removes ambiguity.",
+   "risk": "The bestW[i] vs bestW[cu] discrepancy is a likely existing bug \u2014 flag rather than silently 'optimize'; verify against tests before changing. DSU change is purely structural and preserves the MST produced (modulo tie-break order)."
+  },
+  {
+   "file": "src/IAFahim.Graph/GraphRemaining.cs",
+   "symbol": "ChuLiuEdmonds.Run (lines 151-161)",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "An expansion loop with nested while/for that always `break`s after one iteration and produces no effect \u2014 dead/incomplete code that still costs a scan.",
+   "currentCost": "The `for i in 1..n { ... while(...) for k ... break; }` block runs an O(n) (worst O(n^2)) search whose only statement-effect is the unconditional `break` at line 160; it computes nothing used. Pure wasted work each recursion level.",
+   "proposedChange": "Either remove the dead block or implement the real contracted-edge expansion. Until then it adds asymptotic cost to every recursive ChuLiuEdmonds call without contributing to result[].",
+   "rationale": "Removing a provably-effect-free O(n^2) loop is a direct cycle saving at every recursion depth.",
+   "risk": "Correctness concern: the expansion appears unfinished, so result[] reconstruction may be wrong. Flag and verify against tests; do not treat as a safe micro-opt."
+  },
+  {
+   "file": "src/IAFahim.Graph/GraphRemaining.cs",
+   "symbol": "BiconnectedComponents.Dfs / EdgeBiconnectedComponents.Dfs / DominatorTree.Dfs",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "These routines use C# local functions with recursion capturing outer pointers; recursive local-function closures and deep recursion are problematic under Burst and risk stack overflow on large graphs.",
+   "currentCost": "Local-function `void Dfs(...)` captures head/to/next/disc/low/etc.; Burst either cannot compile capturing local functions cleanly or boxes the display class. Deep recursion (depth up to n) also overflows mobile stacks.",
+   "proposedChange": "Convert the recursive DFS to an explicit iterative DFS using a caller- or stack-allocated state stack (vertex + edge-iterator), passing pointers explicitly instead of capturing. This is the same pattern Hierholzer already uses.",
+   "rationale": "Makes the code Burst-compilable (no closure/display-class), removes call overhead, and bounds stack to an explicit O(n) buffer instead of unbounded native recursion \u2014 critical on mobile.",
+   "risk": "Iterative rewrite must faithfully reproduce the post-order low[] updates and bucket/edge-stack bookkeeping; non-trivial. Verify against tests. Behavior must match for all inputs."
+  }
+ ]
+}

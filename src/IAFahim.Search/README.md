@@ -1,4 +1,4 @@
 # IAFahim.Search
 
-## Use case
-Curious cat uses general search helpers to explore state spaces. It provides common patterns for finding answers quickly.
+## Description
+This package provides a collection of general-purpose search algorithms and state-space exploration helpers. It implements common patterns for identifying optimal values, boundaries, or path sequences efficiently.

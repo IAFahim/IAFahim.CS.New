@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.DS.FixedCollections/ThreadRandom.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.FixedCollections/ThreadRandom.cs",
+   "symbol": "ThreadRandom..ctor",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Seed clamp uses math.min on a uint with a derived constant; the per-iteration cast (uint)(seed + i) recomputes additions that are already in range after clamping.",
+   "currentCost": "seed = (uint)math.min(seed, uint.MaxValue - JobsUtility.ThreadIndexCount - 1); then loop does CreateFromIndex((uint)(seed + i)). The cast on math.min(uint,uint) is redundant (already uint), and (uint)(seed + i) adds a needless cast since seed+i is uint.",
+   "proposedChange": "Drop the redundant (uint) casts: 'seed = math.min(seed, uint.MaxValue - (uint)JobsUtility.ThreadIndexCount - 1u);' and 'CreateFromIndex(seed + (uint)i)'. Hoist the loop-invariant ThreadIndexCount into a local once.",
+   "rationale": "Removes redundant casts that obscure intent and hoists JobsUtility.ThreadIndexCount (a property access) out of the loop bound and clamp into a single local, avoiding repeated property reads per iteration. Construction-time only, so impact is small but free.",
+   "risk": "Must verify JobsUtility.ThreadIndexCount type and that the unsigned subtraction does not underflow for tiny uint.MaxValue (it cannot; ThreadIndexCount is small). Semantics identical: clamp ensures seed+i stays representable."
+  }
+ ]
+}

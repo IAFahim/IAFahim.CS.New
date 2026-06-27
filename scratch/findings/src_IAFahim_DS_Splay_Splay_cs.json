@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.DS.Splay/Splay.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.Splay/Splay.cs",
+   "symbol": "Rotate",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Avoid recomputing x->Size in Update(x); it equals p's pre-rotation Size.",
+   "currentCost": "Two full Update() calls per Rotate, each doing 2 null-checks + 2 child-size loads + 2 adds. Rotate is the hottest primitive (called O(depth) times per Splay).",
+   "proposedChange": "Capture the rotated node's new size cheaply: x occupies p's old slot and its subtree is exactly p's old subtree, so x->Size = (old p->Size). Read int oldPSize = p->Size before mutating, call Update(p) (recompute, since p lost a subtree), then set x->Size = oldPSize instead of calling Update(x).",
+   "rationale": "x's subtree after a single rotation contains exactly the same node set as p's subtree before the rotation, so its size is invariant. Replacing Update(x) (2 branches + 2 loads + 2 adds) with a single stored-int assignment removes ~6 ops and a dependency chain per rotation.",
+   "risk": "Correct only because Update(p) must run BEFORE assigning x->Size if Update(x) were to read p->Size \u2014 but here we read oldPSize first, so ordering is safe. Sum field (in the SplayRevNode variant) is NOT invariant under this trick only if Sum changed; for plain Splay there is no Sum so it is fully safe. Note this exact same opportunity applies to SplayRangeReverse.Rotate for both Size and Sum (Sum is also subtree-invariant, so x->Sum = oldPSum too)."
+  },
+  {
+   "file": "src/IAFahim.DS.Splay/Splay.cs",
+   "symbol": "Splay_",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "IsLeftChild(x)==IsLeftChild(p) redundantly re-derives parent relationships already in hand (p, g).",
+   "currentCost": "Each loop iteration calls IsLeftChild(x) and IsLeftChild(p); each call reloads x->Parent / p->Parent and compares ->Left==node. That is 2 pointer loads + 1 compare per call, 2 calls = ~6 ops, despite p and g being local.",
+   "proposedChange": "Compute the two booleans directly from the already-loaded locals: bool xLeft = (p->Left == x); bool pLeft = (g->Left == p); then 'if (xLeft == pLeft) Rotate(root, p); else Rotate(root, x);'. This is inside the g!=null branch where g is known non-null.",
+   "rationale": "Eliminates redundant x->Parent and p->Parent dereferences (p==x->Parent and g==p->Parent are already loaded), shortening the dependency chain to two cheap compares against cached pointers. Improves Burst's ability to keep values in registers.",
+   "risk": "Semantics identical: IsLeftChild(x) is exactly p->Left==x given p=x->Parent (and p!=null since we are in the loop), and IsLeftChild(p)==g->Left==p given g=p->Parent!=null in this branch. No behavior change."
+  },
+  {
+   "file": "src/IAFahim.DS.Splay/Splay.cs",
+   "symbol": "IsLeftChild",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "IsLeftChild loads x->Parent twice.",
+   "currentCost": "x->Parent != null && x->Parent->Left == x reloads x->Parent on the second clause (unless the JIT/Burst proves no aliasing, which it generally cannot across a pointer write).",
+   "proposedChange": "Load once: SplayNode* p = x->Parent; return p != null && p->Left == x;",
+   "rationale": "One fewer memory load on a method called on every splay/rotate step. Burst cannot assume x->Parent is loop-invariant across writes, so the explicit local removes the second dependent load.",
+   "risk": "None; pure read, single-threaded. Same value."
+  }
+ ]
+}

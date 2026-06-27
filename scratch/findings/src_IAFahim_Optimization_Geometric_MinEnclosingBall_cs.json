@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Optimization.Geometric/MinEnclosingBall.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Geometric/MinEnclosingBall.cs",
+   "symbol": "Shuffle",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace 64-bit modulo in Fisher-Yates with Lemire multiply-shift bounded reduction.",
+   "currentCost": "Line 37 does seed % (ulong)(i+1) every iteration: a full 64-bit unsigned integer division (~20-40+ cycles, not pipelined) per shuffle step.",
+   "proposedChange": "Use j=(int)(((seed>>32)*(ulong)(i+1))>>32) (Lemire-style: multiply the high 32 random bits by the range and take the high word). Replaces div with one 64-bit multiply + shift.",
+   "rationale": "A widening multiply + shift is ~3-5 cycles and fully pipelined versus a non-pipelined 64-bit division, on the hot O(n) shuffle path that runs on every Welzl call.",
+   "risk": "Changes the exact permutation produced from the fixed seed (different but still valid uniform-ish shuffle). Welzl is correct for ANY permutation, so output circle is unaffected; only the (non-contractual) randomization order changes. If a test pins the exact shuffle sequence, keep modulo."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Geometric/MinEnclosingBall.cs",
+   "symbol": "Construct(double,double,double,double)",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Inline the DistSq computation to avoid recomputing center deltas.",
+   "currentCost": "Line 44 computes cx,cy then calls DistSq(x1,y1,cx,cy), which recomputes (x1-cx) and (y1-cy). Since cx=(x1+x2)/2, x1-cx equals (x1-x2)/2 and is the half-delta already implied.",
+   "proposedChange": "double hx=(x1-x2)*0.5, hy=(y1-y2)*0.5; cx=x1-hx... or simply R=Math.Sqrt(hx*hx+hy*hy). Avoids the DistSq call and its duplicate subtractions.",
+   "rationale": "Removes one helper call and 2 redundant subtractions on a hot leaf used in the inner Welzl loops; reuses deltas that define the midpoint.",
+   "risk": "Floating-point result differs by at most last ULP from current (x1-cx) form due to reassociation; values otherwise identical. If bit-exact reproduction of current R is required, keep DistSq form."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Geometric/MinEnclosingBall.cs",
+   "symbol": "Solve2",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Add AggressiveInlining to the leaf-ish Solve3/Solve2 only if small; otherwise leave and instead mark Welzl entry without inlining.",
+   "currentCost": "Welzl, Solve2, Solve3 carry no inlining hints. These are not tiny, so forced inlining is not warranted; current state is acceptable.",
+   "proposedChange": "No change recommended to inlining of Solve2/Solve3 (they are loop bodies, too large to inline). Documented here only to flag that the existing absence of attributes is correct and should NOT be 'fixed' by adding AggressiveInlining.",
+   "rationale": "Prevents a cargo-cult regression: inlining the Solve methods would bloat call sites with no win. Leaving them out-of-line is optimal.",
+   "risk": "None; this is a no-op recommendation guarding against an incorrect change."
+  }
+ ]
+}

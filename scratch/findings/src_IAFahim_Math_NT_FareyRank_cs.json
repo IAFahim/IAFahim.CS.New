@@ -1,0 +1,16 @@
+{
+ "file": "src/IAFahim.Math.NT/FareyRank.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.NT/FareyRank.cs",
+   "symbol": "FareyRank.Run",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "The Stern-Brocot mediant walk is incorrect: it produces wrong ranks for most fractions and enters an infinite loop for others. r,s are initialized to 1,0 and never updated, so the convergence check 'if (a==r && b==s) break;' (s stays 0, b stays >0) can never fire, and the per-iteration update does not correctly walk the Farey sequence.",
+   "triggeringInput": "FareyRank.Run(1, 3, 5) never terminates (infinite loop / hang). FareyRank.Run(2, 5, 5) returns 2 but 2/5 is the 5th element of F_5 (0/1,1/5,1/4,1/3,2/5,...). FareyRank.Run(1, 4, 5) returns 2 (expect 3). FareyRank.Run(1, 1, 5) returns 1 via the a==b early-return (expect 11).",
+   "rootCause": "The algorithm's recurrence and termination condition are wrong: 'r' and 's' are dead constants (never reassigned), so the loop relies only on 't <= 0' to stop, which for inputs like 1/3 and 1/2 never becomes true; meanwhile for fractions where it does stop it almost always stops after one step yielding rank 2. The 'a==0 || a==b => return 1' early-out also gives the wrong rank for a==b (1/1 is the last term, not the first).",
+   "suggestedFix": "Replace with a correct Farey-rank algorithm: rank(a/b, n) = (number of irreducible fractions p/q <= a/b with q<=n). A standard approach computes count = sum_{q=1}^{n} floor(a*q/b) then subtracts via Mobius/inclusion-exclusion to count only reduced fractions (or use the recursive count C(a,b,n)=sum floor((a*q)/b) and Mobius-correct). Remove the broken Stern-Brocot walk and fix the a==b base case."
+  }
+ ],
+ "perf": []
+}

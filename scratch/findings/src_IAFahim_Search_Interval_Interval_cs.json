@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Search.Interval/Interval.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.Interval/Interval.cs",
+   "symbol": "IntersectIntervals.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Redundant re-derefs of a[i].End and b[j].End: the advance test recomputes ends already loaded for the hi/lo computation.",
+   "currentCost": "a[i].End and b[j].End are loaded once for Math.Min(hi) and again for the if (a[i].End < b[j].End) advance test \u2014 up to 4 pointer-offset loads per iteration where 2 cached values suffice.",
+   "proposedChange": "Hoist per-iteration: int aEnd = a[i].End; int bEnd = b[j].End; int aStart = a[i].Start; int bStart = b[j].Start; then lo = aStart>bStart?aStart:bStart; hi = aEnd<bEnd?aEnd:bEnd; and advance with if (aEnd < bEnd) i++; else j++;.",
+   "rationale": "Cuts redundant loads and lets the comparator reuse register values, shortening the dependency chain. Also makes the min/max explicit branchless ternaries instead of Math.Min/Max calls (Burst inlines those anyway, so neutral there, but the load hoisting is a real win).",
+   "risk": "Behavior identical; a[i]/b[j] are not mutated within the iteration so cached values equal re-reads. No aliasing concern (dst is the output and not read). Pure refactor."
+  },
+  {
+   "file": "src/IAFahim.Search.Interval/Interval.cs",
+   "symbol": "Interval",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Interval struct lacks explicit layout/readonly-blittable annotations; relies on implicit sequential layout. It is already blittable (two ints) but could be made explicit for guaranteed packing and intent.",
+   "currentCost": "No runtime cost today, but layout is implicit. 8-byte struct of two ints is naturally packed, so this is purely a robustness/intent note.",
+   "proposedChange": "Optionally add [StructLayout(LayoutKind.Sequential)] for explicit, ABI-stable packing. The struct is already optimal at 8 bytes; no change needed for correctness. Document that it is intentionally blittable for Burst/interop.",
+   "rationale": "Two contiguous ints are already the minimal layout; explicit Sequential guarantees no reordering across compilers and signals Burst-compatibility intent. This is a near-no-op flagged for completeness, not a cycle/RAM win.",
+   "risk": "None functionally. Adding StructLayout has zero effect on a 2-int struct's existing layout. Low value; include only if codifying blittability is desired."
+  },
+  {
+   "file": "src/IAFahim.Search.Interval/Interval.cs",
+   "symbol": "MergeIntervals.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "ptr[outIdx] is re-dereferenced multiple times per iteration in the overlap branch; caching the current merged End reduces repeated offset loads.",
+   "currentCost": "ptr[outIdx].End is loaded for the compare (>= ptr[i].Start), again for the inner compare (ptr[i].End > ptr[outIdx].End), and written. Each ptr[outIdx] access recomputes outIdx*sizeof(Interval) offset.",
+   "proposedChange": "Cache the running interval: track int curEnd = ptr[0].End; compare ptr[i].Start <= curEnd; on merge curEnd = ptr[i].End > curEnd ? ptr[i].End : curEnd and write ptr[outIdx].End = curEnd; on new segment set curEnd = ptr[i].End. This removes repeated outIdx offset arithmetic and end reloads from the hot path.",
+   "rationale": "Keeps the merged End in a register, removing redundant indexed loads and the multiply for the offset on the dominant (overlap) path, shortening the loop's critical dependency chain.",
+   "risk": "Behavior identical: curEnd mirrors ptr[outIdx].End exactly. Must ensure curEnd is written back to ptr[outIdx].End before/when outIdx advances so the array reflects the merge (it already does on the merge branch; on the new-segment copy ptr[outIdx]=ptr[i] sets End correctly). Pure refactor if writes are kept in sync."
+  }
+ ]
+}

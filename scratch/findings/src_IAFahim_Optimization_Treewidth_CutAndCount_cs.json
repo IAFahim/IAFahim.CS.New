@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Optimization.Treewidth/CutAndCount.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Optimization.Treewidth/CutAndCount.cs",
+   "symbol": "CutAndCount.Run",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Run computes conn/cut counters and accepts a dp array but ignores all of them and unconditionally returns the constant 1, so it never produces the connectivity/cut-count result its signature implies.",
+   "triggeringInput": "Any input, e.g. n=2, adj all false, bag={0,1}, bagSize=2, dp arbitrary: the two vertices are unconnected (cut=1, conn=1) yet Run returns 1 just like for a fully connected bag. The return value is independent of adj, bag, and dp.",
+   "rootCause": "The method body builds conn and cut from the adjacency among bag vertices but never uses them, never touches dp, and the final statement is `return 1;` (a hard-coded literal). The computed state is entirely dead.",
+   "suggestedFix": "Return the intended quantity (e.g. the cut/connectivity count or the dp accumulation) instead of the literal 1; at minimum use conn/cut/dp to form the result. As written the method is a non-functional stub returning a constant."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Treewidth/CutAndCount.cs",
+   "symbol": "CutAndCount.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Entire O(bagSize^2) double loop computes conn/cut then is discarded; method unconditionally returns 1. Dead code.",
+   "currentCost": "O(bagSize^2) memory reads of adj[bag[i]*n+bag[j]] plus two increments per pair, all results thrown away; the dp pointer is never touched.",
+   "proposedChange": "Either implement the intended cut-and-count recurrence (use conn/cut to index dp), or, if 1 is genuinely the contract, delete the loop and the unused n/adj/bag/bagSize/dp parameters so the call collapses to a constant. As written the whole body is removable with no observable change since it returns the literal 1.",
+   "rationale": "Removing a fully dead O(bagSize^2) loop eliminates all cycles and the bag/adj cache traffic for free; no output depends on it.",
+   "risk": "If callers expect this to mutate dp or this is an unfinished stub, deleting changes intended (future) behavior. Observable behavior today (return value only, no side effects) is preserved either way. Confirm whether the return-1 is a placeholder before deleting vs implementing."
+  }
+ ]
+}

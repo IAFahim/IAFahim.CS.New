@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Search.Window/Heap.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.Window/Heap.cs",
+   "symbol": "FixInt32",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Convert tail-recursive sift-down into an iterative loop",
+   "currentCost": "Each level of the heap that needs fixing performs a recursive call to FixInt32. For a heap of N elements the sift-down can recurse log2(N) deep, and unless Burst/the JIT performs tail-call elimination (Burst does NOT guarantee it) every level pushes a stack frame and pays call/return overhead. PopInt32 and HeapifyInt32 both go through this path, so it is on the hot path.",
+   "proposedChange": "Replace the recursive call with a while(true) loop: compute smallest among i/l/r, break if smallest==i, otherwise swap ptr[i]<->ptr[smallest], set i=smallest, recompute l=(i<<1)+1, r=(i<<1)+2, and continue. This is a mechanical transformation of the existing tail recursion.",
+   "rationale": "Removes log2(N) call/return pairs and stack-frame setup per sift-down; the loop body keeps i/l/r in registers and shortens the dependency chain. Identical comparison/swap sequence, so output ordering is unchanged.",
+   "risk": "None semantically; it is a pure tail-recursion-to-loop rewrite producing the same swaps in the same order. Just ensure l and r are recomputed from the new i each iteration."
+  },
+  {
+   "file": "src/IAFahim.Search.Window/Heap.cs",
+   "symbol": "PushInt32",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Use hole-based sift-up instead of repeated 3-way swaps",
+   "currentCost": "The sift-up loop performs a full 3-element swap (3 reads + 3 writes via tmp) at every level the value bubbles up, even though the inserted value's final resting slot is only known at the end. For a value that rises k levels, that is ~3k writes.",
+   "proposedChange": "Save int val once. Loop: while(i>0){ int p=Parent(i); if(ptr[p]<=val) break; ptr[i]=ptr[p]; i=p; } then ptr[i]=val; (the initial ptr[len]=val write can be dropped since the final store covers it).",
+   "rationale": "Each level now costs 1 read (ptr[p]) + 1 write (ptr[i]=ptr[p]) instead of a 3-way swap, roughly halving memory traffic, and val stays in a register across the whole climb, shortening the dependency chain. Produces an identical final array.",
+   "risk": "None; this is the textbook hole-insertion form of the same min-heap sift-up. The comparison ptr[p]<=val preserves the existing <= (stable break) behavior."
+  },
+  {
+   "file": "src/IAFahim.Search.Window/Heap.cs",
+   "symbol": "FixInt32",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Apply hole-based sift-down to also remove per-level swaps",
+   "currentCost": "After the recursion-to-loop change, the loop still does a full 3-way swap at each descended level. The element being sifted reaches its final slot only at the end, so intermediate swaps move data that may move again.",
+   "proposedChange": "Hole variant: int v=ptr[i]; loop selecting smaller child c; while child<v keep ptr[i]=ptr[c], i=c; finally ptr[i]=v. Combine with the iterative loop so each level is 1 read + 1 write of the child plus the child-selection compare.",
+   "rationale": "Halves write traffic on the dominant heapify/pop path and keeps the sifted value in a register, shortening the dependency chain. Same comparison results, same final layout.",
+   "risk": "None if the child-selection comparisons (< for the min-heap, with l<len / r<len bounds) are preserved exactly. Must keep choosing the strictly-smaller child the same way to preserve identical tie-breaking and final array."
+  },
+  {
+   "file": "src/IAFahim.Search.Window/Heap.cs",
+   "symbol": "PushInt32/PopInt32/FixInt32/HeapifyInt32",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Add AggressiveInlining to the leaf heap operations consistent with Parent/Left/Right",
+   "currentCost": "Only Parent/Left/Right are marked AggressiveInlining; FixInt32 is invoked from PopInt32 and HeapifyInt32 as a separate call. PushInt32/PopInt32 are small hot leaves with no inlining hint.",
+   "proposedChange": "Mark FixInt32 (once iterative), PushInt32, and PopInt32 with [MethodImpl(MethodImplOptions.AggressiveInlining)] so callers in tight loops (e.g. HeapifyInt32 calling FixInt32 N/2 times) can inline and constant-fold len/bounds checks.",
+   "rationale": "Inlining the sift routines into HeapifyInt32's loop lets the compiler hoist the len comparison and reuse register state across iterations; eliminates call overhead in the O(N) build path.",
+   "risk": "Inlining a (now non-recursive) FixInt32 is safe. While FixInt32 is still recursive it cannot be inlined; only add the hint after the iterative rewrite, otherwise the hint is ignored."
+  }
+ ]
+}

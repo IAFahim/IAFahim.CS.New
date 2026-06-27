@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Recast/RcSpan.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/RcSpan.cs",
+   "symbol": "SMin/SMax/Area",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Bitfield masks recomputed inline and duplicated across getter/setter instead of named constants.",
+   "currentCost": "Each accessor recomputes ((1u << Recast.RCSpanHeightBits) - 1) and shifted variants; the height mask and Area mask 0x3F are duplicated between getter and setter. RCSpanHeightBits is const so the JIT folds these, but the duplication invites drift in a layout that must match C++ rcSpan.",
+   "proposedChange": "Add named constants (e.g. in Recast.Constants.cs): const uint RCSpanHeightMask = (1u << RCSpanHeightBits) - 1; const uint RCSpanAreaMask = 0x3F; const int RCSpanAreaShift = RCSpanHeightBits * 2; and use them in all six accessor expressions.",
+   "rationale": "No codegen change (constants fold identically) but removes duplicated magic-number derivations and the risk of an inconsistent mask between getter and setter; improves auditability.",
+   "risk": "None \u2014 constant folding yields identical IL/Burst output. Verify the new constants equal the inlined expressions."
+  }
+ ]
+}

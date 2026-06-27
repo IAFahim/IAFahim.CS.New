@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Graph.Matching/BottleneckAssignment.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Matching/BottleneckAssignment.cs",
+   "symbol": "BottleneckAssignment.Run",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Run is an unimplemented stub: it sets every match[i] = -1 and unconditionally returns 0 as the 'bottleneck cost'. For any cost matrix with a positive optimal bottleneck value it returns a wrong cost (0) and an empty/invalid assignment.",
+   "triggeringInput": "cost (n*n row-major) = {1,9, 9,1}, n=2, match=stackalloc int[2]. Optimal bottleneck assignment is diagonal with bottleneck cost 1; Run returns 0 and leaves match[0]=match[1]=-1.",
+   "rootCause": "The bottleneck-assignment algorithm (e.g. binary search on threshold + bipartite feasibility / Kuhn's matching) is not implemented; only array initialization and a placeholder `return 0` exist.",
+   "suggestedFix": "Implement the bottleneck assignment: binary search over the sorted distinct cost values, and for each threshold test whether a perfect matching exists using only edges with cost <= threshold (Hopcroft-Karp/Kuhn). Return the minimal feasible threshold and write the matching into match[]."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Matching/BottleneckAssignment.cs",
+   "symbol": "Run",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Stub: initializes match to -1 and returns 0 with a comment 'Return bottleneck cost'; the bottleneck-assignment algorithm (threshold binary search + bipartite matching) is unimplemented.",
+   "currentCost": "Single O(n) init loop; returns constant 0 regardless of cost, so output is not meaningful.",
+   "proposedChange": "Implement via binary search over distinct cost values + Hopcroft-Karp feasibility test, or document as init-only. No safe micro-opt on the current single init loop.",
+   "rationale": "The single init loop is already minimal; the actionable item is the missing algorithm, not a cycle-level tweak.",
+   "risk": "Implementing changes observable outputs by design."
+  }
+ ]
+}

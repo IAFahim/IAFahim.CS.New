@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Detour/DtPoly.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/DtPoly.cs",
+   "symbol": "SetType",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "SetType lacks the area-mask guard symmetry and relies on `type<<6` not overflowing the byte; minor robustness/clarity, no perf regression.",
+   "currentCost": "`(this.areaAndtype & 0x3f) | (type << 6)` \u2014 `type` is byte promoted to int, shifted left 6. If type>3 (more than 2 bits) the high bits collide with the area field after the byte cast, silently corrupting area. SetArea masks `area & 0x3f` but SetType does not mask `type & 0x3`.",
+   "proposedChange": "For consistency and safety in checked builds, write `this.areaAndtype = (byte)((this.areaAndtype & 0x3f) | ((type & 0x3) << 6));`. The extra `& 0x3` is a single AND, no measurable cost, and prevents area corruption.",
+   "rationale": "Not a speed win \u2014 it is a correctness-hardening that matches SetArea's masking convention at zero cycle cost (folded into existing ALU ops). Improves API consistency/ergonomics.",
+   "risk": "In the unchecked-Run philosophy the caller guarantees type in [0,3], so this is optional. Adding the mask changes behavior only for out-of-contract inputs (type>3) \u2014 currently corrupts area, after fix it truncates type. Choose per the library's checked-vs-unchecked stance; for a public setter, masking is the safer default."
+  }
+ ]
+}

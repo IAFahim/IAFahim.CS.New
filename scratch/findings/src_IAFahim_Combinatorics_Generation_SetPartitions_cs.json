@@ -1,0 +1,72 @@
+{
+ "file": "src/IAFahim.Combinatorics.Generation/SetPartitions.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Combinatorics.Generation/SetPartitions.cs",
+   "symbol": "IntegerPartitionEnumerator.MoveNext",
+   "severity": "medium",
+   "category": "edge-case",
+   "summary": "For n=0 the enumerator performs unbounded out-of-bounds pointer writes: after the first call yields p[0]=0, the second MoveNext does p[0]-- = -1, remVal=1, then the loop `while (remVal > p[_k])` is 1 > -1 = true forever, repeatedly writing p[_k+1]=p[_k] with _k incrementing past the buffer, corrupting/crashing.",
+   "triggeringInput": "new IntegerPartitionEnumerator(0); first MoveNext returns [0], second MoveNext triggers runaway OOB writes (p[1], p[2], ... = -1 indefinitely).",
+   "rootCause": "The descent loop and the `while (remVal > p[_k])` redistribution loop assume parts are >= 1. With n=0, p[0] becomes -1 and the redistribution condition never terminates, walking the pointer off the end of the caller's n-sized (here length-0) buffer. The all-ones termination check (p[_k]==1) is also never reached.",
+   "suggestedFix": "Guard n==0 in MoveNext (return only the empty/zero partition once, e.g. treat length 0 or a single 0-part as terminal) or document/require n>=1 as a precondition. Concretely, at the start handle `if (_n == 0) { length = 0; return false; }` (or yield the empty partition exactly once and then stop), and ensure the redistribution loop cannot run when p[_k] <= 0."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Combinatorics.Generation/SetPartitions.cs",
+   "symbol": "SetPartitions.NextSetPartition",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace Math.Max with a branchless update of m[i] in the restricted-growth-string successor",
+   "currentCost": "m[i] = Math.Max(m[i], kappa[i]) is a call/branch per successor step. After kappa[i]++ the relation between m[i] and kappa[i] is constrained: kappa[i] can exceed the old m[i] by at most 1, so the max is effectively a conditional max.",
+   "proposedChange": "Since FindSetPartitionSplit stops where kappa[i] != m[i-1]+1, and the increment makes kappa[i] at most m[i]+1, replace with: int ki = kappa[i] + 1; kappa[i] = ki; if (ki > m[i]) m[i] = ki;  or branchless: m[i] += (m[i] < ki) ? 1 : 0 collapses to m[i] = ki when greater. Equivalent to current Math.Max but inlines without the call.",
+   "rationale": "Burst inlines System.Math.Max(int,int) to a cmov already in most cases, so the realistic win is removing a managed-method dependency and making the intent (a single +1 ceiling) explicit; the new value can only be m[i] or m[i]+1, allowing m[i] = ki > m[i] ? ki : m[i] to fold to a single predicated move.",
+   "risk": "Must preserve exact semantics: m[i] is the running max of kappa[0..i]. The new form keeps m[i] = max(m[i], kappa[i]); correct as long as kappa[i] is the only entry changed since m[i] was last set, which holds here. No signed/overflow concern (values bounded by N)."
+  },
+  {
+   "file": "src/IAFahim.Combinatorics.Generation/SetPartitions.cs",
+   "symbol": "SetPartitions.NextComposition / FillCompositionSuffix",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Eliminate the O(K) prefix-sum recomputation in FillCompositionSuffix to make NextComposition O(1) amortized",
+   "currentCost": "FillCompositionSuffix recomputes sum = comp[0..i] every successor call (O(i) per step, O(N*K) over a full enumeration). The composition successor only ever moves one unit from comp[i] to comp[i+1] and zeroes the tail; the value comp[i+1] = N - sum(comp[0..i]) can be derived without re-summing.",
+   "proposedChange": "Track the total mass moved into the tail. In NextComposition: after comp[i]-- , the new comp[i+1] equals (old comp[i+1] which is 0 at this point since i is the last nonzero before tail) ... Instead compute the tail value directly: the suffix from i+1 to K-1 must sum to (N - sum(comp[0..i])). Since FindCompositionSplit guarantees comp[i+1..K-2] were all 0 and only comp[K-1] held the remainder, maintain a running 'tail' = N - prefixSum incrementally: when decrementing comp[i], comp[i+1] = previous_suffix_total + 1, then zero comp[i+2..]. Store the suffix-of-i total once rather than re-summing each call.",
+   "rationale": "Standard composition (bars-and-stars) successor is O(1) amortized; the current re-sum makes it O(K) per step and O(N choose model) overall, a real asymptotic constant blow-up. Removing the inner sum loop cuts the dominant cost of the enumeration.",
+   "risk": "Must keep comp[i+1] = N - sum(comp[0..i]) exactly. The incremental tracking is only valid because the successor structure restricts which cells changed; verify FindCompositionSplit's invariant (only comp[K-1] nonzero in suffix) before relying on it. If invariant is ever violated, fall back to the sum. No overflow (values <= N)."
+  },
+  {
+   "file": "src/IAFahim.Combinatorics.Generation/SetPartitions.cs",
+   "symbol": "SetPartitions.CompositionState",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Pack the 'First' flag to avoid 3 bytes of struct padding and unify with the int-flag pattern used by SetPartitionState",
+   "currentCost": "CompositionState uses bool First after two ints; on 4-byte alignment the bool consumes 4 bytes (1 used, 3 padding), giving a 12-byte struct. SetPartitionState uses int First (also 12 bytes but no inconsistency).",
+   "proposedChange": "Either keep bool but document it costs a full word, or store First in the high bit / a packed field. For consistency and blittable clarity under Burst, make CompositionState mirror SetPartitionState by using int First, or fold First into a sentinel value of K (e.g. First implied when a separate cheap check holds) so the struct is just {int N; int K;}.",
+   "rationale": "Smaller/consistent state structs improve cache density when many enumerators are stored in arrays and remove a bool-vs-int inconsistency that can affect Burst layout assumptions. Marginal but free.",
+   "risk": "bool is blittable under Burst but layout differs from int; changing the field type changes the public struct layout (ABI). Only safe if no external code depends on the exact field offsets/size. Behavior unchanged."
+  },
+  {
+   "file": "src/IAFahim.Combinatorics.Generation/SetPartitions.cs",
+   "symbol": "SetPartitions.InitializeComposition",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Avoid zeroing the whole comp[0..K) then overwriting comp[0]; only zero comp[1..K)",
+   "currentCost": "InitializeComposition does a full loop comp[0..K-1]=0 then comp[0]=N, writing comp[0] twice.",
+   "proposedChange": "Set comp[0] = state->N first, then zero comp[1..K-1] (loop from x=1). Saves one redundant store and clarifies intent.",
+   "rationale": "Removes a redundant write to comp[0]; trivially fewer ops on the (cold) init path. Cheap and clearly correct.",
+   "risk": "None; output identical. Init is called once per enumeration so impact is small."
+  },
+  {
+   "file": "src/IAFahim.Combinatorics.Generation/SetPartitions.cs",
+   "symbol": "SetPartitions.RankIntegerPartition / UnrankIntegerPartition / RankSetPartition / RankComposition / UnrankComposition",
+   "dimension": "ergonomics",
+   "impact": "medium",
+   "summary": "Rank/Unrank functions are non-functional stubs returning 0/identity, breaking the Run/Try* contract and producing silently wrong results",
+   "currentCost": "RankIntegerPartition/RankSetPartition/RankComposition always return 0; UnrankIntegerPartition returns false with outLen=0; UnrankSetPartition/UnrankComposition return identity/zero regardless of rank. Callers get silently incorrect data with no signal.",
+   "proposedChange": "Either implement the real rank/unrank (set-partition ranking via restricted-growth-string + Bell/Stirling tables; composition ranking via combinatorial number system over C(n+k-1,k-1)) or, until implemented, make them explicit: return false / a sentinel and document as unimplemented so callers can't mistake 0 for a valid rank. At minimum keep signatures consistent (some return long, some bool+out).",
+   "rationale": "Not a micro-opt but a correctness/ergonomics issue: stubbed functions that return plausible-looking values are worse than ones that signal 'unimplemented'. A real implementation also enables O(1)-ish unranked random access instead of enumerating.",
+   "risk": "If external tests already assert these stub return values, changing them breaks those tests; confirm intended status (TODO vs shipped) before altering. No Burst concern."
+  }
+ ]
+}

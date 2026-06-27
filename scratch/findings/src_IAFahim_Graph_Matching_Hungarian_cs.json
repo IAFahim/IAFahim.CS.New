@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Graph.Matching/Hungarian.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Matching/Hungarian.cs",
+   "symbol": "HungarianMin.Run",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "minv and used are stackalloc'd inside the per-row loop, allocating n+1 longs and n+1 ints on every one of the n iterations.",
+   "currentCost": "Lines 18-21: `long* minv = stackalloc long[n+1]` and `int* used = stackalloc int[n+1]` execute once per outer i loop (n times). Stack pointer advances n*(n+1) longs + n*(n+1) ints worth of stack across the loop, which the JIT/Burst typically does NOT reclaim until method exit, causing O(n^2) stack growth and risking stack overflow for moderate n.",
+   "proposedChange": "Hoist both allocations above the `for (int i = 1; i <= n; i++)` loop: `long* minv = stackalloc long[n+1]; int* used = stackalloc int[n+1];`. Keep the two existing re-init loops (`minv[j]=long.MaxValue`, `used[j]=0`) inside the i-loop where they already are so each row starts fresh.",
+   "rationale": "Eliminates O(n^2) cumulative stack reservation, replacing it with a single O(n) allocation reused across rows. Same memory traffic for the re-init writes (already present), but the working set is one buffer that stays hot in cache instead of marching down the stack.",
+   "risk": "Semantics-preserving only because both buffers are fully re-initialized at the top of each i-iteration (minv to LONG_MAX, used to 0). Verified: every entry index 0..n is rewritten before use, so no stale data leaks between rows."
+  },
+  {
+   "file": "src/IAFahim.Graph.Matching/Hungarian.cs",
+   "symbol": "HungarianMin.UpdateMinvAndWay",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Loop-invariant u[i0] reload and redundant base-offset recomputation in the inner j loop.",
+   "currentCost": "Line 48: `a[(i0-1)*n + (j-1)] - u[i0] - v[j]` recomputes `(i0-1)*n` and reloads `u[i0]` for every j in 1..n. This is the hottest inner loop of the algorithm (O(n^3) total executions).",
+   "proposedChange": "Before the loop: `long ui = u[i0]; long* arow = a + (long)(i0 - 1) * n - 1;` (the -1 folds the (j-1) index). Then inside: `long cur = arow[j] - ui - v[j];`. Hoists the multiply and the u[i0] load out of the loop.",
+   "rationale": "Removes one integer multiply, one add, and one dependent load from each of the n inner iterations, shortening the dependency chain feeding `cur` and freeing the compiler to keep `ui`/`arow` in registers. Pure constant-factor win on the dominant O(n^3) path.",
+   "risk": "`(long)(i0-1)*n` must be computed in 64-bit to match the existing `(i0-1)*n` index arithmetic for large n*n; using a long* base pointer preserves identical addressing. No behavioral change."
+  },
+  {
+   "file": "src/IAFahim.Graph.Matching/Hungarian.cs",
+   "symbol": "HungarianMin.Run / used buffer",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "used[] stores only 0/1 but is typed int (4 bytes); a byte buffer cuts its footprint and cache pressure 4x.",
+   "currentCost": "`int* used = stackalloc int[n+1]` plus all reads/writes in UpdateMinvAndWay and ApplyDelta touch 4-byte slots for a boolean flag, occupying 4(n+1) bytes of the hot working set alongside minv.",
+   "proposedChange": "Change `used` to `byte* used = stackalloc byte[n+1]`, set `used[j0] = 1`, test `used[j] != 0`. Adjust the helper signatures from `int* used` to `byte* used`.",
+   "rationale": "Quarters the bytes touched by the used array, improving L1 residency for the inner scan and reducing total stack working set. Byte loads/stores compile to the same cost as int on the flag check.",
+   "risk": "Pure flag semantics (only 0/1 ever stored and only compared !=0), so narrowing is provably safe. Requires updating helper method signatures consistently."
+  },
+  {
+   "file": "src/IAFahim.Graph.Matching/Hungarian.cs",
+   "symbol": "HungarianMax.Run",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Allocates a full n*n scratch matrix solely to negate the cost matrix before delegating to HungarianMin.",
+   "currentCost": "Line 86-87: `long* maxA = stackalloc long[n*n]` plus an O(n^2) negation pass. This doubles the matrix storage on the stack (n*n longs = 8*n^2 bytes) purely to flip signs.",
+   "proposedChange": "Cannot negate in place without mutating the caller's `a`. Document that the n*n stackalloc is inherent, but the negation pass can be fused or, better, expose a sign/transform flag inside HungarianMin so max-assignment reuses the input directly. Minimum change: note that for large n this stackalloc may overflow the stack and a caller-provided scratch pointer would be safer ergonomically.",
+   "rationale": "Avoiding the duplicate n*n buffer halves peak stack memory for the max variant, which matters on mobile where stack budgets are tight (e.g. n=256 is 512KB just for maxA).",
+   "risk": "Negating in place would mutate caller input (breaks purity); only acceptable if API contract changes. The flag-based approach inside HungarianMin preserves semantics but is a larger refactor. Flag, don't silently change."
+  }
+ ]
+}

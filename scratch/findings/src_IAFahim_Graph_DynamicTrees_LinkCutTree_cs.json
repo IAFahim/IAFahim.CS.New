@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Graph.DynamicTrees/LinkCutTree.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.DynamicTrees/LinkCutTree.cs",
+   "symbol": "LinkCutTree.PushUp / SubtreeQuery",
+   "severity": "critical",
+   "category": "wrong-recurrence",
+   "summary": "AllSum is computed as a single node's PathSum+VirSum and PushUp/UpdateFromChild only propagate children's PathSum, never their VirSum. Consequently the splay-tree ROOT's AllSum omits the VirSum stored on its path-descendant nodes, so the subtree sum propagated through virtual edges undercounts. SubtreeQuery(u)=Val+VirSum then returns wrong values, and Access's VirSum +=/-= AllSum bookkeeping gets permanently corrupted.",
+   "triggeringInput": "N=4 nodes with Val[i]=i+1. Link(2,3); Link(1,2); Link(2,0); MakeRoot(3); SubtreeQuery(0). Expected 1 (subtree of leaf 0), returns 3. More generally any tree where a virtual child has its own virtual children, e.g. a star/branching tree, yields wrong SubtreeQuery results (confirmed across thousands of random link/cut/subtree trials).",
+   "rootCause": "AllSum for a node must equal the FULL subtree total of that node's splay subtree, i.e. AllSum = Val + VirSum + Left.AllSum + Right.AllSum. Here AllSum = PathSum + VirSum where PathSum only aggregates child PathSums (path values), so a node's AllSum captures only its OWN VirSum and loses the VirSum of every other node in the same splay tree. When Access pulls a virtual subtree onto the preferred path it subtracts the root's stale AllSum (e.g. 7 instead of the true 9), corrupting VirSum.",
+   "suggestedFix": "Maintain AllSum as the full subtree sum: in PushUp set AllSum = nodes[u].Val + nodes[u].VirSum + (l!=-1?nodes[l].AllSum:0) + (r!=-1?nodes[r].AllSum:0); and in ApplyAdd update AllSum += val * PathSize (instead of AllSum = PathSum + VirSum). Verified: this fix makes all randomized subtree/path-add/path-min/path-max tests pass."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.DynamicTrees/LinkCutTree.cs",
+   "symbol": "Splay / PushAll",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "PushAll is recursive with [AggressiveInlining]; the attribute is ineffective on recursion and the recursion depth equals splay-tree depth, adding call overhead before every Splay.",
+   "currentCost": "PushAll(nodes,u) recurses up to the splay root calling itself per level, then PushDown on unwind. AggressiveInlining is ignored. Each frame re-passes nodes* and reloads nodes[u].Parent.",
+   "proposedChange": "Rewrite PushAll iteratively: walk up from x to the splay-root collecting the path into a stackalloc int* buffer (depth bounded by splay height), then PushDown from root down to x in reverse. Remove the AggressiveInlining attribute from PushAll.",
+   "rationale": "PushDown must be applied top-down (root first) before a splay; an explicit stack does this without per-level call frames, shortening the dependency chain and removing the misleading inline hint. Iterative form is more Burst-friendly (no recursion to defeat optimization).",
+   "risk": "Must preserve strict top-down PushDown order (root pushed before descendants) since lazy Add/Rev tags must propagate downward before rotations; reversing the collected path is required. Path buffer must be sized to a safe max splay depth."
+  },
+  {
+   "file": "src/IAFahim.Graph.DynamicTrees/LinkCutTree.cs",
+   "symbol": "PathAdd / PathMin / PathMax",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Access(nodes,v) already ends by calling Splay(nodes,u==v) on its argument, so the immediately following Splay(nodes,v) in PathAdd/PathMin/PathMax/PathQuery/Cut/Link is a redundant second splay of the same node.",
+   "currentCost": "Access(...) returns after `Splay(nodes,u)` where u is its argument v; the caller then calls Splay(nodes,v) again. The second Splay re-runs PushAll + the while-loop (which immediately sees IsRoot true) + a redundant PushUp \u2014 pure overhead on every path query/update.",
+   "proposedChange": "Drop the explicit `Splay(nodes, v)` calls that directly follow `Access(nodes, v)` in PathAdd, PathMin, PathMax, SubtreeQuery-adjacent paths, Cut, and Link (and the analogous ones in TopTree). If a guaranteed post-Access splay is needed, document that Access leaves its argument splayed.",
+   "rationale": "Removes one full Splay (PushAll walk + PushUp) per high-level operation. Since Access guarantees its argument is the splay-tree root and splayed, the second Splay is a no-op loop with wasted PushAll/PushUp.",
+   "risk": "Must verify Access truly leaves v at the root and fully splayed in every code path (it calls Splay(nodes,u) as its last statement with u being the loop's start node == v). If any caller relies on the second Splay re-pushing lazy state, confirm Access's final Splay already did so. Reject for Cut if its Splay(v) targets a different node than Access's argument."
+  },
+  {
+   "file": "src/IAFahim.Graph.DynamicTrees/LinkCutTree.cs",
+   "symbol": "LctNode",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "LctNode mixes one byte (Rev) among ints and longs; sequential layout pads Rev to 4/8-byte boundaries, wasting space and reducing cache density of the node array used in pointer-chasing splays.",
+   "currentCost": "Order Parent,Left,Right(int 12B) Rev(byte) then long Val forces 3 bytes padding after Rev to align Val to 8; total struct is larger than necessary, fewer nodes per cache line during Access/Splay walks.",
+   "proposedChange": "Reorder: put all longs first (Val, LazyAdd, PathMin, PathMax, PathSum, VirSum, AllSum = 56B), then ints (Parent, Left, Right, PathSize = 16B), then byte Rev last (occupying tail padding that would exist anyway). Net layout has no interior padding.",
+   "rationale": "Packs Rev into otherwise-wasted tail padding and groups by alignment, minimizing struct size and improving cache-line occupancy for the cache-miss-bound tree traversals.",
+   "risk": "Sequential layout is the in-memory contract; safe only because all access here is by named field. Verify no external interop/serialization depends on offsets."
+  }
+ ]
+}

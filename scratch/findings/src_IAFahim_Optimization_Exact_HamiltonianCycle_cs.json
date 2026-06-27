@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Optimization.Exact/HamiltonianCycle.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Exact/HamiltonianCycle.cs",
+   "symbol": "Run / ProcessCycleMask",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Skip masks whose bit 0 (start vertex) is unset; the start vertex 0 is the only valid DP base, so any subset not containing vertex 0 is dead state.",
+   "currentCost": "The outer loop iterates all 2^n masks and ProcessCycleMask scans all n last-vertices for each. Roughly half of all masks (those without bit 0) can never be reached from dp[(1<<0)*n+0]=0 yet are fully scanned.",
+   "proposedChange": "In ProcessCycleMask (or before calling it) skip masks with (mask & 1) == 0: `if ((mask & 1) == 0) continue;`. Equivalently iterate `for (int mask = 1; mask < size; mask += 2)` -- but a simple guard is cleaner and keeps the index meaning.",
+   "rationale": "Halves the number of (mask,last) inner scans. The Held-Karp DP only ever populates states whose mask includes the fixed start vertex 0, so masks without bit 0 contain only inf entries that fail the `dp[mask*n+last] >= inf` guard anyway -- pure wasted iteration of the inner n-loop and the branch.",
+   "risk": "Must keep dp init for those masks as inf (it already is via the full init loop) and FindMinBestCycle uses fullMask which has bit 0 set, so unaffected. Semantics preserved exactly: skipped masks produce no transitions today either."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Exact/HamiltonianCycle.cs",
+   "symbol": "TryExtendPath",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the loop-invariant base value dp[mask*n+last] and the row base w[last*n] out of the inner u-loop.",
+   "currentCost": "Each iteration recomputes mask*n+last for the dp read and last*n+u; dp[mask*n+last] is reloaded from memory n times though it is invariant across u.",
+   "proposedChange": "Add `long baseDp = dp[mask * n + last]; long* wRow = w + last * n; long* dpBase = dp;` before the loop, then use `wRow[u]` and `baseDp + wRow[u]`. Compute `int withU = mask | (1 << u);` once.",
+   "rationale": "Removes a redundant load and an index multiply from the hot inner loop, shortening the dependency chain. Burst/LLVM may already hoist the invariant load, but strengthening w into a row pointer removes the last*n multiply from every iteration deterministically.",
+   "risk": "None; dp[mask*n+last] is not written inside this loop (writes target (mask|bit)*n+u with the bit set, so a different slot), so the hoisted value stays valid."
+  }
+ ]
+}

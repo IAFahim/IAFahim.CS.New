@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Math.NT/PollardRho.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/PollardRho.cs",
+   "symbol": "PollardRho.FindFactorWithC",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Brent's improvement plus batched-GCD: the current Floyd cycle detection computes a 128-bit-ish ModMul GCD every single step; batching the product of |x-y| and taking gcd every ~128 steps cuts gcd calls by 100x.",
+   "currentCost": "Each iteration of the while loop calls Gcd (a full Euclid loop, ~O(log n) modulos) AND three F evaluations (each F is a ModMul = expensive 128-bit mul-mod). One gcd per step is the classic Pollard-Rho inefficiency.",
+   "proposedChange": "Accumulate the product `q = ModMul(q, AbsLong(x - y), n)` over a block of e.g. 128 steps, then call Gcd(q, n) once per block; on a hit, backtrack the block to isolate the real factor. Also adopt Brent's variant (single F per step using a saved x and power-of-two reset) to halve F evaluations vs Floyd's 3 F-calls per step.",
+   "rationale": "Reduces gcd invocations from one-per-step to one-per-128-steps (Euclid is the second-most-expensive op here), and Brent reduces ModMul calls per step from 3 to ~1.5. Standard, well-known 2-5x speedup for Pollard-Rho with identical factor output (modulo block backtracking).",
+   "risk": "Batched gcd can return n if a factor was absorbed by accumulation collision (product hits 0 mod n); must keep last block to retry step-by-step, and guard q against becoming 0. Brent changes the iteration order so the FIRST factor found may differ from Floyd's \u2014 but FindFactor only needs ANY nontrivial factor, and the public contract returns 'a factor', so observable top-level behavior (a valid divisor) is preserved, though the exact divisor for composite-with-3+-factors inputs may change. State this if exact-value determinism is required."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/PollardRho.cs",
+   "symbol": "PollardRho.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "n%2 and n%3 trial checks can be a single combined check, and n&1 replaces n%2.",
+   "currentCost": "`n % 2 == 0` then `n % 3 == 0` are two modulos at entry of every Run call.",
+   "proposedChange": "Use `(n & 1) == 0` for the even test (mask vs divide). Keep n%3 (3 not power of two). Minor.",
+   "rationale": "n is the input; for n>=1 n&1 is identical to n%2==0 and is a 1-cycle AND vs a divide. Trivial but free.",
+   "risk": "n&1 equals n%2==0 only for non-negative n; Run is called on positive n to factor by contract, so safe. If negative n is ever passed, n%2 and n&1 differ for n<0 \u2014 but factoring negatives is undefined here anyway."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/PollardRho.cs",
+   "symbol": "PollardRho.F",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "F does ModMul then +c then %mod; the final %mod can be a conditional subtract since ModMul already returns a value < mod and c < mod.",
+   "currentCost": "`(ModMul(x,x,mod) + c) % mod` \u2014 ModMul result is in [0,mod), c starts at 1 and grows in FindFactor. The trailing %mod is a full divide.",
+   "proposedChange": "If c is kept reduced (c < mod, which holds while c is small relative to n), then `long t = ModMul(x,x,mod) + c; return t >= mod ? t - mod : t;` replaces the divide with a branchless/conditional subtract. Add AggressiveInlining to F.",
+   "rationale": "ModMul output < mod and c < mod guarantee the sum < 2*mod, so a single conditional subtract suffices instead of a 64-bit modulo. Saves one divide per F call (called ~3x per Pollard step).",
+   "risk": "Requires c < mod; FindFactor increments c from 1 and rarely exceeds a few thousand, far below n for nontrivial inputs, but for tiny n the invariant c<mod can break \u2014 guard with c %= mod once in FindFactorWithC. Sum can overflow if mod near long.Max (2*mod overflow); Pollard targets fit since ModMul already constrains mod < 2^62 effectively. Note the overflow caveat."
+  }
+ ]
+}

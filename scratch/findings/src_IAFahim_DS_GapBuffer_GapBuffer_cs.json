@@ -1,0 +1,71 @@
+{
+ "file": "src/IAFahim.DS.GapBuffer/GapBuffer.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.DS.GapBuffer/GapBuffer.cs",
+   "symbol": "GapBufferInsert.MoveGap",
+   "severity": "critical",
+   "category": "off-by-one",
+   "summary": "When moving the gap LEFT (pos < GapStart), the relocation loop iterates gapLen times instead of shift = (GapStart - pos) times. It copies the wrong number of text bytes, corrupting the buffer whenever shift != gapLen. The variable 'shift' is computed but never used.",
+   "triggeringInput": "GapBufferState with Capacity=16, text \"ABCDEFG\" laid out as Buffer[0..5]=ABCDEF, GapStart=6, GapEnd=9, Buffer[9]='G'. Call GapBufferInsert.Run(ref s, pos=1, data, len=0) (or any Insert at pos=1, which calls MoveGap(s,1)). shift=5, gapLen=3.",
+   "rootCause": "The left-move must relocate the 'shift' text bytes in [pos, GapStart) to [GapEnd-shift, GapEnd). Instead the loop `for (i=gapLen-1; i>=0; i--) Buffer[pos+gapLen+i]=Buffer[pos+i]` copies exactly gapLen bytes from [pos, pos+gapLen) to [pos+gapLen, pos+2*gapLen). When shift>gapLen, only gapLen of the 'shift' bytes are moved (text bytes beyond pos+gapLen are left where they overlap the new gap and are lost); when shift<gapLen it copies too many. Result: logical text changes. In the example the text \"ABCDEFG\" becomes \"ABCD  G\" (E,F lost, B,C,D duplicated). It can also write past the live text region (up to index pos+2*gapLen-1).",
+   "suggestedFix": "Compute shift = GapStart - pos and relocate exactly 'shift' bytes from [pos, GapStart) to [GapEnd-shift, GapEnd), iterating high-to-low to avoid overlap clobber: `for (int i = shift - 1; i >= 0; i--) s.Buffer[s.GapEnd - shift + i] = s.Buffer[pos + i];` before setting GapStart=pos, GapEnd=pos+gapLen."
+  },
+  {
+   "file": "src/IAFahim.DS.GapBuffer/GapBuffer.cs",
+   "symbol": "GapBufferDelete.MoveGapTo",
+   "severity": "critical",
+   "category": "off-by-one",
+   "summary": "When moving the gap LEFT (pos < GapStart), the loop iterates gapLen times instead of shift = (GapStart - pos) times, copying the wrong number of text bytes and corrupting the buffer whenever shift != gapLen.",
+   "triggeringInput": "GapBufferState Capacity=16, text \"ABCDEFG\": Buffer[0..5]=ABCDEF, GapStart=6, GapEnd=9, Buffer[9]='G'. Call GapBufferDelete.Run(ref s, pos=1, len=...) which calls MoveGapTo(s,1). shift=5, gapLen=3.",
+   "rootCause": "The loop `for (i=0; i<gapLen; i++) Buffer[pos+gapLen+(gapLen-1-i)] = Buffer[pos+(gapLen-1-i)]` moves only gapLen bytes from [pos, pos+gapLen) into [pos+gapLen, pos+2*gapLen), but it must relocate all shift = GapStart-pos text bytes in [pos, GapStart). When shift>gapLen, text bytes past pos+gapLen are not moved and are overwritten/lost. In the example \"ABCDEFG\" becomes \"ABCDG\" (E and F lost) before the subsequent delete even runs.",
+   "suggestedFix": "Use the existing shift formula and copy 'shift' bytes high-to-low into [GapEnd-shift, GapEnd): `int shift = s.GapStart - pos; for (int i = shift - 1; i >= 0; i--) s.Buffer[s.GapEnd - shift + i] = s.Buffer[pos + i];` then set GapStart=pos, GapEnd=pos+gapLen."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.GapBuffer/GapBuffer.cs",
+   "symbol": "GapBufferInsert.MoveGap / GapBufferDelete.MoveGapTo",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace the byte-by-byte gap-shift loops with Unsafe.CopyBlock / Buffer.MemoryCopy-style block moves.",
+   "currentCost": "Each gap move copies `gapLen` (or `shift`) bytes one at a time in a scalar loop with a loop-carried address dependency and per-iteration index recomputation (pos+gapLen+i, pos+i). For a buffer of N bytes a single move is O(distance) scalar byte copies \u2014 no SIMD, ~1 byte/iteration plus branch overhead.",
+   "proposedChange": "MoveGap left-branch: `System.Runtime.CompilerServices.Unsafe.CopyBlock(s.Buffer + pos + gapLen, s.Buffer + pos, (uint)gapLen)` is NOT safe (regions overlap with dst>src). Use a forward/backward-correct overlapping move: call `System.Buffer.MemoryCopy(s.Buffer + pos, s.Buffer + pos + gapLen, ...)` which handles overlap. Right-branch: `System.Buffer.MemoryCopy(s.Buffer + s.GapEnd, s.Buffer + s.GapStart, ...remainingCapacity..., (long)newPos)`. Same two block moves replace the loops in MoveGapTo (the left branch's reversed double-index `pos + gapLen + (gapLen-1-i)` is just a backward memmove of gapLen bytes from pos to pos+gapLen; the right branch is a forward memmove of `shift` bytes from GapEnd to GapStart).",
+   "rationale": "Buffer.MemoryCopy uses an internal vectorized/word-wide overlapping copy (memmove semantics), cutting the move from ~1 byte/cycle to 16-32 bytes per vector op and removing the loop-carried index dependency. The loops are exactly memmove with the correct direction already chosen by the code, so the transformation is mechanical and asymptotics are unchanged but the constant factor drops by an order of magnitude.",
+   "risk": "Buffer.MemoryCopy is overlap-safe so direction handling is automatic, but it is a managed BCL call \u2014 under Burst it may not be intrinsified. SAFER Burst-friendly path: use `UnsafeUtility.MemMove` (Unity.Collections.LowLevel.Unsafe) which Burst lowers to an optimized overlapping copy. If neither is available in this module's dependency set, keep manual loops but widen the copy unit (see separate opportunity). Must keep the existing direction (the left-branch overlaps dst>src so a plain CopyBlock/forward memcpy would corrupt; only a true memmove or the existing reverse loop is correct)."
+  },
+  {
+   "file": "src/IAFahim.DS.GapBuffer/GapBuffer.cs",
+   "symbol": "GapBufferInsert.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Copy the inserted payload with a block move and drop the redundant per-byte gap-space guard.",
+   "currentCost": "The insert loop `for (i<len && s.GapStart<s.GapEnd) s.Buffer[s.GapStart++]=data[i]` does a byte-at-a-time copy plus TWO branch tests per byte (i<len and GapStart<GapEnd), and writes back s.GapStart to a ref field implicitly each iteration.",
+   "proposedChange": "Precompute `int n = len < (s.GapEnd - s.GapStart) ? len : (s.GapEnd - s.GapStart);` once (branchless min), then `UnsafeUtility.MemCpy(s.Buffer + s.GapStart, data, n)` (non-overlapping: src is caller data, dst is gap) and `s.GapStart += n;`. Removes the inner double-branch and the per-iteration ref write.",
+   "rationale": "Source and gap destination never overlap (data is the caller's separate buffer, dst is the free gap region), so a straight memcpy/CopyBlock applies \u2014 vectorized, no per-byte branching. Computing the clamp once converts O(len) branch tests into O(1) and lets the bulk copy run at memory bandwidth.",
+   "risk": "Must clamp n to available gap (GapEnd-GapStart) to preserve the current truncation behavior when the payload exceeds the gap \u2014 the current loop silently stops at GapEnd, so n=min(len, gapSpace) reproduces it exactly. If the caller could pass overlapping data and buffer regions, MemCpy would be UB; the original loop is also unsafe under self-overlap, so semantics are preserved for all currently-valid inputs."
+  },
+  {
+   "file": "src/IAFahim.DS.GapBuffer/GapBuffer.cs",
+   "symbol": "GapBufferInsert.MoveGap",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Remove the dead local `int shift` and hoist invariant index bases.",
+   "currentCost": "`int shift = s.GapStart - pos;` in the left branch is computed but never used (dead store). Loop bodies recompute `pos + gapLen` and base offsets each iteration even though they are loop-invariant.",
+   "proposedChange": "Delete the unused `shift`. If keeping scalar loops, hoist `byte* dst = s.Buffer + pos + gapLen; byte* src = s.Buffer + pos;` (left) and pointer-walk instead of index arithmetic so the JIT/Burst does not redo the add+scale each iteration.",
+   "rationale": "Dead-store elimination and invariant hoisting shorten the dependency chain and the encoded instruction count; Burst usually catches these but the dead `shift` is pure noise and removing it clarifies the move is a single memmove.",
+   "risk": "None \u2014 `shift` is provably unused; hoisting invariants is value-preserving. Superseded by the memmove change if that is adopted."
+  },
+  {
+   "file": "src/IAFahim.DS.GapBuffer/GapBuffer.cs",
+   "symbol": "GapBufferInsert.MoveGap / GapBufferDelete.MoveGapTo",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "De-duplicate the two near-identical gap-move routines into one shared static helper.",
+   "currentCost": "MoveGap and MoveGapTo implement the same left/right memmove logic with the same GapStart/GapEnd updates; the only divergence is cosmetic (loop index direction in the left branch). This is duplicated code that must be kept in sync and doubles the surface for the same bug class.",
+   "proposedChange": "Extract a single `internal static void MoveGap(ref GapBufferState s, int pos)` (e.g. in an internal GapBufferCore static class) and have both Insert.Run and Delete.Run call it. Both branches reduce to the two memmove forms above.",
+   "rationale": "Single source of truth removes drift risk and lets one memmove optimization benefit both callers. No perf cost: AggressiveInlining or Burst inlining collapses the call. Note the two left-branches differ only in iteration order yet are equivalent memmoves, confirming they should be merged.",
+   "risk": "Behavior-neutral if the merged helper reproduces both branches' GapStart/GapEnd assignments (identical in both files today). Verify the new internal class still satisfies the static-class / unmanaged house constraints (it does)."
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.DS.Treap/TreapRangeReverse.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.Treap/TreapRangeReverse.cs",
+   "symbol": "Update",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Same redundant Size(Left)/Sum(Left), Size(Right)/Sum(Right) double-load-and-null-check pattern.",
+   "currentCost": "4 child loads + 4 null compares per Update, every Split/Merge frame in Reverse.",
+   "proposedChange": "Cache child pointers once: `TreapRevNode* l = n->Left, r = n->Right;` then fused size+sum per child.",
+   "rationale": "Halves loads/branches and exploits Size/Sum cache-line locality.",
+   "risk": "None. Local CSE."
+  }
+ ]
+}

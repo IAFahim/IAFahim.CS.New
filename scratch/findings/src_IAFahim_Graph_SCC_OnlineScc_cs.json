@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Graph.SCC/OnlineScc.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.SCC/OnlineScc.cs",
+   "symbol": "Find",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Find uses recursive path compression with AggressiveInlining (which cannot apply to recursion); convert to an iterative two-pass path-compression to avoid call overhead and stack growth, and drop the misleading inline hint.",
+   "currentCost": "Recursive Find on the DSU is called per edge and per BFS neighbor (Find(parent, to[e])). Each Find is a recursion with a write-back; deep chains cost call frames. The AggressiveInlining hint is inert on the recursive call.",
+   "proposedChange": "Make Find iterative: walk to root with a local loop (int r = i; while (parent[r] != r) r = parent[r];), then a second loop to compress (while (parent[i] != r) { int nxt = parent[i]; parent[i] = r; i = nxt; }). Remove AggressiveInlining or keep only on the now-small iterative leaf.",
+   "rationale": "Iterative path compression has the same amortized inverse-Ackermann complexity but no per-level call frame, shorter dependency chains, and is Burst-friendly (no recursion to a non-inlinable callee). Hottest DSU primitive called O(edges + BFS-visits) times.",
+   "risk": "Must preserve full path compression semantics (all nodes on path point to root) to keep amortized bounds; the two-pass form does exactly that. Observable parent[] end-state equals the recursive version's. Safe."
+  },
+  {
+   "file": "src/IAFahim.Graph.SCC/OnlineScc.cs",
+   "symbol": "Union",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Union does parent[rootI] = rootJ with no union-by-rank/size; combined with path compression the DSU loses the near-constant amortized guarantee and can degrade Find chains, directly slowing AddEdge's per-edge Find and the contraction loop.",
+   "currentCost": "Unbalanced union can create long parent chains before compression kicks in, increasing Find cost across the many Find calls in the BFS (Find(parent, to[e]) per edge traversed) and in the contraction loop.",
+   "proposedChange": "Add a rank or size array (caller-provided int* to honor the no-hidden-state rule) and attach the smaller tree under the larger in Union. Init alongside parent in Init. This keeps Find chains shallow.",
+   "rationale": "Union-by-rank/size + path compression gives O(alpha) amortized; without rank, worst-case Find chains grow, raising the cost of the per-edge Find calls that dominate AddEdge. Asymptotic/amortized improvement on the hot path.",
+   "risk": "Changes the signature/Init contract (adds a rank buffer) \u2014 an API change the caller must adopt; flag as ergonomics-affecting. Behavior of SCC results is identical (DSU connectivity unchanged); only internal tree shape and speed differ. Medium risk due to signature change."
+  },
+  {
+   "file": "src/IAFahim.Graph.SCC/OnlineScc.cs",
+   "symbol": "AddEdge",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "In the contraction loop, Union(parent, node, rootU) recomputes Find(parent, rootU) for every visited node even though rootU is fixed; hoist Find(parent,rootU) once and union each node's root into it directly.",
+   "currentCost": "The loop calls Union qt times; each Union does Find(node) and Find(rootU). rootU's root is invariant across the loop but is re-derived each iteration (and rootU is already a root at loop start, though compression during the loop can move it).",
+   "proposedChange": "Since rootU is a DSU root at the start and the loop only attaches others under it (parent[rootI]=rootJ direction), compute the target root once: keep merging into rootU and set parent[Find(parent,node)] = rootU directly, recomputing only node's root. If union-by-rank is added this needs care, but for the current attach-into-rootU semantics the rootU Find is redundant.",
+   "rationale": "Removes qt redundant Find(rootU) calls in the contraction loop, each of which (with current unbalanced DSU) may walk a chain. Cuts work proportional to visited-set size per cycle contraction.",
+   "risk": "Current Union always points rootI under rootJ; calling Union(node, rootU) attaches node's root under rootU's root. Inlining as parent[Find(node)] = rootU is equivalent ONLY while rootU remains a root \u2014 it does, because nothing is ever attached above it in this loop. Verify before applying; without rank this holds. Low-medium risk."
+  }
+ ]
+}

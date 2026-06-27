@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Search.Bit/Bit.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.Bit/Bit.cs",
+   "symbol": "FirstTrue.Run / LastTrue.Run",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "Generic constraint IComparable<T> uses CompareTo for a not-equal-to-default test, risking an interface/virtual call and boxing under non-Burst paths.",
+   "currentCost": "ptr[mid].CompareTo(default(T)) is an interface-method invocation on a generic; if the JIT/Burst fails to devirtualize (or T's CompareTo allocates), this becomes a virtual call per binary-search step. The intent is merely 'is this element non-zero/true'.",
+   "proposedChange": "Constrain to where T : unmanaged, IEquatable<T> and use !ptr[mid].Equals(default(T)), or provide specialized overloads (byte*/long*) doing ptr[mid] != 0. Equality is cheaper than ordering and more directly expresses the truthiness test; the typed overloads are fully Burst-friendly and branchless-comparable.",
+   "rationale": "Equals/!= avoids the three-way ordering computation and is more reliably inlined; concrete-typed overloads eliminate any interface dispatch entirely, which is the only thing that could defeat Burst here.",
+   "risk": "Behavior preserved: CompareTo(default) != 0 is equivalent to !Equals(default) for any total order. Changing the constraint is an API change; the safest non-breaking route is adding typed overloads alongside the generic one."
+  }
+ ]
+}

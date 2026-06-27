@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Collections.NoDeps/Memory.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Collections.NoDeps/Memory.cs",
+   "symbol": "Unmanaged.Allocate",
+   "severity": "high",
+   "category": "pointer-ub",
+   "summary": "Allocate ignores the requested alignment, returning Marshal.AllocHGlobal memory aligned only to the CRT default (typically 8/16 bytes). Callers that request a stronger alignment (e.g. 32 or CacheLineSize=64) and then perform aligned SIMD/cache-line loads or stores hit undefined behavior on the misaligned pointer.",
+   "triggeringInput": "Allocate(size: 256, alignment: 64, allocator). AllocHGlobal may return e.g. a pointer that is only 16-byte aligned; reading/writing it as a 64-byte/32-byte aligned block is UB.",
+   "rootCause": "The method takes an `alignment` parameter but never uses it. Marshal.AllocHGlobal makes no over-alignment guarantee, so the returned base pointer is not aligned to the requested boundary.",
+   "suggestedFix": "Honor the alignment: either over-allocate (size + alignment) and round the returned pointer up to the requested boundary, storing the original pointer for Free, or use an aligned allocator API (e.g. _aligned_malloc / posix_memalign equivalent, or Marshal.AllocHGlobal with manual alignment bookkeeping). Free must then recover and release the original base pointer."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Collections.NoDeps/Memory.cs",
+   "symbol": "Unmanaged.Allocate",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Allocate ignores the requested alignment, so returned pointers are only guaranteed 8/16-byte aligned by the CRT, not the caller's requested alignment (e.g. 64-byte CacheLineSize).",
+   "currentCost": "Marshal.AllocHGlobal(size) returns malloc-aligned memory (typically 16 bytes on 64-bit). Callers passing alignment=CacheLineSize=64 silently receive under-aligned blocks; SIMD/Burst vectorized loads/stores assuming 64-byte alignment can fault on some targets or incur split-load penalties, and false-sharing-avoidance via cache-line padding is defeated.",
+   "proposedChange": "Use an aligned allocator: NativeMemory.AlignedAlloc((nuint)size, (nuint)alignment) (paired with NativeMemory.AlignedFree in Free), or implement manual over-allocation + pointer rounding storing the original base just before the aligned pointer. Keep the AllocatorHandle parameter for API compatibility.",
+   "rationale": "Honoring alignment lets Burst/SIMD use aligned moves (movaps/vmovaps vs movups) and keeps cache-line padding effective, avoiding false sharing across worker threads. It also prevents potential misaligned-access faults on ARM/mobile for over-aligned types.",
+   "risk": "NativeMemory.AlignedAlloc requires its matching AlignedFree, so Free must change in lockstep or you get heap corruption. AlignedAlloc requires alignment to be a power of two and non-zero; guard or document that precondition. Marshal.AllocHGlobal takes IntPtr (cast of long) and can wrap/overflow on 32-bit mobile for size > int.MaxValue; AlignedAlloc takes nuint and is cleaner. This is a behavioral fix, not a pure micro-opt \u2014 it changes pointer alignment observably, which is the intent."
+  },
+  {
+   "file": "src/IAFahim.Collections.NoDeps/Memory.cs",
+   "symbol": "Unmanaged.Allocate",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Marshal.AllocHGlobal / FreeHGlobal are managed P/Invoke wrappers that are not Burst-compilable, so any Burst-compiled call path through Allocate/Free falls back to managed or fails compilation.",
+   "currentCost": "Marshal.* calls pull in System.Runtime.InteropServices managed marshalling; under Burst these are not supported intrinsics, defeating Burst on the allocation path and preventing the method from being used inside [BurstCompile] jobs.",
+   "proposedChange": "Replace Marshal.AllocHGlobal/FreeHGlobal with System.Runtime.InteropServices.NativeMemory.Alloc/AlignedAlloc/Free, which Burst recognizes (or with Unity's UnsafeUtility.Malloc when available). These map to raw malloc/free without managed marshalling.",
+   "rationale": "NativeMemory.* are thin libc malloc/free intrinsics with no managed marshalling layer, so they are blittable, exception-free on the hot path, and Burst-friendly, keeping allocation usable inside Burst jobs and removing per-call managed transition overhead.",
+   "risk": "NativeMemory was added in .NET 6; confirm the target framework / Unity runtime exposes it. Free semantics differ between plain Free and AlignedFree, so the alloc/free pair must match. Behavior (allocate/free a block) is preserved."
+  }
+ ]
+}

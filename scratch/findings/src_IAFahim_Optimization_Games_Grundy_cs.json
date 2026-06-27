@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Optimization.Games/Grundy.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Games/Grundy.cs",
+   "symbol": "Grundy.SpragueGrundy",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace the magic literal stride 10 with a named constant and pass it as a parameter, and hoist counts[i] out of the inner loop bound.",
+   "currentCost": "`moves[i * 10 + j]` hardcodes the per-state move stride as the literal 10, which is an undocumented coupling between caller layout and this function (ergonomics/correctness hazard). `counts[i]` is reloaded as the loop bound on every j iteration.",
+   "proposedChange": "Introduce `const int MovesStride = 10;` (or better, add an `int stride` parameter so the layout is explicit), and cache `int c = counts[i]; int rowBase = i * MovesStride;` before the j-loop so the bound and base are loaded once. Inner: `scratch[j] = g[moves[rowBase + j]];`.",
+   "rationale": "Named constant removes a silent magic number and the brittle assumption; hoisting counts[i] and the row base removes a redundant load and a multiply per inner iteration. Pure constant-factor and clarity win with no behavior change.",
+   "risk": "None for the hoist (counts[i] and i*10 are invariant across j). Adding a stride parameter is a signature change (ergonomics) \u2014 if avoided, the named-constant + hoist alone is fully semantics-preserving."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Games/Grundy.cs",
+   "symbol": "Grundy.Mex",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "The clear loop and the membership test can use a bitset to shrink the stackalloc and let the compiler vectorize the clear.",
+   "currentCost": "`stackalloc bool[n+1]` plus an explicit `for(i<=n) seen[i]=false` byte-by-byte clear. For large n this is n+1 bytes of stack and an n+1 store loop before any useful work.",
+   "proposedChange": "Keep bool[] for small n (current code is fine), but for the clear specifically prefer `Unsafe.InitBlockUnaligned(seen, 0, (uint)(n+1))` to zero the buffer in one vectorized memset instead of a scalar per-byte loop. Optionally pack into `ulong` words ((n>>6)+1 longs) and clear with a short word loop \u2014 8x fewer stores and the final scan tests 64 candidates per load via `~word` bit-scan.",
+   "rationale": "InitBlock lowers to a vectorized fill (fewer cycles than the scalar loop); the bitset variant cuts stack footprint 8x and lets the missing-value scan skip 64 present values per word with a trailing-zero-count, improving the common dense case.",
+   "risk": "Bitset version changes index math (word = v>>6, bit = v&63) and the final scan logic \u2014 must preserve the exact 'smallest non-negative int in [0,n] not present, else n+1' semantics and the `0<=v<=n` guard. InitBlock alone is a drop-in with no semantic change."
+  }
+ ]
+}

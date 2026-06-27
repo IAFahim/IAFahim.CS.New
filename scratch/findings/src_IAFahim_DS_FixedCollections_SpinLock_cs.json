@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.DS.FixedCollections/SpinLock.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.FixedCollections/SpinLock.cs",
+   "symbol": "SpinLock.Acquire",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Inner busy-spin loop lacks a CPU pause/yield hint, causing pipeline stalls, memory-order mis-speculation flushes, and excess coherence traffic that starves the lock holder.",
+   "currentCost": "while (Volatile.Read(ref this.@lock) == 1) {} spins as tightly as the core can issue loads. On x86 this floods the load buffer and triggers memory-order machine clears on lock release; on ARM (mobile) it pegs a core at full clock, hammering the shared cache line and burning power while the holder tries to make progress.",
+   "proposedChange": "Insert a spin-wait hint inside the inner loop body: call System.Threading.Thread.SpinWait(1) (or an intrinsic pause if available under Burst) once per iteration, e.g. 'while (Volatile.Read(ref this.@lock) == 1) { System.Threading.Thread.SpinWait(1); }'. Optionally use an exponentially growing iteration count capped to a small constant.",
+   "rationale": "A pause/yield hint relaxes the load issue rate, eliminates memory-order machine clears on the waiting core, frees execution resources to the SMT sibling, and reduces the number of coherence read requests on the contended line so the releasing/holding thread can take ownership faster. Lower power on mobile for the same correctness.",
+   "risk": "Pure throughput/latency improvement; observable lock semantics unchanged (still acquires when lock transitions to 0). Must confirm Thread.SpinWait is Burst-compatible; if not, gate the hint to managed builds or use a Burst intrinsic. No correctness change."
+  },
+  {
+   "file": "src/IAFahim.DS.FixedCollections/SpinLock.cs",
+   "symbol": "SpinLock.Acquire",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Under low contention the inner read-spin while-loop adds a redundant branch on the common fast path.",
+   "currentCost": "After a failed CompareExchange the code enters the inner while; under brief contention it would be marginally cheaper to retry CompareExchange directly. Current structure: outer for + inner read-while. The inner loop is the right pattern for high contention (read-only spin avoids RMW traffic) so this is minor.",
+   "proposedChange": "Keep the test-and-test-and-set structure (it is correct and good for contention) but consider only re-attempting CompareExchange after the read observes 0; the current code already does this via the outer loop, so no change is strictly needed. If desired, mark the method body so the fast-path CompareExchange success is the predicted branch.",
+   "rationale": "The existing test-and-test-and-set already minimizes RMW bus traffic; flagged only to note the structure is intentional and should be preserved when adding the SpinWait hint.",
+   "risk": "No change recommended beyond preserving semantics; listed for completeness so the SpinWait edit does not accidentally remove the read-only inner spin."
+  }
+ ]
+}

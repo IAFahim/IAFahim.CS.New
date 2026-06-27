@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Geometry.Spatial/Bit3D.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Spatial/Bit3D.cs",
+   "symbol": "Bit3D.Add / Bit3D.Sum",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The flat index '(long)(i-1)*Y*Z + (long)(j-1)*Z + (k-1)' recomputes Y*Z and the i/j partial products inside the innermost k-loop on every iteration.",
+   "currentCost": "Per innermost iteration: two long multiplies plus adds, and Y*Z is recomputed at every (i,j,k). These are loop-invariant relative to inner loops.",
+   "proposedChange": "Hoist 'long yz = (long)bit->Y * bit->Z;' once; hoist 'long iBase = (long)(i-1)*yz;' in the i-loop; hoist 'long ijBase = iBase + (long)(j-1)*bit->Z;' in the j-loop; inner index becomes 'ijBase + (k-1)'. Same for Sum.",
+   "rationale": "Moves invariant multiplies out of the BIT's innermost loop (which runs O(log per dim) but the multiplies are on the critical address-gen path), reducing the inner body to one add and one load/store.",
+   "risk": "None; arithmetic is associative over long here and values are identical. Y*Z fits in long as already cast."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Spatial/Bit3D.cs",
+   "symbol": "Bit3D.Init",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Init zeroes Tree with a scalar element-by-element loop instead of a bulk clear.",
+   "currentCost": "O(x*y*z) scalar stores with loop overhead; Burst may auto-vectorize but a memset is guaranteed wide.",
+   "proposedChange": "Use 'Unsafe.InitBlockUnaligned(bit->Tree, 0, (uint)(bit->Size * sizeof(long)))' (or a Burst-friendly memset) to zero the whole buffer in one call.",
+   "rationale": "Bulk zeroing issues wide stores / uses the platform memset, beating a scalar loop and shortening code; fewer loop-branch overheads.",
+   "risk": "Size*sizeof(long) must not overflow uint \u2014 Size is int (x*y*z); for very large grids Size*8 could exceed uint. Guard: ensure (long)Size*8 <= uint.MaxValue, else fall back to loop. Behavior otherwise identical (all-zero)."
+  }
+ ]
+}

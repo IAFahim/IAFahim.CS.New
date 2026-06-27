@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.String.Palindrome/LyndonFactorization.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Palindrome/LyndonFactorization.cs",
+   "symbol": "Factorize",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Inner Duval loop reloads s[k] and s[j] and recomputes nothing reducible; already optimal O(n), but the s[k]<=s[j] then s[k]<s[j] does two compares where one branchless update suffices.",
+   "currentCost": "Inner loop: while (s[k]<=s[j]) { if (s[k]<s[j]) k=i; else k++; j++; }. This loads s[k] and s[j] twice (once for <=, once for <). Two comparisons of the same pair per iteration.",
+   "proposedChange": "Load both once: byte sk = s[k], sj = s[j]; if (sk > sj) break;-style restructure, or: int cmp = sk - sj; then k = cmp < 0 ? i : k+1; with the loop guard on cmp<=0. This loads each byte once and reuses the comparison result, halving the byte loads in the hot inner loop.",
+   "rationale": "Removes one redundant byte load and one redundant comparison per inner iteration of the Duval scan; the comparison result is reused for both the loop condition and the k-update branch.",
+   "risk": "None; s[k] and s[j] are unchanged between the two original comparisons, so caching them is equivalent. Keep the k=i vs k++ branch (data-dependent, hard to make branchless cheaply)."
+  }
+ ]
+}

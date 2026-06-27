@@ -1,0 +1,72 @@
+{
+ "file": "src/IAFahim.Math.PotentialField/PotentialField2D.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.PotentialField/PotentialField2D.cs",
+   "symbol": "Repulsive",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace sqrt + four scalar divisions with one rsqrt and multiplies by reformulating the magnitude in terms of dot(delta).",
+   "currentCost": "math.length does sqrt(dot(delta)); then 1.0f/dist, 1.0f/radius, /(dist*dist), and a final /dist (in 'magnitude*delta/dist'). That is one sqrt plus four float divisions on the hot path, with a long sqrt->div dependency chain.",
+   "proposedChange": "Compute float d2 = math.dot(delta, delta); guard radius via 'd2 > radius*radius || d2 < 1e-12f' (precompute radius*radius and 1e-12f=1e-6f^2 as constants). Then float invDist = math.rsqrt(d2); float coeff = strength * (invDist - invRadius) * invDist * invDist * invDist; return coeff * delta; where invRadius = 1.0f/radius is hoisted. This collapses 'magnitude*delta/dist' = strength*(1/dist - 1/radius)/dist^3 * delta into rsqrt + multiplies.",
+   "rationale": "Algebraically magnitude/dist = strength*(1/dist - 1/radius)/dist^3, and 1/dist^3 = invDist^3 with invDist = rsqrt(d2). rsqrt is a single fast instruction vs sqrt+divide; the remaining work is multiplies which pipeline far better than divides and shorten the dependency chain. The comparison 'dist > radius' becomes 'd2 > radius^2' avoiding the sqrt entirely when only the gate matters.",
+   "risk": "rsqrt is an approximation (Burst lowers to rsqrtps with possible refinement), so results differ in the last ~1 ULP from the exact sqrt-based path; acceptable for a potential field but it is NOT bit-identical, so flag if exact reproducibility is required. The squared radius guard preserves the same accept/reject set only if radius>=0 (true for a radius); negative radius would change behavior but is already meaningless. Use 1e-12f (=(1e-6f)^2) for the lower guard to match the original dist<1e-6f cutoff."
+  },
+  {
+   "file": "src/IAFahim.Math.PotentialField/PotentialField2D.cs",
+   "symbol": "Attractive",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Use math.normalizesafe / rsqrt-based normalization instead of length + divide.",
+   "currentCost": "math.length(delta) = sqrt(dot); then 'strength*delta/dist' divides the vector by dist. One sqrt plus a vector divide with a sqrt->divide dependency chain.",
+   "proposedChange": "float d2 = math.dot(delta,delta); if (d2 < 1e-12f) return float2.zero; return (strength * math.rsqrt(d2)) * delta;  (1e-12f = (1e-6f)^2 named constant). This is 'strength * normalize(delta)'.",
+   "rationale": "delta/dist is normalization; strength*rsqrt(d2)*delta computes the same direction*strength with one rsqrt and a scalar*vector multiply, removing the vector divide and shortening the chain. The guard moves to squared space, eliminating sqrt on the reject path.",
+   "risk": "rsqrt approximation means not bit-identical to sqrt-based length (last ~1 ULP); flag if exact reproducibility needed. d2<1e-12f matches the original dist<1e-6f gate exactly since both sides are non-negative."
+  },
+  {
+   "file": "src/IAFahim.Math.PotentialField/PotentialField2D.cs",
+   "symbol": "Tangential",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Normalize via rsqrt(dot) instead of length + divide; reuse the squared-distance gate.",
+   "currentCost": "math.length(delta) sqrt; then 'strength*tangent/dist' vector divide. The dist>radius gate also pays the sqrt.",
+   "proposedChange": "float d2 = math.dot(delta,delta); gate with 'd2 > radius*radius || d2 < 1e-12f'; float invDist = math.rsqrt(d2); return (strength*invDist) * new float2(-delta.y, delta.x);",
+   "rationale": "Same normalization reduction as Attractive (rsqrt + multiply vs sqrt + divide) and squared-space gate avoids the sqrt when only comparison is needed.",
+   "risk": "rsqrt precision (not bit-identical). Squared radius gate equivalent for radius>=0. Lower guard 1e-12f equals original 1e-6f cutoff."
+  },
+  {
+   "file": "src/IAFahim.Math.PotentialField/PotentialField2D.cs",
+   "symbol": "GradientDescent",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Use rsqrt-based normalize for 'grad/gradLen' and squared-distance for the target-reached check.",
+   "currentCost": "Per step: math.length(grad) sqrt then 'grad/gradLen' vector divide; plus math.length(pos-attractors[0]) sqrt every iteration for the tolerance check.",
+   "proposedChange": "float g2 = math.dot(grad,grad); if (g2 < tolerance*tolerance) break; float invLen = math.rsqrt(g2); pos = pos + (grad * (invLen*stepSize)); For the target check compute float d2 = math.dot(pos-attractors[0], pos-attractors[0]) and compare against tolerance*tolerance (hoist tol2 = tolerance*tolerance out of the loop).",
+   "rationale": "dir*stepSize = grad*(stepSize/gradLen) = grad*(stepSize*invLen): one rsqrt + scalar*vector multiply instead of sqrt + divide + multiply. Both tolerance comparisons move to squared space, removing two sqrt per iteration in the inner descent loop.",
+   "risk": "tolerance must be >= 0 (it is, as a convergence tolerance) for the squared comparison to be equivalent; flag negative tolerance as undefined. rsqrt approximation makes the step direction differ by ~1 ULP, which can in rare cases change which iteration a near-threshold convergence triggers on, perturbing stepCount by one near the boundary; if exact step-count reproducibility is contractual, keep math.length here."
+  },
+  {
+   "file": "src/IAFahim.Math.PotentialField/PotentialField2D.cs",
+   "symbol": "GradientDescent",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Fuse the 'distance to attractors[0]' convergence test into ComputeGradient's attractor loop instead of recomputing pos-attractors[0].",
+   "currentCost": "attractors[0] is read and its delta length computed inside Attractive during ComputeGradient, then GradientDescent re-reads attractors[0] and recomputes math.length(pos-attractors[0]) \u2014 duplicate load + duplicate sqrt/dot of the same vector each iteration.",
+   "proposedChange": "Provide an overload of ComputeGradient (or an internal variant) that, when attractorCount>0, outputs the squared distance to attractors[0] (the dot it already needs for Attractive) so GradientDescent can test it without a second pass. Alternatively hoist 'float2 a0 = attractors[0]' once before the loop to avoid the repeated pointer dereference and let the compiler keep it in a register.",
+   "rationale": "Removes one redundant vector subtract + dot/sqrt per descent iteration by reusing a quantity already computed for the gradient; the squared distance is a byproduct of Attractive's delta. Lower constant factor per step with identical result.",
+   "risk": "Must not change semantics: the original uses pos AFTER the step for the target check, while Attractive used pos BEFORE the step \u2014 so the reused dot is for the pre-step pos, not the post-step pos. Reusing it would change which position is tested. Therefore only the cheap parts (hoist a0 load, squared-distance compare) are safe; full fusion requires testing pre-step distance which changes behavior and must be rejected unless that semantic shift is acceptable."
+  },
+  {
+   "file": "src/IAFahim.Math.PotentialField/PotentialField2D.cs",
+   "symbol": "PotentialField2D",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Remove the unused 'using System;' directive.",
+   "currentCost": "Dead using directive; no runtime cost but adds namespace-resolution noise and risks pulling managed System symbols into a Burst-targeted file.",
+   "proposedChange": "Delete 'using System;' (nothing in the file references the System namespace directly).",
+   "rationale": "Cleaner, keeps the file's surface explicitly Burst-friendly (only Unity.Mathematics + CompilerServices), avoids accidental use of managed System types.",
+   "risk": "None; purely a no-op removal if truly unused (confirmed: no System.* references in the file)."
+  }
+ ]
+}

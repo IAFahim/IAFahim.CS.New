@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.DS.FixedCollections/FixedArray.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.FixedCollections/FixedArray.cs",
+   "symbol": "Length / Buffer",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "FixedArray is already near-optimal; the only note is that `Length = sizeof(TS)/sizeof(T)` divides per access \u2014 for power-of-two element sizes this is a constant per specialization and folds, so no action unless Length is hot.",
+   "currentCost": "`sizeof(TS)/sizeof(T)` is a compile-time-constant ratio per (TS,T) specialization, so Burst already folds it to an immediate. CheckIndexInRange is Conditional and elided in release. Buffer is AggressiveInlined and pins per access.",
+   "proposedChange": "No change required; structure is correct. If profiling ever shows Buffer's per-access `fixed` pin as hot, it could be hoisted by callers, but within this struct it is already inlined and the pin is free for a non-moving struct field under Burst.",
+   "rationale": "Confirming the file is already optimal avoids inventing work; the sizeof ratio and Conditional checks are the right patterns.",
+   "risk": "None \u2014 no change proposed."
+  }
+ ]
+}

@@ -1,0 +1,136 @@
+{
+ "file": "src/IAFahim.Optimization.Offline/Offline.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Optimization.Offline/Offline.cs",
+   "symbol": "ParallelBinarySearch.GroupByMid",
+   "severity": "high",
+   "category": "logic",
+   "summary": "Bucket index conflates the binary-search midpoint VALUE with a global running counter, so distinct queries collide and overwrite each other in the buckets array, losing queries.",
+   "triggeringInput": "n=2, queryIdx={0,1}; query 0: lo=0,hi=2 (Mid=1); query 1: lo=0,hi=0 (Mid=0); bucketSize[0]=0 initially. i=0 writes buckets[1+0]=q0, bucketSize->1. i=1 writes buckets[0+1]=buckets[1]=q1, overwriting q0. Query 0 is lost.",
+   "rootCause": "Line 37: buckets[mid + bucketSize[0]++] = queryIdx[i]. 'mid' is a value in the search domain (Mid(lo,hi)), but it is added to a single monotone counter bucketSize[0] to form a flat write position. The two coordinate systems are incoherent: the same target slot can be produced by different (mid, counter) pairs, so writes overwrite previously placed queries (and write positions are not contiguous, leaving gaps). A correct parallel-binary-search grouping must place each query at a position determined by its mid bucket plus a per-bucket offset, not value+global-counter.",
+   "suggestedFix": "Group by mid with proper per-bucket prefix offsets: first count how many queries fall into each mid bucket, compute a prefix-sum start offset per bucket, then place each query at bucketStart[mid] + (perBucketCount[mid]++). bucketSize should be an array indexed by mid, not a single scalar added to mid."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Offline/Offline.cs",
+   "symbol": "Cdq3DDominance.Process",
+   "severity": "high",
+   "category": "wrong-recurrence",
+   "summary": "CDQ 3D-dominance merge never queries the Fenwick tree (bitSum is passed in but never called) and the two halves are never sorted by y, so no dominance count is ever produced and the y-merge precondition is violated.",
+   "triggeringInput": "Any input, e.g. 2 points with idx sorted by x as {0,1}, x={1,2}, y={1,2}, z={1,2}, l=0,r=1. After recursion the code adds point 0 to the BIT and removes it, but bitSum is never invoked, so the dominance count for point 1 (which point 0 dominates) is never read or stored anywhere.",
+   "rootCause": "(1) The query function 'bitSum' (delegate*<int*,int,int>) is declared, threaded through both recursive calls, but never called in the body; the loop only performs bitAdd(+1) for left-half points and bitAdd(-1) cleanup. The dominance contribution to each right-half point j is never measured, and there is no answers/output write, so the method computes nothing. (2) Standard CDQ requires each half to be sorted by the second key (y) before the two-pointer merge on line 128 (y[idx[i]] <= y[idx[j]]). Process never sorts idx by y nor writes a merged order back, so after the recursive calls idx[l..mid] and idx[mid+1..r] remain in x-order; the y two-pointer is therefore invalid and counts wrong even if a query were added.",
+   "suggestedFix": "Inside the merge loop, after advancing i to add all left points with y<=y[idx[j]], call bitSum(bit, z[idx[j]]) to read the count of left points with z <= z[idx[j]] and accumulate it into a per-point answer array. Additionally, perform a stable merge by y that writes the merged order back to idx (via tmp), so each recursion level leaves its range sorted by y for the parent merge."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Offline/Offline.cs",
+   "symbol": "DivideConquerAnswer.Solve",
+   "severity": "high",
+   "category": "wrong-recurrence",
+   "summary": "A method named/structured as divide-and-conquer never recurses on [lo,mid] and [mid+1,hi], and never partitions queries; leftCount/rightCount and mid are computed but the algorithm degenerates to a single in-place answer-value scan that produces no answers.",
+   "triggeringInput": "lo=0, hi=8, nQueries=1, one query fully covering the range (queryL[0]=0,queryR[0]=8,queryK[0]=0). mid=4. The query's k is moved to mid=4 via add/remove callbacks, but Solve never recurses to refine k to a single value, and never writes into answers[]. The query's answer is never resolved (left at the arbitrary mid of the top call).",
+   "rootCause": "mid is computed at line 56 but only used to push each fully-covering query's pointer to mid; the method then returns without recursing into the two halves or splitting queries between them (the else-if/else branches at 62-86 are empty placeholders, and leftCount/rightCount at 57-58 are unused). Parallel divide-and-conquer-on-the-answer requires recursing Solve(lo,mid,...) with queries whose answer is <= mid and Solve(mid+1,hi,...) with the rest, terminating at lo==hi to write answers[query]=lo. None of that exists, so for hi-lo>1 no query ever converges to a final answer and answers[] is never written.",
+   "suggestedFix": "Implement the recursion: partition queries into those whose predicate is satisfied at mid (answer in [lo,mid]) and those needing more (answer in [mid+1,hi]); recurse Solve(lo,mid,...) and Solve(mid+1,hi,...) on the respective partitions; and at the lo==hi base case write answers[queryIdx]=lo for each query in that leaf."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Offline/Offline.cs",
+   "symbol": "ParallelBinarySearch.GroupByMid",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the repeated queryIdx[i] load and the post-increment-with-aliased-store into locals to cut redundant memory traffic in the hot loop.",
+   "currentCost": "Each iteration loads queryIdx[i] twice (once for Mid args, once for the bucket store), and reads/writes bucketSize[0] through a pointer that the compiler cannot prove is non-aliasing with buckets/lo/hi/queryIdx, forcing a load+store of bucketSize[0] every iteration.",
+   "proposedChange": "Read int q = queryIdx[i]; once, compute int mid = Mid(lo[q], hi[q]); keep the running offset in a register local (int pos = bucketSize[0]; ... buckets[mid + pos] = q; pos++;) and write bucketSize[0] = pos; once after the loop.",
+   "rationale": "Removes a duplicate load of queryIdx[i] and converts a memory-resident counter (forced through pointer aliasing) into a register, eliminating one dependent load+store per iteration and shortening the loop-carried dependency chain.",
+   "risk": "Semantics-preserving only if buckets does not alias bucketSize during the loop; given the algorithm, bucketSize is a separate scalar counter, so caching it is safe. The final write-back reproduces the same final bucketSize[0] value."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Offline/Offline.cs",
+   "symbol": "ParallelBinarySearch.Init",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Init writes two interleaved constant streams; splitting into two tight loops (or a single loop with constants hoisted) lets Burst vectorize each store stream.",
+   "currentCost": "The loop stores constants 0 and -1 to two distinct arrays per iteration; interleaved scalar stores to lo[] and hi[] are harder for Burst to widen into vector stores than two homogeneous streams.",
+   "proposedChange": "Either keep one loop (already fine) but mark the constants explicitly, or split into for(i) lo[i]=0; and for(i) hi[i]=-1; so each becomes a memset-like vectorizable fill.",
+   "rationale": "Two homogeneous constant-fill loops map cleanly to vectorized/widened stores (or memset for the 0 case), whereas the interleaved version may stay scalar.",
+   "risk": "None functionally; lo and hi are distinct buffers, so order of fills is irrelevant. Splitting doubles loop overhead but each loop is trivially vectorizable, a net win for large n."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Offline/Offline.cs",
+   "symbol": "DivideConquerAnswer.Solve",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace per-query checkFn indirect call inside the add/remove loops with a tighter contiguous scan, and hoist queryK[idx] into a local across the two while-loops.",
+   "currentCost": "queryK[idx] is read/written through a pointer every loop iteration of both while loops; idx is just i (the line int idx = i; is redundant aliasing). Each step also makes an indirect call checkFn(context, queryK[idx]) whose result gates an add/remove, creating a long dependency chain via the function pointer.",
+   "proposedChange": "Use int k = queryK[i]; iterate on local k in both while loops, then write back queryK[i] = k; once. Drop int idx = i;. If checkFn is a membership test that is monotone over the contiguous [old..mid) range, document/restructure so the indirect call can be hoisted or batched; at minimum keep k in a register to remove the load/store dependency through the pointer.",
+   "rationale": "Removes a redundant local alias, replaces repeated dependent pointer load/stores of queryK[idx] with a register, shortening the loop-carried chain and reducing memory traffic per advanced position.",
+   "risk": "Caching queryK[i] in a register is safe as long as addFn/removeFn/checkFn do not read or write queryK (they take context + an int key, not queryK), which holds for the parallel-binary-search/divide-conquer pattern. Behavior identical."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Offline/Offline.cs",
+   "symbol": "DivideConquerAnswer.Solve",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Solve is structurally incomplete/incorrect for divide-and-conquer offline: it never recurses and never partitions queries into left/right child sets, so leftCount/rightCount are dead and mid-based work is not amortized.",
+   "currentCost": "leftCount and rightCount are computed-never (always 0) dead variables; the two empty branches (queryR<lo||queryL>hi and the trailing else) do nothing; there is no recursion into [lo,mid] and [mid+1,hi], so the intended O((n+V)log V) divide-and-conquer is not realized \u2014 the routine only advances each fully-covering query's pointer to mid once at the top level.",
+   "proposedChange": "Either (a) implement the real CDQ/parallel-binary-search recursion: partition queries by whether their answer lies in [lo,mid] vs [mid+1,hi] using checkFn at mid, recurse on both halves with the add/remove state restored, and store the converged answer into answers[]; or (b) if this is a stub, remove the dead leftCount/rightCount and empty branches to make intent and cost explicit.",
+   "rationale": "As written the asymptotic structure the class name promises is absent; completing the recursion changes per-query cost from un-amortized scans to the intended logarithmic divide-and-conquer, and removing dead vars eliminates wasted register/stack slots and clarifies the hot path.",
+   "risk": "This is a behavioral/correctness gap, not a micro-opt; changing it alters observable output. Flagged as high-impact design issue \u2014 must be validated against intended algorithm before applying. The dead-variable/empty-branch removal alone is semantics-preserving."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Offline/Offline.cs",
+   "symbol": "Cdq3DDominance.SortByX",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "The final copy-back loop (idx[i]=tmp[i]) can be eliminated by ping-ponging buffers, and the index loads idx[i]/idx[j] feed double-indirection x[idx[i]] that hurts cache locality.",
+   "currentCost": "Every merge level copies the whole [l,r] range from tmp back into idx (an extra n log n element copies overall), and the comparison x[idx[i]]<=x[idx[j]] does two dependent loads (gather) per compare due to indirection through idx.",
+   "proposedChange": "Implement classic ping-pong merge sort: alternate src/dst between idx and tmp by recursion depth (or copy once at the end if depth parity is wrong), removing the per-level copy-back. Optionally sort a precomputed key array (xKey[i]=x[idx[i]]) in lockstep so the inner compare is a single contiguous load instead of a gather.",
+   "rationale": "Ping-pong removes ~n per merge level of redundant copies (a constant-factor but real reduction of total memory writes and a full extra pass per level); sorting flattened keys turns dependent gather loads into sequential loads, improving cache behavior and enabling vectorized compares.",
+   "risk": "Ping-pong requires careful depth-parity handling so the final sorted data lands in idx; getting parity wrong changes output. The key-array variant needs an extra n-sized buffer (RAM trade-off) and must keep keys and indices in lockstep. Apply only with the parity guard verified."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Offline/Offline.cs",
+   "symbol": "Cdq3DDominance.Process",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist repeated double-indirection loads (idx[i], idx[j], z[idx[i]]) into locals and cache idx[j]'s y-value across the inner while.",
+   "currentCost": "The inner while reloads y[idx[i]] and y[idx[j]] each iteration; y[idx[j]] is loop-invariant for the duration of the inner while (j fixed) yet recomputed via two dependent loads every inner iteration. bitAdd indirect call gates on these gathered loads.",
+   "proposedChange": "Before the inner while, compute int yj = y[idx[j]]; and compare y[idx[i]] <= yj. Inside, read int ii = idx[i]; once and use z[ii]. After the inner loop completes for this j, j++ as before.",
+   "rationale": "y[idx[j]] is invariant across the inner loop; hoisting removes two dependent gather loads per inner iteration. Caching idx[i] removes a duplicate indirect load shared by the compare and the bitAdd(z[idx[i]]) call.",
+   "risk": "bitAdd mutates bit[] (the Fenwick tree), not x/y/z/idx, so yj and idx[i] remain valid across the call. Semantics-preserving for the standard CDQ pattern where the partition arrays are immutable during the merge."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Offline/Offline.cs",
+   "symbol": "OfflineKthNumber.BuildPersistentSegTree",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The expression prevVersion > 0 ? ... : ... is evaluated up to five times per node (children, sum, and again inside each recursive call), and leftChild[prevVersion]/rightChild[prevVersion] are loaded twice; hoist into locals.",
+   "currentCost": "Per node: prevVersion>0 branch tested 3x in the body plus once more in whichever recursive-call argument fires; leftChild[prevVersion] is read once for leftChild[node] and again as the recursive prevVersion argument (same for rightChild). These are redundant dependent loads plus repeated branches.",
+   "proposedChange": "int hasPrev = prevVersion > 0 ? 1 : 0; int pl = hasPrev != 0 ? leftChild[prevVersion] : 0; int pr = hasPrev != 0 ? rightChild[prevVersion] : 0; leftChild[node]=pl; rightChild[node]=pr; sum[node] = hasPrev != 0 ? sum[prevVersion]+1 : 1; then pass pl/pr directly as the child prevVersion in recursion, avoiding the re-load and re-test.",
+   "rationale": "Collapses 3-4 evaluations of the same predicate and 2 loads of leftChild[prevVersion]/rightChild[prevVersion] into one each, shortening the per-node work in this recursively hot tree-build.",
+   "risk": "None: prevVersion is constant within the call, and the body reads leftChild[prevVersion] before any write to leftChild[node] (node != prevVersion since node = ++allocCnt is freshly allocated), so hoisting reproduces identical values. Behavior preserved."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Offline/Offline.cs",
+   "symbol": "OfflineKthNumber.QueryKth",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "leftChild[node] is loaded twice (for the != 0 test and for the recursive descent argument); hoist into a local.",
+   "currentCost": "Per recursion level: leftChild[node] read once for the leftCount guard and again as the QueryKth argument in the k<=leftCount branch; sum[leftChild[node]] re-indexes. Two dependent loads of the same address.",
+   "proposedChange": "int lc = leftChild[node]; int leftCount = lc != 0 ? sum[lc] : 0; ... if (k <= leftCount) return QueryKth(..., lc, l, mid, k);",
+   "rationale": "Removes a redundant load of leftChild[node] on the hot path of an O(log n) descent and lets the compiler keep the child pointer in a register across the branch.",
+   "risk": "None: node is unchanged within the call and no writes occur, so caching leftChild[node] is exact. Semantics identical."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Offline/Offline.cs",
+   "symbol": "OfflineKthNumber.QueryKth",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Convert the tail-recursive QueryKth (and the descent in BuildPersistentSegTree) into an iterative loop to remove call overhead and stack growth on deep trees.",
+   "currentCost": "QueryKth is purely tail-recursive (both returns are direct recursive calls); each level pays a function-call prologue/epilogue and stack frame. Under Burst, tail-call optimization is not guaranteed, so deep trees (log n ~ 20-30) incur real call overhead.",
+   "proposedChange": "Rewrite as a while loop: update node/l/r/k in place until l==r, then return l. Same for the single-path descent shape; BuildPersistentSegTree is harder (it writes child links) but its descent can also be flattened with an explicit walk.",
+   "rationale": "Eliminates per-level call overhead and frame setup, keeps node/l/r/k in registers across iterations, and bounds stack usage to O(1) for the query path.",
+   "risk": "QueryKth conversion is mechanical and semantics-preserving (pure tail recursion). BuildPersistentSegTree must still update parent child pointers, so only its descent (not the link writes) can be iterated; apply carefully to preserve the persistent-tree wiring."
+  }
+ ]
+}

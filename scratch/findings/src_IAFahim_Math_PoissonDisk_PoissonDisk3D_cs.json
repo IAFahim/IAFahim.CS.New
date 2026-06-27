@@ -1,0 +1,60 @@
+{
+ "file": "src/IAFahim.Math.PoissonDisk/PoissonDisk3D.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.PoissonDisk/PoissonDisk3D.cs",
+   "symbol": "PoissonDisk3D.NextFloat / PoissonDisk3D.Run",
+   "severity": "high",
+   "category": "off-by-one",
+   "summary": "Identical defect to the 2D version: NextFloat divides by 4294967295.0f and can return exactly 1.0f, so activeIdx = (int)(NextFloat(ref rng) * activeCount) can equal activeCount and read active[activeCount], one element past the valid range, yielding a garbage center for candidate generation.",
+   "triggeringInput": "Any seed whose NextFloat() evaluates to 1.0f at 'int activeIdx = (int)(NextFloat(ref rng) * activeCount);' with activeCount >= 1 (top-range uint result that rounds to 2^32 in float).",
+   "rootCause": "uint-to-float scaling by (2^32 - 1) instead of 2^32; float rounding makes the result inclusive of 1.0, and the active-index is never clamped.",
+   "suggestedFix": "Divide by 4294967296.0f to get [0,1), or clamp activeIdx to activeCount-1 / clamp NextFloat below 1.0."
+  },
+  {
+   "file": "src/IAFahim.Math.PoissonDisk/PoissonDisk3D.cs",
+   "symbol": "PoissonDisk3D.Run",
+   "severity": "high",
+   "category": "overflow",
+   "summary": "gridSize = gridW * gridH * gridD is computed as a 32-bit int product of three per-axis cell counts derived from (max-min)/cellSize. For representable, contract-valid bounds and minDistance this triple product overflows int32, producing a negative or wrapped gridSize that is then passed to 'stackalloc int[gridSize]', causing a crash / undefined behavior (and even when positive it attempts a multi-gigabyte stack allocation).",
+   "triggeringInput": "min=(0,0,0), max=(2000,2000,2000), minDistance=0.05, seed arbitrary, maxPoints>=1. cellSize=0.05/1.7320508=0.02887, gridW=gridH=gridD=ceil(2000/0.02887)=69283; gridW*gridH*gridD = 69283^3 overflows int32 -> negative gridSize -> stackalloc int[negative].",
+   "rootCause": "Per-axis grid extents are large for small minDistance / large domains, and their product is taken in 32-bit signed arithmetic with no overflow guard or size cap before stackalloc.",
+   "suggestedFix": "Compute the product in long and guard it (e.g. if ((long)gridW*gridH*gridD > someCap) bail out / use a heap or hashed grid), and never stackalloc a runtime-unbounded size. The 2D version has the same class of issue (gridW*gridH) for large domains; both should use a checked 64-bit size and a bound."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.PoissonDisk/PoissonDisk3D.cs",
+   "symbol": "NextFloat",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace per-call division by 4294967295.0f with multiplication by a precomputed reciprocal constant.",
+   "currentCost": "One float division per random draw; called several times per attempt (theta, phi, radius each consume a draw) across up to 30 attempts per active point.",
+   "proposedChange": "Add `const float InvUInt32Max = 1.0f / 4294967295.0f;` and return `(float)result * InvUInt32Max;`.",
+   "rationale": "Multiply is much lower latency/higher throughput than divide on all targets; divisor is a compile-time literal so the reciprocal folds at compile time.",
+   "risk": "a*(1/c) may differ from a/c by ~1 ULP, perturbing the exact RNG sequence and therefore the exact generated point set for a given seed. Safe if only statistical Poisson-disk validity is required; reject if bit-exact determinism vs current code is mandated. Burst fastmath may already apply this."
+  },
+  {
+   "file": "src/IAFahim.Math.PoissonDisk/PoissonDisk3D.cs",
+   "symbol": "InsertGrid / IsTooClose",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Thread a precomputed inverse cellSize and a precomputed gridW*gridH slice stride into the grid helpers.",
+   "currentCost": "InsertGrid: 3 divides by cellSize + recomputes `gridW*gridH` for the z term. IsTooClose: 3 divides by cellSize + recomputes `gridW*gridH` inside the triple-nested loop (125 cells) for the z*sliceStride term.",
+   "proposedChange": "Compute `float invCellSize = 1.0f/cellSize;` and `int slice = gridW * gridH;` once in Run; pass both down. Use `*invCellSize` for cell mapping and `nz*slice + ny*gridW + nx` with `slice` precomputed. In IsTooClose, hoist `int zBase = nz*slice;` to the dz loop and `int rowBase = zBase + ny*gridW;` to the dy loop, leaving only `grid[rowBase + nx]` in the dx loop.",
+   "rationale": "Removes 3 high-latency divides from each inner-loop helper and eliminates the repeated gridW*gridH multiply across all 125 cells of the 3D neighborhood scan, collapsing the inner body to add+load+compare. This is the hottest region in 3D since the neighborhood is 5x larger than 2D.",
+   "risk": "invCellSize multiply vs divide can differ ~1 ULP and flip a boundary cell index in rare measure-zero cases \u2014 same caveat as 2D; guard or reject only if exact determinism is required. The slice/zBase/rowBase hoisting is purely loop-invariant reassociation with no semantic change."
+  },
+  {
+   "file": "src/IAFahim.Math.PoissonDisk/PoissonDisk3D.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Use math.sincos for the two (theta) and reuse the phi sin/cos; hoist minDistSq out of IsTooClose.",
+   "currentCost": "cos(theta) and sin(theta) are two separate transcendentals; cos(phi) and sin(phi) likewise (sinPhi via sin, then math.cos(phi) separately). acos is unavoidable but the subsequent sin(phi)/cos(phi) pair duplicates argument reduction. minDistSq recomputed in every IsTooClose call.",
+   "proposedChange": "Use `math.sincos(theta, out float st, out float ct)` and `math.sincos(phi, out float sp, out float cp)` to get each pair in one reduced call; build dir from sp,cp,st,ct. Hoist `float minDistSq = minDistance*minDistance;` to Run and pass into IsTooClose.",
+   "rationale": "sincos shares range reduction between the sine and cosine, roughly halving the transcendental setup cost for each angle; 3D issues four such evaluations per attempt so the saving compounds. minDistSq hoist removes a multiply from every neighbor test.",
+   "risk": "sincos yields identical values to separate sin/cos under Burst, so the generated sequence is unchanged. Signature change for minDistSq is ergonomic only. No semantic risk."
+  }
+ ]
+}

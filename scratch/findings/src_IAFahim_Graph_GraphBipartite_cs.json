@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Graph/GraphBipartite.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph/GraphBipartite.cs",
+   "symbol": "BipartiteMatching.TryKuhn / KuhnMatch.TryKuhnBfs",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Per-vertex adjacency is found by scanning the entire edge list (O(m) per call), making Kuhn O(V*m) augment attempts instead of O(V*E) over a CSR adjacency.",
+   "currentCost": "Each TryKuhn(u) loops `for i in 0..m: if leftU[i]!=u continue`. With V augmenting searches, each touching up to V recursion levels, total edge-scan work is O(V^2 * m). For dense bipartite graphs this is an order of magnitude worse than the textbook O(V*E).",
+   "proposedChange": "Build a CSR adjacency (head/to/next or rowStart[]+colIdx[]) once at the top of Run from (leftU,rightV), then iterate only the true neighbors of u: `for e = head[u]; e!=0; e=next[e]`. The build is O(m); each Kuhn step then visits deg(u) edges, not m.",
+   "rationale": "Reduces inner-loop trip count from m to deg(u); summed over the algorithm this drops the asymptotic from O(V^2*m) to O(V*E). Far fewer comparisons and far better cache locality since neighbors are contiguous.",
+   "risk": "Requires extra stackalloc/scratch for the CSR arrays (size n+1 and m). Output (matchL/matchR, return count) is identical. Caller-allocated scratch may be preferable to keep within house pointer conventions."
+  },
+  {
+   "file": "src/IAFahim.Graph/GraphBipartite.cs",
+   "symbol": "HopcroftKarp.Bfs / HopcroftKarp.Dfs",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Hopcroft-Karp's claimed O(E*sqrt(V)) is destroyed: every Bfs and Dfs neighbor expansion scans all m edges with `if eu[i]!=u continue`.",
+   "currentCost": "Bfs runs O(phases) ~ sqrt(V) times, each dequeue scans all m edges -> O(V*m) per phase, O(V*sqrt(V)*m) total. Dfs likewise scans m per node. This is dramatically worse than the algorithm's design complexity.",
+   "proposedChange": "Precompute CSR adjacency from (eu,ev) once in Run and have Bfs/Dfs walk only neighbors of u. Add a per-vertex iterator pointer (current-edge array, like Dinic) so Dfs does not re-scan dead edges within a phase.",
+   "rationale": "Restores O(E*sqrt(V)). The current-edge pointer also avoids re-examining already-failed edges, eliminating repeated work inside a phase.",
+   "risk": "Needs CSR scratch (n+1, m) plus an iterator array reset each Bfs phase. Behavior/outputs unchanged. The iterator-pointer optimization must reset per phase, not per Dfs, to stay correct."
+  },
+  {
+   "file": "src/IAFahim.Graph/GraphBipartite.cs",
+   "symbol": "MinimumVertexCoverBipartite.Run",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "The Konig BFS alternating-tree walk scans all m edges per dequeued vertex (`if eu[i]!=u continue`), giving O(V*m) instead of O(V+E).",
+   "currentCost": "`while qh<qt { for i in 0..m: if eu[i]!=u continue ... }` is O(m) per vertex over a BFS that can touch all left vertices -> O(V*m).",
+   "proposedChange": "Reuse the same CSR adjacency suggested for the matching routines to expand only u's true neighbors.",
+   "rationale": "Linear-in-edges traversal instead of quadratic; same cover output (coverL/coverR, coverSize).",
+   "risk": "Shares the CSR-build dependency. No semantic change."
+  },
+  {
+   "file": "src/IAFahim.Graph/GraphBipartite.cs",
+   "symbol": "IsBipartite.Run / ColorBipartite.Run / ShortestPathUnweighted.Run",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "BFS queue `int* q = stackalloc int[n]` is allocated inside the per-component `for start` loop in IsBipartite/ColorBipartite, accumulating stack across components.",
+   "currentCost": "C# stackalloc inside a loop is not freed per iteration; over up to n components this can reserve up to n*n*4 bytes of stack, a real overflow hazard on mobile/Burst for large disconnected graphs.",
+   "proposedChange": "Hoist `int* q = stackalloc int[n]` above the `for start` loop (reset qh/qt per component). The queue is overwritten each component, so a single allocation suffices.",
+   "rationale": "Bounds stack use to O(n) instead of O(n^2) worst case; one allocation instead of up to n. No behavioral change since qh/qt are reset each component.",
+   "risk": "None semantically \u2014 queue contents are reinitialized per component. Safe, mechanical hoist."
+  },
+  {
+   "file": "src/IAFahim.Graph/GraphBipartite.cs",
+   "symbol": "color[v] = 1 - color[u] (IsBipartite/ColorBipartite)",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Two-coloring uses `1 - color[u]`; `color[u] ^ 1` is a cheaper, branch-free toggle.",
+   "currentCost": "`1 - color[u]` is a subtraction with a constant; XOR with 1 is one ALU op and pairs better, and for {0,1} domain is provably equivalent.",
+   "proposedChange": "Replace `color[v] = 1 - color[u]` with `color[v] = color[u] ^ 1`.",
+   "rationale": "Single XOR instead of load-immediate + subtract; trivially equivalent over the {0,1} color domain used here.",
+   "risk": "Only valid because colors are strictly 0/1 (guaranteed: start=0, propagated via toggle). Safe."
+  }
+ ]
+}

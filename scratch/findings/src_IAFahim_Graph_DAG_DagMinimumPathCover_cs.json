@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Graph.DAG/DagMinimumPathCover.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.DAG/DagMinimumPathCover.cs",
+   "symbol": "DagMinimumPathCover.Run",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Run never computes any bipartite matching; 'matching' stays 0 and the method always returns n. The minimum path cover of any DAG with >=1 edge is strictly less than n, so the result is wrong for every non-trivial input. The head/next/to/dist/queue parameters are ignored.",
+   "triggeringInput": "DAG 0->1 (n=2): minimum path cover is 1, but with matching==0 the method returns n - 0 = 2.",
+   "rootCause": "The Hopcroft-Karp / augmenting-path body is unimplemented. After 'int matching = 0;' and resetting match[i]=-1, no edges are ever processed, so matching remains 0 and the return is n - 0 = n.",
+   "suggestedFix": "Implement bipartite matching (Hopcroft-Karp BFS/DFS using head/next/to/match/dist/queue) to compute the actual matching count, then return n - matching."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.DAG/DagMinimumPathCover.cs",
+   "symbol": "Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Run is a non-functional stub: it never computes the bipartite matching, so it always returns n.",
+   "currentCost": "matching is initialized to 0 and never updated; the documented Hopcroft-Karp augmentation is absent. head/next/to/dist/queue parameters are unused. Result is always n - 0 = n, which is wrong for any DAG with edges.",
+   "proposedChange": "Implement Hopcroft-Karp (or Kuhn) augmenting-path matching using the provided head/next/to adjacency, match (size 2n for split L/R or two arrays), dist and queue (BFS layering) buffers, then return n - matching. Use AggressiveInlining only on leaf helpers, not the whole driver.",
+   "rationale": "Correctness first; once implemented, Hopcroft-Karp gives O(E*sqrt(V)) which is the right asymptotic for min path cover via Dilworth, vastly better than naive O(V*E) Kuhn on dense inputs and the intended use of the dist/queue buffers.",
+   "risk": "This is a functional gap, not a micro-opt: current output is incorrect. Implementing it changes (fixes) behavior by design. Must respect house constraints (pointers, no exceptions)."
+  }
+ ]
+}

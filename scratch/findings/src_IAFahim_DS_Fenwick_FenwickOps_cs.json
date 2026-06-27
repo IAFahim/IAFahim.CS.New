@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.DS.Fenwick/FenwickOps.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.Fenwick/FenwickOps.cs",
+   "symbol": "FenwickLowerBound.Run",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "FenwickLowerBound.Run omits the 'target <= 0' early-out that Fenwick.LowerBoundInt64 has, giving inconsistent behavior for non-positive targets.",
+   "currentCost": "With target <= 0, the descent in FenwickLowerBound.Run still runs the full O(log n) loop and, because 'bit[next] < target' is false for non-negative entries when target<=0, returns 0 anyway but after wasted iterations. The canonical Fenwick.LowerBoundInt64 short-circuits at line 41.",
+   "proposedChange": "Add 'if (target <= 0) return 0;' as the first statement to match Fenwick.LowerBoundInt64 and skip the descent. This unifies the two implementations' contracts.",
+   "rationale": "Saves the entire descent for the common 'target<=0' query and makes the two API surfaces behaviorally identical, reducing surprise.",
+   "risk": "For target<=0 the loop already returns 0 given non-negative values (the documented precondition), so the early-out is semantics-preserving under that assumption. If callers ever pass negative bit entries the early-out would differ, but the non-negative precondition forbids that."
+  },
+  {
+   "file": "src/IAFahim.DS.Fenwick/FenwickOps.cs",
+   "symbol": "FenwickRangeAdd.PrefixQuery",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "q is computed as idx+1 before mutating idx; the multiply uses int q widened to long. Minor: cache the two BIT loads share index stream and could be interleaved-friendly already.",
+   "currentCost": "Line 171 saves q=idx+1, then the loop reads bit1[idx] and bit2[idx] (two pointer loads per level from separate arrays, line 174-175). res1*q at line 177 widens int q to long.",
+   "proposedChange": "Keep the algorithm. Optionally hoist q as a long ('long q = idx + 1;') to make the final 'res1 * q' a long*long multiply without an int->long widening cast in the hot return; negligible but free. No structural change recommended otherwise.",
+   "rationale": "Avoids a sign-extension instruction on the result path; effectively free and clarifies the 64-bit intent.",
+   "risk": "None for valid idx within int range; the product res1*q must stay 64-bit which it already is."
+  }
+ ]
+}

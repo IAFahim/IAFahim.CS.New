@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.DS.LinkCut/LinkCut.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.LinkCut/LinkCut.cs",
+   "symbol": "Rotate",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Remove the provably-dead null guard at the top of the hottest leaf of Splay.",
+   "currentCost": "Every Rotate call (the innermost operation of Splay, executed O(amortized) times per Access) starts with `if (x == null || x->Parent == null) return;` \u2014 two pointer loads/compares and a branch on the critical dependency chain.",
+   "proposedChange": "Delete line 57 (`if (x == null || x->Parent == null) return;`). Rotate is private and called only from Splay at lines 104/106/108, where `!IsRoot(x)`/`!IsRoot(p)` already guarantees the argument is non-null with a non-null Parent. The guard is unreachable for valid state. This matches the 'Unchecked Run methods assume valid caller input' house policy for a private hot helper.",
+   "rationale": "Eliminates two dependent pointer dereferences and a branch from the inner splay loop. The branch is always not-taken, so it wastes a predictor slot and lengthens the dependency chain before the real rotation work begins; removing it shortens the critical path of the most-executed routine in the structure.",
+   "risk": "Only safe because all three call sites pass a node known to be non-root (parent non-null). If Rotate ever becomes public or gains another caller, the guard must return. No semantic change for current callers."
+  },
+  {
+   "file": "src/IAFahim.DS.LinkCut/LinkCut.cs",
+   "symbol": "PushTo",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace recursive top-down PushTo with an iterative two-pass (collect-up, push-down) loop to kill call-stack overhead and a long return-dependency chain.",
+   "currentCost": "PushTo recurses up the splay tree via `PushTo(x->Parent)` for every level before any Push, once per Splay call. Each recursion frame costs a call/return, spills, and the Push of an ancestor cannot start until the recursive call returns \u2014 a strict serialized chain of depth = splay-tree height. It is not tail-recursive (Push follows the call), so the JIT/Burst cannot turn it into a loop.",
+   "proposedChange": "Walk parent pointers upward into a small fixed stackalloc buffer of LctNode* (e.g. capacity ~64, the practical splay depth bound), collecting the path from x up to the splay root while `!IsRoot`, then iterate that buffer in reverse calling Push on each. This converts the recursion to two tight loops with no call frames. Splay already starts with PushTo, so the change is local.",
+   "rationale": "Removes O(depth) function-call/return overhead per Splay and replaces a serialized recursion-return chain with two cache-friendly linear scans. Pointers are already being chased to walk up; storing them avoids re-deref and lets the push-down loop run without stack unwinding. Lower instruction count and no recursion guarantees Burst-friendly straight-line codegen.",
+   "risk": "Need a depth bound for the stackalloc; splay/LCT preferred-path depth is small but unbounded in theory, so size the buffer conservatively (LCT splay depth stays modest after self-balancing, but a fixed cap technically assumes it). If unbounded depth must be supported exactly, keep a fallback or size to a documented MaxDepth constant. Observable behavior (order of Push calls top-to-bottom) is preserved."
+  },
+  {
+   "file": "src/IAFahim.DS.LinkCut/LinkCut.cs",
+   "symbol": "Access",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Reconsider AggressiveInlining on the large loop-bearing public methods (Access, MakeRoot, FindRoot, Link, Cut, Query) \u2014 inlining them bloats code without benefit and can pessimize I-cache.",
+   "currentCost": "Access contains a while-loop that itself calls Splay (which loops and recurses). MakeRoot/FindRoot/Link/Cut/Query each call Access+Splay. Marking these AggressiveInlining forces the compiler to inline multi-block, loop-containing bodies into every caller (e.g. Query inlines MakeRoot which inlines Access...), exploding code size for no inlining win on a non-leaf.",
+   "proposedChange": "Drop [MethodImpl(AggressiveInlining)] from Access, MakeRoot, FindRoot, Link, Cut, Query. Keep it only on the genuine hot leaves Update, Push, IsRoot (lines 21,31,47), which are tiny and inline cleanly. Let the compiler decide for the loop-bearing routines.",
+   "rationale": "AggressiveInlining is meant for small leaf helpers. Inlining loop-heavy callees increases code size, harms instruction-cache locality on mobile (small I-cache), and provides no register/dispatch savings because the call overhead is negligible relative to the loop work. Removing it shrinks the binary and improves I-cache residency of the inner splay loop.",
+   "risk": "Pure code-gen hint; zero semantic change. Worst case the compiler would have made the same decision anyway. Verify no caller relied on cross-inlining for a measured win (none can be assumed without benchmarks, which match the 'reason theoretically' constraint)."
+  },
+  {
+   "file": "src/IAFahim.DS.LinkCut/LinkCut.cs",
+   "symbol": "Push",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Avoid re-reading x->Left/x->Right after the swap when toggling children's Rev.",
+   "currentCost": "After swapping Left/Right, Push re-loads x->Left and x->Right from memory (lines 39,41) to toggle their Rev flags, re-dereferencing pointers it just wrote.",
+   "proposedChange": "Hold the original children in locals: `LctNode* l = x->Left; LctNode* r = x->Right;` then write `x->Left = r; x->Right = l;` and toggle `if (l != null) l->Rev = !l->Rev; if (r != null) r->Rev = !r->Rev;` using the locals instead of re-reading the fields.",
+   "rationale": "Eliminates two redundant pointer loads from the struct after the store, keeping the child pointers in registers across the swap-and-toggle. Shortens the dependency chain in a routine called on every node visited during PushTo/FindRoot.",
+   "risk": "Semantics identical \u2014 toggling Rev on the (now swapped) children is exactly toggling on the original two children regardless of which field they sit in. No aliasing concern since l and r are distinct nodes or null."
+  }
+ ]
+}

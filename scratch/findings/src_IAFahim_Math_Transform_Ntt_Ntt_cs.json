@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Math.Transform.Ntt/Ntt.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Transform.Ntt/Ntt.cs",
+   "symbol": "NttInit.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Compute inverse roots as the reverse permutation of forward roots instead of n separate modular exponentiations.",
+   "currentCost": "Line 12 loops i=0..n-1 calling FastPow(roots[i], mod-2, mod), each O(log mod) modmuls => O(n log mod) total just to build invRoots.",
+   "proposedChange": "invRoots[i] = roots[(n - i) & (n - 1)] for i in 0..n-1 (i.e. invRoots[0]=roots[0]=1, invRoots[i]=roots[n-i] for i>=1). This is O(n) with no FastPow calls. The forward generator gPow = g^((mod-1)/n) has order n, so its inverse power is g^((mod-1)/n*(n-i)) = roots[n-i], which equals (roots[i])^{-1}.",
+   "rationale": "Replaces O(n log mod) modular exponentiation (~30 iterations of FastPow per element) with an O(n) array read/index. roots is already fully populated by line 11, so each invRoots[i] is a single load.",
+   "risk": "Correctness rests on roots[i] being exactly g^((mod-1)/n * i) and gPow having order n (true since g is a primitive root and n | mod-1). n is a power of two so (n-i)&(n-1) is the exact wraparound for i=0. Verify FastPow((mod-1)/n) path unchanged. No overflow change."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform.Ntt/Ntt.cs",
+   "symbol": "NttTransform.PerformButterflyStep",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Index the precomputed roots array directly for the twiddle instead of maintaining the serial wn multiply chain.",
+   "currentCost": "Lines 37-43: each butterfly does wn = wn * w % mod (one 64-bit mul + one mod) and carries wn as a loop-carried dependency, serializing the inner loop and the dependency chain v = a[..]*wn%mod -> wn update.",
+   "proposedChange": "Pass the roots base pointer and the stride step = n/len into the butterfly. Replace wn with a direct read: long wn = roots[step * j] (or maintain idx += step). Then v = a[i+j+half] * roots[step*j] % mod. This removes the wn*w%mod update entirely (one mul + one mod per butterfly) and breaks the loop-carried dependency on wn, exposing ILP and Burst vectorization.",
+   "rationale": "roots[n/len * j] == (roots[n/len])^j == wn by construction, so the value is identical. Eliminates one multiply and one modulo per butterfly across all O(n log n) butterflies, and the now-independent iterations let Burst pipeline/vectorize the v computation.",
+   "risk": "roots must contain all n powers (it does: NttInit fills 0..n-1, and NttConvolution builds a size-length roots table). The signature of PerformButterflyStep changes (add roots pointer + step), an internal private method so no public API break. Index step*j stays < n for j<half since (n/len)*(len/2) = n/2 < n. No semantic change."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform.Ntt/Ntt.cs",
+   "symbol": "NttConvolution.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Avoid the redundant per-butterfly modular twiddle by reusing the already-built roots/invRoots tables, and drop the dead inverse-roots table if reverse-permutation is used.",
+   "currentCost": "Lines 80-90 build full roots and invRoots tables (good), but Forward still recomputes twiddles via the wn chain (see PerformButterflyStep). invRoots is also a second size-length stackalloc that could be derived from roots by reverse indexing.",
+   "proposedChange": "Once PerformButterflyStep reads roots directly, the convolution's prebuilt roots table is consumed with no per-element twiddle modmuls. Additionally invRoots[i] can be set as roots[(size - i) & (size - 1)] (single pass, no FastPow at line 88 and no second cur-chain loop at lines 89-90), saving one FastPow plus one O(size) modmul loop and one stackalloc of size longs.",
+   "rationale": "Removes one FastPow (O(log mod)) and an O(size) modular-multiply chain; with the direct-index butterfly it also removes O(size log size) twiddle modmuls. Fewer modmuls and less stack pressure improves cache behavior on mobile.",
+   "risk": "size is a power of two so (size-i)&(size-1) wraps correctly; root has order size since size | mod-1. Keeping invRoots as a separate buffer is optional \u2014 reverse-indexing roots in place during Inverse would remove the buffer but changes access pattern; safest is to fill invRoots once from roots. No observable output change."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform.Ntt/Ntt.cs",
+   "symbol": "NttConvolution.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "The copy/zero-pad loop branches per element; split into copy range + zero range to make it branchless and vectorizable.",
+   "currentCost": "Line 78: for i in 0..size-1 does fa[i] = i<n ? a[i] : 0 and fb[i] = i<m ? b[i] : 0 \u2014 a per-element ternary/branch over the whole padded length, and n,m differ so two independent conditions.",
+   "proposedChange": "Copy fa[0..n) from a then zero fa[n..size); copy fb[0..m) from b then zero fb[m..size). Two contiguous memcpy-like loops plus two zeroing loops (or UnsafeUtility.MemClear / a simple zero loop Burst vectorizes).",
+   "rationale": "Removes the predicated select per element; contiguous copy and contiguous zero are both vectorizable and avoid mispredict on the i<n / i<m boundary. Same writes, just partitioned.",
+   "risk": "None semantically \u2014 identical contents. Ensure size>=n and size>=m (guaranteed since size>=n+m-1). Pure layout/loop-structure change."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform.Ntt/Ntt.cs",
+   "symbol": "NttTransform.Inverse / NttInit.FastPow / NttConvolution.FastPow",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Replace '1 % mod' initializer with constant 1 and inline/share FastPow; mod is always > 1 here.",
+   "currentCost": "FastPow line 17/99 computes res = 1 % mod every call. mod is an NTT prime (>1), so 1 % mod is always 1 \u2014 a wasted 64-bit division on a non-hot but frequently-called helper. FastPow is duplicated verbatim in NttInit and NttConvolution.",
+   "proposedChange": "Use long res = 1; (drop the modulo) given the documented precondition mod > 1 for NTT primes. Mark FastPow with [MethodImpl(MethodImplOptions.AggressiveInlining)] and consolidate the two identical copies into one internal static helper to aid Burst inlining/codegen.",
+   "rationale": "Eliminates one 64-bit idiv per FastPow invocation; AggressiveInlining lets Burst fold the exponent loop where e is a compile-time-ish constant pattern (mod-2). Deduplication reduces code size.",
+   "risk": "Dropping '1 % mod' assumes mod > 1, which holds for all valid NTT moduli (the smallest meaningful prime modulus is far above 1); if a caller could pass mod==1 the result would change from 0 to 1, so guard by documenting the mod>1 precondition (already implied by 'Unchecked Run assumes valid input'). Sharing the helper across static classes is a refactor with no behavioral change."
+  }
+ ]
+}

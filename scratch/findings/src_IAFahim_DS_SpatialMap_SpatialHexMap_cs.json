@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.DS.SpatialMap/SpatialHexMap.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.SpatialMap/SpatialHexMap.cs",
+   "symbol": "SpatialHexMap<T>.QuantizeJob.Execute",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Same redundant tail modulo; assign end = Positions.Length on the last worker.",
+   "currentCost": "One integer modulo per last-worker Execute.",
+   "proposedChange": "end = (index == Workers - 1) ? Positions.Length : start + length;",
+   "rationale": "Identity start+length+(total%Workers)==total on the last chunk.",
+   "risk": "Exact for Workers>=1."
+  },
+  {
+   "file": "src/IAFahim.DS.SpatialMap/SpatialHexMap.cs",
+   "symbol": "SpatialHexMap.Quantized",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Precompute the inverse of outerRadius once and multiply, instead of two divides by outerRadius per quantize call (plus the /3f).",
+   "currentCost": "Each Quantized call does two divisions by outerRadius (q and r lines 204-205) plus a division by 3f for the y term. Division is the single most expensive scalar FP op (~10-20+ cycles, not pipelined). This runs once per entity in the hot QuantizeJob loop and again per query.",
+   "proposedChange": "Store invOuterRadius = 1f/outerRadius alongside outerRadius (compute once in the constructor/ReadOnly and pass it in, or compute float inv = math.rcp(outerRadius) at the top of Quantized). Then q = (Sqrt3Over3 * position.x - position.y * (1f/3f)) * inv; r = ((2f/3f) * position.y) * inv;. The /3f is already foldable to a constant multiply (1f/3f) which Burst with fast-math does, but making it explicit guarantees it.",
+   "rationale": "Replaces 2-3 hardware divides per call with 1 reciprocal + multiplies. With many entities this is a large constant-factor win in the build loop. Burst's default fast-math usually converts /const to *recip(const), but division by the runtime variable outerRadius is NOT automatically reciprocal-folded unless the value is hoisted, so storing inv as a precomputed field is the real win.",
+   "risk": "math.rcp / 1f/x is a different rounding than true division and can shift a borderline math.round() result to an adjacent hex cell. Acceptable only if the library tolerates fast-math (Burst default already enables it, so observable results are already non-IEEE-exact). If bit-exactness across this change is required, reject; otherwise precompute the field which keeps a true reciprocal once and is the safer variant."
+  },
+  {
+   "file": "src/IAFahim.DS.SpatialMap/SpatialHexMap.cs",
+   "symbol": "SpatialHexMap.CellMinDistanceSq",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "math.distance computes a sqrt that is partly undone; restructure to avoid the sqrt when the cell is outside the radius is not possible, but the max(0, d-r) then square pattern still needs the sqrt \u2014 however the squaring of (d-r) can be reformulated to avoid one multiply, and the early-out branch avoids the subtract.",
+   "currentCost": "math.distance does a sqrt (dot+sqrt). Then max(0, d - outerRadius), then multiply. sqrt is ~15-30 cycles on mobile. Called per candidate cell during range queries.",
+   "proposedChange": "Compute float distSq = math.distancesq(position, center); float rSq = outerRadius*outerRadius; if (distSq <= rSq) return 0f; float d = math.sqrt(distSq); float m = d - outerRadius; return m*m;. This skips sqrt entirely for cells whose center is within outerRadius (the common near-cell case where result is 0).",
+   "rationale": "distancesq avoids sqrt; the sqrt is only computed for cells actually outside the inner radius. For a typical neighborhood query many candidate cells are at or near the query point, so a meaningful fraction take the branchless distSq<=rSq early-out and skip the expensive sqrt.",
+   "risk": "Branch adds a predictable compare; for fully-outside workloads it is pure overhead (one compare + one square of outerRadius). rSq can be hoisted if outerRadius is a field. Semantics identical: max(0,sqrt(distSq)-r)^2 == 0 exactly when distSq<=r^2."
+  },
+  {
+   "file": "src/IAFahim.DS.SpatialMap/SpatialHexMap.cs",
+   "symbol": "SpatialHexMap.Round",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "The y component and yDiff are only needed for the branch selection; the cube-coordinate reconstruction can drop one round and one abs by noting only the largest-diff axis is corrected.",
+   "currentCost": "Three math.round, three math.abs, and a 3-way branch per quantize. y = -x - z and ry = round(y) plus yDiff are computed unconditionally even though ry is overwritten in two of three branches.",
+   "proposedChange": "Keep as-is for clarity, OR: since rx,ry,rz must satisfy rx+ry+rz==0 and only the coordinate with the largest rounding error is recomputed, you can compute xDiff,yDiff,zDiff branchlessly via math.select to pick which axis to fix, avoiding the dependent branch mispredicts. E.g. compute all three corrected candidates and select. Marginal.",
+   "rationale": "Removes a 3-way unpredictable branch (cube rounding error distribution is data-dependent and hard to predict) in favor of branchless select, helping pipeline on mobile. Constant-factor only.",
+   "risk": "Must preserve the exact tie-break order (xDiff>yDiff && xDiff>zDiff, else yDiff>zDiff, else z). math.select reformulation must replicate the same strict-inequality precedence or a tie lands on a different axis, changing the chosen hex for points exactly on a cell boundary. Low impact; only worth it if branch profiling shows misprediction."
+  },
+  {
+   "file": "src/IAFahim.DS.SpatialMap/SpatialHexMap.cs",
+   "symbol": "SpatialHexMap.IsWithinBounds",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Two math.all calls over separate comparisons can be fused into a single unsigned-range test.",
+   "currentCost": "local = axial - boundsMin; then math.all(local >= 0) && math.all(local < boundsSize) \u2014 two vector compares, two horizontal all-reductions, one boolean AND with a short-circuit branch.",
+   "proposedChange": "Cast to unsigned: bool inside = math.all((uint2)local < (uint2)boundsSize); \u2014 a single comparison treats negative local (which wraps to large uint) as out-of-range, folding the >=0 and <size checks into one math.all.",
+   "rationale": "Classic branchless range check: (uint)(x) < (uint)n is true iff 0<=x<n. Halves the compares and removes the short-circuit branch. Used in the debug ValidatePosition path (Conditional), so impact is mostly on the public ReadOnly.IsWithinBounds used in query loops.",
+   "risk": "Requires boundsSize components to be non-negative (always true: boundsSize = max-min+1 >= 1). Signed-to-unsigned reinterpret of local is the intended trick; correct for all int2 inputs given non-negative bounds. Behavior identical."
+  }
+ ]
+}

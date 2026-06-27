@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Compress.Coordinate/Discretize.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Compress.Coordinate/Discretize.cs",
+   "symbol": "Discretize.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Replace O(n^2) insertion sort with O(n log n) in-place heapsort for the in-place discretization sort.",
+   "currentCost": "Lines 13-23 are an in-place insertion sort with worst/average O(n^2) moves; this is the entire cost of the function aside from the O(n) dedup pass.",
+   "proposedChange": "Sort src[0..len) in place with heapsort (no scratch buffer needed, matching this function's in-place contract), falling back to insertion sort only for tiny subarrays as an introsort base case.",
+   "rationale": "Drops the function from O(n^2) to O(n log n) while staying fully in-place, preserving its zero-extra-memory design. Same sorted-unique output.",
+   "risk": "Stability not required (output is sorted unique ints). The function's distinguishing feature vs CoordinateCompress is in-place operation, which heapsort preserves (no extra buffer). Insertion sort base case keeps small-n cache behavior."
+  }
+ ]
+}

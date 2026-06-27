@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.String/Probabilistic.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String/Probabilistic.cs",
+   "symbol": "FreivaldsMatrixVerify",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "r[j] is a 0/1 random bit, so the three matrix-vector products do a full multiply+mod per element when they should conditionally add only when r[j]==1.",
+   "currentCost": "Each of the three i,j double loops does b[..]*r[j] then a %mod every inner iteration: O(3*n^2) multiplies and O(3*n^2) modulo operations per Freivalds iteration. The mod after every accumulation is the dominant cost (division is ~20-40 cycles).",
+   "proposedChange": "Since r[j] in {0,1}: for the b*r and c*r products, branch 'if (r[j] != 0) sum += matrix[..];' and take a single % mod only when sum could overflow (or accumulate in unsigned/128-bit and mod once per row). For a*br, br[j] is already reduced < mod, so still need the product, but the modulo can be deferred: accumulate into an unchecked long/Int128 and reduce once per row if mod*mod*n fits, else reduce periodically.",
+   "rationale": "Replaces n^2 multiplies+mods in two of three products with conditional adds (no multiply, no per-element mod). For the third, deferring mod cuts division count from n^2 to n per iteration. Division elimination is the single biggest cycle win here.",
+   "risk": "Deferring mod requires guaranteeing no overflow: matrix entries and br are < mod (~1e9); sum of n such products fits in long only if mod*mod*n < 2^63, i.e. n*1e18 < 9.2e18 => n<=9. For larger n, reduce every K accumulations where K*mod^2 < 2^63. The r[j]==1 conditional-add is exactly equivalent to multiplying by the 0/1 bit, fully semantics-preserving."
+  },
+  {
+   "file": "src/IAFahim.String/Probabilistic.cs",
+   "symbol": "RabinKarpLasVegas",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "The rolling-hash update computes text[i]*pPow%mod and a final %mod with an extra +mod normalization every shift; the modulo count can be reduced.",
+   "currentCost": "Per window shift: two %mod operations plus a +mod correction. textHash = (textHash - text[i]*pPow%mod + mod) % mod then (textHash*p + text[i+patternLen]) % mod.",
+   "proposedChange": "Combine into fewer reductions: keep textHash in [0,mod); compute removal = text[i]*pPow % mod once, then textHash = (textHash + mod - removal) % mod is needed, but the subsequent multiply-add can fold its reduction. Alternatively precompute pPowModded once (already done) and use Int128/unchecked mul to avoid the intermediate %mod on text[i]*pPow when text[i]<256 and pPow<mod (product < 256*1e9 < 2^63, so text[i]*pPow never overflows long and the inner %mod is unnecessary before the outer subtraction's %mod).",
+   "rationale": "text[i] <= 255 and pPow < mod < 2^30, so text[i]*pPow < 2^38, far below 2^63 \u2014 the inner '%mod' on that product is redundant for overflow safety and only needed to keep the subtraction non-negative, which the +mod already guards after one combined reduction. Saves one division per shift.",
+   "risk": "Must ensure (textHash - text[i]*pPow) stays representable: textHash<mod~2^30, text[i]*pPow<2^38, so the difference fits in long; add mod*ceil to keep non-negative before the single %mod. Verify the final value equals the original modular result \u2014 straightforward since all intermediates are exact."
+  },
+  {
+   "file": "src/IAFahim.String/Probabilistic.cs",
+   "symbol": "RandomizedMstVerify",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Binary-lifting index expressions recompute (long)x * logV per access in the hot LCA query loop.",
+   "currentCost": "The non-tree-edge loop does, for each of logV levels, multiple up[(long)x*logV+j] and maxEdge[(long)x*logV+j] loads, each recomputing a 64-bit multiply by logV. This is the dominant verification cost: O(numEdges * logV) with ~3-4 multiplies per level.",
+   "proposedChange": "Hoist long xBase = (long)x*logV and yBase = (long)y*logV at the top of each level's body (recomputed only when x/y advance), or better, index by row pointers: long* maxRowX = maxEdge + (long)x*logV. Update the base only when x is reassigned via up[]. Same for the binary-lifting table-fill double loop (hoist (long)i*logV and (long)anc*logV).",
+   "rationale": "Eliminates repeated 64-bit multiplies in the innermost lifting loop, replacing index math with a single add per access. Shortens the load-address dependency chain feeding the memory access.",
+   "risk": "x and y change inside the loop (x = up[...]); the hoisted base must be recomputed at exactly those reassignment points. Keep long arithmetic for addressing safety."
+  },
+  {
+   "file": "src/IAFahim.String/Probabilistic.cs",
+   "symbol": "RandomizedMstVerify",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "logV is computed via a shift loop but overshoots by one, sizing binary-lifting tables larger than necessary; also the loop is a trivial closed form.",
+   "currentCost": "while ((1<<logV)<=numVertices) logV++ starting at logV=1 yields ceil(log2(numVertices))+1 levels, one more than the LCA needs, inflating the up/maxEdge working set and the table-fill loop by a full pass over numVertices.",
+   "proposedChange": "Compute logV directly: int logV = 32 - LeadingZeroCount((uint)numVertices) (or keep the loop but start tighter). Verify whether callers size up/maxEdge to this logV; if the extra level is load-bearing for caller buffer sizing, leave as-is but document. The table-fill and per-edge query loops both iterate logV, so trimming one level removes O(numVertices) fill work and one lifting iteration per edge.",
+   "rationale": "One fewer level reduces the binary-lifting table size (RAM/cache) and trims one iteration from every per-edge query loop and the O(numVertices*logV) fill. lzcnt is branchless vs the shift loop.",
+   "risk": "Higher risk: callers allocate up/maxEdge sized to whatever logV this routine implies. Changing logV changes the required buffer size and the table stride, so this is only safe if the stride is internal. Flagged low-impact/needs-caller-audit; the safe sub-win is just the lzcnt strength reduction of the count loop."
+  },
+  {
+   "file": "src/IAFahim.String/Probabilistic.cs",
+   "symbol": "SimpleRand.NextLong",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "NextLong uses % diff which is a division; for the Schwartz-Zippel hot path mod is constant per call site but diff varies.",
+   "currentCost": "min + (val % diff) does a 64-bit modulo per call. In SchwartzZippelTest this runs numVariables*iterations times.",
+   "proposedChange": "Leave as-is unless diff is known power-of-two; document that callers wanting many draws from the same range should hoist a precomputed reciprocal/mask. No safe generic change without changing the value distribution.",
+   "rationale": "Modulo reduction here is inherent to uniform sampling; replacing with mask only valid for power-of-two diff which would change observable random values otherwise.",
+   "risk": "Rejected as a generic change: any reciprocal-multiply or masking alters the exact output sequence (observable, since seed is fixed and deterministic). Only note it; do not apply."
+  }
+ ]
+}

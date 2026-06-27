@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Math.Transform/OrAndXorConvolution.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Transform/OrAndXorConvolution.cs",
+   "symbol": "FwtOr / FwtAnd",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the inverse/forward branch out of the innermost loop so the per-butterfly path is branchless.",
+   "currentCost": "Inside the O(n log n) innermost loop, every butterfly evaluates `if (!inverse)`. Although `inverse` is loop-invariant, it is re-tested n*log n times; the branch also obstructs Burst auto-vectorization of the modular add/sub.",
+   "proposedChange": "Split each method into two straight-line variants (or branch once on `inverse` before the `len` loop), e.g. an internal FwtOrForward / FwtOrInverse, each containing the triple loop with a single fixed expression `(v+u)%mod` or `(v-u+mod)%mod`. The public RunOr/RunAnd already know the direction at the call site, so dispatch there.",
+   "rationale": "Removes log n * n/2 branch evaluations and a per-iteration data dependency on a constant, exposing a clean uniform-stride loop body that Burst can SIMD-vectorize (no control flow). Code size grows trivially but I-cache cost is negligible vs. the inner-loop win.",
+   "risk": "None \u2014 identical arithmetic per branch; only the dispatch site moves. Keep `mod` and overflow behavior unchanged."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform/OrAndXorConvolution.cs",
+   "symbol": "FwtOr / FwtAnd / FwtXor",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "The `% mod` per butterfly is the dominant cost; it can be replaced by conditional subtraction since operands are already reduced.",
+   "currentCost": "RunOr/RunAnd/RunXor pre-reduce inputs to [0,mod). A 64-bit hardware integer division (`%`) per butterfly costs ~20-40 cycles and is the single most expensive op in the O(n log n) transform.",
+   "proposedChange": "For additions where u,v in [0,mod): replace `(u+v)%mod` with `long s=u+v; if(s>=mod) s-=mod;` (or branchless `s -= (mod & -(long)(s>=mod ? 0 : ... ))` form `s -= mod & ((s - mod) >> 63 ^ -1)` \u2014 simplest is the conditional-subtract). For subtraction `(u-v+mod)%mod` use `long d=u-v; d += mod & (d>>63);`. The Or-inverse `(v-u+mod)%mod` similarly. Requires u,v already in [0,mod), which the Run* wrappers guarantee, and the transform preserves that invariant (each output is again a single conditional-reduced add/sub).",
+   "rationale": "Sums of two reduced values are < 2*mod, so at most one subtraction restores range \u2014 turning a 20-40 cycle division into a 1-3 cycle add+predicated-subtract. With mod=1e9+7 this is exact; no overflow (2*mod < 2^31).",
+   "risk": "Only valid because Run* pre-reduces (lines 105-109, etc.) and the butterfly preserves [0,mod). If callers were ever to pass non-reduced data straight into FwtXor (it is private, so they cannot), the invariant could break. The branchless mask form depends on arithmetic right shift of negative longs (well-defined in C#)."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform/OrAndXorConvolution.cs",
+   "symbol": "RunXor",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Fold the inverse 1/n scaling into the existing pointwise-multiply pass instead of a separate full sweep.",
+   "currentCost": "RunXor does a pointwise multiply loop (lines 146-149), then FwtXor on c, then a third O(n) loop multiplying by invN (lines 152-155). The final loop is a separate pass over c with its own `* invN % mod`.",
+   "proposedChange": "The 1/n factor is linear and commutes with the (already-final) state only after the transform, so it cannot fold into the pre-transform multiply. But it CAN be fused: compute invN once, then in the final FwtXor's last layer... simpler and safe: leave as is OR pre-scale by multiplying one operand's pointwise product by invN is invalid. Reject fusing into pre-multiply; instead just confirm the standalone scale loop is minimal. Lower-impact alternative: precompute invN before the transforms so the value is ready (no dependency stall), and mark it const-like.",
+   "rationale": "Marginal; the scaling must stay post-transform. Listing for completeness \u2014 the only real saving is ensuring invN computation (an ExtGcd recursion) is hoisted before the transforms so it overlaps, which it already effectively is.",
+   "risk": "Do NOT fold invN into the pointwise multiply \u2014 that would scale before the inverse transform and change results. Keep the separate post-pass."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform/OrAndXorConvolution.cs",
+   "symbol": "ExtGcd / ModInverse",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "ModInverse(n, mod) where n is a power of two and mod is prime can use a closed-form / Fermat path, but ExtGcd recursion is cheap and called once.",
+   "currentCost": "Recursive ExtGcd is called once per RunXor for invN. Recursion has call overhead and is not Burst-friendly (deep recursion), though depth is ~log mod \u2248 30.",
+   "proposedChange": "Make ExtGcd iterative (standard loop form with running coefficients) to remove recursion \u2014 Burst handles loops far better than recursion and it eliminates stack frames. Single call per RunXor, so impact is small, but recursion is a Burst smell worth removing here and in Fwht.cs.",
+   "rationale": "Iterative extended-Euclid is the same asymptotics with no call overhead and is Burst-compileable without stack-depth concerns.",
+   "risk": "Behavior identical if the iterative version returns the same canonical (x,y); ensure the final `(x%mod+mod)%mod` normalization is kept."
+  }
+ ]
+}

@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.DS.SpatialMap/LocalSpatialMap.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.DS.SpatialMap/LocalSpatialMap.cs",
+   "symbol": "LocalSpatialMap.QuantizeJob.ValidatePosition",
+   "severity": "high",
+   "category": "off-by-one",
+   "summary": "Same defect as SpatialKeyedMap: ValidatePosition only checks `math.any(quantized >= this.QuantizeWidth)` and omits the lower bound (quantized < 0). The map is an UnsafePartialKeyedMap whose Update\u2192RecalculateBuckets indexes buckets directly via `Buckets[key]` with key range [0, quantizeSize*quantizeSize); CheckAllKeysOutOfBounds is only compiled under collections checks. A position below -halfSize yields a negative quantized coordinate, a negative hash, and an out-of-bounds heap write in release builds.",
+   "triggeringInput": "new LocalSpatialMap<P>(quantizeStep:1, size:4) built over a position Position=(-3f,-3f): quantized=floor((-1,-1))=(-1,-1); validation any((-1,-1) >= 4) is false \u2192 passes; Hash = -1 + (-1)*4 = -5; UnsafePartialKeyedMap.RecalculateBuckets executes Buckets[-5] (OOB write).",
+   "rootCause": "ValidatePosition checks only the high side of the world bounds; negative quantized coordinates (positions below -halfSize) are not rejected and become negative bucket indices into a directly-indexed bucket array.",
+   "suggestedFix": "Add the lower-bound check: `if (math.any(quantized < int2.zero) || math.any(quantized >= this.QuantizeWidth))` before computing/using the hash."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.SpatialMap/LocalSpatialMap.cs",
+   "symbol": "LocalSpatialMap<T>.QuantizeJob.Execute",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Eliminate the redundant modulo on the tail worker by assigning end = Positions.Length directly.",
+   "currentCost": "Positions.Length % Workers is an extra integer division (~20-40 cycles on ARM) executed on the last worker's Execute.",
+   "proposedChange": "Replace the if (index == Workers-1) { end += Positions.Length % Workers; } block with end = (index == Workers-1) ? Positions.Length : end; (or compute end as Positions.Length on the last worker), removing the % division.",
+   "rationale": "start + length + (Length % Workers) on the last worker algebraically equals Positions.Length, so the modulo result is redundant. Removes a division from the per-Execute setup.",
+   "risk": "Exact for Workers>=1, guaranteed by math.max(1, JobWorkerCount) at the call site."
+  }
+ ]
+}

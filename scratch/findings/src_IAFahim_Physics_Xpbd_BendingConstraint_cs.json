@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Physics.Xpbd/BendingConstraint.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Physics.Xpbd/BendingConstraint.cs",
+   "symbol": "Solve",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Two math.length calls each do a sqrt then code divides by len; using rsqrt-style normalize and reusing 1/len avoids redundant divides, and grad1/grad2 share subexpressions with grad0.",
+   "currentCost": "len1,len2 via 2 sqrt; then 4 divisions by len1/len2 (n1=d1/len1, n2=d2/len2, and grad terms /len1 and /len2). grad0 recomputes (-n2+cos*n1) and (-n1+cos*n2) which are exactly -grad1*len1-style negations of grad1 and grad2 numerators.",
+   "proposedChange": "Compute invLen1=1/len1, invLen2=1/len2 once; n1=d1*invLen1, n2=d2*invLen2. Note grad1 = (n2 - cos*n1)*invLen1 and grad2 = (n1 - cos*n2)*invLen2, and grad0 = -( (n2-cos*n1)*invLen1 + (n1-cos*n2)*invLen2 ) = -(grad1+grad2). So replace the explicit grad0 expression with grad0 = -(grad1+grad2), removing two vector adds/subs and a redundant division group.",
+   "rationale": "grad0 = -(grad1+grad2) is an algebraic identity from the constraint gradient (sum of gradients is zero for a translation-invariant constraint), saving ~2 float3 builds and 2 divisions; reusing invLen turns 4 divides into 2 mul-by-reciprocal groups.",
+   "risk": "Identity holds exactly in real arithmetic; in float it changes rounding of grad0 slightly (not bit-identical). If exact bit-reproducibility is required this is a behavior change \u2014 gate behind a 'fast' variant. The reciprocal reuse (mul by 1/len vs divide) is also not bit-identical to division."
+  }
+ ]
+}

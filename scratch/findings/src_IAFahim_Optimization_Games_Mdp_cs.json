@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Optimization.Games/Mdp.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Games/Mdp.cs",
+   "symbol": "Mdp.ValueIteration",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Hoist the loop-invariant reward term out of the innermost sp-loop in the Q-value accumulation.",
+   "currentCost": "The innermost loop `q += trans[...] * (reward[s*m+a] + gamma * v[sp])` recomputes `reward[s*m+a]` (an index multiply-add + load) on every one of n iterations, and folds reward into every term so it cannot be factored. This is n*m*n*iters iterations, the dominant cost. Each iteration does an extra add and the reward expression mixes a per-(s,a) constant into the dot product.",
+   "proposedChange": "Split the sum: compute `double dot = 0; for(sp) dot += trans[base + sp] * v[sp];` then `double q = reward[s*m+a] * transSum + gamma_dot` \u2014 more precisely `q = sum_sp(trans*reward) + gamma*sum_sp(trans*v)`. Since reward is constant over sp, `q = reward[s*m+a]*(sum_sp trans) + gamma*(sum_sp trans*v)`. Precompute `rsa = reward[s*m+a]` once per (s,a), and let `tbase = s*m*n + a*n`. Then inner loop is `dot += trans[tbase+sp]*v[sp]` and after loop `q = rsa*rowSum + gamma*dot`. If transition rows are stochastic (sum to 1, the MDP convention), rowSum==1 and q = rsa + gamma*dot, removing reward from the hot loop entirely.",
+   "rationale": "Removes a per-iteration load and add from the n*m*n*iters hot loop, shortens the FMA dependency chain (pure trans*v accumulation vectorizes/FMAs cleanly under Burst), and hoists the reward load to the (s,a) level (n*m*iters). With the stochastic-row assumption it also removes a multiply.",
+   "risk": "Strict factoring `reward*rowSum + gamma*dot` is algebraically identical in real arithmetic but floating-point addition reordering changes rounding, so bitwise-identical output is not guaranteed; observable behavior changes only at ULP level. The rowSum==1 simplification additionally assumes rows are probability distributions \u2014 only valid if that is a documented precondition; otherwise keep the explicit `rsa*rowSum` form (compute rowSum in the same pass)."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Games/Mdp.cs",
+   "symbol": "Mdp.ValueIteration",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Eliminate the separate copy-back pass `for(s) v[s]=newV[s]` by double-buffering with a pointer swap.",
+   "currentCost": "After each iteration an extra O(n) pass copies newV into v, costing n*iters loads+stores plus a full extra memory sweep that evicts cache.",
+   "proposedChange": "Read into `cur` and write into `nxt`, then swap the two pointers at the end of each iteration instead of copying: `double* tmp = v; v = newV; newV = tmp;`. After the loop, if `iters` is odd the result lives in the other buffer \u2014 either require even-iteration semantics or copy once at the very end. Both v and newV are caller-provided scratch of equal size, so swapping is safe.",
+   "rationale": "Replaces iters full O(n) copy passes with a single pointer swap (constant). Reduces total memory traffic and cache pressure in the outer loop.",
+   "risk": "After the loop the final values may reside in the `newV` buffer rather than `v` depending on parity of iters; caller currently expects results in `v`. Needs a single final conditional copy when (iters & 1)==1 to preserve the observable contract."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Games/Mdp.cs",
+   "symbol": "Mdp.PolicyIteration",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist reward out of both inner sp-loops and precompute the (s,a) base index, same as ValueIteration.",
+   "currentCost": "Both the evaluation loop (line 41) and the improvement loop (line 53) recompute `reward[s*m+a]` and the flat index `s*m*n + a*n + sp` inside the innermost sp-loop, adding redundant index arithmetic and a load per iteration across the policy-iteration sweeps.",
+   "proposedChange": "Per (s,a) compute `long rsa=reward[s*m+a]` (double) and `tbase=s*m*n+a*n` once, then inner loop accumulates `dot += trans[tbase+sp]*v[sp]` and forms `q = rsa*rowSum + gamma*dot` (or `rsa + gamma*dot` under the stochastic-row precondition). Apply identically in the evaluation pass where a=policy[s].",
+   "rationale": "Cuts a load and a multiply-add from the hot dot-product loops and strength-reduces the index computation to a single base + sp add, which Burst lowers to contiguous loads it can vectorize.",
+   "risk": "Same floating-point reassociation caveat as ValueIteration: identical in exact arithmetic, may differ at ULP. rowSum==1 shortcut only valid if rows are guaranteed stochastic."
+  }
+ ]
+}

@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Math.PoissonDisk/PoissonDisk2D.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.PoissonDisk/PoissonDisk2D.cs",
+   "symbol": "PoissonDisk2D.NextFloat / PoissonDisk2D.Run",
+   "severity": "high",
+   "category": "off-by-one",
+   "summary": "NextFloat returns a value in the CLOSED interval [0,1] (divides by 4294967295.0f, which itself rounds up to 2^32 in float, so top results yield exactly 1.0f). Then activeIdx = (int)(NextFloat(ref rng) * activeCount) can equal activeCount, indexing active[activeCount] which is one past the last valid active element. This reads a stale/zero-initialized stack slot and uses it as 'center', so candidates are generated around a wrong (garbage / origin) point instead of a real active sample \u2014 corrupting the spatial distribution.",
+   "triggeringInput": "Any seed/state for which NextFloat() == 1.0f at the line 'int activeIdx = (int)(NextFloat(ref rng) * activeCount);' while activeCount >= 1 (e.g. rng state whose mangled 'result' falls in the top range that rounds to 2^32; reachable for some seed). With activeCount=1 this selects active[1], an unwritten slot.",
+   "rootCause": "Mapping uint32 to float by dividing by 4294967295.0f (= 2^32-1). In float32 the divisor and the maximum dividend both round to 4294967296.0f, so the result reaches and can even exceed 1.0, making (int)(value*n) reach n. The index is never clamped to [0, activeCount-1].",
+   "suggestedFix": "Divide by 4294967296.0f (2^32) to produce a half-open [0,1) range, OR clamp the result: 'if (result_float >= 1f) result_float = 0.99999994f;', OR clamp the index: 'activeIdx = activeIdx >= activeCount ? activeCount - 1 : activeIdx;'. Same fix needed for the first-point generation and angle/radius which assume [0,1)."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.PoissonDisk/PoissonDisk2D.cs",
+   "symbol": "NextFloat",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace per-call division by 4294967295.0f with multiplication by a precomputed reciprocal constant.",
+   "currentCost": "One floating-point division (latency ~13-20 cycles, not pipelined like mul) on every random draw. NextFloat is called ~3-5x per attempt and up to 30 attempts per active point, so this is one of the hottest leaf ops in the generator.",
+   "proposedChange": "Add a named constant `const float InvUInt32Max = 1.0f / 4294967295.0f;` and return `(float)result * InvUInt32Max;` instead of `(float)result / 4294967295.0f;`.",
+   "rationale": "Multiply has far lower latency and higher throughput than divide on every target (x86 SSE, ARM NEON). The reciprocal is a compile-time constant so the result is bit-identical for the same `result` value (the divisor is a literal, so `1.0f/literal` folds at compile time and a*recip == a/divisor only differs by at most 1 ULP \u2014 but here the divisor is a power-of-two-minus-one literal; to be exact, prefer letting Burst do it). Strength-reduction div->mul.",
+   "risk": "a * (1.0f/c) is NOT always bit-identical to a / c (one differs by up to 0.5 ULP). This shifts the exact float returned, which perturbs the RNG-driven sampling sequence and thus the exact point set for a given seed. If determinism of the *exact* output across this change is required, reject; if only statistical Poisson-disk validity matters, it is safe. Burst's default math (fastmath) may already do this, in which case the change is a no-op."
+  },
+  {
+   "file": "src/IAFahim.Math.PoissonDisk/PoissonDisk2D.cs",
+   "symbol": "InsertGrid / IsTooClose",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Pass a precomputed inverse cellSize into the hot grid-mapping helpers instead of dividing by cellSize at every call site.",
+   "currentCost": "Each InsertGrid does 2 divides by cellSize; each IsTooClose does 2 divides by cellSize. These run once per accepted point and once per candidate attempt respectively \u2014 dominant call frequency in the inner loop.",
+   "proposedChange": "Compute `float invCellSize = 1.0f / cellSize;` once in Run and thread it through InsertGrid/IsTooClose (or alongside cellSize), replacing `(point.x - min.x) / cellSize` with `(point.x - min.x) * invCellSize`. Truncation to int is unchanged.",
+   "rationale": "Replaces 2-3 divides per inner-loop iteration with multiplies. cellSize is loop-invariant (computed once in Run), so the reciprocal is hoistable. Fewer high-latency divide units occupied shortens the dependency chain before the (int) truncation feeding the grid index.",
+   "risk": "a*(1/c) vs a/c can differ by ~1 ULP, which at a cell boundary could flip the truncated integer cell index for a point exactly on a boundary, theoretically changing which cell a point lands in and thus the accept/reject outcome. For interior points this never matters; boundary coincidence is measure-zero in float but not impossible. If exact determinism vs the current code is mandatory, guard or reject; statistically the sampling remains valid."
+  },
+  {
+   "file": "src/IAFahim.Math.PoissonDisk/PoissonDisk2D.cs",
+   "symbol": "IsTooClose",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist row base index gy_base and reorder bounds checks so the inner dx loop only adds, and skip whole rows when ny is out of range.",
+   "currentCost": "Inner loop recomputes `ny * gridW + nx` (a multiply) for all 25 cells and re-checks ny bounds 5 times per row redundantly. The candidate-cell gx/gy and minDistSq are fine, but the row term ny*gridW is recomputed per-cell.",
+   "proposedChange": "In the outer dy loop compute `int ny = gy + dy; if (ny < 0 || ny >= gridH) continue; int rowBase = ny * gridW;` then in the dx loop use `grid[rowBase + nx]` with only the nx bound check. This lifts one multiply and one pair of comparisons out of the 5-iteration inner loop.",
+   "rationale": "Reduces the inner-loop body to one add + one load + one compare for the common path, removing a per-cell integer multiply (5x fewer multiplies) and 2 redundant ny comparisons per cell. Pure loop-invariant hoisting \u2014 identical results.",
+   "risk": "None \u2014 purely reassociating loop-invariant computation out of the inner loop; observable behavior identical. Burst likely already hoists some of this, so the win may be partially realized already."
+  },
+  {
+   "file": "src/IAFahim.Math.PoissonDisk/PoissonDisk2D.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Compute candidate offset via math.sincos and reuse minDistance*minDistance instead of recomputing minDistSq each IsTooClose call.",
+   "currentCost": "cos(angle) and sin(angle) computed as two separate transcendental calls (~each 20-40 cycles); minDistSq = minDist*minDist recomputed inside every IsTooClose invocation.",
+   "proposedChange": "Use `math.sincos(angle, out float s, out float c)` to get both with one argument reduction, then `center + new float2(c, s) * radius`. Hoist `float minDistSq = minDistance * minDistance;` to Run and pass it into IsTooClose instead of recomputing from minDist each call.",
+   "rationale": "sincos shares the range-reduction/polynomial setup between sin and cos, cheaper than two independent calls. minDistSq is loop-invariant across the entire Run; computing it once removes a multiply from every candidate test.",
+   "risk": "sincos returns the same values as separate sin/cos in Burst, so output identical. Passing minDistSq instead of minDist changes the signature (ergonomics) but not behavior. No semantic risk."
+  }
+ ]
+}

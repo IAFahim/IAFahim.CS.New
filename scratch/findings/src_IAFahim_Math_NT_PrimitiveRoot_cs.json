@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Math.NT/PrimitiveRoot.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.NT/PrimitiveRoot.cs",
+   "symbol": "PrimitiveRoot.Run",
+   "severity": "critical",
+   "category": "overflow",
+   "summary": "Prime factors of phi(n) are stored in an int* buffer via (int)p / (int)tmp. When phi(n) has a prime factor exceeding int.MaxValue (2^31-1), the cast truncates it (often to a negative value), so phi/factors[i] yields a wrong (e.g. negative) exponent. ModPow with a non-positive exponent returns 1 because its `while (e>0)` loop never executes, making the order test `PowMod(g,exp,n)==1` always true; every candidate g is rejected and Run returns -1, failing to find a primitive root that actually exists.",
+   "triggeringInput": "n = 4294967387 (a prime; phi(n)=n-1=2*2147483693 where the prime factor 2147483693 > int.MaxValue). Run returns -1 even though g=2 is a valid primitive root.",
+   "rootCause": "`int* factors = stackalloc int[64];` plus `factors[fc++] = (int)p;` and `if (tmp > 1) factors[fc++] = (int)tmp;` narrow a long prime factor to int. For factors > 2^31-1 this overflows/becomes negative, then `phi / factors[i]` produces a wrong exponent and ModPow(g, negativeExp, n) returns 1 unconditionally (its loop guard is `while (e > 0)`).",
+   "suggestedFix": "Store factors as long: declare `long* factors = stackalloc long[64];` and use `factors[fc++] = p;` / `factors[fc++] = tmp;` (remove the (int) casts). This keeps full-range prime factors so `phi / factors[i]` and the subsequent PowMod test are correct for all long n."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/PrimitiveRoot.cs",
+   "symbol": "PrimitiveRoot.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The candidate-root search calls Gcd(g,n) for every g and only then tests; for prime n the gcd is always 1 (wasted work), and PowMod exponents phi/factors[i] are recomputed in the inner loop instead of precomputed once.",
+   "currentCost": "Per candidate g: a full Euclid gcd, then up to fc PowMod (modular exponentiation, O(log e) mults each). phi/factors[i] divisions recomputed for every g though they are loop-invariant in g.",
+   "proposedChange": "Precompute long* exps = stackalloc long[fc] once: exps[i]=phi/factors[i] before the g-loop. Skip the Gcd call when n is known prime (Phi.Run(n)==n-1 implies n prime, gcd(g,n)==1 for all g<n). Inside g-loop reuse exps[i] in PowMod.",
+   "rationale": "Hoists fc divisions out of the O(n) candidate loop and eliminates a redundant gcd per candidate in the common prime-modulus case, cutting the per-candidate cost to just the PowMod tests.",
+   "risk": "The prime-detection shortcut (phi==n-1) is valid only for prime n; for composite n with primitive roots (n=2,4,p^k,2p^k) gcd must still be checked, so guard the skip with the phi==n-1 condition. exps array adds 64*8 bytes stack \u2014 within budget."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/PrimitiveRoot.cs",
+   "symbol": "PrimitiveRoot.Gcd",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Private Gcd and PowMod wrappers duplicate functionality that exists elsewhere (ModPow.Run is already delegated to); Gcd could reuse a shared NT Gcd and be AggressiveInlined.",
+   "currentCost": "Local Gcd is a non-inlined static call per candidate; PowMod is a thin forwarding wrapper adding a call frame.",
+   "proposedChange": "Tag Gcd with [MethodImpl(MethodImplOptions.AggressiveInlining)] (and inline PowMod's body or mark it inlining) so the branchy abs+loop folds into the caller; or delegate to an existing shared Gcd in the NT module for consistency.",
+   "rationale": "Removes call overhead in the hot candidate loop and improves consistency/discoverability across the module. Branchless abs (mask = a>>63; a=(a^mask)-mask) further removes two branches but inputs g,n here are positive so the abs is dead \u2014 could drop the sign checks entirely in Run's call path.",
+   "risk": "g and n are always positive in Run, so the a<0/b<0 guards never fire; removing them in a Run-private fast path is safe only if Gcd is not reused with negative args elsewhere. Keep the public/general Gcd intact if shared."
+  }
+ ]
+}

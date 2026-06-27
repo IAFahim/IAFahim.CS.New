@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Optimization.Matroid/EliminateOtherRows",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Matroid/EliminateOtherRows",
+   "symbol": "EliminateOtherRows",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Skip XOR-ing the columns already known to be zero/processed: start the inner XOR at column 'col' (or track a leading-zero offset) since columns < current pivot columns are already reduced.",
+   "currentCost": "The inner loop always sweeps j from 0..m-1, re-touching the leading basis columns that are already in reduced echelon form (those columns are 0 in row r for r != pivot, so XOR with pivot row either re-touches a 0 or only the pivot column itself). For matrices much wider than their rank, much of each sweep is wasted work on columns that cannot change the outcome relative to a tighter start.",
+   "proposedChange": "Because elimination produces reduced row echelon form, in row r (r != pivotRow) all previously-pivoted columns are already 0, and the current pivot column is the leftmost nonzero. You can start the XOR sweep at j = col instead of j = 0 for the elimination of rows whose leading nonzero is at 'col'. Guard: this is only valid if rows below 'rank' have zeros in columns < col, which holds for the rows being eliminated at-or-after the pivot but NOT necessarily for rows above (already-reduced rows can have set bits only in their own pivot column, which is < col and already 0 elsewhere). Safest correct version: start sweep at the column index 'col' only for r >= rank; keep full sweep for r < rank.",
+   "rationale": "Avoids touching O(col) already-zero columns per eliminated row, reducing inner-loop length as the algorithm progresses, especially beneficial for tall reductions.",
+   "risk": "Correctness hinges on the echelon invariant: above-pivot rows may hold their own earlier pivot bit at a column < col, and XOR-ing the pivot row (which is 0 in those columns) wouldn't change them anyway \u2014 so skipping is safe there too, but ONLY because pivot row is zero in columns < col. Must verify pivot row really is zero in all columns < col (true in reduced echelon). If the algorithm is not maintaining full RREF (only forward elimination), this optimization is unsafe \u2014 verify the invariant before applying; otherwise reject."
+  }
+ ]
+}

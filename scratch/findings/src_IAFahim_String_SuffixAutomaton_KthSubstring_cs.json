@@ -1,0 +1,71 @@
+{
+ "file": "src/IAFahim.String.SuffixAutomaton/KthSubstring.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.String.SuffixAutomaton/KthSubstring.cs",
+   "symbol": "KthSubstring.GetNext",
+   "severity": "critical",
+   "category": "pointer-ub",
+   "summary": "GetNext assumes each SuffixAutomaton.State contains an inline 256-int transition table, but State is {int Link; int Len; int Head} (12 bytes) and transitions live in a separate Edge[] linked list reachable via Head. It computes ptr = state + v*sizeof(State) + sizeof(int) and reads ((int*)ptr)[c] for c in 0..255, so c=0 reads Len, c=1 reads Head, and c>=2 reads other states / runs far past the array end. The whole class (Find, Dfs/CountSubstrings) is built on this and produces garbage plus out-of-bounds reads.",
+   "triggeringInput": "Any non-trivial automaton, e.g. SuffixAutomaton.Build over int text {0,1} producing >=3 states, then KthSubstring.Find(stPtr, stateCount, 1, ...). GetNext(0, 5, state) reads ((int*)(state + 0*12 + 4))[5] = bytes at offset 24..27, i.e. into state index 2's fields, instead of using the Head->Edge linked list. For c near 255 it reads ~1KB past state v, out of bounds for small automata.",
+   "rootCause": "Hand-rolled pointer arithmetic models a flat alphabet-indexed transition array that does not exist in this State layout; transitions are an Edge-array linked list keyed by Head, identical to SuffixAutomaton.GetNext(st,e,v,c).",
+   "suggestedFix": "Remove the custom GetNext and take the Edge* array as a parameter, walking the edge linked list (for (int edge=st[v].Head; edge!=-1; edge=e[edge].Next) if (e[edge].Char==c) return e[edge].To;) exactly like SuffixAutomaton.GetNext."
+  },
+  {
+   "file": "src/IAFahim.String.SuffixAutomaton/KthSubstring.cs",
+   "symbol": "KthSubstring.Find",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Even ignoring the GetNext layout bug, Find does not implement k-th distinct substring. It walks suffix links of the start node (v = state[v].Link) instead of descending through transitions, never decrements k while descending, never appends successive characters to build the answer, writes only outPtr[0]=c for the first matching char, and never sets *outLen. The k-th-distinct-substring algorithm must, at each state, scan outgoing transitions in char order, subtract per-edge counts from k, move into the chosen child, append its char, and repeat. Result is wrong length and wrong content.",
+   "triggeringInput": "Build SAM for text {0,1,1} (\"abb\"), call Find(stPtr, stateCount, 2, outLen, outPtr, dp): the function returns true after the first matching char from state 0 without descending, so outLen is left unset and the returned substring is not the 2nd distinct substring.",
+   "rootCause": "Wrong traversal (follows Link chain rather than transitions), no k accounting across descent, and no output of the full substring/outLen.",
+   "suggestedFix": "Descend from the initial state using transition counts: at each node iterate chars ascending, let cnt=CountSubstrings(child); if k<=cnt append char, k--, recurse into child; else k-=cnt. Set *outLen to the appended length. Also loop the alphabet over the real sigma (generalized SAM uses separators sigma+i >= 256), not a hardcoded 256."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.SuffixAutomaton/KthSubstring.cs",
+   "symbol": "CountSubstrings / Dfs / Find",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Memoization dp is reset and fully recomputed on every CountSubstrings call, turning the outer Find loop into a quadratic/exponential blowup over states.",
+   "currentCost": "Find walks the suffix-link chain and for each of up to 256 transitions calls CountSubstrings, which (a) does an O(stateCount) reset of dp[i]=-1 and (b) recomputes the entire Dfs subtree from scratch. The substring counts are a fixed function of the automaton, so this recomputes identical values O(states*256) times. Each Find call therefore costs O(stateCount^2 * 256) or worse.",
+   "proposedChange": "Compute the dp[] count array ONCE before the Find loop (single Dfs over the DAG with the dp[i]=-1 sentinel), then in Find read cnt = dp[next] directly instead of calling CountSubstrings/resetting. Pass the already-populated dp in. Reset dp once at entry, not per-call.",
+   "rationale": "The count of substrings reachable from each state is invariant across the whole query; computing it once is O(states + edges) instead of O(states) per transition per chain node. Eliminates the redundant O(stateCount) memset and the repeated DAG traversals, dropping total cost by a factor of ~stateCount*256.",
+   "risk": "Semantics-preserving as long as dp is fully populated before first read; the existing -1 sentinel already guarantees each state is computed exactly once. No edge-case change. (Note: GetNext's pointer math assumes an inline 256-int transition table immediately after the first int of State, which does not match the {Link,Len,Head} layout in SuffixAutomaton.cs \u2014 flag separately as a likely pre-existing correctness bug, not part of this opt.)"
+  },
+  {
+   "file": "src/IAFahim.String.SuffixAutomaton/KthSubstring.cs",
+   "symbol": "Dfs",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "Dfs is unbounded recursion over the automaton DAG; deep chains risk stack overflow and Burst dislikes deep recursion on hot paths.",
+   "currentCost": "Recursion depth can reach stateCount (a long path automaton), one stack frame per state plus a 256-iteration loop each. Recursion also blocks some Burst optimizations and inlining.",
+   "proposedChange": "Convert Dfs to an explicit-stack iterative post-order over the DAG using the dp[] sentinel (already available as scratch) plus a small explicit int* worklist, computing counts bottom-up. Combine with the compute-once change above.",
+   "rationale": "Iterative traversal has bounded, caller-controlled memory, no per-call frame setup, and is more Burst/vectorizer friendly. Same asymptotic work, lower constant and no native-stack blowup.",
+   "risk": "Must preserve the exact +1 (empty/own contribution) accumulation per node and the DAG-memoized single visit. Need an explicit worklist buffer sized to stateCount; document it as caller-provided to stay within the no-managed-alloc constraint."
+  },
+  {
+   "file": "src/IAFahim.String.SuffixAutomaton/KthSubstring.cs",
+   "symbol": "Find",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Inner transition probe loops c over all 256 codes calling GetNext even when most slots are empty.",
+   "currentCost": "For every chain node, 256 GetNext calls (each a pointer recompute + load) regardless of actual out-degree. Suffix-automaton states are typically sparse, so most of these 256 loads miss/return -1.",
+   "proposedChange": "Iterate actual outgoing edges via the linked Head/Next edge list (as SuffixAutomaton.GetNext already does) instead of dense c in [0,256). If lexicographic order by Char is required (it is, to satisfy 'k-th'), collect present (Char,To) pairs once and sort, or keep a per-state sorted edge order at build time.",
+   "rationale": "Replaces a fixed 256-iteration dense scan with iteration proportional to real out-degree, cutting both branch count and cache traffic. For sparse states this is a large constant-factor win.",
+   "risk": "Ordering matters: the k-th-substring result depends on ascending character order, so edges must be visited in ascending Char. The linked edge list is in insertion order, so a one-time sort or build-time ordering is required to preserve output semantics."
+  },
+  {
+   "file": "src/IAFahim.String.SuffixAutomaton/KthSubstring.cs",
+   "symbol": "GetNext",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "GetNext does IntPtr arithmetic with sizeof recomputed per call and is not inlined.",
+   "currentCost": "Each call recomputes v*sizeof(State)+sizeof(int) through IntPtr conversions; called 256x per chain node per query. No AggressiveInlining attribute.",
+   "proposedChange": "Add [MethodImpl(MethodImplOptions.AggressiveInlining)] and index via a typed pointer (e.g. ((int*)(state + v))[1 + c]) so the offset folds to a constant scale; better, fold it into the edge-list iteration from the previous item and delete this dense accessor.",
+   "rationale": "Inlining removes call overhead on a hot leaf; typed indexing lets the JIT/Burst emit a single scaled load instead of IntPtr add chains. Lower dependency-chain length per probe.",
+   "risk": "Pointer/offset semantics must match the actual State memory layout; the current implementation assumes an inline transition array that the {Link,Len,Head} struct does not provide, so this accessor appears already inconsistent with the build format \u2014 verify layout before micro-tuning."
+  }
+ ]
+}

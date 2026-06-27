@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Optimization.Knapsack/MeetInMiddle.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Optimization.Knapsack/MeetInMiddle.cs",
+   "symbol": "MeetInMiddle.Run",
+   "severity": "medium",
+   "category": "complexity",
+   "summary": "The left-half table is never sorted or prefix-maximized, so each right-half mask does a full linear scan over all 2^(n/2) left subsets to find the best feasible value, making the algorithm O(2^(n/2) * 2^(n/2)) = O(2^n) \u2014 the same as brute force, defeating the documented meet-in-the-middle speedup and becoming effectively non-terminating near the n=40 contract bound.",
+   "triggeringInput": "n=40: leftCount = 2^20 and right masks = 2^20, so the bestLeft scan runs ~2^40 (about 1.1e12) iterations, which does not complete in any reasonable time despite n being within the n<=40 contract.",
+   "rootCause": "The inner loop 'for i in 0..leftCount: if left[i*2] <= rem && left[i*2+1] > bestLeft' performs a linear search per right mask. Meet-in-the-middle requires sorting the left list by weight and precomputing a prefix maximum of value (or binary search) so each query is O(log) instead of O(2^(n/2)).",
+   "suggestedFix": "Sort the 2^(n/2) (weight,value) left entries by weight, replace each value with the running prefix maximum of values, then for each right mask binary-search the largest weight <= rem and read the prefix-max value, reducing the query to O(log 2^(n/2))."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Knapsack/MeetInMiddle.cs",
+   "symbol": "Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "The right-half scan does a full O(leftCount) linear search per mask, making the join O(2^(n/2) * 2^(n/2)) = O(2^n); replace with a Pareto-sorted left table + prefix-max and binary search to get O(2^(n/2) * (n/2 + log)).",
+   "currentCost": "For each of 2^(n-half) right masks, the inner 'for i in leftCount' linearly scans all 2^half left subsets to find max value with weight <= rem. This is 2^half * 2^(n-half) = 2^n total work, defeating the entire point of meet-in-the-middle (which should be ~2^(n/2)).",
+   "proposedChange": "After building the left table, sort the (weight,value) pairs by weight and compute a running prefix-max of value (drop dominated entries so weight ascending => value ascending). Then per right mask, binary-search rem in the sorted weights and read the prefix-max value in O(log). Sort is O(2^half * half) (radix or in-place) done once.",
+   "rationale": "Reduces the algorithm from O(2^n) back to its intended O(2^(n/2) * n) \u2014 an exponential asymptotic improvement, the headline benefit of meet-in-middle that the current code throws away.",
+   "risk": "Needs scratch space for sorting indices/prefix-max (caller buffer or in-place rearrange of the left array, which is already 2*leftCount longs). Sort must be deterministic. For n up to 40, leftCount up to 2^20 ~1M entries \u2014 the linear-per-mask version is currently 2^40 ops which is infeasible anyway, so this is both a correctness-of-performance and feasibility fix. Preserves the max-value output."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Knapsack/MeetInMiddle.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Build subset weight/value sums incrementally via Gray-code or low-bit recurrence instead of an inner O(half) bit-scan per subset.",
+   "currentCost": "Both subset-enumeration loops recompute sw/sv from scratch with an inner loop over all bits (O(half) and O(n-half)) and a branch '(i & (1<<j)) != 0' per bit, costing O(half * 2^half) total just to build sums.",
+   "proposedChange": "Use the recurrence sum[i] = sum[i & (i-1)] + element[trailing_zero_count(i)] (lowest set bit). With math.tzcnt / Burst intrinsic this builds each subset sum in O(1) from a previously computed subset, turning sum construction into O(2^half). Same for the right half into a scratch buffer.",
+   "rationale": "Drops subset-sum construction from O(n*2^(n/2)) to O(2^(n/2)), removing the per-bit branch that Burst cannot vectorize, and replacing 1<<j shifts with a single tzcnt and one prior load.",
+   "risk": "i & (i-1) clears the lowest set bit (DP on a previously filled index < i, valid since processed in increasing order). For the right half it needs a scratch buffer of 2^(n-half) sums rather than recomputing on the fly. Output identical."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Knapsack/MeetInMiddle.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist the loop bound (1 << (n - half)) and reuse a precomputed 'rightCount'; also strength-reduce i*2 indexing with a running pointer.",
+   "currentCost": "The right-mask for-loop recomputes '(1 << (n - half))' in its condition each iteration. left[] access uses 'i*2' and 'i*2+1' (a shift+add) every probe in the inner scan.",
+   "proposedChange": "Compute 'int rightCount = 1 << (n - half);' once before the loop. In the left-build and inner scan, advance a 'long* lp = left;' pointer by 2 each iteration so accesses are lp[0]/lp[1] with no index multiply.",
+   "rationale": "Removes a repeated shift in the loop condition and replaces index*2 address computation with pointer increment, trimming the inner-scan critical path. (Largely moot if the O(2^n) inner scan is replaced per the complexity item, but applies to the build loop regardless.)",
+   "risk": "None: pure index strength-reduction, identical addresses and outputs."
+  }
+ ]
+}

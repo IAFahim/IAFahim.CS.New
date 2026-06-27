@@ -122,6 +122,7 @@ Below is the complete index of all active packages in the repository, organized 
 
 ### Linear Algebra
 
+- **[IAFahim.Linear](./src/IAFahim.Linear/README.md)**: This package provides high-performance, unmanaged linear algebra utilities for vector mathematics and small-dimensional linear algebra computations.
 - **[IAFahim.Linear.Matrix](./src/IAFahim.Linear.Matrix/README.md)**: This package provides matrix operations, including matrix products, matrix exponentiation, and Berlekamp-Massey recurrence solvers.
 - **[IAFahim.Linear.Matrix2](./src/IAFahim.Linear.Matrix2/README.md)**: Provides basic 2D matrix operations using raw long pointers, including initialization, identity matrix, addition, subtraction, matrix exponentiation, and matrix-vector product solver.
 
@@ -153,6 +154,7 @@ Below is the complete index of all active packages in the repository, organized 
 
 ### Memory Management
 
+- **[IAFahim.Collections.NoDeps](./src/IAFahim.Collections.NoDeps/README.md)**: This package provides minimal stub definitions and compile-time mocks for Unity's collections, job system, and math types to support pure .NET builds.
 - **[IAFahim.Memory.Allocators](./src/IAFahim.Memory.Allocators/README.md)**: This package offers structures to manage memory blocks, including slab pools, fixed-size pools, parallel pools, and general memory managers.
 
 ### Optimization
@@ -182,6 +184,7 @@ Below is the complete index of all active packages in the repository, organized 
 
 ### Search Algorithms
 
+- **[IAFahim.Search](./src/IAFahim.Search/README.md)**: This package provides a collection of general-purpose search algorithms and state-space exploration helpers.
 - **[IAFahim.Search.Automaton](./src/IAFahim.Search.Automaton/README.md)**: This package provides algorithms for automaton construction and modulo power operations on matrices. It allows building state transition graphs and exponentiating transition representations.
 - **[IAFahim.Search.Bit](./src/IAFahim.Search.Bit/README.md)**: This package provides bitwise operations on arrays of bits, including logical operations, shifting, and search algorithms like longest increasing subsequence lengths.
 - **[IAFahim.Search.DifferenceArray](./src/IAFahim.Search.DifferenceArray/README.md)**: This package provides a difference buffer structure to support range additions and value updates on linear memory buffers.

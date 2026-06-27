@@ -1,0 +1,138 @@
+{
+ "file": "src/IAFahim.Math.BigInt/BigInt.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.BigInt/BigInt.cs",
+   "symbol": "BigIntPow.Run",
+   "severity": "critical",
+   "category": "overflow",
+   "summary": "BigIntPow uses fixed-size stackalloc int[1000] buffers for cur/temp/ans, but the result of a^e can have far more than 1000 decimal digits, causing out-of-bounds writes (stack corruption / UB) and a wrong/truncated result for representable inputs the method contract does not exclude.",
+   "triggeringInput": "a = single digit 2 (n=1, a[0]=2), e=4000. Then 2^4000 has 1205 decimal digits. BigIntMul writes results past the end of the 1000-element stackalloc 'ans'/'cur'/'temp' buffers.",
+   "rootCause": "The buffers cur, temp, ans are hard-coded to 1000 ints. There is no precondition bounding e or the digit-length of the result, so any base/exponent whose power exceeds 1000 digits overflows these stack buffers. BigIntMul.Run(ansLen, ans, curLen, cur, temp) and the subsequent copy loops (for i<ansLen: ans[i]=temp[i]) index up to the true product length (n+m of the operands), which can exceed 1000, writing out of bounds and corrupting the stack.",
+   "suggestedFix": "Size the buffers to the maximum possible result length, which is bounded by n * e digits (i.e. allocate based on n*e, e.g. stackalloc int[n*e + 1] or a caller-supplied scratch length), or document and enforce a precondition on the maximum result size. Replace the magic 1000 with a length derived from n and e."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.BigInt/BigInt.cs",
+   "symbol": "BigIntAdd.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace sum%10 + sum/10 carry split with a single divide and a subtract to halve the div-unit pressure per digit.",
+   "currentCost": "Per digit the loop does both 'sum % 10' and 'sum / 10'. Even though both lower to multiply-shift by the constant-10 reciprocal, that is two reciprocal multiplies (and two latency-bound dependency chains) per iteration; sum is small (<= 9+9+1 = 19) so carry is 0 or 1.",
+   "proposedChange": "Compute carry once: 'int q = sum / 10; temp[ptr++] = sum - q*10; carry = q;'. Or, since sum<=19, branchlessly: 'int c = sum >= 10 ? 1 : 0; temp[ptr++] = sum - 10*c; carry = c;' which removes division entirely on the Add hot path.",
+   "rationale": "sum is provably in [0,19] (two base-10 digits plus carry<=1), so carry is exactly (sum>=10). A compare-and-subtract replaces a div/mul-reciprocal pair with one branch (or cmov) and one mul-by-10, cutting the dependency chain and div-port usage on the per-digit hot loop.",
+   "risk": "Relies on the base-10 invariant a[i],b[i] in [0,9]; Run is the unchecked variant so caller input is assumed valid. If digits could exceed 9 the >=10 form breaks; the 'q = sum/10; rem = sum - q*10' variant is fully general and still saves one reciprocal multiply."
+  },
+  {
+   "file": "src/IAFahim.Math.BigInt/BigInt.cs",
+   "symbol": "BigIntAdd.Run",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Eliminate the temp[] scratch buffer and the final reverse-copy pass by writing result digits directly, then reversing in res.",
+   "currentCost": "stackalloc int[maxLen+1] scratch plus a second O(ptr) loop that copies temp reversed into res. Two full passes and an extra (maxLen+1)*4 bytes of stack.",
+   "proposedChange": "Accumulate least-significant-first directly into res, then do a single in-place reverse of res[0..ptr-1] with a two-pointer swap. Removes the scratch buffer entirely and fuses the copy into the reversal.",
+   "rationale": "Halves the stack working set and removes one linear copy pass; in-place reversal touches each element once instead of temp-write + temp-read + res-write.",
+   "risk": "Caller must allow res to be written in least-significant order transiently; since res is the only output buffer and length ptr is returned, the final reverse restores the documented most-significant-first layout. No aliasing assumption changes vs existing res usage."
+  },
+  {
+   "file": "src/IAFahim.Math.BigInt/BigInt.cs",
+   "symbol": "BigIntMul.Run",
+   "dimension": "burst",
+   "impact": "high",
+   "summary": "The inner accumulation temp[i+j] += a*b can overflow int32 for large operands, breaking correctness silently under Burst (no checked arithmetic).",
+   "currentCost": "temp[k] accumulates up to min(n,m) partial products, each up to 9*9=81. Overflow occurs when min(n,m) > 2^31/81 ~= 26.5 million digits \u2014 large but unbounded, and any digit not constrained to [0,9] makes it far worse. Single carry-normalization pass after the fact assumes temp fits in int through the whole accumulation.",
+   "proposedChange": "Use long accumulators for temp (or fold a partial carry every iteration), i.e. 'long* temp = stackalloc long[len]' or accumulate into a long running cell. Alternatively switch to a larger radix so each cell has more headroom per add.",
+   "rationale": "Guarantees the O(n*m) schoolbook accumulation never wraps regardless of operand size; long add is the same throughput on 64-bit targets and removes a latent correctness cliff that cannot be caught (Burst disables overflow checks).",
+   "risk": "Doubles temp stack footprint (8 bytes/cell). For mobile with tight stacks and very large len this trades RAM for correctness; bound len or use a caller-provided buffer if len can be huge. Semantics are preserved for all currently-valid (non-overflowing) inputs and fixed for the rest."
+  },
+  {
+   "file": "src/IAFahim.Math.BigInt/BigInt.cs",
+   "symbol": "BigIntMul.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the reversed index a[n-1-i] out of the inner j-loop; it is loop-invariant in j.",
+   "currentCost": "Inner loop recomputes a[n-1-i] every j iteration (an address calc and load) even though it is constant across the whole inner loop.",
+   "proposedChange": "'int ai = a[n - 1 - i];' before the inner loop, then 'temp[i + j] += ai * b[m - 1 - j];'. Also precompute the base pointer 'int* tbase = temp + i;' so inner uses tbase[j].",
+   "rationale": "Removes a redundant load and subtract from the O(n*m) inner loop, shortens the dependency chain, and gives Burst a cleaner invariant to keep in a register / vectorize the b[] sweep.",
+   "risk": "None; pure hoist of a value that is constant within the inner loop. Behavior identical."
+  },
+  {
+   "file": "src/IAFahim.Math.BigInt/BigInt.cs",
+   "symbol": "BigIntMul.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Carry-normalization pass computes sum%10 and sum/10 separately; combine into one divide.",
+   "currentCost": "Per cell: 'temp[i]=sum%10; carry=sum/10;' is two reciprocal multiplies. Here sum can exceed 9 (it is an accumulated product plus carry), so the branchless >=10 trick does not apply, but the q/rem fusion does.",
+   "proposedChange": "'int q = sum / 10; temp[i] = sum - q*10; carry = q;' \u2014 one divide, one mul, one subtract instead of two divides.",
+   "rationale": "Eliminates a second reciprocal multiply per cell across the full len pass, reducing div-port pressure on the normalization sweep.",
+   "risk": "None; algebraically identical for non-negative sum, which holds since all accumulants are non-negative."
+  },
+  {
+   "file": "src/IAFahim.Math.BigInt/BigInt.cs",
+   "symbol": "BigIntMul.Run",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "Base-10 (one decimal digit per int) wastes ~28 of 32 bits and inflates n by ~9x; a larger power-of-ten radix cuts RAM, cache misses, and the O(n*m) operation count quadratically.",
+   "currentCost": "Each int holds a single 0..9 digit: 4 bytes per ~3.32 bits of information. Mul is O(n*m) in digits, so storing 9x more digits than radix 1e9 means up to ~81x more inner-loop iterations and 9x the cache footprint.",
+   "proposedChange": "Store base 1e9 limbs in int (or base 1e18 in long). All loops shrink by ~9x (or ~18x); carry math uses long. % and / become by 1_000_000_000 (still a compile-time constant the compiler turns into multiply-shift). This is an API-shape change but is the single biggest theoretical win.",
+   "rationale": "Reduces working set ~9x (fewer cache misses on mobile), reduces Mul inner iterations ~81x for schoolbook, and amortizes div/mod-by-radix cost across 9 decimal digits instead of one. Same O(n*m) but ~81x smaller constant.",
+   "risk": "Breaking API/format change: inputs/outputs are no longer per-decimal-digit arrays. Must be done library-wide and update all callers/tests. Carry arithmetic must use 64-bit to avoid the overflow noted above. If per-decimal-digit format is a hard external contract, reject; otherwise this dominates all other wins."
+  },
+  {
+   "file": "src/IAFahim.Math.BigInt/BigInt.cs",
+   "symbol": "BigIntPow.Run",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "Three fixed stackalloc int[1000] buffers create a 12KB stack frame regardless of operand size, dangerous on mobile and silently overflowing for results > 1000 digits.",
+   "currentCost": "stackalloc int[1000] x3 = 12000 bytes on the frame every call. For small inputs this is wasted stack and cold cache lines; for inputs whose result exceeds 1000 digits it overflows the buffers with no bounds check (Run is unchecked, but the constant 1000 is an undocumented silent cap).",
+   "proposedChange": "Take caller-provided scratch (cur/temp/ans pointers) or size buffers from a computed bound: result digit count for base-10 is <= n*e safely. Replace the magic 1000 with a named MaxDigits constant and stackalloc the actual needed size, or require the caller to pass scratch so Pow becomes allocation-light and the cap explicit.",
+   "rationale": "Right-sizes the working set to the operands (fewer touched cache lines, smaller frame for the common small case) and removes an undocumented correctness cliff. Caller-provided scratch also makes Pow Burst-friendlier for repeated calls.",
+   "risk": "Changing to caller-provided scratch is an API change; the minimal non-breaking fix is to name the 1000 constant and document the cap, plus optionally compute and assert the bound. Behavior is unchanged for results within the existing implicit limit."
+  },
+  {
+   "file": "src/IAFahim.Math.BigInt/BigInt.cs",
+   "symbol": "BigIntPow.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "After each BigIntMul into temp, the element-by-element copy back into ans/cur can be avoided by ping-pong buffer swapping (pointer swap instead of copy).",
+   "currentCost": "'for(i..) ans[i]=temp[i]' and 'for(i..) cur[i]=temp[i]' copy the full product back every squaring/multiply step \u2014 O(digits) copies per bit of the exponent on top of the multiply itself.",
+   "proposedChange": "Have BigIntMul write into a 'next' buffer and swap pointers (ans <-> temp, cur <-> temp) instead of copying. With rotating buffers per chain you eliminate the copy passes entirely.",
+   "rationale": "Removes O(digits) memory traffic per exponent bit; pointer swap is O(1). For large exponents/operands this is a real constant-factor reduction in bandwidth, the bottleneck for bignum.",
+   "risk": "Must track which physical buffer currently holds the live value and ensure the final result is copied into res once. Slightly more bookkeeping; semantics identical if the live buffer is tracked correctly."
+  },
+  {
+   "file": "src/IAFahim.Math.BigInt/BigInt.cs",
+   "symbol": "BigIntMul.Run",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Schoolbook O(n*m) multiplication; for large equal-length operands Karatsuba (O(n^1.585)) is asymptotically better and benefits Pow's repeated squaring.",
+   "currentCost": "Nested n*m loop dominates Pow (which squares repeatedly) and large multiplies. For repeated-squaring in Pow the operands grow, making the quadratic cost the runtime driver.",
+   "proposedChange": "Add a Karatsuba path that triggers above a tuned threshold (e.g. min(n,m) > ~32-64 limbs), recursing with caller/stack scratch; keep schoolbook below threshold where its lower constant wins.",
+   "rationale": "Lower asymptotic complexity for the large-operand regime that Pow stresses; below threshold schoolbook stays because Karatsuba's overhead loses for small inputs.",
+   "risk": "Significant added complexity, recursion depth, and scratch management under the no-managed-memory house rules; only worth it if large operands are a real workload. For small inputs do not engage it. Low impact unless big-operand usage is confirmed."
+  },
+  {
+   "file": "src/IAFahim.Math.BigInt/BigInt.cs",
+   "symbol": "BigIntMod.Run",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Add AggressiveInlining to the tiny hot leaf methods so Burst/JIT inlines them at call sites; especially BigIntMul.Run called in Pow's loop.",
+   "currentCost": "BigIntMod.Run is a single-loop leaf; BigIntMul is called from BigIntPow as a non-inlined static call per exponent bit. Call overhead and lost cross-call optimization on hot paths.",
+   "proposedChange": "Annotate small leaf Run methods with [MethodImpl(MethodImplOptions.AggressiveInlining)] (the using is already present). Selectively also BigIntMul.Run where inlined into Pow enables register reuse of cur/ans pointers.",
+   "rationale": "Inlining removes call overhead and lets the optimizer fold the surrounding loop context (propagate constant divisor 10, keep pointers in registers across the multiply).",
+   "risk": "Inlining a large method like BigIntMul into BigIntPow can bloat code and pressure I-cache; apply selectively and only where the callee is genuinely small or called in a tight loop. No semantic change."
+  },
+  {
+   "file": "src/IAFahim.Math.BigInt/BigInt.cs",
+   "symbol": "BigIntDiv.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "rem/divisor and rem%divisor computed separately per digit; fuse into one divide.",
+   "currentCost": "Per input digit: '(int)(rem / divisor)' then 'rem %= divisor' \u2014 two 64-bit divides by a runtime 'divisor' (not a compile-time constant, so a real hardware divide each, ~20-40 cycle latency each).",
+   "proposedChange": "'long q = rem / divisor; res[len++] = (int)q; rem -= q * divisor;' \u2014 one 64-bit divide plus a multiply (multiply is ~3-5 cycles vs a second ~20-40 cycle divide).",
+   "rationale": "Halves the number of expensive 64-bit hardware divisions on the per-digit hot loop, the dominant cost in Div since divisor is not a compile-time constant.",
+   "risk": "None; rem and divisor are non-negative here so q*divisor reconstructs the remainder exactly. Identical results."
+  }
+ ]
+}

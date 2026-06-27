@@ -1,0 +1,60 @@
+{
+ "file": "src/IAFahim.Math.NT/LcmConvolution.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.NT/LcmConvolution.cs",
+   "symbol": "LcmConvolution.Forward",
+   "severity": "critical",
+   "category": "wrong-recurrence",
+   "summary": "Forward divisor-zeta double-counts: it reads f[d] after f[d] has already been overwritten by its own smaller divisors in the same pass, so the result is not the intended divisor-sum F[j]=sum_{d|j} f[d]. The class name 'LcmConvolution' relies on this being the exact zeta transform whose Mobius inverse is undone by Inverse, but it is a different (and not cleanly invertible by mu) linear map.",
+   "triggeringInput": "f[1..4] = {1,2,3,4}, n=4 -> Forward produces f[4]=8 instead of the correct divisor-sum F[4]=1+2+4=7 (f[4] erroneously adds the already-inflated f[2]=1+2=3). Likewise f[8],f[12],etc. are wrong.",
+   "rootCause": "The naive 'for d=1..n: for j=2d..n step d: f[j]+=f[d]' loop processes d in increasing order and reads the live (already-modified) f[d]. By the time d is used as a source, f[d] has accumulated contributions from divisors of d, so those contributions are double-added into every multiple of d. A correct divisor-sum zeta must add the ORIGINAL f[d] (e.g. iterate over primes: for each prime p, for j with j*p<=n: f[j*p]+=f[j], in increasing j), not the running value.",
+   "suggestedFix": "Implement the linear-time prime-based divisor zeta: requires a smallest/largest-prime factorization (or a primes list). For each prime p (ascending) and each j with p*j<=n in increasing j, do f[p*j]+=f[j] only along the prime-power chain so each divisor's original contribution is counted exactly once; or precompute and use the standard SOS-over-divisors transform that reads source values before they are mutated."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/LcmConvolution.cs",
+   "symbol": "LcmConvolution.Inverse",
+   "severity": "critical",
+   "category": "wrong-recurrence",
+   "summary": "Inverse (Mobius) transform has the same structural flaw and does not invert even the correct divisor-sum zeta: 'f[j] -= mu[j/d]*f[d]' reads the live f[d], which has already been modified by larger divisors processed earlier in the descending loop, so the result is wrong and Run's roundtrip does not recover the input.",
+   "triggeringInput": "Take F = correct divisor-sum of orig=[_,1,2,..,12] (n=12); applying Inverse yields rec[2]=4 (should be 2), rec[4]=10 (should be 4), rec[6]=18 (should be 6), etc. \u2014 orig is not recovered.",
+   "rootCause": "Like Forward, the loop 'for d=n..1: for j=2d..n step d: f[j]-=mu[j/d]*f[d]' uses the running f[d] instead of either the transformed value F[d] or the already-restored original f[d] in a consistent order, so the Mobius inversion is applied against a mix of partially-updated values. A linear Mobius inversion must process along prime chains reading source values before mutation, mirroring a correct Forward.",
+   "suggestedFix": "Pair the inverse with the prime-based forward: for each prime p (descending or ascending per the chosen forward) and each j with p*j<=n in the matching order, subtract along the prime-power chain so each Mobius term reads the correct (already finalized for that step) value. Verify with a roundtrip test that Inverse(Forward(f))==f for random f."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/LcmConvolution.cs",
+   "symbol": "Inverse",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace the per-iteration integer division mu[j / d] with an incrementing counter.",
+   "currentCost": "The inner loop runs j = 2d, 3d, 4d, ... and indexes mu[j / d]. Each iteration performs a 64/32-bit integer division (j / d), one of the most expensive integer ops (~20-40 cycles, not pipelined well), inside the hottest loop of the whole convolution (total iterations ~ n*H(n) ~ n ln n).",
+   "proposedChange": "Drive the inner loop by the quotient directly: for (int k = 2; (long)k * d <= n; k++) { int j = k * d; f[j] -= mu[k] * f[d]; }  \u2014 or keep j += d and maintain a parallel int k that starts at 2 and increments each step, using mu[k] instead of mu[j / d].",
+   "rationale": "j / d is provably equal to the loop counter k (j = k*d), so it is pure redundant recomputation. Replacing a division with an add (k++) removes the long-latency divide from every inner iteration, collapsing the dependency chain and letting Burst vectorize/pipeline the load-multiply-subtract.",
+   "risk": "None for behavior: j is always an exact multiple of d so j/d is exact. Watch overflow only in the bound test; use (long)k * d <= n exactly as the original used j <= n with j incremented (j itself never overflows since j <= n)."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/LcmConvolution.cs",
+   "symbol": "Inverse",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist mu[j/d]*f[d] structure: f[d] and the chosen mu index source are loop-invariant w.r.t. d.",
+   "currentCost": "f[d] is reloaded each inner iteration (the compiler may keep it in a register, but the pointer aliasing of f[j] vs f[d] can defeat that since j can never equal d, the alias is provably absent but the JIT may not prove it).",
+   "proposedChange": "long fd = f[d]; before the inner loop, then f[j] -= mu[k] * fd;. Do the same in Forward: long fd = f[d]; ... f[j] += fd;",
+   "rationale": "Caching f[d] in a local breaks a potential load-after-store aliasing hazard (the compiler cannot always prove f[j] and f[d] do not alias). An explicit local guarantees one load instead of one per inner iteration.",
+   "risk": "Safe: j ranges over multiples of d that are >= 2d, so j != d always; f[d] is never written inside the inner loop. Observable behavior identical."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/LcmConvolution.cs",
+   "symbol": "Forward/Inverse/Run",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Add [MethodImpl(AggressiveInlining)] to Forward and Inverse leaf helpers (using is already imported).",
+   "currentCost": "Run calls Forward twice and Inverse once across a call boundary; the using System.Runtime.CompilerServices is present but no attributes are applied.",
+   "proposedChange": "Annotate Forward and Inverse with [MethodImpl(MethodImplOptions.AggressiveInlining)] so Run inlines them, exposing the n bound and pointers to a single optimization scope.",
+   "rationale": "Inlining lets Burst hoist the common n bound and keep f/result pointers in registers across the fused forward+pointwise+inverse pipeline, and removes call overhead. Consistent with library style (ModPow uses AggressiveInlining).",
+   "risk": "Minimal; these are large-ish loops so inlining may increase code size at the single Run call site, but there is exactly one caller so no duplication blowup."
+  }
+ ]
+}

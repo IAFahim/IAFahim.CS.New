@@ -1,0 +1,92 @@
+{
+ "file": "src/IAFahim.Sort.RadixSort/RadixSort.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Sort.RadixSort/RadixSort.cs",
+   "symbol": "RadixSortLsd.Run",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "LSD radix sort on signed int does not flip the sign bit on the most-significant byte, so negative numbers (top byte 0x80-0xFF) sort AFTER non-negatives (top byte 0x00-0x7F), producing a wrong order whenever the array contains negative values.",
+   "triggeringInput": "int array {-1, 0} of len=2. Expected sorted {-1, 0}; produced {0, -1} because -1 has top byte 0xFF (placed after 0's top byte 0x00).",
+   "rootCause": "The final pass at shift=24 buckets by the raw most-significant byte and orders buckets 0..255 ascending. For two's-complement signed ints the sign bit is the high bit, so all negative values land in buckets 0x80..0xFF and are emitted after all non-negative values (buckets 0x00..0x7F). Counting-sort on the raw byte therefore treats negatives as larger than positives.",
+   "suggestedFix": "On the most-significant-byte pass, bias the byte by XOR 0x80 (i.e. use ((src[i] >> 24) & 0xFF) ^ 0x80) so the sign-bit ordering is corrected; equivalently offset all keys by adding 2^31 (as unsigned) before sorting."
+  },
+  {
+   "file": "src/IAFahim.Sort.RadixSort/RadixSort.cs",
+   "symbol": "RadixSortLsd.RunWithResult",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Same signed-radix defect as Run: negatives sort after non-negatives. Additionally, the number of passes (4) is even, so after the final ping-pong swap the sorted data ends up in 'temp' (scratch), not in 'result', leaving wrong/garbage data in result.",
+   "triggeringInput": "int array ptr={-1,0}, len=2, result of size 2. (a) Sign bug: ordering is {0,-1} instead of {-1,0}. (b) Buffer bug: with len>1 and 4 passes (shifts 0,8,16,24), src/dst swap 4 times so the final write lands in temp; result holds the data from the 3rd pass, not the fully sorted output.",
+   "rootCause": "For an even number of radix passes the output buffer alternation ends with the last write into the local 'temp' buffer rather than the caller-provided 'result'. After the loop, src points at temp and result is never reconciled. Combined with the missing sign-bit handling, result is wrong both in order and in which buffer holds the answer.",
+   "suggestedFix": "Start the first pass writing into 'temp' and the second into 'result' (choose the initial dst so that after an even number of passes the final data lands in 'result'), or copy src back into result after the loop when src != result. Also apply the XOR-0x80 fix on the most-significant byte pass."
+  },
+  {
+   "file": "src/IAFahim.Sort.RadixSort/RadixSort.cs",
+   "symbol": "RadixSortLsd.RunLong",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "RunLong is fundamentally broken: it indexes the long* array as int* (only reads low 32 bits and only the first len/2 longs), shifts an int by up to 56 (no-op past 31 in C#), never advances/uses 'src', and never writes any result back to ptr. It does not sort longs at all.",
+   "triggeringInput": "long array {2, 1}, len=2. Expected {1,2}; ptr is left unchanged as {2,1} (and the high 32 bits / elements beyond index len/2 are never even examined).",
+   "rootCause": "Multiple defects: (1) ((int*)ptr)[i] reads 32-bit ints, so for i in [0,len) it touches only the first ceil(len/2) longs and never the high 32 bits of any long; (2) C# defines int<</>> shift counts mod 32, so for shift>=32 (the loop runs shift up to 56) '>> shift' equals '>> (shift&31)', making the high-byte passes read the same low bytes; (3) line 59 swaps into local t/tt but never assigns back to src/dst, and the loop body reads from ((int*)ptr) directly rather than src, so the ping-pong is meaningless; (4) the sorted data (if any) lives in temp/dst and is never copied back to ptr, so ptr is unmodified. Net effect: no sorting occurs.",
+   "suggestedFix": "Operate on long values, not int: compute the byte as (int)((src[i] >> shift) & 0xFF) where src is long* and shift ranges 0..56 over 64-bit longs; use proper long* src/dst ping-pong buffers; flip the sign bit (XOR 0x80) on the top byte (shift=56) for signed longs; and copy src back into ptr after the loop when src != ptr."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Sort.RadixSort/RadixSort.cs",
+   "symbol": "RadixSortLsd.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Fuse the count and prefix-sum into a single combined-histogram pass over all 4 bytes to eliminate redundant src[i] reloads and 3 of 4 scatter-dependent reads.",
+   "currentCost": "Each of the 4 LSD passes does an independent count loop (read src[i], shift, mask, increment) AND a scatter loop (re-read src[i], shift, mask, indexed store). The byte extraction (src[i]>>shift)&0xFF is computed twice per element per pass: 2 reads of src[i] x 4 passes = 8 loads per element. Counting is also serialized with scattering.",
+   "proposedChange": "Build all 4 histograms in one initial pass: int* cnt = stackalloc int[256*4]; loop once over ptr extracting all four bytes of each value and incrementing cnt[0*256+b0], cnt[1*256+b1], etc. Then prefix-sum each 256-block and run only the 4 scatter passes. This removes the 4 separate count loops (one pass instead of four count passes) and reads each source element once for counting instead of four times.",
+   "rationale": "Reduces histogram-building memory traffic from 4 full array reads to 1, cutting total element loads from 8/elem to 5/elem (1 combined count + 4 scatter). Fewer passes over the array means fewer cache fills of the data when len exceeds L1. The combined histogram (4KB) still fits comfortably in L1.",
+   "risk": "Combined histogram is 4*256*4 = 4KB of stackalloc, slightly more stack but trivial. Semantics identical (stable LSD radix). Burst handles the larger stackalloc fine; ensure the 4 count increments per element don't create false aliasing \u2014 they target distinct 256-blocks so no hazard."
+  },
+  {
+   "file": "src/IAFahim.Sort.RadixSort/RadixSort.cs",
+   "symbol": "RadixSortLsd.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Skip passes whose byte is uniform (all elements share the same value in that byte position) to early-out on small-range data.",
+   "currentCost": "Always performs all 4 byte passes even when, e.g., all values fit in 16 bits (top two byte passes are no-ops that still scatter the whole array twice).",
+   "proposedChange": "During the single combined-histogram pass, also track min/max or detect per-byte uniformity. For each byte position, if cnt[block] has a single nonzero bucket equal to len, skip that pass's scatter. Maintain the src/dst swap parity correctly (if an odd number of real passes run, do the final copy as already done in Run).",
+   "rationale": "For common real-world data (small positive integers, counts, indices) the upper 1-2 bytes are constant, so 1-2 of the 4 scatter passes become pure no-ops. Skipping them halves the scatter traffic for such inputs at the cost of a cheap O(256) check per byte.",
+   "risk": "Must preserve final buffer parity: the existing 'if (src != ptr) copy' already handles odd pass counts, but skipping passes changes parity, so the copy-back guard must remain based on the actual final src pointer (it already is). RunWithResult lacks the copy-back, so applying skip there requires adding a final copy when src != result. Stability preserved."
+  },
+  {
+   "file": "src/IAFahim.Sort.RadixSort/RadixSort.cs",
+   "symbol": "RadixSortLsd.Run",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Reuse a single count buffer across passes instead of re-stackalloc'ing inside the loop, and zero it with a tight memset-style clear.",
+   "currentCost": "int* cnt = stackalloc int[256] sits inside the shift loop. While the compiler typically hoists the allocation, the manual zero loop (256 stores) runs 4 times and is written as a scalar loop.",
+   "proposedChange": "Hoist int* cnt = stackalloc int[256] above the shift loop (single 1KB region reused), and clear it each pass with Unsafe.InitBlockUnaligned(cnt, 0, 1024) which Burst lowers to a vectorized clear, instead of the scalar for-loop.",
+   "rationale": "Guarantees one stack region rather than relying on the JIT to coalesce per-iteration stackallocs, and InitBlock is wider/branch-free vs a 256-iteration scalar store loop. Lower instruction count for the clear.",
+   "risk": "None for correctness; stackalloc inside a loop is legal but hoisting is strictly clearer and removes any chance of repeated stack-pointer adjustment. Unsafe.InitBlockUnaligned requires System.Runtime.CompilerServices.Unsafe which is available under Burst; constant byte 0 fill is safe."
+  },
+  {
+   "file": "src/IAFahim.Sort.RadixSort/RadixSort.cs",
+   "symbol": "RadixSortLsd.RunLong",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "RunLong only sorts on the low 32 bits and indexes longs as ints, so it neither produces a correct sort nor a working pass structure; the intended 8-pass long radix must read 8 distinct bytes of each long.",
+   "currentCost": "Inside the loop it does ((int*)ptr)[i] which reads the low 32-bit half of long i (and for i>=1 actually re-reads halves of earlier longs because int indexing strides 4 bytes, not 8). The pointer swap at the end (t=src,tt=dst,dst=t,t=tt) is also a no-op that never updates src. Effectively the routine does 8 passes all keyed on the same low int bits and never scatters into a usable result.",
+   "proposedChange": "Operate on long* directly: extract bytes via (int)((ptr[i] >> shift) & 0xFFL) with a long* src/long* dst pair, run shift 0..56 step 8 (8 passes), swap src/dst each pass, and copy back if final src != ptr. This makes it an actual 8-pass 64-bit LSD radix with one read+one scatter per element per pass.",
+   "rationale": "Fixes the asymptotics/work: current code does wasted passes on the wrong data and an inert swap. A correct long* implementation does the minimal 8 passes with proper 8-byte striding and a single copy-back, which is both correct and the optimal pass count for 64-bit keys.",
+   "risk": "This changes observable output, but the current output is degenerate/incorrect, so this is a correctness fix rather than a behavior-preserving micro-opt; flagged because the perf structure (int-casting, inert swap) is inseparable from the bug. The shift mask must be 0xFFL (long) to avoid sign extension into the byte; (int) cast after masking to 8 bits is safe."
+  },
+  {
+   "file": "src/IAFahim.Sort.RadixSort/RadixSort.cs",
+   "symbol": "RadixSortLsd.RunWithResult",
+   "dimension": "ergonomics",
+   "impact": "medium",
+   "summary": "RunWithResult ping-pongs between result and temp but only writes the final sorted data into result when the pass parity lands there; with 4 passes it happens to end in result, but the contract is fragile and undocumented.",
+   "currentCost": "src starts at ptr, dst at result; after 4 swaps src==result, but there is no copy-back guard. If pass count ever changes (e.g., the skip-pass optimization or RunLong-style reuse) the result buffer would silently hold stale/half-sorted data. Also ptr is mutated as scratch on pass 1 (src=ptr write target? no \u2014 ptr is only read pass 1, then temp/result alternate), but the parity coupling is implicit.",
+   "proposedChange": "Add an explicit final guard: if (src != result) { for (int i=0;i<len;i++) result[i]=src[i]; } mirroring Run, and document that ptr is read-only. This makes the routine robust to any change in pass count and matches the Run/Try* convention.",
+   "rationale": "Robustness and consistency with Run at near-zero cost (the copy only executes when parity is wrong). Decouples correctness from the magic '4 passes is even' assumption, enabling the pass-skipping optimization without breaking output.",
+   "risk": "With exactly 4 passes today src==result so the guard is a no-op (zero extra cost on the current path). No semantic change for current input; purely defensive and enabling."
+  }
+ ]
+}

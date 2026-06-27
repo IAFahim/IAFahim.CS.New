@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Math.NT/DiscreteLog.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/DiscreteLog.cs",
+   "symbol": "DiscreteLog",
+   "dimension": "ergonomics",
+   "impact": "medium",
+   "summary": "DiscreteLog is a pure pass-through wrapper around Bsgs with two dead private helpers; it adds an indirection layer and unused code.",
+   "currentCost": "DiscreteLog.Run just forwards to Bsgs.Run. The private ModMul/ModPow methods are never called within this file (Bsgs has its own copies), so they are dead code. The wrapper adds an extra (likely inlined, but source-noise) call layer and duplicates the helper pattern.",
+   "proposedChange": "Either delete DiscreteLog and have callers use Bsgs.Run directly, or mark DiscreteLog.Run with [MethodImpl(AggressiveInlining)] and delete the two unused private ModMul/ModPow methods. Keeping one public alias is fine for discoverability, but the dead helpers should go.",
+   "rationale": "Removes dead code (smaller compile surface), clarifies the API (Bsgs is the real implementation), and AggressiveInlining guarantees the pass-through is free under Burst rather than relying on the JIT.",
+   "risk": "None for behavior. If DiscreteLog is the intended public name and Bsgs the internal one, keep DiscreteLog and inline-forward; just remove the unused helpers."
+  }
+ ]
+}

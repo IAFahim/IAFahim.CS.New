@@ -1,0 +1,81 @@
+{
+ "file": "src/IAFahim.Search.Range/Mex.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Search.Range/Mex.cs",
+   "symbol": "RangeMex.Run",
+   "severity": "high",
+   "category": "edge-case",
+   "summary": "When all values 0..63 are present in the queried range, mex reaches 64 and the loop `while ((seen & (1L << mex)) != 0) mex++` reads `1L << 64`, which C# masks to `1L << 0` == 1. Since bit 0 is set, the condition stays true and mex increments unbounded, causing an infinite loop (and eventually `mex` overflowing to negative with undefined shift behavior). The correct mex of a full 0..63 range is 64.",
+   "triggeringInput": "n=64, a=[0,1,2,...,63] (each index i holds value i), l=0, r=63. Range contains every value 0..63, so seen==0xFFFFFFFFFFFFFFFF and the while loop never terminates.",
+   "rootCause": "The mex-search loop has no upper bound on `mex`. C# shift counts for `long` are taken mod 64, so `1L << 64` aliases `1L << 0` instead of being 0, so the loop never detects that all 64 bits are set.",
+   "suggestedFix": "Bound the loop: `while (mex < 64 && (seen & (1L << mex)) != 0) mex++;` so it returns 64 when bits 0..63 are all set."
+  },
+  {
+   "file": "src/IAFahim.Search.Range/Mex.cs",
+   "symbol": "MexMaintain.Run",
+   "severity": "high",
+   "category": "edge-case",
+   "summary": "The prefix-mex maintenance loop `while ((seen & (1L << mex)) != 0 && left <= right) mex++` (left is always 0) never bounds mex by 64. Once values 0..63 have all appeared, mex reaches 64 and `1L << 64` aliases `1L << 0` == 1, whose bit is set, so mex increments forever \u2014 infinite loop.",
+   "triggeringInput": "n=64, a=[0,1,2,...,63], res buffer of length 64. At right=63 all 64 bits of seen are set and the inner while loop spins forever.",
+   "rootCause": "No `mex < 64` guard; `1L << 64` wraps to `1L << 0` due to C# mod-64 shift semantics, so the all-bits-set state is never recognized as termination.",
+   "suggestedFix": "Add the bound: `while (mex < 64 && (seen & (1L << mex)) != 0) mex++;` (the `left <= right` condition is dead code since left stays 0)."
+  },
+  {
+   "file": "src/IAFahim.Search.Range/Mex.cs",
+   "symbol": "MexMaintain.RunWindow",
+   "severity": "high",
+   "category": "edge-case",
+   "summary": "Two defects. (1) The initial-window mex loop at lines 53-54 `while ((seen & (1L << mex)) != 0) mex++` lacks a `mex < 64` bound, so a first window containing all values 0..63 causes the same `1L << 64`==`1L << 0` infinite loop. (2) During sliding, mex is only ever increased (`while (... ) mex++`); when an element strictly less than the current mex is removed from the window, mex must drop but is never decreased, so res values are too large.",
+   "triggeringInput": "For the slide bug: k=2, n=4, a=[0,1,5,5]. Window [0,1] gives mex=2 (res[0]=2). Sliding to window {a[1]=1,a[2]=5}: value 0 is removed (its bit cleared) but mex stays 2; res[1]=2, whereas the correct mex of {1,5} is 0. For the infinite-loop bug: k=64, n=64, a=[0,1,...,63] triggers the unbounded loop at lines 53-54.",
+   "rootCause": "(1) Missing `mex < 64` guard combined with C# mod-64 shift wrap. (2) The sliding update assumes mex is monotonic non-decreasing, which is false for a sliding window: removing a value below mex lowers the answer, but the code only advances mex upward.",
+   "suggestedFix": "Bound the initial loop with `mex < 64`. After clearing a removed value's bit, reset/recompute mex when `remove < mex` (e.g. set `mex = remove` if its bit was cleared and remove < mex, or recompute mex from the lowest cleared bit) before re-advancing."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.Range/Mex.cs",
+   "symbol": "MexMaintain.RunWindow",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Replace O(n*k) sliding-window membership rescan with an O(n) 64-bucket counter array.",
+   "currentCost": "For each window slide, when removing an element it does an inner loop `for (j=i; j<i+k; j++)` scanning up to k elements to test if the removed value is still present. Total cost is O(n*k); for large windows this dominates and is a quadratic blow-up versus the intended O(n) sliding window.",
+   "proposedChange": "Maintain `int* cnt` of length 64 (stackalloc or caller-provided scratch) counting occurrences of each value in [0,64) currently in the window. On add: `if(++cnt[add]==1) seen|=1L<<add;`. On remove: `if(--cnt[remove]==0) seen&=~(1L<<remove);`. Initialize cnt during the first k-element fill. This removes the inner stillPresent scan entirely.",
+   "rationale": "Turns the per-slide membership test from O(k) into O(1), making the whole routine O(n) instead of O(n*k). Counter updates are branch-light increments/decrements that Burst vectorizes/pipelines well, and bitmask updates stay O(1).",
+   "risk": "Requires 64 ints of scratch (256 bytes). Values outside [0,64) are ignored exactly as today, so observable mex output is unchanged. Must zero the counter array before first fill. Behavior identical for all valid inputs."
+  },
+  {
+   "file": "src/IAFahim.Search.Range/Mex.cs",
+   "symbol": "MexMaintain.RunWindow",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "mex can decrease when an element is removed, but the loop only ever increments mex, which is already correct for incremental add but the recompute-from-current-mex after removal can be wrong \u2014 verify or reset.",
+   "currentCost": "After a removal that clears a bit below the current mex, `mex` is never decreased; the subsequent `while ((seen & (1L<<mex))!=0 && mex<64) mex++` only advances. If the removed value was < current mex, the reported mex is stale/too large.",
+   "proposedChange": "On any removal that clears bit `remove` where `remove < mex`, set `mex = remove` before the while-advance loop, so mex is recomputed from the now-missing slot. (This is a correctness guard, not purely perf; flag for caller review.)",
+   "rationale": "Avoids redundant/incorrect state; also keeps the while-advance loop tight by starting at the lowest cleared index rather than rescanning from 0.",
+   "risk": "This changes output for windows where a sub-mex value leaves the window \u2014 but the current output is arguably already wrong there. If the 'Run' methods assume valid input only, confirm intended semantics before applying; treat as semantics-clarifying, not blind micro-opt."
+  },
+  {
+   "file": "src/IAFahim.Search.Range/Mex.cs",
+   "symbol": "MexMaintain.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Dead `left <= right` guard in the mex-advance while condition; left is never mutated.",
+   "currentCost": "`while ((seen & (1L<<mex))!=0 && left<=right) mex++;` evaluates `left<=right` every iteration, but `left` stays 0 for the whole function, so the term is always true. It is a wasted compare plus a live but unused variable.",
+   "proposedChange": "Remove the `left` variable and the `&& left<=right` term: `while ((seen & (1L<<mex))!=0) mex++;`. Add `&& mex<64` to match RunWindow and avoid shifting by 64 (1L<<64 is UB-ish / wraps) if seen could ever be all-ones.",
+   "rationale": "Eliminates a dead variable and a per-iteration comparison from the hot inner loop, and removes a potential out-of-range shift when all 64 bits are set.",
+   "risk": "None for the dead-variable removal. The `mex<64` guard is a defensive fix: with values in [0,64) seen can become -1 (all bits), and `1L<<64` is implementation-defined; guarding makes it deterministic without changing valid-input behavior."
+  },
+  {
+   "file": "src/IAFahim.Search.Range/Mex.cs",
+   "symbol": "RangeMex.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Loop bound `i<=r && i<n` recomputes two comparisons each iteration; hoist the min.",
+   "currentCost": "`for (int i=l; i<=r && i<n; i++)` does two bound checks per element. Minor, but the upper bound is loop-invariant.",
+   "proposedChange": "Precompute `int hi = r < n-1 ? r : n-1;` (branchless: `int hi = r + (((n-1-r)>>31)&((n-1)-r));`) then loop `for (int i=l; i<=hi; i++)`. Also guard the final mex while with `mex<64`.",
+   "rationale": "Single comparison per iteration instead of two; the min is computed once. Branchless min avoids a predictable-but-real branch.",
+   "risk": "n-1 underflows if n==0; guard with the existing l>r early-out plus `n>0`. With valid input (l<=r within bounds) behavior is identical."
+  }
+ ]
+}

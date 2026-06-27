@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Math.Polynomial.Fps/FormalPowerSeriesSqrt.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.Polynomial.Fps/FormalPowerSeriesSqrt.cs",
+   "symbol": "FormalPowerSeriesSqrt.Run",
+   "severity": "high",
+   "category": "edge-case",
+   "summary": "When a[0]==0, TonelliShanks returns r0=0 and the code computes ModInverse(2*0 % mod)=ModInverse(0)=1 (a bogus 'inverse'), then runs the Newton recurrence dividing by 2*r0=0. The method returns n (signaling success) but produces mathematically wrong coefficients. A series with zero constant term either has no sqrt of this form or needs the (valuation-shift) special case, neither handled.",
+   "triggeringInput": "n=2, a=[0,1], mod=998244353 (or any prime). r0=0, inv2Res0=ModInverse(0)=1, res[1]=(a[1]-0)%mod*1=1, returns 2; squaring res=[0,1] gives [0,0,1]!=[0,1], wrong result.",
+   "rootCause": "No check for r0==0 (a[0]==0). 2*r0 % mod == 0 is passed to ModInverse, which returns 1 for input 0 instead of failing, so the recurrence proceeds with an invalid 1/(2*r0) factor.",
+   "suggestedFix": "After computing r0, if r0==0 (i.e. a[0]==0) handle the zero-constant-term case explicitly: either return -1 (no even-valuation sqrt) or shift out leading zeros, take sqrt of the shifted series, and re-shift; do not call ModInverse(0)."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Polynomial.Fps/FormalPowerSeriesSqrt.cs",
+   "symbol": "ComputeSqrtSum",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Exploit symmetry res[j]*res[i-j] == res[i-j]*res[j] to halve the multiply/mod count in the convolution.",
+   "currentCost": "Inner loop runs j=1..i-1, doing one mult and one % per term: ~i terms, each with a 64-bit multiply and a 64-bit modulo. Total over Run is O(n^2) mults and O(n^2) modulos.",
+   "proposedChange": "Sum pairs: for j in 1..(i-1)/2 add 2*res[j]*res[i-j]; if i is even add the middle term res[i/2]^2 once. This roughly halves the number of multiplies and, with deferred reduction (accumulate a few products before %), can also halve the modulo count. Concretely: long half=0; for(int j=1;2*j<i;j++) half=(half+res[j]*res[i-j])%mod; long sum=2*half%mod; if((i&1)==0){long mid=res[i>>1]; sum=(sum+mid*mid)%mod;}",
+   "rationale": "Halves the dominant multiply count in the O(n^2) convolution by using commutativity of the auto-convolution, reducing the critical multiply/modulo throughput on the hottest loop of sqrt.",
+   "risk": "Behavior-preserving since modular arithmetic is associative/commutative. Must handle even i middle term exactly once to avoid double counting. 2*half can be up to 2*(mod-1) < 2^62, no overflow for NTT-sized mod."
+  },
+  {
+   "file": "src/IAFahim.Math.Polynomial.Fps/FormalPowerSeriesSqrt.cs",
+   "symbol": "FindFirstOne",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Tonelli-Shanks FindFirstOne recomputes t^(2^i) from scratch implicitly fine, but SolveTonelliShanks could avoid recomputing FastPow(c, 1L<<(m-i-1)) via repeated squaring of c is already minimal; minor: hoist p into locals \u2014 negligible. Real low-value note: TonelliShanks is per-call once, not hot.",
+   "currentCost": "TonelliShanks runs once per Run (only for res[0]); FindFirstOne and SolveTonelliShanks are O(s^2) and O(log p) but executed a single time, so not on the O(n^2) hot path.",
+   "proposedChange": "Leave as-is for cycle purposes; it is invoked exactly once. No change recommended beyond optionally marking ComputeSqrtSum/ComputeInverseSum/ComputeLogSum/ComputeExpSum with [MethodImpl(AggressiveInlining)] so Burst inlines the leaf convolution helpers into Run and keeps the accumulator in registers.",
+   "rationale": "Inlining the small convolution leaf methods lets Burst keep sum, mod, and pointers in registers and unroll/vectorize, removing call overhead on the O(n) outer invocations. The setup code itself is cold and not worth micro-opting.",
+   "risk": "None for inlining a small pure helper; only watch that aggressive inlining of the larger Run methods is NOT requested (would bloat). Helpers are tiny and safe to inline."
+  },
+  {
+   "file": "src/IAFahim.Math.Polynomial.Fps/FormalPowerSeriesSqrt.cs",
+   "symbol": "FormalPowerSeriesSqrt.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "res[i] = (a[i] - sum + mod) % mod * inv2Res0 % mod recomputes nothing redundant, but (a[i]-sum+mod) can be a branchless conditional-add instead of always +mod then %.",
+   "currentCost": "Each i does (a[i]-sum+mod)%mod: an add of mod plus a modulo even though a[i]-sum is in (-mod, mod).",
+   "proposedChange": "Since a[i] in [0,mod) and sum in [0,mod), d=a[i]-sum is in (-mod, mod). Replace with long d=a[i]-sum; d+=mod & -(d<0 ? 1 : 0) \u2014 i.e. branchless add-back: d += (d >> 63) & mod; then res[i]=d*inv2Res0%mod. This removes one modulo per coefficient (the outer %mod on the difference) and the unconditional +mod.",
+   "rationale": "Eliminates one 64-bit modulo per coefficient on the O(n) outer loop by exploiting the proven range of the difference; branchless mask avoids a misprediction.",
+   "risk": "Relies on d in (-mod, mod), guaranteed because both a[i] and sum are reduced into [0,mod). Arithmetic right shift of signed long gives all-ones for negatives (well-defined in C#). The trailing *inv2Res0%mod modulo stays. No change to results."
+  }
+ ]
+}

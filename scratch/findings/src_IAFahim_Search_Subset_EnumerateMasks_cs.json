@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Search.Subset/EnumerateMasks.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.Subset/EnumerateMasks.cs",
+   "symbol": "NextWithSamePopCount",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Strength-reduce the integer division in Gosper's hack to a shift, since the divisor is always a power of two.",
+   "currentCost": "One hardware integer division (idiv) per call: `(((r ^ mask) >> 2) / c)`. idiv is ~20-40 cycles and is not pipelined, dominating the cost of this otherwise-cheap leaf method that is called once per enumeration step in tight loops.",
+   "proposedChange": "c = mask & -mask is by construction the lowest set bit, i.e. always a power of two. Replace `/ c` with a right shift by trailing-zero-count of c. Under Burst, use Unity.Mathematics: `int tz = math.tzcnt(c); return (((r ^ mask) >> 2) >> tz) | r;`. If Unity.Mathematics is unavailable here, compute tz via De Bruijn or `System.Numerics.BitOperations.TrailingZeroCount`. The shifted dividend `(r ^ mask) >> 2` is non-negative on the valid (mask != 0) path, so signed >> equals the division exactly.",
+   "rationale": "Division by a power-of-two known only at runtime still compiles to a full idiv because the compiler cannot prove c is a power of two. tzcnt + shr is ~3 cycles total vs ~20-40 for idiv, and both feed a much shorter dependency chain, improving throughput in the enumeration loop.",
+   "risk": "Semantics-preserving only because the dividend is non-negative for valid inputs (mask != 0): for c == 0 (mask == 0) the original `/ c` divides by zero (already UB/exception in the current code), and tzcnt(0)==32 would shift everything out \u2014 same precondition (mask != 0) as the original, so no new valid-input regression. Must confirm `(r ^ mask) >> 2 >= 0`: with mask != 0, r = mask + c never overflows for masks not using bit 31 in this enumeration, keeping the value non-negative; if bit 31 can be set, guard or document that mask must be < 2^31 (the same constraint under which the original division behaves)."
+  },
+  {
+   "file": "src/IAFahim.Search.Subset/EnumerateMasks.cs",
+   "symbol": "CountPopBits",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace the Kernighan popcount loop with the hardware popcount intrinsic.",
+   "currentCost": "Loop runs once per set bit (O(popcount) iterations), each iteration a subtract + and + branch with a loop-carried dependency on m. Up to 32 dependent iterations for a full mask.",
+   "proposedChange": "Return `math.countbits(mask)` (Unity.Mathematics) or `System.Numerics.BitOperations.PopCount((uint)mask)`. Burst lowers math.countbits to a single POPCNT instruction on supporting targets.",
+   "rationale": "A single POPCNT (or a short SWAR fallback on targets without it) is constant-time (~1-3 cycles) versus an O(set bits) dependent loop. Removes the data-dependent branch entirely, which also helps when this is inlined into hot enumeration code.",
+   "risk": "Behavior identical for all 32-bit inputs. On mobile/ARM targets without a popcount instruction, Burst emits a branchless SWAR sequence which is still faster and branch-free than the current loop. Cast to uint avoids any sign concerns; result range 0..32 is unchanged."
+  },
+  {
+   "file": "src/IAFahim.Search.Subset/EnumerateMasks.cs",
+   "symbol": "Run",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Parameter ordering inconsistency: dst-first vs dst-last across the module's Run methods.",
+   "currentCost": "EnumerateMasks.Run is (dst, bits) and EnumerateSubsets.Run is (superMask, dst) / EnumerateSupersets.Run is (subMask, maxMask, dst). Mixed dst position hurts discoverability and call-site consistency, raising the chance of argument-order mistakes (no compile error since both are pointer/int-shaped distinct types here, but still error-prone for callers).",
+   "proposedChange": "Standardize on input-args-first, dst-last (the convention used by the other two files): change EnumerateMasks.Run to `Run(int bits, int* dst)`.",
+   "rationale": "Consistent signatures reduce caller cognitive load and argument-swap bugs without any change to the generated code or perf model.",
+   "risk": "Source-breaking signature change for existing callers; purely an API consistency decision. No runtime/semantic impact once call sites are updated."
+  }
+ ]
+}

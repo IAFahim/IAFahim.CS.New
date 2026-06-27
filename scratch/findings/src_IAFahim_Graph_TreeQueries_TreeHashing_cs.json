@@ -1,0 +1,72 @@
+{
+ "file": "src/IAFahim.Graph.TreeQueries/TreeHashing.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.TreeQueries/TreeHashing.cs",
+   "symbol": "TreeHashing.AutomorphismCount",
+   "severity": "critical",
+   "category": "edge-case",
+   "summary": "In the single-centroid branch, AutomorphismCount calls AutomorphismCountRooted on a freshly stackalloc'd subHash buffer that is never populated. AutomorphismCountRooted only READS subHash[v] (line 109) to detect isomorphic sibling subtrees but never writes it, so the symmetry-factor grouping operates on uninitialized garbage, yielding a wrong automorphism count.",
+   "triggeringInput": "A star tree with n=4: center node 0 connected to leaves 1,2,3 (single centroid = node 0, centroidCount==1). True automorphism count is 3!=6, but with uninitialized subHash the three leaf hashes (subHash[1],subHash[2],subHash[3]) are garbage and generally unequal, so MultiplyBySymmetryFactor does not multiply by 3! and returns 1 (or some wrong value) instead of 6 mod p.",
+   "rootCause": "AutomorphismCountRooted depends on subHash[] already being filled by a prior CanonicalHashRooted traversal (which writes subHash[u]). The two-centroid branches first call CanonicalHashRooted (lines 83-84) to populate subHash, but the single-centroid branch at line 81 skips that step and reads uninitialized stackalloc memory. Result is non-deterministic / wrong; it is also an uninitialized-stackalloc read (UB-ish reliance on garbage).",
+   "suggestedFix": "In the centroidCount==1 branch, first populate subHash by calling CanonicalHashRooted(centroids[0], -1, head, to, next, subHash); before calling AutomorphismCountRooted(centroids[0], -1, ...). (Equivalently, have AutomorphismCountRooted compute and store the canonical subtree hash itself instead of assuming subHash is pre-filled.)"
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.TreeQueries/TreeHashing.cs",
+   "symbol": "IdentifyKeyroots",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Replace the O(n^2) keyroot identification with the standard O(n) Zhang-Shasha rule.",
+   "currentCost": "Nested loop over all (i,j) pairs comparing lm[j]==lm[i] to clear keyroot flags: O(n1^2)+O(n2^2) work plus an early-break that still leaves quadratic worst case. This is the dominant preprocessing cost and grows quadratically with tree size.",
+   "proposedChange": "A node in post-order is a keyroot iff no later (higher post-order index) node shares its leftmost-leaf value. Compute in one O(n) pass: keep a stackalloc'd byte[n+1] 'seen' indexed by leftmost-leaf id, iterate i from n down to 1; kr[i]=1 if seen[lm[i]]==0, then set seen[lm[i]]=1. This sets a keyroot exactly for the highest post-order index of each distinct lm value, identical to the current result.",
+   "rationale": "Each node's leftmost leaf lm[i] is in [1..n]; the topmost node per lm value is the keyroot. A single reverse scan with an O(1) membership array gives the same set in O(n) instead of O(n^2), removing the asymptotic bottleneck of TreeEditDistance preprocessing.",
+   "risk": "Must use a fresh zeroed seen array (stackalloc + manual zero or a generation counter) per tree. Semantics identical: current code clears kr[i] for the earlier index whenever a later j shares lm, leaving only the maximal-index node set; the reverse scan picks exactly that node. kr[n]=1 is preserved since n is first visited with lm[n] unseen."
+  },
+  {
+   "file": "src/IAFahim.Graph.TreeQueries/TreeHashing.cs",
+   "symbol": "EmbeddingCheck",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist/memoize the repeated CountChildren/CollectChildren and rooted-embed recursion across the r2 loop; immutable tree1 structure is recomputed every outer iteration.",
+   "currentCost": "EmbeddingCheck calls EmbeddingCheckRooted(0,-1,r2,-1,...) for every r2 in [0,n2). Each call recomputes CountChildren and CollectChildren for tree1 nodes (which never change across r2) and re-runs the full O(n1*n2*matching) recursion from scratch, with no memoization across roots.",
+   "proposedChange": "Hoist tree1's root child count/collection (independent of r2) outside the loop. Further, memoize EmbeddingCheckRooted boolean results keyed by (u1, directed-edge of u2) in a stackalloc'd table so directed-subtree-embed results are reused across r2 roots sharing the same tree2 orientation. Even just hoisting CountChildren(u1,p1) removes one adjacency walk per recursive node per r2.",
+   "rationale": "CountChildren walks the whole adjacency list of a node every call; it is called twice per EmbeddingCheckRooted node and again inside CanMatchChildren's recursion. Across n2 outer roots this is pure repeated work on immutable structure. Caching directed subtree-embed results collapses redundant recursion.",
+   "risk": "Full memoization needs a table cleared per outer-root where orientation differs; correctness requires keying on the directed edge (parent,node) for tree2 since rerooting changes child sets. The hoist of tree1 root child collection is a no-semantic-change low-risk win; the memo table is medium-risk and must be validated for the rerooted-parent orientation."
+  },
+  {
+   "file": "src/IAFahim.Graph.TreeQueries/TreeHashing.cs",
+   "symbol": "CanonicalHashRooted",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Eliminate the separate CountChildren pre-pass; it walks each node's adjacency list twice (count then collect).",
+   "currentCost": "CanonicalHashRooted calls CountChildren (full adjacency walk) to size the stackalloc, then CollectAndSortChildHashes walks the same list again. Two passes over next[] per node = doubled pointer-chasing on the recursion's hottest structure. AutomorphismCountRooted has the same double-walk pattern.",
+   "proposedChange": "Since the graph is a tree, size childHashes from a precomputed degree array (passed in from CSR construction) and collect+recurse in one pass, removing CountChildren entirely. Where no degree array exists, over-allocate to a known max-degree bound and track idx.",
+   "rationale": "Each CountChildren is an extra full list traversal per recursive node; for a deep recursion this is a second cache-cold walk of next[]/to[]. Folding count into the collection pass (using a degree bound for sizing) halves the traversals.",
+   "risk": "stackalloc needs a bounded size; using degree[u] (exact for a tree minus parent) is safe; over-allocation by max degree wastes stack but is safe. Collection order before SortUlong must stay adjacency order, which it does, so the hash is unchanged."
+  },
+  {
+   "file": "src/IAFahim.Graph.TreeQueries/TreeHashing.cs",
+   "symbol": "SortUlong",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Insertion sort of child hashes is O(k^2) per node; for star-like / high-degree nodes this makes canonical hashing quadratic.",
+   "currentCost": "SortUlong is insertion sort, O(k^2) in the number of children k. A node with k = n-1 children (star center) costs O(n^2). Called per node in CanonicalHashRooted and AutomorphismCountRooted.",
+   "proposedChange": "Keep insertion sort for small k (cache-friendly, low overhead) but switch to an in-place unmanaged heapsort/introsort over the ulong* buffer when k exceeds a threshold (e.g. 16-32). Caps worst case at O(k log k) with no managed allocation.",
+   "rationale": "Insertion sort is optimal only for tiny/near-sorted inputs. A degree-n star makes a single node pay O(n^2), turning the whole hash quadratic. A threshold-guarded heapsort keeps the common small-degree case fast while bounding the pathological case to O(k log k).",
+   "risk": "Sort must remain a total order on raw ulong values (used for hash-combination order and symmetry-factor equality runs). Any correct ascending sort preserves adjacency of equal keys, which is all the equality-run logic needs."
+  },
+  {
+   "file": "src/IAFahim.Graph.TreeQueries/TreeHashing.cs",
+   "symbol": "CanMatchChildren",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "stackalloc int[cc1*cc2+1] buffers and all-pairs EmbeddingCheckRooted recursion are allocated/recomputed at every recursion level with no reuse; risks stack overflow on mobile.",
+   "currentCost": "stackalloc int[cc1*cc2+1] twice (bTo,bNext) at every node of the embedding recursion, and the i*j loop calls EmbeddingCheckRooted for every child pair, each recursively re-allocating its own cc1*cc2 buffers. Deep recursion multiplies stack use by depth*O(cc1*cc2), and pair results are recomputed with no memo.",
+   "proposedChange": "Pass a caller-provided scratch arena instead of stackalloc-in-recursion so RAM stays flat with depth. Memoize the boolean EmbeddingCheckRooted(child1,u1,child2,u2) results across the i,j loop and sibling subproblems via a reusable byte table, avoiding recomputing identical (subtree1, oriented-subtree2) embeddability.",
+   "rationale": "stackalloc inside a recursive function multiplies stack use by recursion depth; on mobile (small stacks) this is a real overflow / working-set risk. A shared arena keeps memory flat and avoids repeated zeroing of bHead, and memoization removes duplicated all-pairs recursion.",
+   "risk": "Replacing stackalloc-in-recursion with a shared arena changes memory lifetime, not results; the arena must be sized to worst-case depth*width. Memo keys must include tree2 orientation (parent direction) since rerooting changes child sets. Behavior-preserving if keys are exact."
+  }
+ ]
+}

@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Detour/DtNodePool.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/DtNodePool.cs",
+   "symbol": "FindNodes",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Mixed signed/unsigned comparison `count >= maxNodes` (uint vs int) forces a conversion each iteration; use a uint bound.",
+   "currentCost": "`count` is `uint` and `maxNodes` is `int`; `count >= maxNodes` promotes both to long (or inserts an unsigned/signed reconciliation) per loop iteration, and the bound is re-read each pass.",
+   "proposedChange": "Take the cap as a local `uint maxOut = (uint)maxNodes;` once at entry and compare `count >= maxOut`. Keeps the comparison a single 32-bit unsigned compare.",
+   "rationale": "Eliminates the per-iteration signed/unsigned widening the C# spec mandates for `uint`-vs-`int` comparison, and hoists the bound. Tiny but real in a hash-chain walk.",
+   "risk": "maxNodes is assumed non-negative by the caller contract (it sizes nodeArray). If a negative maxNodes were passed it currently means 'never store' via the signed compare; the uint cast would make it a huge bound. Guard or document that maxNodes>=0 (already implied by it being a buffer length)."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/DtNodePool.cs",
+   "symbol": "GetNode,FindNode",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hash-chain search reloads this.nodes/this.next through the struct each iteration; cache the base pointers and the node id/state locally.",
+   "currentCost": "Inside the `while` loop, `this.nodes[i].id`, `this.nodes[i].State`, and `this.next[i]` each re-load the pointer fields from the struct (`this.nodes`, `this.next`) and index. The DtNode.State getter also does a shift+mask on packedData each compare.",
+   "proposedChange": "Hoist `DtNode* nodesLocal = this.nodes; DtNodeIndex* nextLocal = this.next;` and `DtPolyRef wantId = id; uint wantState = state;` before the loop. Compare `nodesLocal[i].id == wantId` and read `nextLocal[i]` from locals. Optionally compare the raw packed state bits directly to avoid the property's redundant work, or short-circuit on id first (already done by `&&`).",
+   "rationale": "Promotes the base pointers to registers so the chain walk is pure load+compare with no repeated `this`-field reloads, tightening the dependency chain that gates each `i = next[i]` hop \u2014 the latency-bound part of hash lookup.",
+   "risk": "None semantically; the struct fields are not mutated during the read-only walk. Burst may already do this, but making it explicit guarantees it and helps non-Burst/IL2CPP paths."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/DtNodePool.cs",
+   "symbol": "GetNode",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "GetNode duplicates FindNode's chain-walk; the new-node insertion recomputes nothing redundant but the search half can share FindNode to shrink I-cache footprint, or stay inlined.",
+   "currentCost": "GetNode reimplements the identical bucket/search loop as FindNode, doubling code size for the same logic (I-cache pressure) \u2014 though inlining FindNode would re-expand it.",
+   "proposedChange": "Keep GetNode standalone for the allocate-on-miss fast path (correct as-is), but ensure `HashRef` and the bucket mask are computed once (they are). No change needed if I-cache is not a concern; flagging only that the two copies must stay in sync. Lower priority than the pointer-hoist above.",
+   "rationale": "Avoids divergence bugs and minor I-cache duplication; primarily a maintenance/ergonomics note, not a cycle win.",
+   "risk": "None; purely organizational. Do not factor out if it would prevent the allocate path from staying in the same function (Burst inlining is fine either way)."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/DtNodePool.cs",
+   "symbol": "GetNodeIdx,GetNodeAtIdx",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "The null/zero branches in the 1-based index converters can be made branchless to keep these AggressiveInlining leaves straight-line.",
+   "currentCost": "`GetNodeIdx` branches on `node==null`; `GetNodeAtIdx` branches on `idx==0`. When inlined into pointer-chasing parent-walk loops these add a predicted branch each call.",
+   "proposedChange": "GetNodeIdx: `return node==null ? 0u : (uint)(node-this.nodes)+1;` already branchy; can be written branchless via pointer arithmetic only if null is guaranteed not passed (it isn't). Leave GetNodeIdx as-is. For GetNodeAtIdx, callers in unchecked Run paths often guarantee idx!=0; consider an unchecked variant `GetNodeAtIdxUnsafe` returning `&this.nodes[idx-1]` with no branch, following the Run/unchecked convention.",
+   "rationale": "An unchecked variant removes the zero-check branch on the parent-reconstruction hot path where idx is known non-zero, matching the library's 'Run methods assume valid input' design.",
+   "risk": "Adding a new method is additive (no behavior change to existing callers). Misuse with idx==0 would index nodes[-1]; document as unchecked, consistent with house Run convention."
+  }
+ ]
+}

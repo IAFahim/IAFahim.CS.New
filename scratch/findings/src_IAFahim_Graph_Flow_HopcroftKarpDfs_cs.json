@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Graph.Flow/HopcroftKarpDfs.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Flow/HopcroftKarpDfs.cs",
+   "symbol": "HopcroftKarpDfs.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "dist[u] + 1 is recomputed for every edge in the augmenting-path scan loop.",
+   "currentCost": "Line 16 evaluates 'dist[u] + 1' once per edge e of u (a pointer load of dist[u] plus add each iteration), even though dist[u] is not modified inside the loop until the post-loop line 21.",
+   "proposedChange": "Hoist 'int du1 = dist[u] + 1;' immediately after the 'if (u == -1) return true;' guard, then test 'dist[pu] == du1'. dist[u] is only written at line 21 after the loop exits, so it is invariant during the scan.",
+   "rationale": "Loop-invariant code motion: removes a redundant load+add per edge from the DFS hot loop (this DFS runs once per BFS phase across all free left vertices). Shorter dependency chain on the comparison that gates recursion.",
+   "risk": "None. dist[u] is assigned only at line 21 (after the for-loop) and the recursive Run is called on pu != u (matched right-vertex's left partner), which cannot alias dist[u] within this frame's loop; the hoisted value is identical."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/HopcroftKarpDfs.cs",
+   "symbol": "HopcroftKarpDfs.Run",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Recursive DFS prevents Burst from inlining/optimizing the hottest matching loop and risks deep call frames.",
+   "currentCost": "Run calls itself (line 16) with the full 11-pointer argument list on every successful descent. Recursion is opaque to Burst inlining/vectorization, spills the large argument set to the stack each frame, and on adversarial bipartite graphs the depth can reach O(V), threatening stack overflow on mobile's smaller stacks.",
+   "proposedChange": "Convert to an explicit iterative DFS using a manually managed stack of (u) frames backed by a caller-provided stackalloc int* buffer (it[] already holds the per-vertex iterator/resume edge, so it doubles as the resume pointer). Push u, advance it[u]; on a viable edge push pu; on exhaustion set dist[u]=int.MaxValue and pop. This keeps the same visit order and pairing semantics.",
+   "rationale": "Eliminates per-descent argument spilling and unbounded native recursion, bounds stack use to a fixed buffer, and gives Burst a single flat loop it can schedule far better. Same augmenting semantics: it[] resume state and dist[u]=MaxValue dead-marking are preserved.",
+   "risk": "Moderate implementation risk: the iterative rewrite must exactly reproduce the resume-via-it[u] behavior and the dist[u]=int.MaxValue marking on failure, and pairU/pairV must be assigned on the unwind in the same order. Adds one stackalloc buffer to the signature (ergonomics/API change). Behavior-preserving only if the manual stack mirrors the recursion contract precisely \u2014 verify with the existing NUnit tests."
+  }
+ ]
+}

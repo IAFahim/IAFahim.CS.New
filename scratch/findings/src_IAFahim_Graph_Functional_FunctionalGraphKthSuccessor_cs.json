@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Graph.Functional/FunctionalGraphKthSuccessor.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Functional/FunctionalGraphKthSuccessor.cs",
+   "symbol": "FunctionalGraphKthSuccessor.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "O(k) walk can be reduced to O(n) by exploiting eventual periodicity of a functional graph (rho structure), since n is available.",
+   "currentCost": "for (long i = 0; i < k; i++) curr = f[curr]; performs exactly k dependent pointer chases. k is a long, so for large k this is unbounded work even though the trajectory from u repeats with period <= n. Each iteration is a serial cache-miss-prone dependent load.",
+   "proposedChange": "First walk at most n steps; detect entry of the cycle and its length L (e.g. via Floyd / Brent or tortoise-hare reusing FunctionalGraphCycleEntry). Let mu be the tail length (steps until cycle). If k <= mu, just walk k steps. Otherwise walk mu steps to the cycle entry, then take ((k - mu) % L) more steps. Total work O(mu + L) = O(n) instead of O(k).",
+   "rationale": "Trajectories in a functional graph are eventually periodic with period L <= n. Reducing k modulo L collapses arbitrarily large k to at most n + n steps, an asymptotic improvement from O(k) to O(n) whenever k > n.",
+   "risk": "Changes the performance model, not the result; output is identical for all valid k. Net loss when k < ~2n (the cycle-detection overhead dominates), so guard with: if (k <= n) use the simple loop, else use the rho-reduction. % on (k - mu): k>=mu and L>0 guarantee non-negative operands, so no signed-% surprise. Requires f to define a valid successor for every visited index (already assumed by unchecked Run)."
+  },
+  {
+   "file": "src/IAFahim.Graph.Functional/FunctionalGraphKthSuccessor.cs",
+   "symbol": "FunctionalGraphKthSuccessor.Run",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Unused parameter n.",
+   "currentCost": "n is passed but unused in the current O(k) implementation; it costs an argument slot and signals an unenforced contract.",
+   "proposedChange": "If the rho-reduction above is NOT adopted, n is dead and could be dropped. If the reduction IS adopted, n becomes load-bearing (bounds the detection walk) and should stay. Decide together with the complexity change.",
+   "rationale": "Either remove dead arg for a leaner call, or give it a real use via the periodicity optimization.",
+   "risk": "Dropping it breaks family signature uniformity; see CycleEntry note. No behavior change."
+  }
+ ]
+}

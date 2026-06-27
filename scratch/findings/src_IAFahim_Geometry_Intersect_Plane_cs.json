@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Geometry.Intersect/Plane.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Geometry.Intersect/Plane.cs",
+   "symbol": "Plane.PlaneIntersection / Plane.SolvePoint",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "In the y-dominant branch (axis==1) of PlaneIntersection, SolvePoint writes the two free coordinates to the wrong outputs: the value computed for z is stored into lpx and the value computed for x is stored into lpz, so the returned point lies on neither plane. The axis==0 and axis==2 branches are correct; only the middle (ldy-dominant) branch is broken.",
+   "triggeringInput": "Plane.PlaneIntersection with plane1 n1=(1,0,0), d1=-3 (the plane x=3) and plane2 n2=(0,0,1), d2=-5 (the plane z=5). The line direction = n1xn2 = (0,-1,0), so the ldy-dominant branch is taken. Returned point is (5,0,3) instead of a point with x=3, z=5; residuals on both planes are +/-2 (should be 0).",
+   "rootCause": "For the y-fixed (y=0) sub-system the free coordinates are u=z and v=x. SolvePoint computes p1 = (-d1*b2 + d2*b1)/det (the value of u=z) and p2 = (-a1*d2 + a2*d1)/det (the value of v=x). But the call site `SolvePoint(lpy, lpx, lpz, 1, n1z,n1x,d1, n2z,n2x,d2, ldy)` maps p1->lpx and p2->lpz, assigning the z-result to x and the x-result to z. The mapping is inconsistent with the axis-0 and axis-2 calls, which happen to line up correctly.",
+   "suggestedFix": "Swap the p1/p2 output pointers (or the a/b argument pairs) for the axis==1 call so the u (z) result goes to lpz and the v (x) result goes to lpx, e.g. `SolvePoint(lpy, lpz, lpx, 1, n1z, n1x, d1, n2z, n2x, d2, *ldy)`. Verify: with the planes x=3 and z=5 the corrected branch must return x=3, z=5 (zero residual on both planes)."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Intersect/Plane.cs",
+   "symbol": "PointPlaneDistance",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Signed distance assumes denormalized plane normal and recomputes sqrt of |n| every call; offer a fast path / document the convention.",
+   "currentCost": "One sqrt + 5 mults + 1 div per call. Callers passing an already-normalized (nx,ny,nz) still pay the full sqrt(nx*nx+ny*ny+nz*nz) of ~1.0.",
+   "proposedChange": "Add a sibling Run-style overload PointPlaneDistanceNormalized(px,py,pz,nx,ny,nz,d) that returns px*nx+py*ny+pz*nz+d with no sqrt, for the common case where the plane normal is unit length. Keep the general method but mark it as 'unnormalized'.",
+   "rationale": "sqrt is ~15-20 cycles and a long-latency op on the critical path; for the very common unit-normal case it is pure waste. Removing it leaves a short FMA chain that Burst vectorizes/pipelines well.",
+   "risk": "Different method, not a behavior change to the existing one. Caller must guarantee unit normal; document this. No overflow/sign caveat."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Intersect/Plane.cs",
+   "symbol": "PlaneIntersection",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Axis selection recomputes Math.Abs of the three direction components up to 4 times and re-reads *ldx/*ldy/*ldz through the pointer repeatedly.",
+   "currentCost": "Up to 6 Math.Abs calls and many pointer dereferences across the branch chain (lines 40-42). *ldx,*ldy,*ldz are read via pointer each time instead of from registers.",
+   "proposedChange": "Compute ax=Math.Abs(*ldx), ay=Math.Abs(*ldy), az=Math.Abs(*ldz) once into locals, then branch on ax,ay,az. Also cache the dir components into locals before the dirSq computation so the cross-product results are written once and reused from registers.",
+   "rationale": "Hoists redundant abs and removes pointer aliasing reloads: the compiler cannot assume *ldx is unchanged across calls without restrict semantics, so each *ldx reread is a real load. Locals cut ~5 loads and 3 abs ops, shortening the dependency chain before the divide.",
+   "risk": "Pure reordering; identical results. lpx/lpy/lpz may alias ldx/ldy/ldz only if caller passes overlapping pointers, but the existing code already reads ld* after the cross-product write, so caching matches current behavior."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Intersect/Plane.cs",
+   "symbol": "SolvePoint",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Unused 'axis' parameter forces an extra argument load and obscures intent.",
+   "currentCost": "Each of the 3 call sites passes a literal axis (0/1/2) that the body never reads (line 45), costing an argument setup that the inliner usually elides but which still bloats the signature.",
+   "proposedChange": "Remove the int axis parameter from SolvePoint and drop the 0/1/2 literals at call sites.",
+   "rationale": "Dead parameter elimination: fewer argument moves if not fully inlined, and clearer signature. No functional effect.",
+   "risk": "None; parameter is provably unused in the body."
+  }
+ ]
+}

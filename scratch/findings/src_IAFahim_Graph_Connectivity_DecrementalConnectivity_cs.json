@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Graph.Connectivity/DecrementalConnectivity.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Connectivity/DecrementalConnectivity.cs",
+   "symbol": "Run",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Type dispatch uses if/else-if on a small dense int set; an unhandled type silently no-ops.",
+   "currentCost": "Two sequential branch comparisons (==0 then ==1) per query iteration; documents nothing about type 2+.",
+   "proposedChange": "Keep the branch structure (it is already minimal), but reorder so the more frequent query path is tested first if profiling shows query-heavy workloads, or leave as-is. No code change strictly needed; the main observation is the silent no-op for type>1 is by design under 'unchecked Run'.",
+   "rationale": "Branch order can matter for predictor warmup, but with only two arms and data-dependent types the win is negligible. This is essentially already optimal.",
+   "risk": "None; reordering arms is semantics-preserving only if exactly one arm matches per type, which holds."
+  }
+ ]
+}

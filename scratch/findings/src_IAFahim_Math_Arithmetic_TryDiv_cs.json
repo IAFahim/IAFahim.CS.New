@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Math.Arithmetic/TryDiv.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Arithmetic/TryDiv.cs",
+   "symbol": "TryDiv.Run(int,int,out int) / Run(long,long,out long)",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "On the failure path res is set to default(0) which can be mistaken for a valid quotient; this matches the false return but is worth a one-line comment for discoverability, no code change needed for perf.",
+   "currentCost": "No cycle cost; purely an API-clarity note. Caller must check the bool, never the out value, on failure.",
+   "proposedChange": "No perf change. If a convention exists elsewhere (Try* leaving out param untouched vs zeroed), align TryDiv to it. Otherwise leave as-is; zeroing default is already minimal.",
+   "rationale": "Consistency of the Run/Try* convention across the module aids correctness of callers without affecting the perf model.",
+   "risk": "None \u2014 behavior-preserving documentation/consistency note only. Do not change the false-return semantics the tests assert."
+  }
+ ]
+}

@@ -1,0 +1,83 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Detour/Detour.NavMeshBuilder.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/Detour.NavMeshBuilder.cs",
+   "symbol": "CreateNavMeshData",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Recompute of polygon edge-counting and detail-vertex counting walks the polygon arrays multiple times; the vertCount-per-poly is recomputed yet again in the storage pass.",
+   "currentCost": "The Polys array (PolyCount * nvp * 2 ushorts) is scanned to count edges/portals (lines 133-154), scanned AGAIN to count unique detail verts or detail-tri count (lines 165-205), and the actual per-poly vertCount is later recomputed implicitly in the store loop (lines 300-340) and again read via navPolys[i].vertCount. That is 3-4 separate passes over the same large pointer array, each a fresh stream of cache lines.",
+   "proposedChange": "Fuse the edge/portal counting and the no-detail triCount counting into a single pass over Polys (both only need to walk j until MeshNullIDX). When DetailMeshes==null the loop at 189-205 computes nv exactly like the loop at 133-154 already does; merge them so the array is touched once. Keep the detail-mesh branch separate only where it must read DetailMeshes.",
+   "rationale": "Halves the number of streaming passes over the largest input array before any allocation, reducing cache-line fetches and loop overhead. Same arithmetic, same outputs.",
+   "risk": "Low. Must preserve that edgeCount/portalCount are accumulated regardless of detail branch, while detailTriCount (no-detail case) accumulates nv-2. Carefully keep the two accumulators independent so behavior is identical."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/Detour.NavMeshBuilder.cs",
+   "symbol": "CreateNavMeshData",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Per-vertex world-space transform recomputes Bmin and Cs/Ch reads from the pointer each iteration.",
+   "currentCost": "In the vertex store loop (lines 266-273) createParams->Bmin.x/.y/.z, createParams->Cs and createParams->Ch are reloaded through the pointer for every vertex (VertCount iterations). The pointer dereference plus field offset is repeated though the values are loop-invariant.",
+   "proposedChange": "Hoist float3 bmin = createParams->Bmin; float cs = createParams->Cs; float ch = createParams->Ch; into locals before the loop and use them. Same for the hmin/hmax estimation loop (lines 79-85) which reloads Bmin.y and Ch each iteration.",
+   "rationale": "Removes repeated pointer-relative loads inside a hot per-vertex loop; lets Burst keep the constants in registers and vectorize the scale/offset. Pure register hoisting, identical results.",
+   "risk": "None functionally; createParams is not mutated between hoist and use."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/Detour.NavMeshBuilder.cs",
+   "symbol": "CreateNavMeshData",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "The same offMeshConClass start-classification predicate (== 0xff) is re-tested in four separate passes over OffMeshConCount.",
+   "currentCost": "offMeshConClass[(i*2)+0]==0xff gating is evaluated in the off-mesh vertex pass (277-288), the off-mesh poly pass (347-361), and the off-mesh connection pass (437-460) - three extra full scans of OffMeshConCount beyond the classification loop, each only acting on the stored subset.",
+   "proposedChange": "During the classification loop (95-123), record the indices (or a packed stored-flag plus running n) of stored connections into the offMeshConClass scratch (already allocated 2*count) or a small Temp index buffer, then the three later passes iterate only over storedOffMeshConCount entries instead of re-scanning and re-branching over all connections.",
+   "rationale": "Off-mesh counts are usually small, but this removes three redundant branch-heavy scans and the repeated *2 index math. Constant-factor; only worthwhile if OffMeshConCount is non-trivial.",
+   "risk": "Low. Must preserve the exact ordering of n (stored index) which all three passes rely on; a recorded index list preserves order trivially."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/Detour.NavMeshBuilder.cs",
+   "symbol": "Subdivide/SortItemsX/Y/Z",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "BV-tree construction sorts each node's full item range with O(n^2) insertion sort, giving O(n^2 log n)-ish total build cost on large tiles.",
+   "currentCost": "Subdivide picks the longest axis then runs insertion sort (SortItemsX/Y/Z) over the whole [imin,imax) range, which is O(inum^2). Across the recursion this is super-linear per level; for a tile with many polys (PolyCount large) the top-level sort alone is O(PolyCount^2).",
+   "proposedChange": "Replace the full insertion sort with nth_element-style partitioning (median-of-three quickselect) around isplit = imin + inum/2 on the chosen axis key. Only the split position needs to be correct, not a full sort, reducing each Subdivide level to O(inum) average. Keep insertion sort as the small-range fallback (inum below ~16) for cache friendliness.",
+   "rationale": "The recursive median split only requires the array partitioned about its midpoint, not fully sorted. Quickselect is O(n) average vs O(n^2), turning total tree build from O(n^2) toward O(n log n). This is the dominant cost for large-tile navmesh builds.",
+   "risk": "Medium. Original recast uses qsort here so partial-order is acceptable; however the deterministic tie-breaking of insertion sort changes, which can alter the resulting (still valid) tree shape and node->i escape indices. Acceptable only if BV-tree shape is not part of observable contract (it is an internal acceleration structure). If serialized output must be byte-identical, reject."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/Detour.NavMeshBuilder.cs",
+   "symbol": "SortItemsX/SortItemsY/SortItemsZ",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Three near-identical insertion-sort functions copy a full BVItem (16+ bytes) on each shift and differ only by which key field is compared.",
+   "currentCost": "Each sort moves whole BVItem structs (ushort3 BMin + ushort3 BMax + int = 16 bytes) per shift; three code copies bloat I-cache and the only difference is .BMin.x/.y/.z. The struct copies in the inner while-shift move 16 bytes per step.",
+   "proposedChange": "Unify into one SortItems(BVItem* items, int num, int axis) that selects the key via a branch hoisted outside the inner loop (or three specialized internal generics over a key selector struct/function pointer that Burst inlines). Keeps one code path; optionally sort indices/keys instead of moving full structs when num is large.",
+   "rationale": "Reduces instruction footprint (better I-cache in the recursive build) and centralizes the hot comparison. Moving keys+index rather than full structs cuts per-shift memory traffic for wide tiles.",
+   "risk": "Low for the merge. If switching to index sort, the caller (CalcExtends/leaf write) must dereference through the index, changing access patterns; keep struct-move version unless num is large."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/Detour.NavMeshBuilder.cs",
+   "symbol": "ClassifyOffMeshPoint",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Branchy outcode build and switch-based mapping can be made branchless.",
+   "currentCost": "Four ternary branches build outcode, then an 8-case switch maps it to a side. On hot off-mesh-heavy builds this is several unpredictable branches per point.",
+   "proposedChange": "Build outcode branchlessly via comparison-to-int (e.g. (-(pt.x>=bmax.x)) & xp) and replace the switch with a tiny 16-entry static const lookup table (byte[16] semantics via a stackalloc/const-indexed expression) mapping outcode to side, defaulting 0xff. Note x cannot be simultaneously >=bmax and <bmin so the 0x05/0x0a illegal combos just map to 0xff.",
+   "rationale": "Removes per-point branch misprediction and the jump table; a single masked table index. Same mapping for all valid outcodes.",
+   "risk": "Low. Must ensure the table has 0xff for the impossible xp|xm and zp|zm combinations to match the switch default. House rule forbids managed arrays; use a const-indexed expression or stackalloc-once, not a static managed array."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/Detour.NavMeshBuilder.cs",
+   "symbol": "CreateNavMeshData",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Magic-number portal/edge flags (0x8000, 0xf, 0xff) are duplicated across counting and storing passes instead of using the existing named constants.",
+   "currentCost": "DTExtLink (0x8000) exists as a constant but the counting pass uses literal 0x8000 (line 145, 308); MeshNullIDX is used but the dir mask 0xf and sentinel 0xf are bare literals. Divergence risk between the two passes that must agree.",
+   "proposedChange": "Introduce named constants (e.g. DTPortalDirMask=0xf, DTBorderDir=0xf) and use DTExtLink consistently in both the count loop (145) and store loop (308) so the maxLinkCount estimate and actual storage can never drift.",
+   "rationale": "Prevents a class of bugs where the two passes use different masks, and improves readability without any perf cost (constants fold).",
+   "risk": "None; pure constant substitution, values identical."
+  }
+ ]
+}

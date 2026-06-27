@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Graph.DAG/DagKthPath.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.DAG/DagKthPath.cs",
+   "symbol": "Run",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "DagKthPath.Run and DagLexicographicKthPath.Run are byte-identical; one is redundant.",
+   "currentCost": "Two separate static classes with identical bodies (the lexicographic variant only differs by a comment assuming sorted adjacency). Duplicated code doubles maintenance and binary/IL surface with zero behavioral difference.",
+   "proposedChange": "Collapse to a single implementation: have DagLexicographicKthPath.Run forward to DagKthPath.Run (the algorithm is identical; lexicographic ordering is solely a precondition on adjacency-list order, not on the traversal code). Keep both public entry points for discoverability/API clarity but share the body via [MethodImpl(AggressiveInlining)] delegation.",
+   "rationale": "Removes duplicated logic so a future correctness/perf fix applies to both. Inlined forwarding compiles away under Burst, so no runtime cost. Purely an ergonomics/maintainability win.",
+   "risk": "None to runtime semantics: the two bodies are character-for-character identical aside from a comment, so the lexicographic guarantee is entirely a caller-side adjacency-ordering precondition. Keep the distinct class names so the documented precondition stays discoverable."
+  },
+  {
+   "file": "src/IAFahim.Graph.DAG/DagKthPath.cs",
+   "symbol": "Run",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "The k<=pathCount[v] selection loop already saturates well; only minor: hoist nothing, but note 'while(true)' is fine and loop is optimal.",
+   "currentCost": "Each step walks the adjacency list subtracting pathCount[v] until the target child is found; this is inherent O(pathLen * avgDegree) and already minimal. No redundant recomputation present.",
+   "proposedChange": "No structural change. Confirm pathCount[v] loads are the only memory traffic; they are. Leave as-is. (Reported only to record that the file is essentially optimal and no further opportunity should be invented.)",
+   "rationale": "The greedy descent is asymptotically optimal for kth-path extraction and already branch-light. Manufacturing micro-opts here would be cargo-cult.",
+   "risk": "None \u2014 no change proposed."
+  }
+ ]
+}

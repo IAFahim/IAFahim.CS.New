@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.DS.Fenwick/PersistentFenwick.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.Fenwick/PersistentFenwick.cs",
+   "symbol": "PersistentFenwickUpdate.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Recomputes prev-branch and child loads redundantly; hoist into locals to halve branches and loads per node.",
+   "currentCost": "Per recursive node the expression 'prev != 0 ? leftChild[prev] : 0' and 'prev != 0 ? rightChild[prev] : 0' are each evaluated twice: once when copying children into the new node (lines 12-13) and again when picking the recursion argument (lines 21 or 24). That is up to 4 conditional-load evaluations and 4 branches per node along an O(log range) path. The 'prev != 0' test is also evaluated 3 times.",
+   "proposedChange": "At function entry compute 'int hasPrev = prev; long/int pl = prev != 0 ? leftChild[prev] : 0; int pr = prev != 0 ? rightChild[prev] : 0; int ps = prev != 0 ? sumArr[prev] : 0;' once, then reuse pl/pr/ps in both the node copy and the recursion argument. This removes the duplicate pointer loads and collapses the three 'prev != 0' branches into one.",
+   "rationale": "Eliminates redundant memory loads (leftChild[prev]/rightChild[prev] read twice -> once) and redundant branches, shortening the dependency chain on the hot recursive path. Each load is a potential cache miss in the persistent-segment-tree node arena, so halving them matters.",
+   "risk": "Pure refactor of evaluation order; identical results. prev==0 still yields 0 for all three. No overflow/signedness concern since values are just copied."
+  },
+  {
+   "file": "src/IAFahim.DS.Fenwick/PersistentFenwick.cs",
+   "symbol": "PersistentFenwickUpdate.Run",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "AggressiveInlining on a recursive method is ineffective and can bloat codegen; remove it.",
+   "currentCost": "The method is self-recursive (lines 20-24), so the JIT/Burst cannot fully inline it; the [MethodImpl(AggressiveInlining)] attribute either no-ops or forces partial inlining that increases I-cache pressure without removing the call.",
+   "proposedChange": "Drop [MethodImpl(MethodImplOptions.AggressiveInlining)] from PersistentFenwickUpdate.Run (and likewise PersistentFenwickQuery.Run). Optionally convert the update walk to an iterative loop since it is single-path (only one child recurses), eliminating the call frame entirely.",
+   "rationale": "Inlining a recursive function yields no call-elimination benefit; removing the hint avoids speculative code bloat and lets Burst optimize the body normally. Converting the tail-position single-child descent to an iterative while-loop removes per-level stack frames and the recursion dependency.",
+   "risk": "Removing the attribute cannot change semantics. An iterative rewrite must preserve node-allocation order and parent-link wiring exactly; verify the new node's left/right pointer is patched after the child id is known."
+  },
+  {
+   "file": "src/IAFahim.DS.Fenwick/PersistentFenwick.cs",
+   "symbol": "PersistentFenwickQuery.Run",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Recursive query marked AggressiveInlining; remove the ineffective hint.",
+   "currentCost": "Self-recursive (lines 39-40); AggressiveInlining cannot eliminate the recursive calls and risks I-cache bloat.",
+   "proposedChange": "Remove [MethodImpl(MethodImplOptions.AggressiveInlining)]. The two-child range query genuinely needs recursion (or an explicit stack), so leave the algorithm but drop the hint.",
+   "rationale": "No call is eliminated by inlining a recursive method; the attribute only adds codegen pressure.",
+   "risk": "None; attribute removal is semantically inert."
+  }
+ ]
+}

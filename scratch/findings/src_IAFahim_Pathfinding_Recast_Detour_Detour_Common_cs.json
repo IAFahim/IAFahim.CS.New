@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Detour/Detour.Common.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/Detour.Common.cs",
+   "symbol": "IntegerLog2",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hand-rolled de-Bruijn-style log2 ladder can be replaced by a single hardware bit-scan intrinsic under Burst.",
+   "currentCost": "Five conditional-shift stages (~10 dependent ops) to compute floor(log2). On Burst/SIMD targets this is a serial dependency chain.",
+   "proposedChange": "Use math.lzcnt: floor(log2(value)) == 31u - (uint)math.lzcnt(value) for value>0. Burst lowers lzcnt to a single LZCNT/CLZ instruction. Guard value==0 to preserve current behavior (current code returns 0 for input 0).",
+   "rationale": "Replaces a ~10-op dependency chain with one hardware instruction, shrinking latency and code size for a method used in tile/index sizing.",
+   "risk": "Low. Must match edge behavior: current code for value=0 yields 0 (since all shifts produce 0). 31-lzcnt(0) is undefined/31, so add an explicit value==0 -> 0 guard. Confirm math.lzcnt is Burst-intrinsic on target ABIs."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/Detour.Common.cs",
+   "symbol": "NextPowerOfTwo",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Bit-smear next-power-of-two can use lzcnt-based shift on Burst.",
+   "currentCost": "Six dependent OR/shift stages.",
+   "proposedChange": "For value>1: return 1u << (32 - math.lzcnt(value-1)); keep value<=1 -> 1 (and preserve current value==0 -> 0 behavior with a guard). Single shift after one lzcnt.",
+   "rationale": "Shorter dependency chain via hardware CLZ vs six serial smears.",
+   "risk": "Low/medium. Current code maps 0->0 (value-- underflows to 0xffffffff, smears to 0xffffffff, ++ -> 0) - the lzcnt form must replicate the 0->0 and 1->1 edge cases explicitly or it diverges. Only worthwhile if these are hot; otherwise leave the portable smear."
+  }
+ ]
+}

@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Collision.Gjk/Epa.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Collision.Gjk/Epa.cs",
+   "symbol": "PenetrationDepth / IsHorizonEdge",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Horizon construction is O(F^2) per iteration via per-edge linear face scans; replace with an edge-counting / adjacency pass to make it O(F) (or O(F*E)).",
+   "currentCost": "For each visible face, IsHorizonEdge is called 3 times, and each call scans all faceCount faces (inner loop over fa/fb/fc). With up to MaxFaces=256 faces, that is ~3*F*F integer-compare iterations per EPA iteration, and up to 128 EPA iterations. This nested O(F^2) dominates EPA runtime and is pure pointer-chasing with poor vectorization.",
+   "proposedChange": "Compute the horizon by edge cancellation instead of repeated full scans. For each visible face, push its 3 directed edges into a small edge list; an edge that borders an invisible face survives, an edge shared by two visible faces cancels. Concretely: collect all directed edges of visible faces, then an edge (u,v) is a horizon edge iff its reverse (v,u) is NOT present among visible-face edges. Detect cancellation by sorting/scanning the visible edge list once (O(Ev log Ev) or O(Ev) with the existing horizonA/horizonB scratch used as a hash-free linear cancel buffer), rather than scanning ALL faces per edge. This removes the dependence on total faceCount and replaces it with dependence only on the (usually small) visible set.",
+   "rationale": "The visible face set is typically far smaller than faceCount; horizon edges number O(visible). Edge-cancellation touches each visible edge O(1) (amortized) instead of O(F). This drops the inner work from O(F^2) to ~O(Ev), a large asymptotic win on the hottest EPA loop, and the edge buffer is already allocated.",
+   "risk": "Must preserve winding/orientation so AddFace(horizonA[i], horizonB[i], newIdx) produces the same outward faces. Edge-cancel logic must treat (u,v) and (v,u) as the canceling pair exactly as IsHorizonEdge's 'shared edge with an invisible neighbor' rule does. Degenerate/duplicate vertices (collinear supports) could create non-manifold edges; keep the current AddFace len<Epsilon rejection so a spurious face is dropped. Validate against existing NUnit tests since this changes the horizon code path, not the math."
+  },
+  {
+   "file": "src/IAFahim.Collision.Gjk/Epa.cs",
+   "symbol": "PenetrationDepth (visible buffer)",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "The 'visible' bool[MaxFaces] and horizon int[MaxFaces*EdgesPerFace] buffers are declared inside the EPA iteration loop; hoist their stackalloc to the method top to make frame usage explicit and avoid relying on JIT hoisting.",
+   "currentCost": "stackalloc bool[256] plus two stackalloc int[768] appear lexically inside the for(iter) body. C#/Burst hoists loop-invariant stackalloc to the frame, but expressing it in-loop obscures the ~6.5KB stack footprint and risks a stack-growth pattern if the JIT ever fails to hoist.",
+   "proposedChange": "Move 'bool* visible = stackalloc bool[MaxFaces];', 'int* horizonA = stackalloc int[MaxFaces*EdgesPerFace];', 'int* horizonB = ...' to the top of PenetrationDepth alongside the other stackalloc buffers, and just reset horizonCount=0 each iteration. The 'visible' array is fully overwritten each iteration so no clearing is needed.",
+   "rationale": "Guarantees single-allocation frame layout independent of optimizer behavior, keeps total stack budget visible for mobile, and removes any chance of repeated frame adjustment in the loop.",
+   "risk": "None semantically; buffers are fully written before read each iteration (visible[f] set for f<faceCount, horizonCount reset). Pure refactor."
+  },
+  {
+   "file": "src/IAFahim.Collision.Gjk/Epa.cs",
+   "symbol": "AddFace",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "AddFace computes math.length(n) (sqrt) for the degeneracy check AND to normalize; the degeneracy test can use lengthsq to avoid a sqrt on the reject path, and normalization can use rsqrt.",
+   "currentCost": "len = math.length(n) is a sqrt. It is used both as the degeneracy gate (len < Epsilon) and the normalizer (n = n/len). The compare-against-Epsilon does not need the true length, and n/len is a divide after a sqrt.",
+   "proposedChange": "Compute float lenSq = math.dot(n,n); reject when lenSq < Epsilon*Epsilon (use a named const EpsilonSq). Otherwise n = n * math.rsqrt(lenSq) to combine sqrt+divide into one reciprocal-sqrt multiply. Distance d still uses the normalized n via math.dot(n, vertices[a]).",
+   "rationale": "Removes one sqrt entirely on rejected/degenerate faces and converts the survivor path's sqrt+divide into rsqrt+multiply (fewer cycles, shorter dependency chain). AddFace runs per horizon edge per EPA iteration, so this is a hot leaf.",
+   "risk": "rsqrt is an approximation in some math libs but Unity.Mathematics math.rsqrt on float is accurate enough for normals here; if exact parity with math.length is required for test determinism, keep n = n * (1.0f / math.sqrt(lenSq)) which is bit-equivalent restructuring. The Epsilon^2 threshold differs from Epsilon for the length test: with Epsilon=1e-6, EpsilonSq=1e-12; a face with length between 1e-12 and 1e-6 would now pass instead of being rejected. To preserve EXACT behavior keep the gate as lenSq < EpsilonSq only if the intended threshold is on squared length; otherwise gate on math.length still. Recommend: reject when lenSq < Epsilon*Epsilon to keep the same true-length cutoff (sqrt(EpsilonSq)=Epsilon), which is exactly equivalent."
+  },
+  {
+   "file": "src/IAFahim.Collision.Gjk/Epa.cs",
+   "symbol": "ExpandSimplex",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "ExpandSimplex line-2 case calls math.length(ab) inside a comparison that can be squared to avoid a sqrt.",
+   "currentCost": "math.abs(ab.x) > DirectionThresholdRatio * math.length(ab) computes a sqrt to compare a magnitude against a scaled length. ExpandSimplex runs at most once per PenetrationDepth so impact is low, but the sqrt is avoidable.",
+   "proposedChange": "Compare squared quantities: ab.x*ab.x > (DirectionThresholdRatio*DirectionThresholdRatio) * math.lengthsq(ab), with a precomputed const for the squared ratio. Both sides are non-negative so the inequality is preserved.",
+   "rationale": "Removes a sqrt from the comparison; squaring both sides preserves ordering since both operands are >= 0.",
+   "risk": "math.abs(ab.x) and the RHS are both non-negative, so squaring preserves the comparison exactly. Floating-point rounding of the squared form differs by ULPs from the sqrt form at the exact threshold boundary, which could flip the perturbation-axis choice in a measure-zero case; result is still a valid expansion direction (this is heuristic seeding), so observable collision output is unaffected."
+  }
+ ]
+}

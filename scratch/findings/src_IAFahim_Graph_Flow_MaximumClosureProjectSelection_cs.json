@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Graph.Flow/MaximumClosureProjectSelection.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Flow/MaximumClosureProjectSelection.cs",
+   "symbol": "MaximumClosureProjectSelection.Run",
+   "severity": "critical",
+   "category": "off-by-one",
+   "summary": "Edge IDs start at 1 instead of 2, breaking the e^1 reverse-edge pairing used by DinicMaxFlow; the first forward edge's reverse is written to slot 0 (head sentinel) instead of slot 2, corrupting the residual graph and the min-cut, so the returned profit can be wrong.",
+   "triggeringInput": "n=1, profit[0]=10, no prerequisites (prerequisiteHead[0]=0). The source->node0 edge gets edgeId=1, reverse 2; DinicMaxFlow's DinicDfs does flow[1^1=0] instead of flow[2]. Although this trivial case may return totalProfit correctly, any instance with a min-cut on negative-profit nodes mis-augments. E.g. n=2, profit[0]=10, profit[1]=-3, prerequisite edge node0 requires node1.",
+   "rootCause": "Same convention violation as MaximumClosureFlow: the library pairs an edge e with its reverse via e^1, which only works when ids start at an even number (Flow.cs uses edgeId=2). Starting at 1 makes 1^1==0 alias the 'no edge' sentinel and leaves the true reverse slot 2 unmaintained.",
+   "suggestedFix": "Initialize 'int edgeId = 2;' and grow the stackalloc edge arrays accordingly so the unused index-0/1 slots are accounted for."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Flow/MaximumClosureProjectSelection.cs",
+   "symbol": "Run",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "newFlow buffer is allocated but the min-cut/selected set is never recovered, and edge arrays at n*6 are a loose bound; right-size and consider dropping unused capacity.",
+   "currentCost": "Five arrays at stackalloc int[n*6] (~120n bytes stack). The function only returns totalProfit and never reads newFlow after DinicMaxFlow, yet newFlow occupies n*6 ints of stack and is written by Dinic. The n*6 multiplier is a conservative guess unrelated to the actual edge count (n profit edges *2 ids + prerequisite edges *2 ids).",
+   "proposedChange": "Size edge arrays from the real bound 2*(n + prerequisiteEdgeCount) + 2 (named constant), ideally via a caller-supplied maxEdges. newFlow is required by DinicMaxFlow's signature so it must stay, but its length only needs to cover used edge ids, not n*6. Tightening the multiplier shrinks the hot stack working set.",
+   "rationale": "Reduces stack footprint and cache pressure during the Dinic run, and removes the risk of under-sizing on dense prerequisite graphs where prerequisite edges exceed 2n. Tighter buffers stay resident in L1/L2 across Dinic's repeated BFS/DFS sweeps.",
+   "risk": "If prerequisite edge count can exceed 2n, n*6 may currently UNDER-allocate and silently corrupt the stack \u2014 verify the documented bound. Switching to a maxEdges parameter is an API change (ergonomics). With a correct fixed bound, behavior is unchanged."
+  }
+ ]
+}

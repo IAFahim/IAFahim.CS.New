@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Algebra.Polynomial/BostanMori.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/BostanMori.cs",
+   "symbol": "BostanMori.Run",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Computes [x^k] P/Q but is wrong on essentially all inputs. Three independent defects: (1) the final result `p[0] % MOD` is never divided by q[0], so even k=0 with q[0]!=1 returns p[0] instead of p[0]/q[0]. (2) The numerator is rebuilt with length pLen each step (FilterPolynomial uses len=pLen), but the new numerator P(x)Q(-x) has pLen+qLen-1 coefficients whose even/odd part can have up to qLen coefficients; keeping only pLen truncates needed terms when pLen<qLen, giving wrong answers. (3) FilterPolynomial's bound `parity + 2*i < len + sz` permits reading index parity+2i up to len+sz-1, which exceeds the valid pLen+qLen-1 region that ToomCook actually zero-initialized, so it reads UNINITIALIZED stackalloc memory (the r buffer is stackalloc[sz*2] but only resultLen entries are written/zeroed).",
+   "triggeringInput": "p=[6], q=[4], k=0, MOD=998244353: returns 6, but [x^0] 6/4 = 6*inv(4) = 499122178. Also p=[8], q=[1], k=6 (qLen=1, k even/odd) reads src[parity+0]=src[1] which is uninitialized in the stackalloc r buffer of size 2 while only index 0 was zeroed by ToomCook.",
+   "rootCause": "Line 27 returns p[0] without multiplying by ModInv(q[0]); FilterPolynomial (lines 31-34) uses dst length = pLen for the numerator and a bound that can index one or more slots past ToomCook's zero-initialized region, reading uninitialized stackalloc.",
+   "suggestedFix": "Normalize each iteration so q[0]==1 (or multiply the final p[0] by ModInv(q[0],MOD)); set the numerator output length to qLen (the proper-fraction degree bound) rather than pLen; and tighten the FilterPolynomial bound to the actual number of valid coefficients (pLen+qLen-1 for r, 2*qLen-1 for s) so it never reads beyond what ToomCook zero-filled."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/BostanMori.cs",
+   "symbol": "BostanMori.Run",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "Three stackalloc calls live inside the while(k>0) loop; C# stackalloc is NOT freed per iteration, so the stack grows by (qLen + 2*sz + 2*sz) longs every halving of k until method return.",
+   "currentCost": "Per loop iteration: stackalloc long[qLen] + stackalloc long[sz*2] + stackalloc long[sz*2]. The loop runs ~log2(k) times. With k up to 2^62 that is ~62 iterations, each leaking its allocation onto the frame -> ~62*(qLen+4*sz)*8 bytes of stack accumulated. For modest qLen this risks stack overflow and certainly trashes the cache / defeats Burst stack budgeting.",
+   "proposedChange": "Hoist all three stackalloc out of the loop, sized once to the worst case: qneg = stackalloc long[qLen]; r = stackalloc long[2*sz]; s = stackalloc long[2*sz] where sz=Max(pLen,qLen) is loop-invariant (pLen and qLen never change across iterations). Reuse the buffers each iteration; FilterPolynomial already writes back into p/q so degrees do not grow.",
+   "rationale": "Moving stackalloc above the loop converts O(log k) accumulating allocations into a single fixed-size frame reservation. This bounds stack usage, removes per-iteration frame-pointer arithmetic, and keeps the three buffers hot in cache across iterations. sz, pLen, qLen are provably invariant so one allocation suffices.",
+   "risk": "Must confirm pLen/qLen are truly invariant across iterations (they are: only the contents of p and q are overwritten, not the lengths). r and s must be zero-initialized or fully written by ToomCook.Multiply before FilterPolynomial reads them; if Multiply does not clear the upper region, add a clear or rely on existing FilterPolynomial bounds check (parity+2*i < len+sz) which already guards reads. Behavior is otherwise identical."
+  },
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/BostanMori.cs",
+   "symbol": "BostanMori.Run / FilterPolynomial",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Parity tests use signed % 2 on non-negative values where & 1 is exact and cheaper, and 2*i can be strength-reduced.",
+   "currentCost": "(i % 2 == 0) in the qneg build, (int)(k % 2L) for parity, and 2*i recomputed inside FilterPolynomial's loop. Signed % by 2 emits sign-correction sequences in IL/JIT vs a single AND.",
+   "proposedChange": "Replace (i % 2 == 0) with ((i & 1) == 0); replace (int)(k % 2L) with ((int)k & 1) (k>0 here so non-negative); in FilterPolynomial track an additive index idx = parity, stepping idx += 2 per iteration instead of computing parity + 2*i.",
+   "rationale": "i and k are non-negative in these contexts, so & 1 is semantically identical to % 2 but branch/sign-correction free. Incrementing idx removes a multiply per element from the inner filter loop and shortens the dependency chain.",
+   "risk": "k is loop-guarded > 0 and i is a non-negative loop counter, so & 1 preserves semantics exactly (the signed-vs-unsigned % caveat does not apply). No behavior change."
+  }
+ ]
+}

@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Geometry.Voronoi/Delaunay.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Voronoi/Delaunay.cs",
+   "symbol": "IsDelaunay / TryAddTriangle / Build",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Build is O(n^4): O(n^3) candidate triangles each checked against all n points. The InCircle test loop dominates and is fully redundant for the vast majority of triangles.",
+   "currentCost": "Three nested loops over n produce ~n^3/6 triangles, and IsDelaunay scans all n points per triangle => O(n^4) double-precision cross/incircle work. For n=200 that is ~5.3e9 InCircle evaluations.",
+   "proposedChange": "Replace the brute-force generator with an incremental/Bowyer-Watson or divide-and-conquer Delaunay (O(n log n) expected). If the brute-force form must stay, at minimum break IsDelaunay early (already does) and skip InCircle when t lies outside the triangle's axis-aligned bounding box (precompute min/max x,y of u,v,w once and test before the full predicate).",
+   "rationale": "Lowering asymptotics from O(n^4) to O(n log n) is the single largest possible win here; even a bbox pre-filter removes the majority of 8-mul/6-sub InCircle calls because most of the n points are far from any given small triangle.",
+   "risk": "Full algorithm swap changes code substantially but preserves the output triangle set for non-degenerate inputs; the bbox pre-filter is exactly semantics-preserving (a point outside the triangle bbox can still be inside the circumcircle, so the bbox test must only be used to skip points that are also provably outside the circumcircle \u2014 therefore reject bbox-skip as unsafe; keep only the algorithmic swap or accept it as not equivalent). Mark bbox-skip as INVALID; recommend only the asymptotic replacement."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Voronoi/Delaunay.cs",
+   "symbol": "TryAddTriangle",
+   "dimension": "purity",
+   "impact": "low",
+   "summary": "The `if (TryAddTriangle(...)) { }` empty-body call in Build discards the return value and reads as dead code; TryAddTriangle mutates cnt via ref as its real effect.",
+   "currentCost": "An empty if-statement guard adds a branch the JIT/Burst must prove dead; reduces readability of the hot triple loop.",
+   "proposedChange": "Call TryAddTriangle as a statement (drop the `if (...) {}`) or rename to a void AddTriangleIfDelaunay since the bool is unused by the caller. Keeps cnt-by-ref semantics identical.",
+   "rationale": "Removes a no-op branch from the innermost loop body and clarifies that the side effect (cnt increment) is the contract, aiding Burst's branch elimination.",
+   "risk": "None; the return value is already ignored, so behavior is identical."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Voronoi/Delaunay.cs",
+   "symbol": "InCircle / TryAddTriangle",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "xs[i],ys[i],xs[j],ys[j],xs[k],ys[k] are reloaded from memory repeatedly across TryAddTriangle and the IsDelaunay loop; the three triangle vertices are loop-invariant for the entire inner n-scan.",
+   "currentCost": "Each InCircle call re-indexes xs[u],ys[u],xs[v],ys[v],xs[w],ys[w] (6 pointer loads) per t; over the n-loop that is 6n redundant loads of values that never change.",
+   "proposedChange": "Hoist xu=xs[u], yu=ys[u], ... once before the IsDelaunay loop and pass scalars into InCircle, so only xs[t],ys[t] are reloaded per iteration. Equivalently inline the three vertex coords as locals in IsDelaunay.",
+   "rationale": "Cuts per-iteration memory traffic from 8 loads to 2, shortening the dependency chain feeding the predicate and improving Burst vectorization/register allocation.",
+   "risk": "None; values are read-only during the scan, pure data movement."
+  }
+ ]
+}

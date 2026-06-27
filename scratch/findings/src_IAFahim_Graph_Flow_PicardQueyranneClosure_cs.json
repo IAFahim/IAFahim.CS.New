@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Graph.Flow/PicardQueyranneClosure.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Flow/PicardQueyranneClosure.cs",
+   "symbol": "PicardQueyranneClosure.Run",
+   "severity": "critical",
+   "category": "pointer-ub",
+   "summary": "Same reverse-edge mispairing as MinimumWeightClosure: edgeId is initialized to 1 each iteration, so the first forward edge gets id 1 and its xor-complement 1^1=0 points at the sentinel slot rather than its paired reverse edge (id 2). DinicMaxFlow.Run relies on flow[e^1], so the residual network is corrupted and the computed cutVal/minCut is wrong.",
+   "triggeringInput": "n=2 with nodeWeight[0]=3 (>0): in iteration i, the first AddEdge produces forward edge id 1 and reverse id 2. During Dinic augmentation flow[1^1]=flow[0] is modified instead of the real reverse edge id 2, so the min-cut value returned for that subproblem is incorrect; minCut over all i is therefore wrong.",
+   "rootCause": "edgeId starts at 1 instead of 2; the e^1 reverse-edge convention requires forward edges at even indices. Forward id 1's complement is index 0 (the e!=0 loop sentinel), not the intended reverse edge.",
+   "suggestedFix": "Set edgeId = 2 at the start of each iteration so edge pairs are (2,3),(4,5),... and e^1 resolves to the correct reverse edge."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Flow/PicardQueyranneClosure.cs",
+   "symbol": "PicardQueyranneClosure.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Rebuilds the entire flow network from scratch n times inside the outer loop; the graph is identical except one i->t edge",
+   "currentCost": "For each i in [0,n) the method: re-zeros newHead (nn), re-adds all source/sink weight edges (O(n)), re-adds ALL original graph edges (O(V+E)), then runs a full DinicMaxFlow. Total O(n*(V+E) + n*Dinic). The only per-i difference is the single 'i->t cap=inf' edge (line 19) and the sink t==i target. This is the Picard-Queyranne parametric structure where the base network is built ONCE and only the s/t connections change.",
+   "proposedChange": "Build the base residual network (weight edges + original edges) ONCE outside the i-loop. Per iteration, only attach/detach the single i->t edge and reset flow, or use the monotonic parametric max-flow property (PQ closure) to derive all n cuts from a SINGLE max-flow on the canonical s-t network plus a reachability decomposition, instead of n independent max-flows.",
+   "rationale": "Eliminates n-1 full graph reconstructions (O(n*(V+E)) -> O(V+E)) and, with the true Picard-Queyranne algorithm, replaces n max-flow computations with one, turning O(n*MaxFlow) into O(MaxFlow). This is the dominant cost; the asymptotic improvement is large for any non-trivial n.",
+   "risk": "Behavioral equivalence must be verified: the current loop returns the minimum cutVal over all i, which the single-network PQ formulation also yields, but the reduction requires care (flow reset between attachments, and DinicMaxFlow mutates cap via residuals). Validate against the existing NUnit tests before landing; if full PQ is too invasive, at least hoist the one-time base-graph construction and deep-copy/reset only cap/flow per iteration."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/PicardQueyranneClosure.cs",
+   "symbol": "PicardQueyranneClosure.Run",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "Four n*6 buffers stackalloc'd INSIDE the i-loop accumulate stack across iterations",
+   "currentCost": "newHead/newTo/newNext/newCap (lines 14-17) \u2014 newTo/newNext/newCap are stackalloc[n*6] (3*4*6*n=72*n bytes) plus newHead, all INSIDE the for(i) loop. As in MinCostFlowSsp, loop stackalloc is not freed per iteration; stack grows ~72*n bytes * n iterations -> O(n^2) stack, near-certain overflow for moderate n on mobile.",
+   "proposedChange": "Hoist all four buffer stackallocs above the for(i) loop and reset (zero newHead, reset edgeId) at the top of each iteration. Combined with building the base graph once (previous item), most of the reset disappears too.",
+   "rationale": "Converts O(n^2) stack consumption into O(n) fixed. Prevents stack overflow and avoids re-faulting cold stack pages every iteration.",
+   "risk": "None semantically once newHead is re-zeroed and edgeId reset each iteration; the buffers are fully overwritten before use within the iteration."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/PicardQueyranneClosure.cs",
+   "symbol": "PicardQueyranneClosure.Run",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "newTo/newNext/newCap sized n*6 may under-allocate for dense input graphs (edge count not bounded by n)",
+   "currentCost": "Edges added: 1 (i->t) + up to n (weight edges) + 2*(original edges) per direction. With original edge count E, total residual entries = 2*(1 + n + E). n*6 only suffices when E <= ~2n. Dense graphs overflow these buffers (OOB writes during construction).",
+   "proposedChange": "Size from actual E (count once or pass as parameter): 2*(n + E + 1). Use a named constant for the per-node edge multiplier and assert/encode the assumption.",
+   "rationale": "Removes latent buffer overflow for dense graphs and right-sizes the working set for sparse ones.",
+   "risk": "Requires E. Pair with the build-once refactor where E is naturally available from the single construction pass; do not keep the magic n*6 if callers can exceed it."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/PicardQueyranneClosure.cs",
+   "symbol": "PicardQueyranneClosure.Run",
+   "dimension": "purity",
+   "impact": "low",
+   "summary": "DinicMaxFlow writes into caller's flow buffer but flow is never reset between iterations",
+   "currentCost": "Line 28 calls DinicMaxFlow.Run(... flow) reusing the caller-provided flow array across all n iterations without re-zeroing. DinicMaxFlow itself does not zero flow on entry (Flow.cs line 330-345). Stale residual flow from iteration i-1 leaks into iteration i, making the result order-dependent and impure.",
+   "proposedChange": "Zero the relevant flow entries (0..edgeId) at the start of each iteration, or use a hoisted local newFlow buffer reset per iteration rather than the shared flow param.",
+   "rationale": "Makes each iteration's max-flow independent and the function deterministic/pure for a given input, eliminating hidden cross-iteration state.",
+   "risk": "This is a correctness fix, not just perf \u2014 verify current test expectations; if tests pass today it may be by accident of the inf i->t edge. Resetting flow per iteration is the semantically safe behavior the cut formula assumes."
+  }
+ ]
+}

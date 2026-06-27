@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.String.Match/ZAlgorithm.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Match/ZAlgorithm.cs",
+   "symbol": "ZAlgorithm.Run(byte*) / Run(int*)",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Inner Z-box loop repeatedly reloads zPtr[i] from memory each iteration; caching it in a local register and writing back once removes a store-load dependency per step.",
+   "currentCost": "The while-loop `while (i + zPtr[i] < len && ptr[zPtr[i]] == ptr[i + zPtr[i]]) zPtr[i]++;` reads and writes zPtr[i] (a memory location) every iteration, creating a store-to-load round-trip on the dependency chain and inhibiting keeping the counter in a register. The subsequent `if (i + zPtr[i] - 1 > r)` re-reads it again.",
+   "proposedChange": "Hoist into a local: `int z = (i <= r) ? min(zPtr[i-l], r-i+1) : 0; while (i + z < len && ptr[z] == ptr[i + z]) z++; zPtr[i] = z; if (i + z - 1 > r) { l = i; r = i + z - 1; }`. This keeps the hot counter in a register and stores to zPtr[i] exactly once. Also consider replacing `zPtr[k] < rem ? zPtr[k] : rem` with a branchless math.min, and reconsider AggressiveInlining on these large, non-leaf loop bodies (they bloat every call site for little benefit since the function is already a top-level entry point).",
+   "rationale": "Eliminates n redundant loads + stores on the hottest path of the Z-algorithm and shortens the dependency chain (register increment vs memory increment), a clean constant-factor improvement. min as a branchless select avoids a mispredictable branch on the comparison. Removing AggressiveInlining from a large body avoids icache pressure at call sites.",
+   "risk": "Pure register-vs-memory transformation \u2014 observable output identical. The min/select substitution is on two non-negative ints (rem = r-i+1 >= 1 when i<=r, zPtr[k] >= 0), so no signed-overflow concern. Identical change applies to both the byte* and int* overloads (which are duplicated and could be unified via a generic where T : unmanaged + IEquatable, but that risks Burst/equality-codegen quality, so keep two specializations)."
+  }
+ ]
+}

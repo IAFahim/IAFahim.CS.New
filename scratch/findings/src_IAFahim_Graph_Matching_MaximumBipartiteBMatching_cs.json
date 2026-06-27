@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Graph.Matching/MaximumBipartiteBMatching.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Matching/MaximumBipartiteBMatching.cs",
+   "symbol": "MaximumBipartiteBMatching.Run",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Method is an unimplemented stub that unconditionally returns 0; AggressiveInlining on an empty body is meaningless and the API is non-functional.",
+   "currentCost": "Returns 0 regardless of input. No algorithm present, so there is nothing to optimize until implemented; the [MethodImpl(AggressiveInlining)] attribute is dead.",
+   "proposedChange": "Either implement b-matching (max-flow / capacity-scaled Hopcroft-Karp over the existing CSR head/to/next representation) or remove the stub. The capacitiesLeft/capacitiesRight signature suggests a Dinic-style b-matching; reuse the HopcroftKarp machinery in Kuhn.cs with per-vertex capacities.",
+   "rationale": "No cycle/ram win is possible on an empty function; flagging so it is not mistaken for optimized code. If implemented, sharing the CSR traversal helpers avoids duplicate graph-walk code.",
+   "risk": "Not an optimization of existing behavior; it is a correctness/completeness gap. Implementing changes observable behavior (currently always 0), so it must be coordinated with callers/tests."
+  }
+ ]
+}

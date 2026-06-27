@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Geometry.Azimuth/SphericalDistance.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Azimuth/SphericalDistance.cs",
+   "symbol": "SphericalDistance.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace 2*atan2(sqrt(a), sqrt(1-a)) with 2*asin(sqrt(a)) to drop one sqrt and convert atan2 to asin.",
+   "currentCost": "Line 16 computes Math.Sqrt(a), Math.Sqrt(1.0 - a), and Math.Atan2 \u2014 two sqrt plus one atan2 (atan2 is among the most expensive libm routines).",
+   "proposedChange": "double c = 2.0 * Math.Asin(Math.Sqrt(a)); This removes the second sqrt(1-a) and replaces atan2 (2-arg) with asin (1-arg), which is typically cheaper.",
+   "rationale": "For the haversine, 2*asin(sqrt(a)) is mathematically identical to 2*atan2(sqrt(a), sqrt(1-a)) since a in [0,1]. Saves one sqrt and trades atan2 for the generally cheaper asin, shortening the dependency chain after the sqrt.",
+   "risk": "Precision tradeoff: the atan2 form is the numerically robust standard precisely because asin(sqrt(a)) loses precision as a -> 1 (near-antipodal points). For non-antipodal use this is fine and faster, but if the library intends full antipodal accuracy this changes observable output in the last ULPs near a==1. ONLY adopt if antipodal-precision is not a requirement; otherwise reject. Also clamp a to [0,1] is unnecessary here since a is already in range by construction (unchecked Run assumes valid input)."
+  }
+ ]
+}

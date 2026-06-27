@@ -1,0 +1,82 @@
+{
+ "file": "src/IAFahim.Algebra.Polynomial/ToomCook.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/ToomCook.cs",
+   "symbol": "ToomCook.Multiply",
+   "severity": "high",
+   "category": "modular-sign",
+   "summary": "Result coefficients are not normalized to [0, MOD): C# '%' yields a negative remainder when an accumulated value is negative, so negative input coefficients (valid longs) produce negative output coefficients instead of canonical residues.",
+   "triggeringInput": "a = {-1}, lenA=1, b = {1}, lenB=1, MOD=5. Expected canonical coefficient 4 (i.e. -1 mod 5), but result[0] = (0 + (-1)*1) % 5 = -1.",
+   "rootCause": "Line 24 computes result[i+j] = (result[i+j] + a[i]*b[j]) % (long)MOD without adding MOD and re-reducing. In C#, the '%' operator returns a result with the sign of the dividend, so any negative accumulated/product value yields a negative remainder rather than a value in [0, MOD).",
+   "suggestedFix": "Normalize after the modulo, e.g. long v = (result[i+j] + a[i]*b[j]) % MOD; result[i+j] = v < 0 ? v + MOD : v; or reduce inputs to [0,MOD) up front. If a final pass is preferred, normalize each result[k] once after the loops."
+  },
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/ToomCook.cs",
+   "symbol": "ToomCook.Multiply",
+   "severity": "medium",
+   "category": "complexity",
+   "summary": "Method is named/exposed as ToomCook.Multiply but implements plain O(lenA*lenB) schoolbook convolution, not Toom-Cook (sub-quadratic) multiplication.",
+   "triggeringInput": "Any large input, e.g. lenA = lenB = 100000: runtime is ~1e10 operations (quadratic) instead of the ~O(n^1.465) implied by the Toom-Cook name.",
+   "rootCause": "The nested-loop body multiplies every a[i] by every b[j], which is the naive algorithm; there is no splitting/evaluation/interpolation characteristic of Toom-Cook. Results are numerically correct but the asymptotic complexity contract implied by the type/method name is not met.",
+   "suggestedFix": "Either rename to reflect schoolbook convolution (e.g. SchoolbookMultiply) or replace the body with an actual Toom-Cook (or at least Karatsuba) splitting/interpolation implementation to honor the documented algorithm name."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/ToomCook.cs",
+   "symbol": "Multiply",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Hoist a[i] and the (long)MOD widening out of the inner loop so they stay in registers.",
+   "currentCost": "Inner loop runs result[i+j]=(result[i+j]+a[i]*b[j])%(long)MOD. a[i] is re-referenced and (long)MOD is sign-extended every j iteration of the O(lenA*lenB) hot loop.",
+   "proposedChange": "Before the j loop: long ai = a[i]; long mod = (long)MOD; then use ai and mod in the body. The % stays per-term (required).",
+   "rationale": "Removes a redundant load and the int->long sign-extension from the dominant inner loop, shortening the dependency chain and freeing registers for Burst.",
+   "risk": "None; pure invariant hoist, identical results. (Pre-existing: a[i]*b[j] can overflow long for large MOD per the unchecked caller contract; unchanged.)"
+  },
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/ToomCook.cs",
+   "symbol": "Multiply",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Fuse the separate zero-init pass into the multiply pass to stream result[] once instead of twice.",
+   "currentCost": "One full pass writes resultLen zeros, then the multiply pass read-modify-writes the same cells: result[] is touched by two memory streams of up to lenA+lenB-1 longs.",
+   "proposedChange": "Seed result via direct stores from the first non-zero a-row instead of a +0 accumulate, zeroing only indices that row does not cover, so each result cell is written once. Conservative fallback: keep the zero loop if a[0] may be zero.",
+   "rationale": "Halves cache traffic over result[], which matters on bandwidth-limited mobile targets.",
+   "risk": "Correctness depends on every result index being zeroed before its first accumulate; rows skipped by a[i]==0 must not leave cells uninitialized. The direct-store seed only works when the seed row is non-zero, so it must be guarded; otherwise keep the zero pass."
+  },
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/ToomCook.cs",
+   "symbol": "Multiply",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Restructure to one modulo per output coefficient instead of one per term, when accumulator overflow is provably bounded.",
+   "currentCost": "An integer division (% ~20-40 cycles) executes for every (i,j) term, O(lenA*lenB) divisions; the division dominates per-term cost over the multiply-add (~3 cycles).",
+   "proposedChange": "Compute each output[k] as a column convolution sum acc += a[i]*b[k-i], applying % once per k (with periodic reduction if needed). This drops modulo count from O(n*m) to O(n+m) on the guarded path.",
+   "rationale": "Replaces the most expensive op (idiv) on the hot path with a single reduction per output, a potential 2-5x speedup when overflow is bounded.",
+   "risk": "(MOD-1)^2 can already approach 2^62 for large int MOD, so summing >1 term overflows long. Must gate on L*(MOD-1)^2 < 2^63 (or insert periodic reductions). Not safe for the general unchecked path without this documented bound; reject otherwise."
+  },
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/ToomCook.cs",
+   "symbol": "ToomCook",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Class named ToomCook but implements O(n*m) schoolbook convolution; either rename or implement real Karatsuba/Toom-3.",
+   "currentCost": "Misleading name implies sub-quadratic scaling (Toom-3 ~O(n^1.465)) that the quadratic body does not deliver; callers may assume large-input performance it lacks.",
+   "proposedChange": "Either rename to SchoolbookMultiply/NaiveConvolve for API honesty, or implement Karatsuba/Toom-3 splitting with this schoolbook kernel as the base case below a tuned length threshold (e.g. ~32-64).",
+   "rationale": "Genuine asymptotic improvement for large polynomials, which is the stated purpose of a ToomCook type; rename alone fixes discoverability.",
+   "risk": "Modular Toom-Cook needs modular inverses for the interpolation/exact-division steps and overflow control to preserve exact mod-MOD outputs; nontrivial, must be separately verified, must respect house constraints (stackalloc scratch, no managed types). Rename is zero-risk."
+  },
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/ToomCook.cs",
+   "symbol": "Multiply",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "The per-term % is the specific blocker preventing Burst from vectorizing the multiply-add inner loop.",
+   "currentCost": "idiv in the inner loop forces scalar execution; the otherwise SIMD-friendly a[i]*b[j] multiply-add cannot be auto-vectorized while % is present per term.",
+   "proposedChange": "Widen MOD once (covered by op #1) and, on a reduced-coefficient/bounded path, move % out of the inner loop (op #3) so the multiply-add convolution becomes vectorizable.",
+   "rationale": "Identifies idiv as the vectorization blocker; removing it on a guarded path lets Burst SIMD the dominant loop.",
+   "risk": "Low for the MOD-widening; the vectorization win is contingent on removing % which carries the overflow caveat in op #3. Do not remove % unconditionally."
+  }
+ ]
+}

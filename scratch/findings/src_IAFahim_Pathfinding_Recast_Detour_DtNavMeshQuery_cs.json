@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Detour/DtNavMeshQuery.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/DtNavMeshQuery.cs",
+   "symbol": "MoveAlongSurface / FindLocalNeighbourhood (pop-front loop)",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Stack pop-front shifts the entire array every iteration, making the BFS O(n^2) in nodes processed.",
+   "currentCost": "Both methods pop the front of a stackalloc'd DtNode* array with `var curNode = stack[0]; for (i=0;i<nStack-1;++i) stack[i]=stack[i+1]; nStack--;` (lines ~2594-2600 and ~3965-3971). Each pop is an O(nStack) memmove; with maxStack=48 and full traversals this is up to ~48x redundant pointer copies per pop, a quadratic dependency chain that Burst cannot elide.",
+   "proposedChange": "Treat the buffer as a ring/queue with a head index instead of shifting: keep `int head=0,tail=0`; push at `stack[tail++ % maxStack]` (or just `stack[nStack++]` with a separate `head` read cursor `var curNode = stack[head++];`). Since both already cap pushes at maxStack and never wrap (BFS bounded), the simplest fix is a monotonic `head` cursor: replace the shift with `var curNode = stack[front++];` and test `front < nStack` for loop continuation; reset front/nStack together. No element is moved.",
+   "rationale": "Removes the inner O(n) shift, turning each pop from O(n) into O(1); total work drops from O(n^2) to O(n) memory traffic. Eliminates a long serial copy chain that stalls the pipeline and pollutes cache lines holding live DtNode*.",
+   "risk": "Must preserve FIFO order (these are breadth-first 'pop front' searches, so ordering is observable for tie-breaking and result order). A head-cursor preserves exact FIFO order. Watch that pushes stop at maxStack as before so head never overruns tail; current code already guards `nStack < maxStack`."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/DtNavMeshQuery.cs",
+   "symbol": "GetPortalPoints (off-mesh redundant rescan)",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "When fromPoly is an off-mesh connection, the link list is scanned twice for the same target ref.",
+   "currentCost": "Lines ~1131-1158: the first loop walks fromPoly->firstLink to find the link to `to` and stores it in `link`. Then the off-mesh branch (line ~1150) walks fromPoly->firstLink AGAIN searching for the identical `polyRef == to` to read `edge`. Two full linked-list traversals where one suffices.",
+   "proposedChange": "Reuse the `link` already found in the first loop: in the off-mesh branch read `var v = link->edge; left = right = fromTile->verts[fromPoly->verts[v]];` directly, deleting the second for-loop. The first loop already guarantees `link != null` reached this point.",
+   "rationale": "Removes a second pointer-chasing traversal (links are a freelist, so each hop is a likely cache miss). Halves the link-walk cost on off-mesh portals, which are hit on every path that crosses a jump link.",
+   "risk": "Must confirm the first loop's matched link is the same one the second loop would select (both match `polyRef == to`); it is \u2014 the second loop's first match is identical. Behavior preserved exactly."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/DtNavMeshQuery.cs",
+   "symbol": "OverlapSlabs",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Recomputes two line slopes with divisions even when the horizontal-overlap test fails early, and divides redundantly.",
+   "currentCost": "Lines ~2505-2541: after the `minx>maxx` early-out, it always computes `ad = (amax.y-amin.y)/(amax.x-amin.x)` and `bd = (bmax.y-bmin.y)/(bmax.x-bmin.x)` \u2014 two float divides \u2014 then four multiply-adds. Called per candidate edge inside FindConnectingPolys' O(polyCount * vertCount) loop during tile stitching.",
+   "proposedChange": "The early-out is already present (good). Additional win: amin/amax come from CalcSlabEndPoints which guarantees amin.x<=amax.x, so the denominators are the slab spans; hoist `1/(amax.x-amin.x)` and `1/(bmax.x-bmin.x)` as reciprocals computed once and reuse via multiply (slope*x). Also fuse the four interpolations: dmin/dmax only need (bd*minx+bk)-(ad*minx+ak) which simplifies to `(bd-ad)*minx + (bk-ak)`; compute the line `((bd-ad)*x + (bk-ak))` at minx and maxx \u2014 2 mul-adds instead of 4 plus two subtractions.",
+   "rationale": "Cuts two divides to (optionally) reciprocal-multiplies and halves the interpolation FLOPs by algebraically combining the two lines before evaluating. Division latency (~20+ cycles) dominates this routine; reducing count matters during AddTile stitching.",
+   "risk": "Algebraic refactor of dmin/dmax preserves IEEE results only approximately (reassociation changes rounding). Since this feeds a tolerance test against `py*py*4`, the tiny rounding delta is within the existing epsilon, but to be strictly semantics-preserving keep the same evaluation order and only hoist the reciprocal (mul vs div is itself a rounding change too). Flag as low-impact / verify-with-tests."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/DtNavMeshQuery.cs",
+   "symbol": "Edge-wrap modulo `(j + 1) % nv` / `(link->edge + 1) % vertCount`",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Polygon edge wrap-around uses integer modulo in many hot loops though it only ever wraps by at most 1.",
+   "currentCost": "Numerous sites compute the next vertex as `(j + 1) % nv` or `(link->edge + 1) % poly->vertCount` (e.g. ConnectExternalLinks line ~1765, FindConnectingPolys ~2409, GetPortalPoints ~1180, Raycast ~2442/~2495, FindDistanceToWall ~3841). vertCount is small and not power-of-two, so `%` emits a hardware divide (~20-30 cycles) where the value can only be `j+1` or 0.",
+   "proposedChange": "Replace `(j + 1) % nv` with a branchless/cheap wrap `var jn = j + 1; if (jn == nv) jn = 0;` or `var jn = j + 1 == nv ? 0 : j + 1;`. The Raycast code already uses the conditional form at line ~2510 (`segMax+1 < nv ? segMax+1 : 0`) \u2014 apply that pattern consistently.",
+   "rationale": "A compare+cmov replaces an integer division. Since the increment is always 1 and the loop guarantees j in [0,nv), the conditional is exactly equivalent and ~10x cheaper, and removes a divider dependency from tight per-edge loops executed across every link/portal walk.",
+   "risk": "Exactly equivalent for the only reachable inputs (0 <= j < nv). No signed/overflow concern since j+1 <= nv. Purely faster."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Detour/DtNavMeshQuery.cs",
+   "symbol": "FindLocalNeighbourhood (overlap test connectivity rescan)",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "For each candidate-vs-result overlap check it re-walks curPoly's link list to decide if the pair is connected, inside a doubly-nested result loop.",
+   "currentCost": "Lines ~4044-4058: the overlap loop over the n stored results, for each `pastRef`, walks `curPoly->firstLink` again to test connectivity. That is O(results * links) per popped node, redundantly re-traversing the same link list `n` times per node.",
+   "proposedChange": "Hoist the connected-set out of the inner loop: before the `for j` loop, scan curPoly's links once into a small stackalloc set/bitset of neighbour refs (the link count is bounded), then the inner test becomes a membership check instead of a full re-walk. Given DTVertsPerPolygon=6 the link count is tiny, so a linear scan of a cached stack array is fine and removes the repeated firstLink chase.",
+   "rationale": "Turns O(n * linkCount) link-list pointer-chasing per node into O(linkCount) once plus O(n * linkCount) cheap array scans over contiguous memory, avoiding repeated freelist cache misses. Lower asymptotic constant on the neighbourhood query.",
+   "risk": "Must collect the same set of refs the inline walk compares against (all link->polyRef of curPoly). Equivalent results. Bound the cached array by the max links per poly to avoid overflow."
+  }
+ ]
+}

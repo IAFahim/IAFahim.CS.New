@@ -1,0 +1,19 @@
+PASS(test)  IAFahim.Search.Bit
+PASS(test)  IAFahim.Search.ExactCover
+PASS(test)  IAFahim.Search.Imos
+PASS(build) IAFahim.Search.RangeQueries
+FAIL(test)  IAFahim.Search.Subset (rc=1)
+PASS(build) IAFahim.Sort.QuickSort
+PASS(build) IAFahim.Sort.RadixSort
+PASS(build) IAFahim.String.Automata
+PASS(build) IAFahim.String.Compress
+PASS(build) IAFahim.String.FMIndex
+PASS(build) IAFahim.String.Grammar
+PASS(test)  IAFahim.String.Match
+PASS(build) IAFahim.String.Palindrome
+PASS(build) IAFahim.String.SuffixTree
+PASS(test)  IAFahim.Algebra.GraphPoly
+PASS(build) IAFahim.Algebra.Polynomial
+PASS(build) IAFahim.Algebra.Sequence
+PASS(test)  IAFahim.Collections.NoDeps
+=== SWEEP DONE ===

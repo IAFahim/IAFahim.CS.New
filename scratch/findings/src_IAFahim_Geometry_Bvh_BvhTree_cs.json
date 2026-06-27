@@ -1,0 +1,104 @@
+{
+ "file": "src/IAFahim.Geometry.Bvh/BvhTree.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Geometry.Bvh/BvhTree.cs",
+   "symbol": "BvhTree.QuickSort/Partition",
+   "severity": "high",
+   "category": "complexity",
+   "summary": "Recursive quicksort with last-element (Lomuto) pivot degenerates to O(n^2) time and O(n) recursion depth on already-sorted or all-equal centroid data, causing stack overflow / hang for large meshes.",
+   "triggeringInput": "A mesh whose triangle centroids are already sorted along the chosen split axis (e.g. a long strip of triangles laid out monotonically in +x), with triangleCount large (e.g. 200k). QuickSort(items, start, end, axis) then recurses to depth ~n, overflowing the native stack. Equivalently, many duplicate/equal centroids (a flat fan where Centroid.x is constant) drive Partition to return left+/... producing n-deep recursion.",
+   "rootCause": "Partition picks items[right] as pivot and produces maximally unbalanced partitions when input is sorted or contains many equal keys; QuickSort recurses on both sub-ranges without tail-call elimination or median-of-three / introsort fallback, so depth is O(n) instead of O(log n).",
+   "suggestedFix": "Use median-of-three pivot selection plus recursion on the smaller partition only (tail-recurse the larger), or fall back to heapsort after a depth limit (introsort). For equal-key safety use a 3-way (Dutch national flag) partition. This bounds recursion to O(log n) and time to O(n log n)."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Bvh/BvhTree.cs",
+   "symbol": "BvhTree.RayAABBIntersection",
+   "severity": "medium",
+   "category": "edge-case",
+   "summary": "Ray parallel to a slab axis (direction component == 0, or below Epsilon) is approximated with a finite invDir of +/-1e6 instead of true infinity, producing incorrect hit/miss for rays that graze a box very close to a face.",
+   "triggeringInput": "origin = (x0, y0, z0) with direction = (0, 1, 0) (exactly axis-aligned, |direction.x| <= Epsilon). For a box whose x-extent boxMin.x..boxMax.x is narrow and origin.x lies just outside it by a distance d such that d*1e6 stays comparable to the other slabs' t-values, t1.x/t2.x are computed as finite large numbers (boxMin.x-origin.x)*1e6 that can falsely clamp tEnter/tExit. Concretely origin.x = boxMin.x - 1e-3 with the box only 1e-3 wide in x and ~1e3 deep in y can flip the (tEnter <= tExit) test versus the correct parallel-slab rejection.",
+   "rootCause": "For a parallel ray the correct test is: if origin component is outside [boxMin,boxMax] on that axis, the ray misses regardless of t; using a finite 1e6 instead of +/-infinity makes t1/t2 finite and lets them participate in min/max, so the slab does not reliably reject (or can falsely reject) depending on magnitudes.",
+   "suggestedFix": "Use true IEEE division (1.0f/0.0f -> +/-Inf) so parallel slabs yield +/-Inf t-values and the standard slab algorithm rejects correctly, or add an explicit branch: when |direction.axis| <= Epsilon and (origin.axis < boxMin.axis || origin.axis > boxMax.axis) return false; otherwise skip that slab's constraint."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Bvh/BvhTree.cs",
+   "symbol": "QuickSort",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Replace unguarded recursive QuickSort (O(n^2) worst case + O(n) recursion depth) with median-of-three pivot and tail-recursion-on-smaller-half, or an introsort/heapsort fallback.",
+   "currentCost": "Partition always picks items[right] as pivot. BVH centroids fed to BuildNode are frequently already partially sorted along an axis from the parent's sort, which is the pathological input for last-element-pivot quicksort: O(n^2) comparisons and O(n) recursion depth. With stackalloc'd items and deep meshes this can blow the native stack and degrades the whole Build from O(n log n) to O(n^2).",
+   "proposedChange": "In Partition, choose pivot via median-of-three (items[left], items[mid], items[right]) and swap it to items[right] before the scan. In QuickSort, after partitioning recurse only into the smaller subrange and loop (while) on the larger one (tail-call elimination), guaranteeing O(log n) stack depth. Optionally cap depth at 2*log2(n) and fall back to heapsort for true introsort worst-case bounds.",
+   "rationale": "Median-of-three removes the sorted-input pathology that is specifically common here (sibling ranges inherit parent ordering). Tail-recursion-on-smaller-half bounds recursion depth to O(log n) regardless of pivots, preventing native stack overflow. Restores guaranteed O(n log n) build.",
+   "risk": "Sort is not stable, but the current sort isn't either, and BVH split ordering only needs a consistent total order on the chosen axis, so observable build output (tree shape) may differ only when centroids tie on the split axis \u2014 equivalent valid BVH. If strict bit-identical tree output must be preserved, keep the same comparison and only add median-of-three + tail-loop (these still change tie-break ordering); to preserve exactly, restrict to the tail-recursion-on-smaller-half change alone, which keeps identical partition results and only reduces stack depth."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Bvh/BvhTree.cs",
+   "symbol": "Partition",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Hoist the loop-invariant axis branch out of the inner comparison loop; index the float3 component once instead of branching per element.",
+   "currentCost": "The inner loop runs `if(axis==0)... else if(axis==1)... else...` on every iteration (n-1 times per partition, across O(n log n) total compares). axis is invariant for the whole call, so this is a fully predictable-but-still-decoded branch chain plus a load of all three lanes' selection each iteration.",
+   "proposedChange": "Split Partition into three specialized inner loops selected once by axis (or read the lane via pointer: `float pivotC = ((float*)&pivotValue.Centroid)[axis];` and `float c = ((float*)&items[j].Centroid)[axis];` computed with axis hoisted). Simplest: `switch(axis)` once around three otherwise-identical scan loops so the compare is `items[j].Centroid.x < pivotX` with no per-iteration branch.",
+   "rationale": "Removes a 2-3 way branch and redundant lane selection from the innermost hot loop of the build. Three monomorphic loops let Burst keep the pivot component in a register and potentially vectorize the scan. Strictly fewer instructions per comparison.",
+   "risk": "None \u2014 pure refactor, identical comparison semantics. Pointer-indexing into float3 by lane assumes float3 is 3 contiguous floats with no padding before/between lanes (true for Unity.Mathematics float3, StructLayout Sequential), otherwise use the switch-of-three-loops form which has zero layout assumptions."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Bvh/BvhTree.cs",
+   "symbol": "BuildNode",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Recursion + per-node full AABB rescan does redundant work; precompute triangle AABBs once and combine, and hoist triIdx*3.",
+   "currentCost": "Each BuildNode rescans every triangle in its range (3 vertex fetches + min/max each) to compute the box. A triangle in a leaf at depth d has its vertices loaded ~d times across the d ancestor nodes, so total bbox work is O(n log n) vertex fetches with repeated `indices[triIdx*3+j]` index math and gather loads (cache-unfriendly indirect addressing through indices then vertices).",
+   "proposedChange": "In Build, while computing centroids, also compute and store each triangle's min/max AABB (extend CentroidSortItem or a parallel stackalloc float3 pair). Then BuildNode combines child boxes bottom-up: compute leaf boxes directly, and for internal nodes set node->Min/Max = min/max of Left and Right child boxes after the recursive calls, eliminating the per-node O(range) rescan entirely (build bbox cost drops from O(n log n) to O(n)). At minimum, hoist `int base3 = triIdx*3;` so the j-loop uses base3+0/1/2.",
+   "rationale": "Combining child boxes makes per-node box O(1) instead of O(range), removing the dominant repeated indirect gather loads (the main cache-miss source in build). Hoisting base3 removes a multiply per inner iteration.",
+   "risk": "Bottom-up combination is mathematically identical (union of child boxes == union of all contained triangles) given the leaf boxes are the triangle boxes \u2014 produces bit-identical Min/Max. Extra stackalloc for per-triangle boxes raises peak stack by ~24 bytes/triangle; if triangleCount can be large this risks stack overflow and should instead reuse the caller-provided buffers or document a size cap. The hoist-only variant has zero risk."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Bvh/BvhTree.cs",
+   "symbol": "BuildNode",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Use math.cmax/cmin for the longest-axis selection instead of chained scalar branches.",
+   "currentCost": "`axis` selection uses two dependent branches and `math.max(size.x,size.y)`; `maxDim` then recomputes `math.max(size.x, math.max(size.y, size.z))`. The max of size is computed twice and axis uses branches.",
+   "proposedChange": "Compute `float maxDim = math.cmax(size);` once (single horizontal max). Keep axis via branches if exact tie-break must match, or derive axis = select using comparisons against maxDim. Reuse maxDim for both the Epsilon test and avoid recomputing the y/z max.",
+   "rationale": "cmax is a single reduction Burst lowers to a couple of shuffles+maxps; removes the duplicated max computation and shortens the dependency chain before the Epsilon branch.",
+   "risk": "axis tie-break semantics must be preserved exactly (current code: y beats x on strict >, z beats max(x,y) on strict >). cmax only replaces maxDim; if you also rederive axis from maxDim the tie-break can differ (e.g. when two axes equal the max). Keep the existing 2-branch axis selection and only replace maxDim with cmax to stay bit-identical."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Bvh/BvhTree.cs",
+   "symbol": "RaycastNode",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Recursive traversal lacks closest-child-first ordering and best-distance AABB culling; add tEnter-based child ordering and pass bestDist into the AABB test.",
+   "currentCost": "RaycastNode always descends Left then Right and tests AABB intersection only for hit/miss, ignoring the current bestDist. It will fully traverse a subtree whose nearest entry tEnter is already beyond a triangle hit found in the other subtree, doing wasted AABB and triangle tests. Native recursion also adds call overhead per node.",
+   "proposedChange": "Have RayAABBIntersection return tEnter (out param). Descend into the child with smaller tEnter first, and skip a child whose tEnter >= *bestDist. Convert recursion to an explicit stackalloc'd node-index stack to remove call overhead and enable the early-out before pushing. This is standard front-to-back BVH traversal.",
+   "rationale": "Closest-first + tEnter<bestDist pruning is the core BVH speedup: it cuts visited nodes from O(n) toward O(log n) for typical closest-hit queries by abandoning subtrees that cannot contain a nearer hit. Returning tEnter reuses the slab computation already done.",
+   "risk": "Must preserve closest-hit semantics: only prune when tEnter strictly exceeds the current bestDist (use >= since a hit exactly at tEnter cannot be nearer than an existing equal/closer hit \u2014 but to be safe against ties use > to avoid dropping equal-distance triangles if exact tie behavior matters). Reordering child visitation changes which of two exactly-equidistant triangles wins (currently Left-first); if a deterministic tie-winner is part of observable behavior, keep a tie-break that prefers Left on equal t. NaN handling in the AABB test must still reject."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Bvh/BvhTree.cs",
+   "symbol": "RayAABBIntersection",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Replace per-lane scalar invDir branching with vectorized reciprocal + select; drop the redundant NaN checks given the comparison already rejects NaN.",
+   "currentCost": "invDir is built with three independent scalar ternary chains (math.abs + compare + select per lane), defeating SIMD. Then two math.isnan calls guard a comparison that, for IEEE, already returns false when tEnter/tExit is NaN (NaN<=x and x>=0 are both false).",
+   "proposedChange": "Compute invDir = 1f/direction as a vector, then `invDir = math.select(invDir, math.select(-1e6f, 1e6f, direction>=Zero), math.abs(direction) <= Epsilon);` using float3 selects (branchless, SIMD). Drop the two isnan branches and rely on `tEnter <= tExit & tExit >= Zero` returning false on NaN. Use & instead of && to make it branchless.",
+   "rationale": "Vectorized reciprocal + select keeps the slab test fully in SIMD with no scalar lane extraction, and removes two branches plus two isnan ops from the hottest leaf in raycast (called per node visited). Fewer instructions, better Burst vectorization.",
+   "risk": "IEEE semantics: if direction has a true 0 lane, 1f/0f = +/-Inf rather than the +/-1e6f the current code substitutes; the slab math with Inf still yields correct enter/exit for axis-aligned-miss rays, BUT 0*Inf=NaN can occur when (boxMin-origin) is exactly 0 on a zero-direction axis, and the current 1e6f hack avoids that. To preserve exact behavior keep the 1e6f substitution (do it via select, not raw reciprocal) \u2014 then the isnan checks become provably dead and can be removed safely. Only remove isnan if the substitution guarantees finite invDir; otherwise keep one combined isnan guard."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Bvh/BvhTree.cs",
+   "symbol": "RayTriangleIntersection",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist triIdx*3 index base and gather the three vertices via one base pointer to cut repeated multiplies and index loads.",
+   "currentCost": "Computes `indices[triIdx*3]`, `indices[triIdx*3+1]`, `indices[triIdx*3+2]` with the multiply repeated three times in source (likely CSE'd by Burst but not guaranteed across the array index expressions).",
+   "proposedChange": "`int* tri = indices + triIdx*3; float3 v0=vertices[tri[0]]; float3 v1=vertices[tri[1]]; float3 v2=vertices[tri[2]];` Make this consistent with the same pattern in Build/BuildNode.",
+   "rationale": "Single multiply + pointer adds; removes ambiguity for the optimizer and shortens the address-computation dependency chain in the per-triangle hot path. Also improves readability/consistency.",
+   "risk": "None \u2014 identical addresses computed; pure strength-reduction/readability. Assumes indices is a valid contiguous int array (already required by the unchecked Run contract)."
+  }
+ ]
+}

@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Math.Polynomial.Fps/Fps.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Polynomial.Fps/Fps.cs",
+   "symbol": "FormalPowerSeriesLog.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace per-iteration ModInverse(i, mod) with an incrementally built inverse table to drop an O(log mod) extended-Euclid call from every term.",
+   "currentCost": "Each i in 1..n-1 calls FpsShared.ModInverse(i, mod), an extended-Euclidean loop of ~O(log mod) iterations with two divisions and several mults per iteration. Total O(n log mod) just for modular inverses, on the hot per-coefficient path.",
+   "proposedChange": "Precompute inverses of 1..n-1 in O(n) using the standard recurrence inv[1]=1; inv[i] = (mod - (mod/i) * inv[mod % i] % mod) % mod (valid when mod is prime, which Tonelli-Shanks/NTT context already assumes). Allocate long* inv = stackalloc long[n], fill it once, then use inv[i] instead of FpsShared.ModInverse(i, mod) at line 53. The same table can be shared with Exp/Pow if refactored.",
+   "rationale": "Turns O(n log mod) inverse work into O(n) total (one mult + one mod per index after the table is seeded), eliminating the per-term division-heavy Euclid loop and its unpredictable branch counts. Division/modulo are the most expensive integer ops on both PC and mobile.",
+   "risk": "The linear inverse recurrence requires mod prime; this module already assumes a prime modulus (Tonelli-Shanks, Legendre, FastPow exponent (p-1)/2). For mod==1 all results are 0 anyway. Needs n extra longs of stack; for large n consider caller-provided scratch to avoid stackalloc growth."
+  },
+  {
+   "file": "src/IAFahim.Math.Polynomial.Fps/Fps.cs",
+   "symbol": "FormalPowerSeriesExp.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Same inverse-of-i table optimization: ComputeExpSum loop is clean, but Run calls ModInverse(i, mod) every iteration.",
+   "currentCost": "Line 75 calls FpsShared.ModInverse(i, mod) once per i, O(log mod) Euclid each, O(n log mod) total.",
+   "proposedChange": "Build a stackalloc long[] inv table via inv[i] = (mod - (mod/i)*inv[mod%i]%mod)%mod once, then res[i] = sum * inv[i] % mod. Share the table with Log and Pow (Pow calls both Log and Exp internally, so one table per Run call could serve both).",
+   "rationale": "O(n) total inverse computation instead of O(n log mod); removes division-heavy Euclid from the inner per-coefficient loop.",
+   "risk": "Requires prime mod (already assumed). Extra n longs of stack. inv[0] unused but index starts at 1 so no division by zero."
+  },
+  {
+   "file": "src/IAFahim.Math.Polynomial.Fps/Fps.cs",
+   "symbol": "ComputeInverseSum/ComputeLogSum/ComputeExpSum/ComputeSqrtSum",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Defer the modulo reduction: accumulate several products before taking %, since each product < mod^2 and long has headroom for NTT-sized primes.",
+   "currentCost": "Every inner-loop term does sum=(sum+prod)%mod, i.e. one 64-bit modulo per multiply. Modulo is ~20-40 cycles; this dominates the O(n^2) inner loops.",
+   "proposedChange": "For mod <= ~3.0e9 (covers all 32-bit NTT primes like 998244353, 1e9+7), prod = x*y < mod^2 <= ~9e18 fits in long, but two products would overflow. Use a __int128-style or unsigned accumulator with periodic reduction: keep sum as the running modded value and reduce only when sum could exceed 2^63 - mod^2. A safe pattern for mod<=2^31: accumulate up to floor((2^63-1)/mod^2) terms (>=1) then reduce. Practically, since 2*mod^2 may overflow for mod near 3e9, cap by computing how many terms fit and reducing in blocks; for mod<=~2.1e9 you can add at least one extra term before reducing. Document the mod bound as a named constant.",
+   "rationale": "Cuts modulo count in the hottest O(n^2) loops, which is the single most expensive integer op, when the modulus is small enough to guarantee no overflow between reductions.",
+   "risk": "OVERFLOW: only valid when mod is small enough that the chosen block of products stays < 2^63. For full 62-bit moduli this is unsafe and must be rejected. Provide a compile-time/named MAX_MOD constant and only enable the deferred path under it; otherwise keep per-term %. Signed long stays non-negative since operands are in [0,mod)."
+  },
+  {
+   "file": "src/IAFahim.Math.Polynomial.Fps/Fps.cs",
+   "symbol": "FormalPowerSeriesPow.Run",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Pow allocates three separate stackalloc buffers (s, ln, ex) of size newN; ln and ex can be fused / reused to cut stack working set by ~1/3.",
+   "currentCost": "long* s, long* ln, long* ex each stackalloc newN longs => 3*newN*8 bytes of stack. For large newN this is significant stack pressure and worse cache locality (three distinct regions touched in sequence).",
+   "proposedChange": "After Log writes ln and ln is scaled by k, Exp reads ln and writes ex. ex can reuse the s buffer (s is dead after it was consumed as Log input). I.e. pass s as the Exp output: FormalPowerSeriesExp.Run(newN, ln, s, mod) and then write res from s. This removes the third stackalloc. Verify Exp does not alias-read its input after writing output index i (it reads res[i-j] for j>=1, i.e. only lower indices already written, and reads a[j] = ln[j]; input and output must be distinct buffers, so reuse s (distinct from ln) is safe).",
+   "rationale": "Reduces stack footprint from 3*newN to 2*newN longs and improves cache reuse by touching fewer distinct buffers, important on mobile with small stacks/caches.",
+   "risk": "Exp's recurrence reads input a[] and output res[] at different indices each step; aliasing input==output would corrupt results, so reuse only a buffer distinct from the Exp input (s vs ln). s is fully consumed by Log before Exp runs, so reusing s as Exp output is safe. Confirm no later read of original s contents."
+  }
+ ]
+}

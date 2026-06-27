@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Sort.Specialized/SortInt64s.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Sort.Specialized/SortInt64s.cs",
+   "symbol": "SortInt64s.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Insertion sort is O(n^2); for the unbounded len contract this degrades badly. A specialized integer sort (e.g. LSD radix sort on 64-bit keys, or an introsort/heapsort hybrid) gives O(n) / O(n log n) worst case.",
+   "currentCost": "O(n^2) comparisons+moves in the worst/average case. For len in the thousands this is millions of ops; the inner while is a serial dependency chain (each ptr[j+1]=ptr[j] depends on the prior), so it cannot vectorize and stalls the pipeline.",
+   "proposedChange": "Provide a threshold-dispatched Run: keep insertion sort for small len (e.g. len <= 32 or 64), and for larger len run an LSD radix sort over the 8 bytes of the long (8 passes of 256-bucket counting sort, flipping the sign bit of the top byte to handle signed ordering). Radix needs one scratch buffer of len longs; reuse a caller-provided buffer to honor the no-managed-alloc constraint (Run(long* ptr, long* scratch, int len)).",
+   "rationale": "Radix sort is O(8n) = O(n) for 64-bit keys vs O(n^2). Counting passes are branchless and cache-friendly (sequential reads, histogram in stackalloc int[256]). Removes the long serial dependency chain of insertion sort. Keeping insertion for tiny len preserves its low constant-factor advantage where radix's 8 passes lose.",
+   "risk": "Signed ordering: must XOR the most-significant byte with 0x80 (flip sign bit) so two's-complement negatives sort before positives; do it only on the top-byte pass and reverse on read, or pre/post transform. Stability differs from insertion sort but sort is not documented as stable for scalars. Requires an API change to take scratch (or stackalloc only when len is small) \u2014 flag as additive overload, not a silent break."
+  }
+ ]
+}

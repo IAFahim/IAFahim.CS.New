@@ -1,0 +1,49 @@
+{
+ "file": "src/IAFahim.Optimization.Games/Retrograde.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Optimization.Games/Retrograde.cs",
+   "symbol": "Retrograde.Solve",
+   "severity": "critical",
+   "category": "wrong-recurrence",
+   "summary": "The degree counter is initialized from in-degree (to[e]) instead of out-degree (from[e]), so the decrement-to-zero condition never matches the number of outgoing moves of a node. WIN positions are misclassified.",
+   "triggeringInput": "n=2, m=1, edges: from[0]=0, to[0]=1. Initial state: lose[1]=true, all else win[i]=lose[i]=false. Node 0 can move to losing node 1, so node 0 is a WIN.",
+   "rootCause": "Line 13 does `indeg[to[e]]++`, counting incoming edges of each node. But the BFS at lines 26-33 decrements `indeg[u]` where `u = from[e]` (the SOURCE of an edge into the popped node) and only marks `win[u]=true` when it hits 0. For that counter to reach 0 it must equal the OUT-degree of u (number of moves out of u). With the in-degree initialization, indeg[from[e]] is wrong: in the trigger, indeg[0]=0 (node 0 has no incoming edge), so the decrement makes it -1, never 0, and node 0 is left unresolved and then wrongly forced to lose[0]=true at line 37. Expected win[0]=true.",
+   "suggestedFix": "Change line 13 to `for (int e = 0; e < m; e++) indeg[from[e]]++;` so the counter tracks each node's number of outgoing moves."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Games/Retrograde.cs",
+   "symbol": "Retrograde.Solve",
+   "severity": "critical",
+   "category": "wrong-recurrence",
+   "summary": "The BFS treats every popped node identically (always decrements parent counter and only ever marks parents WIN), so it never distinguishes 'parent can reach a LOSE child => WIN immediately' from 'all of parent's children are WIN => LOSE'. It can never produce a LOSE result via propagation and mislabels nodes whose only moves lead to WIN positions.",
+   "triggeringInput": "n=3, m=2, edges: (from=0,to=1) and (from=1,to=2). Initial: lose[2]=true, all else false. Correct result: node 2 LOSE, node 1 WIN (moves to losing 2), node 0 LOSE (its only move leads to winning node 1). Even after fixing the indeg init to use from[e], node 0 is wrongly marked WIN.",
+   "rootCause": "Retrograde analysis requires two distinct propagation rules: when a popped node is LOSE, every predecessor becomes WIN immediately; when a popped node is WIN, decrement each predecessor's remaining-moves counter and mark it LOSE only when the counter reaches 0. This code (lines 20-35) uses a single rule for all popped nodes: decrement the predecessor counter and set win=true at 0. So propagation from a WIN node (e.g. node 1) is handled as if it were a LOSE node, marking its predecessor (node 0) WIN. The algorithm also never enqueues or marks any LOSE node during BFS (only the post-loop sweep at lines 36-37 fills lose for leftover unresolved nodes), so a node that is genuinely LOSE due to all-winning children is mishandled.",
+   "suggestedFix": "Track per-node out-degree counter and the resolved win/lose status. On popping v: if v is LOSE, for each predecessor u not yet resolved set win[u]=true and enqueue; if v is WIN, decrement deg[u] and when it reaches 0 set lose[u]=true and enqueue. Initialize the queue with all terminal/known LOSE (and WIN) nodes accordingly."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Games/Retrograde.cs",
+   "symbol": "Solve",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Replace the O(V*E) edge rescan in the BFS loop with a precomputed reverse (predecessor) adjacency list to get O(V+E).",
+   "currentCost": "For every dequeued vertex v (up to n times), the inner `for (int e=0;e<m;e++)` scans ALL m edges and skips those where to[e]!=v. Total work is O(n*m). On a graph with thousands of states/edges this is quadratic and dominates runtime; nearly all of the m iterations per dequeue are wasted `if (to[e]!=v) continue;` branches.",
+   "proposedChange": "Build a CSR-style reverse adjacency from the `to` array using stackalloc: int* outdeg=stackalloc int[n] counting how many edges point INTO each node (i.e. group edges by to[e]); int* radjStart=stackalloc int[n+1] as prefix sums; int* radjFrom=stackalloc int[m] holding the from[] endpoints bucketed by to[]. Also compute indeg[u] = number of outgoing edges of u (count of edges with from[e]==u) in the same first pass. Then in the BFS, replace the inner edge scan with: for (int k=radjStart[v]; k<radjStart[v+1]; k++) { int u=radjFrom[k]; if (win[u]) continue; if (--indeg[u]==0){ win[u]=true; q[tail++]=u; } }. This visits each edge exactly once across the whole BFS.",
+   "rationale": "Retrograde analysis is linear in V+E. The current code recomputes the predecessor set of v by full scan on every pop, turning a linear algorithm quadratic. Bucketing edges once (two O(m) passes for counts + fill, O(n) prefix sum) removes the inner rescan entirely, cutting asymptotics from O(V*E) to O(V+E) and eliminating the per-edge mispredicted branch `to[e]!=v`.",
+   "risk": "Semantics preserved: the original indeg[] counts edges INTO each node (indeg[to[e]]++) but the BFS decrements indeg[u] where u=from[e] for edges entering v \u2014 so the original 'indeg' is actually used as the count of OUTGOING edges of u that have not yet been resolved. Must preserve that exact meaning: initialize the decremented counter as out-degree of u (number of edges with from[e]==u), NOT in-degree. Re-read the original carefully: original indeg[to[e]]++ counts in-degree, but it decrements indeg[from[e]]; this is a latent inconsistency in the original. To preserve OBSERVABLE behavior exactly, replicate the original counter semantics bit-for-bit (count via indeg[to[e]]++ and decrement indeg[from[e]]) while only changing HOW predecessors are enumerated. Extra stackalloc of ~ (2n+1+m) ints raises stack usage; for large n,m a caller-provided scratch buffer may be needed to avoid stack overflow."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Games/Retrograde.cs",
+   "symbol": "Solve",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Use a single combined stackalloc / memset instead of separate per-element zeroing loop for indeg.",
+   "currentCost": "`for (int i=0;i<n;i++) indeg[i]=0;` is a scalar zeroing loop. stackalloc int[n] is not guaranteed zero-initialized so the loop is needed, but a manual scalar loop is slower than a bulk clear and Burst may not always vectorize it.",
+   "proposedChange": "Replace the zeroing loop with Unsafe.InitBlockUnaligned(indeg, 0, (uint)(n*sizeof(int))) (or memset-equivalent) which Burst lowers to a vectorized/optimized clear. Same for the q buffer only the used prefix matters so it needs no clear.",
+   "rationale": "A bulk block-clear is a single intrinsic the JIT/Burst turns into wide SIMD stores, reducing the loop's instruction count and dependency chain versus n scalar stores. Fewer cycles on the setup phase.",
+   "risk": "InitBlockUnaligned is unmanaged-safe and Burst-compatible. Must ensure n>0 before calling (n*sizeof(int) must not overflow uint for huge n \u2014 guard if n can exceed ~536M, otherwise safe)."
+  }
+ ]
+}

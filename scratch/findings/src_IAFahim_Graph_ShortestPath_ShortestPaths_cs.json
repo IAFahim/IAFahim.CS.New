@@ -1,0 +1,116 @@
+{
+ "file": "src/IAFahim.Graph.ShortestPath/ShortestPaths.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.ShortestPath/ShortestPaths.cs",
+   "symbol": "KthShortestPathEppstein.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the per-edge base pointers dists+u*k and dists+v*k out of the inner k-loop and avoid recomputing u*k+i and v*k indices repeatedly.",
+   "currentCost": "Inner loop over i recomputes dists[u*k+i] twice (the != MaxValue test and the +w) and InsertIfBetter recomputes v*k+j and v*k+l on every probe/shift. Each index is a multiply (u*k) plus add per access; with k iterations per edge per relaxation step this is O(n*k*m*k) multiplies.",
+   "proposedChange": "Compute long* du = dists + (long)u * k; long* dv = dists + (long)v * k; once per edge. Pass dv (or v's base) into InsertIfBetter instead of v so it indexes dv[j]/dv[l] with no multiply. In Run cache long dui = du[i]; if (dui == long.MaxValue) continue; then InsertIfBetter(k, dv, dui + w).",
+   "rationale": "Replaces a multiply-add address computation with a single base+offset per access, shrinks the dependency chain (one load of du[i] reused), and removes the duplicate load of dists[u*k+i]. Same arithmetic results, just hoisted/CSE'd manually since the unmanaged pointer aliasing may block the compiler from doing it.",
+   "risk": "u*k and v*k must not overflow int; promote the base offset to long (cast u/v to long before multiply) to match a potential n*k that already overflows in the dists init loop. Observable behavior unchanged."
+  },
+  {
+   "file": "src/IAFahim.Graph.ShortestPath/ShortestPaths.cs",
+   "symbol": "KthShortestPathEppstein.Run",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "i*k+? init bound n*k is computed as int and used both as loop guard count and step guard; guard against int overflow and mark InsertIfBetter AggressiveInlining.",
+   "currentCost": "for (i=0; i<n*k; i++) recomputes n*k each iteration (cheap but a multiply in the guard), and the outer step loop guard n*k re-multiplies every step. InsertIfBetter is a hot leaf called n*k*m times but is a separate call (Burst usually inlines, but explicit attribute guarantees it).",
+   "proposedChange": "Hoist int nk = n * k; (or long to be safe) before the loops and reuse it. Add [MethodImpl(MethodImplOptions.AggressiveInlining)] to InsertIfBetter so the early-return fast path (cand >= all dists[v*k]) is inlined into the caller.",
+   "rationale": "Removes a redundant multiply from each loop guard and guarantees the leaf insert is inlined, eliminating call overhead and enabling the cand comparison to share registers with the caller's loop.",
+   "risk": "n*k could overflow int for very large graphs; if so the dists buffer itself is already mis-sized, so behavior is unchanged relative to current code. Inlining a loop-containing method can increase code size on mobile but is standard for hot leaves."
+  },
+  {
+   "file": "src/IAFahim.Graph.ShortestPath/ShortestPaths.cs",
+   "symbol": "ReplacementPaths.Run",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "Move the stackalloc of d[n] and v[n] OUT of the pLen loop and reset them per iteration instead of re-allocating each iteration.",
+   "currentCost": "stackalloc long[n] and bool[n] are inside the for-i loop, so the stack pointer is bumped pLen times. While stackalloc in a loop is typically hoisted by the JIT, under Burst/IL it is not guaranteed and can grow the frame or re-zero unpredictably; semantically each iteration fully reinitializes both buffers anyway.",
+   "proposedChange": "Hoist long* d = stackalloc long[n]; bool* v = stackalloc bool[n]; above the for-i loop. Keep the existing for-j reset of d[j]=MaxValue, v[j]=false at the top of each iteration.",
+   "rationale": "Guarantees a single fixed-size frame allocation regardless of pLen, removes repeated stack-pointer adjustment, and makes the working set explicit and constant. Behavior identical because both buffers are fully overwritten each iteration before use.",
+   "risk": "None functionally; the reset loop already initializes every slot. Only consideration is that stackalloc size n is unchanged so frame size is identical to a single iteration's current allocation."
+  },
+  {
+   "file": "src/IAFahim.Graph.ShortestPath/ShortestPaths.cs",
+   "symbol": "ReplacementPaths.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "The relaxation inner loop scans ALL m edges per settled vertex (O(n*m) per source) and filters eu[e]==cur, making Dijkstra effectively O(n^2 + n*m) with an O(n) array min-select. The dominant cost is the per-vertex full edge scan; an adjacency CSR would cut it to O(m) total edge work.",
+   "currentCost": "For each of the up-to-n settled vertices, the code loops e=0..m testing eu[e]==cur; that is n*m edge inspections per source, repeated pLen times -> O(pLen * n * m). The array-based extract-min adds O(n^2) per source.",
+   "proposedChange": "Precompute a CSR adjacency (head[] + next-style offsets) once before the pLen loop (or accept it as input) so relaxation only touches the out-edges of cur. Even without CSR, swap the e-loop and j-loop is not valid here; the real win is indexing cur's out-edges directly.",
+   "rationale": "Reduces relaxation from O(n*m) to O(m) per source (each edge relaxed once when its tail is settled), turning total work from O(pLen*n*m) to O(pLen*(n^2 + m)). Large asymptotic win on dense edge lists.",
+   "risk": "Requires building adjacency structure (extra stackalloc/buffer of size n+1 and m). Must skip pEdges[i] correctly within the adjacency scan. The unchecked Run contract assumes valid input; CSR build adds a one-time O(m) pass. Behavior preserved: same shortest distances excluding edge pEdges[i]."
+  },
+  {
+   "file": "src/IAFahim.Graph.ShortestPath/ShortestPaths.cs",
+   "symbol": "ReplacementPaths.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "In the relaxation loop, d[cur] and the index i (pEdges[i]) are loop-invariant across the e-loop; hoist d[cur] and pEdges[i] into locals, and short-circuit-order the && so the cheap e!=skip test runs first (it already does, but eu[e]==cur should precede the addition).",
+   "currentCost": "The condition e != pEdges[i] && eu[e] == cur && d[cur] + ew[e] < d[ev[e]] reloads d[cur] and pEdges[i] every edge, and computes d[cur]+ew[e] which involves a memory load of d[cur] each time.",
+   "proposedChange": "Before the e-loop: long dcur = d[cur]; int skip = pEdges[i]; then test if (e != skip && eu[e] == cur) { long nd = dcur + ew[e]; int tv = ev[e]; if (nd < d[tv]) d[tv] = nd; }.",
+   "rationale": "Removes redundant loads of d[cur] (potential aliasing prevents the compiler from caching it across the d[ev[e]] store) and pEdges[i] from the hot edge loop; computes ev[e] once. Fewer loads per edge shortens the dependency chain.",
+   "risk": "d[cur] is not modified inside the e-loop (cur is already settled/visited), so caching dcur is safe. Behavior identical."
+  },
+  {
+   "file": "src/IAFahim.Graph.ShortestPath/ShortestPaths.cs",
+   "symbol": "AllPairsMinPlus.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Hoist a[i*n+k] out of the k-loop is not possible (varies with k), but hoist the row base a + i*n and the running min; more importantly the branchy MaxValue guard inside the hot k-loop blocks Burst vectorization. Restructure to hoist row pointers and reduce index multiplies.",
+   "currentCost": "Inner loop recomputes a[i*n+k] and b[k*n+j] with full multiplies (i*n and k*n) every k, and has two MaxValue branches plus a branchy min. The k*n+j stride for b is column-walked, a poor (strided) access pattern, and i*n+k for a is sequential. The branch on != MaxValue per element defeats SIMD.",
+   "proposedChange": "Hoist long* arow = a + (long)i * n; before the j-loop. The b access b[k*n+j] is column-strided; this is min-plus matmul -- consider transposing b once into a scratch bt (bt[j*n+k]) so both inner accesses are sequential, enabling a vectorizable arow[k] (cmp/add/min) reduction. Replace the if(v<min) with branchless min = math.min(min, v) after computing v (MaxValue+w overflow guarded as below).",
+   "rationale": "Sequential access on both operands turns the inner reduction into a SIMD-friendly load/add/min pass; branchless min removes a mispredict-prone branch. This is the classic cache-blocking/transpose win for matrix-like O(n^3) kernels and is the hottest loop in the file.",
+   "risk": "Removing the MaxValue guard requires that long.MaxValue + (finite w) not wrap to a small value and corrupt min; must keep a guard or use saturating add. Safer form: keep the != MaxValue checks but transpose b for sequential access only (no semantic change). Transpose needs O(n^2) scratch (n*n longs) -- a real RAM cost to weigh; if scratch is unacceptable, at minimum hoist arow and the b column base."
+  },
+  {
+   "file": "src/IAFahim.Graph.ShortestPath/ShortestPaths.cs",
+   "symbol": "AllPairsMinPlus.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The two separate != long.MaxValue checks can be collapsed: if a[i*n+k]==MaxValue the whole row contribution for that k is skippable, but more cheaply, precompute whether arow[k]==MaxValue once and skip; for b[k*n+j] the check is per-(k,j) and unavoidable without transpose.",
+   "currentCost": "Per innermost iteration: two comparisons against MaxValue, an add, a compare-and-store for min. The a-side check a[i*n+k] is invariant across j (it only depends on i,k) yet is re-tested for every j in the current i,j,k ordering -- actually with j outer of k it is re-tested n times.",
+   "proposedChange": "Reorder is hard due to the min reduction, but cache long aik = arow[k]; once per k and test aik==MaxValue to early-continue. Since j is the middle loop and k innermost, aik is loaded fresh each k anyway -- the win is caching aik in a register for the add and comparison rather than two memory accesses.",
+   "rationale": "Eliminates one redundant memory load of a[i*n+k] per inner iteration (it is read implicitly twice: the guard and the add). Register reuse shortens the chain.",
+   "risk": "None; aik is read-only in the loop. Behavior identical."
+  },
+  {
+   "file": "src/IAFahim.Graph.ShortestPath/ShortestPaths.cs",
+   "symbol": "DynamicShortestPathUpdate.EdgeDecreased",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the row/column base pointers dist+i*n, dist+v*n out of the j-loop and cache the invariant sum d_iu+newW; the inner test reloads dist[v*n+j] and dist[i*n+j] with full multiplies each j.",
+   "currentCost": "Inner j-loop computes dist[v*n+j] (multiply v*n), dist[i*n+j] (multiply i*n), and d_iu+newW+d_vj every iteration. v*n and i*n are invariant across j but recomputed; d_iu+newW is invariant across j but recomputed each j.",
+   "proposedChange": "Before the j-loop: long* vrow = dist + (long)v * n; long* irow = dist + (long)i * n; long base = d_iu + newW; then for j: long d_vj = vrow[j]; if (d_vj != MaxValue) { long c = base + d_vj; if (c < irow[j]) irow[j] = c; }.",
+   "rationale": "Removes two multiplies per inner iteration (replaced by base+j sequential addressing) and one redundant add (d_iu+newW computed once per i instead of per j). Sequential vrow[j]/irow[j] access is also cache- and SIMD-friendlier.",
+   "risk": "i*n / v*n must not overflow int; cast to long before multiply for safety on large n (the dist buffer is n*n so n is bounded by addressable memory). Behavior identical -- base+d_vj == d_iu+newW+d_vj."
+  },
+  {
+   "file": "src/IAFahim.Graph.ShortestPath/ShortestPaths.cs",
+   "symbol": "MinimumCycleMean.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "In the Bellman-Ford-style DP, recompute of dp[(k-1)*n+eu[e]] (loaded twice: guard and add) and the index multiplies (k-1)*n and k*n per edge; hoist row base pointers prevRow=dp+(k-1)*n and curRow=dp+k*n once per k.",
+   "currentCost": "For each k and each edge: dp[(k-1)*n+eu[e]] is read twice (guard + add), plus k*n+ev[e] index for the store. (k-1)*n and k*n are invariant across the e-loop but recomputed each edge. Total m*n edge iterations.",
+   "proposedChange": "Per k iteration: long* prevRow = dp + (long)(k-1) * n; long* curRow = dp + (long)k * n; then per edge: long du = prevRow[eu[e]]; if (du != MaxValue) { long val = du + ew[e]; int te = ev[e]; if (val < curRow[te]) curRow[te] = val; }.",
+   "rationale": "Caches the double-read of dp[(k-1)*n+eu[e]] into du, removes two multiplies per edge by hoisting the row bases, and computes ev[e] once. Shortens dependency chain in the hot DP loop.",
+   "risk": "k*n and (k-1)*n must not overflow int; cast to long. dp is sized (n+1)*n so n bounded. Behavior identical."
+  },
+  {
+   "file": "src/IAFahim.Graph.ShortestPath/ShortestPaths.cs",
+   "symbol": "MinimumCycleMean.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "In the final Karp min-mean reduction, dp[n*n+v] is recomputed/reloaded for every k and the division uses runtime double divide; hoist dp[n*n+v] into a local and replace the divide-in-loop with a comparison reformulation to avoid n divisions per vertex.",
+   "currentCost": "For each vertex v, the k-loop does up to n double divisions (double)(dp[n*n+v]-dp[k*n+v])/(n-k) and reloads dp[n*n+v] (index n*n+v) each k. Division is ~20-40 cycles; n divisions per vertex * n vertices = O(n^2) divides.",
+   "proposedChange": "Hoist long dpNV = dp[n*n+v]; before the k-loop (it is invariant). The divide is harder to remove exactly while preserving the same max-of-ratios result; if exactness allows, note that comparing ratios a/(n-k) cross-multiplied changes semantics with mixed signs, so keep the divide but at minimum hoist dpNV and the row index k*n+v base pointer (kcol stride is n). Cache the n*n base once: long* lastRow = dp + (long)n*n;.",
+   "rationale": "Removes a redundant load of dp[n*n+v] per inner iteration and the n*n multiply; the loop becomes lastRow[v] - dp[k*n+v] with one hoisted multiply. The divide remains but its operands are cheaper to fetch.",
+   "risk": "Cross-multiplying to eliminate the divide is NOT safe here: (n-k) varies and dp differences can be negative (NegativeInfinity init avoided, but values can be negative), so reordering ratio comparisons via cross-multiply changes results. Therefore only hoist the invariant load/base, do not remove the divide. Behavior identical."
+  }
+ ]
+}

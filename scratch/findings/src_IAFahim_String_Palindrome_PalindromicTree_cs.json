@@ -1,0 +1,94 @@
+{
+ "file": "src/IAFahim.String.Palindrome/PalindromicTree.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.String.Palindrome/PalindromicTree.cs",
+   "symbol": "PalindromicTree.GetNext / PalindromicTree.SetNext / PalindromicTree.Build",
+   "severity": "critical",
+   "category": "pointer-ub",
+   "summary": "The eertree transition table does not exist: Node has only a single int field (Next0), but GetNext/SetNext treat each node as a 256-entry int[] indexed by the raw byte c (0..255), and additionally start the table at the wrong offset (+sizeof(int) lands on the Len field, not Next0). Both read and write therefore stride 4*c bytes past the node base, walking into neighbouring nodes' fields and far beyond the allocated buffer, corrupting Len/Link/Occ and causing heap out-of-bounds access (UB) for essentially every non-trivial input.",
+   "triggeringInput": "PalindromicTree.Build(s, 1) where s points to the single byte 97 ('a'). The buffer is sizeof(Node)*(1+3)=24*4=96 bytes (4 nodes). The first Extend(97) calls GetNext(1,97), which reads ((int*)((IntPtr)_node + 1*24 + 4))[97], i.e. byte offset 24+4+97*4 = 416 from _node base \u2014 ~320 bytes past the 96-byte allocation. Out-of-bounds heap read, followed by an out-of-bounds write in SetNext.",
+   "rootCause": "Node models the palindromic-tree (eertree) child transitions with a single int Next0, while the algorithm needs a per-node transition map over the alphabet. GetNext/SetNext compensate by indexing ((int*)ptr)[c] with c being a full byte (0..255), assuming 256 contiguous int slots per node that were never allocated. Worse, the base pointer is computed as node_base + sizeof(int), so index [0] aliases the Len field (offset 4) instead of Next0 (offset 0); for any positive byte value the access immediately leaves the node and, for typical character codes, leaves the allocated buffer entirely. Build only allocates sizeof(Node)*(len+3) bytes, with no room for any transition table.",
+   "suggestedFix": "Store transitions in a real per-node table. Either (a) add a fixed buffer to Node, e.g. 'public fixed int Next[256];' (or 26 for lowercase, mapping c-='a'), and have GetNext/SetNext index into that fixed buffer at the correct (offset-0) location: return _node[v].Next[c]; / _node[v].Next[c]=next; or (b) allocate a separate int[(len+3)*ALPHABET] transition array alongside the node array and index it as trans[v*ALPHABET + c]. Remove the erroneous '+ sizeof(int)' base adjustment, normalize/remap the byte to the chosen alphabet size, and size the allocation to include the table. Initialize all transition slots to -1."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Palindrome/PalindromicTree.cs",
+   "symbol": "Node",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Node struct (Next0:int, Len:int, Link:int, Occ:long) is 24 bytes due to long forcing 8-byte alignment with no padding issue, but the int,int,int,long layout already wastes no bytes; however Occ as long may be oversized.",
+   "currentCost": "sizeof(Node) is 24 bytes (3 ints = 12, then 8-byte aligned long at offset 16 -> 4 bytes padding after the three ints, total 24). For len up to ~2^31 characters Occ counts cannot exceed n which fits in int for any realistic Burst/mobile workload; the long doubles the field and forces 4 bytes of padding.",
+   "proposedChange": "If maximum occurrence count is bounded by string length (always true: a substring occurs at most n times), change Occ to int. Layout becomes 4 ints = 16 bytes, eliminating the 4 bytes of alignment padding AND 4 bytes of width = 24->16 bytes per node (33% smaller), improving cache density of the node array that both Build and Add stream through.",
+   "rationale": "Occurrence count of any palindrome is at most n; for n <= 2^31-1 (the addressable limit here, since indices are int) Occ never overflows int. Shrinking the hot Node from 24 to 16 bytes is a large working-set/cache-miss win on the pointer-chasing suffix-link walks.",
+   "risk": "Semantics change ONLY if a caller needs occurrence counts > int.MaxValue, impossible when n is an int. Verify no external API exposes Occ as long; if it does, keep long or expose via a widening accessor. Also re-check the overlay trick in DynamicPalindromicTree: the transition array indexes [c] starting at offset sizeof(int); with 4 ints the in-struct overlay still spans Len/Link/Occ as 3 int slots \u2014 confirm alphabet size used via this overlay never indexes c>=3, otherwise it reads out of the node. (This caveat already applies to the current code.)"
+  },
+  {
+   "file": "src/IAFahim.String.Palindrome/PalindromicTree.cs",
+   "symbol": "GetNext / SetNext",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace IntPtr-based byte-offset address arithmetic with typed pointer indexing to cut the per-call instruction count and improve Burst codegen.",
+   "currentCost": "Each GetNext/SetNext does ((IntPtr)_node + v*sizeof(Node) + sizeof(int)) then casts to int* and indexes [c]. This forces a load of the global _node, an integer multiply by 24 (non-power-of-two, not strength-reducible to a shift), an add, and a cast through IntPtr. These are the two hottest leaf methods, called inside both inner while-loops of Extend for every character.",
+   "proposedChange": "Cache the global pointer once into a local Node* at the top of Extend (and Build), and pass it down or index directly: e.g. int* row = (int*)((byte*)node + (nint)v*sizeof(Node) + sizeof(int)); return row[c]; Using (byte*) avoids the IntPtr round-trip. Better, precompute a stride and keep the base as Node*; the multiply by 24 stays but the IntPtr boxing-of-pointer-arithmetic pattern is removed, which Burst lowers more cleanly.",
+   "rationale": "IntPtr arithmetic mixes managed-pointer semantics that Burst/JIT handle less efficiently than raw byte*/typed-pointer indexing. Removing the IntPtr intermediary and the repeated global-field load (replaced by a register-resident local) shortens the dependency chain in the tightest loop.",
+   "risk": "Pure address-arithmetic refactor; identical bytes accessed. No semantic change. Must keep the same sizeof(Node) stride and +sizeof(int) base offset exactly."
+  },
+  {
+   "file": "src/IAFahim.String.Palindrome/PalindromicTree.cs",
+   "symbol": "PalindromicTree (static fields _node/_size/_last/_len)",
+   "dimension": "purity",
+   "impact": "high",
+   "summary": "Mutable static global state makes the type non-reentrant, non-thread-safe, and leaks the AllocHGlobal buffer; convert to an unmanaged struct context passed by pointer/ref.",
+   "currentCost": "_node, _size, _last, _len are static. Build() overwrites them and AllocHGlobals a new buffer every call with no Free, leaking memory on each Build. Two concurrent or nested Builds corrupt each other. Every GetNext/SetNext re-loads the static _node global from memory.",
+   "proposedChange": "Introduce a blittable struct PalindromicTreeState { public Node* Node; public int Size; public int Last; public int Len; } and make Build/Extend/DistinctCount take PalindromicTreeState* (or ref). Provide a Free(PalindromicTreeState*) that calls Marshal.FreeHGlobal. This also lets GetNext/SetNext read the pointer from a register-resident local rather than a global.",
+   "rationale": "Removes hidden mutable global state (purity/determinism), fixes the per-call memory leak, enables reentrancy/Burst job usage, and lets the compiler keep the base pointer in a register across the hot loops instead of reloading a static field.",
+   "risk": "API-breaking change (signatures change). Behavior for a single sequential Build call is preserved. Caller must now own/free the buffer."
+  },
+  {
+   "file": "src/IAFahim.String.Palindrome/PalindromicTree.cs",
+   "symbol": "Node + Build allocation / transition storage",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "The Node struct stores only one int (Next0) but GetNext/SetNext index [c] for c in 0..255, reading/writing 256 ints per node; the storage model and the (len+3) allocation are inconsistent and massively under-allocated.",
+   "currentCost": "sizeof(Node)=24 bytes (one transition slot Next0). GetNext(v,c)=((int*)(base+v*24+4))[c] accesses offset v*24+4+c*4, up to +1024 bytes past the node base \u2014 i.e. each node's transition row overruns into ~42 following nodes. The buffer is only (len+3)*24 bytes, so for non-trivial input this reads/writes out of bounds and nodes clobber each other.",
+   "proposedChange": "Decide the real alphabet. If the input is a small alphabet (e.g. lowercase letters, K<=26), store a fixed transition array fixed int Next[K] inside Node and size the allocation accordingly; index with c-base. If full byte alphabet is required, allocate a separate int[256] transition table per node (256*4=1024 bytes/node) explicitly and size the buffer as (len+2)*(256 ints) \u2014 and consider a hash/sparse map since most rows are empty to save RAM/cache. Either way make the per-node stride match the indexed range so accesses stay in bounds.",
+   "rationale": "Correct, bounds-consistent storage is a prerequisite for any perf claim. A right-sized fixed array also makes the struct blittable and the access a single base+ (c<<2) load with no overlap, and a sparse/hashed alphabet cuts 1KB/node of mostly-zero memory (huge cache-miss reduction for large len).",
+   "risk": "This is the load-bearing correctness issue, not a micro-opt: current code is out-of-bounds for any meaningful input. Fixing it changes the memory layout and allocation size; observable behavior changes only in that it stops corrupting memory. Choose alphabet size to match the documented contract."
+  },
+  {
+   "file": "src/IAFahim.String.Palindrome/PalindromicTree.cs",
+   "symbol": "Build",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Zero-initialize the transition rows in bulk instead of relying on per-node Next0=-1 (which only clears one of the many transition slots).",
+   "currentCost": "Build sets _node[0/1].Next0=-1 and Extend sets _node[cur].Next0=-1, initializing only the single Next0 field; the remaining 255 transition ints per node are left as whatever AllocHGlobal returned (uninitialized), so GetNext on an unset (v,c) does not reliably return -1.",
+   "proposedChange": "After AllocHGlobal, initialize the entire transition region to -1 once (e.g. a typed fill loop or, if rows are contiguous, Unsafe.InitBlock with 0xFF over the transition bytes), then drop the per-node single-field reset. A single linear memset-style pass is cache-friendly and removes a redundant per-Extend write.",
+   "rationale": "GetNext relies on -1 sentinel for absent transitions; only a full-region init makes that correct. Doing it once linearly is cheaper and more vectorizer-friendly than scattered per-node writes, and removes one store per Extend.",
+   "risk": "Depends on resolving the storage-model decision above. Once the transition array size is fixed, a 0xFF fill yields -1 for every int (two's complement), which matches the sentinel exactly."
+  },
+  {
+   "file": "src/IAFahim.String.Palindrome/PalindromicTree.cs",
+   "symbol": "Extend",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist repeated _node[p].* and GetNext(p,c) loads into locals across the suffix-link walk loops to shrink the dependency chain.",
+   "currentCost": "In both while-loops, GetNext(p,c) is evaluated in the loop condition and then SetNext(p,c,...) re-derives the same row address; _node[p].Link is loaded separately. The second loop compares GetNext(p,c)==q then SetNext(p,c,clone), recomputing the row base twice per iteration.",
+   "proposedChange": "Compute the row base int* row = &transition[p] once per iteration, read row[c] into a local for the condition, and write row[c] in the body using the same local pointer; load _node[p].Link from a cached Node* local. Cache c-adjusted index once.",
+   "rationale": "Eliminates duplicate address computation (the v*24 multiply + base add) per loop iteration and the duplicate row[c] load, shortening the critical dependency chain of the inner loop that dominates eertree construction.",
+   "risk": "Pure reassociation of identical memory accesses; preserves behavior provided the row pointer is recomputed each iteration after p changes."
+  },
+  {
+   "file": "src/IAFahim.String.Palindrome/PalindromicTree.cs",
+   "symbol": "Build",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Adopt the library Run/Try convention and return the constructed handle instead of mutating globals, and expose Occ-propagation / suffix-link results explicitly.",
+   "currentCost": "Build returns void and writes hidden state; callers cannot run it as a pure function, and Occ counts are set to 1 per node but never propagated down suffix links (DistinctCount is the only query). The API is harder to discover and inconsistent with the rest of the library's unchecked-Run style.",
+   "proposedChange": "Rename to RunBuild(PalindromicTreeState* state, byte* s, int len) returning the node count (or void) with state passed in, and add a RunPropagateOccurrences(state) that walks nodes in reverse creation order adding Occ to node[Link].Occ, so Occ is actually meaningful. Keep DistinctCount(state*).",
+   "rationale": "Matches the library's Run/Try naming and pointer-context convention, improves discoverability, and makes the Occ field (currently dead/initialized-but-unused) actually usable without changing the hot path.",
+   "risk": "API naming/shape change only; construction semantics unchanged. Occ propagation is additive (opt-in method), not altering existing outputs of DistinctCount."
+  }
+ ]
+}

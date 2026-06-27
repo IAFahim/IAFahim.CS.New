@@ -1,0 +1,658 @@
+[
+ {
+  "file": "src/IAFahim.Search.RangeQueries/QueriesOverTime.cs",
+  "line": 8,
+  "ret": "void",
+  "name": "StaticRangeInversions",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Search.RangeQueries/QueriesOverTime.cs",
+  "line": 9,
+  "ret": "void",
+  "name": "StaticRangeMode",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Search.RangeQueries/QueriesOverTime.cs",
+  "line": 10,
+  "ret": "void",
+  "name": "StaticRangeMex",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Search.RangeQueries/QueriesOverTime.cs",
+  "line": 11,
+  "ret": "void",
+  "name": "Offline2DRangeAddRangeSum",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Search.RangeQueries/QueriesOverTime.cs",
+  "line": 12,
+  "ret": "void",
+  "name": "Offline3DPartialOrder",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Search.RangeQueries/QueriesOverTime.cs",
+  "line": 13,
+  "ret": "void",
+  "name": "CdqDynamicInversions",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Search.RangeQueries/QueriesOverTime.cs",
+  "line": 14,
+  "ret": "void",
+  "name": "DivideConquerOnTime",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Search.RangeQueries/QueriesOverTime.cs",
+  "line": 15,
+  "ret": "void",
+  "name": "SegmentTreeOverTimeAdd",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Search.RangeQueries/QueriesOverTime.cs",
+  "line": 16,
+  "ret": "void",
+  "name": "SegmentTreeOverTimeDfs",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Search.RangeQueries/AdvancedRangeQueries.cs",
+  "line": 8,
+  "ret": "void",
+  "name": "RangeSuccessorQuery",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Search.RangeQueries/AdvancedRangeQueries.cs",
+  "line": 9,
+  "ret": "void",
+  "name": "RangePredecessorQuery",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Search.RangeQueries/AdvancedRangeQueries.cs",
+  "line": 10,
+  "ret": "void",
+  "name": "RangeChminChmaxSum",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Search.RangeQueries/AdvancedRangeQueries.cs",
+  "line": 11,
+  "ret": "void",
+  "name": "RangeModuloUpdate",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Search.RangeQueries/AdvancedRangeQueries.cs",
+  "line": 12,
+  "ret": "void",
+  "name": "RangeGcdQuery",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Search.RangeQueries/AdvancedRangeQueries.cs",
+  "line": 13,
+  "ret": "void",
+  "name": "RangeLcmQuery",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Search.RangeQueries/AdvancedRangeQueries.cs",
+  "line": 14,
+  "ret": "void",
+  "name": "RangeBitwiseAndQuery",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Search.RangeQueries/AdvancedRangeQueries.cs",
+  "line": 15,
+  "ret": "void",
+  "name": "RangeBitwiseOrQuery",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Search.RangeQueries/AdvancedRangeQueries.cs",
+  "line": 16,
+  "ret": "void",
+  "name": "RangeBitwiseXorQuery",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Search.RangeQueries/AdvancedRangeQueries.cs",
+  "line": 17,
+  "ret": "void",
+  "name": "RangeAffineUpdate",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Search.RangeQueries/AdvancedRangeQueries.cs",
+  "line": 18,
+  "ret": "void",
+  "name": "RangeAffineQuery",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Search.RangeQueries/AdvancedRangeQueries.cs",
+  "line": 19,
+  "ret": "void",
+  "name": "RangeAssignUpdate",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Search.RangeQueries/AdvancedRangeQueries.cs",
+  "line": 20,
+  "ret": "void",
+  "name": "RangeMajorityQuery",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Search.RangeQueries/AdvancedRangeQueries.cs",
+  "line": 21,
+  "ret": "void",
+  "name": "RangeDistinctCount",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Search.RangeQueries/AdvancedRangeQueries.cs",
+  "line": 22,
+  "ret": "void",
+  "name": "RangeInversionQuery",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Search.RangeQueries/AdvancedRangeQueries.cs",
+  "line": 23,
+  "ret": "void",
+  "name": "RangeKthSmallest",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Search.RangeQueries/AdvancedRangeQueries.cs",
+  "line": 24,
+  "ret": "void",
+  "name": "RangeKthLargest",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Search.RangeQueries/AdvancedRangeQueries.cs",
+  "line": 25,
+  "ret": "void",
+  "name": "RangeMedianQuery",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Search.RangeQueries/OfflineQueries.cs",
+  "line": 8,
+  "ret": "void",
+  "name": "OfflineRangeCount",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Search.RangeQueries/OfflineQueries.cs",
+  "line": 9,
+  "ret": "void",
+  "name": "FractionalCascadingBuild",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Search.RangeQueries/OfflineQueries.cs",
+  "line": 10,
+  "ret": "void",
+  "name": "FractionalCascadingQuery",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Geometry.Arrangement/PointLocation.cs",
+  "line": 8,
+  "ret": "void",
+  "name": "PointLocationBuild",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Geometry.Arrangement/PointLocation.cs",
+  "line": 9,
+  "ret": "void",
+  "name": "PointLocationQuery",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Geometry.Arrangement/PointLocation.cs",
+  "line": 10,
+  "ret": "void",
+  "name": "VerticalDecomposition",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Geometry.Arrangement/PointLocation.cs",
+  "line": 11,
+  "ret": "void",
+  "name": "TrapezoidalMapBuild",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Geometry.Arrangement/PointLocation.cs",
+  "line": 12,
+  "ret": "void",
+  "name": "TrapezoidalMapQuery",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Geometry.Arrangement/PointLocation.cs",
+  "line": 13,
+  "ret": "void",
+  "name": "ArrangementBuild",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Geometry.Arrangement/PointLocation.cs",
+  "line": 14,
+  "ret": "void",
+  "name": "ArrangementFaces",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.WaveletMatrix/WaveletMatrixAdvanced.cs",
+  "line": 8,
+  "ret": "void",
+  "name": "WaveletMatrixQuantile",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.WaveletMatrix/WaveletMatrixAdvanced.cs",
+  "line": 9,
+  "ret": "void",
+  "name": "WaveletMatrixPrevValue",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.WaveletMatrix/WaveletMatrixAdvanced.cs",
+  "line": 10,
+  "ret": "void",
+  "name": "WaveletMatrixNextValue",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.WaveletMatrix/WaveletMatrixAdvanced.cs",
+  "line": 11,
+  "ret": "void",
+  "name": "WaveletMatrixIntersect",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.WaveletMatrix/WaveletMatrixAdvanced.cs",
+  "line": 12,
+  "ret": "void",
+  "name": "WaveletMatrixRectangleSum",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.WaveletMatrix/WaveletMatrixAdvanced.cs",
+  "line": 13,
+  "ret": "void",
+  "name": "WaveletMatrixRectangleCount",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.WaveletMatrix/WaveletMatrixAdvanced.cs",
+  "line": 14,
+  "ret": "void",
+  "name": "SuccinctWaveletBuild",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.WaveletMatrix/WaveletMatrixAdvanced.cs",
+  "line": 15,
+  "ret": "void",
+  "name": "SuccinctWaveletRank",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.WaveletMatrix/WaveletMatrixAdvanced.cs",
+  "line": 16,
+  "ret": "void",
+  "name": "SuccinctWaveletSelect",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Geometry.Hull/ConvexHullRollback.cs",
+  "line": 8,
+  "ret": "void",
+  "name": "ConvexHullRollbackAdd",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Geometry.Hull/ConvexHullRollback.cs",
+  "line": 9,
+  "ret": "void",
+  "name": "ConvexHullRollbackQuery",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.SegmentTree/LiChaoTree.cs",
+  "line": 14,
+  "ret": "void",
+  "name": "PersistentLiChaoAdd",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.SegmentTree/LiChaoTree.cs",
+  "line": 15,
+  "ret": "void",
+  "name": "PersistentLiChaoQuery",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.SegmentTree/LiChaoTree.cs",
+  "line": 16,
+  "ret": "void",
+  "name": "DynamicLiChaoRollback",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.SegmentTree/LiChaoTree.cs",
+  "line": 17,
+  "ret": "void",
+  "name": "LiChaoRollback",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.SegmentTree/LiChaoTree.cs",
+  "line": 18,
+  "ret": "void",
+  "name": "DivideConquerHullOptimization",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.SegmentTree/LiChaoTree.cs",
+  "line": 19,
+  "ret": "void",
+  "name": "OnlineChtAdd",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.SegmentTree/LiChaoTree.cs",
+  "line": 20,
+  "ret": "void",
+  "name": "OnlineChtQuery",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.SegmentTree/KineticDS.cs",
+  "line": 8,
+  "ret": "void",
+  "name": "KineticTournamentBuild",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.SegmentTree/KineticDS.cs",
+  "line": 9,
+  "ret": "void",
+  "name": "KineticTournamentUpdate",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.SegmentTree/KineticDS.cs",
+  "line": 10,
+  "ret": "void",
+  "name": "KineticTournamentWinner",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.SegmentTree/KineticDS.cs",
+  "line": 11,
+  "ret": "void",
+  "name": "KineticSegmentTreeBuild",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.SegmentTree/KineticDS.cs",
+  "line": 12,
+  "ret": "void",
+  "name": "KineticSegmentTreeQuery",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Collections.NoDeps/BLGlobalLogger.cs",
+  "line": 9,
+  "ret": "void",
+  "name": "LogError512",
+  "args": "string msg",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Collections.NoDeps/BLGlobalLogger.cs",
+  "line": 12,
+  "ret": "void",
+  "name": "LogWarningString",
+  "args": "string msg",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Collections.NoDeps/CollectionHelper.cs",
+  "line": 18,
+  "ret": "void",
+  "name": "CheckAllocator",
+  "args": "AllocatorManager.AllocatorHandle allocator",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Collections.NoDeps/AllocatorManager.cs",
+  "line": 42,
+  "ret": "void",
+  "name": "Allocate",
+  "args": "AllocatorHandle allocator, void* ptr, long sizeInBytes, int alignInBytes",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Geometry.Advanced/PolygonBoolean.cs",
+  "line": 8,
+  "ret": "void",
+  "name": "PolygonBooleanUnion",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Geometry.Advanced/PolygonBoolean.cs",
+  "line": 9,
+  "ret": "void",
+  "name": "PolygonBooleanIntersection",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Geometry.Advanced/PolygonBoolean.cs",
+  "line": 10,
+  "ret": "void",
+  "name": "PolygonBooleanDifference",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.Geometry.Advanced/PolygonBoolean.cs",
+  "line": 11,
+  "ret": "void",
+  "name": "PolygonBooleanXor",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.RollbackSeg/Retroactive.cs",
+  "line": 8,
+  "ret": "void",
+  "name": "RetroactiveQueueInsert",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.RollbackSeg/Retroactive.cs",
+  "line": 9,
+  "ret": "void",
+  "name": "RetroactiveQueueDelete",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.RollbackSeg/Retroactive.cs",
+  "line": 10,
+  "ret": "void",
+  "name": "RetroactivePriorityQueueInsert",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.RollbackSeg/Retroactive.cs",
+  "line": 11,
+  "ret": "void",
+  "name": "RetroactivePriorityQueueDelete",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.RollbackSeg/Retroactive.cs",
+  "line": 12,
+  "ret": "void",
+  "name": "OfflineDeleteSegmentTree",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.RollbackSeg/Retroactive.cs",
+  "line": 13,
+  "ret": "void",
+  "name": "RetroactiveConnectivity",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.RollbackSeg/RollbackBasis.cs",
+  "line": 8,
+  "ret": "void",
+  "name": "LinearBasisRollbackInsert",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.RollbackSeg/RollbackBasis.cs",
+  "line": 9,
+  "ret": "void",
+  "name": "LinearBasisRollbackMax",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.RollbackSeg/RollbackBasis.cs",
+  "line": 10,
+  "ret": "void",
+  "name": "RangeBasisQuery",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.RollbackSeg/RollbackSegVariants.cs",
+  "line": 8,
+  "ret": "void",
+  "name": "RollbackSegmentTreeUpdate",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.RollbackSeg/RollbackSegVariants.cs",
+  "line": 9,
+  "ret": "void",
+  "name": "RollbackSegmentTreeQuery",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.RollbackSeg/RollbackSegVariants.cs",
+  "line": 10,
+  "ret": "void",
+  "name": "SegmentTreeDivideConquer",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.RollbackSeg/RollbackSegVariants.cs",
+  "line": 11,
+  "ret": "void",
+  "name": "IntervalStabbingQuery",
+  "args": "",
+  "kind": "empty"
+ },
+ {
+  "file": "src/IAFahim.DS.RollbackSeg/RollbackSegVariants.cs",
+  "line": 12,
+  "ret": "void",
+  "name": "RectangleStabbingQuery",
+  "args": "",
+  "kind": "empty"
+ }
+]

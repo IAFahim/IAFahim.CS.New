@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Math.Combinatorics/Sieve.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.Combinatorics/Sieve.cs",
+   "symbol": "SegmentedSieve.Run",
+   "severity": "high",
+   "category": "off-by-one",
+   "summary": "When low==0, the value 1 is never marked non-prime and is incorrectly reported as prime. Line 45 only marks index 0 (value 0) false for low==0; value 1 lives at index 1 and is handled only in the separate low==1 branch (line 46), so for a block starting at 0 the integer 1 escapes both the special-case marks and the sieving loop (the smallest prime p marks from start=p*2, never touching value 1).",
+   "triggeringInput": "low=0, high=5, with a valid base primes array {2,3} (primeCount=2). result will include 1 as a prime: output contains 1.",
+   "rootCause": "The special handling distinguishes low==0 vs low==1 but for low==0 it marks only index 0 (the integer 0) and forgets that the integer 1 (at index 1) must also be marked composite. The main sieving loop starts each prime at p*2, so 1 is never crossed off.",
+   "suggestedFix": "When low==0 (i.e. the block covers the integer 1), also set isPrime[1-low]=isPrime[1]=false. E.g. after marking index 0: `if (low <= 1 && high >= 1) isPrime[1 - low] = false;` and remove the bogus Math.Min(0L,size-1) construct."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Combinatorics/Sieve.cs",
+   "symbol": "SievePrimes.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Sieve only odd numbers and use Unsafe.InitBlock for the bool fill; hoist p*p.",
+   "currentCost": "Marks all evens then crosses them implicitly; the init loop writes isPrime[i]=true one byte at a time; inner crossing starts at p*p but iterates over even multiples too. p*p is recomputed in the condition each outer step.",
+   "proposedChange": "Fill isPrime with Unsafe.InitBlock(isPrime, 1, (uint)(n+1)) instead of the byte loop. In the crossing loop, step i += 2*p after starting at p*p (skip even multiples since p is odd; handle p=2 separately). Cache long pp = (long)p*p to avoid 32-bit overflow and recomputation.",
+   "rationale": "InitBlock vectorizes the fill; stepping 2*p halves inner writes for odd primes; caching pp removes per-iteration multiply and the int overflow risk when p*p exceeds int range near n~2^31.",
+   "risk": "p*p as int overflows for p > ~46340; current `p*p <= n` can wrap negative and terminate early or loop wrongly \u2014 using long pp fixes a latent bug. The 2*p stepping must special-case p=2. Preserves prime set."
+  },
+  {
+   "file": "src/IAFahim.Math.Combinatorics/Sieve.cs",
+   "symbol": "SegmentedSieve.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Fix the low==1 index bug and remove per-prime double-counting; the Math.Min(0L,size-1) marking is wrong.",
+   "currentCost": "Line 46 `isPrime[Math.Min(0L, size-1)] = false` evaluates Math.Min(0, size-1) which is 0 for any size>=1, so it always marks index 0 (value `low`) regardless of whether low==1 maps there \u2014 it only intends to strike out 1. Also start clamp `if (start < p*2) start = p*2` re-marks p itself unnecessarily.",
+   "proposedChange": "Replace line 46 with a direct mark of the cell for value 1: if low<=1<=high then isPrime[1-low]=false. Keep start at max(p*p, ceil(low/p)*p) so primes p in range aren't struck. Hoist (long)Math.Sqrt(high) is fine but compute once (already done).",
+   "rationale": "Correctness: current expression marks the wrong cell and can falsely exclude `low` or fail to exclude 1; Math.Min with a constant 0 is a no-op disguised as logic. Using p*p as the composite start (not p*2) avoids striking the prime p itself when it lies in [low,high].",
+   "risk": "This is a semantics FIX, not a pure micro-opt \u2014 flag for review: the current behavior is buggy. The corrected version changes output for ranges including 0/1 and ranges where a sieving prime lies inside [low,high]. Confirm intended definition (1 is non-prime) before applying."
+  },
+  {
+   "file": "src/IAFahim.Math.Combinatorics/Sieve.cs",
+   "symbol": "IsPrime.ModMul",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace the O(log b) add-loop ModMul with Math.BigMul/128-bit or unchecked direct multiply when n is small enough.",
+   "currentCost": "ModMul does up to 63 iterations of add-and-double per multiply; ModPow calls it O(log e) times, and Miller-Rabin calls ModPow per witness (12). So each primality test is O(witnesses * log n * log n) modular ADD iterations \u2014 extremely heavy.",
+   "proposedChange": "When n < 2^31 (or n*n fits in long, i.e. n <= ~3037000499 boundary), do `(a*b)%mod` directly. For larger n use System.Math.BigMul(ulong,ulong,out high) + 128-bit reduction (Burst-supported intrinsics) or unsigned __int128-style via two ulongs. Branch once at entry on n's magnitude.",
+   "rationale": "Turns a ~63-iteration loop into a single multiply (or one 128-bit mul + reduce), cutting Miller-Rabin cost by ~1-2 orders of magnitude. Direct path is fully branchless.",
+   "risk": "Direct a*b overflows long when mod >= ~3.04e9; must guard with the magnitude check. BigMul path needs unsigned handling (inputs are already reduced non-negative < mod, so cast to ulong is safe). For mod up to 2^31 the simple path is provably overflow-free and exact."
+  },
+  {
+   "file": "src/IAFahim.Math.Combinatorics/Sieve.cs",
+   "symbol": "IsPrime.Run",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Shrink the witness set based on n's magnitude to skip unnecessary Miller-Rabin rounds.",
+   "currentCost": "Always iterates the 12-witness table (with an early break when a>=n). For deterministic correctness only a subset is needed below known thresholds (e.g. {2,3,5,7,11,13,17,19,23,29,31,37} is needed only above ~3.3e24, far beyond long range).",
+   "proposedChange": "For 64-bit n, the deterministic set {2,3,5,7,11,13,17,19,23,29,31,37} is sufficient but {2,3,5,7,11,13,17,19,23,29,31,37} can be reduced: e.g. n < 3,215,031,751 needs only {2,3,5,7}; n < 3.4e14 needs {2,3,5,7,11,13,17}. Branch on n to pick the count, looping fewer witnesses.",
+   "rationale": "Each skipped witness saves a full ModPow (O(log n) ModMuls). For the common 32-bit-range inputs this cuts witness count from up to 12 down to 4, a ~3x reduction in the dominant cost.",
+   "risk": "Thresholds must be exact and documented as named constants; using a too-small set below its proven bound would break correctness. The full 12-witness set is always safe within long range, so any reduction must be guarded by verified bounds."
+  }
+ ]
+}

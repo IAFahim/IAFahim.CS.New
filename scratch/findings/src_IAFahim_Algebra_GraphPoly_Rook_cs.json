@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Algebra.GraphPoly/Rook.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Algebra.GraphPoly/Rook.cs",
+   "symbol": "Rook.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Precompute a power-of-x table so xPow becomes an O(1) lookup instead of an O(count) loop per valid placement.",
+   "currentCost": "For every valid mask, xPow is built by multiplying x together count times: O(count) modular muls, count up to min(n,m). Over up to 2^(n*m) masks this adds O(min(n,m) * 2^(n*m)) redundant muls.",
+   "proposedChange": "Before the loop, precompute xPowTable[k]=x^k for k in [0, min(n,m)] (count cannot exceed min(n,m)). Then result = (result + xPowTable[count]) % MOD. count is already returned by IsValidPlacement.",
+   "rationale": "Turns the inner exponentiation into a single array load, dropping the dominant placement-counting loop's per-valid-mask cost from O(min(n,m)) to O(1); table build is one cheap O(min(n,m)) pass.",
+   "risk": "x is taken mod implicitly via the running product; precompute table the same way ((prev*x)%MOD) to match exactly. Table size min(n,m)+1 longs, tiny. No semantic change."
+  },
+  {
+   "file": "src/IAFahim.Algebra.GraphPoly/Rook.cs",
+   "symbol": "Rook.IsValidPlacement",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Skip cleared mask cells with a set-bit iteration and avoid resetting rowUsed/colUsed fully when few bits are set; also early-out is already present.",
+   "currentCost": "For every mask in [0,2^(n*m)), the function clears n+m bool flags then scans all n*m cells testing (mask & (1L<<bit)). Most cells are clear, yet every cell is visited and 1L<<bit is recomputed each step.",
+   "proposedChange": "Iterate over set bits of mask via TrailingZeroCount on the 64-bit mask (mask is long): extract each set bit position, derive i=bit/m, j=bit%m (or precompute row/col per bit). This visits only placed rooks (popcount) rather than all n*m cells. Keep the rowUsed/colUsed clears.",
+   "rationale": "Reduces inner work from O(n*m) per mask to O(popcount) per mask and removes the recomputed 1L<<bit shift; the conflict/blocked checks then run only on actually-placed cells. Significant since most masks have few set bits on average.",
+   "risk": "bit/m and bit%m introduce a divide; if m is not a power of two consider precomputing per-bit (row,col) tables of size n*m to avoid the div, or keep div since it is off the very hottest path. Clearing rowUsed/colUsed still O(n+m) per mask \u2014 acceptable. Behaviour identical: same conflict detection, same count. mask is long so use 64-bit TrailingZeroCount ((ulong)mask)."
+  }
+ ]
+}

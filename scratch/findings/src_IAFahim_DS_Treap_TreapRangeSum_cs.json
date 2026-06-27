@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.DS.Treap/TreapRangeSum.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.Treap/TreapRangeSum.cs",
+   "symbol": "TreapRangeSum.Push",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "Push is a hot non-recursive leaf called inside both Split and Merge but lacks AggressiveInlining, unlike the sibling helpers.",
+   "currentCost": "Push (lines 43-49) is invoked on every Split node (line 57) and twice per Merge (lines 78-79). It is non-recursive (it only mutates the node and its two children) yet is a separate non-inlined call, adding call/return overhead and a register spill barrier inside the hottest tree-traversal loops. Apply, which it calls, IS inlined, but Push itself is not.",
+   "proposedChange": "Add `[MethodImpl(MethodImplOptions.AggressiveInlining)]` to Push (matching the attribute already on Size/Sum/Update/Apply/Merge). The early-out `if (n == null || n->LazyAdd == 0) return;` keeps the inlined body tiny in the common (no-lazy) case.",
+   "rationale": "Inlining a tiny, non-recursive leaf into Split/Merge removes call overhead, lets Burst/LLVM fold the n==null and LazyAdd==0 checks with surrounding code, and shortens the dependency chain in the dominant traversal path. The body is small (one branch + two Apply calls), so code-bloat risk is minimal.",
+   "risk": "None to semantics; Push is non-recursive so inlining cannot blow up like a recursive inline. The corresponding Push in TreapRangeReverse (also non-recursive, also un-inlined) is the same pattern and could get the same treatment for consistency."
+  },
+  {
+   "file": "src/IAFahim.DS.Treap/TreapRangeSum.cs",
+   "symbol": "TreapRangeSum.Update",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Update recomputes Size and Sum via four null-checked helper calls that reload child pointers and re-test null redundantly.",
+   "currentCost": "Update (lines 30-31) calls Size(n->Left), Size(n->Right), Sum(n->Left), Sum(n->Right) \u2014 four calls, each loading the child pointer and branching on null, so n->Left and n->Right are tested for null twice and dereferenced up to twice. In Split/Merge, Update runs on every node touched on the path (O(log n) per op), so this redundancy is on the hot path.",
+   "proposedChange": "Cache the children once and combine: `TreapSumNode* l = n->Left; TreapSumNode* r = n->Right; int ls = l==null?0:l->Size; int rs = r==null?0:r->Size; long lsum = l==null?0:l->Sum; long rsum = r==null?0:r->Sum; n->Size = 1+ls+rs; n->Sum = n->Value+lsum+rsum;` \u2014 or, since Size and Sum live in the same cache line as the node, load l->Size and l->Sum together under a single null test: `if(l!=null){ls=l->Size;lsum=l->Sum;}`.",
+   "rationale": "Reduces the per-node null branches from 4 to 2 and the child-pointer loads from 4 to 2, and loads Size+Sum of each child together (same struct, likely same cache line) so the second access is a guaranteed L1 hit. Shortens the dependency chain and removes two predictable-but-nonzero branches per Update on every path node.",
+   "risk": "Semantics identical; the inlined Size/Sum helpers already do the same null->0 mapping. Only caveat: ensure the manual null checks keep the exact `n==null` short-circuit \u2014 but Update already guards n==null at line 29, so l/r checks are the only ones needed. Burst will likely already do some of this; the win is guaranteeing it and tightening the cache behavior."
+  },
+  {
+   "file": "src/IAFahim.DS.Treap/TreapRangeSum.cs",
+   "symbol": "TreapRangeSum (TreapSumNode struct)",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "TreapSumNode is 8 bytes larger than necessary due to Priority/Size field ordering leaving the layout already tight, but Priority could share with Size packing is not the issue \u2014 the real note is cache-line footprint of the hot fields.",
+   "currentCost": "TreapSumNode is Priority(4)+Size(4)+Value(8)+Sum(8)+LazyAdd(8)+Left(8)+Right(8) = 48 bytes (Sequential, naturally aligned, no padding). Split/Merge/Push touch Size, Sum, LazyAdd, Left, Right \u2014 but Value is only needed by Update/Apply. The hot traversal fields (Size, Left, Right) span from offset 4 to 47, crossing into the second half of the struct.",
+   "proposedChange": "Reorder fields so the traversal-hot fields cluster at the front: Left, Right, Size, Priority, then Sum, LazyAdd, Value. This keeps Left/Right/Size (read on every Split/Merge step) within the first 16-20 bytes, improving the odds a single cache line prefetch covers the pointer-chase set. Keep [StructLayout(LayoutKind.Sequential)] and explicit types.",
+   "rationale": "Pointer-chasing treaps are latency-bound on cache misses; clustering the fields read during traversal (Left, Right, Size) at the front of the struct maximizes useful bytes per fetched cache line and can reduce effective miss cost. Same total size (48B), zero RAM increase, pure layout win.",
+   "risk": "Layout reorder is observable only via interop/serialization that assumes field order; within this unmanaged-pointer library nothing depends on offsets, so behavior is preserved. Apply the identical reorder to TreapRevNode for consistency if desired. Low impact because the struct already fits well within typical 64B lines; benefit is marginal unless nodes straddle line boundaries."
+  },
+  {
+   "file": "src/IAFahim.DS.Treap/TreapRangeSum.cs",
+   "symbol": "TreapRangeSum.AddRange / QuerySum",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "AddRange and QuerySum recompute the window length r-l+1 and perform two splits then two merges; the merge nesting allocates no scratch but the call pattern can hoist the length and avoid a redundant Merge null path.",
+   "currentCost": "Both AddRange (line 97) and QuerySum (line 108) compute `r - l + 1` inline and call Split twice + Merge twice (`Merge(left, Merge(mid, right))`). The inner Merge(mid,right) then outer Merge(left,...) each re-run Push on a/b. No correctness issue, but `r-l+1` is recomputed and the merge order forces Push(mid) and Push(left) sequentially.",
+   "proposedChange": "Hoist `int len = r - l + 1;` into a named local and pass it to the second Split for clarity/consistency with Rotate. This is primarily ergonomics/consistency; the merge structure is already optimal (left-leaning rebuild). No functional change to the split/merge counts.",
+   "rationale": "Marginal: avoids one redundant add and matches the `len` naming convention used in Rotate, improving readability and giving the JIT/Burst a single SSA value. The dominant cost is the O(log n) Split/Merge tree work, which is already minimal.",
+   "risk": "None \u2014 pure local hoist, identical semantics. Listed as low because the arithmetic saving is negligible; include only if consistency with Rotate's `len` convention is desired."
+  }
+ ]
+}

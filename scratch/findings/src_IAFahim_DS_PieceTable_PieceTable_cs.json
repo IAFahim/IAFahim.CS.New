@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.DS.PieceTable/PieceTable.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.DS.PieceTable/PieceTable.cs",
+   "symbol": "PieceTableInsert.Run",
+   "severity": "high",
+   "category": "logic",
+   "summary": "Insert copies only as many bytes as fit in the Added buffer (loop guarded by s.AddedLen < s.AddedCap), but unconditionally sets newPiece->Length = len. When the requested data does not fully fit, the new piece claims more bytes than were actually written, so reconstruction reads uninitialized/out-of-range bytes from the Added buffer (wrong content and/or OOB read).",
+   "triggeringInput": "PieceTableState with AddedLen=0, AddedCap=2, Added buffer of 2 bytes; Run(ref s, 0, data, len=4, newPieces, ref pieceCount). The for-loop stops after copying 2 bytes (AddedLen reaches AddedCap), but newPiece->Length is set to 4, so the piece references Added[0..4) while only Added[0..2) was written.",
+   "rootCause": "The byte-copy loop has an early-exit condition on capacity (s.AddedLen < s.AddedCap), making partial copies possible by design, but the piece metadata records the full requested length instead of the number of bytes actually copied. addStart was captured as s.AddedLen before the loop, so the truly copied count is (s.AddedLen - addStart), which can be less than len.",
+   "suggestedFix": "Compute the actually copied count and use it for the piece, e.g. int copied = s.AddedLen - addStart; if (copied <= 0) return; newPiece->Length = copied; (and ideally signal truncation to the caller). Alternatively, treat insufficient capacity as a hard precondition violation, but the guarded loop currently implies graceful handling, which conflicts with Length = len."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.PieceTable/PieceTable.cs",
+   "symbol": "PieceTableInsert.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Replace the byte-by-byte copy loop into the Added buffer with a single bounded Unsafe.CopyBlockUnaligned (memcpy).",
+   "currentCost": "The append loop `for (int i = 0; i < len && s.AddedLen < s.AddedCap; i++) s.Added[s.AddedLen++] = data[i];` executes len iterations, each with a bounds-against-cap branch, a load, a store, and a counter increment. For an N-byte insert this is N branches + N scalar stores; Burst cannot vectorize because the loop has a data-dependent termination condition (the AddedLen<AddedCap test) and an aliased running index.",
+   "proposedChange": "Precompute the clamp once: `int copy = len; int remaining = s.AddedCap - s.AddedLen; if (copy > remaining) copy = remaining;` then `System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(s.Added + s.AddedLen, data, (uint)copy); s.AddedLen += copy;`. Use `copy` (not `len`) for newPiece->Length so the truncation semantics match the original loop exactly.",
+   "rationale": "A single memcpy is a well-optimized wide/SIMD copy with no per-byte branch; it collapses N iterations into one call and removes the dependency chain on AddedLen. The clamp is computed once instead of tested every iteration.",
+   "risk": "Must preserve the original truncation behavior: when len exceeds remaining capacity, the old loop stops early and the new Piece->Length must equal the number of bytes actually copied (`copy`), NOT len. The current code already mismatches this by setting Length=len even on truncation; if exact-current-behavior is required this is a behavior change on the overflow edge. If callers guarantee AddedLen+len<=AddedCap (unchecked-Run contract), copy==len always and there is no risk. CopyBlockUnaligned requires non-overlapping src/dst, which holds since data is caller input and Added is internal."
+  },
+  {
+   "file": "src/IAFahim.DS.PieceTable/PieceTable.cs",
+   "symbol": "PieceTableInsert.Run / PieceTableDelete.Run",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Two near-identical list-traversal-to-position loops are duplicated; both also recompute the same 'find piece containing pos' logic.",
+   "currentCost": "The `while (after != null && offset + after->Length <= pos)` walk appears in both Insert and Delete verbatim. Code duplication, not a cycle cost, but it increases maintenance surface and the chance the two drift in edge handling.",
+   "proposedChange": "Extract a private static helper `[MethodImpl(AggressiveInlining)] static Piece* SeekToPos(Piece* head, int pos, out Piece* prev, out int offset)` and call it from both. Mark AggressiveInlining so Burst inlines it back into each caller with zero call overhead.",
+   "rationale": "Single source of truth for the seek; AggressiveInlining guarantees the generated code is identical to the current inlined loops, so no perf regression. Improves discoverability and consistency.",
+   "risk": "Behavior-preserving only if the helper reproduces the exact loop condition (`<=` not `<`) and updates prev/offset identically. No Burst concern: out-pointer params on unmanaged pointers are blittable and inline cleanly."
+  },
+  {
+   "file": "src/IAFahim.DS.PieceTable/PieceTable.cs",
+   "symbol": "Piece",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Piece is 24 bytes due to 4 bytes of padding before the 8-byte Next pointer; reordering fields packs it to 24 with no padding waste only if fields are grouped, but the real win is narrowing the three ints if buffer/length ranges allow.",
+   "currentCost": "Current layout: int BufferIndex(4), int Start(4), int Length(4), Piece* Next(8). On 64-bit the pointer needs 8-byte alignment, so after three ints (12 bytes) there are 4 padding bytes, total 24 bytes per Piece. Each Piece is a node walked by pointer-chasing; at 24 bytes, ~2.6 nodes per 64-byte cache line.",
+   "proposedChange": "Keep the int trio contiguous before the pointer (already the case, so the 4-byte pad is unavoidable while Next is a full pointer). If BufferIndex is always 0 or 1 (it is only ever set to 1 or copied from an existing piece originating as 0/1), narrow it to a byte and reorder as `byte BufferIndex; int Start; int Length; Piece* Next` \u2014 but padding then reappears. The actual usable win: if the document size fits in 2^31 the ints are fine; consider whether Start/Length could be int (they are). Net: leave as-is unless you can replace Next with a 4-byte index into the piece pool, which drops Piece to 16 bytes (4 nodes/line).",
+   "rationale": "Replacing the raw Piece* Next with an `int NextIndex` into the newPieces/pool array removes the 8-byte pointer and its alignment padding, shrinking Piece from 24 to 16 bytes. That is a 33% reduction in node footprint, improving cache-line density during the pointer-chase traversal which is the dominant cost of every Insert/Delete.",
+   "risk": "Significant API change: every `->Next` deref becomes `pool[node->NextIndex]`, and null-termination must use a sentinel index (e.g. -1) instead of null. Requires the whole piece set to live in one contiguous pool addressable by index, which the current newPieces design already implies but s.Head being a raw pointer breaks. Only safe if the entire list (including original Head pieces) is pool-resident. Flagged as a design-level option, not a drop-in."
+  },
+  {
+   "file": "src/IAFahim.DS.PieceTable/PieceTable.cs",
+   "symbol": "PieceTableDelete.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "The middle removal loop reads cur->Length into `removed` then adds it to offset, but offset is not used after the loop except by the final trim check \u2014 the running offset bookkeeping can be simplified.",
+   "currentCost": "Inside `while (cur != null && offset + cur->Length <= end)` the body computes `removed = cur->Length; ...; offset += removed;`. The `removed` temp and the offset accumulation add a load+add per removed node, and offset is only consumed by the post-loop `offset < end` / `trim = end - offset` computation.",
+   "proposedChange": "Drop the separate `removed` temporary: `offset += cur->Length;` directly (the value of cur->Length is already loaded). This is already nearly what the code does; the only real micro-win is `offset += cur->Length;` instead of routing through `removed`, letting the compiler keep one fewer named live value. Marginal.",
+   "rationale": "Eliminates a redundant local; reduces register pressure slightly in the unrolled loop. The loop's real cost is the pointer-chase and the dual-condition test, which cannot be reduced without changing the data structure.",
+   "risk": "Behavior-identical; `removed` equals cur->Length and is used nowhere else. Essentially a no-op for an optimizing compiler/Burst, so impact is genuinely low \u2014 include only as a readability/register-pressure nit."
+  }
+ ]
+}

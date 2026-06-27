@@ -1,0 +1,72 @@
+{
+ "file": "src/IAFahim.Graph.Centroid/Centroid.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Centroid/Centroid.cs",
+   "symbol": "CentroidDecomposition.FindCentroid",
+   "severity": "critical",
+   "category": "wrong-recurrence",
+   "summary": "FindCentroid recomputes the component total as sz[u] at every recursion level instead of keeping the original component total fixed. Because sz[] was computed once from the original root, sz[u] shrinks as the search descends, so total/2 keeps shrinking and the search descends past the true centroid, returning a node whose largest remaining component exceeds total/2 (i.e. not a centroid at all). This corrupts Build, Decompose, and the whole centroid decomposition built on top of it.",
+   "triggeringInput": "Path/tree of n=5 nodes 0-1-2-3-4 rooted at 0 (head/to/next 1-indexed adjacency). ComputeSizes gives sz=[5,4,3,2,1]. FindCentroid(-1,0): total=5, child 1 has sz 4>2 -> descend; at 1 total=4, child 2 sz 3>2 -> descend; at 2 total=3, child 3 sz 2>1 -> descend; at 3 total=2, child 4 sz 1>1 false -> returns 3. True centroid is node 2 (max component size 2 <= 2.5); node 3 leaves a component of size 3 > n/2, so it is wrong.",
+   "rootCause": "The standard centroid search must hold 'total' (size of the whole current component, = sz of the entry root) constant while descending, descending into the unique child with sz[v] > total/2. Here `int total = sz[u];` re-reads the subtree size at each visited node, making total/2 monotonically decrease and causing over-descent. (The check also omits the parent-side size total - sz[v], which is implicitly handled only when total stays fixed.)",
+   "suggestedFix": "Pass the fixed component total down (computed once as sz of the entry root) and compare child subtree sizes against that constant: e.g. FindCentroid(n, total, p, u, ...) where total is sz[entryRoot]; descend into child v with sz[v] > total/2 (and optionally also check total - sz[u] for the parent side). Do not recompute total from sz[u] inside the recursion. Build/Decompose must compute total = sz[root] after ComputeSizes and pass it in."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Centroid/Centroid.cs",
+   "symbol": "FindCentroid",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "FindCentroid is purely tail-recursive (it returns the recursive call directly); convert to an iterative while-loop to eliminate call-frame overhead and unbounded stack growth.",
+   "currentCost": "Each descent step is a full method call: spill/reload of 9 pointer/int arguments, return-address push, and a frame that the JIT/Burst may not tail-call-optimize. On a centroid path the descent can be O(depth) frames deep.",
+   "proposedChange": "Replace the body with: keep p,u as locals; in an outer `while(true)` loop scan edges of u, and on finding the heavy child set p=u, u=v, and `continue` the outer loop instead of recursing; if no heavy child found, `return u;`. No recursion at all.",
+   "rationale": "Removes one call frame per descent level: fewer pushed/popped registers, no return-address management, and bounded O(1) stack. Burst/JIT cannot be relied on to perform tail-call elimination, so doing it by hand is a guaranteed win.",
+   "risk": "None to semantics \u2014 identical descent order and return value. Pure mechanical transform of a tail call."
+  },
+  {
+   "file": "src/IAFahim.Graph.Centroid/Centroid.cs",
+   "symbol": "FindCentroid",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the loop-invariant `total / 2` out of the edge loop and drop the redundant `sz[v] > 0` test.",
+   "currentCost": "`total / 2` (an IDIV-class op on signed int) is recomputed on every edge iteration inside the for-loop, and `sz[v] > 0` is evaluated as a separate branch on every edge even though it is implied by `sz[v] > total/2`.",
+   "proposedChange": "Compute `int half = total / 2;` (or `int half = total >> 1;`) once before the loop, then test only `if (v != p && removed[v] == 0 && sz[v] > half)`. Drop `sz[v] > 0` entirely.",
+   "rationale": "One division instead of degree-many divisions per node; one fewer branch per edge. `sz[v] > 0` is dead: every non-removed reachable node has sz>=1 after ComputeSizes, and `sz[v] > total/2` with total>=0 already implies sz[v]>=1, so removing it changes nothing.",
+   "risk": "`total >> 1` equals `total / 2` only for non-negative total; total is a subtree size and always >= 1 here, so the shift is safe, but keeping `/ 2` is equally correct and avoids any signedness doubt. The `sz[v] > 0` removal relies on sizes being >= 1, which the algorithm guarantees."
+  },
+  {
+   "file": "src/IAFahim.Graph.Centroid/Centroid.cs",
+   "symbol": "ComputeSizes",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Remove the unused `temp`/`int*` parameter (and the unused `n` parameter) threaded through ComputeSizes and FindCentroid.",
+   "currentCost": "`temp` is never read or written in ComputeSizes or FindCentroid, yet it is passed on every recursive call, consuming an argument register/stack slot per frame. `Build` allocates `int tempStorage` and `Decompose` passes `&n` purely to satisfy the signature. `n` is likewise unused by both recursive helpers.",
+   "proposedChange": "Delete the `int* temp` parameter from ComputeSizes and FindCentroid (and remove `int tempStorage`/`&n` at the call sites). Also drop the unused `int n` parameter from both helpers since neither references it.",
+   "rationale": "Fewer arguments per recursive call means fewer registers spilled/restored and a smaller frame in the hottest loops of the module, plus a cleaner, less error-prone API (the current `&n` aliasing in Decompose is a latent footgun if temp ever becomes live).",
+   "risk": "None \u2014 both parameters are provably dead in the called bodies. Pure signature cleanup; observable behavior unchanged. Public Build/Decompose signatures need not change if desired, but the internal helpers should shed the dead params."
+  },
+  {
+   "file": "src/IAFahim.Graph.Centroid/Centroid.cs",
+   "symbol": "ComputeSizes",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "ComputeSizes and Decompose recurse to O(tree-depth); on degenerate (path-like) trees this is O(n) deep and can overflow the stack on mobile.",
+   "currentCost": "ComputeSizes recurses one frame per tree node along the deepest path. A linear chain of n nodes yields n nested frames; on constrained mobile stacks this risks a hard crash, and deep recursion also thrashes the stack cache.",
+   "proposedChange": "Replace ComputeSizes with an explicit-stack post-order traversal using a stackalloc'd `int*` (parent/iterator stack) sized to n, accumulating sz[u] on pop. Decompose can similarly use an explicit work stack of subtree roots instead of recursion.",
+   "rationale": "Converts unbounded native-call-stack usage into bounded, caller-controlled scratch memory with O(1) frame overhead, removing the stack-overflow failure mode and giving predictable memory cost \u2014 important for a Burst/mobile target.",
+   "risk": "Higher implementation complexity and needs an n-sized scratch buffer (caller-supplied or stackalloc); must preserve the exact post-order accumulation so sz values match. Only worth it if deep/degenerate trees are in scope; for shallow balanced trees the current recursion is fine."
+  },
+  {
+   "file": "src/IAFahim.Graph.Centroid/Centroid.cs",
+   "symbol": "CentroidDecomposition",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Add [MethodImpl(MethodImplOptions.AggressiveInlining)] to the leaf helpers once they are de-recursed, and note the unused using.",
+   "currentCost": "`using System;` and the AggressiveInlining import are present but no method is annotated; while recursive, inlining is pointless, but after FindCentroid becomes a loop it is a small pure leaf worth inlining into Build/Decompose.",
+   "proposedChange": "Once FindCentroid is iterative, mark it (and the size helper if iterative) with [MethodImpl(MethodImplOptions.AggressiveInlining)]; remove the unused `using System;`.",
+   "rationale": "Inlining a small loop body into Build/Decompose removes a call boundary and lets Burst keep pointer args in registers across the fused region. Dropping the unused namespace import is a trivial cleanliness win.",
+   "risk": "Inlining a recursive method is rejected by the compiler, so this must follow the de-recursion change; otherwise no effect. Negligible risk."
+  }
+ ]
+}

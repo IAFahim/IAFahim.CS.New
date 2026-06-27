@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Search.Range/RangeAdd.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.Range/RangeAdd.cs",
+   "symbol": "RangeAdd.Materialize",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Sequential prefix-sum has a loop-carried dependency that blocks vectorization; acceptable but flaggable.",
+   "currentCost": "`cur += diff[i]; dst[i]=cur;` carries a dependency through `cur`, so Burst cannot auto-vectorize the scan; throughput is one add per cycle at best.",
+   "proposedChange": "Leave as-is for small len (dependency chain is cheap and code is clear). For large len only, a two-pass blocked/SIMD prefix-sum (partial sums per lane then offset) can be ~2-4x faster, but it adds complexity and a scratch pass \u2014 recommend only if profiling shows this is hot.",
+   "rationale": "Documents the inherent serialization; the blocked-scan trades the dependency chain for parallel partial sums. Constant-factor only, not asymptotic.",
+   "risk": "Blocked prefix-sum is easy to get wrong (lane offsets, overflow into int). Output must stay int with identical wraparound semantics. Only worth it for large arrays; default keep the simple form."
+  }
+ ]
+}

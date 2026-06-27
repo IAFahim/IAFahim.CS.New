@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Geometry.Hull/MinkowskiSum.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Geometry.Hull/MinkowskiSum.cs",
+   "symbol": "MinkowskiSum.Convex",
+   "severity": "high",
+   "category": "off-by-one",
+   "summary": "Convex writes one entry past the number of vertices it reports, overflowing an output buffer sized to its return value (or to an+bn).",
+   "triggeringInput": "an=3, bn=3 (e.g. ax/ay = {(0,0),(1,0),(0,1)}, bx/by = {(0,0),(1,0),(0,1)}), with outX/outY allocated with 6 slots (an+bn). The method returns 6 but writes index 6, one past the end.",
+   "rootCause": "k starts at 1 after the initial vertex (index 0). The while-loop runs exactly an+bn iterations (each iteration increments i or j until i==an && j==bn), and each iteration writes outX[k]/outY[k] then increments k. The final loop write therefore lands at index an+bn, so the method touches indices 0..(an+bn), i.e. an+bn+1 slots, while it returns k-1 = an+bn (the true vertex count of the Minkowski sum). The extra slot at index an+bn is a redundant closing-vertex copy that exceeds the reported size, causing an out-of-bounds write / UB for any caller that allocates outX/outY with size equal to the return value or to an+bn (as the existing test does).",
+   "suggestedFix": "Stop writing the redundant closing vertex: either guard the final write so the loop emits at most an+bn vertices (indices 0..an+bn-1) and return k (now equal to an+bn), or document that callers must allocate an+bn+1 slots. The cleanest fix is to not write the duplicate last point \u2014 write only an+bn distinct vertices and return that count."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Hull/MinkowskiSum.cs",
+   "symbol": "Convex",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "`% an` / `% bn` on runtime moduli inside the merge loop, plus redundant recomputation of edge deltas that could be incremental.",
+   "currentCost": "The while loop computes `(i+1)%an`, `i%an`, `(j+1)%bn`, `j%bn` every iteration \u2014 4 integer DIVs per step over (an+bn) steps. Since i only ranges 0..an and the indices step by 1, the modulo is only needed to wrap the single +1 lookahead.",
+   "proposedChange": "Track current indices ic=i (clamped) and the wrapped next index incrementally: maintain inext where inext = i+1==an?0:i+1 updated only when i advances. Replace `i % an` with i when i<an (the only time deltas are used in the dual-branch), and use the precomputed wrapped lookahead. Replace the four `%` with add+compare wraps.",
+   "rationale": "Removes 4 idiv per merge step. idiv is ~20-40 cycles and serializes; add/cmp/cmov replacement is a few cycles. The merge loop is the whole cost of the algorithm.",
+   "risk": "Need care: when i==an the code path uses i<an guard so deltas with i%an wrap to 0 are still computed but unused in that branch; replacing %an with conditional wrap must reproduce the same value (i%an for i in [0,an]). Since i never exceeds an, `i==an?0:i` is exact; keep that guard precise."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Hull/MinkowskiSum.cs",
+   "symbol": "Reorder",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Uses two stackalloc scratch buffers and a copy-back; the cyclic rotation can be done in place via reversal or gcd-cycle rotation.",
+   "currentCost": "Allocates 2*n doubles of stack (tx,ty) and does a full copy into them then back \u2014 2n reads+writes of scratch plus 2n for copy-back, i.e. ~4n memory ops and 2n*8 bytes stack. The `(minIdx+i)%n` also does n integer DIVs.",
+   "proposedChange": "Rotate-left by minIdx in place using the three-reversal trick (reverse[0,minIdx), reverse[minIdx,n), reverse[0,n)) on x and y, or a juggling/gcd cycle rotation. No scratch buffer, ~n swaps total, and no modulo.",
+   "rationale": "Eliminates 2*n*8 bytes of stackalloc and the copy-back pass, halving memory traffic, and removes n idiv from the index computation. Lower stack pressure matters for Burst inlining (Reorder is AggressiveInlining'd into Convex).",
+   "risk": "In-place reversal preserves the exact rotated sequence (same doubles, same order) so output is bit-identical. Must reverse x and y with the identical index pattern to keep pairs aligned. Slightly more code but no managed/exception surface."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Hull/MinkowskiSum.cs",
+   "symbol": "Difference",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Negate-and-reverse done in two passes over the b buffer; fuse into one pass.",
+   "currentCost": "First loop negates all bn entries into nbx/nby; second loop reverses them via swaps. Two sweeps of the bn-length buffers (2*bn reads/writes for negate + bn swaps for reverse).",
+   "proposedChange": "Single pass: for i in [0,bn) write nbx[i] = -bx[bn-1-i]; nby[i] = -by[bn-1-i]; producing the negated+reversed array directly with bn writes and no separate swap loop.",
+   "rationale": "One sweep instead of two; eliminates the swap loop's reads/writes and its `bn/2` branch. Fewer total memory operations and a cleaner straight-line loop Burst can vectorize.",
+   "risk": "Output array identical (negation and reversal commute element-wise). bn writes vs original two-phase; verify mid-element handling \u2014 the fused form is exact for all bn including odd lengths where the original swap loop skipped the center (center gets negated in pass 1 there; fused negates it too)."
+  }
+ ]
+}

@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Graph.TreeDecomposition/PathwidthDp.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.TreeDecomposition/PathwidthDp.cs",
+   "symbol": "PathwidthDpAlgorithm.PathwidthDpIndependentSet",
+   "severity": "high",
+   "category": "logic",
+   "summary": "DP transition treats a reachable state whose accumulated weight is 0 as unreachable and skips it, dropping valid states and producing a too-small answer.",
+   "triggeringInput": "pathLength=2; bagSizes={1,1}; the two bags share the same single vertex; weights[that vertex]=0 (or any independent set whose best achievable weight at a mask is exactly 0). curDp[mask]==0 for a legitimately reachable mask, so line 37 `if (curDp[mask] == 0 && mask != 0) continue;` skips it and the corresponding next-layer state is never produced.",
+   "rootCause": "Line 37 uses the sentinel value 0 to mean 'state not reachable'. But 0 is also a perfectly valid DP value (empty selection, or vertices of weight 0). There is no separate reachability flag / -INF sentinel, so any reachable mask (other than mask 0) that currently evaluates to weight 0 is incorrectly pruned, so its forward transitions (mask-mapping at lines 41-57 and vertex introduction at lines 61-100) are never applied.",
+   "suggestedFix": "Initialize the dp arrays to a NEG_INF sentinel (e.g. long.MinValue/2) instead of 0, set curDp[0]=0 as the only reachable start, and change the prune to `if (curDp[mask] == NEG_INF) continue;`. Use Math.Max against NEG_INF for all relaxations and exclude NEG_INF when computing the final answer."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.TreeDecomposition/PathwidthDp.cs",
+   "symbol": "UnsafeUtilityMemClear",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Byte-by-byte zeroing of the DP buffer is ~8x slower than word-wide clearing and defeats vectorization.",
+   "currentCost": "A scalar loop writing one byte per iteration over a buffer of 2*(1<<maxBagSize)*8 bytes. For maxBagSize=20 that is ~16M single-byte stores on the allocate path and (1<<maxBagSize)*8 bytes cleared every path step inside the main loop.",
+   "proposedChange": "Clear in long-sized strides: cast to long* and write 0 over size>>3 elements (size is always a multiple of sizeof(long) here since both call sites pass dpSize and (1L<<maxBagSize)*sizeof(long)). Better: replace the helper with Unsafe.InitBlockUnaligned / a long* loop, which Burst can widen to vector stores.",
+   "rationale": "Zeroing 8 bytes per iteration cuts the store count and loop overhead 8x and lets Burst emit SIMD stores; byte loops it cannot vectorize as cleanly. The buffer length is provably a multiple of 8 at both call sites, so no tail handling is needed.",
+   "risk": "Only safe because both call sites pass byte counts that are exact multiples of sizeof(long); if a caller ever passes a non-multiple, add a byte tail. dp is freshly AllocHGlobal so alignment is fine for long stores."
+  },
+  {
+   "file": "src/IAFahim.Graph.TreeDecomposition/PathwidthDp.cs",
+   "symbol": "PathwidthDpIndependentSet",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "The old-mask -> new-mask remap recomputes the bagElements vertex-match table for every mask, an O(2^oldSize * newSize * oldSize) cost that is mask-independent.",
+   "currentCost": "For each of 2^oldSize masks, an inner double loop over newSize x oldSize comparing bagElements to build newMaskBase. The match between old index k and new index j does not depend on mask, only on which bit k is set.",
+   "proposedChange": "Precompute once per path step a small int[] mapping each old bit index k to its corresponding new bit index (or -1), via one O(newSize*oldSize) pass into a stackalloc int[oldSize]. Then per mask, build newMaskBase by iterating set bits of mask and OR-ing (1<<map[k]). This removes the inner newSize*oldSize work from the per-mask loop.",
+   "rationale": "Hoists a loop invariant (the index correspondence) out of the 2^oldSize loop, dropping per-step cost from O(2^oldSize * newSize * oldSize) to O(newSize*oldSize + 2^oldSize * popcount). Big asymptotic constant-factor win on the hottest loop.",
+   "risk": "Must preserve the original semantics where multiple old elements could map to the same new bit (original OR-accumulates). Using a per-old-index map keyed on the FIRST match preserves behavior only if each old element matches at most one new element; if duplicates are possible, build a per-new-bit old-mask instead. Guard: bag elements are distinct within a bag (standard tree-decomposition invariant), so the 1:1 map is valid."
+  },
+  {
+   "file": "src/IAFahim.Graph.TreeDecomposition/PathwidthDp.cs",
+   "symbol": "PathwidthDpIndependentSet",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The 'isNew' detection rescans the old bag for every new vertex j; the whole introduce phase repeats adjacency work that could be precomputed.",
+   "currentCost": "For each new vertex j, a linear scan over oldSize to set isNew, then for each non-set mask a scan over newSize calling AreAdjacent (itself a linked-list walk) repeatedly for the same (u,v) pairs across different masks.",
+   "proposedChange": "Precompute per step: (a) the isNew flags in one O(newSize*oldSize) pass, and (b) an adjacency bitmask adj[j] over the newSize bag bits via one O(newSize^2) AreAdjacent pass. Then canAdd reduces to (mask & adj[j]) == 0, a single AND instead of a per-bit AreAdjacent linked-list traversal inside the mask loop.",
+   "rationale": "AreAdjacent is an O(degree) pointer chase; calling it inside the 2^newSize x newSize loop dominates. Reducing the inner test to one bitmask AND removes the dominant cost and the dependency chain through pointer loads.",
+   "risk": "Adjacency bitmask only fits when newSize <= bag-bit width (it does: masks are already 1<<newSize ints). Self-pairs (j vs j) must be excluded, which the original already does via the j-bit-clear precondition."
+  }
+ ]
+}

@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Rasterization.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Rasterization.cs",
+   "symbol": "RasterizeTriangle",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the loop-invariant heightfield->Cs and heightfield->Bmin reads out of the z/x clipping loops.",
+   "currentCost": "Inside the `for z` and nested `for x` loops, `heightfield->Cs` is dereferenced repeatedly (cellZ = ... + z*heightfield->Cs; ... cellZ + heightfield->Cs; cellX + heightfield->Cs) and `heightfield->Bmin.x` / `Bmin.y` are re-read per iteration. Each is a pointer dereference into the heightfield struct that the compiler may not prove invariant due to aliasing with AddSpan's writes through the same pointer.",
+   "proposedChange": "Load `float cs = heightfield->Cs; float bminX = heightfieldMin.x; float bminY = heightfieldMin.y;` once before the loops (heightfieldMin already captured) and use locals. Also precompute `csInvariant` reused as the +Cs step.",
+   "rationale": "Removes repeated dependent loads through heightfield* from the inner clipping loops; the pointer may alias the span pool so the JIT/Burst cannot always hoist these automatically. Fewer loads shorten the per-cell critical path.",
+   "risk": "Cs/Bmin are not mutated during rasterization, so caching is safe. Keep using heightfieldMin (already a local copy) consistently; just avoid the re-deref of ->Cs."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Rasterization.cs",
+   "symbol": "AllocSpan",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "RCSpansPerPool is a power of two (2048); the free-list build loop is fine, but the pool-fill back-to-front loop and the freelist null/Next double-check can be simplified to one comparison.",
+   "currentCost": "`if (heightfield->Freelist == null || heightfield->Freelist->Next == null)` performs two dependent pointer dereferences on the hot AllocSpan path (called once per AddSpan, i.e. per rasterized span). The condition triggers a page allocation only rarely but is evaluated every call.",
+   "proposedChange": "Since a freshly built page always links >=2 free spans, the `Freelist->Next == null` case only occurs at the very last element; you can maintain a simple `int freeCount` or rely solely on `Freelist == null` if AllocSpan never leaves exactly one node danglingly reachable. Safer micro-opt: load `var fl = heightfield->Freelist;` once and test `fl == null || fl->Next == null` against the cached local to avoid re-loading Freelist twice.",
+   "rationale": "Caching Freelist into a local removes one redundant load of heightfield->Freelist (it is read again two lines later), trimming the dependency chain on the common fast path.",
+   "risk": "Must preserve the exact 'allocate new page when fewer than 2 free spans' semantics that the original double-null-check encodes; only cache the pointer, do not change the condition logic."
+  }
+ ]
+}

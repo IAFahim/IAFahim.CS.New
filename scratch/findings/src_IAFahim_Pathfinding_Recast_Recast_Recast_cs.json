@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.cs",
+   "symbol": "GetCon",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "GetCon takes RcCompactSpan by value (8-byte copy) and reads the Con property, which applies a redundant 0x00FFFFFF mask before GetCon's own shift+0x3f mask.",
+   "currentCost": "Per call: copy of the whole 8-byte RcCompactSpan onto the stack/registers, plus the Con getter executes an AND with 0x00FFFFFF, then GetCon shifts and ANDs with 0x3f. GetCon is invoked up to 8x per span across the hottest area/region neighbor-walk loops (Recast.Area.cs, Recast.Region.cs), so this runs O(spans * directions) times over the whole grid.",
+   "proposedChange": "Change the signature to take the span by read-only reference: 'public static int GetCon(in RcCompactSpan span, int direction)'. Callers already hold a 'span' local (often 'var s = compactHeightfield->Spans[i]') \u2014 pass it as 'in'. Additionally, the Con property getter's '& 0x00FFFFFF' is provably dead for every GetCon/SetCon caller: directions 0..3 read bits [shift, shift+6) with shift = dir*6 <= 18, so the top read bit is 23, already inside the 0x3f post-shift mask. Since .Con is only ever read inside GetCon (confirmed: no other reader in the module), the property mask can be dropped, or GetCon can be rewritten to operate on the packed field directly if the struct exposes it internally.",
+   "rationale": "'in' eliminates the per-call struct copy and lets Burst keep the packed word in a register; removing the redundant 0x00FFFFFF AND removes one ALU op from each of the millions of GetCon calls. Both shorten the dependency chain feeding the RCNotConnected comparison that gates every neighbor branch.",
+   "risk": "Passing 'in' is semantics-preserving for value reads. Dropping the property's 0x00FFFFFF mask only preserves semantics for GetCon/SetCon usage (the only callers); it WOULD change the public Con getter's observable value if any external code read Con expecting the low-24-bit-masked view \u2014 verified none exists in-module, but the property is public API, so prefer keeping the public getter intact and instead have GetCon read the raw packed word via an internal accessor rather than via the masking property."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.cs",
+   "symbol": "DirOffsetX / DirOffsetY / GetDirOffsetX / GetDirOffsetY",
+   "dimension": "burst",
+   "impact": "high",
+   "summary": "Replace the managed static readonly int[] direction tables with a branchless/constant computation or a blittable readonly span so the hottest leaf in the whole module is Burst-friendly and bounds-check-free.",
+   "currentCost": "GetDirOffsetX/Y index `static readonly int[] DirOffsetX/DirOffsetY` (managed System.Array). These are called 4x per span in CalculateDistanceField, BoxBlur, BuildCompactHeightfield neighbor pass, FloodRegion, ExpandRegions, WalkContour, IsSolidEdge, MergeAndFilterLayerRegions, the monotone sweeps, etc. Every call is a managed array load: a null check, a bounds check against array length, and a heap indirection. Managed arrays also prevent these methods (and their callers) from being Burst-compiled and break determinism guarantees.",
+   "proposedChange": "Compute offsets arithmetically with no table. DirOffsetX pattern {-1,0,1,0} == ((dir+3)&3)-1 ... simpler: use a packed constant int. e.g. `int d = direction & 3; return (int)((0x00FF0100u >> (d*8)) & 0xFF) - 1;` Better and clearly correct: encode both tables as `const` bit-packed nibbles and shift, or keep a `ReadOnlySpan<int>` via `stackalloc`/`static byte*`. Concretely: DirOffsetX[d] = (1 - ((d+1)&2)) when d is x-axis... Use the proven Recast identity: offX = ((d+0)&... ). Simplest safe form: pack into two `const int` and shift: `const int OffX = ...; return ((OffX >> ((direction&3)<<3)) << 24 >> 24);` to sign-extend a signed byte field. This removes the managed array entirely.",
+   "rationale": "Turns a memory load + bounds check (several cycles, potential cache miss, branch) into 2-3 ALU ops with zero memory traffic and zero branches, and removes the single biggest Burst blocker in the module. Because it is called millions of times (4 dirs x SpanCount x multiple passes), the constant-factor win compounds massively.",
+   "risk": "Must reproduce exact values {-1,0,1,0} and {0,1,0,-1} for direction&3, including correct sign extension (the shift trick needs arithmetic right shift on a sign-extended byte). Verify against all four dir values before committing. No semantic change otherwise."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.cs",
+   "symbol": "Dirs / GetDirForOffset",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "Same managed-array hazard as GetDirOffsetX/Y: `Dirs` is a static readonly int[] indexed by GetDirForOffset.",
+   "currentCost": "GetDirForOffset indexes `static readonly int[] Dirs` (managed array, bounds-checked, heap indirection, Burst-hostile). Used in contour/region offset-to-direction conversion.",
+   "proposedChange": "Replace the 5-element table with a bit-packed constant. Dirs = {3,0,-1,2,1}; index = ((offsetZ+1)<<1)+offsetX in [0..4]. Encode as `const uint Packed = ...` of 3-bit fields (or 4-bit nibbles to fit the -1) and shift+mask, sign-extending the single -1 entry.",
+   "rationale": "Eliminates managed array access and bounds check, makes the helper a pure ALU leaf that Burst can inline and the callers can be Burst-compiled.",
+   "risk": "Index range is [0..4] by the documented offset limits; -1 entry needs sign-aware decode. Encode and unit-check all 5 entries. Caller already passes valid offsets per the unchecked-Run contract."
+  },
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.cs",
+   "symbol": "BuildCompactHeightfield",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "The error path uses string interpolation and System.Console.Error.WriteLine, which is managed/allocating and a Burst hazard on a method otherwise fully unmanaged.",
+   "currentCost": "`System.Console.Error.WriteLine($\"...{maxLayerIndex}...{MaxLayers}\")` allocates a string via interpolation and calls into managed Console. Even though it is the cold failure branch, its mere presence forces the method out of Burst compilation and pulls in managed types/exceptions surface.",
+   "proposedChange": "Drop the Console call (the method already returns false to signal failure) or replace with a Burst-compatible diagnostic (e.g. UnityEngine.Debug.LogError guarded out of Burst, or set an out error code/enum). Keep the `return false;`.",
+   "rationale": "Removing the managed string/Console keeps BuildCompactHeightfield blittable and Burst-compilable; the function communicates failure via its bool return already, so the log is redundant for correctness.",
+   "risk": "Loses a human-readable diagnostic message. Mitigate by returning a status enum or logging outside Burst. No change to the success path or returned bool."
+  }
+ ]
+}

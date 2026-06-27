@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.String.Grammar/GrammarCompress.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.String.Grammar/GrammarCompress.cs",
+   "symbol": "GrammarCompress.Compress",
+   "severity": "high",
+   "category": "logic",
+   "summary": "The new non-terminal symbol newSym=(byte)(254-ruleCount) can collide with byte values already present in the input or with symbols introduced by earlier rules, aliasing two different symbols to the same byte and corrupting the grammar (the rules array becomes ambiguous / non-decompressible).",
+   "triggeringInput": "input containing the byte 0xFE (254) with a repeated pair, len e.g. 4 = {0xFE,0xFE,0xFE,0xFE} as bytes. First rule uses newSym=254-0=0xFE, which is identical to the existing input symbol 0xFE, so the rule's pair (0xFE,0xFE) and the replacement symbol 0xFE are indistinguishable, making decompression ambiguous.",
+   "rootCause": "newSym is chosen from a fixed descending range (254,253,...) without verifying the value is absent from the current alphabet/work buffer. Input bytes are unrestricted (0..255), so the chosen non-terminal can equal an existing terminal or a previously created non-terminal.",
+   "suggestedFix": "Require/document that input alphabet is bounded (e.g. < some threshold) and assert newSym lies outside the used alphabet, or track used byte values and pick newSym from a guaranteed-free range; also guard ruleCount so 254-ruleCount cannot drop into the used range or below 0."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Grammar/GrammarCompress.cs",
+   "symbol": "GrammarCompress.Compress (pair-selection search)",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "The most-frequent-pair search is O(workLen^2) per rule due to a redundant inner freq-count over the whole buffer, and the early-exit makes it select a near-arbitrary pair rather than the true max; a single linear-ish pass can both fix the cost and be deterministic.",
+   "currentCost": "For each i, the j-loop scans for a duplicate of pair (work[i],work[i+1]); on the FIRST duplicate found it runs a full O(workLen) freq count, records it, then breaks out of the j-loop. With `if (bestFreq > 1) break;` after, the outer loop exits at the first i whose pair repeats. Net: O(workLen) freq scans, but the selection is order-dependent (first repeating pair wins, not the globally most frequent). Across all rules this is O(maxRules * workLen) at best, O(maxRules * workLen^2) if early pairs are unique.",
+   "proposedChange": "Replace the i/j/k triple structure. Since values are bytes (0..255), the distinct-pair space is 256*256. Do ONE pass computing the frequency of each adjacent pair into a stackalloc count buffer (or a small hash over 65536 ushort/int slots) keyed by (work[k]<<8 | work[k+1]), tracking the max as you go. This is a single O(workLen) pass that yields the GLOBAL argmax pair. If you must preserve the existing 'first pair with freq>1, by position' tie/selection rule for behavioral parity, instead keep the i-loop but hoist the freq count: count occurrences of the pair at position i in the SAME left-to-right scan and stop at the first i with freq>1 (eliminates the separate j-loop entirely, since j only existed to detect 'has a duplicate', which freq>1 already proves).",
+   "rationale": "The j-loop is pure redundancy: it only checks whether a duplicate exists, which the subsequent freq count already determines (freq>1). Removing it drops a whole O(workLen) inner scan. A pair-frequency histogram over the 65536 possible byte-pairs turns per-rule selection into one linear pass, removing the quadratic worst case and removing the data-dependent branch mispredicts of the nested search.",
+   "risk": "The histogram version changes WHICH pair is chosen when multiple pairs tie or when a later pair is globally more frequent than the first-repeating one, so it changes observable output. Only adopt it if 'most frequent pair' (not 'first repeating pair') is the intended contract. The j-loop-removal version preserves exact current selection and output and is safe. Byte-pair key (k<<8|k+1) is exact since both operands are bytes; no signed/overflow issue."
+  },
+  {
+   "file": "src/IAFahim.String.Grammar/GrammarCompress.cs",
+   "symbol": "GrammarCompress.Compress (loop-invariant hoisting)",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "work[i], work[i+1], and workLen-1 are reloaded on every iteration of the inner loops though invariant within them.",
+   "currentCost": "Inside the i-loop, the j-loop reads work[i] and work[i+1] on every j; the k-loop reads work[i] and work[i+1] on every k. work[i]/work[i+1] are invariant for fixed i but are re-dereferenced through the pointer each time, defeating register allocation across the pointer alias. workLen-1 is recomputed in three loop bounds.",
+   "proposedChange": "Hoist `byte a = work[i]; byte b = work[i+1];` before the j-loop and compare against a,b. Hoist `int lastIdx = workLen - 1;` once per outer-while iteration and use it in the i, j, and k loop bounds. In the replacement/rewrite loop, similarly cache pair0/pair1 (already done) and use a single `int limit = workLen - 1` instead of recomputing `k < workLen - 1` each iteration.",
+   "rationale": "Removes repeated pointer dereferences and the redundant subtraction in hot loop conditions, shortening the dependency chain and freeing the compiler/Burst to keep a,b in registers. Burst cannot always prove work[i] is invariant across the k-loop because writes to work[newLen++] in the rewrite phase create potential aliasing; explicit locals make the invariance unconditional.",
+   "risk": "None. a/b are read before any write to work in that scan; lastIdx equals workLen-1 exactly. Pure constant-factor win, identical output."
+  },
+  {
+   "file": "src/IAFahim.String.Grammar/GrammarCompress.cs",
+   "symbol": "GrammarCompress.Compress (newSym wraparound / maxRules)",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "newSym = (byte)(254 - ruleCount) silently collides with real byte data once ruleCount > 254 and with symbols already emitted; the type also wastes the upper symbol space. Worth a named constant and a tighter maxRules guard for safety and clarity.",
+   "currentCost": "With maxRules large, (254 - ruleCount) underflows past 0 and wraps to 255,254,... reusing byte values that may equal literal input bytes or earlier new symbols, producing silent mis-compression. No named constant documents that 255 is reserved and new symbols grow downward from 254.",
+   "proposedChange": "Introduce `const int FirstNewSymbol = 254;` and clamp the while condition to also stop when ruleCount would make the symbol collide with the input alphabet, or assert maxRules <= 254 as a documented Unchecked precondition. At minimum replace the magic 254 with a named constant.",
+   "rationale": "Prevents a silent-correctness landmine and documents the symbol-allocation scheme; named constant aids Burst constant-folding and readability. No throughput cost.",
+   "risk": "If callers already pass maxRules <= 254 by the Unchecked contract, this is purely defensive/ergonomic and changes nothing observable. Do not add a runtime exception (house rule); use a const + comment or a benign loop-exit guard."
+  }
+ ]
+}

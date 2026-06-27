@@ -1,0 +1,93 @@
+{
+ "file": "src/IAFahim.Graph/GraphAdvanced.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph/GraphAdvanced.cs",
+   "symbol": "StoerWagner.Run",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "The node-merge step is a no-op, so vertices are never contracted; the global min-cut value is computed wrong for essentially any graph with n>=3.",
+   "triggeringInput": "n=3 triangle with unit weights: edges (0,1),(1,2),(2,0) each weight 1. Correct min cut = 2; this returns a wrong value because phases never contract s,t and the maximum-adjacency ordering never restarts on a contracted graph.",
+   "rootCause": "MergeNodes calls UpdateWeightsAfterPhase with add==null, and UpdateWeightsAfterPhase guards its only effect with `add != null`, so NO edge weights are ever merged from t into s. Furthermore merged nodes are marked vis[t]=-2, but FindMaxDistNode selects nodes with `vis[i] < phase`; since -2 < phase for all later phases, already-merged nodes are re-selected, so the contraction never takes effect. The Stoer-Wagner contraction is entirely missing.",
+   "suggestedFix": "Implement real contraction: after each phase merge t into s by, for every edge incident to t, adding weight[e] to the corresponding s-incident edge (building/maintaining an adjacency-weight matrix), permanently remove t, and reset the per-phase `vis`/`dist` state so each phase runs maximum-adjacency ordering over only the still-active (non-merged) vertices. Use a dedicated 'removed' marker distinct from the per-phase visited marker."
+  },
+  {
+   "file": "src/IAFahim.Graph/GraphAdvanced.cs",
+   "symbol": "HungarianMax.Run",
+   "severity": "medium",
+   "category": "overflow",
+   "summary": "Cost transformation `maxVal - maxCost[i*n+j]` and final `(long)n * maxVal - result` can overflow Int64 for valid large long inputs, and `maxVal - minCost` overflows when costs straddle a huge range.",
+   "triggeringInput": "n=2 with cost matrix containing maxVal = long.MaxValue and another entry = long.MinValue: `maxVal - cost = long.MaxValue - long.MinValue` overflows long, producing a negative weight and a wrong assignment.",
+   "rootCause": "The min-to-max reduction subtracts each cost from maxVal without any range guard; differences can exceed long.MaxValue. Also `(long)n * maxVal` overflows when maxVal is near long.MaxValue.",
+   "suggestedFix": "Document a bounded input range, or perform the negation/transform in a wider domain (e.g. Int128) or by negating costs (cost -> -cost) and running the min solver directly instead of the maxVal-subtraction trick."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph/GraphAdvanced.cs",
+   "symbol": "MinimumCutGomoryHu.Run",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "Hardcoded `stackalloc int[20000]` for flow plus a full O(20000) zeroing every outer iteration, independent of actual edge count.",
+   "currentCost": "`int* flow = stackalloc int[20000]` is 80 KB of stack (risks stack overflow under Burst, and blows L1). The reset `for j in 0..20000: flow[j]=0` runs n-1 times = O(20000*n) writes regardless of real m. Also `bool* vis = stackalloc bool[n]` is allocated inside the loop (stackalloc in a loop does not free per iteration in C#, so this leaks stack frame space up to n*n bytes).",
+   "proposedChange": "Size flow by the real edge count (pass m or 2*m+2) instead of 20000; reset only the used entries. Hoist `bool* vis = stackalloc bool[n]` out of the for loop to a single allocation. Zero only `flow[1..edgeCount]`.",
+   "rationale": "Cuts stack footprint from fixed 80 KB to O(edges), removes O(20000*n) redundant zeroing, and stops the in-loop stackalloc from accumulating. Big cache and cycle win, and removes a Burst stack-overflow hazard on mobile.",
+   "risk": "Need the true edge-array length threaded into the signature (currently absent). Hoisting vis is safe because Bfs reinitializes vis[i]=false at its start. Behavior identical for valid inputs."
+  },
+  {
+   "file": "src/IAFahim.Graph/GraphAdvanced.cs",
+   "symbol": "Hierholzer.Run",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Hardcoded `stackalloc int[20000]` for the DFS stack regardless of graph size.",
+   "currentCost": "80 KB fixed stack allocation; on a small graph this is wasted, on a large one (edges > ~20000) it silently overflows. Burst on mobile has tight stack budgets.",
+   "proposedChange": "Size the stack by the actual upper bound: the Euler circuit visits each edge once, so stack depth is bounded by (number of edges + 1). Thread the edge count in and use `stackalloc int[edgeCount + 1]`.",
+   "rationale": "Right-sizes stack to the problem, eliminating both waste and overflow risk; tighter working set improves cache behavior.",
+   "risk": "Requires an edge-count parameter. The circuit buffer is caller-allocated already, so this only affects the internal stack. Semantics unchanged."
+  },
+  {
+   "file": "src/IAFahim.Graph/GraphAdvanced.cs",
+   "symbol": "GeneralMatchingBlossom.Contract",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Blossom contraction relabels bases with a full O(n) scan per shrink step, inflating Contract to O(n^2) per blossom.",
+   "currentCost": "`for i in 0..n: if base_[i]==oldBaseU || base_[i]==oldBaseMv base_[i]=lca` runs inside the while-walk up the blossom, so a single Contract is O(blossomLen * n).",
+   "proposedChange": "Defer base reassignment: collect the vertices on the blossom path and relabel them in one pass after the walk, or use a union-find over bases so base lookups stay near-O(1) and the explicit relabel scan disappears.",
+   "rationale": "Removes the nested O(n) scan from each contraction step; brings blossom matching closer to its standard O(V^3) (or better) bound instead of an inflated constant.",
+   "risk": "Must keep base_ semantics consistent for the subsequent GetLca/relax logic. Union-find variant changes how base_ is read everywhere; the deferred single-pass relabel is the lower-risk option. Verify against matching tests."
+  },
+  {
+   "file": "src/IAFahim.Graph/GraphAdvanced.cs",
+   "symbol": "HungarianMax.Run",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Allocates an n*n scratch matrix to hold the negated cost, doubling the working set for a pure transform.",
+   "currentCost": "`long* maxCost = stackalloc long[n*n]` is 8*n^2 bytes of stack on top of the caller's cost matrix; for n in the hundreds this is large stack pressure and a full O(n^2) copy.",
+   "proposedChange": "Two options: (a) require the caller to pass scratch, or (b) since HungarianMin only reads cost[(i)*n+j], pass a small bias (maxVal) and a flag so HungarianMin computes (maxVal - cost) on the fly, avoiding the materialized matrix entirely. At minimum fuse the two loops (find maxVal and copy) \u2014 currently maxVal is found in the same double loop, then a second full O(n^2) pass negates; the negation pass cannot start until maxVal is known, but the initial copy is redundant since you could store cost directly and subtract in the second pass reading original cost.",
+   "rationale": "Eliminates an 8*n^2-byte stack buffer and one O(n^2) copy pass; reduces cache footprint for the subsequent Hungarian solve.",
+   "risk": "On-the-fly negation requires threading a transform into HungarianMin (API change). The fuse-only variant is safe and behavior-preserving. Result formula `(long)n*maxVal - result` unchanged."
+  },
+  {
+   "file": "src/IAFahim.Graph/GraphAdvanced.cs",
+   "symbol": "StableMarriage.Run / GaleShapley.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Preference-rank inverse table is indexed with `w*n + mID`; multiply per access can be strength-reduced, and the two classes are byte-identical duplicates.",
+   "currentCost": "Every womanRank/receiverRank access recomputes `idx*n + other` (a multiply) in hot proposal loops. Two near-identical implementations also double code size / icache.",
+   "proposedChange": "Hoist row-base pointers (`long* row = womanRank + w*n`) outside inner loops where w is fixed, turning index math into a single add. Collapse GaleShapley to delegate to StableMarriage (the proposerIsMan flag is unused in the body) to remove duplicate code.",
+   "rationale": "Removes a multiply from the per-access address computation in the rank-table build loops and reduces instruction-cache duplication.",
+   "risk": "Ergonomics/icache only; outputs identical. Confirm proposerIsMan truly has no behavioral effect before collapsing (it is written nowhere in the shown body)."
+  },
+  {
+   "file": "src/IAFahim.Graph/GraphAdvanced.cs",
+   "symbol": "StoerWagner (MergeNodes / UpdateWeightsAfterPhase)",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "MergeNodes calls UpdateWeightsAfterPhase with add=null (a no-op guarded by `add != null`), so the merge does no weight folding \u2014 flag as dead/incorrect code rather than optimize.",
+   "currentCost": "UpdateWeightsAfterPhase's body `if (vis[to[e]]==phase && add != null) add[last]+=...` can never execute since add is always null here; the call is pure overhead and the intended merge bookkeeping is missing.",
+   "proposedChange": "Remove the dead call or implement the real Stoer-Wagner merge (fold t's incident weights into s). As-is the routine likely produces wrong min-cuts; do not micro-optimize until the algorithm is corrected.",
+   "rationale": "Eliminating provably-dead branches removes wasted edge-scan cycles; correcting the merge is required for the result to be meaningful.",
+   "risk": "This is a correctness flag, not a semantics-preserving micro-opt. Verify intended behavior against tests before changing; reported here so the dead branch isn't mistaken for live hot code."
+  }
+ ]
+}

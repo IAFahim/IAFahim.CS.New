@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.String.SuffixAutomaton/LexicographicKth.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.String.SuffixAutomaton/LexicographicKth.cs",
+   "symbol": "LexicographicKth.Find",
+   "severity": "high",
+   "category": "logic",
+   "summary": "Claims to return the k-th lexicographically-smallest substring but instead enumerates substrings ordered by (length, start index) and counts every occurrence with multiplicity (duplicates not removed). Both the ordering and the de-duplication are wrong for a lexicographic-k query.",
+   "triggeringInput": "text=\"ba\" (bytes {'b','a'}), textLen=2, k=1. The loop yields len=1/start=0 -> \"b\" as count 1, so it returns \"b\". The 1st lexicographically-smallest distinct substring is \"a\" (sorted distinct: \"a\",\"b\",\"ba\"). Wrong result. For text=\"aa\", k=2 it returns the second occurrence of \"a\" again rather than the next distinct substring \"aa\".",
+   "rootCause": "Enumeration is length-major / start-major, not lexicographic; and identical substrings at different start positions are counted multiple times.",
+   "suggestedFix": "Build a suffix automaton and descend transitions in ascending char order counting distinct substrings (CountSubstrings-style), or enumerate distinct substrings and sort lexicographically before indexing by k."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.SuffixAutomaton/LexicographicKth.cs",
+   "symbol": "Find",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Brute-force enumerates all O(n^2) substrings counting duplicates; defeats the entire point of having a suffix automaton in this module.",
+   "currentCost": "Double loop over (len, start) counts every substring occurrence including duplicates up to k, O(n^2) work and counting with multiplicity rather than distinct substrings. For the k-th DISTINCT substring this is also semantically different from an automaton-based answer.",
+   "proposedChange": "If the goal is the k-th lexicographically-smallest DISTINCT substring, walk the suffix automaton transitions in ascending character order using the per-state distinct-substring counts (the same dp[] count machinery in KthSubstring), emitting characters greedily \u2014 O(answer length * sigma) instead of O(n^2). If duplicates are intentionally counted, at minimum break out of the outer len loop early once count would exceed achievable totals, and reuse the automaton rather than the raw text.",
+   "rationale": "Automaton-driven k-th-substring is linear in the output length, not quadratic in input length; it also dedups naturally. This both fixes asymptotics and aligns the function with the module's data structure.",
+   "risk": "Distinct-vs-multiplicity is an observable semantic choice: the current code counts WITH multiplicity, an automaton counts DISTINCT. Switching changes outputs, so confirm intended definition before replacing. If multiplicity is required as-is, only the early-exit micro-opts apply (behavior-preserving)."
+  }
+ ]
+}

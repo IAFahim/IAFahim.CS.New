@@ -1,0 +1,71 @@
+{
+ "file": "src/IAFahim.Memory.Allocators/UnsafeSlabAllocator.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Memory.Allocators/UnsafeSlabAllocator.cs",
+   "symbol": "UnsafeSlabAllocator.Allocated",
+   "severity": "medium",
+   "category": "overflow",
+   "summary": "Allocated() computes total capacity in bytes as `slabs->Length * countPerSlab * sizeof(T)` entirely in 32-bit int arithmetic, so the result overflows and returns a wrong (possibly negative) byte count once the allocator grows past ~2GB of backing storage, even though that amount of memory is representable and legitimately allocatable.",
+   "triggeringInput": "countPerSlab=64, T=int (sizeof=4), after enough Alloc() calls to create slabs->Length=8388608 slabs: 8388608 * 64 * 4 = 2,147,483,648 which overflows int to -2147483648.",
+   "rootCause": "The whole product is evaluated as int (int*int*int). Each factor is independently small enough to be int, but the product exceeds int.MaxValue. Unmanaged allocation sizes here are computed with long (line 41 casts countPerSlab to long), but Allocated() does not, so the reported size disagrees with what was actually allocated and can go negative.",
+   "suggestedFix": "Compute in 64-bit and/or return long: `return (long)this.slabs->Length * this.countPerSlab * UnsafeUtility.SizeOf<T>();` (cast at least the first operand to long before multiplying), or change the return type to long to match the actual allocated size."
+  },
+  {
+   "file": "src/IAFahim.Memory.Allocators/UnsafeSlabAllocator.cs",
+   "symbol": "UnsafeSlabAllocator.AllocationCount",
+   "severity": "medium",
+   "category": "overflow",
+   "summary": "AllocationCount computes the live-allocation count as `countPerSlab * (slabs->Length - 1) + *count` in 32-bit int arithmetic; the multiplication overflows once the number of allocated elements exceeds int.MaxValue, returning a wrong/negative count for a state that is reachable through repeated Alloc().",
+   "triggeringInput": "countPerSlab=1000000, after creating slabs->Length=2148 slabs the term countPerSlab*(slabs->Length-1)=1000000*2147=2,147,000,000 is near the limit; with slabs->Length=2149 it is 2,148,000,000 which overflows int.",
+   "rootCause": "int*int multiplication without widening. The number of live allocations can exceed int range while still being representable as long, but the expression truncates/overflows.",
+   "suggestedFix": "Widen the computation: `return ((long)this.countPerSlab * (this.slabs->Length - 1)) + *this.count;` and return long, or otherwise guarantee the count stays within int range."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Memory.Allocators/UnsafeSlabAllocator.cs",
+   "symbol": "UnsafeSlabAllocator<T>.Alloc",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Cache the current slab base pointer and free counter to remove repeated dereferences and index recomputation on the hot path.",
+   "currentCost": "Every Alloc dereferences `*this.count` up to three times (compare, reset, post-increment) through a heap pointer, and on the common (non-grow) path computes `this.slabs->Length - 1` and indexes the UnsafeList `(*this.slabs)[...]` via its bounds-aware indexer to fetch the last slab. The count lives behind a separate heap allocation, so each access is a potential cache miss and creates a long load-store dependency chain.",
+   "proposedChange": "Hold the active slab base directly in the struct, e.g. add `T* current;` updated whenever a new slab is pushed. Then Alloc fast path is: `int c = *this.count; if (c == countPerSlab) { grow; c = 0; } *this.count = c + 1; return this.current + c;`. This reads count once, reuses it, and avoids re-indexing slabs->Length-1 entirely on the common path.",
+   "rationale": "Cuts the per-Alloc dependency chain (single load of count, single store), removes the UnsafeList indexer call and Length-1 arithmetic from the hot path, and replaces an extra pointer chase with a register-held base pointer. Fewer cache misses and a shorter critical path improve throughput in tight allocation loops.",
+   "risk": "Must keep `current` in sync in Clear() (set to null) and on grow. Observable results unchanged: same pointers returned, same counts. The count==countPerSlab initial sentinel that forces first-Alloc growth must be preserved so the first Alloc still allocates a slab before using current."
+  },
+  {
+   "file": "src/IAFahim.Memory.Allocators/UnsafeSlabAllocator.cs",
+   "symbol": "UnsafeSlabAllocator<T>.Alloc / AllocationCount / Allocated",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Precompute and cache sizeof(T) (and stride) instead of calling UnsafeUtility.SizeOf<T>() per call.",
+   "currentCost": "Alloc, AllocationCount, and Allocated each call UnsafeUtility.SizeOf<T>() at runtime. Under Burst this is typically folded to a constant, but the slab byte size `(long)countPerSlab * SizeOf<T>()` is recomputed on every grow, and Allocated()/AllocationCount recompute products every call.",
+   "proposedChange": "Store a readonly `int sizeOfT` (and optionally `long slabBytes = (long)countPerSlab * sizeOfT`) computed once in the ctor; use them in Alloc's grow path and the count methods. sizeof(T) is invariant for a closed generic.",
+   "rationale": "Removes a repeated multiply/intrinsic on the grow path and in count queries; makes the slab byte size a precomputed constant. Cheap, always-correct invariant hoisting.",
+   "risk": "None semantically; SizeOf<T> is constant for a given T. Under Burst the SizeOf call is already a constant so the multiply is the only real saving; impact is low but real for non-Burst/managed mono fallback."
+  },
+  {
+   "file": "src/IAFahim.Memory.Allocators/UnsafeSlabAllocator.cs",
+   "symbol": "UnsafeSlabAllocator<T>.Allocated",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Allocated() reports total reserved bytes, not bytes actually handed out \u2014 name/semantics are misleading versus AllocationCount.",
+   "currentCost": "Allocated() returns slabs->Length * countPerSlab * sizeof(T) (total capacity across all slabs), while AllocationCount returns the number of live objects. The Pool's Allocated() forwards to it. A caller reasonably expects 'Allocated' to mean live/used bytes, mirroring AllocationCount.",
+   "proposedChange": "Rename to ReservedBytes()/CapacityBytes(), or add AllocatedBytes() = AllocationCount * sizeof(T) for live usage. Keep one consistent vocabulary (Count for objects, Bytes for memory). This is a naming/discoverability fix, not a perf change.",
+   "rationale": "Reduces caller error and aligns the API with the Count/Bytes distinction the type already implies, without affecting the perf model.",
+   "risk": "API rename is a breaking change for callers; provide it additively or coordinate the rename. No correctness/runtime risk."
+  },
+  {
+   "file": "src/IAFahim.Memory.Allocators/UnsafeSlabAllocator.cs",
+   "symbol": "UnsafeSlabAllocator<T> (count heap allocation)",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Store the count inline in the struct instead of behind a separate 4-byte heap allocation.",
+   "currentCost": "The ctor does a dedicated Unmanaged.Allocate for a single int (the count), adding an allocation, a free in Dispose, a pointer field, and a guaranteed cache miss on every Alloc/AllocationCount access since count lives in unrelated heap memory. The [NativeDisableUnsafePtrRestriction] attribute and extra alloc/free exist solely to support this.",
+   "proposedChange": "Make count a plain `int count;` field in the struct (initialized to countPerSlab) and use IsCreated based on `slabs != null` instead of `count != null`. This removes the Allocate/Free pair, the pointer indirection, the cache miss, and the attribute.",
+   "rationale": "Inline field is register/L1-resident, removing a heap allocation, a free, and a per-Alloc cache miss; shrinks both the allocation count and the critical-path latency of Alloc.",
+   "risk": "Reason for the heap-allocated count is likely that the struct is copied by value and copies must share mutable state (the original code shares count and slabs by pointer so copies see each other's mutations). If the design relies on value copies aliasing the same allocator state, count must stay heap-allocated; verify usage before inlining. If copies are never expected to alias, inlining is safe and strictly better. Flag this aliasing requirement explicitly before applying."
+  }
+ ]
+}

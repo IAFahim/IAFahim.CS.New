@@ -1,0 +1,60 @@
+{
+ "file": "src/IAFahim.Linear.Matrix/Recurrence.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Linear.Matrix/Recurrence.cs",
+   "symbol": "BerlekampMassey.UpdateBM",
+   "severity": "critical",
+   "category": "overflow",
+   "summary": "Out-of-bounds read/write on C and B: the update loop indexes up to C[n]/B[n] but both arrays are length n (valid indices 0..n-1), so the last iteration writes/reads one element past the buffer.",
+   "triggeringInput": "s = {1,1,1,1} (long[4]), n = 4, c = long[5]. At i=0, d = s[0] = 1 != 0 and 2*L(=0) <= 0, so Run calls UpdateBM(C,B,n=4,m=0,d=1,b=1,replaceB=true). The loop 'for(j=0; j<=n-m; j++)' becomes j=0..4, and at j=4 it executes 'C[0+4] -= coef*B[4]' = C[4]/B[4], both indices == n == 4, out of the length-4 stackalloc.",
+   "rootCause": "C and B are stackalloc long[n], but Berlekamp-Massey needs polynomial coefficient arrays of size n+1 (a degree-L feedback polynomial has L+1 coefficients and L can reach n). The loop bound 'j <= n - m' with m as small as 0 makes m+j reach n, and B[j] reaches B[n]. The read-modify-write 'C[m+j] -= coef*B[j]' touches C[n]/B[n] regardless of B[j] being zero, which is OOB (UB) on the stack. The same defect appears in Run's final copy 'for(i=0;i<=L;i++) c[i]=C[i]' and the discrepancy loop reading C/s, where L can equal n.",
+   "suggestedFix": "Allocate C and B as stackalloc long[n + 1] (and require caller c to be size n+1), or equivalently tighten the loop so m+j never reaches n. Initialize the extra slot to 0. This restores the standard BM invariant that the feedback polynomial may have degree up to n."
+  },
+  {
+   "file": "src/IAFahim.Linear.Matrix/Recurrence.cs",
+   "symbol": "Kitamasa.Run",
+   "severity": "critical",
+   "category": "off-by-one",
+   "summary": "For an order-1 recurrence (k == 1) the line 'res[1] = 1' writes index 1 of a length-1 stackalloc, an out-of-bounds stack write (UB).",
+   "triggeringInput": "k = 1, init = {5} (long[1]), trans = {3} (long[1]) representing a[i] = 3*a[i-1] with a[0]=5, n = 2, mod = 1000000007. Since n(2) >= k(1), execution reaches 'res = stackalloc long[1]' (length 1) and then 'res[1] = 1', which writes one element past the buffer.",
+   "rootCause": "The code initializes the polynomial state with pol[0]=1 and res[1]=1, implicitly assuming k >= 2 so that res has at least two slots. Order-1 linear recurrences (e.g. geometric sequences) are valid inputs with k = 1, but res only has k = 1 element, so res[1] is OOB. The subsequent x^? loop and reduction then operate on corrupted/OOB state.",
+   "suggestedFix": "Handle k == 1 specially (x mod (x - trans[0]) reduces to the scalar trans[0], so the answer is trans[0]^(n-k+1) applied to init), or size the working polynomials to max(k, 2) and clamp the initial 'res[1] = 1' so it is only written when k >= 2, performing the first reduction step explicitly for k == 1."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Linear.Matrix/Recurrence.cs",
+   "symbol": "Kitamasa.PerformKitamasaStep",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Redundant `% mod` reductions: a[i], b[j], trans[], and newRes[] are already in [0,mod) from prior reductions, so the inner % operations are wasteful div ops on the hottest path.",
+   "currentCost": "The convolution inner loop does `(a[i] % mod) * (b[j] % mod)` and the reduction loop does `(newRes[i] % mod) * (trans[k-j] % mod)`; each % is a 64-bit integer division (~20-40 cycles) executed O(k^2) times per step, and the operands are already < mod.",
+   "proposedChange": "Maintain the invariant that all stored coefficients are in [0,mod): inputs init/trans reduced once up front, and every write already does `... % mod`. Then drop the `% mod` on a[i], b[j], trans[], and the newRes[i] in the reduction loop, keeping only the single outer `% mod` on the accumulated sum. Optionally keep a guard reducing trans[] once at Run entry.",
+   "rationale": "Removes 3-4 of every ~5 modulo divisions in the two O(k^2) inner loops. Division is the dominant cost here; eliminating provably-redundant reductions is a large constant-factor win with no algorithmic change.",
+   "risk": "Requires proving all stored values stay in [0,mod). Risk: product of two values < mod can be up to (mod-1)^2; if mod > ~3.03e9 this overflows int64 before the outer % mod. Current code has the SAME overflow exposure (it multiplies reduced values), so dropping the inner % does not worsen it. Guard: document mod < 2^31.5, or accumulate with care. Also requires reducing init[]/trans[] once at entry if callers may pass unreduced values (current code tolerates unreduced via the now-removed %); add a one-time reduction pass to preserve semantics."
+  },
+  {
+   "file": "src/IAFahim.Linear.Matrix/Recurrence.cs",
+   "symbol": "Kitamasa.PerformKitamasaStep",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "stackalloc long[2*k] newRes allocated on every step (called O(log n) times); reuse a single hoisted scratch buffer from Run.",
+   "currentCost": "Each step (up to ~2*log2(n) calls) does `stackalloc long[2*k]` plus a full zeroing pass. Per-call stack reservation and re-zero of 2k longs.",
+   "proposedChange": "Allocate `long* newRes = stackalloc long[2*k]` once in Run and pass it into PerformKitamasaStep, zeroing the used [0,2k) range at the top of each call (already needed). This avoids repeated frame reservation.",
+   "rationale": "Keeps the scratch buffer fixed and cache-warm across steps and removes per-call stack-frame growth, which matters on constrained mobile stacks and helps Burst keep the buffer in a stable location.",
+   "risk": "Self-call PerformKitamasaStep(k,pol,pol,...) aliases a==b; the dedicated newRes scratch (distinct from pol) preserves correctness since results are fully formed in newRes before copying back into a. Must still zero newRes[0..2k) each call. No semantic change."
+  },
+  {
+   "file": "src/IAFahim.Linear.Matrix/Recurrence.cs",
+   "symbol": "BerlekampMassey.UpdateBM",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "T = stackalloc long[n] is allocated unconditionally every call but only used when replaceB; also the full-n copies can be bounded to the meaningful prefix length.",
+   "currentCost": "Every UpdateBM call does `stackalloc long[n]` even on the common !replaceB branch where T is never touched, reserving n longs of stack for nothing. The two `for j<n` copies of C->T and T->B run the full n even though only the active polynomial prefix (length <= L+1) is nonzero/relevant.",
+   "proposedChange": "Move the T scratch out: when replaceB, snapshot C into B's old slot via a single hoisted buffer (allocate one B-swap scratch in Run, or copy directly C->B using a temp of length L+1). Avoid stackalloc on the !replaceB path entirely. Bound the copy/update loops by the polynomial degree (e.g. j up to current L+1) instead of n.",
+   "rationale": "Eliminates an n-long stack reservation on the hot (no-replace) path and reduces the copy work from O(n) to O(deg) per update, lowering total work from O(n^2) constant factor. The classic BM only needs to snapshot/restore the active prefix.",
+   "risk": "Must ensure the snapshot captures the full region that the subsequent C-update could have modified, so the bound must cover indices up to m+(n-m)=n in the worst case for B reuse; choosing too tight a bound corrupts B. Safe version: keep correctness by bounding to the max degree ever written (track maxLen). The unconditional-stackalloc removal (guard with `if replaceB`) is zero-risk on its own."
+  }
+ ]
+}

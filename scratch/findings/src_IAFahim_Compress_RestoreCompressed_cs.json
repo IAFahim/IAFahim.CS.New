@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Compress/RestoreCompressed.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Compress/RestoreCompressed.cs",
+   "symbol": "Run",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Narrowing long->int copy with explicit (int) cast is already Burst-vectorizable; only note is to confirm it is the intended truncation, not saturation.",
+   "currentCost": "Per-element 64->32-bit truncating store; Burst can vectorize the narrowing pack, so cost is near memory-bandwidth bound already.",
+   "proposedChange": "No code change needed for correctness/perf. If callers ever pass values outside int range expecting clamping, that is NOT what this does (it truncates the low 32 bits). Document the truncation contract in a comment so the unchecked Run convention is explicit.",
+   "rationale": "The loop is already optimal for Burst (contiguous load, narrow, store; SIMD pack). There is no asymptotic or constant-factor win to extract; flagging it would be cargo-cult.",
+   "risk": "None for behavior. Truncation (int)long differs from clamping only for out-of-range inputs, which the unchecked Run contract already assumes valid; no change proposed."
+  }
+ ]
+}

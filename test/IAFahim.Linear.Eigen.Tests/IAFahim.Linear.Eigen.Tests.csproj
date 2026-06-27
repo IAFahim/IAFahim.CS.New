@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.Linear.Eigen/IAFahim.Linear.Eigen.csproj" />
+  </ItemGroup>
+</Project>

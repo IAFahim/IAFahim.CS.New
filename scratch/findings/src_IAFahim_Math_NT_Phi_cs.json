@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.NT/Phi.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/Phi.cs",
+   "symbol": "Phi.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Compute n % p once per inner iteration instead of twice (the if-test re-divides what the while will divide again), and special-case factor 2 to use a shift loop.",
+   "currentCost": "Each trial divisor p does `n % p == 0` then immediately `while (n % p == 0)` \u2014 for every p that does NOT divide n (the overwhelming majority), that's one modulo; for p that does divide, the first `% p` is recomputed redundantly by the while. Division/modulo is the dominant cost (20-90 cycles each on mobile ARM).",
+   "proposedChange": "Restructure as: `long q = n / p; if (q * p == n) { do { n = q; q = n / p; } while (q * p == n) ... }` to reuse the quotient, or more simply hoist factor 2: `if ((n & 1) == 0) { result -= result >> 1; do { n >>= 1; } while ((n & 1) == 0); }` then iterate p from 3 with step 2. The odd-only loop halves the number of trial divisions.",
+   "rationale": "Trial division does p*p<=n iterations; stepping p by 2 after handling 2 removes ~half the iterations, each of which currently costs a multiply (p*p) plus a modulo. The factor-2 branch replaces div/mod by shifts (1-cycle). result -= result/p with p=2 becomes result -= result>>1.",
+   "risk": "result/p for p=2 equals result>>1 only for non-negative result; result starts at n and only decreases toward positive values for n>=1, so it stays non-negative \u2014 safe. Loop bound p*p<=n must keep the p+=2 stepping consistent (start at 3). For n<2 the function returns n unchanged, preserved."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/Phi.cs",
+   "symbol": "Phi.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Loop invariant p*p is recomputed every iteration; the bound can be tracked with an incrementally-maintained limit or compared against a precomputed isqrt.",
+   "currentCost": "`p * p <= n` executes a 64-bit multiply each iteration of the outer loop (O(sqrt n) multiplies).",
+   "proposedChange": "Maintain the test as `p <= limit` where `long limit = (long)Math.Sqrt((double)n);` recomputed only when n changes (n only shrinks inside the loop). Recompute limit after the inner divide-out loop rather than every p. Guard the sqrt with +1/-1 correction to avoid floating rounding at the boundary.",
+   "rationale": "Replaces one 64-bit multiply per trial divisor with a single comparison; sqrt recomputed only O(#distinct factors) times instead of O(sqrt n). Multiply latency on the dependency chain of the loop condition is removed.",
+   "risk": "Math.Sqrt rounding can be off by one at perfect squares; needs a correction step (while limit*limit>n limit--; while (limit+1)*(limit+1)<=n limit++). Burst lowers Math.Sqrt to a hardware sqrt, deterministic. Only worth it if the multiply truly dominates; mark low impact."
+  }
+ ]
+}

@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Graph.Flow/MinCostFlowDijkstra.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Flow/MinCostFlowDijkstra.cs",
+   "symbol": "MinCostFlowDijkstra.Run",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "The lazy-deletion path of the binary heap is broken. When the root entry is stale (du != dist[u], line 31) the code does 'u = pqV[--pqSize]': it discards the LAST heap element and processes it as the current node, while the stale root at index 0 is left untouched and the heap is never re-heapified. This processes nodes out of increasing-distance order (violating Dijkstra's finalization invariant) and re-examines the same stale root forever. Because nodes are finalized out of order and the loop breaks on 'u==t' (line 49), dist[t] can be settled before its true shortest distance is found, yielding a non-minimum-cost augmenting path and a wrong total cost.",
+   "triggeringInput": "n=4, s=0, t=3. Forward edges (even ids, reverses are odd with cap 0): 0->1 cap=1 cost=1, 0->2 cap=1 cost=5, 1->2 cap=1 cost=1, 2->3 cap=1 cost=1. Node 2 is pushed with dist=5 (via 0->2) then dist=2 (via 0->1->2); the dist=5 entry becomes stale and, when it reaches the root, line 31 pops an arbitrary tail element and skips proper extract-min, so t can be reached/settled via the cost-5 route -> returns cost 6 instead of the optimal 0->1->2->3 cost 3.",
+   "rootCause": "On a stale root the code should pop index 0 (move pqV[--pqSize] into index 0 and sift down), exactly like the non-stale branch, then continue WITHOUT processing a node. Instead it grabs the unrelated last element as the node to process and never restores the heap, corrupting both heap order and the extracted-minimum guarantee.",
+   "suggestedFix": "On stale root: set pqSize--, move pqD/pqV[pqSize] into index 0, fix pqPos, sift down (reuse the else-branch heapify), then 'continue' the while loop without processing any node. Only process a node when the popped root is non-stale."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Flow/MinCostFlowDijkstra.cs",
+   "symbol": "Run",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "pqPos array is fully maintained but never read \u2014 dead working set and dead writes in the hottest loop.",
+   "currentCost": "stackalloc int[n] for pqPos plus pqPos[...] = idx writes on every heap sift-up/sift-down swap and every push, yet the value is never consulted (no decrease-key is performed; relaxation pushes a duplicate entry instead). That is n*4 bytes of stack and 2-3 extra stores per swap.",
+   "proposedChange": "Delete pqPos entirely: remove the stackalloc, the init loop `for(i)pqPos[i]=-1`, and every `pqPos[...] = ...` assignment in sift-up and sift-down. The algorithm already tolerates stale heap entries via the `du != dist[u]` lazy-deletion check.",
+   "rationale": "Removes an O(n) allocation/zeroing per outer iteration and eliminates 2 store instructions per heap swap (sift-up/down run O(log V) per pop/push, so this is in the inner dependency chain). Fewer stores shorten the critical path and lower cache pressure.",
+   "risk": "None \u2014 pqPos is provably write-only; grep the function for any read of pqPos confirms it is never used in a branch or expression. Behavior is identical."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/MinCostFlowDijkstra.cs",
+   "symbol": "Run",
+   "dimension": "burst",
+   "impact": "high",
+   "summary": "Per-outer-iteration stackalloc of the priority queue (pqV/pqD/pqPos) inside while(true) repeatedly grows/zeroes the stack frame.",
+   "currentCost": "Three stackalloc int/long[n] occur inside the outer augmentation loop. Each augmenting path triggers a fresh stack reservation; Burst/.NET zero-inits or at least re-reserves, and the buffers are conceptually live for the whole call.",
+   "proposedChange": "Hoist pqV and pqD (and dist) allocation above the while(true) loop, exactly like dist/parent/pot are already hoisted; only reset pqSize=0 and re-fill dist each iteration. stackalloc inside a loop is also UB-adjacent for frame size in some JITs.",
+   "rationale": "One reservation instead of O(augmentations) reservations; smaller, stable stack frame improves locality and avoids repeated frame-pointer math. Matches the file's own hoisting convention for dist/parent/pot.",
+   "risk": "stackalloc inside a loop does not free per iteration in C# (it persists to method end), so hoisting is semantically equivalent and actually safer against stack overflow. No behavior change."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/MinCostFlowDijkstra.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Heap-update branch when du != dist[u] discards top incorrectly by overwriting u but leaving the stale root in the heap.",
+   "currentCost": "`if (du != dist[u]) { u = pqV[--pqSize]; }` pops the last element into u but does NOT remove the stale root at index 0, so the same stale root is re-popped next iteration, wasting comparisons until it is finally evicted.",
+   "proposedChange": "On a stale top, remove the root (swap last into index 0 and sift down) and `continue` without processing, rather than substituting the tail element as the current node. This avoids reprocessing the stale root and avoids processing an arbitrary tail node out of priority order.",
+   "rationale": "Eliminates repeated re-pop of stale roots (reduces total heap operations) and removes out-of-order node expansion that can cause extra relaxations/pushes, shrinking the inner loop's total work.",
+   "risk": "Medium \u2014 this also fixes a likely correctness subtlety (processing a non-minimal node), so verify against tests; if current outputs are considered the spec, treat as behavior-affecting and gate behind validation. State clearly: this changes which node is expanded on a stale-top event."
+  }
+ ]
+}

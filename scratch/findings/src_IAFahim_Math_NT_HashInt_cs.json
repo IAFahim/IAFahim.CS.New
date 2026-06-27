@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Math.NT/HashInt.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/HashInt.cs",
+   "symbol": "RngSeed.Run / XorShift",
+   "dimension": "purity",
+   "impact": "medium",
+   "summary": "RngSeed.Run and XorShift hold hidden mutable static state and RngSeed reads DateTime.UtcNow, making them impure, non-deterministic, and non-Burst-compilable; move seed/state to caller-supplied storage.",
+   "currentCost": "RngSeed.Run calls DateTime.UtcNow.Ticks (managed BCL call, not Burst-compatible, non-deterministic) and mutates static int _counter (hidden global state, not thread-safe). XorShift mutates static uint _state, also a hidden non-reentrant global. None of these are usable from Burst-compiled jobs.",
+   "proposedChange": "Refactor XorShift to operate on a caller-owned state passed by ref (or a uint* / small unmanaged struct): static uint Next(ref uint state){...}; static int Range(ref uint state,int lo,int hi){...}. For seeding, replace the DateTime-based RngSeed with a pure mixing function over caller-supplied entropy (e.g. SplitMix from a passed-in ulong), leaving any wall-clock read to the managed boundary outside src.",
+   "rationale": "Makes the RNG pure/deterministic and reentrant, removes the managed DateTime dependency so it can run inside Burst jobs, and eliminates a data race on the shared static state. Determinism is essential for reproducible algorithm-library behavior.",
+   "risk": "This is an API change (signatures gain a ref state parameter), so it breaks source compatibility; acceptable per the ergonomics/purity goals but callers must be updated. Behavior of the bit-mixing itself is preserved. Note Range still has modulo bias (Next() % range) \u2014 preserve as-is unless a bias-free contract is desired."
+  }
+ ]
+}

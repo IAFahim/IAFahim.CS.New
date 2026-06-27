@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Graph.Flow/PushRelabelGlobalRelabel.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Flow/PushRelabelGlobalRelabel.cs",
+   "symbol": "PushRelabelGlobalRelabel.Run",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Nodes not reachable to t in the residual graph are given height 0 (line 41) instead of a height above n; excess stranded at such a node can never be pushed (no neighbor with height-1) and can never drain back to s, so the outer while(true) loop spins forever and never returns.",
+   "triggeringInput": "Dead-end branch that strands excess. n=4, s=0, t=3. Edges: 0->1 cap 10, 1->3 cap 1 (the only path to t), 1->2 cap 10, 2 has no edge to t (dead end). Init saturates 0->1 giving excess[1]=10; at most 1 unit reaches t via 1->3, and pushing toward node 2 strands excess at node 2 (and the residual excess at node 1 after the path to t saturates). Node 2 (and the leftover at node 1) are not reachable to t in the residual graph, so dist=-1 -> height=0, no admissible push exists to drain the excess back toward s, and the termination check at line 65 keeps finding excess>0, looping forever.",
+   "rootCause": "Line 41 'height[i] = dist[i] >= 0 ? dist[i] + 1 : 0' assigns height 0 to nodes that cannot reach t. Correct push-relabel must label such nodes with a height greater than n so their excess can be relabeled/pushed back toward the source; setting height 0 makes height[u]==height[v]+1 unsatisfiable for them and there is no local relabel step inside the discharge loop to raise the height.",
+   "suggestedFix": "For unreachable nodes set a draining height, e.g. height[i] = dist[i] >= 0 ? dist[i] + 1 : n + 1 (or run a second BFS from s over residual edges to assign heights n + 1 + distFromS so excess returns to the source), and/or add a local relabel step so a node with excess and no admissible edge raises its height instead of being stuck."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Flow/PushRelabelGlobalRelabel.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "In the discharge inner loop, to[e] is loaded twice and the height comparison recomputes; cache v's height and hoist height[u].",
+   "currentCost": "Lines 50-57: v=to[e] then height[v] (line 52) and excess[v] (lines 56,57) each re-index. height[u] (lines 52) reloaded per edge though invariant across the ptr walk for a fixed u. Within one discharge of u, height[u] only changes between outer relabel passes, not inside the while(ptr[u]!=0) loop.",
+   "proposedChange": "Hoist int hu = height[u]; before the while(ptr[u]!=0) loop and use hu in the comparison height[u]==height[v]+1 -> hu==height[v]+1. Keep v=to[e] single-load (already single). Optionally hold int eu = excess[u] in a local and write back once at break/exit to avoid repeated excess[u] load/store.",
+   "rationale": "height[u] is invariant during a single u-discharge, so hoisting removes one dependent load per edge. Keeping excess[u] in a register across the inner pushes removes a load+store pair per push from the chain that feeds Math.Min.",
+   "risk": "Low. height[u] is not mutated inside the discharge while-loop (only set in the global-relabel pass at line 41), so hoisting is safe. If excess[u] is registerized, must store it back before any path that re-reads excess[u] (the line-65 convergence check is after the discharge loop, so write-back at loop exit suffices)."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/PushRelabelGlobalRelabel.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "BFS relabel loop loads to[e] twice per qualifying edge (lines 35 and 37).",
+   "currentCost": "Lines 35-37: 'if (flow[rev] > 0 && dist[to[e]] == -1) { dist[to[e]] = dist[u] + 1; q[qt++] = to[e]; }' computes to[e] three times (two reads in line 35-37 dist index, one for q store).",
+   "proposedChange": "int w = to[e]; if (flow[rev] > 0 && dist[w] == -1) { dist[w] = dist[u] + 1; q[qt++] = w; }",
+   "rationale": "Collapses 3 loads of to[e] to 1 in the BFS hot edge loop; to[] is a separate cache stream so each saved load is a real memory-uop saving across the global-relabel passes.",
+   "risk": "None \u2014 to[e] is pure load of immutable edge data; single read is equivalent."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/PushRelabelGlobalRelabel.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "dist init (line 26) and the dist->height copy (line 41) are two separate O(n) passes that can be fused, and height re-derivation can avoid the branch.",
+   "currentCost": "Line 26 sets dist[i]=-1 (O(n)); after BFS line 41 does 'height[i] = dist[i] >= 0 ? dist[i] + 1 : 0' (O(n) with a branch/select per element). Two full sweeps over n plus a conditional select.",
+   "proposedChange": "Keep line 41 but note dist[i]>=0?dist[i]+1:0 is branchless via Burst select already; alternatively store height directly during BFS (height[t]=1, height[w]=dist[u]+2...) and memset height/dist with Unsafe.InitBlock. Initialize unreachable heights to 0 with one InitBlockUnaligned then overwrite reached nodes, removing the per-element ternary.",
+   "rationale": "Folding the -1 sentinel pass and the height-derivation pass reduces two O(n) memory sweeps to roughly one, lowering cache traffic each global-relabel iteration (which runs many times).",
+   "risk": "Low. Must preserve that unreachable-from-t nodes get height 0 (line 41 's else branch). Writing height during BFS requires initializing all height[i]=0 first via InitBlock to match the else=0 semantics exactly."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/PushRelabelGlobalRelabel.cs",
+   "symbol": "Run",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Convergence check (line 65) rescans all n vertices for residual excess every global-relabel pass.",
+   "currentCost": "Lines 64-66 do an O(n) scan over excess[] after each discharge phase to detect any active vertex. With many global-relabel iterations this is O(passes*n).",
+   "proposedChange": "Track an active-count or set a 'producedActive' flag during the discharge loop (incremented when a vertex is enqueued with excess>0 and decremented when fully discharged) so the outer loop can terminate without the full rescan, or break early as soon as the first active vertex is found (already breaks on first, so impact is bounded).",
+   "rationale": "Avoids a full O(n) excess sweep per outer pass; for sparse-active graphs the active set is far smaller than n.",
+   "risk": "Low-to-medium: maintaining an accurate active counter across pushes is error-prone (a vertex can gain/lose excess multiple times). Must be test-gated; the early-break already caps worst case so this is a minor win."
+  }
+ ]
+}

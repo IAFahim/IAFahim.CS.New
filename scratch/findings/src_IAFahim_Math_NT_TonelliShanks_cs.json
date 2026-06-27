@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Math.NT/TonelliShanks.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.NT/TonelliShanks.cs",
+   "symbol": "TonelliShanks.ModSqrtOne",
+   "severity": "high",
+   "category": "logic",
+   "summary": "The p \u2261 3 (mod 4) fast path returns ModPow(a,(p+1)/4,p) without verifying that the result actually squares back to a. For a quadratic NON-residue it returns a bogus value instead of -1, so Run() reports a wrong square root for non-residues even though the general (p \u2261 1 mod 4) path correctly returns -1 for them.",
+   "triggeringInput": "Run(a=3, p=7): 3 is a non-residue mod 7 (squares mod 7 are {0,1,2,4}). Fast path computes ModPow(3,(7+1)/4=2,7)=9 mod 7=2, and Run returns min(2,5)=2, but 2^2=4\u22603 mod 7. Expected return value is -1.",
+   "rootCause": "Unlike the general branch which detects non-residues via the inner loop (i==m -> return -1), the (p & 3)==3 branch unconditionally returns the exponentiation result. For a non-residue, a^((p+1)/4) is a square root of -a (not a), so it is not a valid sqrt of a, and no residue check is performed.",
+   "suggestedFix": "After computing r = ModPow(a,(p+1)>>2,p) in the p\u22613(mod4) branch, verify ModMul(r,r,p)==a%p; if not, return -1. The general path's non-residue detection should be mirrored here."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/TonelliShanks.cs",
+   "symbol": "ModSqrtOne",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "ModMul(b, b, p) is computed twice per main-loop iteration; cache it once.",
+   "currentCost": "Lines 44-45: t = ModMul(t, ModMul(b, b, p), p); c = ModMul(b, b, p). The subexpression ModMul(b, b, p) is evaluated twice. ModMul is a double-and-add loop of O(log p) iterations (~63 iterations for 64-bit moduli), so this duplicates an expensive O(log p) computation every iteration of the Tonelli-Shanks main loop.",
+   "proposedChange": "Hoist the square once: long bb = ModMul(b, b, p); then t = ModMul(t, bb, p); c = bb;. This removes one full ModMul call per loop iteration.",
+   "rationale": "Eliminates one O(log p) modular multiply per outer-loop iteration (~63 add/shift/branch ops each). Pure constant-factor win on the hottest path of the algorithm, and the result is provably identical because b and p are unchanged between the two calls.",
+   "risk": "None. Same operands, same deterministic ModMul, so the cached value is bit-identical. No signedness/overflow concern introduced."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/TonelliShanks.cs",
+   "symbol": "ModSqrtOne",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace ModPow(c, 1L<<(m-i-1), p) with a direct repeated-squaring loop to avoid the exponent's generic bit-walk and the 1L<<k shift edge.",
+   "currentCost": "Line 42: long b = ModPow(c, 1L << (int)(m - i - 1), p). ModPow walks every bit of the exponent (m-i-1 bits, but a power of two has a single set bit) and still performs (m-i-1) squarings plus the per-bit (e&1) branch and the e>>=1 / b=ModMul(b,b) bookkeeping each iteration. Building 1L<<(m-i-1) is also a separate step.",
+   "proposedChange": "Compute b by k = (int)(m - i - 1) repeated squarings directly: long bcur = c; for (int kk = 0; kk < k; kk++) bcur = ModMul(bcur, bcur, p); then use bcur. This is exactly c^(2^k) without forming the large exponent or running ModPow's odd-bit branch.",
+   "rationale": "Strength-reduces a generic modular exponentiation to its minimal form: c^(2^k) needs exactly k squarings, which is what ModPow already does internally, but the direct loop drops the per-iteration (e&1)==1 test, the result multiply on the single set bit, and the 1L<<k formation. Fewer ops and a shorter dependency chain.",
+   "risk": "Behavior identical for valid inputs since m-i-1 >= 0 in this branch (i < m guaranteed by the inner loop exit). For k==0 the loop yields c, matching ModPow(c,1,p)=c. No overflow since 1L<<k is avoided entirely, which also removes the latent risk of m-i-1 >= 63 overflowing the shift (not reachable for valid p but now structurally impossible)."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/TonelliShanks.cs",
+   "symbol": "ModPow/ModMul (private wrappers)",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Private forwarding wrappers ModPow and ModMul lack [MethodImpl(AggressiveInlining)].",
+   "currentCost": "Lines 8-11 and 51-54 define private static long ModPow/ModMul that merely forward to IAFahim.Math.NT.ModPow/ModMul... wait, they forward to the Modular implementations. Without AggressiveInlining the JIT/Burst may keep a call frame for the trivial forwarder, adding a call layer in tight loops that invoke ModMul many times.",
+   "proposedChange": "Annotate both private wrappers with [MethodImpl(MethodImplOptions.AggressiveInlining)] so they collapse to direct calls to the already-inlined underlying methods. Using directive for System.Runtime.CompilerServices is already present.",
+   "rationale": "Burst/IL inlining of a zero-logic forwarder removes a call/return and argument shuffle at every call site (ModMul is called several times per loop iteration). The underlying Run methods are already AggressiveInlining, so the whole chain folds flat.",
+   "risk": "None semantically. Pure inlining hint; does not change results."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/TonelliShanks.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Double modulo in negative-normalization: ((a % p) + p) % p does two divisions where one conditional add suffices.",
+   "currentCost": "Line 58: if (a < 0) a = ((a % p) + p) % p; performs two % operations (two hardware divides) on the a<0 path. Since a%p is in (-p,0] for a<0 and p>0, (a%p)+p is already in [0,p), so the outer %p is redundant.",
+   "proposedChange": "Replace with: if (a < 0) { a %= p; if (a < 0) a += p; } i.e. one modulo plus a branchless/predicated add. Mirrors the normalization style already used in ModPow.Run and ModMul.Run.",
+   "rationale": "Removes one integer division (the costliest scalar int op, ~20-40 cycles) on the negative-input path. Result is identical: for a<0, p>1, a%p in (-p,0], adding p lands in [0,p).",
+   "risk": "Requires p > 1 (true here: callers pass a prime p >= 2, and p==2 is handled by the next line; the a%p path only matters for p>2). For p==2 with a<0 the original also reduces mod 2; the proposed form gives the same [0,2) result. Safe under the documented precondition that p is an odd prime in this branch."
+  }
+ ]
+}

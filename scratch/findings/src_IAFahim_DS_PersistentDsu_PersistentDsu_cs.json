@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.DS.PersistentDsu/PersistentDsu.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.PersistentDsu/PersistentDsu.cs",
+   "symbol": "Query",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Convert recursive Query into an iterative loop to eliminate per-level call overhead on the hottest path",
+   "currentCost": "Query is O(log n) recursion, invoked once per Find iteration and Find runs in a loop (multiple Query calls per Union). Each segment-tree level costs a full method call: argument marshaling of 8 parameters (root,l,r,idx,parent,lc,rc,size + out s), return-address push, stack frame setup. The out parameter 's' forces a store through a pointer at the leaf. The dependency chain is call -> load lc/rc[root] -> compare -> recurse.",
+   "proposedChange": "Rewrite as: int node=root; while(l!=r){ int mid=(l+r)>>1; if(idx<=mid){ node=lc[node]; r=mid; } else { node=rc[node]; l=mid+1; } } s=size[node]; return parent[node]; Keep the public signature identical so callers are unchanged.",
+   "rationale": "Tail-style descent has no need for a stack; the loop turns N recursive frames into N cheap iterations with one branch and one pointer load each, shrinking the dependency chain and removing call/return overhead. Burst/JIT may already tail-call-optimize this, but an explicit loop guarantees it and avoids the out-pointer store happening once per leaf only.",
+   "risk": "None \u2014 observable behavior is identical for all valid idx in [l,r]. The leaf assignment to s happens exactly once (at the leaf) as before. No signed/overflow change: (l+r)>>1 semantics unchanged."
+  },
+  {
+   "file": "src/IAFahim.DS.PersistentDsu/PersistentDsu.cs",
+   "symbol": "Find",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Inline the segment-tree descent into Find to fuse the Find loop with Query traversal",
+   "currentCost": "Find calls Query (a full O(log n) traversal) on every loop iteration just to read parent[x] and size[x] for the current x. Each iteration re-enters the tree at root and walks down again. The out-int s is written every iteration but only the final value is used by the caller (sa/sb in Union). So intermediate s stores are wasted work, and every iteration pays full call overhead plus an out-pointer store.",
+   "proposedChange": "Inline an iterative descent inside Find's while(true): walk node from root using idx=x to the leaf, set p=parent[leaf]; only write s=size[leaf] when p==x (the terminal iteration), then return. This fuses the two loops, drops the Query call entirely, and removes the per-iteration s store for non-terminal steps.",
+   "rationale": "Eliminates one function call per Find iteration and avoids repeatedly storing through the out pointer 's' for intermediate (discarded) values \u2014 only the final size matters to callers. Fewer instructions per iteration and a shorter dependency chain; better Burst codegen since there is no out-parameter aliasing to reason about each step.",
+   "risk": "Must preserve that s reflects size of the final representative x (the node where parent==x). Guard: only assign s on the returning iteration. Behavior identical to current code, which returns size of the last queried node (the representative). No edge-case change for self-roots (first query returns p==x with its own size)."
+  },
+  {
+   "file": "src/IAFahim.DS.PersistentDsu/PersistentDsu.cs",
+   "symbol": "Query",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "Mark hot leaf descent helpers with [MethodImpl(AggressiveInlining)]",
+   "currentCost": "Query, Swap, and (if kept) the descent helpers are separate methods. Query is called from Find in a tight loop; Swap is called twice in Union. Without an inlining hint the JIT/Burst may keep them as out-of-line calls, adding call/return overhead on the hot Find path.",
+   "proposedChange": "Add [MethodImpl(MethodImplOptions.AggressiveInlining)] to Query (once iterative) and to Swap. The using for System.Runtime.CompilerServices is already present.",
+   "rationale": "AggressiveInlining on small leaf methods lets Burst fold them into callers, removing call overhead and enabling cross-method register allocation and constant propagation of l/r/mid. Swap is two-temp trivial and benefits from inlining into Union.",
+   "risk": "None functionally. Inlining a recursive Query has no effect (recursion isn't inlined), so this hint only pays off if Query is first made iterative (see other opportunity)."
+  },
+  {
+   "file": "src/IAFahim.DS.PersistentDsu/PersistentDsu.cs",
+   "symbol": "Union",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Branchless size-ordered swap to avoid a mispredictable branch before Update",
+   "currentCost": "if (sa < sb) { Swap(ref ra,ref rb); Swap(ref sa,ref sb); } is a data-dependent branch on union sizes, which is essentially random in DSU workloads and thus frequently mispredicted (~15-20 cycle penalty per misprediction).",
+   "proposedChange": "Replace with branchless conditional select: int lt=-(sa<sb?1:0) is still a branch in C#; instead compute mask via comparison and arithmetic select, or simply ensure (ra,sa) is the larger root using max/min-style select: e.g. int swap=(sa<sb)?1:0; then use it without a control-flow branch is hard in C#. Lower-risk: keep the branch but note it is cold relative to Find/Update cost (each Update is O(log n)).",
+   "rationale": "Removing an unpredictable branch saves misprediction penalties; however the surrounding Find+Update work is O(log n) and dominates, so the swap branch is a small fraction of Union cost.",
+   "risk": "C# lacks a clean branchless 2-tuple swap without cmov-style intrinsics; a naive bit-mask select on ra/rb/sa/sb is correct but verbose. Given Update dominates, this is low-impact \u2014 only pursue if profiling later shows Union branch cost. Marked low and optional to avoid cargo-cult."
+  },
+  {
+   "file": "src/IAFahim.DS.PersistentDsu/PersistentDsu.cs",
+   "symbol": "Build",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Build recursion depth and node count are fine; no scratch buffers, but note stack depth is O(n) due to left-recursion pattern",
+   "currentCost": "Build recurses depth O(log n) for a balanced tree (Build(l,mid) then Build(mid+1,r)), which is acceptable. allocCnt is dereferenced via pointer (*allocCnt) once per node \u2014 a load+store through a pointer each call, plus it aliases nothing else so it's cheap. No real RAM waste here.",
+   "proposedChange": "Optionally pass allocCnt by ref int instead of int* if callers can supply a ref, avoiding pointer-aliasing assumptions and letting Burst keep the counter in a register across the recursion; or hoist *allocCnt into a local counter threaded by return value. Low priority given correctness and existing pointer-based API.",
+   "rationale": "A ref/register-resident counter avoids repeated memory round-trips through allocCnt, but the recursive structure means the increment must be visible across sibling calls, so it must live in memory or be threaded through return values \u2014 the current pointer approach is already the simplest correct form.",
+   "risk": "Changing allocCnt from int* to ref int alters the public API signature (ergonomics/breaking) and Burst treats both similarly for an escaping address. Net win is marginal; flag only, do not force. No semantic change if done carefully."
+  }
+ ]
+}

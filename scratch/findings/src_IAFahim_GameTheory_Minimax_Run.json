@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.GameTheory/Minimax.Run",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.GameTheory/Minimax.Run",
+   "symbol": "Minimax.Maximize/Minimize",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Branchless update of best/alpha (and best/beta) to shorten the dependency chain in the move loop.",
+   "currentCost": "`if (val > best) best = val; if (best > alpha) alpha = best;` are two dependent conditional branches per move. In alpha-beta these branches are data-dependent and often mispredict, stalling the search.",
+   "proposedChange": "Use branchless max/min: `best = math.max(best, val); alpha = math.max(alpha, best);` in Maximize and `best = math.min(best, val); beta = math.min(beta, best);` in Minimize. Keep the `if (beta <= alpha) break;` cutoff branch (it must remain a branch for early exit).",
+   "rationale": "math.max/min on long lower to a compare+cmov (or SSE/NEON min/max), removing two mispredictable branches per iteration and shortening the latency of the best/alpha update chain that gates the cutoff test.",
+   "risk": "Semantics identical: max/min reproduce the exact assignments. Only the cutoff `beta <= alpha` stays branchy (required for correctness of pruning). No overflow concern \u2014 values are bounded game evaluations, and long.MinValue/MaxValue seeds compare correctly with cmov."
+  }
+ ]
+}

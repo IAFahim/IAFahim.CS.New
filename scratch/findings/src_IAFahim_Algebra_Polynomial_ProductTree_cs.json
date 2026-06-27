@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Algebra.Polynomial/ProductTree.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/ProductTree.cs",
+   "symbol": "BuildLevel",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Avoid re-indexing offsets[levelStart + i] / sizes[levelStart + i] multiple times per node.",
+   "currentCost": "In the paired branch, offsets[levelStart + i] and offsets[levelStart + i + 1] are read for the ToomCook pointer args while sizes are read separately into sa/sb; in the odd branch offsets[levelStart+i] and sizes[levelStart+i] are each indexed once. The levelStart+i address arithmetic is recomputed for each separate array access.",
+   "proposedChange": "Hoist the base index once: int li = levelStart + i; then use offsets[li], offsets[li+1], sizes[li], sizes[li+1]. Load offsets[li]/offsets[li+1] into locals oa, ob and pass tree + oa, tree + ob to ToomCook.",
+   "rationale": "Removes redundant integer add for the base index and lets the compiler keep the offsets in registers across the multiply-arg setup; fewer reloads from the offsets/sizes arrays.",
+   "risk": "None; pure CSE of index arithmetic, identical semantics."
+  },
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/ProductTree.cs",
+   "symbol": "Build",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Strength-reduce the i*2 indexing in the leaf-initialization loop to an additive stride.",
+   "currentCost": "The leaf loop computes i*2 three times per iteration (offsets[nodeCount]=i*2, tree[i*2], tree[i*2+1]). i*2 is a shift but it is recomputed and the two tree writes index i*2 and i*2+1 separately.",
+   "proposedChange": "Maintain int two_i = 0; incrementing two_i += 2 each iteration; use offsets[i] = two_i; tree[two_i] = (MOD - values[i] % MOD) % MOD; tree[two_i + 1] = 1; (nodeCount == i here so use i directly for offsets/sizes index).",
+   "rationale": "Replaces repeated multiply/shift with a single add per iteration and makes the two adjacent tree stores share a base pointer, friendlier to write-combining. nodeCount equals i throughout this loop so it can be dropped in favor of i, removing an increment.",
+   "risk": "nodeCount must still end at n for the subsequent level loop; setting nodeCount = n after the loop preserves that. Semantics identical. The (MOD - values[i]%MOD)%MOD already correctly handles values[i] in [0,MOD) producing the monic linear factor's constant term; unchanged."
+  }
+ ]
+}

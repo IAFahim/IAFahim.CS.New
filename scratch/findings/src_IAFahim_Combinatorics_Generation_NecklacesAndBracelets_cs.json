@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Combinatorics.Generation/NecklacesAndBracelets.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Combinatorics.Generation/NecklacesAndBracelets.cs",
+   "symbol": "LyndonWordEnumerator.MoveNext",
+   "severity": "high",
+   "category": "wrong-recurrence",
+   "summary": "LyndonWordEnumerator emits all NECKLACE representatives (FKM prenecklaces where n % j == 0), not Lyndon words. It outputs periodic words and words of length < n, so it both over-generates and returns wrong-length results.",
+   "triggeringInput": "n=4, k=2: enumerate via MoveNext(w,res,out resLen). It yields 6 results (the 6 binary necklaces of length 4), but there are only 3 binary Lyndon words of length 4 (0001, 0011, 0111). E.g. it also emits the periodic word 0000 with resLen=1 and 0101 with resLen=2.",
+   "rootCause": "The FKM/Duval algorithm produces a Lyndon word only when the prefix length j equals n (j == n, aperiodic). The code instead gates output on `_n % curJ == 0` (line 19), which is the condition for a NECKLACE, and copies only the first curJ symbols (`res[i] = w[i+1]` for i<curJ). For periodic necklaces curJ < n, so the returned word has length resLen = curJ < n and represents a repetition, not a length-n Lyndon word. (The test asserts count==6 and ignores resLen, masking the defect.)",
+   "suggestedFix": "Change the output guard to emit only aperiodic full-length words: replace `if (_n % curJ == 0)` with `if (curJ == _n)`, and set resLen = _n copying w[1.._n]. (Equivalently keep generating necklaces but rename the type to NecklaceEnumerator.)"
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Combinatorics.Generation/NecklacesAndBracelets.cs",
+   "symbol": "LyndonWordEnumerator.MoveNext / DeBruijnFromLyndon",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Cache k-1 and reuse the nextJ scan; the `_n % curJ` / `n % j` divisibility test runs a div per emitted word.",
+   "currentCost": "Both routines recompute `_k - 1` / `k - 1` inside the inner `while (w[nextJ]==k-1)` scan each step, and test divisibility with `%` per candidate. For large alphabets/lengths the repeated subtraction and modulo add up.",
+   "proposedChange": "Hoist `int km1 = k - 1;` (and `_k-1`) into a local before the scan loops. The `n % j` test is inherent to the FKM algorithm but j only takes divisor values; if n is fixed per enumerator, this is minor \u2014 leave the modulo but ensure km1 is hoisted.",
+   "rationale": "Removes a redundant subtraction from the hot inner comparison loop; trivial but free and helps the comparison stay register-resident.",
+   "risk": "None. k-1 is loop-invariant within a MoveNext call; identical results."
+  }
+ ]
+}

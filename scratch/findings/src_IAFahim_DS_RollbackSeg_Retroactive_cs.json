@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.DS.RollbackSeg/Retroactive.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.RollbackSeg/Retroactive.cs",
+   "symbol": "Retroactive (all members)",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "File contains only empty stub methods; no optimization possible until implemented.",
+   "currentCost": "Six empty static void methods with no bodies; unused 'using System;' / 'using System.Runtime.CompilerServices;' add nothing.",
+   "proposedChange": "No perf action. Optionally drop the unused usings for cleanliness; otherwise leave until the algorithms are implemented.",
+   "rationale": "Nothing executes, so there is nothing to make faster or leaner.",
+   "risk": "None."
+  }
+ ]
+}

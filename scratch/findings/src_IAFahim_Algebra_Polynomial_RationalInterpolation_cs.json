@@ -1,0 +1,60 @@
+{
+ "file": "src/IAFahim.Algebra.Polynomial/RationalInterpolation.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/RationalInterpolation.cs",
+   "symbol": "RationalInterpolation.Run",
+   "severity": "critical",
+   "category": "pointer-ub",
+   "summary": "Denominator extraction reads r[n-1+i] for i up to degDen=n/2, but r is stackalloc long[n] (valid indices 0..n-1). For any n>=2 this reads past the allocated stack buffer (uninitialized/out-of-bounds), and writes those garbage values into the caller's den buffer.",
+   "triggeringInput": "xs={0,1}, ys={3,5}, n=2, MOD=998244353, num/den buffers of size n. degDen = n/2 = 1; loop i=1 accesses r[n-1+1]=r[2], one past the end of stackalloc long[2].",
+   "rootCause": "ThieleInterpolation only fills res[0..n-1] (continued-fraction coefficients), but Run treats the tail of r as separate denominator coefficients via index r[n-1+i]. That index exceeds the buffer length n whenever degDen>=1 (i.e. n>=2), causing an out-of-bounds stack read and propagating uninitialized memory into den[]. The decomposition of the Thiele continued fraction into explicit num/den polynomials is also never actually performed.",
+   "suggestedFix": "Allocate r large enough for the denominator coefficients (or a separate den buffer) and actually convert the Thiele continued-fraction coefficients into explicit numerator/denominator polynomials via the standard recurrence p_k = a_k*p_{k-1} + (x - x_{k-1})*p_{k-2}, instead of reinterpreting r[n-1+i]. At minimum, bound the den loop so it never indexes r beyond n-1."
+  },
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/RationalInterpolation.cs",
+   "symbol": "RationalInterpolation.ThieleInterpolation",
+   "severity": "high",
+   "category": "overflow",
+   "summary": "diffs[i] = (den % MOD + MOD) * (inv % MOD + MOD) % MOD overflows Int64 for large MOD. Each factor can be up to ~2*MOD-1, so the product can reach ~4*MOD^2, which exceeds long.MaxValue (~9.2e18) for primes near 2^31.",
+   "triggeringInput": "MOD = 2147483647 (a prime, 2^31-1), with any inputs where (den%MOD+MOD) and (inv%MOD+MOD) are both near 2*MOD, e.g. den%MOD ~ MOD-1 and inv%MOD ~ MOD-1. Then (~2*MOD)^2 ~ 1.8e19 > long.MaxValue, so the multiply wraps and the modular result is wrong.",
+   "rootCause": "Both operands are normalized into the range [0, 2*MOD) by '... % MOD + MOD' before multiplying. Even though inv from ModInv is already in [0,MOD), and den%MOD in (-MOD,MOD), the added MOD pushes each factor up to nearly 2*MOD, making the product up to ~4*MOD^2 which overflows long for MOD around or above ~1.5e9.",
+   "suggestedFix": "Reduce each factor into [0,MOD) before multiplying: long d = ((den % MOD) + MOD) % MOD; long iv = inv % MOD; if (iv < 0) iv += MOD; diffs[i] = d * iv % MOD; This keeps the product below MOD^2 < ~4.6e18, well within long range for 32-bit primes. (ModInv may also return -1 for non-invertible num; that case should be handled/guarded.)"
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/RationalInterpolation.cs",
+   "symbol": "RationalInterpolation.ThieleInterpolation",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Simplify the per-element difference-quotient expression: ModInv already returns a value in [0,MOD), so the extra '% MOD + MOD' reductions are redundant and add ops plus risk a needless extra-wide product.",
+   "currentCost": "Line 40 computes (den % MOD + MOD) * (inv % MOD + MOD) % MOD. inv is already in [0,MOD) from ModInv, so 'inv % MOD + MOD' is a wasted mod, add, and pushes the operand up to ~2*MOD, making the product up to ~4*MOD^2 before the final mod. den is also already a small signed value.",
+   "proposedChange": "Normalize den once: long dn = den % MOD; if (dn < 0) dn += MOD; then diffs[i] = dn * inv % MOD; (inv is already non-negative and < MOD). This removes two %/+ ops on inv and one on den per element and halves the pre-reduction product magnitude.",
+   "rationale": "Fewer mod/add ops per inner element and a smaller intermediate product reduce both cycle count and overflow headroom usage on the inner Thiele pass (which runs O(n^2) total). Mod is the costly op so dropping one per element is a real win.",
+   "risk": "Must confirm ModInv's contract: it returns t in [0,MOD) (it normalizes t<0) except the -1 sentinel on non-invertible input. If inv could be -1 (num not coprime to MOD), current code turns it into (-1%MOD+MOD)=MOD-1 silently; the proposed form would use -1 directly, changing behavior on that error path. Guard: keep current handling only if -1 sentinel is reachable, otherwise the simplification is exact. Also den is signed so the dn<0 normalization is required (do not use & here)."
+  },
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/RationalInterpolation.cs",
+   "symbol": "RationalInterpolation.ThieleInterpolation",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Hoist the per-iteration stackalloc of 'diffs' out of the while loop and drop the redundant second copy of y into local c.",
+   "currentCost": "'long* diffs = stackalloc long[m-1]' is inside the while loop (lines 34) \u2014 stackalloc in a loop either re-bumps the stack pointer each iteration or, more importantly, is a code-smell that can defeat Burst and grows frame reasoning. Also lines 26-27 copy y into a fresh local c[] even though Run already passed a writable copy (c in Run) as y; that is a duplicate n-element buffer and copy.",
+   "proposedChange": "Allocate one scratch buffer once before the loop sized [n-1] (max needed) and reuse it each iteration: long* diffs = stackalloc long[n]; Reuse across iterations since only the first m-1 entries are touched. Separately, evaluate whether the local c in ThieleInterpolation can be removed by operating in-place on y (Run passes a private copy already), saving an n-long stackalloc and the copy loop.",
+   "rationale": "Single stackalloc keeps a fixed, Burst-friendly frame and removes per-iteration stack manipulation; eliminating the duplicate c buffer + copy removes an O(n) RAM allocation and an O(n) copy. Lower working set helps mobile cache/stack budgets.",
+   "risk": "Reusing diffs is safe because each iteration fully overwrites entries [0,m-2) before reading. Removing c requires confirming Run's 'c' (its stackalloc copy of ys) is exclusively owned and not needed afterward \u2014 Run does not read c after the call, so in-place mutation is safe. Verify no aliasing between x and y."
+  },
+  {
+   "file": "src/IAFahim.Algebra.Polynomial/RationalInterpolation.cs",
+   "symbol": "RationalInterpolation.ModInv",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Track only t and the two r values; newT/t update is fine, but the unconditional 'a % MOD' on entry can be skipped when caller already supplies reduced input, and the final r>1 sentinel branch is on the cold path.",
+   "currentCost": "Extended-Euclid loop has a division q = r/newR plus two multiply-subtracts per step (unavoidable), but the entry 'newR = a % MOD; if(newR<0) newR+=MOD' adds a mod+branch even when callers (Thiele) pass num = x[nxt+i]-x[i] which can be large/negative \u2014 so the reduction IS needed there. No safe removal without caller guarantee.",
+   "proposedChange": "Keep the algorithm; mark ModInv with AggressiveInlining (already present) and ensure the q*newT and q*newR share the single division result (they already do). Optionally compute q once and reuse \u2014 already done. Net: this function is essentially optimal; only note that if a caller guarantees 0<=a<MOD the entry reduction can be elided via a separate ModInvReduced overload.",
+   "rationale": "Extended Euclidean GCD is asymptotically optimal for modular inverse here; the only constant-factor lever is skipping the entry reduction, which requires a caller contract. Documenting a reduced-input overload avoids one mod+branch per inverse on hot O(n) Thiele inner loop.",
+   "risk": "Removing the entry reduction is only valid if a is guaranteed in [0,MOD); Thiele's num can be negative, so the general ModInv must keep it. Provide the elision only as a separate clearly-named overload to preserve correctness."
+  }
+ ]
+}

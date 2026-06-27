@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.Geometry.Advanced/GeometryAdvanced2.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Advanced/GeometryAdvanced2.cs",
+   "symbol": "MinimumEnclosingCircle.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist repeated `*r * *r` and the squared-distance-to-center recomputation; cache center coords in locals to avoid repeated pointer loads/stores.",
+   "currentCost": "Inner loops reload *cx,*cy,*r through pointers every iteration and recompute `*r * *r` and `(*cx-x[i])^2+(*cy-y[i])^2` multiple times; pointer aliasing forces Burst to re-load on each access.",
+   "proposedChange": "Read cx,cy,r into local longs at each level, compute `long r2 = r;` once per loop (r already stores squared radius here) and compare `dx*dx+dy*dy > r2`; write back to *cx,*cy,*r only when they change. Recompute the radius expression into a local instead of inline twice.",
+   "rationale": "Removes redundant loads/stores through potentially-aliased pointers (rx/ry/cx/cy may not be marked restrict), shortens dependency chains, and avoids recomputing the same multiply. Burst keeps locals in registers.",
+   "risk": "cx,cy,r point to caller storage possibly distinct from x,y; caching in locals and writing back at change-points preserves semantics. Note *r already holds squared radius (set to 0 or to squared dist), so `*r * *r` in the comparisons squares an already-squared value \u2014 verify this matches intended semantics before changing; keep the exact same expression to preserve behavior."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Advanced/GeometryAdvanced2.cs",
+   "symbol": "MinimumEnclosingCircle.Run",
+   "dimension": "purity",
+   "impact": "low",
+   "summary": "Potential overflow/semantics caveat: comparisons use `*r * *r` where *r is already a squared distance, so the test is dist^2 > (r2)^2 = r^4-scale, which both magnifies overflow risk and is dimensionally inconsistent.",
+   "currentCost": "`*r * *r` with *r ~ coordinate^2 produces coordinate^4 magnitudes, risking long overflow for moderately large coords and comparing dx^2 (coordinate^2) against r^4 (inconsistent units).",
+   "proposedChange": "If intended radius-squared semantics: store r as squared distance and compare `dx*dx+dy*dy > r` (single square), not `> *r * *r`. Confirm with tests; this is a correctness/units fix, not a pure micro-opt.",
+   "rationale": "Correct dimensional comparison both removes a multiply and dramatically lowers overflow magnitude (coordinate^2 vs coordinate^4).",
+   "risk": "CHANGES observable behavior; only apply if current `*r * *r` is a bug. Flag for maintainer \u2014 do not apply blindly since 'Run' may be assumed correct by design."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Advanced/GeometryAdvanced2.cs",
+   "symbol": "IntegerPointCount.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Fuse the two O(n) polygon passes into one and replace `(i+1)%n` with a conditional wrap.",
+   "currentCost": "Two separate loops over the polygon each compute `j=(i+1)%n` (idiv per vertex); the boundary loop and the shoelace area loop iterate the same edges separately, doubling vertex/coordinate loads and cache traffic.",
+   "proposedChange": "Single loop: `int j = i+1; if (j==n) j=0;` then accumulate both `boundary += Gcd(|dx|,|dy|)` and `area += x[i]*y[j] - x[j]*y[i]` together. Removes idiv and halves coordinate loads.",
+   "rationale": "One pass instead of two halves memory traffic over x[],y[]; conditional wrap removes idiv. The two accumulations are independent and order-invariant, so fusing is safe.",
+   "risk": "None. Both sums are commutative/associative over the same edge set; j wrap is exact for i in [0,n). dx,dy for Gcd use Math.Abs as before."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Advanced/GeometryAdvanced2.cs",
+   "symbol": "IntegerPointCount.Gcd",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Euclidean Gcd uses `%` (idiv) per step; for the common axis-aligned/short edges a binary GCD avoids division, and an early-out when one operand is 0 avoids the loop.",
+   "currentCost": "Each Gcd call does repeated `a % b` (idiv) until b==0; called once per polygon edge.",
+   "proposedChange": "Add fast path: `if (a==0) return b; if (b==0) return a;` (axis-aligned edges where dx or dy is 0 return immediately). Optionally a binary-GCD (subtract/shift) variant to avoid idiv entirely, since dx,dy>=0 here.",
+   "rationale": "Axis-aligned polygon edges are extremely common and hit the zero fast-path with no division; binary GCD trades idiv for shifts/subtracts which are cheaper and Burst-friendly.",
+   "risk": "Inputs are non-negative (Math.Abs applied at call site), so unsigned/binary-GCD reasoning is valid. Result identical to Euclidean GCD; gcd(0,x)=x preserved."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Advanced/GeometryAdvanced2.cs",
+   "symbol": "Circumcenter.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist the three repeated coordinate-difference subexpressions (by-cy, cy-ay, ay-by) reused in both the determinant and ox; reuse to cut redundant subtracts.",
+   "currentCost": "`(by-cy)`, `(cy-ay)`, `(ay-by)` are each computed twice (once in d, once in ox numerator); similarly cx-bx etc. for oy. Extra subtracts and longer dependency chain before the two divides.",
+   "proposedChange": "Compute `long bcy=by-cy, cay=cy-ay, aby=ay-by, cbx=cx-bx, acx=ax-cx, bax=bx-ax;` once and reuse in d, ox, oy numerators.",
+   "rationale": "Removes ~3 redundant 64-bit subtractions and shortens the critical path feeding the two divisions (which can't start until numerators are ready).",
+   "risk": "None; pure CSE, identical arithmetic and integer-division results."
+  }
+ ]
+}

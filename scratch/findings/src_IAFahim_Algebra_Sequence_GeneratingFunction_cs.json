@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Algebra.Sequence/GeneratingFunction.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Algebra.Sequence/GeneratingFunction.cs",
+   "symbol": "GeneratingFunction.LagrangeInversion",
+   "severity": "high",
+   "category": "wrong-recurrence",
+   "summary": "LagrangeInversion does not implement Lagrange inversion at all; it returns the k-th derivative coefficient of f divided by k, i.e. effectively f[k], rather than the k-th coefficient of the compositional inverse of f.",
+   "triggeringInput": "f = {0,1,1,0} (representing f(x)=x+x^2), n=4, k=2, MOD=1000000007. The compositional inverse g of f has g_2 = -1, but the method returns der[1]*2*invK = (2*f[2])*2/2 = 2*f[2] = 2 (mod p), which is wrong. For any f the result equals k*f[k]/k = f[k], independent of the true inversion.",
+   "rootCause": "The body only computes der[i-1] = i*f[i] (the formal derivative coefficients), then returns der[k-1]*k*inv(k) which algebraically simplifies to der[k-1] = k*f[k]. The Lagrange inversion formula g_k = (1/k)[x^{k-1}](x/f(x))^k requires computing powers/composition of the series x/f(x), none of which is performed. No use is made of f[0], the leading coefficient f[1], or any convolution, so the output is unrelated to the compositional inverse the method name promises.",
+   "suggestedFix": "Implement the actual Lagrange inversion: form the series h(x)=x/f(x) (requires f[1] invertible, f[0]=0), compute h(x)^k via repeated polynomial multiplication modulo x^k, extract the coefficient of x^{k-1}, and multiply by inv(k). Alternatively use the Lagrange-Burmann / Newton iteration to obtain the full inverse series and return coefficient k."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Algebra.Sequence/GeneratingFunction.cs",
+   "symbol": "EgfMultiply",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "EgfMultiply computes fact and ifact (a ModPow per inner iteration) that are never used, and recomputes Binom(i+j,i) (three factorials + ModPow) inside the O(n^2) double loop.",
+   "currentCost": "For each of ~n^2/2 inner iterations: Factorial(i+j), one ModPow(fact,MOD-2) (~30 mod-mults, dead), plus Binom which internally does 3 factorials + a ModPow. Dead code dominates; useful Binom is itself O(n) + ModPow per cell.",
+   "proposedChange": "Delete the unused 'fact' and 'ifact' lines entirely. Precompute factorials fact[0..n-1] and inverse factorials invfact[0..n-1] once in O(n + log MOD) (single inverse of fact[n-1] then backward recurrence), then bin = fact[i+j]*invfact[i]%MOD*invfact[j]%MOD. Reduces each inner cell to a few multiplications.",
+   "rationale": "Removes a dead ModPow per cell and replaces per-cell Binom (O(n)+ModPow) with O(1) table lookups, dropping total cost from O(n^3 log MOD) to O(n^2). Large asymptotic win.",
+   "risk": "Pure dead-code removal for fact/ifact (zero semantic effect). Factorial table approach gives identical binomials mod prime MOD. Need stackalloc for two n-length tables (or reuse), within the unmanaged/stackalloc house rules."
+  },
+  {
+   "file": "src/IAFahim.Algebra.Sequence/GeneratingFunction.cs",
+   "symbol": "LagrangeInversion",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "The derivative buffer der[] is fully computed but only der[k-1] is ever read; computing the whole array is wasted O(n) work and an n-long stackalloc.",
+   "currentCost": "O(n) loop filling der[0..n-2] plus n-long stackalloc, of which only index k-1 is used.",
+   "proposedChange": "Compute only the needed term: long term = ((long)k % MOD * f[k]) % MOD; then result = term*k%MOD; return result*invK%MOD. Drop the der buffer and the loop. (der[k-1] corresponds to i=k, value (k%MOD*f[k])%MOD.)",
+   "rationale": "Replaces an O(n) pass and an n-element stack buffer with a single O(1) computation; removes the only allocation in the function.",
+   "risk": "der[k-1] is exactly ((long)k % MOD * f[k]) % MOD by the loop's indexing (i=k => der[k-1]). For k in [1,n-1] f[k] is in range. Same output. Guard already present: k<=0 returns 0; ensure k<n so f[k] valid (caller-contract per Run convention)."
+  }
+ ]
+}

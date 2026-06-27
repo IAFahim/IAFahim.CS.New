@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Search.Range/RangeMax.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.Range/RangeMax.cs",
+   "symbol": "RangeMax.BuildSparse",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the `(k-1)*len` and `k*len` row-base offsets and `1<<k` out of the inner loop.",
+   "currentCost": "Inner loop recomputes `(k-1)*len`, `k*len` (two multiplies) and the `i + (1<<k) <= len` bound each iteration. These are loop-invariant across the inner `i` loop, costing redundant multiplies/shifts on every element.",
+   "proposedChange": "Before the inner loop: `int prevBase = (k-1)*len; int curBase = k*len; int step = 1<<k;` then index `dst[i+prevBase]`, `dst[i+half+prevBase]`, `dst[i+curBase]`, bound `i+step<=len`. Use pointer rows `int* prev = dst+prevBase; int* cur = dst+curBase;` to drop the per-element add entirely.",
+   "rationale": "Removes two integer multiplies and a shift from the inner loop body, shortening the dependency chain and exposing a clean strided access Burst can vectorize. The branchless `a>b?a:b` is already vectorizer-friendly via max.",
+   "risk": "None; pure invariant hoisting, identical results. Note RangeMin already hoists `step`/`half` but still recomputes the `*len` bases \u2014 same fix applies there."
+  },
+  {
+   "file": "src/IAFahim.Search.Range/RangeMax.cs",
+   "symbol": "RangeMax.Query",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Reuse the shift `1<<k` and consider a precomputed log table to drop the per-query log loop.",
+   "currentCost": "`while ((1<<(k+1))<=range) k++;` is an O(log range) loop per query, and `1<<k` is recomputed in the two index expressions. For many small queries the log loop dominates.",
+   "proposedChange": "Compute `int k = 31 - lzcnt((uint)range);` (or `BitOperations.Log2`) to get floor(log2(range)) in one instruction, then reuse `int sk = 1<<k;` in both index expressions. Same applies to RangeMin.Query and the BuildSparse `log` computation.",
+   "rationale": "Replaces an O(log n) software loop with a single LZCNT, removing a data-dependent branch loop from the hot query path; reusing `sk` avoids recomputing the shift.",
+   "risk": "range>=1 required (start<=end), already guaranteed for valid queries. lzcnt(0) is undefined \u2014 guard or rely on range>=1. Burst maps lzcnt to a native instruction on supported targets."
+  }
+ ]
+}

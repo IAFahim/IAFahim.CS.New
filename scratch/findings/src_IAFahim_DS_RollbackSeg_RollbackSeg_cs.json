@@ -1,0 +1,137 @@
+{
+ "file": "src/IAFahim.DS.RollbackSeg/RollbackSeg.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.DS.RollbackSeg/RollbackSeg.cs",
+   "symbol": "RollbackSegRollback.Run / RollbackSegRollback.UndoLast",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "History is stored as three parallel arrays (histNode/histVal/histType) where each logical record occupies the SAME index and *top advances by 1 per record (see push at lines 34-37/41-48/57-60). But the pop code decrements *top THREE times per record, reading each array at a DIFFERENT index, so it pairs a value from record k with a node from record k-1 and a type from record k-2, and consumes three slots of *top for one undo. This applies mismatched (node,val,type) tuples and corrupts the stack/tree state. With fewer than 3 records it also reads negative indices (out-of-bounds / pointer UB).",
+   "triggeringInput": "Push exactly one record (e.g. call PointSetInt64 once with top starting at 0 so top becomes 1), then call UndoLast: it does histVal[--top] -> histVal[0] (ok), then histNode[--top] -> histNode[-1], then histType[--top] -> histType[-2], i.e. out-of-bounds negative pointer reads (UB/crash). With >=3 records, Run/UndoLast restore mismatched node/val/type and leave the tree in a wrong state.",
+   "rootCause": "Each `--(*top)` in the pop indexes a different parallel array, but a record was pushed across all three arrays at one shared index with a single `(*top)++`. Pop must read all three arrays at the same decremented index and decrement *top only once per record.",
+   "suggestedFix": "Decrement *top once per record and use that index for all three arrays, e.g.: `--(*top); long val = histVal[*top]; int node = histNode[*top]; byte type = histType[*top];`. Apply identically in both Run (the while body) and UndoLast."
+  },
+  {
+   "file": "src/IAFahim.DS.RollbackSeg/RollbackSeg.cs",
+   "symbol": "RollbackSegUpdate.RangeAddInt64",
+   "severity": "critical",
+   "category": "wrong-recurrence",
+   "summary": "RangeAddInt64 uses a lazy convention where a fully-covered node pushes the add into its CHILDREN's lazy (lazy[node*2] += val, lazy[node*2+1] += val) while only updating tree[node]; children's tree stays stale. But on the partial-cover path it recomputes tree[node] = tree[node*2] + tree[node*2+1] (line 61) WITHOUT first applying/pushing the children's pending lazy and without adding lazy[child]*len(child) into the sum. So any pending lazy on the children is dropped from the parent's aggregate, yielding a wrong sum. RangeSumInt64 uses the matching push-down convention, but the parent recompute in the updater never accounts for child lazy, so two overlapping updates produce a wrong tree value.",
+   "triggeringInput": "Tree over [0,3], root node=1, all zero. RangeAddInt64 [0,3] val=5 (covers root: tree[1]=20, lazy[2]=5, lazy[3]=5). Then RangeAddInt64 [0,1] val=10: at root it recurses, left child [0,1] covered -> tree[2]=20, right child [2,3] out of range. Back at root, line 61 sets tree[1]=tree[2]+tree[3]=20+0=20. Correct total over [0,3] is 20+20=40, but tree[1]=20. A subsequent RangeSumInt64 [0,3] returns 20 (wrong; should be 40) because the pending lazy[2]=5/lazy[3]=5 were never folded into tree[1].",
+   "rootCause": "Partial-cover recompute aggregates children's raw tree values but ignores their pending lazy. With this 'push add into children lazy, keep parent tree exact' convention, the parent recompute must include the children's lazy contribution.",
+   "suggestedFix": "Either push down lazy[node] (and apply it to children's tree) before recursing, or change line 61 to `tree[node] = tree[node*2] + lazy[node*2]*(child-left-len) + tree[node*2+1] + lazy[node*2+1]*(child-right-len)`. Simplest is to adopt a single standard convention: store the add in lazy[node] of the covered node (not its children) and push down on the way down in both updater and query."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.RollbackSeg/RollbackSeg.cs",
+   "symbol": "DynamicLiChaoAdd.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Remove dead 'leftBetter' computation comparing an expression to itself.",
+   "currentCost": "Line 139 'bool leftBetter = m * xl + b < m * xl + b;' performs two multiplies and two adds plus a compare, stores into a local that is never read. Pure wasted work on every recursive Add call.",
+   "proposedChange": "Delete the entire 'leftBetter' statement (line 139). It is never used and the comparison is always false.",
+   "rationale": "Eliminates 2 IMULs + 2 ADDs + 1 CMP + a register store per node visited in the Li Chao insert recursion, with zero behavioral effect since the variable is dead.",
+   "risk": "None. Variable is unused and the RHS has no side effects (m,xl,b are values). Observable behavior is identical."
+  },
+  {
+   "file": "src/IAFahim.DS.RollbackSeg/RollbackSeg.cs",
+   "symbol": "DynamicLiChaoAdd.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist repeated seg[node*2+0]/seg[node*2+1] line loads into locals to cut redundant pointer arithmetic and memory loads.",
+   "currentCost": "After the possible swap, seg[node*2+0] and seg[node*2+1] are re-loaded at lines 152 and 157 (twice each across the two branches), recomputing node*2+0/node*2+1 addresses and reloading memory that holds the current line slope/intercept already settled.",
+   "proposedChange": "After the swap block, load 'long sm = seg[node*2+0]; long sb = seg[node*2+1];' once, then use 'm*xl+b < sm*xl+sb' and 'm*xr+b < sm*xr+sb'. Also reuse a single 'long idx2 = node*2;' base index.",
+   "rationale": "Removes redundant address computation (node*2) and 2-4 redundant loads from the L1-resident seg array per visited node; shortens the dependency chain feeding the two branch comparisons.",
+   "risk": "None: seg[node*2+0/1] are not written between the swap block and these comparisons, so cached locals are equal to re-reads. Behavior preserved."
+  },
+  {
+   "file": "src/IAFahim.DS.RollbackSeg/RollbackSeg.cs",
+   "symbol": "DynamicLiChaoQuery.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist node*2 base index to avoid recomputing the child slot address.",
+   "currentCost": "seg[node*2+0] and seg[node*2+1] each recompute node*2; res = seg[node*2+0]*x + seg[node*2+1] does this twice per call.",
+   "proposedChange": "Compute 'long b2 = node*2;' (or int) once and index seg[b2] and seg[b2+1]. Minor but it is on the hot query path.",
+   "rationale": "Saves one shift/add of address arithmetic per query node; trivially correct.",
+   "risk": "None. Pure indexing refactor."
+  },
+  {
+   "file": "src/IAFahim.DS.RollbackSeg/RollbackSeg.cs",
+   "symbol": "RollbackSegBuild.RunInt32/RunInt64",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist node*2 into a local to remove duplicate child-index computation across both recursive calls and the combine.",
+   "currentCost": "node*2 and node*2+1 are computed 4 times each (in the two recursive call args and again in 'tree[node*2] + tree[node*2+1]'). Each is a separate shift+add.",
+   "proposedChange": "int c = node << 1; recurse with c and c+1; combine 'tree[node] = tree[c] + tree[c+1];'. Optionally [MethodImpl(AggressiveInlining)] is not appropriate (recursive) but the index hoist still helps.",
+   "rationale": "Reduces redundant address arithmetic in a hot tree-build recursion; same emitted loads, fewer index ops, shorter dependency chains.",
+   "risk": "None. node*2 == node<<1 for the non-negative node indices used here (root starts at 1, always positive)."
+  },
+  {
+   "file": "src/IAFahim.DS.RollbackSeg/RollbackSeg.cs",
+   "symbol": "RollbackSegUpdate.RangeAddInt64",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Cache *top in a local across the multi-field history pushes instead of repeatedly dereferencing the top pointer.",
+   "currentCost": "Each leaf/internal record reads *top via pointer multiple times (histNode[*top], histVal[*top], histType[*top], then (*top)++). The pointer-to-int 'top' forces reloads since the compiler cannot prove no aliasing with tree/lazy/histVal pointers.",
+   "proposedChange": "int t = *top; histNode[t]=node; histVal[t]=tree[node]; histType[t]=0; *top = t+1; (apply same pattern to all three push blocks and the two extra lazy pushes).",
+   "rationale": "Burst/.NET cannot assume *top doesn't alias the long*/int* buffers, so each *top use is a real memory load. Hoisting to a local collapses 4 dependent loads/stores into register ops, cutting the critical path of every history append.",
+   "risk": "None as long as top does not alias the other buffers (it is a distinct scalar slot by contract). Behavior identical; just fewer reloads."
+  },
+  {
+   "file": "src/IAFahim.DS.RollbackSeg/RollbackSeg.cs",
+   "symbol": "RollbackSegUpdate.PointSetInt64",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Same *top-hoist and node*2 child-index hoist as RangeAddInt64.",
+   "currentCost": "Repeated *top dereferences per push and recomputed node*2/node*2+1 in the combine and recursive descent.",
+   "proposedChange": "int t=*top; ... *top=t+1; and int c=node<<1; index tree[c], tree[c+1].",
+   "rationale": "Removes redundant pointer loads and address arithmetic on the point-update path; identical emitted semantics.",
+   "risk": "None; node positive, top non-aliasing by contract."
+  },
+  {
+   "file": "src/IAFahim.DS.RollbackSeg/RollbackSeg.cs",
+   "symbol": "RollbackSegQuery.RangeSumInt64",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist node*2 child base and avoid recomputing (mid-l+1)/(r-mid) terms; the 'l != r' guard is redundant inside the push-down.",
+   "currentCost": "node*2 and node*2+1 recomputed up to 5 times; the 'if (l != r)' check at line 93 can never be false at that point because the earlier 'ql<=l && r<=qr' full-cover return already handles single-node ranges that fully match, but a leaf reached here with l==r would also have returned via that branch only if covered \u2014 leaf push-down does nothing useful. The branch is a predictable but unnecessary test when l==r implies mid==l and the deltas are (1) and (0).",
+   "proposedChange": "long c=node*2; long c1=c+1; reuse c/c1. Keep the l!=r guard only if leaves can reach here; otherwise note that at a leaf l==r the lazy push-down writes lazy[child] out of the leaf's own subtree \u2014 confirm leaf never enters this block. Primary safe win: hoist the child index and load lazy[node] once (already done as 'val').",
+   "rationale": "Fewer address computations and a shorter dependency chain on the recursive sum's hot push-down; lazy[node] is already hoisted, mirror that for child indices.",
+   "risk": "Do NOT remove the l!=r guard unless it is proven a leaf cannot reach this push-down with l==r (out-of-subtree child writes would corrupt state). The index-hoist alone is unconditionally safe."
+  },
+  {
+   "file": "src/IAFahim.DS.RollbackSeg/RollbackSeg.cs",
+   "symbol": "DivideConquerHull.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist Math.Min(r, mid-1) and b[mid] out of the inner search loop; precompute the loop bound and the invariant b value.",
+   "currentCost": "Line 194 recomputes Math.Min(r, mid-1) on every iteration of the for-loop, and b[mid] is reloaded each iteration inside 'a[i]*b[mid]'. Both are loop-invariant.",
+   "proposedChange": "int hiBound = r < mid-1 ? r : mid-1; long bm = b[mid]; then loop 'for (int i=l; i<=hiBound; i++) { long val = dp[i] + a[i]*bm + c[i]; ... }'.",
+   "rationale": "Removes a branch/min and a redundant load from every inner iteration of the divide-and-conquer DP optimization (the dominant cost of this algorithm), tightening the per-candidate work to one load+mul+two adds+compare.",
+   "risk": "None. mid is fixed within the call so b[mid] is invariant; Math.Min(r,mid-1) has no side effects. Branchless or branchy min both fine."
+  },
+  {
+   "file": "src/IAFahim.DS.RollbackSeg/RollbackSeg.cs",
+   "symbol": "IntervalStabbing.Run / RectangleStabbing.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Make the per-element predicate branchless to aid Burst auto-vectorization and remove a data-dependent branch.",
+   "currentCost": "'if (cond) count++;' inside the loop is a data-dependent conditional increment; with random interval data the branch mispredicts and it inhibits clean SIMD vectorization of the count.",
+   "proposedChange": "count += (starts[i]<=point & point<=ends[i]) ? 1 : 0; using a single bitwise-& of the two comparisons folded to an int, e.g. 'count += ((starts[i]<=point) & (point<=ends[i])) ? 1 : 0;' (and the 4-way & for RectangleStabbing). This pattern lets Burst emit a vector compare + masked add.",
+   "rationale": "Branchless accumulation removes misprediction penalty and is the canonical shape Burst vectorizes into packed compares and horizontal-add, cutting the linear scan cost by a SIMD-width factor.",
+   "risk": "Use bitwise & (not &&) only on the boolean comparison results to avoid short-circuit branches; comparisons have no side effects so eager evaluation is safe. Semantics identical."
+  },
+  {
+   "file": "src/IAFahim.DS.RollbackSeg/RollbackSeg.cs",
+   "symbol": "RollbackSegRollback.Run / UndoLast",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Cache *top in a local across the three decrements in the rollback loop body.",
+   "currentCost": "Each undo does histVal[--(*top)], histNode[--(*top)], histType[--(*top)] \u2014 three read-modify-writes through the 'top' pointer per record, each a dependent load+store of *top.",
+   "proposedChange": "int t=*top; ... read histVal[t-1], histNode[t-2], histType[t-3]; *top = t-3; (mirroring the actual 3-slot stride). Hoist *top once per iteration in Run's while loop and once in UndoLast.",
+   "rationale": "Collapses three dependent pointer-memory RMWs into register arithmetic plus one final store, shortening the loop-carried dependency chain that gates rollback throughput.",
+   "risk": "Must preserve the exact 3-decrement stride and ordering currently used so the same slots are read and the same final *top results. This is a behavior-preserving rewrite of the existing index pattern only; do not alter which slots are read."
+  }
+ ]
+}

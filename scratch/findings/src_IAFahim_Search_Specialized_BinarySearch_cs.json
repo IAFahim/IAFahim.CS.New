@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Search.Specialized/BinarySearch.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.Specialized/BinarySearch.cs",
+   "symbol": "TryFind",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Three-way compare uses two dependent loads/branches per iteration; collapse to a single comparison per step (lower-bound style) plus one equality check at the end.",
+   "currentCost": "Each loop iteration does two comparisons against ptr[mid] (< key, then > key). On a non-found path the loop body has up to 2 branches per step, lengthening the dependency chain and adding branch-prediction pressure on random keys.",
+   "proposedChange": "Convert to a lower-bound search: while(lo<hi){int mid=lo+((hi-lo)>>1); if(ptr[mid]<key) lo=mid+1; else hi=mid;} then after the loop test if(lo<len && ptr[lo]==key){index=lo; return true;}. This is one comparison per iteration plus a single final equality test.",
+   "rationale": "Classic three-way binary search averages ~1.5 comparisons/iteration but has an early-exit; the lower-bound variant does exactly one comparison per iteration with a tighter, more predictable branch and a shorter dependency chain (mid->load->compare->update), which Burst/branch-predictors handle better for the common not-found and duplicate-key cases. One extra load at the end is amortized over log2(n) iterations.",
+   "risk": "Behavior changes for duplicate keys: three-way TryFind returns an arbitrary matching index, lower-bound returns the FIRST match. If callers rely on returning any match this is fine; if a specific (non-first) match index is contractually required, reject. For all-distinct arrays the returned index is identical. Need len>0 guard already implicit since lo<len handles len==0."
+  }
+ ]
+}

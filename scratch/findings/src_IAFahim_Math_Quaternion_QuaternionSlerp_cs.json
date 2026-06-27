@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Math.Quaternion/QuaternionSlerp.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Quaternion/QuaternionSlerp.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Separate math.sin/math.cos calls plus redundant sin(theta)/sinTheta0 division can be fused",
+   "currentCost": "Lines 30-34 call math.sin(theta) and math.cos(theta) separately (two transcendental evaluations of the same angle), plus math.sin(theta0). s1 = sinTheta/sinTheta0 is computed, then s0 = cos(theta) - d*sinTheta/sinTheta0 recomputes the same sinTheta/sinTheta0 ratio instead of reusing s1.",
+   "proposedChange": "Use math.sincos(theta, out float sinTheta, out float cosTheta) to get both from one call. Compute float invSin0 = One / sinTheta0 once; s1 = sinTheta * invSin0; s0 = cosTheta - d * s1. This reuses s1 in the s0 expression (currently d*sinTheta/sinTheta0 redivides).",
+   "rationale": "math.sincos computes sin and cos together cheaper than two independent calls. Replacing two divisions (sinTheta/sinTheta0 appearing twice) with one reciprocal multiply shortens the dependency chain and removes a divide.",
+   "risk": "math.sincos and reciprocal-multiply give bit-results within normal float tolerance of the original; this path already excludes near-parallel quaternions (d > 1-Epsilon returns early), so sinTheta0 is bounded away from zero and the reciprocal is safe. No observable behavior change."
+  }
+ ]
+}

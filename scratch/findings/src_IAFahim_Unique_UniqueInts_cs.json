@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Unique/UniqueInts.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Unique/UniqueInts.cs",
+   "symbol": "UniqueInts.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Eliminate redundant self-stores while no duplicate has been seen yet (the common all-unique case).",
+   "currentCost": "On every iteration that keeps an element, `ptr[dst++] = ptr[i]` executes a store. When the input has no (or few) duplicates, dst==i for the whole prefix, so the loop writes each element back onto itself \u2014 len-1 wasted stores plus the dependency on dst++ for an array that is already correct.",
+   "proposedChange": "Split into two phases. Phase 1: scan with `for (i=1; i<len && ptr[i]!=ptr[i-1]; i++) {}` doing no stores; this advances over the already-unique prefix. Then set `dst=i`. Phase 2: continue from i with the existing compact loop comparing against ptr[dst-1] (the last kept value) instead of ptr[i-1]. For fully-unique input this does zero stores and returns len; for input with duplicates it matches current behavior.",
+   "rationale": "Removes len-1 redundant memory stores on the dominant all-unique path, and on the mixed path removes stores for the leading unique run. Fewer stores shorten the dst-carried dependency chain and reduce write traffic / store-buffer pressure, which matters on mobile cores with shallow store queues.",
+   "risk": "Phase 2 must compare ptr[i] against ptr[dst-1] (last kept), NOT ptr[i-1], once compaction has begun \u2014 comparing against ptr[i-1] after a gap would be wrong because ptr[i-1] may have been overwritten or skipped. The leading-prefix comparison ptr[i]!=ptr[i-1] is correct only while dst==i, which holds throughout phase 1. No overflow/sign concerns; pure integer equality."
+  },
+  {
+   "file": "src/IAFahim.Unique/UniqueInts.cs",
+   "symbol": "UniqueInts.Run",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Unused `using System;` and duplicated logic across the two near-identical files.",
+   "currentCost": "`using System;` is imported but unused in both files (only System.Runtime.CompilerServices is needed), adding noise. The int and long Run bodies are byte-identical apart from the element type, so any fix/optimization must be applied twice and can drift.",
+   "proposedChange": "Drop the unused `using System;`. Optionally generate both from a single T4/source-gen template or share via a generic-pointer helper kept in one place, so the dedup loop logic lives once and stays in sync.",
+   "rationale": "Reduces maintenance surface and prevents the two implementations from diverging when the loop is optimized; removing an unused using has zero runtime cost but improves clarity.",
+   "risk": "Pure cleanup; no behavioral change. Source-gen/template path must still emit unmanaged-only, pointer-based code to respect Burst and house constraints."
+  }
+ ]
+}

@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.String.Match/ApproximateMatch.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Match/ApproximateMatch.cs",
+   "symbol": "Find",
+   "dimension": "burst",
+   "impact": "high",
+   "summary": "Find calls EditDistance.Levenshtein which does Marshal.AllocHGlobal/FreeHGlobal twice per call; this allocates+frees the heap (textLen - patLen + 1) times and is not Burst-compilable.",
+   "currentCost": "Two Marshal.AllocHGlobal + two FreeHGlobal + a try/finally per text position. For n positions that is O(n) heap alloc/free pairs on the hot path, plus Marshal is a managed P/Invoke that Burst rejects entirely.",
+   "proposedChange": "Add scratch-buffer parameters (int* prev, int* curr) to Find and pass them through to a pointer-based Levenshtein overload that takes caller-provided buffers instead of allocating. Reuse the same two buffers across all positions (size patLen+1). This matches the existing library convention already used by LandauVishkin (curr/prev passed in).",
+   "rationale": "Eliminates O(n) heap allocations entirely (zero allocs on hot path), removes the managed Marshal calls so the method becomes Burst-compilable, and removes the try/finally exception machinery from the inner loop.",
+   "risk": "Caller must allocate buffers of size patLen+1. Behavior identical for valid inputs. The current Levenshtein early-exit (maxDist+1) semantics must be preserved in the buffer-based overload."
+  },
+  {
+   "file": "src/IAFahim.String.Match/ApproximateMatch.cs",
+   "symbol": "Find",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Find recomputes a full O(patLen^2) Levenshtein table at every window even though only a band of width 2k+1 can ever stay <= k.",
+   "currentCost": "O(n * m^2) total: for each of ~n positions, Levenshtein fills an m x m DP. Most of that work is wasted because cells outside the diagonal band of width 2k+1 are guaranteed to exceed k.",
+   "proposedChange": "Use a banded edit-distance evaluation restricted to columns [i-k, i+k] (Ukkonen-style banding), or route Find through the existing LandauVishkin path which already amortizes across positions with a single forward DP using curr/prev. The banded inner loop drops per-window cost from O(m^2) to O(m*k).",
+   "rationale": "Reduces asymptotic work from O(n*m^2) to O(n*m*k); for small k (the common approximate-match case) this is a large constant- and order-factor win, with far fewer cache lines touched per window.",
+   "risk": "Banding must clamp band edges and treat out-of-band cells as +infinity to preserve the exact <= k decision. For k >= m the band degenerates to the full table (same result)."
+  }
+ ]
+}

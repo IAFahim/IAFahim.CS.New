@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Math.Transform/PosetTransforms.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Transform/PosetTransforms.cs",
+   "symbol": "ZetaTransform / ApplyMuMatrix",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "relation[x*n+y] index recomputes x*n each j; the column index y is fixed per outer i, so hoist y and stride relation by rows or precompute base.",
+   "currentCost": "Inner loop computes `relation[x*n + y]` with x varying and y fixed \u2014 the multiply x*n happens per element, and the access pattern is column-major (stride n) over the relation matrix, causing a cache miss roughly every element for large n.",
+   "proposedChange": "Since y is fixed in the inner loop, the natural fix is to store/access relation transposed for this kernel (relation[y_row * n + x] = 'x relates to y') so the inner loop walks a contiguous row relation[y*n + ...], turning stride-n column access into stride-1. If the matrix layout is fixed, at minimum hoist `int yn = y` and rely on x*n; but the cache win requires the transposed access. Also the `relation` bool* could be a bitset to cut the working set 8x.",
+   "rationale": "Column-major bool access at stride n thrashes cache for n beyond a few hundred; a contiguous row walk is the single biggest real-world speedup here. A bitset packs 64 relations per long, shrinking the matrix from n^2 bytes to n^2/8 and improving cache residency dramatically.",
+   "risk": "Transposing relation changes the data contract with callers and with LatticeMeet/Join/MobiusTransform which also index relation[x*n+y] vs [z*n+x]; any layout change must be applied consistently across ALL users or it breaks correctness. Bitset packing changes the public signature (bool* -> ulong*). Treat as a coordinated refactor, not a local edit."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform/PosetTransforms.cs",
+   "symbol": "ComputeMuMatrix",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Zeroing the mu matrix uses `(long)n*n` recomputed in the loop condition and writes every cell though only the upper triangle is populated.",
+   "currentCost": "`for (int i=0; i<(long)n*n; i++)` recomputes n*n as a long each iteration (the compiler likely hoists it, but the long compare is wider than needed) and zeroes all n^2 entries even though only reachable (x,y) pairs are later set.",
+   "proposedChange": "Hoist `long total = (long)n*n;` before the loop (or use `int` since n^2 fits int for realistic n and is faster), and consider memset via Unsafe.InitBlockUnaligned for the zero-fill rather than a scalar loop. The scalar zero loop is O(n^2) of pure stores \u2014 a block clear is far faster and Burst/JIT-friendly.",
+   "rationale": "Block-clearing n^2 longs with InitBlock is memory-bandwidth-bound and several times faster than a scalar store loop; hoisting the bound removes a redundant widening multiply per iteration.",
+   "risk": "InitBlock zeroes bytes \u2014 valid since 0L is all-zero bytes. If n^2 longs exceeds int range the byte count must stay long; for realistic poset sizes n^2 fits int comfortably. No semantic change."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform/PosetTransforms.cs",
+   "symbol": "BooleanLatticeRank",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hand-rolled popcount loop can be replaced by the intrinsic / AggressiveInlining leaf.",
+   "currentCost": "`while(x>0){x&=x-1;c++;}` is a data-dependent loop of up to 32 iterations with an unpredictable trip count, where a single hardware POPCNT exists.",
+   "proposedChange": "Use System.Numerics.BitOperations.PopCount((uint)x) (Burst lowers to popcnt) or math.countbits in Unity.Mathematics. Mark the method [MethodImpl(AggressiveInlining)]. Cast to uint to match the intended non-negative semantics.",
+   "rationale": "Replaces an up-to-32-iteration dependency chain with one instruction; Burst and modern CPUs have native popcount, eliminating the loop and its branch.",
+   "risk": "x is int; the current loop treats x as the bit pattern of the positive value (x>0 guard skips the sign bit case). PopCount((uint)x) counts all 32 bits including bit 31 \u2014 for x>=0 this matches exactly; for negative x the old loop's `x>0` would... actually `x&(x-1)` on negative x loops oddly. Confirm callers only pass non-negative x (lattice ranks are >=0); then (uint) cast is exact."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform/PosetTransforms.cs",
+   "symbol": "LatticeMeet / LatticeJoin",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "O(n^2) per query with column-stride relation access; minor hoist of x,y indices and early-exit already present.",
+   "currentCost": "For each candidate z, an inner w-loop scans n entries at stride n (relation[w*n+x]) \u2014 column-major, cache-unfriendly. Two such matrix reads per w.",
+   "proposedChange": "These are inherently O(n^2) per query. Cache benefit again comes from a transposed/bitset relation (see ZetaTransform note) so the w-loop is contiguous and can AND two bitset rows 64 lanes at a time, finding mismatches with a single masked compare instead of per-w branches.",
+   "rationale": "A bitset relation lets `relation_row_x & relation_row_y & ~relation_row_z == 0` be checked 64 elements per long, collapsing the inner n-loop by 64x and removing per-w branches.",
+   "risk": "Same coordinated-layout-change risk as the ZetaTransform bitset proposal; only worthwhile if the whole module adopts the packed representation. Otherwise leave as-is."
+  }
+ ]
+}

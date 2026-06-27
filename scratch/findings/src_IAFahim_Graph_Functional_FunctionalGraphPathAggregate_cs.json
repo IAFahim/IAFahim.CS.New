@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Graph.Functional/FunctionalGraphPathAggregate.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Functional/FunctionalGraphPathAggregate.cs",
+   "symbol": "FunctionalGraphPathAggregate.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "O(k) weighted walk can be reduced to O(n) using cycle periodicity plus a precomputed full-cycle weight sum.",
+   "currentCost": "for (long i = 0; i < k; i++) { sum += w[curr]; curr = f[curr]; } chases k dependent links and accumulates k loads from w. Unbounded in k despite the trajectory repeating every L <= n steps with a fixed per-cycle weight sum.",
+   "proposedChange": "Walk the tail (mu steps) accumulating w, reaching the cycle entry. Compute cycleSum = sum of w over the L cycle nodes once. For the remaining r = k - mu steps: add (r / L) * cycleSum, then walk r % L more steps adding their w. Total O(mu + L) = O(n). Guard: if (k <= n) keep the simple loop to avoid setup overhead.",
+   "rationale": "The weight accumulated per full cycle traversal is constant, so full laps can be multiplied instead of walked. Drops O(k) to O(n) for k > n, the dominant case for large k.",
+   "risk": "Result identical for all valid k. Overflow caveat: (r / L) * cycleSum and the running sum are long; if the original O(k) sum could already overflow long, the reduced form overflows identically (two's-complement multiply/add are associative under wraparound), so observable behavior is preserved only if callers tolerate the same wraparound \u2014 which the straight loop already exhibits. r/L and r%L use non-negative operands (r>=0, L>0), so no signed-division edge case. Requires w and f valid over visited indices (already assumed)."
+  },
+  {
+   "file": "src/IAFahim.Graph.Functional/FunctionalGraphPathAggregate.cs",
+   "symbol": "FunctionalGraphPathAggregate.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Two interleaved dependent loads (w[curr] then f[curr]) form one long dependency chain per step; minor reordering does not break it but the chain is inherent to the simple loop.",
+   "currentCost": "Each iteration: load w[curr], add, then load f[curr] to advance. curr is carried, so f[curr] is on the critical path; w[curr] can issue in parallel but both index the same register. Throughput is bound by the f[curr]->curr->f[curr] chain (~load latency per step).",
+   "proposedChange": "If staying with the O(k) loop, the only real win is the complexity reduction above; there is no branchless or strength-reduction trick that shortens an inherently serial pointer chase. Do not add speculative unrolling \u2014 the dependency on curr prevents ILP. Flagged only to record that the per-step cost is latency-bound and cannot be improved without the algorithmic change.",
+   "rationale": "Documents that micro-opts here are cargo-cult; the genuine lever is asymptotic, not constant-factor.",
+   "risk": "None proposed; this is an explicit non-opportunity to prevent wasted effort."
+  }
+ ]
+}

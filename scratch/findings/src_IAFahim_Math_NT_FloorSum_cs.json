@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Math.NT/FloorSum.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/FloorSum.cs",
+   "symbol": "FloorSum.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Convert the tail recursion into an in-place loop to remove call-frame overhead and let Burst keep state in registers.",
+   "currentCost": "Each level does one recursive call (ans += Run(yMax, a, m, ...)) which is a genuine tail call in the accumulation sense but is not guaranteed to be optimized by the C#/Burst codegen, costing a stack frame and call/return per Euclidean-style step (O(log) levels).",
+   "proposedChange": "Rewrite as a loop over (n,m,a,b): accumulate ans, then update n=yMax, m_new=a, a_new=m, b_new=(a-(xMax%a))%a and continue until yMax==0, mirroring the Stern-Brocot/Euclid descent. The two leading if-blocks become the loop body's reduction step.",
+   "rationale": "Eliminates per-level call/return and frame setup, shortens the dependency chain, and is friendlier to Burst which does not reliably perform TCO. Same O(log(max(a,m))) steps, lower constant factor.",
+   "risk": "Must reproduce the exact reduction order and the early-return (yMax==0 returns current ans). Watch the multiplication (n-1)*n*(a/m) for overflow \u2014 unchanged from current code, which already assumes inputs keep it within long per the unchecked Run contract."
+  }
+ ]
+}

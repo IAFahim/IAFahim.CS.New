@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Seeded property/fuzz harness: AssertMatchesReference(fast, naive, seed, iterations) over raw pointers. Zero external deps.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.Search.RangeQueries/IAFahim.Search.RangeQueries.csproj" />
+  </ItemGroup>
+</Project>

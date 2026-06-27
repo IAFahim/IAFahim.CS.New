@@ -1,0 +1,105 @@
+{
+ "file": "src/IAFahim.Math.Gauss/Gauss.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Gauss/Gauss.cs",
+   "symbol": "GaussEliminationDouble.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist repeated Math.Abs(a[sel*m+col]) recomputation out of the pivot-selection loop.",
+   "currentCost": "Line 16: `for (int i = row; i < n; i++) if (Math.Abs(a[i*m+col]) > Math.Abs(a[sel*m+col])) sel = i;` recomputes Math.Abs of the current best (sel) element on every iteration plus the index multiply sel*m+col: one extra load, one extra abs, one extra multiply-add per row scanned.",
+   "proposedChange": "Track running best magnitude: `double best = Math.Abs(a[row*m+col]); int sel = row; for (int i = row+1; i < n; i++) { double v = Math.Abs(a[i*m+col]); if (v > best) { best = v; sel = i; } }`, then reuse `best` at line 17 instead of recomputing Math.Abs(a[sel*m+col]).",
+   "rationale": "Eliminates a redundant load, abs, and address computation per inner iteration, and reuses the magnitude for the 1e-9 threshold check on line 17 (removing one more load+abs). Fewer ops per element in an O(n) scan done O(n) times.",
+   "risk": "None. Tracking max magnitude yields identical sel and identical threshold comparison; double > semantics (incl. NaN) unchanged since the same operator is used."
+  },
+  {
+   "file": "src/IAFahim.Math.Gauss/Gauss.cs",
+   "symbol": "GaussEliminationDouble.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist row-base pointer a[row*m] out of the elimination inner loops to drop a multiply-add per element.",
+   "currentCost": "Lines 22 and 29 index a[row*m + j] inside `for (int j = col; j < m; j++)`. The product row*m is loop-invariant; line 29 sits in the doubly-nested i/j loop, the hottest region (O(n*m) per pivot, O(n) pivots).",
+   "proposedChange": "Compute `double* arow = a + row*m;` once after pivot selection and `double* ai = a + i*m;` once per i, then index arow[j] and ai[j]. Same for the normalization loop on line 22.",
+   "rationale": "Reduces address arithmetic from multiply-add to a single add per element, shortens the dependency chain, and produces a unit-stride FMA pattern (ai[j] -= arow[j]*coef) Burst can auto-vectorize.",
+   "risk": "None; identical memory accessed. Expressing it explicitly guarantees the unit-stride form rather than relying on the optimizer."
+  },
+  {
+   "file": "src/IAFahim.Math.Gauss/Gauss.cs",
+   "symbol": "GaussModP.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "The (v % mod + mod) % mod normalize idiom uses two divisions where one idiv plus a predicated add suffices; it sits in hot loops and the pivot scan.",
+   "currentCost": "Lines 61, 75, 83, 84 compute (v % mod + mod) % mod = two integer idiv (~20-40 cycles each). Line 61 runs per element in the pivot scan; line 75 per row in elimination.",
+   "proposedChange": "Add `[MethodImpl(AggressiveInlining)] static long Norm(long v, long mod){ long r = v % mod; return r + (mod & (r >> 63)); }` and replace every (v%mod+mod)%mod with Norm(v,mod).",
+   "rationale": "Halves the idiv count on the hottest path: the second full division becomes a branchless predicated add (~1 cycle vs ~20-40). Over O(n*m) elimination this is a large constant-factor win.",
+   "risk": "Correct because `long % mod` yields a value in (-mod, mod), so a single conditional add normalizes it. Branchless form needs mod>0 (precondition) and arithmetic right shift of negative long (guaranteed in C#). Output identical."
+  },
+  {
+   "file": "src/IAFahim.Math.Gauss/Gauss.cs",
+   "symbol": "GaussModP.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Redundant double normalization of the pivot element before ModInv.",
+   "currentCost": "Line 69 calls ModInv(a[row*m+col], mod); ModInv (line 51) re-normalizes via (a%mod+mod)%mod. The pivot scan (line 61) already computed the normalized value for the selected row, then discarded it.",
+   "proposedChange": "Capture the normalized pivot in the scan, then compute the inverse via ModPow on the already-normalized value, skipping ModInv's redundant (a%mod+mod)%mod.",
+   "rationale": "Removes a redundant two-idiv normalization per pivot (O(n) pivots).",
+   "risk": "The selected row's value moves to the row position via the swap with its value preserved, so the captured normalized pivot is correct. Output identical."
+  },
+  {
+   "file": "src/IAFahim.Math.Gauss/Gauss.cs",
+   "symbol": "GaussModP.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist row-base pointers in ModP elimination/normalization/swap loops.",
+   "currentCost": "Lines 65, 70, 77 index a[row*m+j], a[i*m+j], a[sel*m+j] with a multiply-add per element inside O(n*m) and O(m) loops.",
+   "proposedChange": "Compute `long* arow = a + row*m;` once per pivot and `long* ai = a + i*m;` once per i; index arow[j]/ai[j]. Same for the swap loop (line 65) and normalization loop (line 70).",
+   "rationale": "Strength-reduces per-element address computation to a single add, shortens dependency chains, yields unit-stride access for the integer subtract-multiply kernel.",
+   "risk": "None; identical accesses."
+  },
+  {
+   "file": "src/IAFahim.Math.Gauss/Gauss.cs",
+   "symbol": "GaussModP.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "x[i]=0 initialization loop on line 82 is dead work, immediately overwritten by line 83.",
+   "currentCost": "Line 82 zeroes all m entries of x, then line 83 unconditionally assigns x[i] for every i. The zero pass is fully redundant.",
+   "proposedChange": "Delete line 82 (`for (int i = 0; i < m; i++) x[i] = 0;`). Line 83's ternary already writes 0 in its else branch.",
+   "rationale": "Removes an entire O(m) store pass over the output buffer.",
+   "risk": "None: line 83 covers every index line 82 touched. Note line 34 in GaussEliminationDouble is NOT dead (line 35 only conditionally writes); do not remove it there."
+  },
+  {
+   "file": "src/IAFahim.Math.Gauss/Gauss.cs",
+   "symbol": "GaussModP.Determinant",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist row-base pointers and apply the cheaper Norm idiom in the O(n^3) Determinant elimination.",
+   "currentCost": "Lines 98, 103, 108 use a[i*n+j]-style indexing with multiply-adds per element inside the cubic elimination; lines 94, 101, 106, 111 use the double-mod (x%mod+mod)%mod normalize.",
+   "proposedChange": "Introduce `long* ai = a + i*n;`, `long* ak = a + k*n;`, `long* asel = a + sel*n;` to strength-reduce indexing, and replace (x%mod+mod)%mod with the single-idiv Norm helper.",
+   "rationale": "Determinant is O(n^3) and the inner subtract loop (line 108) dominates. Removing a multiply-add and halving idivs per op is a substantial constant-factor reduction on the hottest cubic kernel.",
+   "risk": "Same idiv guard (first % yields value in (-mod,mod)). det update stays in [0,mod) under Norm. Output identical."
+  },
+  {
+   "file": "src/IAFahim.Math.Gauss/Gauss.cs",
+   "symbol": "GaussModP.Determinant",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Reuse the already-normalized pivot diagonal instead of normalizing it twice.",
+   "currentCost": "Line 101 computes (a[i*n+i]%mod+mod)%mod for the det product, then line 102 calls ModInv(a[i*n+i], mod) which re-normalizes the same element inside ModPow.",
+   "proposedChange": "Capture `long piv = Norm(a[i*n+i], mod);` once, use it for the det multiply, and pass piv into a ModPow inverse directly (already in [0,mod)), skipping ModInv's redundant normalize.",
+   "rationale": "Removes one redundant two-idiv normalization per outer iteration (O(n)).",
+   "risk": "piv is guaranteed nonzero by the line 94/95 pivot check, so ModPow(piv, mod-2) is the valid inverse. Output identical."
+  },
+  {
+   "file": "src/IAFahim.Math.Gauss/Gauss.cs",
+   "symbol": "GaussModP.ModPow",
+   "dimension": "purity",
+   "impact": "low",
+   "summary": "ModPow's 64-bit multiply silently overflows for mod above ~3 billion; the precondition should be explicit or a 128-bit path provided.",
+   "currentCost": "Line 46: r*a and a*a overflow signed long when products exceed long.MaxValue, i.e. mod > ~3.03e9 (operands < mod). This silently corrupts results, breaking determinism for large moduli.",
+   "proposedChange": "Document the precondition mod < ~3.03e9 at the API, or add an opt-in mulmod path using Int128/UInt128 (or 128-bit high-multiply) for large moduli while keeping the fast path for small ones.",
+   "rationale": "Determinism/correctness contract clarification. For typical primes (1e9+7) it is safe; making the boundary explicit prevents callers getting silent wrong answers.",
+   "risk": "Documentation/guard only; no behavior change for in-range moduli. A 128-bit mulmod is slower, so keep it opt-in rather than default."
+  }
+ ]
+}

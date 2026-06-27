@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Graph.DAG/KthTopologicalOrder.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.DAG/KthTopologicalOrder.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace the full O(2^n) zeroing loop and skip-if-zero pattern; the initial dp clear over maxMask entries is a separate pass that can be fused, and the dp!=0 guard adds a branch per mask.",
+   "currentCost": "A full pass `for (i<maxMask) dp[i]=0` over 2^n longs before the DP, plus a per-mask `if (dp[m] != 0)` branch in the main loop. For n=20 that is ~1M-entry zero pass plus 1M branch mispredict candidates.",
+   "proposedChange": "Keep the zeroing (it is required since dp is caller-provided scratch), but hoist `(1 << i)` computations and note the bit work below. The dp!=0 guard is correct to keep (most masks unreachable in sparse DAGs), so leave it. The concrete win: in UpdateDpForMask/FindKthNode precompute `bit = 1 << i` once per i and reuse, and iterate only over the complement bits using `(~m) & ((1<<n)-1)` via De Bruijn / TrailingZeroCount instead of scanning all n bits and testing `(m & bit)==0`.",
+   "rationale": "Iterating set/unset bits with `Bmi1.TrailingZeroCount`/`math.tzcnt` and `m & (m-1)` clearing turns the inner per-mask loop from O(n) unconditional iterations into O(popcount) iterations touching only relevant bits, removing the `(m & (1<<i))` mask test branch entirely and shortening the dependency chain.",
+   "risk": "tzcnt intrinsic must be Burst-supported (it is via Unity.Mathematics math.tzcnt / Burst lowers it). Behavior identical: same nodes visited in same numeric order if you iterate complement bits ascending. For FindKthNode order matters (it scans i high->low and subtracts cnt); must preserve that exact descending traversal to keep the same kth selection, so use a high-to-low bit iteration (e.g. iterate set bits via 31-lzcnt) \u2014 verify ordering matches before applying."
+  },
+  {
+   "file": "src/IAFahim.Graph.DAG/KthTopologicalOrder.cs",
+   "symbol": "UpdateDpForMask",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist `1 << i` and avoid recomputing `dp[m]` load; the predecessor-ready test `(adjMask[i] & m) == adjMask[i]` reloads adjMask[i] twice.",
+   "currentCost": "Per i: two array loads of adjMask[i], two shifts `1<<i` (one in the mask test, one in `dp[m | (1<<i)]`), and a fresh `dp[m]` read inside the loop though dp[m] is loop-invariant.",
+   "proposedChange": "Hoist `long base = dp[m];` before the loop. Compute `int bit = 1 << i;` once. Load `int req = adjMask[i];` once into a local and test `(req & m) == req`. Then `dp[m | bit] += base;`.",
+   "rationale": "Removes a redundant memory load (dp[m]) from the hot inner loop, halves the shift count, and lets the compiler keep req in a register \u2014 fewer uops and a shorter dependency chain. Over 2^n * n iterations this is a measurable constant-factor win.",
+   "risk": "None \u2014 purely local CSE/hoisting, identical results. dp[m] is not aliased with dp[m|bit] since bit is not set in m, so reading base once is safe."
+  },
+  {
+   "file": "src/IAFahim.Graph.DAG/KthTopologicalOrder.cs",
+   "symbol": "FindKthNode",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist `1 << i` (computed twice per iteration) and reuse the `m ^ (1<<i)` value, which is computed twice when the branch is taken.",
+   "currentCost": "Per i: `1 << i` evaluated twice in the condition (`(m & (1<<i))` and `(m ^ (1<<i))`), and `m ^ (1<<i)` recomputed again on the `dp[m ^ (1<<i)]` load when taken.",
+   "proposedChange": "`int bit = 1 << i; int sub = m ^ bit;` once, then test `(m & bit) != 0 && (adjMask[i] & sub) == adjMask[i]` and use `dp[sub]`.",
+   "rationale": "Removes 2-3 redundant ALU ops per iteration and a redundant xor on the hot path, shortening the dependency chain feeding the dp load.",
+   "risk": "None \u2014 algebraically identical, sub == m^bit reused safely."
+  }
+ ]
+}

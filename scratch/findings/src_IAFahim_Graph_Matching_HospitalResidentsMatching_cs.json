@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Graph.Matching/HospitalResidentsMatching.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Matching/HospitalResidentsMatching.cs",
+   "symbol": "HospitalResidentsMatching.Run",
+   "severity": "high",
+   "category": "logic",
+   "summary": "Run is an unimplemented stub: it only sets matchResident[i]=-1 and runs no Gale-Shapley (hospital/residents) matching, so every resident is left unmatched regardless of preferences/capacities.",
+   "triggeringInput": "numResidents=2, numHospitals=1, hospitalCapacities={2}, residentPref={0,0} (each resident prefers hospital 0), hospitalPref={0,1}. Stable matching assigns both residents to hospital 0 (capacity 2); actual leaves matchResident[0]=matchResident[1]=-1.",
+   "rootCause": "The resident-proposing Gale-Shapley loop (propose, accept up to capacity, evict worst when over capacity) is not implemented; only initialization is present.",
+   "suggestedFix": "Implement resident-proposing deferred acceptance using hospital preference ranks and capacities: each free resident proposes down their list; a hospital provisionally accepts while under capacity and otherwise evicts its least-preferred current resident; iterate until stable, writing matchResident[]."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Matching/HospitalResidentsMatching.cs",
+   "symbol": "Run",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Stub: only initializes matchResident to -1; the Gale-Shapley hospital/residents algorithm is unimplemented and the preference/capacity parameters are unused.",
+   "currentCost": "Single O(numResidents) init loop; no matching computed.",
+   "proposedChange": "Implement resident-proposing Gale-Shapley with per-hospital capacity heaps, or document as init-only. The single init loop is already minimal.",
+   "rationale": "No safe constant-factor win exists on a lone init loop; the signal is the missing algorithm body.",
+   "risk": "Implementing changes observable outputs by design."
+  }
+ ]
+}

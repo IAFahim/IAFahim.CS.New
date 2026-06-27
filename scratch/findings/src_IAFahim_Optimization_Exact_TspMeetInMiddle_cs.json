@@ -1,0 +1,82 @@
+{
+ "file": "src/IAFahim.Optimization.Exact/TspMeetInMiddle.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Optimization.Exact/TspMeetInMiddle.cs",
+   "symbol": "TspMeetInMiddle.Run",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Run always returns inf: both branches (n<=2 returns 0, and the n<=20 DP branch and the final fallback) unconditionally return inf without ever returning any computed tour cost. The entire 'left' DP table is computed (lines 14-34) and then discarded by 'return inf' on line 35. For any n with 3<=n<=20 the method returns inf instead of the shortest-path/TSP cost, making the function entirely non-functional.",
+   "triggeringInput": "n=4, w pointing to any 4x4 weight matrix, inf=1000000000000",
+   "rootCause": "Missing return of the actual result. Line 35 returns inf inside the n<=20 branch; the computed 'left' table is never read out. There is also no right-half DP and no meet-in-the-middle combine step, so even the intended algorithm is incomplete.",
+   "suggestedFix": "After filling the DP, compute the answer (e.g. for a Hamiltonian path/TSP combine the left-half DP with a symmetric right-half DP across the partition boundary) and return that minimum instead of returning inf. At minimum, the n<=20 branch must return the computed optimum, not inf."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Exact/TspMeetInMiddle.cs",
+   "symbol": "TspMeetInMiddle.Run",
+   "severity": "critical",
+   "category": "wrong-recurrence",
+   "summary": "Endpoint index is taken as (popcount-1) instead of an actual set-bit index. Line 22 computes 'i = bits - 1' where 'bits' is the number of set bits in mask, then line 23 does 'sub = mask ^ (1 << i)'. When the chosen endpoint i is not actually set in mask, XOR SETS that bit (making sub a superset, not a subset of mask) and the recurrence reads left[sub*half + j] for an invalid sub and uses an endpoint i not present in mask, producing wrong DP values.",
+   "triggeringInput": "n=8 (half=4) reaching mask=0b0100 (decimal 4): bits=1, i=0, sub = 4 ^ (1<<0) = 5 (0b0101). Bit 0 was never in mask, so sub is not a subset of mask and endpoint i=0 is not in the set.",
+   "rootCause": "The DP endpoint should be a bit index that is actually set in mask (e.g. iterate i over set bits, or take the lowest/highest set bit), but the code uses the population count minus one as if it were a bit index. These coincide only when mask is a contiguous block of low bits starting at bit 0.",
+   "suggestedFix": "Iterate the endpoint i over every set bit of mask (for each set bit i: sub = mask ^ (1<<i); relax left[mask*half+i] from left[sub*half+j]+w[j*n+i] for each set bit j in sub), rather than choosing a single i = bits-1."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Exact/TspMeetInMiddle.cs",
+   "symbol": "TspMeetInMiddle.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace the per-mask popcount loop (lines 19-21) with the branchless bit-count idiom / intrinsic.",
+   "currentCost": "For every mask (up to 2^half iterations), an inner loop of `half` iterations does `(mask & (1<<b)) != 0` test-and-increment to compute `bits`. That is O(half) per mask, with a 1<<b shift, an AND, and a data-dependent branch each step. Over all masks this is O(half * 2^half) just to count bits.",
+   "proposedChange": "Use a hardware popcount: `int bits = System.Numerics.BitOperations.PopCount((uint)mask);`. Burst lowers PopCount to a single POPCNT/equivalent instruction. If BitOperations is undesirable under the house pointer rules, use the SWAR popcount (5 ops, branchless) instead of the loop.",
+   "rationale": "Collapses an O(half) branch-laden inner loop to a single (or ~5) branchless instruction(s), removing a data-dependent branch in the hottest loop and shrinking the dependency chain from `half` serial adds to a log-depth or single-op reduction.",
+   "risk": "Semantics identical (popcount of a non-negative int). `mask` is in [1, 2^half), always fits in uint with no sign issue. BitOperations.PopCount is a static intrinsic with no managed allocation, Burst-friendly; confirm Burst version supports it, otherwise fall back to SWAR."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Exact/TspMeetInMiddle.cs",
+   "symbol": "TspMeetInMiddle.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the repeated `left[sub * half + j]` and `left[mask * half + i]` index computations out of the inner loop / cache the loaded value.",
+   "currentCost": "Inside the j-loop, `left[sub * half + j]` is computed and loaded twice (lines 28 and 30) for the same j, and `left[mask * half + i]` is recomputed at line 31 every iteration though `mask`, `half`, `i` are loop-invariant. Each is an imul + add for the address plus a load.",
+   "proposedChange": "Compute `long* maskRow = left + mask * half;` and `long* subRow = left + sub * half;` once before the j-loop. Then `long cur = subRow[j];` loaded once, and update `maskRow[i]`. Hoist `long best = maskRow[i];` before the loop, take the min into the register, and store `maskRow[i] = best;` once after the loop.",
+   "rationale": "Removes a redundant load of subRow[j], eliminates per-iteration recomputation of the invariant `mask*half+i` address, and turns a load-modify-store on maskRow[i] into a single register min reduction with one final store \u2014 shorter dependency chain and fewer memory ops in the inner loop.",
+   "risk": "Semantics-preserving: maskRow[i] is only written within this j-loop for this mask, so accumulating the min in a register and storing once is equivalent. inf-sentinel comparisons are unchanged (still `< best`). No overflow concern beyond what already exists."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Exact/TspMeetInMiddle.cs",
+   "symbol": "TspMeetInMiddle.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Replace `n / 2` and `mask ^ (1 << i)` invariants and precompute bit masks; iterate set bits via bit-tricks instead of scanning all `half` positions.",
+   "currentCost": "The j-loop (lines 24-26) scans all `half` positions and `continue`s on the ~half that are zero in `sub`, wasting iterations and branching on `(sub & (1<<j)) == 0`. `1 << j` and `1 << i` are recomputed.",
+   "proposedChange": "Iterate only set bits: `for (int s = sub; s != 0; s &= s - 1) { int j = BitOperations.TrailingZeroCount(s); ... }`. This visits exactly popcount(sub) positions with no skipped/branched iterations and no `1<<j` reconstruction for the membership test.",
+   "rationale": "Reduces inner-loop trip count from `half` to popcount(sub) and removes the per-position membership branch (`s & (s-1)` clears the lowest set bit branchlessly). Fewer iterations, fewer mispredicts, shorter shifts.",
+   "risk": "Behavior identical \u2014 same set of j values processed. TrailingZeroCount/`s & (s-1)` are well-defined for the non-zero `s` here. Burst-friendly intrinsics; if unavailable, the `s &= s-1` walk with a manual ctz is still branch-light. Note: the surrounding result is currently discarded (Run returns inf), so this optimizes dead computation only."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Exact/TspMeetInMiddle.cs",
+   "symbol": "TspMeetInMiddle.Run",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "The entire `left` DP (lines 12-34) is dead: Run unconditionally returns `inf`, so the O(half * 2^half) computation and its O(half * 2^half) stackalloc init can be removed without changing observable output.",
+   "currentCost": "Allocates `maxMask*half` longs on the stack (up to 2^10 * 10 = ~10240 longs = ~80 KB for half=10) and initializes them to inf, then runs a full subset DP \u2014 all of which is discarded because the method returns `inf` at line 35, never the computed table.",
+   "proposedChange": "As an optimization (not a feature fix): since observable output is `inf` for all n>2 and `0` for n<=2, the whole body for `n<=20` is unnecessary; `Run` reduces to `return n <= 2 ? 0 : inf;`. This eliminates the ~80 KB stackalloc (a real mobile stack-pressure concern) and the dominant DP loop entirely.",
+   "rationale": "Removing provably-dead work is the ultimate strength reduction: zero cycles, zero RAM. The large stackalloc on `half=10` is a genuine mobile stack risk for no benefit.",
+   "risk": "This is only safe if the method is genuinely intended to return inf (i.e., the DP is incomplete/unused). It almost certainly indicates an unfinished implementation that SHOULD return the tour cost \u2014 so this 'optimization' would lock in a bug. Flag for the author: the DP result must be wired into the return before any of the cycle/ram micro-opts above matter. Do NOT apply blindly."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Exact/TspMeetInMiddle.cs",
+   "symbol": "TspMeetInMiddle.Run",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Initialization loop (line 15) fills the whole table with inf then immediately overwrites left[0]=0; fine, but the fill can use a wider/vectorizable pattern and the table size can use narrower addressing.",
+   "currentCost": "Scalar loop writes `maxMask*half` longs one-by-one with `left[i] = inf`. Burst may auto-vectorize, but the explicit scalar form plus the `maxMask*half` recomputed bound (line 15 vs line 14) is a missed hoist.",
+   "proposedChange": "Hoist `int total = maxMask * half;` once and reuse for both the stackalloc and the fill bound. Keep the fill as a simple `for` over `total` (Burst vectorizes a constant-store loop well), avoiding the duplicated multiply.",
+   "rationale": "Removes a duplicated imul and gives Burst a clean constant-store loop to vectorize (wide SIMD stores of the inf pattern). Minor but free.",
+   "risk": "Semantics identical. Only meaningful if the DP body is kept (see the dead-code finding); if the body is removed, this disappears."
+  }
+ ]
+}

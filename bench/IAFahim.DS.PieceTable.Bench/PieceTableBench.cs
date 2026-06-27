@@ -68,6 +68,7 @@ namespace IAFahim.DS.PieceTable.Bench
         [Benchmark(Baseline = true)]
         public void PieceTableInsert()
         {
+            ResetState();
             for (int i = 0; i < 16; i++)
             {
                 global::IAFahim.DS.PieceTable.PieceTableInsert.Run(ref *_state, i * 16, _insertBuf, 16, _pieces, ref _pieceCount);
@@ -77,6 +78,7 @@ namespace IAFahim.DS.PieceTable.Bench
         [Benchmark]
         public void PieceTableDelete()
         {
+            ResetState();
             for (int i = 0; i < 8; i++)
                 global::IAFahim.DS.PieceTable.PieceTableDelete.Run(ref *_state, i * 32, 16, _pieces, ref _pieceCount);
         }

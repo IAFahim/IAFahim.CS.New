@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Geometry.Spatial/RangeTree.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Spatial/RangeTree.cs",
+   "symbol": "BuildRec",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Axis-selecting ternary (xs/ys/zs choice) is re-evaluated inside the innermost partition compare loops, putting two nested branches on every comparison.",
+   "currentCost": "Lines 36,40,41 select the coordinate array via `axis==0?xs:(axis==1?ys:zs)` for the pivot and for every i/j comparison inside the inner while loops. axis is invariant for the whole BuildRec call, yet the two-way/three-way branch executes per comparison \u2014 O(n log n) redundant axis branches and indirect array selection that defeats clean vectorization.",
+   "proposedChange": "Hoist `double* a = axis==0?xs:(axis==1?ys:zs);` once at the top of BuildRec, then compare `a[idx[i]] < pivot` etc. This collapses the per-compare ternary to a single pointer load.",
+   "rationale": "Removes 1-2 branches per comparison in the median-partition inner loop and exposes a single contiguous gather (a[idx[*]]) the JIT/Burst can schedule better; strict win in the build hot path.",
+   "risk": "axis is constant within a BuildRec frame, so hoisting is exact. None to semantics."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Spatial/RangeTree.cs",
+   "symbol": "Build2D",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Median selection uses a full quickselect-style partition loop per node giving O(n log n) average but O(n^2) worst case and re-partitioning already-ordered data.",
+   "currentCost": "BuildRec runs a Hoare-style partition repeatedly to drive the median to position k at every level. With adversarial / pre-sorted input the partition degrades toward O(n) per level over O(n) levels = O(n^2) build, and the work is not reused across levels.",
+   "proposedChange": "Either pre-sort indices per axis once and build via index splitting (classic kd-tree build with presorted arrays, O(n log n) deterministic), or use a median-of-three / introselect pivot to bound the worst case. At minimum, median-of-three pivot selection for the partition.",
+   "rationale": "Bounds the asymptotic build cost and removes the pathological O(n^2) on sorted/clustered point sets common in spatial data.",
+   "risk": "Changing pivot strategy changes which equal-key element lands at the node but not query correctness (range queries over kd-tree are order-insensitive). Presorted-build is a larger rewrite; median-of-three is low-risk."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Spatial/RangeTree.cs",
+   "symbol": "QueryRec",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Per-node axis dispatch via depth%2 ternary chain; depth%2 and the val/min/max selection can be replaced by branchless or alternating-axis recursion.",
+   "currentCost": "Each QueryRec node computes `depth%2`, then three ternaries to pick val/minV/maxV (lines 81-84). depth%2 is a modulo (compiles to and on non-negative depth) plus 3 conditional selects per visited node on the recursive query hot path.",
+   "proposedChange": "Pass the already-known axis (toggle 0/1) instead of depth, and select coordinate via a small branchless pattern: for 2D, `bool xAxis = (depth&1)==0; double val = xAxis?n->X:n->Y;` \u2014 or specialize two mutually-recursive functions (QueryX/QueryY) eliminating the per-node axis test entirely.",
+   "rationale": "depth%2 -> depth&1 is a safe strength reduction (depth>=0); specializing axis removes the selection branches, shortening the per-node path in a tree traversal that can visit many nodes.",
+   "risk": "depth is always >=0 so &1 == %2 exactly. Specialization duplicates code (complexity tradeoff) but is semantics-identical."
+  }
+ ]
+}

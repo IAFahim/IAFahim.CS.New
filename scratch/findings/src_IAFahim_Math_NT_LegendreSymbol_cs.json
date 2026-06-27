@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Math.NT/LegendreSymbol.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/LegendreSymbol.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace the double modulo ((a % p) + p) % p with one modulo plus a branchless/conditional add.",
+   "currentCost": "Two integer divisions per call (a % p, then (...) % p). For positive a already < p this still pays two divides; the second % p is only needed because a%p in C# can be negative.",
+   "proposedChange": "a %= p; if (a < 0) a += p;  (single division). This matches the normalization already used inside ModPow.Run.",
+   "rationale": "a % p is in (-p, p); adding p once when negative yields the canonical residue in [0,p). One divide instead of two removes a ~20-40 cycle op. The subsequent a==0 test and ModPow exponent are unchanged.",
+   "risk": "Behavior identical for all valid p>0. (If p could be <=0 the function was already undefined.) No overflow: a + p stays within long since a in (-p,0)."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/LegendreSymbol.cs",
+   "symbol": "ModPow (private wrapper) / using System",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Remove the redundant private ModPow wrapper and the unused 'using System'.",
+   "currentCost": "A private static long ModPow merely forwards to IAFahim.Math.NT.ModPow.Run; it adds an extra named indirection and a name collision risk. 'using System;' is unused.",
+   "proposedChange": "Delete the wrapper and call ModPow.Run (or fully-qualified IAFahim.Math.NT.ModPow.Run) directly at the call site; drop using System.",
+   "rationale": "Fewer symbols, clearer call graph, no dead using. ModPow.Run is already AggressiveInlining so there is no perf reason for the wrapper; it only obscures.",
+   "risk": "None functionally. Purely cosmetic/discoverability; verify no other member references the local ModPow (it does not)."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/LegendreSymbol.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Branchless final result selection from the ModPow value.",
+   "currentCost": "if (val == p - 1) return -1; return 1; is a predictable-but-present branch.",
+   "proposedChange": "long pm1 = p - 1; return (val == pm1) ? -1 : 1;  or branchless: return 1 - (int)((val == pm1) ? 2 : 0). Also reuse pm1 for the exponent (p-1)>>1.",
+   "rationale": "Computing p-1 once and reusing it for both the exponent shift and the comparison removes a duplicate subtraction; a ternary compiles to a conditional move under Burst, avoiding a branch misprediction on inputs where the quadratic residue split is ~50/50.",
+   "risk": "None; same outputs. The val==0 case cannot occur here because a!=0 mod prime p implies val in {1, p-1}."
+  }
+ ]
+}

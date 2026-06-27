@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.String.SuffixAutomaton/SuffixAutomaton.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.SuffixAutomaton/SuffixAutomaton.cs",
+   "symbol": "Extend",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Eliminate the redundant GetNext recomputation at line 65 by reusing the transition value already found by the loop's exit condition.",
+   "currentCost": "The first while loop (line 53) calls GetNext(st,e,p,c) every iteration. When it exits (p!=-1 branch), line 65 calls GetNext(st,e,p,c) a SECOND time over the same (p,c) to obtain q. GetNext is an O(deg(p)) linked-list scan, so this doubles the scan cost on the state that exits the loop \u2014 paid on every Extend that takes the else branch (the common case for a new transition that already exists).",
+   "proposedChange": "Restructure the loop to compute the transition once per iteration into a local: 'int nx; while (p != -1 && (nx = GetNext(st,e,p,c)) == -1) { SetNext(...); p = st[p].Link; }'. Then in the else branch use that captured 'nx' as q instead of calling GetNext again ('int q = nx;'). Because the loop exits precisely when GetNext(p,c) != -1, the last captured nx equals the q that line 65 would recompute \u2014 identical value, one fewer scan.",
+   "rationale": "Removes one full edge-list traversal per Extend call along the suffix-link chain transition lookup; halves GetNext work for the hot else-path. Same arithmetic and control flow otherwise, so output is bit-identical.",
+   "risk": "Must ensure 'nx' is only read in the branch where p != -1 (where it is guaranteed assigned to the non- -1 value). When p == -1 the loop ran GetNext on the last valid p before p became -1, so nx must not be used in the p==-1 branch (it already isn't). No semantic change."
+  },
+  {
+   "file": "src/IAFahim.String.SuffixAutomaton/SuffixAutomaton.cs",
+   "symbol": "Extend",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The clone-redirect loop (line 77) re-scans the full edge list of each p via GetNext just to compare against the known q.",
+   "currentCost": "Inside 'while (p != -1 && GetNext(st,e,p,c) == q)' each iteration scans p's entire edge linked list to find the (p,c) transition, then compares To against q. Since SetNext prepends, and we only follow links while the transition still equals q, this repeats an O(deg) scan per chain step where a direct edge-node lookup would suffice.",
+   "proposedChange": "Introduce a helper GetNextEdge(st,e,p,c) returning the edge index (not the To). Walk the chain by locating the edge once, reading e[edge].To to test == q, and if so rewrite e[edge].To = clone IN PLACE instead of SetNext prepending a new shadowing edge. This both avoids the recompute and stops growing the edge array (no new edges appended in the redirect loop), shrinking edgeCount growth and the per-state list length scanned by all future GetNext calls.",
+   "rationale": "In-place To rewrite is O(deg) once per chain node and removes the append, so subsequent GetNext scans over these states stay shorter (lower constant on every later transition lookup and less edge RAM). Standard SAM clone-redirect rewrites the existing edge rather than shadowing it.",
+   "risk": "Behavior-preserving ONLY if every reader resolves a transition via first-match on the prepended list. Current GetNext returns the FIRST matching edge; SetNext prepends, so a shadowing edge currently overrides the old one and GetNext already returns the new target \u2014 so in-place rewrite yields the same observed transition. EnumerateTransitions, however, currently emits BOTH the stale and new edge (duplicate char) after a redirect; switching to in-place rewrite changes EnumerateTransitions output (removes the duplicate). If any caller depends on seeing duplicate chars, this is observable \u2014 verify EnumerateTransitions contract before applying. If kept conservative (recompute avoided but still SetNext-prepend), only the cycles win applies with zero observable change."
+  },
+  {
+   "file": "src/IAFahim.String.SuffixAutomaton/SuffixAutomaton.cs",
+   "symbol": "Edge",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Edge is 12 bytes (3x int); Char and the index fields could be narrowed to shrink the edge array footprint and improve cache density of GetNext scans.",
+   "currentCost": "Each Edge is 12 bytes. GetNext is a pointer-chasing linked-list walk whose cost is dominated by cache misses across the edge array; larger nodes mean fewer edges per cache line. For a SAM over a small alphabet (e.g. byte/char input), Char never needs 32 bits.",
+   "proposedChange": "If alphabet fits in 16 bits, change Edge.Char to short/ushort. To/Next remain int (state and edge counts can exceed 65535). With explicit [StructLayout(LayoutKind.Sequential)] and ordering {int To; int Next; short Char;} the struct packs to 12 (still padded) \u2014 the real win requires also narrowing index types, so only adopt if the index domain is provably <=2^16 or accept To/Next stay int. Alternatively, store transitions in a parallel SoA (separate To[]/Char[]/Next[] arrays) so a GetNext scan touches only the Char[] and Next[] streams, not To, until a match.",
+   "rationale": "Narrower Char and SoA splitting reduce bytes touched per linked-list hop, lowering cache-miss pressure in the hottest inner loop (GetNext) on both PC and mobile where memory bandwidth is the bottleneck.",
+   "risk": "Narrowing Char to 16 bits breaks correctness if alphabet exceeds 65535 (e.g. full int code points) \u2014 only safe with a documented alphabet bound. SoA changes the public struct API (Edge no longer the storage unit), an ergonomics/compat break; flag and confirm no external dependency on the Edge layout. Default to no-change unless the alphabet bound is confirmed."
+  },
+  {
+   "file": "src/IAFahim.String.SuffixAutomaton/SuffixAutomaton.cs",
+   "symbol": "using System",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "The 'using System;' directive is unused in this file.",
+   "currentCost": "Dead using directive: no System type is referenced (only System.Runtime.CompilerServices.MethodImpl is used). Zero runtime cost but adds noise and can mask accidental dependencies.",
+   "proposedChange": "Remove 'using System;' (line 3), keeping only 'using System.Runtime.CompilerServices;'.",
+   "rationale": "Cleaner compilation unit, no behavioral impact; keeps the file minimal and makes the actual dependency surface explicit.",
+   "risk": "None \u2014 purely cosmetic; verify no source-generator or partial file in the same namespace relies on the transitively-imported namespace (it does not here)."
+  },
+  {
+   "file": "src/IAFahim.String.SuffixAutomaton/SuffixAutomaton.cs",
+   "symbol": "GetNext",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Transition lookup is O(deg(state)) linked-list scan; for large/dense alphabets a different transition representation lowers asymptotics, at a RAM cost.",
+   "currentCost": "GetNext/Transition/Contains all do a per-state singly-linked edge scan, so a single transition query is O(out-degree), and Build's Extend incurs O(sum of degrees) total \u2014 fine for sparse small alphabets but O(alphabet) worst case per query for dense states (especially the initial state which accumulates one edge per distinct first-character).",
+   "proposedChange": "Offer an alternative dense-transition mode: a fixed-size int[alphabetSize] transition table per state (state-major flat array trans[state*ALPHA + c]) selected when the alphabet is small and known. GetNext becomes O(1) array index instead of a list walk; Burst vectorizes nothing here but removes pointer chasing entirely. Keep the linked-list path as the sparse default.",
+   "rationale": "Converts the dominant inner-loop cost from O(deg) pointer-chasing with random cache misses to a single O(1) indexed load, a large constant-factor and worst-case asymptotic win for small alphabets (DNA, bytes). This is the standard SAM speed/memory tradeoff.",
+   "risk": "Dense table costs O(numStates * alphabetSize) RAM, prohibitive for large alphabets / int code points \u2014 must be gated on a small alphabet bound and is a new API surface (not a drop-in). Output identical (same transitions); only storage and lookup mechanism change. Treat as an additive variant, not a replacement, to preserve the existing sparse contract."
+  }
+ ]
+}

@@ -29,7 +29,7 @@ namespace IAFahim.DS.PersistentTreap.Bench
         [GlobalSetup]
         public void Setup()
         {
-            _capacity = 8 * N;
+            _capacity = 64 * N;
             _nodes = (int*)Marshal.AllocHGlobal(_capacity * sizeof(int));
             _left = (int*)Marshal.AllocHGlobal(_capacity * sizeof(int));
             _right = (int*)Marshal.AllocHGlobal(_capacity * sizeof(int));
@@ -50,6 +50,7 @@ namespace IAFahim.DS.PersistentTreap.Bench
         [Benchmark(Baseline = true)]
         public void PersistentTreapInsert()
         {
+            ResetTree();
             Random rng = new Random(42);
             int root = _root;
             for (int i = 0; i < N; i++)

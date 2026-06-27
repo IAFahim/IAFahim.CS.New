@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.String.SuffixArray/Locate.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.String.SuffixArray/Locate.cs",
+   "symbol": "Locate.Find",
+   "severity": "high",
+   "category": "logic",
+   "summary": "Binary pattern search misses real occurrences when a suffix is a proper prefix of the pattern. Compare() only inspects min(patLen, textLen-sa[mid]) bytes; if those bytes all match (cmp==0) but the suffix is shorter than the pattern (patLen > textLen-sa[mid]), the suffix is lexicographically smaller than the pattern and the search must move right (l=mid+1). Instead the code only advances l when cmp<0, so it falls into the else branch (r=mid-1) and searches left, skipping the actual occurrence located to the right of mid. This returns -1 (not found) for patterns that are present.",
+   "triggeringInput": "text = {'a','a'} (textLen=2), sa = {1,0} (suffix order: \"a\" at idx1 < \"aa\" at idx0), pattern = {'a','a'} (patLen=2). Trace: l=0,r=1; mid=0,sa[0]=1; Compare(text+1,\"aa\",min(2,1)=1) -> 'a'=='a' => cmp=0; patLen(2)<=textLen-sa[0](1) is false so no return; cmp<0 false => else r=mid-1=-1; loop ends; returns -1. Correct answer is index 0 (\"aa\" occurs at 0).",
+   "rootCause": "When Compare returns 0 but the suffix is a proper prefix of the pattern (suffix shorter than pattern), the suffix is strictly less than the pattern lexicographically, yet the code treats cmp==0 (without the full-fit condition) as 'go left'. The 'suffix is a proper prefix of pattern => go right' case is not handled.",
+   "suggestedFix": "Treat a too-short suffix as less than the pattern. In the loop, after computing cmp, if cmp==0 and patLen > textLen - sa[mid], set l = mid + 1 (suffix < pattern). Concretely: if (cmp < 0 || (cmp == 0 && patLen > textLen - sa[mid])) l = mid + 1; else r = mid - 1; keeping the exact-match early return for cmp==0 && patLen <= textLen - sa[mid]."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.SuffixArray/Locate.cs",
+   "symbol": "Locate.Find",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Math.Min(patLen, textLen - sa[mid]) is computed, then the result patLen <= textLen - sa[mid] re-derives the same comparison; fold into one branch.",
+   "currentCost": "Per binary-search iteration: a Math.Min plus a redundant second comparison `patLen <= textLen - sa[mid]` that recomputes textLen - sa[mid] and re-compares against patLen.",
+   "proposedChange": "Compute `int rem = textLen - sa[mid];` once, `int n = patLen < rem ? patLen : rem;` (branchless min), call Compare, and reuse `patLen <= rem` for the full-match test. Avoids recomputing textLen - sa[mid] and the Math.Min call overhead.",
+   "rationale": "Cuts a duplicate subtraction and comparison per iteration of the O(log saLen * patLen) search and replaces Math.Min with an inlinable conditional Burst lowers to a cmov.",
+   "risk": "None \u2014 same values, same control flow. byte difference a[i]-b[i] already returns correct int sign for unsigned bytes."
+  }
+ ]
+}

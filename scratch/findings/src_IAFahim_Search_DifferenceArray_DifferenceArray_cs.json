@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Search.DifferenceArray/DifferenceArray.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.DifferenceArray/DifferenceArray.cs",
+   "symbol": "Diff.Apply",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Redundant recomputation of end+1 and a missing strength-reduction opportunity on the bounds branch.",
+   "currentCost": "end+1 is computed twice (once for the compare 'end + 1 < len', once for the index 'diff[end + 1]'). The compiler/Burst will almost certainly CSE this, so the win is essentially zero in optimized builds.",
+   "proposedChange": "Optionally compute 'int next = end + 1;' once and reuse it for both the comparison and the index. Cosmetic only.",
+   "rationale": "Eliminates a textual duplicate sub-expression; makes intent explicit. No real cycle reduction expected because Burst/LLVM already performs common-subexpression elimination on end+1.",
+   "risk": "None. end is int; end+1 cannot overflow for any valid len-bounded index reachable past the (uint)end>=(uint)len guard (end < len <= int.MaxVALUE implies end+1 <= int.MaxValue). Semantics identical."
+  },
+  {
+   "file": "src/IAFahim.Search.DifferenceArray/DifferenceArray.cs",
+   "symbol": "Diff.PrefixFromDiff",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "prefix[i+1] store uses a +1-offset index each iteration; hoist the output pointer to remove the per-iteration offset add.",
+   "currentCost": "Each iteration computes the address prefix + (i+1) for the store. The address generation includes a constant +1 fused into the index; on most targets this folds into the addressing mode so the real cost is ~0. The carried dependency 'cur += diff[i]' is the true bottleneck and is inherent to prefix sum (cannot be SIMD-vectorized without a parallel-scan rewrite).",
+   "proposedChange": "Optionally write 'int* out1 = prefix + 1;' before the loop and store 'out1[i] = cur;'. Keeps prefix[0]=len as-is. Equivalent codegen on Burst; purely stylistic.",
+   "rationale": "Removes the textual +1 from the hot index; lets the addressing mode use a plain base+i*4. In practice LLVM already folds the +1 into the displacement, so expect no measurable change.",
+   "risk": "None. Behavior identical: prefix[0]=len, prefix[1..len]=running sums. The dependency chain remains, so this does not change asymptotics or vectorizability."
+  },
+  {
+   "file": "src/IAFahim.Search.DifferenceArray/DifferenceArray.cs",
+   "symbol": "Diff.RangeSum",
+   "dimension": "ergonomics",
+   "impact": "medium",
+   "summary": "Name 'RangeSum' is misleading: it returns the single prefix value at idx, not a sum over a range; and the length is stored in-band at prefix[0], coupling layout to PrefixFromDiff.",
+   "currentCost": "No cycle cost (it is already a branchless-friendly bounds check + one load). The issue is API clarity/discoverability and the hidden contract that prefix[0] holds the length (a non-obvious in-band length encoding).",
+   "proposedChange": "Rename to PrefixAt (or PointQuery) to match what it returns, and document that prefix[0] stores len as written by PrefixFromDiff. If a true range sum is intended, expose 'RangeSum(prefix, lo, hi) => prefix[hi+1] - prefix[lo]' which is the natural use of the +1-offset prefix layout.",
+   "rationale": "Aligns the name with observable behavior and exploits the existing offset-by-one prefix layout (prefix[i+1]=sum of diff[0..i]) so a real range sum is a single subtraction with no extra storage.",
+   "risk": "Pure rename/addition; no behavior change to existing callers if the old method is kept. The proposed RangeSum(lo,hi) assumes 0<=lo<=hi<len (unchecked-by-design); guard with the same (uint) trick if a checked variant is wanted."
+  },
+  {
+   "file": "src/IAFahim.Search.DifferenceArray/DifferenceArray.cs",
+   "symbol": "Diff.Build/Diff.PrefixFromDiff",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Build and PrefixFromDiff duplicate the identical prefix-sum loop; PrefixFromDiff already computes a superset of what Build produces.",
+   "currentCost": "Two near-identical inclusive-scan loops are maintained. Functionally Build(output,diff,len) == PrefixFromDiff writing to output-1 region shifted; the running-sum logic is duplicated, increasing maintenance surface (not runtime cost).",
+   "proposedChange": "Keep both public entry points for ergonomics, but note that output[i] from Build equals prefix[i+1] from PrefixFromDiff. No code merge is needed for perf; if dedup is desired, have Build call an internal scan helper shared with PrefixFromDiff's body. Do NOT add indirection on the hot path without inlining.",
+   "rationale": "Single source of truth for the scan; avoids divergent bug fixes. Runtime is unchanged since both are O(len) sequential scans with the same carried dependency.",
+   "risk": "If refactored into a shared helper, ensure it stays AggressiveInlining so Burst still emits a tight loop; otherwise leave as-is. No semantic change."
+  }
+ ]
+}

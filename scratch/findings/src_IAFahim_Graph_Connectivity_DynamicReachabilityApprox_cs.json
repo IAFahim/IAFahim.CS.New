@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Graph.Connectivity/DynamicReachabilityApprox.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Connectivity/DynamicReachabilityApprox.cs",
+   "symbol": "Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Depth-limited reachability is a recursive DFS with no visited set, so it re-expands shared subgraphs exponentially (O(branching^maxDepth)).",
+   "currentCost": "A node reachable via multiple paths within maxDepth is re-explored once per path; worst case is exponential in maxDepth, and there is no memoization of 'already proven unreachable within remaining budget'.",
+   "proposedChange": "Replace with an explicit-stack/queue BFS bounded by maxDepth using a caller-provided visited bitset (byte* or ulong* seen, plus a best-remaining-depth array so a node visited with greater remaining budget can be revisited). Signature becomes Run(int* head,int* next,int* to,int u,int v,int maxDepth, int* bestDepth) where bestDepth[node] stores the max remaining depth a node was reached with, initialized to -1. Skip a node when bestDepth[node] >= remainingDepth. This bounds work to O(V+E) per query instead of exponential.",
+   "rationale": "Pruning re-expansion collapses exponential blowup to linear in reachable subgraph size; on dense or highly connected graphs this is the dominant cost. BFS with explicit stack also removes deep recursion (stack-overflow risk) and is Burst-friendlier than recursion.",
+   "risk": "Requires an extra caller-allocated buffer (changes API/RAM). The bestDepth pruning preserves the 'reachable within maxDepth' answer exactly because revisiting only with strictly greater remaining budget can never miss a shorter path. If keeping recursion, at minimum convert tail to iterative to avoid stack-depth issues on mobile."
+  },
+  {
+   "file": "src/IAFahim.Graph.Connectivity/DynamicReachabilityApprox.cs",
+   "symbol": "Run",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "Recursive call defeats Burst inlining and risks deep call stacks on mobile.",
+   "currentCost": "Self-recursion cannot be inlined; each level pushes a full frame; AggressiveInlining on a recursive method is a no-op.",
+   "proposedChange": "Convert to an iterative DFS using a stackalloc/caller-provided int* stack of (node,depth) pairs. Drop AggressiveInlining since it cannot apply to recursion.",
+   "rationale": "Iterative traversal eliminates per-frame prologue/epilogue cost and lets Burst optimize a flat loop; also removes mobile stack-overflow exposure for large maxDepth.",
+   "risk": "Need a bounded scratch stack sized to maxDepth*maxBranching worst case; same traversal order can be preserved by using LIFO. Semantics preserved."
+  }
+ ]
+}

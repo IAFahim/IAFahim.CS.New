@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Math.NT/PrimeFactorPower.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.NT/PrimeFactorPower.cs",
+   "symbol": "PrimeFactorPower.Run(long, int*, int*)",
+   "severity": "high",
+   "category": "overflow",
+   "summary": "The long overload factors a 64-bit n but stores each prime factor into int* via (int)p / (int)n. Trial division allows p up to floor(sqrt(n)) (~3.03e9 > int.MaxValue) and the final large-prime cofactor can be up to n (~9.2e18). Both casts to int silently overflow, recording a wrong (truncated/negative) prime value while the rest of factorization (exponents, count) proceeds, producing an incorrect factorization for valid long inputs.",
+   "triggeringInput": "n = 5000000029 (a prime > 2^31). Trial loop finds no factor (sqrt ~ 70710), then the n>1 branch stores outPrimes[0] = (int)5000000029 = 705032733 (wrong prime), exponent 1. Also n = 4840000004400000001 (= 2200000001^2): the factor p = 2200000001 > int.MaxValue is stored as (int)2200000001, a negative/wrong value.",
+   "rootCause": "Mismatch between the 64-bit input domain and 32-bit output storage: prime factors of a long can exceed int.MaxValue (both interior factors up to sqrt(n) and the residual large prime up to n), but they are written through int* with an unchecked (int) cast.",
+   "suggestedFix": "Make outPrimes a long* (and store p / n directly as long), or restrict the documented contract of this overload to n whose every prime factor fits in int and validate accordingly. Changing the output buffer to long* is the correct fix for a general long factorization routine."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/PrimeFactorPower.cs",
+   "symbol": "PrimeFactorPower.Run(int,int*,...)",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "The spf-based factorization recomputes n%p and n/p separately each step; use n/=p with the quotient and avoid recomputing minPrime[n] redundantly. Mark this method NOT AggressiveInlining (it has loops).",
+   "currentCost": "`while (n % p == 0) { n /= p; e++; }` does both a modulo and a division for the same p each iteration (two divides where one suffices). Also the method is marked AggressiveInlining despite containing nested loops, which bloats every call site and can hurt I-cache.",
+   "proposedChange": "Fuse div/mod: `long q = n / p; while (q * p == n) { n = q; e++; q = n / p; }` uses one divide + one multiply per peel instead of two divides (multiply is cheaper than divide on most cores). Remove [MethodImpl(AggressiveInlining)] from this looping method \u2014 keep it only on true leaf helpers.",
+   "rationale": "Replaces a modulo with a multiply-compare, halving divide count in the inner peel loop (divides are the bottleneck). Removing AggressiveInlining from a multi-loop method avoids code-size blowup at call sites and lets the JIT/Burst keep it out of line.",
+   "risk": "q*p reconstructs n exactly only when no overflow; n is int here so p,q,n all fit and q*p<=n<=int.Max \u2014 safe in int math (compute in int, no overflow since q*p==n<=2^31). For the long overload the same trick holds while n<=long.Max. AggressiveInlining removal is behavior-neutral."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/PrimeFactorPower.cs",
+   "symbol": "PrimeFactorPower.Run(long,int*,...)",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Trial-division overload tests every integer p; skip even p after 2 and reuse the p*p invariant, plus fuse the div/mod in the peel loop.",
+   "currentCost": "`for (long p = 2; p*p <= n; p++)` tests all p including evens; each p does a `n % p != 0` divide, and the peel loop again does mod+div. p*p multiply recomputed every iteration.",
+   "proposedChange": "Peel factor 2 with shifts (`while ((n & 1)==0)`), then loop p from 3 stepping by 2. In the peel loop fuse to one divide (q=n/p; while(q*p==n)). Track sqrt bound instead of p*p where worthwhile.",
+   "rationale": "Halves the trial-division iteration count (odd p only) and the factor-2 extraction uses shifts instead of divides. Same factorization output; identical to the int-overload reasoning.",
+   "risk": "p+=2 stepping requires factor 2 fully removed first. n&1 valid for n>0 (factoring contract). Overflow on p*p only if n near long.Max and p near 3e9 \u2014 p*p stays < n by loop bound, fine. AggressiveInlining on this looping method is likewise questionable; consider removing."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/PrimeFactorPower.cs",
+   "symbol": "PrimeFactorPowerSum.Run",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "Uses delegate* managed<...> which forces a managed calling convention and blocks full Burst compilation; delegate* unmanaged<...> would be Burst/function-pointer friendly. Also applies the same div/mod fusion and odd-skip as the sibling methods.",
+   "currentCost": "`delegate* managed<long,int,long> f` invokes through the managed calling convention \u2014 Burst cannot compile managed function pointers cleanly, defeating the whole-program Burst path for this hot factor-sum routine. Plus the duplicated mod+div peel and all-p trial division.",
+   "proposedChange": "Change the signature to `delegate* unmanaged[Cdecl]<long,int,long> f` (or the project's standard unmanaged convention) so Burst can lower the indirect call. Apply factor-2 shift peeling, odd-only stepping, and the q=n/p div/mod fusion as in the other overloads.",
+   "rationale": "Unmanaged function pointers are Burst-compatible and avoid the managed thunk per callback invocation (called once per distinct prime). Combined with the arithmetic strength reductions this both unblocks Burst and cuts divides.",
+   "risk": "Changing managed->unmanaged is an API/ABI break for callers passing managed delegates; callers must supply [UnmanagedCallersOnly] or static unmanaged function pointers. This is an ergonomics/compat tradeoff \u2014 flag for the maintainer rather than silently changing. Arithmetic changes are semantics-preserving."
+  }
+ ]
+}

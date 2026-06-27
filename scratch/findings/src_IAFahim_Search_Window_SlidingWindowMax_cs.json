@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Search.Window/SlidingWindowMax.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.Window/SlidingWindowMax.cs",
+   "symbol": "Run",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "Deque only needs windowSize slots, not len; oversized stackalloc risks stack overflow",
+   "currentCost": "int* deque = stackalloc int[len] allocates 4*len bytes on the stack. The monotonic deque never holds more than windowSize live candidates, but because indices are stored absolutely and back keeps growing, the buffer is sized to len. For large len (e.g. 10^6) this is a 4 MB stackalloc that will overflow the stack, especially on mobile where stack budgets are small.",
+   "proposedChange": "Size the buffer to windowSize and index it as a ring buffer: store candidate indices in deque[head..tail) modulo windowSize. Replace front/back integer indices with ring positions and a count; the window-eviction check deque[front] <= i-windowSize still uses the stored absolute index. Since at most windowSize candidates coexist, capacity windowSize is provably sufficient.",
+   "rationale": "Cuts stack working set from O(len) to O(windowSize), avoiding cache pressure and stack-overflow crashes for large inputs; the algorithm stays O(len) time.",
+   "risk": "Ring-buffer modular indexing is more complex; must ensure capacity is windowSize (not windowSize-1) and that the modulo wraps correctly. If windowSize is a power of two the modulo can be a mask. Behavior for valid inputs is identical; only the storage layout changes."
+  },
+  {
+   "file": "src/IAFahim.Search.Window/SlidingWindowMax.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist src[i] load and reduce repeated index arithmetic in the inner loop",
+   "currentCost": "Inside the loop, src[i] is loaded once but src[deque[back-1]] is reloaded each while-iteration; also i - windowSize and i - windowSize + 1 are recomputed every iteration. The dst write index i-windowSize+1 duplicates the eviction expression.",
+   "proposedChange": "Hoist int cur = src[i]; before the while. Precompute int evict = i - windowSize; use evict for the front-eviction test and (evict + 1) for the dst index, or maintain a running outIndex that increments only when i >= windowSize-1. Keep src[deque[back-1]] as is (it changes as back decrements).",
+   "rationale": "Removes redundant subtraction recomputation and one register reload per loop iteration; a running output index turns the conditional store into a straight increment, reducing arithmetic on the hottest loop in the file.",
+   "risk": "None; cur==src[i] is loop-invariant within the i-iteration. The running outIndex must start so its first written position equals i-windowSize+1 at i==windowSize-1 (i.e. 0)."
+  },
+  {
+   "file": "src/IAFahim.Search.Window/SlidingWindowMax.cs",
+   "symbol": "Run",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Remove unused 'using System;' and AggressiveInlining hint that cannot fire",
+   "currentCost": "using System; is unused. The method is large (contains a stackalloc and a full loop) and marked AggressiveInlining, but a method with stackalloc and unbounded loop is effectively never inlined, so the attribute is misleading and adds no value.",
+   "proposedChange": "Drop the unused using System;. Remove [MethodImpl(MethodImplOptions.AggressiveInlining)] from Run (keep it only on genuine small leaves) to avoid signaling an inlining intent the compiler will reject.",
+   "rationale": "Cleaner code and accurate optimization intent; no codegen change since the hint was already a no-op for this method shape.",
+   "risk": "None; purely cosmetic. Confirm no other member in the file relies on System."
+  }
+ ]
+}

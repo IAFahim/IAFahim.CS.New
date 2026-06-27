@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.Modular/Excrt.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Modular/Excrt.cs",
+   "symbol": "Excrt.TryMerge",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Same double-division of (r2 - r) as in Crt: '% g' then '/ g' on the same operands.",
+   "currentCost": "Line 23 '(r2 - r) % g' and line 25 '(r2 - r) / g' issue two 64-bit divisions on the same dividend; this runs once per modulus merged (len-1 times per Excrt call).",
+   "proposedChange": "long delta = r2 - r; long q = delta / g; if (q * g != delta) return false; then ModMul.Run(x, q, m2_g). Single division + multiply-compare.",
+   "rationale": "Eliminates one 64-bit division per merge iteration, replacing it with a cheap multiply for the divisibility test. Identical result by the same q*g==delta equivalence as in Crt.",
+   "risk": "q*g == delta fits in long by construction (no overflow). Equality test is sign-agnostic. Behavior of the failure path (return false) is preserved exactly."
+  },
+  {
+   "file": "src/IAFahim.Math.Modular/Excrt.cs",
+   "symbol": "Excrt.TryMerge",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "TryMerge is a private static helper but not marked AggressiveInlining, unlike sibling hot methods.",
+   "currentCost": "Called in the inner loop of Run (len-1 times). Without the inline hint Burst may keep it as a call with ref-parameter spills to memory for r and m.",
+   "proposedChange": "Add [MethodImpl(MethodImplOptions.AggressiveInlining)] to TryMerge so r and m stay in registers across the merge and the call overhead in the loop is removed.",
+   "rationale": "Inlining the single-call-site helper lets the compiler keep the accumulator state (r, m) in registers instead of round-tripping through the ref parameters, and removes per-iteration call/return overhead.",
+   "risk": "None semantically. Inlining a recursive-free leaf-ish helper is safe; only watch that the y out-var from ExtendedGcd inside it remains allocated (it's already dead and can be dropped if the RunX variant from the ExtendedGcd opportunity is adopted)."
+  }
+ ]
+}

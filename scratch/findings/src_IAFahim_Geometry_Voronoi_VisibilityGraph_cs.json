@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Geometry.Voronoi/VisibilityGraph.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Voronoi/VisibilityGraph.cs",
+   "symbol": "Build / IsVisible",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Build is O(n^3): O(n^2) vertex pairs, each IsVisible scans all n polygon edges; plus IsVisible calls IsInside (another O(n)) per pair.",
+   "currentCost": "n^2/2 pairs x (n edge-intersection tests + n-point-in-polygon test) => ~n^3 SegmentsIntersect/Dir evaluations with 4 Dir (4 mul,2 sub each) per intersection test.",
+   "proposedChange": "For the segment-intersection sweep this is near the practical floor for a naive visibility graph, but the per-pair IsInside midpoint test is redundant work that can be folded: the `Math.Abs(j-i)==1 || (i==0 && j==n-1)` polygon-edge check is cheap and should be tested FIRST (short-circuit before the O(n) IsInside). Currently IsInside is evaluated even for adjacent polygon edges that are trivially visible.",
+   "rationale": "Reordering the `||` so the O(1) adjacency tests run before the O(n) IsInside call skips a full point-in-polygon scan for the ~n polygon-boundary edges and any pair where adjacency already proves visibility; C# || short-circuits, so this is a pure reordering win.",
+   "risk": "None: || is short-circuit, the three operands are side-effect-free, and OR is commutative for booleans, so result is identical while skipping IsInside whenever an adjacency test is already true."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Voronoi/VisibilityGraph.cs",
+   "symbol": "IsVisible",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "ox[i],oy[i],ox[j],oy[j] are loaded into x1..y2 (good), but the midpoint visibility/IsInside is computed even when an earlier SegmentsIntersect already returned false-positive paths; also Dist in Build recomputes sqrt for every edge.",
+   "currentCost": "Per visible pair, Dist does a Math.Sqrt; the edge weight could in some consumers be kept squared. More concretely, the k-loop recomputes (k+1==n)?0:k+1 wrap each iteration and re-reads ox[k],oy[k] twice.",
+   "proposedChange": "Cache ox[k],oy[k] into locals once per k iteration (used by SegmentsIntersect args). Keep the wrap index but compute it via branchless `kn = k+1; if (kn==n) kn=0;` (already minimal). Leave Dist's sqrt unless the consumer (ShortestPath) can operate on squared weights \u2014 it cannot, since Dijkstra sums edge lengths, so sqrt is required; do not remove it.",
+   "rationale": "Caching ox[k]/oy[k] removes duplicate pointer indexing feeding SegmentsIntersect; the sqrt is genuinely needed for additive path costs so flagging it as keep avoids a cargo-cult removal.",
+   "risk": "Caching is pure. Explicitly NOT removing sqrt because squared distances are non-additive and would break Dijkstra correctness in ShortestPath."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Voronoi/VisibilityGraph.cs",
+   "symbol": "IsInside",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "IsInside performs a division per edge inside the crossing test, and adds a 1e-12 epsilon to the denominator on every iteration.",
+   "currentCost": "One double division per polygon edge per call; division is ~10-20x the latency of a multiply and is on the O(n) point-in-polygon hot path called O(n^2) times from IsVisible.",
+   "proposedChange": "Rewrite the crossing test to avoid division using the standard sign-comparison form: instead of `x < (ox[l]-ox[k])*(y-oy[k])/(oy[l]-oy[k]) + ox[k]`, cross-multiply by (oy[l]-oy[k]) and flip the inequality based on the sign of the denominator. This removes the divide and the epsilon hack.",
+   "rationale": "Cross-multiplied ray-casting eliminates a per-edge division (replaced by a multiply and a sign-dependent compare), substantially cheaper on the O(n^3)-reached inner test.",
+   "risk": "Cross-multiplication changes behavior at the exact epsilon-guarded degenerate case (horizontal edges where oy[l]==oy[k]); the original `+1e-12` avoids div-by-zero, but the `(oy[k]>y)!=(oy[l]>y)` guard already excludes horizontal edges from the test, so the denominator is provably non-zero there and the epsilon is inert \u2014 making the division safe to replace exactly. Must preserve the inequality direction by branching on sign(oy[l]-oy[k]); verify tie-handling (strict < vs <=) matches original."
+  }
+ ]
+}

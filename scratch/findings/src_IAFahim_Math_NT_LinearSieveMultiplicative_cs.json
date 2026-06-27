@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.NT/LinearSieveMultiplicative.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/LinearSieveMultiplicative.cs",
+   "symbol": "LinearSieveMultiplicative.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Replace 'rem = ip / pk[ip]' division with the already-known cofactor f[i]/f-relation, or hoist primes[j]/recompute to avoid the per-composite division.",
+   "currentCost": "On the p|i branch, computes rem = ip / pk[ip] \u2014 a 64-bit division per such composite \u2014 then indexes f[rem]. ip = i*p and pk[ip] = pk[i]*p, so rem = i/pk[i]. The value i/pk[i] is the prime-power-free cofactor of i and could be tracked incrementally instead of divided each time.",
+   "proposedChange": "Store a parallel array cof[i] = i / pk[i] (cofactor after removing the maximal power of minPrime). Then rem = cof[i] directly with cof[ip] = cof[i] on the p|i branch and cof[ip] = i (i.e. the multiplicand) on the new-prime branch. Replaces division with an array load.",
+   "rationale": "i/pk[i] equals w[i] (the part of i coprime to its smallest prime). Tracking it incrementally turns a hot-path 64-bit division into a load+store, eliminating ~one division per composite with repeated smallest factor.",
+   "risk": "Adds one int*/long* array to the working set (RAM cost) to remove a division \u2014 a cycles/RAM tradeoff. Must verify cof recurrence: for ip=i*p with p|i, the power-free cofactor of ip equals that of i; for p\u2224i it equals i. Verify against rem semantics before applying."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/LinearSieveMultiplicative.cs",
+   "symbol": "LinearSieveMultiplicative.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Cache primes[j] (p already cached) but also hoist (long)i and reuse fPower(i,1) result; minor CSE.",
+   "currentCost": "(long)i computed each inner iteration for prod; p is cached already. fPower(p, e[ip]) is a managed delegate call on the hot path.",
+   "proposedChange": "Hoist long li = (long)i before the inner loop. The managed delegate* fPower call per composite is unavoidable by design but note it blocks Burst vectorization; document that fPower should be a Burst-compiled function pointer (delegate* unmanaged) rather than managed.",
+   "rationale": "Hoisting (long)i removes a repeated sign-extend; switching fPower to delegate* unmanaged keeps the hot path Burst-compatible (managed function pointers force a managed call and defeat Burst).",
+   "risk": "Changing delegate* managed to delegate* unmanaged is an API/signature change affecting callers and house Burst compatibility; flag rather than silently change. (long)i hoist is zero-risk."
+  }
+ ]
+}

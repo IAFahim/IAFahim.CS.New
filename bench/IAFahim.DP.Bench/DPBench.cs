@@ -29,8 +29,8 @@ namespace IAFahim.DP.Bench
         {
             _weight = (long*)Marshal.AllocHGlobal(N * sizeof(long));
             _value = (long*)Marshal.AllocHGlobal(N * sizeof(long));
-            _dp = (long*)Marshal.AllocHGlobal(N * N * sizeof(long));
-            _dpWork = (long*)Marshal.AllocHGlobal(N * N * sizeof(long));
+            _dp = (long*)Marshal.AllocHGlobal((1 << 21) * sizeof(long));
+            _dpWork = (long*)Marshal.AllocHGlobal((1 << 21) * sizeof(long));
             _cost = (long*)Marshal.AllocHGlobal(N * N * sizeof(long));
             _bestSet = (int*)Marshal.AllocHGlobal(N * sizeof(int));
 

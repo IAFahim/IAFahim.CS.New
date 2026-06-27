@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.Polynomial/KaratsubaMultiply.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Polynomial/KaratsubaMultiply.cs",
+   "symbol": "KaratsubaMultiply.Multiply",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Several length expressions like (n0+m0-1), (n1+m1-1), (sALen+sBLen-1) are recomputed multiple times within Multiply, and CombineResults recomputes midLen=max(n0,n1)+max(m0,m1)-1 which equals the sALen+sBLen-1 already known.",
+   "currentCost": "Redundant integer arithmetic: (n1+m1-1) computed 4 times, (n0+m0-1) twice, and CombineResults rederives midLen via two Math.Max calls though it equals midLen already computed in Multiply. Minor but in a recursive hot path multiplied by recursion count.",
+   "proposedChange": "Compute loLen=n0+m0-1, hiLen=n1+m1-1, midLen=sALen+sBLen-1 once at the top of the recursion and reuse for zeroing, pointer offsets, and pass them (or recompute consistently) to CombineResults instead of the Math.Max re-derivation.",
+   "rationale": "Eliminates repeated adds and two Math.Max (branch/cmov) per recursive node; cleaner and slightly fewer integer ops on a chain that recurses O(n^log3) times.",
+   "risk": "None \u2014 pure CSE of identical integer expressions. Must keep the values consistent with the pointer layout (loRes/hiRes offsets depend on these exact lengths)."
+  },
+  {
+   "file": "src/IAFahim.Math.Polynomial/KaratsubaMultiply.cs",
+   "symbol": "KaratsubaMultiply.BaseMultiply",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "The base-case schoolbook loop hoists nothing; a[i] is reloaded as the inner-loop scalar and res[i+j] is a strided write that Burst can vectorize better with a hoisted a[i] and a contiguous accumulation pointer.",
+   "currentCost": "Inner loop res[i+j] += a[i]*b[j] reloads a[i] each j (compiler usually hoists, but not guaranteed under aliasing) and indexes res via i+j each time.",
+   "proposedChange": "Hoist 'long ai = a[i];' and use a moving pointer 'long* rp = res + i;' so the inner loop is 'rp[j] += ai * b[j];' \u2014 contiguous, no i+j recompute, clearer to Burst's vectorizer.",
+   "rationale": "Removes index arithmetic and makes the accumulation a clean SAXPY pattern Burst can SIMD; potential aliasing between res and a/b is the only thing that would block hoisting, and the explicit local resolves it.",
+   "risk": "res must not alias a or b within the active range (it doesn't \u2014 res is a distinct output/scratch region). [MethodImpl(AggressiveInlining)] could also be added since it's a hot leaf. No semantic change."
+  }
+ ]
+}

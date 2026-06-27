@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.String.Match/Crochemore.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Match/Crochemore.cs",
+   "symbol": "Find",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "The inner while loop computes run % period for every character compared, a division on the hottest path.",
+   "currentCost": "Per comparison: an integer modulo (run % period), ~20-40 cycles on many mobile cores, plus an add for i+(run%period). This runs O(n) times per (period,i) pair.",
+   "proposedChange": "Maintain a rolling index m that tracks run % period without division: start m = 0; compare s[i+run] == s[i+m]; after each step do run++ and m++ then if (m == period) m = 0;. This replaces the modulo with an increment and a single compare/branch (or branchless: m = (m + 1 == period ? 0 : m + 1)).",
+   "rationale": "Replaces a div by an add+compare, eliminating the longest-latency op in the inner loop; the compare is well-predicted (taken once per period), and s[i+m] base offset is now incremental.",
+   "risk": "Rolling counter must reset to 0 exactly when it reaches period, reproducing run % period for all run >= 0. Result identical."
+  },
+  {
+   "file": "src/IAFahim.String.Match/Crochemore.cs",
+   "symbol": "Find",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "AggressiveInlining is applied to a large doubly-nested-loop method where inlining cannot help and may hurt.",
+   "currentCost": "The attribute forces the JIT/Burst to consider inlining a big function body into every caller, bloating call sites and instruction cache with no benefit since the cost is inside the loops, not the call.",
+   "proposedChange": "Remove [MethodImpl(MethodImplOptions.AggressiveInlining)] from Find. Reserve AggressiveInlining for the small leaf helpers (GetNext/SetNext style), not loop-bearing entry points.",
+   "rationale": "Inlining a hot leaf saves a call; inlining a multi-loop driver only grows code size and I-cache pressure. Removing it lets the optimizer keep the loop body tight and out-of-line.",
+   "risk": "None functionally; this is a codegen hint only. Same output."
+  },
+  {
+   "file": "src/IAFahim.String.Match/Crochemore.cs",
+   "symbol": "Find",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Loop bound period * 2 <= n recomputes the multiply each outer iteration and the inner bound n - 2*period each entry.",
+   "currentCost": "A multiply (period*2) in the outer condition and 2*period recomputed for the inner loop bound; minor but per outer iteration.",
+   "proposedChange": "Hoist int twoP = period << 1; reuse in both the outer guard (twoP <= n) and inner bound (i <= n - twoP). Strength-reduce *2 to <<1.",
+   "rationale": "Removes a redundant multiply and reuses a single shifted value; trivial but free and clarifies intent.",
+   "risk": "period is positive so <<1 == *2 exactly. No change in behavior."
+  }
+ ]
+}

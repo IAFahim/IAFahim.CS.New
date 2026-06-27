@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.DS.FixedCollections/NativeLinearCongruentialGenerator.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.FixedCollections/NativeLinearCongruentialGenerator.cs",
+   "symbol": "Next()",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Next() writes `*this.current` then re-reads it for the return; keep the new value in the register and write once.",
+   "currentCost": "`*this.current = x1; return *this.current;` does a store followed by a dependent load of the same address through a NativeDisableUnsafePtrRestriction pointer, adding a load to the dependency chain (and Burst may not assume the alias is unchanged).",
+   "proposedChange": "`*this.current = x1; return x1;` \u2014 return the local already computed instead of reloading from memory.",
+   "rationale": "Removes a memory load from the latency-critical path of an RNG that is typically called in tight loops; returns the value already in a register.",
+   "risk": "Behavior-identical: x1 is exactly what was just stored. No aliasing concern since nothing else writes between store and return."
+  },
+  {
+   "file": "src/IAFahim.DS.FixedCollections/NativeLinearCongruentialGenerator.cs",
+   "symbol": "Next()",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "`(Multiplier * x) + Increment) & int.MaxValue` masks the sign bit; this is a correct fast modulo by 2^31-1 only as a bit clear, but the multiply uses signed int that can overflow \u2014 confirm `unchecked` semantics and consider AggressiveInlining.",
+   "currentCost": "Modulus is int.MaxValue (2^31-1) and the code uses `& Modulus` (clear top bit) rather than a true `% (2^31-1)`. These are NOT the same operation: `& 0x7FFFFFFF` is `mod 2^31`, not `mod (2^31-1)`. The constant is named Modulus but used as a mask.",
+   "proposedChange": "Either rename the constant to `Mask = 0x7FFFFFFF` to reflect that this LCG uses modulus 2^31 with the sign bit cleared (the actual implemented behavior), or, if a true Mersenne-style mod 2^31-1 was intended, fix the operation. Also add `[MethodImpl(AggressiveInlining)]` to Next() for tight-loop callers. This is flagged as a semantics/naming clarity item, not a silent change.",
+   "rationale": "The mask form is fast (1 cycle) and fine for a 31-bit-state LCG, but the `Modulus`/`& ` mismatch is a latent correctness/clarity hazard for anyone relying on the named period. Inlining helps the per-draw cost.",
+   "risk": "Do NOT change `&` to `%` blindly \u2014 that WOULD change the output sequence. The safe action is renaming the constant to document the real (mask) behavior; only change the operator if the math sequence is intended to be redefined (which breaks determinism for existing seeds)."
+  }
+ ]
+}

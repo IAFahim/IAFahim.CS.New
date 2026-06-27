@@ -1,0 +1,83 @@
+{
+ "file": "src/IAFahim.Permutation/Permutation.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Permutation/Permutation.cs",
+   "symbol": "GrayUnrank.Run",
+   "severity": "medium",
+   "category": "edge-case",
+   "summary": "GrayUnrank infinite-loops (hangs) for any negative `g`. The loop `while (g > 0) { n ^= g; g >>= 1; }` uses an arithmetic right shift on a signed long, so a negative g stays negative forever and the condition g > 0 is never reached.",
+   "triggeringInput": "GrayUnrank.Run(-1L) (or any g with bit 63 set, e.g. long.MinValue). g >>= 1 on a negative long keeps the sign bit set, so g is always < 0 and the loop never terminates.",
+   "rootCause": "Signed `long` parameter with no domain restriction combined with arithmetic >> means the high-bit sign never clears; loop guard `g > 0` is unreachable for negative input.",
+   "suggestedFix": "Operate on ulong with logical shifts: ulong gg=(ulong)g, nn=0; while(gg>0){nn^=gg; gg>>=1;} return (long)nn; (logical shift guarantees termination in 64 iterations for all bit patterns)."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Permutation/Permutation.cs",
+   "symbol": "KthPermutation.Run / ExtractNthUnused",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "ExtractNthUnused is O(n) per selected element, making KthPermutation O(n^2); a Fenwick/BIT or order-statistics structure makes it O(n log n).",
+   "currentCost": "For each of n output positions, ExtractNthUnused linearly scans all n slots counting unused entries: total O(n^2) time and repeated cache-unfriendly passes over the used[] array.",
+   "proposedChange": "Maintain a Fenwick tree (or a balanced count structure) over n slots initialized to 1; to pick the digit-th remaining element, do a prefix-sum lower_bound in O(log n) and set that slot to 0. Reduces the whole routine to O(n log n).",
+   "rationale": "Asymptotic improvement n^2 -> n log n; for n in the dozens-to-hundreds range this is a large constant and cache win. Same logic already exists in the repo's Fenwick module, so it is house-style compatible.",
+   "risk": "Adds a stackalloc'd Fenwick array (n ints) and more code; must reproduce identical selection order (k-- and factorial-base digits unchanged). Worth it only when n is large; for tiny n the linear scan is fine."
+  },
+  {
+   "file": "src/IAFahim.Permutation/Permutation.cs",
+   "symbol": "PermutationRank.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "The inner 'count unused j < perm[i]' loop is O(n) per position, making rank O(n^2); a Fenwick tree gives O(n log n).",
+   "currentCost": "for each i, an inner loop 'for j in [0,perm[i]) if !used[j] cnt++' scans up to n entries: O(n^2) total, plus the used[] writes.",
+   "proposedChange": "Use a Fenwick tree over [0,n) initialized to 1s; cnt = prefixSum(perm[i]-1) in O(log n), then point-update slot perm[i] to 0. Total O(n log n).",
+   "rationale": "Same asymptotic win as KthPermutation; eliminates the quadratic scan. Mirrors the inverse operation, so sharing the Fenwick helper keeps both consistent.",
+   "risk": "Adds n-int scratch and log-factor code; result (rank+1) must be bit-identical. Only beneficial for larger n."
+  },
+  {
+   "file": "src/IAFahim.Permutation/Permutation.cs",
+   "symbol": "KthPermutation.Run / PermutationRank.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "fact[n - 1 - i] is indexed with a recomputed expression each iteration; walk a descending pointer instead.",
+   "currentCost": "Each loop iteration computes n-1-i (and in KthPermutation does it twice: once for the division and once for the modulo), then indexes fact. Minor address-arithmetic and an extra subtract.",
+   "proposedChange": "Introduce 'long f = fact[n-1-i]' once per iteration (used for both / and % in KthPermutation), or iterate a pointer 'long* fp = fact + n - 1; ... fp--' so the descending factorial is a single decrementing pointer with no per-iter subtract.",
+   "rationale": "Removes a duplicated subtract+index in KthPermutation's k/fact and k%fact, and shortens the dependency chain. Constant-factor only.",
+   "risk": "None; pure index-arithmetic refactor with identical values."
+  },
+  {
+   "file": "src/IAFahim.Permutation/Permutation.cs",
+   "symbol": "GrayUnrank.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "FromGray loop runs up to 63 iterations for a 64-bit value; replace with the fixed 6-shift parallel-prefix XOR (O(log bits), branchless).",
+   "currentCost": "while (g > 0) { n ^= g; g >>= 1; } loops once per set bit position above the LSB - up to 63 data-dependent iterations, a long serial dependency chain and a branch per step.",
+   "proposedChange": "g ^= g >> 1; g ^= g >> 2; g ^= g >> 4; g ^= g >> 8; g ^= g >> 16; g ^= g >> 32; return g;  (the long analog of GrayCode.FromGray's int version, with the extra >>32 step).",
+   "rationale": "Converts a ~63-iteration branchy loop into 6 branchless shift/XOR pairs (O(log64)). Far shorter dependency chain, no loop overhead, fully Burst-vectorizable/predicate-free.",
+   "risk": "Must use unsigned-style logical reasoning, but XOR/right-shift here is on the bit pattern only; the standard 6-step parallel-prefix XOR is exactly equivalent to the iterative inverse-Gray for all 64-bit inputs. For signed long use the arithmetic-vs-logical shift caveat: since we XOR the value with shifted copies, a sign-extending '>>' on negative g produces extra high bits; cast to ulong for the shifts (or shift then mask) to guarantee identity with the loop, which treats g as a magnitude that decays to 0. Guard: perform the prefix XOR on (ulong)g and cast back."
+  },
+  {
+   "file": "src/IAFahim.Permutation/Permutation.cs",
+   "symbol": "ValidatePermutation.Run / CycleDecomposition.Run / KthPermutation.Run / PermutationRank.Run",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Repeated 'for i: seen[i]=false' init loops over stackalloc bool[n]; stackalloc is already zero-initialized in C#, so the loops are redundant.",
+   "currentCost": "An extra full O(n) write pass over the bool[] (and long[] used[]) arrays purely to set them to false/zero, which stackalloc already guarantees in C#.",
+   "proposedChange": "Drop the explicit 'for (...) seen[i] = false;' / 'used[i] = false;' loops - C# zero-initializes stackalloc memory by default. If the project ever compiles with [SkipLocalsInit], keep the loops or use a single memset; otherwise remove them.",
+   "rationale": "Eliminates an O(n) initialization pass per call with no behavioral change (false == default(bool) == 0).",
+   "risk": "ONLY safe if [SkipLocalsInit] / module-level SkipLocalsInit is NOT applied to this assembly. Verify no SkipLocalsInit attribute before removing; under Burst, stackalloc is likewise zeroed unless localsinit is stripped. State the guard explicitly: keep loops if SkipLocalsInit is present."
+  },
+  {
+   "file": "src/IAFahim.Permutation/Permutation.cs",
+   "symbol": "PermPower.ComposeInto",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "ComposeInto writes to tmp then MemoryCopy's tmp back into a every call; ping-pong buffers to skip the copy.",
+   "currentCost": "Each composition does an O(n) compute into tmp plus an O(n) Buffer.MemoryCopy back into a - doubling memory traffic per multiply. PermPower performs up to 2*log2(k) compositions.",
+   "proposedChange": "Use double-buffering: alternate between two scratch buffers for result and basePerm so each ComposeInto writes the new permutation into the spare buffer and swaps pointers (swap is free) instead of copying. Eliminates the per-call MemoryCopy entirely.",
+   "rationale": "Halves the memory bandwidth of the hot exponentiation loop (compute pass only, no copy-back pass). Pointer swap is O(1) vs O(n) copy.",
+   "risk": "Requires tracking which buffer currently holds the live value and ensuring result/basePerm point to the right buffer at loop exit (may need one final copy into the caller's result if parity lands on the scratch buffer). Behavior identical if final destination is reconciled. Slightly more bookkeeping."
+  }
+ ]
+}

@@ -1,0 +1,71 @@
+{
+ "file": "src/IAFahim.Math.NT/DuJiao.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.NT/DuJiao.cs",
+   "symbol": "DuJiao.Phi",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "In the large-n branch (n > b), Phi calls GetPhi(n, n, b, preSumLarge, ...) WITHOUT ever populating preSumLarge via SievePhi. GetPhi returns preSum[x] for every x <= b, but preSumLarge is the raw, uninitialized caller buffer, so the entire recursion reads garbage and the returned prefix sum is wrong.",
+   "triggeringInput": "DuJiao.Phi(100000, preSumLarge, memo, memoized) with valid buffers. b = max(10000, 100000^(2/3)) = 10000, so n > b. Returns 2078303198 vs correct sum_{i<=100000} phi(i) = 3039650754. Any n > 10000 hits this path.",
+   "rootCause": "SievePhi((int)b, preSumLarge) is only invoked in the n<=b short-circuit branch (line 12). The large branch (lines 14-17) skips the sieve entirely, so preSum[x] for x<=b is never computed; GetPhi (line 111: 'if (x <= b) return preSum[x];') reads uninitialized memory.",
+   "suggestedFix": "Before calling GetPhi in the large branch, sieve the small block: call SievePhi((int)b, preSumLarge) (sieving up to b, not n) so preSum[1..b] is filled. Likewise the buffer/sieve must cover indices up to b."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/DuJiao.cs",
+   "symbol": "DuJiao.Mobius",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Same defect as Phi: in the large-n branch Mobius calls GetMobius(n, n, b, preSumLarge, ...) without first calling SieveMobius to populate preSumLarge. GetMobius's base case 'if (x <= b) return preSum[x];' then reads the uninitialized caller buffer, producing a wrong Mobius prefix sum.",
+   "triggeringInput": "DuJiao.Mobius(100000, preSumLarge, memo, memoized). b=10000 so n>b. Returns garbage (e.g. -11764787) vs correct sum_{i<=100000} mu(i) = -48. Any n > 10000 is wrong.",
+   "rootCause": "SieveMobius((int)limit, preSumLarge) is only called in the n<=b branch (line 35). The large branch (lines 37-40) never fills preSumLarge, so GetMobius (line 127) reads uninitialized memory.",
+   "suggestedFix": "In the large branch, call SieveMobius((int)b, preSumLarge) to fill preSum[1..b] before invoking GetMobius."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/DuJiao.cs",
+   "symbol": "DuJiao.GetPhi",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "AggressiveInlining on the tiny leaf helpers (CalculateArithmeticSum, CalculateBlockSize) and strength-reduce the parity branch in CalculateArithmeticSum used in the hot block-decomposition loop.",
+   "currentCost": "GetPhi/GetMobius recurse with a block-decomposition loop that runs O(sqrt x) times per node; CalculateArithmeticSum uses 'x % 2 == 0 ? ...' which is a data-dependent branch plus a modulo. It is a non-inlined private method call inside a hot recursive path.",
+   "proposedChange": "Mark CalculateArithmeticSum with [MethodImpl(MethodImplOptions.AggressiveInlining)] and compute the triangular sum branchlessly: one of x and x+1 is always even, so 'long s = (x & 1) == 0 ? (x>>1)*(x+1) : x*((x+1)>>1);' replaces the % and / with mask/shift. Using (x & 1) is safe for the non-negative x here (x>=1 in this path). Also add AggressiveInlining to CalculateBlockSize.",
+   "rationale": "Replaces a 64-bit modulo and two divisions-by-2 with a single mask and shifts (each ~1 cycle vs ~20+ for div/mod), and removes call overhead from the hot recursive leaf. Over the O(sqrt n) decomposition this compounds.",
+   "risk": "(x & 1) equals (x % 2) only for non-negative x; x is always >= 1 in CalculateArithmeticSum's call site (x > b >= 10000), so safe. Right-shift of non-negative long equals divide-by-2 exactly. Behavior identical."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/DuJiao.cs",
+   "symbol": "DuJiao.CalculateBlockSize",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Math.Pow(n, 2.0/3.0) for the block size is an expensive transcendental that can be replaced by an integer cbrt-based computation.",
+   "currentCost": "Math.Pow with a fractional exponent invokes exp/log internally (tens to ~hundreds of cycles) and returns a double that is then cast to long, once per Phi/Mobius top-level call.",
+   "proposedChange": "Compute b = c*c where c = floor(cbrt(n)) via an integer cube-root (Newton or a few-iteration refinement on a double seed), i.e. n^(2/3) = (n^(1/3))^2. Since b is immediately clamped by Max(10000, Min(b, n)), exact rounding of the floor is not behaviorally critical except at the clamp boundary \u2014 so to stay strictly semantics-preserving, keep Math.Pow OR document that the integer form must reproduce the same clamp result.",
+   "rationale": "Avoids a double transcendental on the hot setup path; an integer cube root is a handful of cheap ops.",
+   "risk": "This changes the precise value of b at non-clamped inputs, which alters the memo index space and block boundary -> changes intermediate computation though not the final mathematical answer. Because b affects which values are sieved vs recursed, this is NOT guaranteed semantics-preserving for the cached arrays' contents; only safe if exactly reproducing (long)Math.Pow(n,2/3). Recommend rejecting unless an exact-match integer routine is verified. Flagged low/conditional."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/DuJiao.cs",
+   "symbol": "DuJiao.SievePhi",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "The linear sieve over-allocates primes[] to limit+1 longs of stack; size it to the prime-counting bound to shrink the stackalloc working set on mobile.",
+   "currentCost": "stackalloc int[limit+1] for primes alongside phi[limit+1] and isPrime[limit+1]. The primes array only ever holds pi(limit) ~ limit/ln(limit) entries, so most of its (limit+1)*4 bytes are wasted stack, increasing stack pressure and first-touch cache/page faults for large limit (limit up to b, which can be tens of thousands+).",
+   "proposedChange": "Allocate primes with a tighter upper bound, e.g. roughly limit/ (ln limit - 1) rounded up with a small safety margin, instead of limit+1. For limit ~ 1e5 this cuts primes storage from ~400KB to ~40KB. Keep phi/isPrime as-is (they are indexed by value).",
+   "rationale": "Reduces stack footprint and the number of cache lines/pages touched during sieve init and fill, which matters under Burst on memory-constrained mobile and avoids potential stack overflow for large b.",
+   "risk": "Must ensure the bound never underflows the true prime count (use a proven over-estimate like 1.26*limit/ln(limit) for limit>=17, plus a constant for tiny limit). An undersized bound would corrupt memory. Behavior identical if the bound is a valid upper bound on pi(limit)."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/DuJiao.cs",
+   "symbol": "DuJiao.UpdatePhiSieve",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Hoist the loop-invariant (long)i cast and reuse i%p result to avoid recomputing the multiply-bound and a redundant modulo per inner step.",
+   "currentCost": "Inner loop recomputes '(long)i * primes[j] <= limit' each iteration (a 64-bit multiply for the bound check) and separately does 'i % p'. The 64-bit widening multiply in the condition runs every inner iteration.",
+   "proposedChange": "Precompute 'long limL = limit;' and note ip = i*p is already computed in-body; restructure so the bound test reuses the same product, e.g. compute 'long ip = (long)i * primes[j]; if (ip > limit) break;' once and reuse ip (cast back to int only after the check passes). This removes the duplicate widening multiply between the condition and 'int ip = i * p;'.",
+   "rationale": "Eliminates one 64-bit multiply per inner-loop iteration (the condition's product and the body's product are the same value), tightening a very hot sieve inner loop that Burst would otherwise emit twice.",
+   "risk": "int ip = i*p in the body could overflow int if i*p>limit, but the new structure computes the 64-bit product first and breaks before narrowing, so it is actually safer. Equivalent results for all in-range i,p. Mind that primes[j] read still needed; keep p = primes[j]."
+  }
+ ]
+}

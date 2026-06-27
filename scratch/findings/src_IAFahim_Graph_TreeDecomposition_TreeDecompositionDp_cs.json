@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Graph.TreeDecomposition/TreeDecompositionDp.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.TreeDecomposition/TreeDecompositionDp.cs",
+   "symbol": "TreeDecompositionDp.ProcessForget",
+   "severity": "medium",
+   "category": "edge-case",
+   "summary": "FORGET node DP slice is Max-accumulated into without being initialized, so entries of cur[] that no source mask maps to retain garbage from the caller-provided dp buffer and can corrupt the parent node's result.",
+   "triggeringInput": "Any nice-tree-decomposition input where a FORGET node u has a bag of size newSz=oldSz-1, the caller passes a dp buffer that is not fully zeroed (the API never documents or performs a clear), and some mask value in 0..2^newSz-1 is never produced as a target nextM. That cur[nextM] keeps the buffer's prior contents and is then consumed by ProcessIntroduce/ProcessForget/ProcessJoin of u's parent.",
+   "rootCause": "Line 58 does `cur[nextM] = Math.Max(cur[nextM], left[m]);` but, unlike LEAF/INTRODUCE/JOIN which fully overwrite every cur[m] they output, FORGET only relaxes targets reachable from a source mask. The remaining cur[] entries are never written, and nothing in MaxIndependentSet or ProcessForget zero-initializes the node's dp slice, so Max reads uninitialized/stale data.",
+   "suggestedFix": "Before the relaxation loop, clear cur[0..(1<<newSz)-1] to 0 (or a NEG_INF sentinel if unreachable states must be distinguished), e.g. `for (int m = 0; m < (1 << bSz[u]); m++) cur[m] = 0;` prior to the `for (int m = 0; m < (1 << oldSz); m++)` loop."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.TreeDecomposition/TreeDecompositionDp.cs",
+   "symbol": "ProcessForget",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "The bit-compaction (removing bit fIdx from mask) is recomputed bit-by-bit for every mask, O(2^oldSize * oldSize) when it can be O(2^oldSize) with a low/high mask split.",
+   "currentCost": "For each of 2^oldSize masks, an inner loop over oldSize bits reconstructs nextM by shifting out bit fIdx. That inner loop is pure mask arithmetic independent of dp values.",
+   "proposedChange": "Compute nextM branchlessly: int low = m & ((1<<fIdx)-1); int high = (m >> (fIdx+1)) << fIdx; int nextM = low | high; This drops the inner oldSize loop entirely.",
+   "rationale": "Removes an O(oldSize) inner loop from the 2^oldSize loop, turning per-mask compaction into a handful of shifts/ANDs and eliminating a data-dependent branch (i != fIdx) per bit. Pure strength reduction, Burst-friendly.",
+   "risk": "fIdx is found via a prior scan and is in [0,oldSize); (1<<fIdx)-1 is well-defined for fIdx<31. oldSize is a bag size (small), so no overflow. Behavior is identical: bits below fIdx kept, bit fIdx dropped, bits above shifted down by one."
+  },
+  {
+   "file": "src/IAFahim.Graph.TreeDecomposition/TreeDecompositionDp.cs",
+   "symbol": "ProcessJoin",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Per-mask weight sum recomputes popcount-weighted sums from scratch; it can be built incrementally over masks via the lowest-set-bit trick.",
+   "currentCost": "For each of 2^sz masks an inner loop over sz bits accumulates weights[bEl[...]] \u2014 O(2^sz * sz). The same per-bit weights are re-fetched and re-summed across masks.",
+   "proposedChange": "Precompute w[i]=weights[bEl[u*mBS+i]] into a stackalloc long[sz] once, then compute wt[m] = wt[m & (m-1)] + w[lowestSetBitIndex(m)] using the standard subset-sum DP so each mask costs O(1). Use math.tzcnt / BitOperations.TrailingZeroCount for the index.",
+   "rationale": "Reduces join weight computation from O(2^sz * sz) to O(2^sz), and removes repeated indirect loads of weights[bEl[...]] (two pointer chases per bit). The recurrence has a short dependency chain and vectorizes/pipelines well.",
+   "risk": "Needs a scratch long[2^sz] for wt, or fold it into the existing cur write to avoid extra RAM. tzcnt is Burst-intrinsic. m & (m-1) clears the lowest set bit; wt[0]=0 base case. Semantics identical since addition is associative."
+  },
+  {
+   "file": "src/IAFahim.Graph.TreeDecomposition/TreeDecompositionDp.cs",
+   "symbol": "MaxIndependentSet",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "The dispatch uses a chain of int comparisons on type[u]; the recompute of (long)u*maskSize and 1<<bSz[0] are minor but the if-chain is the only per-node branch cost.",
+   "currentCost": "Four sequential if/else int compares per node; curDp pointer computed even for non-LEAF nodes where it is unused.",
+   "proposedChange": "Move the curDp computation into the TYPE_LEAF branch only (it is only used there), and consider a switch on type[u] so Burst can emit a jump table. maskSize is already hoisted; keep it.",
+   "rationale": "Avoids one multiply+add (long u*maskSize) on every non-leaf node, and a switch jump table is O(1) dispatch vs an averaged 2.5-compare if-chain. Constant-factor only, but on every nice-tree node.",
+   "risk": "None semantically; curDp is only read in the LEAF branch. Switch vs if-chain is purely codegen and Burst handles both."
+  }
+ ]
+}

@@ -1,0 +1,72 @@
+{
+ "file": "src/IAFahim.Geometry.Mesh/MeshProjection.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Mesh/MeshProjection.cs",
+   "symbol": "DeformVertices",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Hoist the inNormals/outNormals null check and the forward-vector computation out of the per-vertex hot path.",
+   "currentCost": "Every iteration computes f = SafeNormalize(lerp(f0,f1,t), ...) \u2014 a lerp, a math.length (sqrt), a branch, and a divide \u2014 but f is used ONLY inside the `if (inNormals != null && outNormals != null)` block. When normals are not requested, all of that work plus the two pointer loads f0/f1 are pure waste, executed vertexCount times.",
+   "proposedChange": "Compute `bool hasNormals = inNormals != null && outNormals != null;` once before the loop. Move the f0/f1 loads and the `float3 f = SafeNormalize(...)` inside the `if (hasNormals)` block so they are skipped entirely in the position-only case.",
+   "rationale": "Removes one lerp + one sqrt + one divide + one branch + two float3 loads per vertex on the common position-only path. The null pointers are loop-invariant, so the branch itself is also hoisted (Burst can hoist, but making it explicit guarantees the dead f computation is gone).",
+   "risk": "None. f only feeds nDeformed inside the normals branch; behavior is identical for all inputs."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Mesh/MeshProjection.cs",
+   "symbol": "DeformVertices",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the loop-invariant `(float)(pathCount - 1)` conversion and reuse it.",
+   "currentCost": "`float floatIdx = u * (float)(pathCount - 1);` recomputes the int subtraction and int->float conversion every iteration, and `pathCount - 1` is also recomputed for math.min.",
+   "proposedChange": "Before the loop: `int lastIdx = pathCount - 1; float lastIdxF = (float)lastIdx;`. Use `u * lastIdxF` and `math.min(idx0 + 1, lastIdx)` inside the loop.",
+   "rationale": "Removes one int sub + one int->float cvt per vertex (cvt has non-trivial latency on some targets) and shortens the dependency chain feeding floatIdx.",
+   "risk": "None; values are loop-invariant."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Mesh/MeshProjection.cs",
+   "symbol": "DeformVertices",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Premultiply scale.x into r and scale.y into upVec instead of scaling per-component-per-vertex.",
+   "currentCost": "`vDeformed = p + vLocal.x * r * scale.x + vLocal.y * upVec * scale.y` does two extra scalar*float3 multiplies (r*scale.x, upVec*scale.y) per vertex, where scale is loop-invariant.",
+   "proposedChange": "Fold scale into the basis: `float3 rS = r * scale.x; float3 upS = upVec * scale.y;` then `vDeformed = p + vLocal.x * rS + vLocal.y * upS;`. Note r and upVec are still needed unscaled for the normal computation, so keep both. Net change: replaces (vLocal.x * r) * scale.x with (vLocal.x) * rS, i.e. moves the scale multiply off the per-vertex scalar onto the already-needed normalized basis \u2014 but since r/upVec are computed per vertex too, this is a wash unless the position branch is split from normals. Lower the priority accordingly.",
+   "rationale": "Reduces the dependency chain for the position write by precombining the scale; marginal because the basis is per-vertex here. Mainly a readability/chain-length win.",
+   "risk": "Floating-point reassociation: (vLocal.x * r) * scale.x vs vLocal.x * (r * scale.x) can differ in the last ULP. Acceptable for mesh deformation but technically not bit-identical; flag if strict reproducibility is required."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Mesh/MeshProjection.cs",
+   "symbol": "RecalculateNormals",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Advance a triangle pointer by 3 instead of recomputing i*3, i*3+1, i*3+2.",
+   "currentCost": "Per triangle: three integer multiplies-by-3 (or one mul + two adds) to compute the index offsets `indices[i*3]`, `indices[i*3+1]`, `indices[i*3+2]`.",
+   "proposedChange": "Iterate with a moving pointer: `int* tri = indices; for (int i = 0; i < triangleCount; i++, tri += 3) { int idx0 = tri[0]; int idx1 = tri[1]; int idx2 = tri[2]; ... }`. This strength-reduces the address arithmetic to a single +=3.",
+   "rationale": "Removes the per-triangle multiply and turns three independent index expressions into three consecutive loads from one base, which the address-generation unit handles for free.",
+   "risk": "None; same elements accessed in the same order."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Mesh/MeshProjection.cs",
+   "symbol": "RecalculateNormals",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Replace math.length + divide in the final normalize pass with rsqrt on length-squared (with matching guard).",
+   "currentCost": "Final loop does `len = math.length(n)` (a sqrt) then `n / len` (a vector divide), per vertex.",
+   "proposedChange": "`float lenSq = math.lengthsq(n); n = lenSq > EpsilonSq ? n * math.rsqrt(lenSq) : new float3(0,1,0);` with `const float EpsilonSq = Epsilon*Epsilon`.",
+   "rationale": "rsqrt + multiply is cheaper than sqrt + divide on most targets (rsqrt is a single hardware estimate path Burst vectorizes; divide is high-latency). lengthsq avoids the sqrt entirely in the guard.",
+   "risk": "math.rsqrt is an approximation, so the normalized output differs from v/length(v) by a small relative error \u2014 NOT bit-identical. Acceptable for rendering normals but observably different; only apply if approximate normals are acceptable. Guard threshold must use EpsilonSq = Epsilon*Epsilon to preserve the same fallback boundary (len > Epsilon <=> lenSq > Epsilon^2 for nonnegative len)."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Mesh/MeshProjection.cs",
+   "symbol": "SafeNormalize",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Use lengthsq for the guard and rsqrt for the normalize to avoid sqrt+divide.",
+   "currentCost": "`len = math.length(v)` (sqrt) then `v / len` (divide) on every call (3x per deformed vertex when normals on, plus r/up always).",
+   "proposedChange": "`float lenSq = math.lengthsq(v); return lenSq > EpsilonSq ? v * math.rsqrt(lenSq) : fallback;`",
+   "rationale": "Eliminates a sqrt and a vector divide in favor of rsqrt+multiply per call; SafeNormalize is a hot leaf called 2-3x per vertex.",
+   "risk": "rsqrt is approximate => result not bit-identical to v/length(v). Guard must use EpsilonSq=Epsilon*Epsilon to keep the same fallback boundary. Only apply if approximate unit vectors are acceptable for deformation/lighting."
+  }
+ ]
+}

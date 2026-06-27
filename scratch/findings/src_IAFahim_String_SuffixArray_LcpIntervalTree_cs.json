@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.String.SuffixArray/LcpIntervalTree.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.SuffixArray/LcpIntervalTree.cs",
+   "symbol": "LcpIntervalTree.Build",
+   "dimension": "burst",
+   "impact": "high",
+   "summary": "Replace Marshal.AllocHGlobal/FreeHGlobal scratch stack with stackalloc or a caller-provided buffer to make the method Burst-compatible and allocation-free.",
+   "currentCost": "Two P/Invoke transitions per call (AllocHGlobal + FreeHGlobal) plus a heap allocation of (n+1)*4 bytes. Marshal.* are managed interop calls that Burst cannot compile, so the whole method falls off the Burst-compiled path; on mobile the per-call malloc/free is a real cost in any locate/build loop.",
+   "proposedChange": "Either accept an `int* stack` scratch buffer parameter sized n+1 like SuffixArray.Build does for its scratch arrays, or `int* stack = stackalloc int[n + 1];` when n is provably bounded. Drop the Marshal calls entirely. This matches the house pattern (raw pointers / stackalloc, no managed APIs).",
+   "rationale": "Eliminates two interop calls and a heap allocation per invocation, and removes the only thing preventing Burst from compiling this function. Stack/scratch reuse keeps the working set hot in cache.",
+   "risk": "stackalloc requires n bounded to avoid stack overflow; for unbounded n prefer the caller-buffer form (consistent with the rest of the module). Behavior is identical since the stack is purely internal scratch."
+  },
+  {
+   "file": "src/IAFahim.String.SuffixArray/LcpIntervalTree.cs",
+   "symbol": "LcpIntervalTree.Build",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Dead branch: `int prevLcp = i < n ? lcp[i] : 0;` always takes the true side because i ranges over [1, n).",
+   "currentCost": "A redundant compare-and-select per loop iteration computing a condition that is invariably true inside `for (int i = 1; i < n; i++)`.",
+   "proposedChange": "Replace with `int prevLcp = lcp[i];` (drop the ternary). Removes one branch/cmov per iteration.",
+   "rationale": "Fewer instructions in the inner loop; the condition `i < n` is a loop invariant guaranteed true by the loop bound, so the select is pure overhead.",
+   "risk": "None \u2014 i is strictly less than n for every iteration, so the value is unchanged. (Note: the surrounding tree-building logic never links Child/Sibling and never pushes the popped parents; that is a correctness concern, not part of this perf pass, but flagging since the scratch-stack churn may be masking it.)"
+  }
+ ]
+}

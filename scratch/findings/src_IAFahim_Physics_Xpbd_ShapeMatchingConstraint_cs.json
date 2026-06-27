@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Physics.Xpbd/ShapeMatchingConstraint.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Physics.Xpbd/ShapeMatchingConstraint.cs",
+   "symbol": "ShapeMatchingConstraint.ComputeOptimalRotation",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "ComputeOptimalRotation returns the raw Apq covariance matrix instead of the extracted rotation. It builds a symmetric matrix 's' (= Apq^T*Apq) into a local that is then discarded, and 'return apq;' hands back the non-orthonormal Apq. Solve() then uses this as 'rotation' in target = centerOfMass + mul(rotation, restOffset), so it applies an arbitrary scaling/shearing transform rather than a rigid rotation, destroying the rest-shape preservation that shape matching is supposed to provide.",
+   "triggeringInput": "count=2, restPositions p0=(0,0,0) p1=(1,0,0), positions = rest rotated 90deg about z: p0=(0,0,0) p1=(0,1,0), invMasses[i]=1, compliance=0, dt=1. Optimal rotation should map (1,0,0)->(0,1,0) (a pure 90deg rotation, |det|=1). Instead Apq = sum mass*p*q^T is rank-deficient/non-orthonormal (e.g. with the COM-subtracted vectors it yields a matrix with a zero column and a scale factor of 0.25), so target positions are wrong and the constraint pulls particles toward a sheared/scaled, non-rigid configuration.",
+   "rootCause": "The polar-decomposition / rotation-extraction step was never implemented: 's' is computed but unused, and the method returns 'apq' (the cross-covariance), which is not a rotation. The function name and Solve()'s usage both require an orthonormal rotation matrix.",
+   "suggestedFix": "Extract the rotation R from Apq via polar decomposition (R = Apq * (Apq^T*Apq)^{-1/2}), e.g. iterative orthonormalization or eigen-decomposition of the symmetric matrix 's', and return R. Do not return Apq. Remove or use the computed 's' accordingly."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Physics.Xpbd/ShapeMatchingConstraint.cs",
+   "symbol": "ComputeOptimalRotation",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "The local matrix s (the 3x3 symmetric A^T*A) is fully computed but never used; the method returns apq instead. ~18 mul + 18 add of dead work per call.",
+   "currentCost": "Builds a full 9-element float3x3 s (each element a 3-term dot product => 27 muls / 18 adds) on every call, then discards it and returns apq.",
+   "proposedChange": "Delete the entire 'float3x3 s = new float3x3(...)' construction and just keep/return apq. (Also note the method does NOT actually polar-decompose to a rotation; it returns the raw Apq covariance. If extracting a true rotation was intended, that is a correctness gap, but for pure dead-code removal just drop s.)",
+   "rationale": "Removing a never-read computation eliminates ~45 float ops per ComputeOptimalRotation call with zero observable change, since s is local and unused.",
+   "risk": "None for behavior: s is a local that is never returned or read, so removing it is semantics-preserving. Separately flag to the author that the function name promises a rotation but returns the covariance matrix Apq."
+  },
+  {
+   "file": "src/IAFahim.Physics.Xpbd/ShapeMatchingConstraint.cs",
+   "symbol": "Solve/ComputeCenterOfMass/ComputeOptimalRotation",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "mass = 1/invMass is recomputed via division three separate times per particle across three passes, and positions/restPositions are streamed three times.",
+   "currentCost": "For each particle: ComputeCenterOfMass(positions) divides once, ComputeCenterOfMass(restPositions) divides once, ComputeOptimalRotation divides once => 3 float divisions plus 3 separate read passes over the same N elements (3x memory traffic, 3 loop overheads).",
+   "proposedChange": "Precompute mass[i] once (or fuse the two center-of-mass passes and the Apq pass). At minimum, since ComputeOptimalRotation already has the per-i mass, and the rest masses equal the live masses (same invMasses array), compute totalMass and both weighted sums (positions and restPositions) in a single loop, then a single division per particle reused for the Apq accumulation. Reduces 3N divisions to N and 3 passes to 2 (one for centers, one for Apq, or fully fused if centers are needed first).",
+   "rationale": "Division is ~10-20x the cost of mul on most targets and is on the dependency-critical path; collapsing 3N divs to N and 3 streaming passes to fewer cuts both ALU and cache traffic. Fewer loop bodies also help Burst vectorize.",
+   "risk": "Apq needs the centers first, so full single-pass fusion isn't possible without a two-pass structure; keep centers in pass 1 and Apq in pass 2. Reusing mass requires a scratch buffer (stackalloc/caller-provided) \u2014 acceptable under house rules, or just hoist the two CoM loops into one to avoid double-streaming without extra storage."
+  },
+  {
+   "file": "src/IAFahim.Physics.Xpbd/ShapeMatchingConstraint.cs",
+   "symbol": "Solve",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "alpha is loop-invariant and w=1/(invMass+alpha) plus min(1,w) can be simplified; division per particle is on the hot path.",
+   "currentCost": "Per particle: one division 1/(invMasses[i]+alpha) then math.min(1,w). The min(1,w) clamp means when w>=1 the division result is partly wasted.",
+   "proposedChange": "Keep the per-i division (it depends on invMasses[i]) but note alpha is already hoisted \u2014 fine. Consider that w>1 only when invMasses[i] < 1-alpha; the math.min is a cheap branchless clamp so leave it. Primary win here is reusing the mass/division from the fused pass above rather than a fresh divide.",
+   "rationale": "Avoids an extra reciprocal per particle when the value is already derivable; min stays branchless.",
+   "risk": "invMasses[i]+alpha could be ~0 only if both are ~0; restitution-free here, but division by near-zero is the same risk as current code, so no new edge case."
+  }
+ ]
+}

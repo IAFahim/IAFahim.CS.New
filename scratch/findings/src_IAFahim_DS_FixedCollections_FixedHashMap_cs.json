@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.DS.FixedCollections/FixedHashMap.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.FixedCollections/FixedHashMap.cs",
+   "symbol": "TryAdd(in TKey), Find(in TKey)",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Replace `idx = (idx + 1) % this.Capacity` in the open-addressing probe loops with a branchless/branch wrap to remove an integer division per probe step.",
+   "currentCost": "Each probe iteration executes an integer `%` against a runtime `Capacity` that is not a compile-time power of two. Integer division/modulo is ~20-40 cycles on most ARM/x86 cores and cannot be strength-reduced by Burst since Capacity is a runtime value. This is the innermost hot loop of every Add/Find.",
+   "proposedChange": "Increment then wrap with a compare instead of modulo: `idx++; if (idx == this.Capacity) idx = 0;` (or the branchless form `idx++; idx -= (idx == this.Capacity ? this.Capacity : 0);`). Since idx starts in [0,Capacity) and increments by exactly 1, it can only ever equal Capacity, never exceed it, so a single equality test is exactly equivalent to `% Capacity`.",
+   "rationale": "Removes a full integer-division uop from the dependency chain of every probe step, replacing it with an add + predicated subtract (1-2 cycles). Linear probing typically does many steps near load, so this is a real per-step win.",
+   "risk": "Equivalent only because the step is exactly +1 and idx is always < Capacity before the step; holds for both loops here. No signed/overflow concern since Capacity << int.MaxValue."
+  },
+  {
+   "file": "src/IAFahim.DS.FixedCollections/FixedHashMap.cs",
+   "symbol": "GetFirstIdx(uint)",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "`hash % (uint)Capacity` is an unavoidable division per lookup, but the (uint)Capacity cast and reciprocal can be precomputed once at construction.",
+   "currentCost": "GetFirstIdx runs once per TryAdd/Find/TryGetValue and does a 32-bit unsigned division by a runtime Capacity. Burst cannot fold this because Capacity is not const.",
+   "proposedChange": "Precompute and store `uint capacityU` (and optionally a libdivide-style magic/shift pair) at construction time alongside Capacity, and use it in GetFirstIdx and the wrap. At minimum cache `(uint)this.Capacity` to avoid the repeated cast; ideally store a precomputed multiply-shift reciprocal to turn the modulo into a mul+shift+sub.",
+   "rationale": "Division by a value known only at construction can be converted to a multiply+shift using a fixed reciprocal computed once, trading a ~25-cycle div for ~5 cycles on every hash lookup.",
+   "risk": "The full reciprocal path adds code/complexity and must be verified for the exact Capacity range; the cheap cast-caching variant is risk-free. Note Capacity could be 0 if TCapacity is too small for one element \u2014 division by zero is already a latent issue in current code, unchanged by this."
+  },
+  {
+   "file": "src/IAFahim.DS.FixedCollections/FixedHashMap.cs",
+   "symbol": "Ptr, NumItems, Keys, GetElementAt",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The `fixed` pin + pointer arithmetic for Ptr/NumItems/Keys/values is recomputed on every access inside the probe loops; hoist the base pointers into locals once per public call.",
+   "currentCost": "`this.Ptr` re-pins `&this.data` and recasts on every single dereference (`this.Ptr[idx]`, `this.Keys[idx]`, `this.NumItems[firstIdx]`, and value base in GetElementAt each recompute `capacity * (...)`). In the do/while loops Ptr is dereferenced once per iteration plus Keys per match, each going through a property getter with a fixed-statement.",
+   "proposedChange": "At the top of TryAdd/Find/TryGetValue, take `uint* hashes = this.Ptr; int* numItems = (int*)(hashes + Capacity); TKey* keys = (TKey*)(hashes + Capacity*2);` once, plus the value base pointer, and index those locals in the loop. Hoists the pin, the casts, and the `capacity * stride` multiply out of the per-iteration path.",
+   "rationale": "Eliminates a repeated pin + multiply + property-call from the hot probe loop, shortening the dependency chain and helping Burst keep the bases in registers. Pointers into the same fixed struct are stable for the call duration.",
+   "risk": "Pinning once for the whole method is semantically identical here since `data` is a struct field that does not move; just ensure all loop accesses use the hoisted locals so no GC-hole assumptions break (unmanaged blittable, so fine)."
+  },
+  {
+   "file": "src/IAFahim.DS.FixedCollections/FixedHashMap.cs",
+   "symbol": "GetElementAt(void*, int, int) / NumItems / CalcCapacity",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Per-bucket `NumItems` counter array (int per bucket) costs Capacity*4 bytes of the fixed storage and shrinks effective Capacity; reconsider whether it is needed or can be narrowed.",
+   "currentCost": "Layout is [uint hash][int numItems][TKey][TValue] per slot, so 4 bytes/slot go to NumItems. CalcCapacity divides total size by (4+4+key+value); the numItems word roughly halves capacity for small key/value types and adds a cache line touch (NumItems[firstIdx]) separate from the hashes array.",
+   "proposedChange": "If NumItems counts only collisions-into-this-home-bucket for early-out in Find, it can be a narrower type (byte/ushort) given Capacity is bounded, or removed in favor of probing until an empty slot (uint.MaxValue) as TryAdd already does. Narrowing to byte recovers 3 bytes/slot of capacity and packs counters into far fewer cache lines.",
+   "rationale": "Smaller per-slot footprint increases Capacity for the same TCapacity storage (better load factor / fewer probes) and reduces cache pressure; the counters also become contiguous and prefetch-friendly.",
+   "risk": "Removing NumItems changes Find's termination from count-based to empty-slot-based, altering probe counts for missing keys (still correct, but different perf profile and full-table-no-empty edge needs the existing do/while wrap guard). Narrowing requires proving max chain length < type max; behavior-preserving only if the counter cannot overflow, so byte/ushort must be chosen against the max possible Capacity."
+  },
+  {
+   "file": "src/IAFahim.DS.FixedCollections/FixedHashMap.cs",
+   "symbol": "GetElementAt(void*, int, int)",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Value-base offset `capacity * (sizeof(uint)+sizeof(int)+sizeof(TKey))` is recomputed every value access and uses `sizeof(int)` for the NumItems stride while NumItems is `int*` and hashes are `uint*` \u2014 keep the stride constants centralized to avoid drift and recompute.",
+   "currentCost": "The constant base offset (independent of idx) is multiplied out on every GetElementAt call; only `idx * sizeOfValueT` actually varies. Also the per-slot stride literal is duplicated between CalcCapacity (sizeof(uint)+sizeof(uint)+...) and GetElementAt (sizeof(uint)+sizeof(int)+...).",
+   "proposedChange": "Precompute the constant value-region base offset once at construction (or hoist per-call) and add only `idx * sizeOfValueT` at access time. Define the per-slot stride as a single computed field used by both CalcCapacity and the offset math to guarantee they agree.",
+   "rationale": "Removes a multiply from each value access and removes a duplicated/divergent magic expression, lowering both cycles and maintenance risk.",
+   "risk": "sizeof(int)==sizeof(uint)==4 so the two expressions are numerically identical today; centralizing is purely defensive and behavior-preserving. Caching the base offset is safe because Capacity and sizes are fixed after construction."
+  }
+ ]
+}

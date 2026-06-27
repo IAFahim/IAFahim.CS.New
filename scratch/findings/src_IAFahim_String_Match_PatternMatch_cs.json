@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.String.Match/PatternMatch.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Match/PatternMatch.cs",
+   "symbol": "Abelian",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Three separate passes (zero cntA/cntB, fill cntA, fill cntB) plus a full 256-entry compare; can fuse and early-out.",
+   "currentCost": "256 zeroing iterations writing two arrays, then two length-n fill loops, then a 256 compare loop \u2014 multiple passes over the histograms.",
+   "proposedChange": "Fuse the two fill loops into one (lenA==lenB so iterate i once: cntA[a[i]]++, cntB[b[i]]++). Optionally use a single int* histogram of 256: increment for a[i], decrement for b[i], then verify all 256 are zero \u2014 halves histogram RAM and the compare touches one array.",
+   "rationale": "Single fused fill loop has better locality and fewer loop overheads; single signed histogram halves the working set (1KB vs 2KB) and the final scan reads one cache-resident array. Same boolean result.",
+   "risk": "Single-histogram variant changes the buffer contract (one int* of 256 instead of two). With signed counts no overflow for realistic lengths (< 2^31). Final check `cnt[i] != 0` is equivalent to cntA[i] != cntB[i]."
+  },
+  {
+   "file": "src/IAFahim.String.Match/PatternMatch.cs",
+   "symbol": "Parameterized",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "First-occurrence detection is O(n^2) via an inner linear scan over prior characters; a 256-entry last-seen table makes it O(n).",
+   "currentCost": "For each i an inner loop `for j in [0,i)` scans for a prior equal byte \u2014 quadratic in lenA/lenB.",
+   "proposedChange": "Use a 256-int table `firstId[c]` initialized to 0 (meaning unseen). For each i: if firstId[a[i]]==0 assign firstId[a[i]]=nextId++ ; mapA[i]=firstId[a[i]]. Reset the table between the a and b passes. This is the standard parameterized-match canonical form in O(n).",
+   "rationale": "Drops the algorithm from O(n^2) to O(n) with a fixed 256-int scratch (1KB). Large win for non-trivial lengths.",
+   "risk": "Adds a 256-int scratch buffer (use caller-provided int* per library convention, or stackalloc). Must clear it (or use a generation stamp) before the second pass. Produces identical canonical id sequence: id assigned on first occurrence in order, reused thereafter."
+  }
+ ]
+}

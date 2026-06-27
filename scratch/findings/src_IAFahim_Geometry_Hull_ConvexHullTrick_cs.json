@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Geometry.Hull/ConvexHullTrick.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Hull/ConvexHullTrick.cs",
+   "symbol": "Add",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "The bad-line test casts to double for the cross-multiplication, losing exactness and adding int->double conversions; Int128 (or a 128-bit mul) gives exact comparison and avoids float conversion on every pop.",
+   "currentCost": "Per pop in the while-loop: two long->double conversions of products plus a double multiply/compare. double has 53-bit mantissa, so (b3-b1)*(m1-m2) with 64-bit operands overflows precision and can mis-decide near-collinear lines, and the int->float conversions add latency.",
+   "proposedChange": "Use System.Int128 (Burst-blittable, no allocation) for the cross products: compare (Int128)(b3-b1)*(m1-m2) <= (Int128)(b2-b1)*(m1-m3). This is exact and avoids FP conversions. If Int128 is unavailable under the target Burst version, keep double but document the precision domain.",
+   "rationale": "Removes per-iteration float conversions and yields exact integer comparison, eliminating a class of incorrect hull pops for large coordinate magnitudes; integer 128-bit multiply is typically as fast as or faster than the convert+fp-mul path on modern cores.",
+   "risk": "Int128 changes results only where the double comparison was already wrong (precision loss), so for in-range inputs behavior is preserved and for out-of-range it becomes MORE correct \u2014 verify Burst supports System.Int128 in the target Unity version; if not, this is rejected. Watch subtraction overflow: b3-b1 etc. of two longs can overflow 64-bit; promote operands to Int128 before subtracting to be fully safe."
+  }
+ ]
+}

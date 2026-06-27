@@ -1,0 +1,94 @@
+{
+ "file": "src/IAFahim.Graph.Misc/GraphMisc.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Misc/GraphMisc.cs",
+   "symbol": "CycleDp.Run",
+   "severity": "medium",
+   "category": "logic",
+   "summary": "On a functional graph (one outgoing 'next' per node), Run is named CycleDp but sums every node visited along the walk from 'start' until the first already-visited node, including the rho-shaped TAIL that leads into the cycle. The returned maxSum therefore includes non-cycle (tail) node values, over-counting when the graph is not a pure union of disjoint cycles.",
+   "triggeringInput": "n=2, next=[1,1] (node 0 -> 1, node 1 -> 1 self-loop), values=[100,1]. start=0 walks nodes 0 then 1, then cur=1 is visited so it stops with sum=101. The only actual cycle is the self-loop at node 1 with sum 1, so the correct max cycle sum is 1, but Run returns 101.",
+   "rootCause": "The while-loop accumulates values for the entire traversal path (tail + cycle) rather than isolating the strongly-connected/cycle portion. Once it leaves any unvisited node it adds its value, so a tail node feeding into a cycle (or into a previously-visited component) is counted as part of the 'cycle' sum.",
+   "suggestedFix": "If the intent is the maximum cycle sum, detect the cycle entry point: record positions in the current walk, and when a node already in the CURRENT walk is hit, sum only the values from that entry point around the cycle (exclude the preceding tail). Nodes that terminate on a node visited in a PRIOR walk contribute no new cycle and should add 0. Alternatively, document that Run computes a longest walk sum on a functional graph, not a cycle sum."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Misc/GraphMisc.cs",
+   "symbol": "TopologicalDp.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist dp[u] out of the inner adjacency loop and fuse the final max scan into the main DP pass to eliminate a redundant full read of dp[].",
+   "currentCost": "Inner loop re-reads dp[u] from memory on every edge (dp[u] + 1 recomputed each iteration), and a separate trailing loop re-reads all n entries of dp[] for the max, doubling memory traffic over dp.",
+   "proposedChange": "Inside the i-loop, load `long du1 = dp[u] + 1;` once before the edge loop and compare `if (du1 > dp[v]) dp[v] = du1;`. Track the running max in the same outer pass: after the edge loop (or when finalizing dp[u]) update `if (dp[u] > max) max = dp[u]`. Note dp is processed in topological order so dp[u] is final when visited; fold the max update there to drop the second loop entirely.",
+   "rationale": "Removes one add per edge from the dependency chain, and eliminates an O(n) second pass that re-streams dp[] from memory (extra cache traffic). Fewer instructions in the hottest loop and one fewer full array sweep.",
+   "risk": "dp[u] is final at visit time only if 'order' is a valid topological order (guaranteed by the unchecked Run contract). Max-folding into the main loop preserves the result as long as dp[u] is not later increased; under a valid topo order it never is. If callers could pass dp with negative initial values and n==0, max stays 0 as before."
+  },
+  {
+   "file": "src/IAFahim.Graph.Misc/GraphMisc.cs",
+   "symbol": "CycleDp.Run",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Use a 1-byte visited marker instead of long[n], and skip the explicit zero-init loop by relying on stackalloc-then-clear of the narrower buffer.",
+   "currentCost": "visited is stackalloc long[n] = 8*n bytes plus an n-iteration zero loop. Only a 0/1 flag is stored, so 7 of every 8 bytes are wasted, increasing cache footprint for the functional-graph walk.",
+   "proposedChange": "Declare `byte* visited = stackalloc byte[n];` and clear with `Unsafe.InitBlockUnaligned(visited, 0, (uint)n);` (or a byte loop). Compare/set with byte 0/1. This shrinks the working set 8x.",
+   "rationale": "Smaller working set means fewer cache lines touched during the random `cur = next[cur]` chase, which is the dominant cost in a functional-graph traversal. A single InitBlock is also cheaper than a per-element long store loop.",
+   "risk": "Semantics identical (flag only ever 0 or 1). Burst supports Unsafe.InitBlockUnaligned; if disallowed, keep a byte loop. n must fit stackalloc as before (already assumed)."
+  },
+  {
+   "file": "src/IAFahim.Graph.Misc/GraphMisc.cs",
+   "symbol": "SccDp.Run / ProcessScc",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist dp[u] in ProcessScc and recompute the relax candidate once per neighbor.",
+   "currentCost": "ProcessScc computes `dp[u] + sum[v]` twice per edge (once in the comparison, once in the assignment) and re-loads dp[u] every iteration.",
+   "proposedChange": "At the top of ProcessScc load `long du = dp[u];` once, then per edge compute `long cand = du + sum[v];` and do `if (cand > dp[v]) dp[v] = cand;`. dp[u] is finalized before processing (Kahn order) so the single load is safe.",
+   "rationale": "Removes a redundant add and a redundant memory load per edge in the relaxation loop, shortening the dependency chain on the hot path.",
+   "risk": "dp[u] is not mutated after u is dequeued in a valid Kahn topological order (guaranteed by inDeg==0 enqueue), so hoisting is semantics-preserving. No overflow change (same arithmetic)."
+  },
+  {
+   "file": "src/IAFahim.Graph.Misc/GraphMisc.cs",
+   "symbol": "DagReachability.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Hoist the per-u bitset row base pointer and self-bit out of the inner word loop, and load the v-row base once per edge.",
+   "currentCost": "Inner OR loop recomputes `u * bitsetSize + j` and `v * bitsetSize + j` each iteration (two multiplies folded into addressing, but base `u*bitsetSize` is invariant across all edges and words and is re-derived every word). Self-bit write also recomputes u*bitsetSize+(u>>6).",
+   "proposedChange": "Per u: `long* urow = bitsets + (long)u * bitsetSize;` then `urow[u >> 6] |= 1L << (u & 63);`. Per edge: `long* vrow = bitsets + (long)v * bitsetSize;` then `for (j) urow[j] |= vrow[j];`. This turns the inner loop into a straight two-pointer OR that Burst can vectorize (SIMD OR over the word array).",
+   "rationale": "Eliminates the repeated `u*bitsetSize` index math from the innermost loop and exposes a contiguous urow[j] |= vrow[j] pattern that auto-vectorizes to packed 256-bit ORs, dramatically cutting the cost of the O(edges * bitsetSize) reachability merge.",
+   "risk": "Use a wider index (long or nint) for `u * bitsetSize` to avoid 32-bit overflow when n and bitsetSize are large; current code already risks int overflow in `u * bitsetSize + j`, so widening is a strict improvement. Behavior otherwise identical."
+  },
+  {
+   "file": "src/IAFahim.Graph.Misc/GraphMisc.cs",
+   "symbol": "TransitiveClosure.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Skip the entire j-row when closure[i*n+k]==0 and hoist row base pointers, converting Floyd-Warshall into a guarded row-OR that vectorizes.",
+   "currentCost": "The innermost loop tests `closure[i*n+k] != 0` for every j even though it is invariant across the whole j-loop, and recomputes i*n+j and k*n+j addressing each iteration. When closure[i*n+k]==0 the inner j-loop still runs n iterations doing nothing useful.",
+   "proposedChange": "Restructure: `int* krow = closure + (long)k*n;` then for each i: `if (closure[(long)i*n+k]==0) continue; int* irow = closure + (long)i*n; for (j) if (krow[j]!=0) irow[j]=1;`. This hoists the k-reachability test out of j and makes the inner loop a vectorizable masked-set over two contiguous rows.",
+   "rationale": "Removes an invariant branch from the innermost loop (n*n*n -> only runs inner loop for reachable (i,k) pairs) and replaces strided index math with sequential pointer walks the optimizer can SIMD. Same O(n^3) worst case but far fewer effective iterations and instructions per iteration on sparse closures.",
+   "risk": "Use long/nint for i*n and k*n to avoid int overflow for n above ~46340 (current `n*n` and `i*n+k` already overflow there; widening fixes a latent bug). Result identical: setting irow[j]=1 only when both bits set matches the original conjunction."
+  },
+  {
+   "file": "src/IAFahim.Graph.Misc/GraphMisc.cs",
+   "symbol": "TransitiveClosure.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Offer a bitset variant (already present as WarshallBitset) and document/redirect; the int-per-cell version is 64x more memory and cycles than necessary.",
+   "currentCost": "Stores one int (4 bytes) per matrix cell and does scalar work per cell: O(n^3) scalar ops and O(n^2) ints = 4*n^2 bytes. WarshallBitset already packs 64 cells per long and ORs 64 at a time.",
+   "proposedChange": "If callers can supply packed bit rows, prefer WarshallBitset.Run (O(n^3/64) word-ops, n^2/8 bytes). For the int API, at minimum apply the row-skip+vectorize change above. Consider naming consistency so the bitset form is the discoverable default.",
+   "rationale": "Bit-packing reduces both memory (8x to 64x vs int) and reduces the transitive-closure inner loop to word-parallel ORs (up to 64x fewer operations), a genuine constant-factor-to-asymptotic-per-word win.",
+   "risk": "Different input representation (packed bits vs int matrix); this is an API/ergonomics suggestion, not an in-place rewrite. Keep the int version for callers that need it."
+  },
+  {
+   "file": "src/IAFahim.Graph.Misc/GraphMisc.cs",
+   "symbol": "WarshallBitset.Run / PerformBitwiseOr",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist row base pointers in PerformBitwiseOr and mark it AggressiveInlining so the k-row and i-row become two-pointer vectorizable ORs.",
+   "currentCost": "PerformBitwiseOr recomputes `i*words + j` and `k*words + j` per word inside the loop, and is a separate non-inlined method call invoked per (i,k) reachable pair.",
+   "proposedChange": "Add `[MethodImpl(MethodImplOptions.AggressiveInlining)]` and rewrite body as `long* irow = cls + (long)i*words; long* krow = cls + (long)k*words; for (j) irow[j] |= krow[j];`. Also hoist `k*words` base in the caller. Using nint/long indexing avoids overflow.",
+   "rationale": "Converts strided addressing into sequential dual-pointer OR that Burst vectorizes to packed 256-bit ORs, and inlining removes call overhead in the inner Warshall loop. The (closure[i*words+kW] & kMask) guard already correctly skips non-reachable rows; this only speeds the work that remains.",
+   "risk": "Widen i*words and k*words to long/nint to prevent int overflow for large n*wordsPerRow (latent bug in current code). Semantics unchanged."
+  }
+ ]
+}

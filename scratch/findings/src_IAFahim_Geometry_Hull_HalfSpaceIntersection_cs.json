@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Geometry.Hull/HalfSpaceIntersection.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Geometry.Hull/HalfSpaceIntersection.cs",
+   "symbol": "SortPlanesByAngle",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Replace O(n^2) selection-style sort with O(n log n) sort (e.g. iterative/median-of-three quicksort already used elsewhere in the repo).",
+   "currentCost": "Double nested loop over all m+4 planes: ~ (count^2)/2 angle comparisons and up to count^2/2 full HalfPlane (40-byte) struct swaps. For m=1000 inputs that is ~500k comparisons and potentially hundreds of thousands of struct copies on the hot path of Run.",
+   "proposedChange": "Sort by Angle using a pointer-based quicksort (the repo already has QuickSort patterns in BvhTree.cs and PowerfulNumbers.cs). Sort an index array or swap whole HalfPlane structs in O(n log n). Optionally precompute keys (Angle) into a separate double* to compare scalars and minimize struct touching.",
+   "rationale": "Asymptotic improvement from O(n^2) to O(n log n) comparisons. For n in the hundreds-to-thousands this is the dominant cost of Run; selection sort here is strictly worse and Burst cannot rescue an O(n^2) algorithm.",
+   "risk": "Quicksort is not stable; UniquePlanes already disambiguates equal-Angle planes by keeping the smaller D, so a stable order is not required, but verify tie-handling: if two planes share an Angle, UniquePlanes keeps the one with smaller D regardless of their relative sorted order, so correctness is preserved under any consistent ordering."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Hull/HalfSpaceIntersection.cs",
+   "symbol": "InitializePlanes",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "The four bounding-box sentinel angles are computed with Math.Atan2 on constant arguments at runtime instead of named compile-time constants.",
+   "currentCost": "Four Math.Atan2 calls (atan2 is ~tens of cycles each) on constant inputs every Run invocation: Atan2(0,-1)=PI, Atan2(0,1)=0, Atan2(-1,0)=-PI/2, Atan2(1,0)=PI/2.",
+   "proposedChange": "Replace with named constants: PI, 0.0, -PI/2, +PI/2 (use Math.PI). Keeps identical values, removes four transcendental calls per Run.",
+   "rationale": "Eliminates redundant runtime computation of compile-time-known transcendentals; pure constant folding the compiler may not perform across the Math.Atan2 intrinsic boundary under Burst.",
+   "risk": "None; the values are exactly the standard atan2 results for these axis directions (Math.Atan2(0,-1) is exactly Math.PI, etc.), bit-identical to the library constants used."
+  },
+  {
+   "file": "src/IAFahim.Geometry.Hull/HalfSpaceIntersection.cs",
+   "symbol": "IsOutside",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "IsOutside recomputes the full Intersect (including a division) for pairs (a,b) that are re-tested across the convex-hull deque loop, and Intersect uses two divides where one reciprocal suffices.",
+   "currentCost": "In the i-loop, the back/front while-loops repeatedly call IsOutside on the same neighbor pairs, each performing Intersect = 1 division (no det guard here, but div ~20-40c) then a dot product. Adjacent re-tests recompute the same intersection.",
+   "proposedChange": "Compute reciprocal invDet once in Intersect and multiply (1 div + multiplies instead of 2 divs). Optionally cache the back-pair / front-pair intersection across consecutive predicate calls as suggested for MaximumInscribedCircle. Mark IsOutside and Intersect AggressiveInlining (Intersect is private leaf; IsOutside is too) to remove call overhead in the tight deque loop.",
+   "rationale": "Fewer divisions on the critical path and reduced call overhead via inlining of the leaf helpers used in the hottest loop of Run.",
+   "risk": "Reciprocal-multiply is ~1 ulp different from two divides, so NOT bit-identical; the > p.D + 1e-9 epsilon comparison tolerates this, but if exact reproducibility is contractual, keep two divides and only add inlining (which is exact). Inlining alone is fully semantics-preserving."
+  }
+ ]
+}

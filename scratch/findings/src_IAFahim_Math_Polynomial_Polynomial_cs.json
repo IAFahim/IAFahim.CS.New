@@ -1,0 +1,81 @@
+{
+ "file": "src/IAFahim.Math.Polynomial/Polynomial.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.Polynomial/Polynomial.cs",
+   "symbol": "PolynomialInverse.Run",
+   "severity": "critical",
+   "category": "overflow",
+   "summary": "Newton-iteration scratch buffer is allocated as stackalloc long[n*6] but the iteration uses fr = tmp + 4*m with length 2*m, requiring up to index 6*M-1 where M = nextPow2(n) (the largest value the loop variable m reaches). When n is not a power of two (and n >= 3), 6*M > 6*n, so the routine writes out of bounds of the stackalloc buffer, corrupting the stack / adjacent locals. This is undefined behavior and produces wrong results or crashes.",
+   "triggeringInput": "PolynomialInverse.Run(3, a, res, 998244353) with a[0]=1,a[1]=1,a[2]=1. Loop reaches m=4, fr=tmp+16 writes indices 16..23 but buffer length is n*6=18 (overflow by 6 longs). Also n=5,6,7,9..15, etc.",
+   "rootCause": "Buffer sized to n*6 instead of nextPow2(n)*6. The doubling loop does m<<=1 first, so m grows to the smallest power of two >= n, and fr (offset 4*m, span 2*m) reaches 6*m which exceeds 6*n whenever n is not a power of two.",
+   "suggestedFix": "Allocate the scratch based on the rounded-up size: compute int sz=1; while(sz<n) sz<<=1; then stackalloc long[sz*6] (or larger), instead of n*6. Same fix is needed wherever the buffer length n*6 is used to clear it."
+  },
+  {
+   "file": "src/IAFahim.Math.Polynomial/Polynomial.cs",
+   "symbol": "PolynomialPow.Run",
+   "severity": "high",
+   "category": "off-by-one",
+   "summary": "The returned length `len` is taken from PolynomialMul.Run, which returns the full untruncated product length (len_prev + n - 1), even though only the first min(len,n) coefficients are actually stored into res. The function therefore returns a length greater than n, while res only ever has n valid coefficients written. A caller that reads res[0..returned-1] reads past the written/allocated region (uninitialized or out-of-bounds memory).",
+   "triggeringInput": "PolynomialPow.Run(4, a, 3, res, mod) with a = {1,1,0,0}: result coefficients are correct (1,3,3,1) but the method returns len=7, not 4, so res[4..6] are unwritten/out of a size-4 buffer.",
+   "rootCause": "len is updated as len = PolynomialMul.Run(len, res, n, temp, buf) which yields the polynomial-product length, but the store loop only copies min(len,n) entries (`for i < len && i < n`). The returned len is never clamped to n.",
+   "suggestedFix": "Clamp the returned/working length to n: after each multiply do `if (len > n) len = n;`, and return n (the truncated power series length) instead of the raw product length."
+  },
+  {
+   "file": "src/IAFahim.Math.Polynomial/Polynomial.cs",
+   "symbol": "PolynomialMod.Run",
+   "severity": "medium",
+   "category": "logic",
+   "summary": "PolynomialMod.Run performs the division reduction in place on the caller's input array `a` (a[i-m+1+j] -= coef*b[j]), destroying the dividend. Unlike the sibling PolynomialDiv.Run, which copies a into r and never mutates the input, Mod mutates a and leaves the result there. A second call with the same `a` yields a different (wrong) answer, and any caller that still needs `a` afterward gets corrupted data. The locally allocated `long* q = stackalloc long[n]` is never used, indicating the routine was intended to work on a copy.",
+   "triggeringInput": "PolynomialMod.Run(4, a, 2, b, r) with a={4,3,2,1} (x^3+2x^2+3x+4), b={-1,1} (x-1): r[0]=10 is correct, but a is overwritten to {10,0,0,0}, destroying the caller's input polynomial.",
+   "rootCause": "The reduction loop subtracts from `a` directly instead of from a working copy; the allocated scratch `q` that was presumably meant to hold the copy is unused.",
+   "suggestedFix": "Copy a into the unused scratch (or into r) first and reduce the copy, leaving the caller's `a` intact, mirroring PolynomialDiv.Run which writes r[i]=a[i] before reducing r."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Polynomial/Polynomial.cs",
+   "symbol": "PolynomialMul.RunMod",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Inner loop does three % mod per multiply-accumulate (a[i]%mod, b[j]%mod, and the outer reduction); a[i]%mod is loop-invariant in j and the inner reductions can be reduced.",
+   "currentCost": "For each (i,j): a[i]%mod recomputed m times though it is constant across the inner j-loop, plus b[j]%mod and the accumulate reduction \u2014 3 modulo ops (each ~20-40 cycles) per inner iteration, O(n*m) total.",
+   "proposedChange": "Hoist 'long ai = a[i] % mod;' outside the j-loop. Keep b[j]%mod and the accumulate reduction. This removes one of three div/mods per inner iteration (a 33% cut in the most expensive op of the kernel).",
+   "rationale": "Modulo is the dominant cost here; hoisting the invariant a[i] reduction removes n*(m-1) modulo operations with identical results. This is a hot kernel reused by Inverse/Log/Exp/Sqrt/Pow.",
+   "risk": "None. a[i]%mod is independent of j; result is bit-identical. Inputs are long, mod positive \u2014 sign behavior of % is unchanged because the same value is reduced."
+  },
+  {
+   "file": "src/IAFahim.Math.Polynomial/Polynomial.cs",
+   "symbol": "PolynomialInverse.Run",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Newton inversion uses schoolbook PolynomialMul.RunMod (O(m^2)) inside each doubling step, making the whole routine O(n^2) and dominating Log/Exp/Sqrt which call it.",
+   "currentCost": "Each doubling level m runs two O(m^2) RunMod calls; summed over levels gives O(n^2). For the typical use (Newton inverse) the intended complexity is O(n log n) via NTT.",
+   "proposedChange": "Route the two multiplies through OnlineNttConvolution/an NTT multiply when mod is NTT-friendly (which the module already assumes elsewhere), reducing each level to O(m log m) and the total to O(n log n). Falls back to RunMod for non-NTT mod.",
+   "rationale": "Drops the asymptotic from O(n^2) to O(n log n), the standard Newton-inverse complexity; this cascades into Log, Exp, and Sqrt which all call Inverse, so it is the highest-leverage algorithmic change in Polynomial.cs.",
+   "risk": "Requires mod to be a suitable NTT prime with a known primitive root g; the existing NTT file already presumes this. If callers use arbitrary mod, keep RunMod path. Larger change; must preserve exact modular results (NTT multiply must be the negacyclic/linear convolution mod the same prime)."
+  },
+  {
+   "file": "src/IAFahim.Math.Polynomial/Polynomial.cs",
+   "symbol": "PolynomialInverse.Run",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Scratch tmp is stackalloc'd at n*6 and zeroed fully every call, but only regions up to 2*m (<=2n) are used and they are re-zeroed inside the loop anyway.",
+   "currentCost": "stackalloc long[n*6] = 48*n bytes on the stack plus an n*6 zeroing pass that is redundant because fa/fb/fc/fr regions are explicitly re-initialized inside the doubling loop before use.",
+   "proposedChange": "Drop the upfront 'for (int i=0;i<n*6;i++) tmp[i]=0;' pass (the loop body already sets fa[0..m), zeros fa[cur..m), zeros fc[0..2m), fr[0..2m) before reading). Optionally shrink the allocation to the actually-addressed extent (fr ends at 4*m+2*m = up to 6*m only when m can reach n, so n*6 upper bound is correct but the zeroing is not).",
+   "rationale": "Removes an O(n) write pass per call; the regions are deterministically overwritten before first read, so the prezero is dead work.",
+   "risk": "Must verify every byte read inside the loop is written before read: fb[0..m) is set from res then zero-padded, fa fully set, fc fully zeroed, fr fully zeroed \u2014 yes. Edge: first iteration m=2; res[0] already set before loop. Safe, but requires a careful read of each region's first-touch."
+  },
+  {
+   "file": "src/IAFahim.Math.Polynomial/Polynomial.cs",
+   "symbol": "PolynomialEval.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Uses a running power 'cur' (extra multiply + the dependency on cur) instead of Horner's method, which needs one fewer multiply per term and a shorter critical path.",
+   "currentCost": "Per term: res = (res + a[i]%mod*cur)%mod AND cur = cur*x%mod \u2014 two multiply-mods and two parallel dependency chains. n iterations.",
+   "proposedChange": "Switch to Horner: iterate i from n-1 down to 0, res = (res*x + a[i]%mod)%mod. One multiply-mod per term.",
+   "rationale": "Halves the multiply-mod count (one vs two per term) and uses a single accumulator dependency chain; modular reductions also drop from 2 to roughly 1.5 per term. Matches the Horner form already used in PolynomialMultipointEval.Run.",
+   "risk": "Result identical for exact polynomial value mod m. Horner accumulates intermediates that stay reduced each step, so no overflow concern beyond the existing a[i]%mod*x product (same magnitude as current). Sign: res stays in [0,mod) as before."
+  }
+ ]
+}

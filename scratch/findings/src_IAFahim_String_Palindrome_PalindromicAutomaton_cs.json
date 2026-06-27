@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.String.Palindrome/PalindromicAutomaton.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Palindrome/PalindromicAutomaton.cs",
+   "symbol": "SeriesLink",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Reloads linkPtr[link] and diffPtr[v]/diffPtr[link] with an extra dependent load; minor branch reduction possible but loop is already tight.",
+   "currentCost": "Per v: load linkPtr[v]; load linkPtr[link]; load diffPtr[v]; load diffPtr[link]; branch. The diffPtr[v]==diffPtr[link] compare and linkPtr[link]!=-1 are two conditions joined by &&, causing a short-circuit branch in addition to the if-branch.",
+   "proposedChange": "Combine into branch-light form: int link = linkPtr[v]; int dl = diffPtr[link]; int slink = (linkPtr[link] != -1 & diffPtr[v] == dl) ? slinkPtr[link] : link; slinkPtr[v] = slink; using non-short-circuit & to fuse the two predicates into one branch (both loads are cheap and always needed). This removes one conditional branch per iteration.",
+   "rationale": "Replaces a short-circuit && (two branches) with a single bitwise-and predicate (one branch), and the loads are always performed anyway, so there is no wasted work. Tighter dependency chain in the O(stateCount) loop.",
+   "risk": "Using & instead of && always evaluates diffPtr[v]==diffPtr[link]; diffPtr[link] is a valid read for any link>=0 (link=linkPtr[v] is a real state index, links never -1 for v>=2 since the imaginary roots are 0/1). Safe given the automaton invariant that linkPtr[v] for v>=2 is a valid in-range index."
+  },
+  {
+   "file": "src/IAFahim.String.Palindrome/PalindromicAutomaton.cs",
+   "symbol": "SeriesLink",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Returns stateCount unchanged \u2014 a no-op return value that adds no information.",
+   "currentCost": "The method always returns its stateCount argument, so callers gain nothing; it pretends to be a Try/Run-with-count convention but the count is just echoed.",
+   "proposedChange": "Make it return void (it mutates slinkPtr in place), or if the Run convention requires a count, document that it equals input. Changing to void removes a pointless move on return.",
+   "rationale": "Clarifies the API contract and removes a meaningless return; aligns with in-place-mutation Run convention.",
+   "risk": "API change; only do if no caller relies on the echoed return. Trivial otherwise."
+  }
+ ]
+}

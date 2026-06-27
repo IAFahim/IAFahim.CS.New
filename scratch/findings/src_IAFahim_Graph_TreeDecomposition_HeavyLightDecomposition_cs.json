@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Graph.TreeDecomposition/HeavyLightDecomposition.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.TreeDecomposition/HeavyLightDecomposition.cs",
+   "symbol": "PushDownSum",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "mid, lChild, rChild and segment lengths are recomputed; the two lengths (mid-start+1) and (end-mid) are used multiple times.",
+   "currentCost": "In the assign branch both child writes recompute (mid-start+1) and (end-mid); the add branch recomputes them again. lChild/rChild are fine but the length subexpressions repeat up to 4 times.",
+   "proposedChange": "Hoist int leftLen = mid - start + 1; int rightLen = end - mid; once at the top and reuse in both the assign and add branches.",
+   "rationale": "Removes redundant integer subtraction/recomputation in a function called on every internal node touched by a query/update (the segment-tree hot path). Pure CSE; trivially safe.",
+   "risk": "None; values are identical within the call since start/end/mid are constant."
+  },
+  {
+   "file": "src/IAFahim.Graph.TreeDecomposition/HeavyLightDecomposition.cs",
+   "symbol": "PathAdd",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "After the chain-climb loop, depth[u] and depth[v] are each loaded twice to compute l and r.",
+   "currentCost": "Two ternary expressions both evaluate depth[u] < depth[v], loading depth[u] and depth[v] twice and computing the same predicate twice; same pattern duplicated in PathAssign and PathSumQuery.",
+   "proposedChange": "Compute the predicate once: bool uShallower = depth[u] < depth[v]; int l = uShallower ? pos[u] : pos[v]; int r = uShallower ? pos[v] : pos[u]; Apply identically in PathAssign and PathSumQuery.",
+   "rationale": "Eliminates a duplicate memory load pair and duplicate compare; lets the compiler emit a branchless cmov on a single condition. Tiny but on every path operation.",
+   "risk": "None; depth/pos are not mutated between the two reads."
+  },
+  {
+   "file": "src/IAFahim.Graph.TreeDecomposition/HeavyLightDecomposition.cs",
+   "symbol": "BuildSumTree",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "node*2 and node*2+1 are recomputed three times in build/update methods; minor CSE plus consistency with the bit-shift style used for mid.",
+   "currentCost": "BuildSumTree, SumTreeAdd, SumTreeAssign, SumTreeQuery, BuildMaxSubarrayTree, MaxSubarrayTreeAssign each recompute node*2 and node*2+1 multiple times (recursive calls plus the final merge/read).",
+   "proposedChange": "Introduce int lc = node << 1; int rc = lc | 1; once per method and reuse. (node<<1)|1 == node*2+1 for non-negative node.",
+   "rationale": "Modest CSE that also documents the child-index pattern; reduces repeated address arithmetic in the segment-tree recursion. Compilers usually CSE this already, so impact is low, but it tightens the dependency chain feeding the recursive calls.",
+   "risk": "node is always >=1 (root is 1), so <<1 and |1 are exact equivalents of *2 and *2+1; no signed-shift hazard."
+  }
+ ]
+}

@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.DS.SegmentTree/PersistentTree.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.SegmentTree/PersistentTree.cs",
+   "symbol": "PersistentSegmentBuild.RunInt32 / PersistentSegmentUpdate.RunInt32",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "`prev == 0 ? 0 : left[prev]` recomputed though the prev!=0 copy block already loaded those values.",
+   "currentCost": "In Build, lines 11-15 (under `if (prev != 0)`) copy left[prev]/right[prev]/tree[prev] into node. Then lines 23-24 recompute `prev == 0 ? 0 : left[prev]` and `prev == 0 ? 0 : right[prev]`, re-loading left[prev]/right[prev] and re-evaluating the prev predicate. Same pattern in Update lines 50/52.",
+   "proposedChange": "Hoist `int lp = prev != 0 ? left[prev] : 0; int rp = prev != 0 ? right[prev] : 0;` once near the top, store into left[node]/right[node], and pass lp/rp to the recursive calls. This both populates the node and feeds recursion from registers instead of re-reading memory and re-branching.",
+   "rationale": "Removes a duplicate memory load and a duplicate branch per recursion level on the persistent build/update hot path (O(log n) nodes per operation). Values come from registers already in flight, shortening the dependency chain to the recursive call.",
+   "risk": "Must preserve that when prev==0 the recursive child arg is 0 and left[node]/right[node] end up correct (they are overwritten by the returned child id afterward anyway). Behavior identical; pure CSE."
+  },
+  {
+   "file": "src/IAFahim.DS.SegmentTree/PersistentTree.cs",
+   "symbol": "PersistentSegmentQuery.RunInt32 / DynamicSegmentQuery.Run",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Two byte-identical query functions; consolidate to one to reduce code size and improve I-cache/inlining.",
+   "currentCost": "PersistentSegmentQuery.RunInt32 (lines 60-67) and DynamicSegmentQuery.Run (lines 96-103) have identical bodies. Burst compiles both, doubling generated code for the same operation and splitting the instruction cache footprint.",
+   "proposedChange": "Have one delegate to the other (or expose a single shared internal query and keep thin public wrappers). Wrappers marked AggressiveInlining so call sites pay nothing.",
+   "rationale": "Less duplicated machine code improves instruction-cache locality on mobile and keeps a single optimized version. No behavioral change since bodies are identical.",
+   "risk": "Purely organizational; must keep both public entry points for API stability (ergonomics) \u2014 make one forward to the other rather than deleting. Zero semantic change."
+  }
+ ]
+}

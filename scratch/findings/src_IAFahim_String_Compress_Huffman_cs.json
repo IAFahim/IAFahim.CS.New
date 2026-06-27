@@ -1,0 +1,61 @@
+{
+ "file": "src/IAFahim.String.Compress/Huffman.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.String.Compress/Huffman.cs",
+   "symbol": "Huffman.Decode",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Decode never emits output bytes and never sets *outLen; it only shifts input into a buffer and discards it. The method body has no traversal of the Huffman tree, no output[] writes, opos is never incremented, and *outLen is never assigned. Any call to decode produces zero correct output and leaves *outLen at its (possibly garbage) input value.",
+   "triggeringInput": "Any non-empty input, e.g. input pointing to 1 packed int produced by Huffman.Encode, inLen=1, *outLen preset to expected symbol count. Decode writes nothing to output and never updates *outLen.",
+   "rootCause": "The decode loop (lines 154-161) only fills `buffer` via `buffer = (buffer << 32) | (uint)input[ipos++]` and contains no symbol-decoding logic, no output writes, and no `*outLen = opos`. The algorithm is unimplemented.",
+   "suggestedFix": "Implement actual decoding: walk the Huffman tree (or use the codes) bit by bit from the buffer, write each decoded symbol to output[opos++], and on completion set *outLen = opos. Currently it returns no decoded data at all."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Compress/Huffman.cs",
+   "symbol": "Decode",
+   "dimension": "ergonomics",
+   "impact": "high",
+   "summary": "`Huffman.Decode` is an empty stub: it fills `buffer` from input but never emits any output byte, never advances `opos`, and never writes `*outLen`.",
+   "currentCost": "The method consumes input into `buffer`/`bits` in the inner while but has no bit-to-symbol decoding, no output writes, and the outer `while` condition `opos < *outLen` never changes so it loops on the inner refill then exits with zero work. Observable behavior: produces no output. This is a correctness gap, not just perf.",
+   "proposedChange": "Implement actual canonical/tree-walk decoding (walk the Huffman tree or a decode LUT bit by bit, emitting `output[opos++]` until `opos == *outLen`), and set `*outLen = opos`. Until implemented, no perf optimization is meaningful here.",
+   "rationale": "A no-op decoder makes the encoder output unusable; any downstream perf tuning is moot. Flagging because the task is to find concrete issues in these files.",
+   "risk": "Implementing decode changes behavior from 'produces nothing' to 'produces correct output' \u2014 intended. Must mirror Encode's MSB-first bit packing (`buffer << code.Length | bits`, flush `buffer >> (bits-32)`)."
+  },
+  {
+   "file": "src/IAFahim.String.Compress/Huffman.cs",
+   "symbol": "Build",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "Remove `[MethodImpl(AggressiveInlining)]` from `Build`; it is a large method with stackalloc, a heap-allocating struct, try/finally, and a recursive call \u2014 inlining is harmful, not helpful.",
+   "currentCost": "AggressiveInlining on a big method bloats every call site's I-cache footprint and the `stackalloc Node[2*sigma]` + Marshal.AllocHGlobal make it un-inlinable in practice anyway, so the attribute is at best ignored and at worst forces I-cache pressure if honored.",
+   "proposedChange": "Drop the attribute on `Build`. Reserve AggressiveInlining for the small hot leaf methods (`Push`, `Pop` already aren't attributed \u2014 those are the real inline candidates).",
+   "rationale": "Inlining hints belong on small hot leaves; on cold setup methods they only cost code size. Build is called once per frequency table, not in a hot loop.",
+   "risk": "None \u2014 purely a hint removal; cannot change semantics."
+  },
+  {
+   "file": "src/IAFahim.String.Compress/Huffman.cs",
+   "symbol": "Traverse",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Convert recursive `Traverse` to an explicit stackalloc'd stack (iterative) to bound stack usage and avoid recursion in Burst.",
+   "currentCost": "Recursion depth equals the Huffman tree height (up to sigma-1 in the degenerate skewed-frequency case), each frame carrying Node*/length/bits/codes \u2014 unbounded native stack growth and a hidden call/return dependency chain. Burst is unfriendly to recursion.",
+   "proposedChange": "Use an explicit `int* stackId = stackalloc int[2*sigma]` plus parallel length/bits arrays (or pack into a small struct) and iterate. Tree has at most 2*sigma nodes so the bound is known.",
+   "rationale": "Removes call overhead and unbounded native-stack risk; makes the function a straight-line loop Burst can compile without recursion. Same traversal order/output.",
+   "risk": "Must preserve left-before-right ordering so emitted codes match (left = bits<<1, right = (bits<<1)|1). Push right then left if using a LIFO to keep left processed first."
+  },
+  {
+   "file": "src/IAFahim.String.Compress/Huffman.cs",
+   "symbol": "NodeHeap.Push / Pop",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Strength-reduce heap index math `(idx-1)/2`, `idx*2+1`, `idx*2+2` to shifts.",
+   "currentCost": "`(idx-1)/2` is a signed divide (idx>=1 in that branch so non-negative) and `idx*2+1`/`idx*2+2` are mul-by-2; the signed `/2` emits extra sign-correction instructions versus a shift.",
+   "proposedChange": "Parent: `int p = (idx - 1) >> 1;` (idx>0 guaranteed by the while, so idx-1>=0, shift == divide). Children: `int left = (idx << 1) + 1; int right = left + 1;` (saves recomputing idx*2).",
+   "rationale": "Avoids the signed-division sign-fixup sequence and one redundant multiply; tiny but on the sift loop's critical path.",
+   "risk": "`>>1` equals `/2` only for non-negative dividend \u2014 guaranteed here since idx>0 in Push's loop. AggressiveInlining-add these tiny leaves to encourage inlining."
+  }
+ ]
+}

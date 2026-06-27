@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Optimization.Submodular/SubmodularGreedy.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Optimization.Submodular/SubmodularGreedy.cs",
+   "symbol": "SubmodularGreedy.Run",
+   "severity": "high",
+   "category": "overflow",
+   "summary": "Run accumulates the selected gains into a long 'total' but returns it as 'return (int)total;', truncating/overflowing the result for sums that exceed int range even though every individual gain is a representable long.",
+   "triggeringInput": "n=2, k=2, gain laid out row-major as gain[iter*n+i]: iteration 0 row = {3000000000, 0}, iteration 1 row = {0, 3000000000} (each fits in long). Greedy picks item 0 then item 1, total = 6_000_000_000, but (int)6_000_000_000 wraps to 1_705_032_704.",
+   "rootCause": "The running sum is computed in long to avoid overflow, then narrowed to int at the return, discarding the high bits.",
+   "suggestedFix": "Change the method signature to 'public static long Run(...)' and 'return total;' (or document/clamp), so the accumulated long gain is not truncated."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.Submodular/SubmodularGreedy.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "`iter*n` is recomputed as a loop-invariant multiply in Run and inside FindBestItem's inner loop and the total accumulation.",
+   "currentCost": "Each iteration computes `gain[iter*n+best]` (a multiply) and FindBestItem recomputes `gain[iter*n+i]` with the `iter*n` multiply folded into every inner-loop index. The base offset `iter*n` is invariant across the inner i-loop but the indexing pattern hides it from some JITs.",
+   "proposedChange": "Hoist `long* row = gain + (long)iter*n;` once per outer iteration and pass `row` to FindBestItem so the inner loop indexes `row[i]` (pure pointer add, no multiply). In Run use `total += row[best];`. Use a 64-bit offset for the multiply to avoid int overflow when iter*n exceeds 2^31.",
+   "rationale": "Removes a multiply from every inner-loop iteration (turns row[i] into base+i*8 addressing the hardware does for free) and shortens the address-computation dependency chain. Burst/JIT may already strength-reduce this, but passing the row pointer guarantees it.",
+   "risk": "Must use 64-bit arithmetic for the offset (`(long)iter*n`) to match/exceed current behavior; the current code uses int `iter*n` which already overflows for large iter*n, so switching to long is a safe correctness improvement, not a behavior change within the valid (non-overflowing) input range."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Submodular/SubmodularGreedy.cs",
+   "symbol": "Run",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Return type truncates a long `total` to int, and total is computed but the function's contract (count vs value) is ambiguous.",
+   "currentCost": "`total` is accumulated as long across k picks but returned as `(int)total`, silently truncating/overflowing for large submodular gains. The cast hides potential overflow on the very metric the greedy is optimizing.",
+   "proposedChange": "Change the return type to `long` to match the accumulator (and the gain element type long*). If the intended return is the number of selected items, return the pick count instead; but given it sums gains, long is the correct width.",
+   "rationale": "Avoids a lossy narrowing on the hot result; long matches the gain element type and the accumulator with zero extra cost.",
+   "risk": "Return-type change is a public API change. Numerically identical for inputs whose total fits in int; only differs (more correct) when total exceeds int range, which is currently a silent bug."
+  },
+  {
+   "file": "src/IAFahim.Optimization.Submodular/SubmodularGreedy.cs",
+   "symbol": "GreedySetCover",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Each of up to m rounds recomputes new-coverage for every set from scratch over its full element list -> O(m^2 * avgSetSize); lazy-greedy or incremental decrement is far cheaper.",
+   "currentCost": "FindBestSet calls CountNewCoverage on all m sets every round, each scanning the set's elements -> O(m * totalElems) per round, O(m^2 * totalElems / m) overall. Coverage counts are fully recomputed even though only newly-covered elements change between rounds.",
+   "proposedChange": "Maintain a per-set live-uncovered count; when MarkCovered marks element e, decrement the count of every set containing e (requires an element->sets incidence list), or use the classic lazy-greedy (priority queue with stale-marginal revalidation) so most sets are not re-evaluated each round. Both reduce repeated full rescans.",
+   "rationale": "Submodular marginal gains are monotonically non-increasing, so lazy evaluation skips re-scoring most sets; an incidence-list decrement makes each MarkCovered update O(elem*setsPerElem) total across the run instead of O(m) full rescans per round.",
+   "risk": "Lazy-greedy must revalidate the top candidate's marginal before committing to preserve exact greedy choice (same set selected each round, same tie-breaking: strict `curNew>bestNew` keeps the lowest index on ties). Incidence-list approach needs extra unmanaged storage (element->set lists). Behavior preserved only if tie-breaking order is kept identical."
+  }
+ ]
+}

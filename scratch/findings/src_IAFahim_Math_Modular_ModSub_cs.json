@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Math.Modular/ModSub.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Modular/ModSub.cs",
+   "symbol": "ModSub.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Single-fixup correctness depends on inputs being pre-reduced; optionally branchless, but the real note is the unstated precondition vs sibling ModNormalize.",
+   "currentCost": "r = a - b; if (r < 0) r += mod; corrects only one mod of underflow, so it is correct only for a,b in [0,mod). The branch is cheap and predictable; the function is otherwise minimal.",
+   "proposedChange": "Leave the arithmetic as-is (already optimal for the in-range contract). If a branchless form is desired for vectorization: long r = a - b; r += (r >> 63) & mod; using arithmetic right shift as a 0/-1 mask. Document the [0,mod) precondition to match the unchecked Run convention.",
+   "rationale": "The mask form removes an unpredictable branch and is Burst/SIMD-friendly when ModSub is used in tight elementwise loops; (r>>63) yields all-ones for negative r, all-zero otherwise, adding mod exactly when r<0. Identical result to the branch for r in (-mod,0).",
+   "risk": "r>>63 is an arithmetic shift on signed long (guaranteed in C#), giving -1 for negative. Adds mod at most once, so requires a,b in [0,mod) exactly as the current branch already requires \u2014 no new precondition. If a-b can underflow by more than one mod (inputs not reduced) BOTH forms are already wrong, so semantics are preserved."
+  }
+ ]
+}

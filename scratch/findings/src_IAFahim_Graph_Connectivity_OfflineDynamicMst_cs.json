@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Graph.Connectivity/OfflineDynamicMst.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Connectivity/OfflineDynamicMst.cs",
+   "symbol": "Rollback",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "size[u] is loaded and stored each iteration through the int* even though the rollback inverse only needs size[v]; the load of size[u] before subtracting is required, but the dependency chain through size can be shortened by reading both into locals.",
+   "currentCost": "Lines 58-61 per popped op: read history[historyCount].U and .V, read size[v], read+write size[u], write parent[v]. The size[u] -= size[v] is a read-modify-write through the pointer; if Burst cannot prove size and parent and history do not alias, it must serialize.",
+   "proposedChange": "Load the op once: RollbackOp op = history[historyCount]; int u = op.U; int v = op.V; size[u] -= size[v]; parent[v] = v; This loads the 8-byte op in one access instead of two indexed dereferences and gives the compiler clean non-aliasing locals.",
+   "rationale": "Reduces two indexed history dereferences to one 8-byte load and clarifies the dependency chain so Burst can pipeline the size update and the parent store. Constant-factor win in the rollback loop, which runs once per union ever performed across the whole divide-and-conquer.",
+   "risk": "None \u2014 purely reads the same fields; semantics identical."
+  },
+  {
+   "file": "src/IAFahim.Graph.Connectivity/OfflineDynamicMst.cs",
+   "symbol": "Union",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "history write does two separate field stores; writing the struct once via a local lets Burst coalesce into a single 8-byte store, and the rootI/rootJ swap can be branchless.",
+   "currentCost": "Lines 44-46 do history[historyCount].U = rootI; history[historyCount].V = rootJ; historyCount++ \u2014 two indexed stores recomputing the same address. The swap on lines 38-41 is a data-dependent branch on size comparison.",
+   "proposedChange": "Write the op as one struct: history[historyCount] = new RollbackOp { U = rootI, V = rootJ }; historyCount++; (or assign to a local op then store). For the swap, keep the branch (it is well-predicted by union-by-size and a branchless cmov over two int pairs offers little here), but at minimum coalesce the two history field stores into one 8-byte store.",
+   "rationale": "One 8-byte store vs two 4-byte indexed stores with recomputed base+offset addressing reduces address-generation uops in the hot Union path (called once per full-span edge at every recursion level).",
+   "risk": "None \u2014 RollbackOp is [StructLayout(Sequential)] with two ints, so a whole-struct store is layout-equivalent to the two field stores. Behavior identical."
+  },
+  {
+   "file": "src/IAFahim.Graph.Connectivity/OfflineDynamicMst.cs",
+   "symbol": "Find",
+   "dimension": "purity",
+   "impact": "low",
+   "summary": "Find deliberately omits path compression to remain rollback-compatible; this is correct and must be preserved \u2014 flagging so it is not 'optimized' by adding compression.",
+   "currentCost": "Line 27 walks parent chain with no compression: O(log n) per find under union-by-size. Tempting to add path-halving for speed.",
+   "proposedChange": "Do NOT add path compression / path halving to Find. The DSU is rollbackable only because Union records exactly the structural changes it makes; path compression would mutate parent[] without recording it in history, breaking Rollback's invariant. Keep Find read-only.",
+   "rationale": "Preserves the rollback invariant that the entire offline-dynamic-connectivity algorithm depends on. Union-by-size already guarantees O(log n) find depth, which is the correct bound for a rollbackable DSU.",
+   "risk": "Adding compression would silently corrupt the parent array across rollbacks (parent[v]=v restore would not undo compressed pointers), producing wrong connectivity answers. This item is a guard, not a change."
+  }
+ ]
+}

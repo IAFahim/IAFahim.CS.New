@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.NT/MinMaxDivisorTransform.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/MinMaxDivisorTransform.cs",
+   "symbol": "RunMax / RunMin",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The conditional store 'if (f[d] > f[j]) f[j] = f[d];' is a data-dependent branch; replace with a branchless max/min to avoid mispredicts and enable Burst vectorization.",
+   "currentCost": "Per inner step a compare + unpredictable conditional store. The j-stride loop (j += d) is strided but for small d it is dense; the branch is frequently 50/50 and mispredicts.",
+   "proposedChange": "RunMax: load long vj=f[j], vd=f[d]; f[j] = vd > vj ? vd : vj; (or math.max). RunMin symmetric with min. Hoisting vd=f[d] out of the inner loop (it is loop-invariant in j) also removes a redundant load per iteration.",
+   "rationale": "Branchless select removes mispredict penalty on a 50/50 branch and lets Burst emit conditional-move / vectorized max. Hoisting f[d] cuts one load per inner iteration (the value is invariant across the entire inner loop).",
+   "risk": "Branchless version always writes f[j] even when unchanged, adding a store where the original sometimes skipped it \u2014 for small-d dense passes this is usually a win, but for sparse large-d strides the extra store cost is negligible. Semantics identical (ties keep existing value either way). Caller must accept the unconditional write to f[j] (same memory, no aliasing change)."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/MinMaxDivisorTransform.cs",
+   "symbol": "RunMaxWithCounts / RunMinWithCounts",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "f[d] and cnt[d] are reloaded every inner iteration though invariant across the whole inner j-loop.",
+   "currentCost": "Each inner iteration reloads f[d] and cnt[d] for the compare/add; these never change inside the d-fixed inner loop.",
+   "proposedChange": "Hoist 'long fd = f[d]; int cd = cnt[d];' before the inner 'for (int j = 2*d; ...)' loop and use fd/cd in the body. Keep the three-way branch (>, ==) as-is since it has distinct side effects.",
+   "rationale": "Removes two redundant loads per inner iteration, shortening the per-step dependency chain. Cannot fully branchless this one due to the count-merge on equality, but invariant hoisting is a clean win.",
+   "risk": "None: f[d] and cnt[d] are not written inside the inner loop (writes target index j != d for j>=2d), so hoisting is safe. Observable behavior unchanged."
+  }
+ ]
+}

@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Math.NT/DirichletPrefixSum.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/DirichletPrefixSum.cs",
+   "symbol": "DirichletPrefixSum.ConvolutionPrefixSum",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Inner loop recomputes i*j and i*j again for indexing, and the guard multiply per j is redundant; strength-reduce to an additive walk.",
+   "currentCost": "Inner loop `for (int j=1; (long)i*j<=n; j++) result[i*j] += fi*g[j]` performs, per iteration: one 64-bit multiply for the guard `(long)i*j`, plus an `int` multiply `i*j` for the index. That is two multiplies per inner step over an O(n log n) total iteration count.",
+   "proposedChange": "Replace with an index that advances by i: `for (int ij = i, j = 1; ij <= n; ij += i, j++) result[ij] += fi * g[j];`. This eliminates both multiplies per iteration (the running `ij` serves as both guard and index) at the cost of one add. Since `i*j <= n <= int range` along the valid path, `ij` stays in int; the original `(long)i*j` guard was only protecting overflow of the boundary test, which `ij += i` with `ij <= n` handles without overflow because n bounds it.",
+   "rationale": "Removes one 64-bit imul and one 32-bit imul per inner iteration (replaced by a single add), shortening the dependency chain and improving Burst vectorization/throughput on the dominant O(n log n) work.",
+   "risk": "`ij += i` could overflow int only if it exceeded int.MAX before the `ij <= n` check; since each accepted ij <= n and the next is ij+i <= n+i, choose `n` within `int.MAX - n` headroom (true for any valid n < ~2^30). Guard: if n can approach int.MAX, keep ij as long. Semantics identical otherwise."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/DirichletPrefixSum.cs",
+   "symbol": "DirichletConvolution.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Identical strength-reduction: drop the per-iteration multiplies in the inner convolution loop, and hoist f[i] read.",
+   "currentCost": "Inner loop `for (int j=1; (long)i*j<=n; j++) h[i*j] += f[i]*g[j]` does a 64-bit guard multiply and a 32-bit index multiply per iteration, and re-reads `f[i]` from memory each inner iteration instead of hoisting it to a local.",
+   "proposedChange": "Hoist `long fi = f[i];` (the function already checks f[i]==0 but then re-reads f[i] inside) and rewrite as `for (int ij = i, j = 1; ij <= n; ij += i, j++) h[ij] += fi * g[j];`. Mirrors the fix in ConvolutionPrefixSum.",
+   "rationale": "Eliminates two multiplies plus a redundant load per inner iteration over O(n log n) iterations; shorter dependency chain, fewer cache-touch reads of f[i].",
+   "risk": "Same int-overflow-of-ij caveat as above; safe for n within int headroom. Hoisting f[i] is pure since f is not aliased to h in valid usage (separate buffers) \u2014 if caller aliases f and h, behavior could change, but that is already an undefined/unsupported aliasing case."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/DirichletPrefixSum.cs",
+   "symbol": "DirichletPrefixSum.ConvolutionPrefixSum",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Two separate zeroing passes over result can be fused / replaced; result[0]=0 then a 1..n zero loop duplicates initialization.",
+   "currentCost": "`result[0]=0` then `for(i=1;i<=n;i++) result[i]=0` zeroes the whole array in a scalar loop. This is a separate full pass before the accumulation loop.",
+   "proposedChange": "Zero the buffer as a single contiguous span (e.g. a Unsafe-style memclear / a single loop from 0..n already covers index 0, removing the special-case `result[0]=0` and the `n==0` early return needs only the `result[0]=0` guard kept). At minimum merge: `for (int i = 0; i <= n; i++) result[i] = 0;` removing the duplicated result[0] write.",
+   "rationale": "Removes a redundant store and a branch; a single straight memclear is trivially vectorizable by Burst and avoids the scalar per-element loop. Constant-factor only but free.",
+   "risk": "Must preserve the `n==0` early-return semantics (after writing result[0]=0). Keep the `if(n<0) return;` guard. No behavioral change for n>=0."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/DirichletPrefixSum.cs",
+   "symbol": "DirichletPrefixSum.Hyperbola",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The Sqrt-derived bound u can be off by one due to double rounding, and the two loops recompute n/d divisions that could be partly shared; also fd/gd are simple adjacent differences.",
+   "currentCost": "`u = (long)Math.Sqrt((double)n)` can round down (or rarely up) for large n where double cannot represent n exactly, producing a u that is 1 too small or too large. While the hyperbola identity is robust to which exact split point is used as long as u*limit2 partitioning is consistent, an off-by-one u changes `limit2 = n/u` and the correction term, which must satisfy u == n/(n/u)-region consistency. Separately each loop does a 64-bit idiv `n/d` per iteration (unavoidable) but the `fd = prefixF[d]-prefixF[d-1]` is a redundant pair of loads when iterating sequentially.",
+   "proposedChange": "After computing u via Sqrt, correct it deterministically: `while ((u+1)*(u+1) <= n) u++; while (u*u > n) u--;` so u is exactly floor(sqrt(n)) independent of FPU rounding. For the difference terms, carry a running `prev = prefixF[d-1]` across iterations so each step is one load + one subtract instead of two loads.",
+   "rationale": "The integer-correction makes the result deterministic and portable across PC/mobile FPUs (purity/correctness) at negligible cost (1-2 iterations). Carrying prev halves the prefix-array loads in each O(sqrt n) loop, reducing cache traffic.",
+   "risk": "(u+1)*(u+1) can overflow for n near long.MAX (~3.0e18 -> u~1.7e9, (u+1)^2 fits in long up to ~9.2e18, so safe for all valid n). The carried-prev rewrite must reset correctly at d=1 using prefixF[0]. Behavior identical for all n where the original Sqrt happened to be exact; for inexact cases the corrected version is the mathematically correct floor(sqrt), which is the intended value."
+  }
+ ]
+}

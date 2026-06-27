@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Memory.Allocators/UnsafeParallelPoolAllocator.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Memory.Allocators/UnsafeParallelPoolAllocator.cs",
+   "symbol": "UnsafeParallelPoolAllocator<T>",
+   "dimension": "ram",
+   "impact": "medium",
+   "summary": "Per-thread UnsafePoolAllocator structs are packed contiguously, inviting false sharing on the hot Alloc/Free path across threads; pad each per-thread pool to a cache-line boundary.",
+   "currentCost": "pools is an array of UnsafePoolAllocator<T> laid out back-to-back. Alloc()/Free() on thread i mutate pools[i] (its head/count fields). If sizeof(UnsafePoolAllocator<T>) < 64 bytes (or not a cache-line multiple), pools[i] and pools[i+1] share a cache line, so concurrent Alloc/Free from adjacent threads cause cache-line ping-pong (false sharing) \u2014 a severe scalability cost on the exact hot path this type exists to make parallel.",
+   "proposedChange": "Allocate each per-thread pool on its own cache line: either wrap UnsafePoolAllocator<T> in a struct padded to 64 bytes (or JobsUtility cache-line size) before laying them out, or over-allocate with stride = align-up(sizeof(UnsafePoolAllocator<T>), 64) and index pools via byte offset. Indexing in Alloc/Free becomes `*(UnsafePoolAllocator<T>*)((byte*)pools + threadIndex * stride)`.",
+   "rationale": "Eliminating false sharing is the single biggest determinant of scaling for a sharded/per-thread allocator. Padding to a cache line makes each thread's Alloc/Free touch a private line, removing inter-core coherence traffic; the cost is a few KB of padding (threadCount * <64B), negligible versus the throughput gain under contention.",
+   "risk": "Low on correctness (same pool per thread, same results). Costs a bit more RAM (padding). Stride indexing must use the same cache-line constant on alloc and free; recommend a named constant (e.g. JobsUtility.CacheLineSize). Verify UnsafePoolAllocator<T> has no internal pointer that assumes contiguous packing (it does not \u2014 pools are independent)."
+  },
+  {
+   "file": "src/IAFahim.Memory.Allocators/UnsafeParallelPoolAllocator.cs",
+   "symbol": "Dispose / Allocated / constructor",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist JobsUtility.ThreadIndexCount out of the loop conditions; it is read on every iteration in the constructor, Dispose, and Allocated.",
+   "currentCost": "`for (int i = 0; i < JobsUtility.ThreadIndexCount; i++)` re-evaluates JobsUtility.ThreadIndexCount (a property/static accessor, potentially a non-inlined call returning a SharedStatic-backed value) every iteration in three loops. Burst may not prove it loop-invariant if it is a property with a method body, so it can become a per-iteration call that also blocks vectorization/unrolling of the simple accumulate loop in Allocated().",
+   "proposedChange": "Cache `int threadCount = JobsUtility.ThreadIndexCount;` once at the top of each method (or store it as a readonly field set in the constructor, since it is fixed for the lifetime of the allocator) and use it in the loop bound. For Allocated(), this also exposes a clean reduction `for(i=0;i<threadCount;i++) acc += pools[i].Allocated();` the optimizer can unroll.",
+   "rationale": "Removes a repeated static-property read from each loop iteration, shortens the loop's dependency/bookkeeping chain, and gives Burst a constant trip count to unroll/vectorize the Allocated reduction. Storing it as a readonly field also removes the assumption that ThreadIndexCount is identical at construct vs dispose time (purity/determinism).",
+   "risk": "None for correctness as long as ThreadIndexCount is stable across the allocator's lifetime (it is fixed per process for Jobs). Caching it in a field actually hardens against it changing between construct and dispose. Trivial."
+  }
+ ]
+}

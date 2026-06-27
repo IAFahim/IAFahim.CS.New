@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Filter.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/Recast.Filter.cs",
+   "symbol": "FilterLedgeSpans (lines 101-111, 130-143)",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "MaxHeightfieldHeight (0xffff) constant and ternaries for ceiling are recomputed; neighbor column base index x+z*w recomputed via GetDirOffset each direction.",
+   "currentCost": "For every walkable span the 4-direction loop recomputes neighborX/neighborZ via GetDirOffsetX/Y (table lookups + bounds math) and the linear index neighborX+neighborZ*w. The 'ceiling' for the current span (line 102) is recomputed once per span which is fine, but inside the per-neighbor span walk the ternary on span->Next is the standard pattern. Minor: MaxHeightfieldHeight is used as a sentinel in math.min which forces a 32-bit compare each neighbor.",
+   "proposedChange": "Hoist the current-span 'floor' and 'ceiling' (already done) and precompute 'walkableClimbNeg = -walkableClimb - 1' once outside the loops (used at lines 122 and 135). Compute neighbor linear index incrementally where possible. These are constant-factor only; the structure is already cache-friendly per column.",
+   "rationale": "Removes repeated negation/decrement of -walkableClimb-1 (computed twice in the same iteration paths) and lets the early-out compare against a hoisted constant; trivial but free correctness-preserving cycle savings in a triple-nested grid filter run once per heightfield.",
+   "risk": "None; -walkableClimb-1 is integer-constant for the whole call. No overflow concern for typical walkableClimb (small positive vx counts). Behavior identical."
+  }
+ ]
+}

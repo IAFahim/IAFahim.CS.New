@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Collision.Gjk/MinkowskiDifference.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Collision.Gjk/MinkowskiDifference.cs",
+   "symbol": "BoxSupport",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "BoxSupport normalizes the direction (normalizesafe = sqrt + divide) only to take its sign; the support point depends solely on the per-component sign of direction, so the normalize is wasted work.",
+   "currentCost": "math.normalizesafe(direction) computes lengthsq, rsqrt/sqrt, a 3-wide divide, and a zero-length fallback branch \u2014 then only math.sign(n) is used. sign of the normalized vector equals sign of the raw vector for every nonzero length.",
+   "proposedChange": "return center + halfExtents * math.sign(direction); dropping the normalizesafe call entirely.",
+   "rationale": "math.sign(direction) == math.sign(normalizesafe(direction)) because positive scaling preserves component signs. Eliminates a sqrt, a 3-component divide, and the normalizesafe zero-guard branch from a hot support function called many times per GJK/EPA iteration.",
+   "risk": "Edge case: zero direction. normalizesafe returns float3.zero (default) for zero input, so n=0 -> sign=0 -> returns center. math.sign(0)=0 likewise -> returns center. Identical. Component-wise zeros (e.g. direction.x==0) also match: sign(0)=0 in both paths. Behavior is bit-identical for all inputs."
+  },
+  {
+   "file": "src/IAFahim.Collision.Gjk/MinkowskiDifference.cs",
+   "symbol": "SphereSupport / CapsuleSupport",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "SphereSupport does math.length then divides by it; use rsqrt of lengthsq to fold sqrt+divide into one multiply, and reuse the squared length already implied.",
+   "currentCost": "len = math.length(direction) (sqrt) followed by (direction/len)*radius (a 3-wide divide then 3-wide multiply). Called directly and twice via CapsuleSupport, so it is a hot leaf.",
+   "proposedChange": "float lenSq = math.dot(direction,direction); if (lenSq < EpsilonSq) return center; return center + direction * (math.rsqrt(lenSq) * radius); This computes one rsqrt and folds the radius scale into a single scalar, then one 3-wide multiply-add.",
+   "rationale": "Replaces sqrt + vector-divide + vector-multiply with rsqrt + scalar-multiply + vector-multiply-add: fewer total FLOPs, no divide (divide latency >> multiply), shorter dependency chain.",
+   "risk": "Threshold changes from len<1e-6 to lenSq<1e-12; sqrt(1e-12)=1e-6 so the cutoff on true length is identical \u2014 exactly equivalent. rsqrt approximation: Unity.Mathematics math.rsqrt is full-precision on float for scalar; result matches direction/length to within ULPs. If exact test determinism is required, use direction * (radius / math.sqrt(lenSq)) for bit-stable behavior while still removing the redundant length recompute."
+  }
+ ]
+}

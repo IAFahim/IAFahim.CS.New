@@ -1,0 +1,81 @@
+{
+ "file": "src/IAFahim.String.Grammar/Slp.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.String.Grammar/Slp.cs",
+   "symbol": "StraightLineProgram.Query",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Query ignores pos and returns rules[ruleId].Char for BOTH terminal and non-terminal rules; non-terminal rules never have Char set (default 0) and the method never recurses into children, so any query into a non-terminal rule returns garbage instead of the character at position pos.",
+   "triggeringInput": "After Build on s=\"abab\" (len=4) producing a non-terminal rule with id 0, call Query(rules, 0, 0). Both branches return rules[0].Char which was never assigned (==0), instead of 'a' (0x61).",
+   "rootCause": "Both branches of the if/else return rules[ruleId].Char. The non-terminal branch should decompose the rule by recursing into its child rules (Left/Right) using pos to pick the correct child and adjusted offset. The pos parameter is completely unused.",
+   "suggestedFix": "For a non-terminal rule, recurse: compute the expansion length of the left child; if pos < leftLen return Query(rules, leftChildId, pos) else Query(rules, rightChildId, pos-leftLen). This requires rules to store child rule IDs and expansion lengths, not raw string positions."
+  },
+  {
+   "file": "src/IAFahim.String.Grammar/Slp.cs",
+   "symbol": "StraightLineProgram.FindOrCreateRule",
+   "severity": "high",
+   "category": "logic",
+   "summary": "The 'find existing equal rule' deduplication can never succeed because rules store the absolute start position (Left=start) and compare rules[i].Left==start; start is strictly increasing across Build, so no prior rule ever has the same start. Every call creates a new rule, defeating the SLP's purpose of sharing repeated factors.",
+   "triggeringInput": "Build on s=\"aa\"+\"aa\" style input where the same substring recurs at different positions: the two identical substrings are stored as distinct rules with different Left (start) values, so they are never merged into one shared rule.",
+   "rootCause": "Rules are keyed and matched by string position (start) rather than by content. Identical substrings at different positions have different start values, so rules[i].Left==start && rules[i].Right==len is never true for a previously seen substring, making FindOrCreate always Create.",
+   "suggestedFix": "Match rules by content: compare the actual byte sequence (or a hash) of s[start..start+len) against the bytes referenced by each existing rule, returning the existing id when the byte contents are equal. Storing positions only works if equal substrings always share identical positions, which they do not."
+  },
+  {
+   "file": "src/IAFahim.String.Grammar/Slp.cs",
+   "symbol": "StraightLineProgram.Build",
+   "severity": "high",
+   "category": "logic",
+   "summary": "Build computes ruleId = FindOrCreateRule(...) but discards it; the top-level sequence of rules forming the program is never recorded anywhere, so the compressed string cannot be reconstructed. The produced 'rules' array also stores raw positions/lengths rather than child references, so it is not a usable straight-line program.",
+   "triggeringInput": "Build on any s with len>=2, e.g. s=\"abc\" len=3: rules get populated but there is no output array/field listing which rule ids in which order reconstruct \"abc\"; the ruleId returned each iteration is dropped.",
+   "rootCause": "The return value of FindOrCreateRule is assigned to a local 'ruleId' that is never used, and Build has no out-parameter or structure capturing the top-level rule sequence. Combined with rules storing positions instead of child ids, the SLP is non-reconstructible.",
+   "suggestedFix": "Append each returned ruleId to a caller-provided output sequence (e.g. an int* program / out length), and define rules in terms of child rule ids so the program can be expanded back to the original string."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Grammar/Slp.cs",
+   "symbol": "StraightLineProgram.IsNewRule",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "IsNewRule is O(n^2) per call and is invoked at every position inside Build's scan, making Build up to O(len^3); the period/repetition test it performs can be answered far more cheaply.",
+   "currentCost": "For each start, IsNewRule loops l=1..(len-start)/2 and for each l does an inner k-loop up to l, i.e. ~ (len-start)^2/4 byte comparisons. Build calls it inside the inner `while (j < len && !IsNewRule(s,j,len))` for growing j, so worst case the total is cubic in len. Each call also re-scans from scratch with no memoization across adjacent positions.",
+   "proposedChange": "IsNewRule(start) returns true iff there exists l in [1,(len-start)/2] with s[start..start+l) == s[start+l..start+2l), i.e. the suffix beginning at start has a 'square' (period l) prefix of length 2l. Compute the Z-array (or prefix-function) of the suffix once and detect the smallest square in O(n); or, since you only need 'does ANY square prefix exist', the prefix-function pi of the prefix: a square prefix of length 2l exists iff for some position p, 2*(p+1 - pi[p]) ... \u2014 use the standard 'smallest period' test: position p has a border giving period d=p+1-pi[p]; a square prefix exists when d divides some prefix length and the repeat count >=2. At minimum, hoist the per-call recomputation by computing the prefix-function/Z-array of s once outside Build and indexing into it, turning each IsNewRule into O(1)/O(small).",
+   "rationale": "Replaces nested O(n^2)-per-call square detection with linear-preprocessing + O(1) queries, dropping Build from cubic toward linear/near-linear. Far fewer byte comparisons and branch mispredicts in the hot scan.",
+   "risk": "Must reproduce IsNewRule's exact predicate (existence of any l with equal halves, l<=(len-start)/2) including the boundary l=(len-start)/2 to preserve where Build splits, hence identical rule boundaries and ruleCount. Verify the square-detection condition matches the brute force on small inputs before adopting. Prefix-function buffer needs O(len) stackalloc/work memory (caller-provided per house rules)."
+  },
+  {
+   "file": "src/IAFahim.String.Grammar/Slp.cs",
+   "symbol": "StraightLineProgram.IsNewRule (loop bound + early structure)",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "The half-length bound (len-start)/2 is recomputed and the first-mismatch inner loop can be reordered to fail faster; also l only needs candidates where s[start]==s[start+l].",
+   "currentCost": "`(len - start) / 2` is recomputed each l iteration of the outer loop (it is loop-invariant). The inner k-loop tests positions 0..l in order; for typical data the first byte (k=0) is the discriminator, but more importantly l values where s[start]!=s[start+l] can never match and still pay the k-loop entry/setup.",
+   "proposedChange": "Hoist `int half = (len - start) / 2;` before the loop. Guard the inner comparison with a cheap precheck: `if (s[start] != s[start+l]) continue;` before entering the k-loop (it would fail at k=0 anyway but this skips loop setup). Use `(len - start) >> 1` since (len-start) is non-negative in this context.",
+   "rationale": "Removes a per-iteration division, and `>>1` is exact for non-negative operands (cheaper than a signed div which emits the add-sign-bit sequence). The precheck cuts loop-setup overhead for the common non-matching l.",
+   "risk": "`>>1` is only equivalent to `/2` when (len-start)>=0; here start ranges within [0,len) so len-start>0, safe. The s[start]!=s[start+l] precheck is semantically identical to the k=0 iteration of the existing loop. No output change."
+  },
+  {
+   "file": "src/IAFahim.String.Grammar/Slp.cs",
+   "symbol": "StraightLineProgram.Query",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Query has a dead branch: both arms of the IsTerminal test return rules[ruleId].Char, and the pos parameter is unused, so the function is a constant-time field read masquerading as a recursive/dispatch query.",
+   "currentCost": "`if (rules[ruleId].IsTerminal) return rules[ruleId].Char; return rules[ruleId].Char;` loads IsTerminal, branches, then returns the same field either way \u2014 a wasted load and an unpredictable branch on a leaf accessor. `pos` is dead. This signals the function is unfinished rather than optimal.",
+   "proposedChange": "Collapse to `return rules[ruleId].Char;` and mark `[MethodImpl(MethodImplOptions.AggressiveInlining)]`. If the intended behavior is true SLP expansion (recursing through Left/Right by pos), that is a functional bug to flag separately \u2014 as written, drop the branch and the unused pos (or keep pos in signature for API stability but remove the branch).",
+   "rationale": "Eliminates a branch and a redundant field load on a hot leaf accessor; inlining lets Burst fold it into callers. Removes an unpredictable branch with zero behavioral effect since both arms are identical.",
+   "risk": "Removing the IsTerminal branch is behavior-preserving ONLY because both arms already return the identical value today. If the dead branch is a placeholder for future non-terminal expansion, document that; do not silently bake in the no-op. Removing pos changes the signature (ergonomics/API break) \u2014 keep pos if callers exist."
+  },
+  {
+   "file": "src/IAFahim.String.Grammar/Slp.cs",
+   "symbol": "StraightLineProgram.Rule (struct layout)",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Rule packs two int + byte + bool with default layout, costing 12 bytes payload that pads to 12-16; reordering or narrowing improves cache density when arrays of rules are scanned linearly in FindOrCreateRule.",
+   "currentCost": "Fields: int Left, int Right, byte Char, bool IsTerminal. Natural layout is 4+4+1+1 = 10 bytes, padded to 12 (or 16 under some alignment). FindOrCreateRule scans rules[i].IsTerminal/Left/Right linearly, so each rule touched pulls its full padded footprint into cache.",
+   "proposedChange": "Apply [StructLayout(LayoutKind.Sequential, Pack=1)] or [StructLayout(LayoutKind.Explicit)] to pack to 10 bytes, or fold IsTerminal into a flag bit if Char's range permits, shrinking the per-rule footprint and improving the rules[] scan cache-line utilization. Keep blittable/unmanaged for Burst.",
+   "rationale": "Tighter struct -> more rules per cache line -> fewer misses during the linear FindOrCreateRule scan, which is on the build hot path. Pack=1 is acceptable here because access is via Burst-generated code and fields are read individually, not requiring natural alignment for SIMD.",
+   "risk": "Pack=1 can slow unaligned int loads on some mobile architectures (ARM tolerates unaligned but with a penalty); measure-by-reasoning suggests the cache-density win dominates for linear scans but this is the one place alignment-vs-density could go either way, so treat as low-impact and architecture-dependent. Must remain blittable for Burst (it does)."
+  }
+ ]
+}

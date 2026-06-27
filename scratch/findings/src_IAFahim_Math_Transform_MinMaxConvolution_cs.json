@@ -1,0 +1,50 @@
+{
+ "file": "src/IAFahim.Math.Transform/MinMaxConvolution.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.Transform/MinMaxConvolution.cs",
+   "symbol": "MinPlusGeneral / MaxPlusGeneral",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Inner loop iterates all i in [0,aLen) and branches on j-range; restrict the loop to the valid i-window to drop the per-iteration bounds branch and halve average iterations.",
+   "currentCost": "For each k it loops i from 0..aLen-1 and tests `if (j>=0 && j<bLen)`, so for boundary k most iterations are wasted and every iteration pays two compares + a branch that blocks vectorization. Total work is O(aLen*(aLen+bLen)) including dead iterations.",
+   "proposedChange": "Precompute the valid range once per k: `int iLo = k - (bLen-1); if (iLo < 0) iLo = 0; int iHi = k; if (iHi > aLen-1) iHi = aLen-1;` then loop `for (int i=iLo; i<=iHi; i++){ long sum=a[i]+b[k-i]; best = sum<best?sum:best; }`. Use branchless min: `best = math.min(best,sum)` (Unity.Mathematics) or `best = sum + ((best-sum)&((best-sum)>>63));`.",
+   "rationale": "Eliminates the in-loop range branch entirely (precomputed window), removing a hard-to-predict branch and letting Burst vectorize the min-reduction; also skips the dead iterations, reducing real work by roughly half on the boundary columns.",
+   "risk": "Window math must be exact: i ranges where 0<=k-i<bLen \u21d4 k-bLen+1<=i<=k, intersected with [0,aLen-1]. Branchless min via mask relies on arithmetic right-shift of (best-sum); guard against overflow of the subtraction when values span the full long range \u2014 if inputs can be near \u00b12^63 keep the comparison form `sum<best?sum:best` which is overflow-safe."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform/MinMaxConvolution.cs",
+   "symbol": "MinIndex / MaxIndex",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Fuse the pointwise-product pass and the adjacent-difference pass into a single loop to cut one full O(n) sweep and its memory traffic.",
+   "currentCost": "MinIndex writes sc[i]=sa*sb%mod in one loop (17-20), then reads sc[i] and sc[i+1] in a second loop (21-25). Two passes over the sc array => extra n loads/stores and a second cache traversal.",
+   "proposedChange": "Combine: in one descending or paired loop compute sc[i] on the fly and immediately form c[i]=(sc[i]-sc[i+1]+mod)%mod, keeping sc[i+1] in a register. E.g. compute scNext = sa[n-1]*sb[n-1]%mod; c[n-1]=scNext; for i=n-2..0: scCur=sa[i]*sb[i]%mod; c[i]=(scCur-scNext+mod)%mod; scNext=scCur. Removes the sc array entirely (also a RAM win) when sc is only an intermediate.",
+   "rationale": "Single pass halves memory traffic over sc and removes the sc scratch buffer from the working set, improving cache behavior; the carried scNext register removes the redundant reload of sc[i+1].",
+   "risk": "Must preserve c[n-1]=sc[n-1] (no subtraction) and the +mod before %mod. Reversing iteration order changes write order only, not values. If callers inspect sc after the call, removing it breaks them \u2014 but sc/sb/sa are passed as scratch, so verify they are not read post-call (they appear to be pure scratch)."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform/MinMaxConvolution.cs",
+   "symbol": "MinPlusConvexConvex / MaxPlusConcaveConcave",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "Already optimal O(n+m) merge; only micro-opt is hoisting the repeated diff subtraction, no asymptotic change available.",
+   "currentCost": "Each iteration recomputes a[i+1]-a[i] and b[j+1]-b[j]; the tail loops recompute one diff per step. Minor redundant subtraction but no wasted asymptotics.",
+   "proposedChange": "Optional: precompute difference arrays once is NOT a win (would add O(n) RAM). Leave as-is; this is already the linear convex-min-plus merge. No change recommended.",
+   "rationale": "The Minkowski-sum merge of two convex sequences is provably O(n+m); nothing faster exists. Listed to document that it was reviewed and is optimal.",
+   "risk": "None \u2014 no change proposed."
+  },
+  {
+   "file": "src/IAFahim.Math.Transform/MinMaxConvolution.cs",
+   "symbol": "SolveMinPlus / SolveMaxPlus",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Divide-and-conquer SMAWK-style recursion is the right O((n+m) log) algorithm but recursion is a Burst smell; the Math.Max/Min calls are fine but the dead-input guards add per-iteration branches.",
+   "currentCost": "Recursion depth O(log(n+m)) and the inner loop tests `candA != long.MaxValue && candB != long.MaxValue` every j. If sentinel-infinity inputs are not actually used by callers, these two compares per j are pure overhead in the hot scan.",
+   "proposedChange": "Keep the divide-and-conquer (correct asymptotics). If callers never pass long.MaxValue/MinValue sentinels, drop the sentinel checks. Replace Math.Max/Math.Min on ints with branchless or keep (Burst lowers Math.Min(int) well). Consider an explicit manual stack instead of recursion for Burst friendliness if depth matters.",
+   "rationale": "Removing the sentinel compares (when unused) strips two branches per inner iteration; iterative stack avoids recursion frames under Burst.",
+   "risk": "Dropping sentinel checks changes behavior if callers DO pass infinities \u2014 must confirm the contract. Math.Max/Min on int are deterministic and Burst-supported, so leaving them is safe."
+  }
+ ]
+}

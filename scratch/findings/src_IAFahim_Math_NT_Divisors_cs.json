@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Math.NT/Divisors.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.NT/Divisors.cs",
+   "symbol": "Divisors.Run",
+   "severity": "high",
+   "category": "overflow",
+   "summary": "Loop guard 'i * i <= n' overflows long for n near long.MaxValue. When i exceeds sqrt(n), i*i can wrap to a negative value, which is <= n, so the loop never terminates as intended and writes divisors out of the caller's buffer (out-of-bounds / never-ending growth).",
+   "triggeringInput": "Divisors.Run(long.MaxValue, divs). At i=3037000500, i*i overflows to -9223372036709301616, and (-9223372036709301616 <= long.MaxValue) is true, so the loop continues past sqrt(n) writing beyond the intended divisor count (OOB writes / runaway).",
+   "rootCause": "i*i is computed as a long multiplication with no overflow guard; for n > (long)sqrt(long.MaxValue)^2 region the product wraps negative and the comparison i*i <= n stays true forever.",
+   "suggestedFix": "Use 'i <= n / i' as the loop guard instead of 'i * i <= n', or cap i with a precomputed integer sqrt(n) and compare i*i only when safe."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/Divisors.cs",
+   "symbol": "Divisors.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist redundant divisions and the i*i loop bound to cut per-iteration work in the O(sqrt n) trial loop.",
+   "currentCost": "Each iteration computes i*i for the loop condition, then on a hit computes n/i twice (once for the != check, once to store). For composite-heavy n the division n/i is the dominant cost and is duplicated.",
+   "proposedChange": "Compute long q = n / i once per hit and reuse: 'if (n % i == 0) { divs[count++] = i; if (i != q) divs[count++] = q; }'. Optionally replace 'i*i <= n' with comparing i against a precomputed limit, but the simplest sure win is the single division. Combine the n%i and n/i via the fact that a hit already implies divisibility, so q = n/i is exact.",
+   "rationale": "64-bit integer division is ~20-40 cycles on mobile ARM and is not pipelined well; halving divisions on every divisor hit is a real constant-factor win. i*i is cheaper than a div but still recomputed every loop.",
+   "risk": "Pure refactor, identical outputs. n>0 guaranteed by the early return so no div-by-zero. No overflow change (i*i already present in original)."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/Divisors.cs",
+   "symbol": "Divisors.Sort",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Replace the O(d^2) insertion sort with an O(d) two-pointer merge exploiting the already-ordered halves produced by Run.",
+   "currentCost": "Run appends divisors as (i ascending) interleaved with (n/i descending): the small divisors 1,2,... are written in increasing order and the cofactors n/i are written in decreasing order. The final insertion Sort is O(d^2) on a buffer that is already two sorted runs.",
+   "proposedChange": "Have Run write small divisors into the front (ascending) and large divisors from the back of the buffer (which yields ascending when read back-to-front), then do a single in-place merge of the two contiguous sorted runs into ascending order in O(d). For a perfect square the middle element is written once. This removes Sort entirely.",
+   "rationale": "d (the divisor count) can be large for highly composite n (e.g. thousands). Insertion sort is quadratic in d; the merge is linear, turning a worst-case O(d^2) tail into O(d) with no extra allocation.",
+   "risk": "Must handle the perfect-square case (i == n/i) so the pivot element is not double-counted; the two runs meet in the middle. Output ordering must remain strictly ascending to preserve observable behavior. Needs care that the back-filled region and front region do not overlap before merge (they won't: total writes == count <= buffer size by contract)."
+  }
+ ]
+}

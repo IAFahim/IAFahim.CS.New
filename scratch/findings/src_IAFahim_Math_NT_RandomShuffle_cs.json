@@ -1,0 +1,16 @@
+{
+ "file": "src/IAFahim.Math.NT/RandomShuffle.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.NT/RandomShuffle.cs",
+   "symbol": "RandomShuffle.Run",
+   "severity": "high",
+   "category": "pointer-ub",
+   "summary": "Out-of-bounds pointer write because the swap index j = RandomInt.Next(i+1) can be negative, since RandomInt.Next does not guarantee a non-negative result.",
+   "triggeringInput": "Run(ptr, len) with any len >= 2 using the default RandomInt seed: the draw RandomInt.Next(i+1) returns a negative j (e.g. -90 for the default-seed second draw), then ptr[j] = ... writes before the buffer (memory corruption / UB). Also when j is negative the Fisher-Yates is not a valid permutation.",
+   "rootCause": "RandomShuffle relies on RandomInt.Next returning a uniform value in [0, i], but Next can return a negative number (see the RandomInt.Next finding). j < 0 makes ptr[j] read/write out of the allocated range.",
+   "suggestedFix": "Fix RandomInt.Next to return a non-negative value (unsigned modulo). No change needed here once Next is correct, but Run is the place where the negative index manifests as memory corruption."
+  }
+ ],
+ "perf": []
+}

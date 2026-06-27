@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Unique/UniqueInt64s.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Unique/UniqueInt64s.cs",
+   "symbol": "UniqueInt64s.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Eliminate redundant self-stores while no duplicate has been seen yet (the common all-unique case).",
+   "currentCost": "Identical to the int variant: `ptr[dst++] = ptr[i]` stores every kept element even when dst==i, costing len-1 wasted 8-byte stores on all-unique input and keeping dst on the dependency chain.",
+   "proposedChange": "Same two-phase restructure: scan the already-unique prefix with `for (i=1; i<len && ptr[i]!=ptr[i-1]; i++) {}` (no stores), set dst=i, then compact the remainder comparing ptr[i] against ptr[dst-1].",
+   "rationale": "Saves len-1 8-byte stores on the all-unique path; 64-bit stores are twice the write traffic of the int case, so the cache/store-buffer savings are proportionally larger. Shorter dst dependency chain.",
+   "risk": "Phase 2 must compare against ptr[dst-1] (last kept value), not ptr[i-1], once a gap exists. Leading-prefix comparison against ptr[i-1] is valid only while dst==i. Pure integer equality; no sign/overflow caveats."
+  }
+ ]
+}

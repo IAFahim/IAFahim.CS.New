@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Collections.NoDeps/NativeArray.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Collections.NoDeps/NativeArray.cs",
+   "symbol": "NativeArray<T>.this[int].get/set",
+   "severity": "high",
+   "category": "overflow",
+   "summary": "Indexer computes the byte offset as index * UnsafeUtility.SizeOf<T>() in 32-bit int arithmetic, overflowing for valid in-range indices when index*sizeof(T) exceeds 2^31, yielding a wrong pointer and out-of-buffer access.",
+   "triggeringInput": "NativeArray<long> arr = new NativeArray<long>(300_000_000, allocator); long v = arr[300_000_000 - 1]; // (300000000-1)*8 overflows Int32",
+   "rootCause": "var byteOffset = _buffer + index * UnsafeUtility.SizeOf<T>() (lines 46 and 52). index * SizeOf<T>() is int*int; for index*size >= 2^31 it wraps to a negative/incorrect value before the IntPtr addition, so the access targets memory outside the allocation even though index < _length. The constructor itself correctly uses (long)length, confirming such large arrays are intended to be representable.",
+   "suggestedFix": "Widen before multiplying: var byteOffset = _buffer + (IntPtr)((long)index * UnsafeUtility.SizeOf<T>()); in both the getter and setter."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Collections.NoDeps/NativeArray.cs",
+   "symbol": "this[int]",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Indexer recomputes UnsafeUtility.SizeOf<T>() inline (fine) but uses IntPtr arithmetic with int index that can be strength-reduced; minor consistency note.",
+   "currentCost": "byteOffset = _buffer + index * UnsafeUtility.SizeOf<T>(). SizeOf<T>() folds to a constant under Burst so index*const becomes a shift for power-of-two T - already good. The only cost is using Unsafe.Read/Write through a reconstructed (void*) each access.",
+   "proposedChange": "Optionally expose the element access via ((T*)_buffer)[index] which lets the compiler do typed scaled-index addressing (mov [base + idx*scale]) directly instead of manual byte math plus Unsafe.Read. Functionally identical, often one fewer cast/temp.",
+   "rationale": "Typed pointer indexing emits a single scaled-index load/store and avoids the IntPtr-to-void* round-trip, slightly shorter dependency chain. Burst typically lowers both to the same code, so impact is low, but it is cleaner and never worse.",
+   "risk": "None functionally; ((T*)_buffer)[index] is equivalent to the byte-offset Read/Write for unmanaged T. Keep _buffer as IntPtr or cache the T* - behavior identical."
+  }
+ ]
+}

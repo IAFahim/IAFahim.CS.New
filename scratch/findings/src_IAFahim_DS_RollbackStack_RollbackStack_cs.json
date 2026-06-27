@@ -1,0 +1,81 @@
+{
+ "file": "src/IAFahim.DS.RollbackStack/RollbackStack.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.DS.RollbackStack/RollbackStack.cs",
+   "symbol": "UndoableBipartiteDsu.Find",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Find performs path compression (parent[x]=root, parity[x]^=acc) that mutates the structure without recording it in history. A rollback DSU must NOT use path compression because compression is irreversible: Rollback only undoes the recorded union edge and cannot restore parent/parity values that compression overwrote. After Snapshot -> Find(deep node) -> Rollback, the structure is permanently corrupted and subsequent Find returns wrong roots/parities.",
+   "triggeringInput": "parent=[0,0,1,2] (chain 3->2->1->0), parity all 0, history empty, histSize=0. h=Snapshot(). Call Find(parent,parity,3): it compresses parent[3]=0,parent[2]=0... actually only parent[3]=0 set, but parity[3]^=acc. Then Rollback to h: nothing in history is undone, so parent[3] stays 0 instead of 2. Find(3) before snapshot would walk 3->2->1->0; after rollback parent[3]=0 collapses the chain permanently, so relative parity of node 3 vs node 2 is lost.",
+   "rootCause": "Path compression writes parent[x] and parity[x] in Find (lines 101-102) but these writes are never pushed onto the history log, so Rollback cannot reverse them. Rollback only logs/undoes the single union edge.",
+   "suggestedFix": "Remove path compression from Find entirely: walk root via a local loop accumulating parity, and do NOT write back parent[x]/parity[x]. Use union by rank/size for acceptable depth. (Same fix applies in spirit to UndoableUnionFind.Find, which is compression-free and correct.)"
+  },
+  {
+   "file": "src/IAFahim.DS.RollbackStack/RollbackStack.cs",
+   "symbol": "UndoableBipartiteDsu.Rollback",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Rollback restores the wrong node. Union pushes [pa, parity[pa], pb] but the node actually modified is the LOSER of the pa/pb comparison (sometimes pa, sometimes pb), and the value that must be restored is that loser's old parent (= itself, a root) and old parity. Rollback unconditionally restores node = history[+2] = pb, sets parent[pb]=pa and parity[pb]=parity[pa]_old. This is wrong in every case: it never makes the merged loser a root again and assigns it pa's old parity.",
+   "triggeringInput": "parent=[0,1] (0 and 1 are separate roots), parity=[0,0], history empty, histSize=0. h=Snapshot(). Union(parent,parity,history,&histSize,0,1): ra=0,rb=1,pa=parent[0]=0,pb=parent[1]=1; parity[0]==parity[1] and pa(0)<pb(1) so branch line 129 sets parent[pb=1]=pa=0, parity[1]=1. History=[0, parity[0]=0, 1]. Now Rollback to targetHistSize=h: node=history[2]=1, parity[1]=history[1]=0 (ok by luck), parent[1]=history[0]=0 -> parent[1] stays 0, NOT restored to 1. So node 1 is still merged under 0 after rollback; Find(parent,parity,1) returns 0 instead of 1. The snapshot/rollback failed to undo the union.",
+   "rootCause": "Mismatch between what Union records/which node it modifies and what Rollback restores. Union conditionally modifies pa or pb (whichever is larger) and should record (modifiedNode, oldParent=modifiedNode, oldParity). Instead it records [pa, parity[pa], pb] and Rollback always rewrites pb's parent to pa and pb's parity to the stored parity[pa], never resetting any node back to being its own parent (a root).",
+   "suggestedFix": "In Union, record the node being reparented (call it 'loser') and its old parity: history[hs++]=loser; history[hs++]=parity[loser]; (its old parent is itself, a root, so no need to store). In Rollback, pop in reverse: loser=history[--hs..]; parity[loser]=storedParity; parent[loser]=loser; and decrement histSize by 2 (consistently matching the push count)."
+  },
+  {
+   "file": "src/IAFahim.DS.RollbackStack/RollbackStack.cs",
+   "symbol": "UndoableHeap.Rollback",
+   "severity": "high",
+   "category": "logic",
+   "summary": "Rollback ignores the recorded history log entirely and instead re-heapifies from scratch using HeapifyDown over [0,targetSize). HeapifyUp/HeapifyDown maintain heapIdx[] (the position of each element id in the heap) and the swap history; a true rollback must replay/undo those swaps to restore heapIdx consistently with an external id->position mapping. Re-running HeapifyDown produces a valid heap by priority but a DIFFERENT arrangement than existed at the snapshot, so heapIdx and the element-to-slot mapping no longer match the state at snapshot time, and it also pushes brand-new swap records into history via currentHistSize, corrupting the log.",
+   "triggeringInput": "Build heap of 3 elements via HeapifyUp so a specific arrangement and heapIdx mapping exist; snapshot heapSize. Perform a HeapifyDown that swaps slots. Then Rollback to the snapshot: instead of undoing the logged swaps it calls HeapifyDown(...,currentHistSize,...) for i from (targetSize-1)>>1 down to 0, which APPENDS new swap entries to history (currentHistSize grows) and yields a heap layout/heapIdx not equal to the pre-operation state. heapIdx[] for elements moved differently than the original now points to wrong slots, so a later HeapifyUp using heapIdx corrupts the structure.",
+   "rootCause": "Rollback does not pop the swap records the operations pushed; it re-derives a heap by calling HeapifyDown, which (a) may differ from the snapshot layout and (b) writes new entries through currentHistSize, growing rather than shrinking the history and leaving heapIdx inconsistent.",
+   "suggestedFix": "Implement Rollback by undoing logged swaps: while *currentHistSize > targetSize (the recorded log length) pop the 4 ints (i, smallest/p, heapIdx[i], heapIdx[smallest]) in reverse and swap ptr[i]/ptr[smallest] and restore heapIdx entries, then set *heapSize accordingly. Snapshot must return the history length, not *heapSize, for this to compose."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.RollbackStack/RollbackStack.cs",
+   "symbol": "UndoableHeap.Rollback<T>",
+   "dimension": "complexity",
+   "impact": "high",
+   "summary": "Rollback rebuilds the heap with a full O(targetSize) build-heap (Floyd) plus appends entirely NEW swap records to the SAME history buffer instead of UNDOING the recorded swaps. This is both asymptotically wasteful and a likely correctness/state bug: history grows on rollback and heapIdx/priority invariants are not actually reverted to the snapshot state.",
+   "currentCost": "O(targetSize) build-heap on every rollback regardless of how few operations occurred since the snapshot; plus each HeapifyDown writes 4 ints/swap into history via currentHistSize, mutating the undo log during an undo. Undo of K recorded swaps should be O(K), not O(n).",
+   "proposedChange": "Replace the build-heap loop with a true history-replay undo: while (*currentHistSize > /*history offset for targetSize*/) { decrement by 4; read (i, smallest, heapIdxI, heapIdxSmallest); swap ptr[i]/ptr[smallest] back and restore heapIdx entries }. Track the history offset corresponding to a snapshot (return both heapSize and histSize from Snapshot) so Rollback unwinds exactly the swaps performed since the snapshot. Do not append to history during Rollback.",
+   "rationale": "Undoing the exact recorded operations is O(K) in the number of swaps since the snapshot versus O(n) for a full rebuild; for incremental rollback (the whole point of an undoable structure) K << n. It also avoids the dependency-chain and store traffic of writing 4 ints per swap into history on the undo path, and keeps the heap's secondary indices (heapIdx, and the value-vs-priority correspondence) exactly consistent with the snapshot.",
+   "risk": "This is a semantics CHANGE relative to the current implementation, but the current implementation does not appear to restore the snapshot state correctly (it appends to history and only re-heapifies a truncated array, which can leave heapIdx/priority associations differing from the pre-op state). Must confirm against intended semantics and tests before applying. If a full rebuild is genuinely intended, at minimum stop writing to history during Rollback (pass a throwaway/no-op histSize or a separate counter) to avoid corrupting the undo log."
+  },
+  {
+   "file": "src/IAFahim.DS.RollbackStack/RollbackStack.cs",
+   "symbol": "UndoableHeap.Less<T>",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "Less<T> is constrained where T : unmanaged, IComparable<T> but never uses T \u2014 it only compares priority[a] < priority[b]. The unused IComparable<T> constraint propagates through HeapifyDown/HeapifyUp/Rollback and forces an interface constraint that is pure dead weight for Burst and the JIT.",
+   "currentCost": "Every heap method carries an IComparable<T> generic constraint that is never exercised; interface constraints can pessimize generic specialization and add no value since comparison is on int priority, not on T.",
+   "proposedChange": "Drop IComparable<T> from Less, HeapifyDown, HeapifyUp, and Rollback, leaving where T : unmanaged. The body priority[a] < priority[b] is unchanged.",
+   "rationale": "Fewer constraints means simpler, more Burst-friendly generic specialization and no risk of interface-dispatch codegen. The value T is only ever moved (ptr[i] swaps), never compared, so IComparable<T> is provably unnecessary.",
+   "risk": "Pure API/constraint narrowing; observable behavior identical. Only risk is source-compat for external callers that relied on the constraint signature, which is internal to this library."
+  },
+  {
+   "file": "src/IAFahim.DS.RollbackStack/RollbackStack.cs",
+   "symbol": "RollbackStack.Init / RollbackStack.Rollback",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Init takes an unused 'capacity' parameter and Rollback takes an unused 'sizeOfT' parameter. Dead parameters mislead callers and waste an argument register/stack slot at the call site.",
+   "currentCost": "Two unused parameters across the public API; each call passes a value that is computed/loaded for nothing, and they obscure the actual contract (the structure only stores a single int size at *mem).",
+   "proposedChange": "Remove 'int capacity' from Init and 'int sizeOfT' from Rollback (or document why they exist if reserved). Signatures become Init(void* mem) and Rollback(void* mem, int targetSize).",
+   "rationale": "Eliminates per-call argument setup for values never read and clarifies the API. The methods' bodies already ignore these parameters, so removal is behavior-preserving for the stored state.",
+   "risk": "Source-breaking signature change for callers; if the parameters are intentionally reserved for a future variable-stride layout, keep them but mark intent. No runtime semantics depend on them today."
+  },
+  {
+   "file": "src/IAFahim.DS.RollbackStack/RollbackStack.cs",
+   "symbol": "UndoableBipartiteDsu.Union",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Union reloads parity[a]/parity[b] and recomputes the pa>pb branch structure twice (once per parity-equal branch). The two branches differ only in the parity value written (1 vs 0), which equals (parity[a]==parity[b]) ? 1 : 0.",
+   "currentCost": "Duplicated branch body and an extra top-level branch on (parity[a]==parity[b]); parity[a] and parity[b] are read multiple times forming a longer dependency chain before the merge.",
+   "proposedChange": "Compute int newParity = (parity[a] == parity[b]) ? 1 : 0; then a single pa>pb branch: if (pa > pb) { parent[pa] = pb; parity[pa] = newParity; } else { parent[pb] = pa; parity[pb] = newParity; }. Cache parity[a]/parity[b] into locals once.",
+   "rationale": "Collapses two nearly identical branch bodies into one, halving the merge-logic code size (better I-cache/branch-predictor behavior) and reducing redundant loads of parity[a]/parity[b]. Fewer distinct branch targets.",
+   "risk": "Behavior-identical: the original writes exactly 1 when parities equal and 0 when they differ, which newParity reproduces. No edge cases since parity values are 0/1. Verify against tests."
+  }
+ ]
+}

@@ -1,0 +1,72 @@
+{
+ "file": "src/IAFahim.Graph.DynamicTrees/EulerTourTree.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.DynamicTrees/EulerTourTree.cs",
+   "symbol": "EulerTourTree.SubtreeQuery",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "SubtreeQuery brackets the subtree using GetPredecessor(u) and its Twin, but the predecessor edge of vertex u and that edge's twin do not correctly delimit u's subtree interval in the Euler tour for general (branching / rerooted) forests. The extracted [idxPred..idxTwin] range can lie entirely before u, returning a sum unrelated to u's subtree.",
+   "triggeringInput": "V=4 vertex nodes with Val[i]=i+1, edge node pairs as below. Link(1,3,4,5); Link(2,1,6,7); Link(0,2,8,9); Reroot(1); SubtreeQuery(2). True subtree of 2 is {2,0}=3+1=4, but it returns 1. Euler order becomes 1,e,3,e,e,e,0,e,2,e so node 2's predecessor is the 0-2 edge whose twin sits BEFORE node 2, so the [pred,twin] interval excludes node 2's actual subtree.",
+   "rootCause": "The query assumes pred(u) is the directed parent->u edge and pred.Twin (u->parent) marks the end of u's subtree, so [idxPred..idxTwin] equals the subtree segment. That invariant does not hold here: after Reroot/Link the down-edge immediately preceding u is not the parent->u edge, and its twin can precede u. The predecessor-twin pair therefore does not bracket u's contiguous subtree segment.",
+   "suggestedFix": "Locate u's own first occurrence and the matching up-edge that closes u's subtree (the twin of the edge that ENTERS u, identified via u's incoming tree edge, not merely u's tour predecessor), and sum the contiguous [enter..exit] interval. Equivalently, store for each vertex the edge that currently enters it and bracket the subtree by [enterEdgeIdx .. enterEdge.Twin Idx]. Connected() is unaffected and correct."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.DynamicTrees/EulerTourTree.cs",
+   "symbol": "Split / Merge",
+   "dimension": "burst",
+   "impact": "high",
+   "summary": "Recursive treap Split/Merge are marked AggressiveInlining but recursion cannot be inlined; the attribute is dead and the call-frame/dependency-chain overhead dominates these hot O(log n) operations.",
+   "currentCost": "Each Split/Merge level is a real call: argument marshalling of EttNode* + ints, out-param indirection (out nodes[root].Right writes through a pointer), a return, plus a PushUp call after unwinding. AggressiveInlining on a self-recursive method is ignored by the JIT/Burst.",
+   "proposedChange": "Remove [MethodImpl(AggressiveInlining)] from Split and Merge. Convert both to iterative form: Split with an explicit descent recording the path then fixing Parent/PushUp on the way back using a small stackalloc int* path buffer (depth bounded by treap height ~ O(log n)); Merge can be rewritten as an iterative loop that walks down choosing the higher-priority root and stitching, then PushUp up the recorded spine.",
+   "rationale": "Eliminates per-level call overhead and the long return-dependency chain, shortens the critical path, and lets Burst keep the hot fields in registers across levels instead of re-spilling for each recursive frame. Iterative form also removes the misleading inline hint.",
+   "risk": "Must preserve exact treap shape and PushUp order (PushUp happens post-order on the touched spine). The out-params write directly into nodes[root].Right/Left during recursion; the iterative version must reproduce that same parent-pointer fixup order. Treap height is randomized O(log n) so a fixed stackalloc must be sized to a safe max (e.g. 64) or the existing recursion depth bound."
+  },
+  {
+   "file": "src/IAFahim.Graph.DynamicTrees/EulerTourTree.cs",
+   "symbol": "Reroot",
+   "dimension": "purity",
+   "impact": "medium",
+   "summary": "Reroot takes `ref uint randState` but never reads or writes it; the parameter is dead and forces every caller (Link) to thread randomness state that is not consumed here.",
+   "currentCost": "A ref parameter is passed by address; Burst must keep randState addressable (cannot fully enregister it) across the Reroot calls in Link, and the API misleads callers into thinking Reroot consumes randomness.",
+   "proposedChange": "Remove the `ref uint randState` parameter from Reroot. Update its two call sites in Link to call Reroot(nodes, u) / Reroot(nodes, v). Optionally drop randState from Link signatures that no longer need it beyond the two NextRand calls (keep it only where NextRand is actually invoked).",
+   "rationale": "Removes a pointless by-ref argument from a hot path, enabling the compiler to keep the PRNG state in a register in Link, and clarifies the API (purity/ergonomics).",
+   "risk": "Pure signature change; observable behavior identical since the parameter is unused. Must update all call sites in the same module to keep it compiling."
+  },
+  {
+   "file": "src/IAFahim.Graph.DynamicTrees/EulerTourTree.cs",
+   "symbol": "Link",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Link performs up to five separate O(log n) root/index tree-walks (GetRoot x2 before Reroot, GetRoot x2 inside the two Reroots, then GetRoot x2 again on lines 180-181, then GetIndex). Several are redundant given Reroot's postcondition.",
+   "currentCost": "Each GetRoot/GetIndex is a pointer-chasing walk to the treap root (cache-miss-heavy). After Reroot(u), u is the leftmost element so GetRoot(u) re-walks a tree whose root we could have captured; rootU/rootV on lines 180-181 repeat work Reroot already implied.",
+   "proposedChange": "Have Reroot return the new root (the value of Merge(r,l)) so Link can reuse it directly instead of calling GetRoot(nodes,u)/GetRoot(nodes,v) again on lines 180-181. Also fold the initial connectivity check: since Reroot is about to run anyway, capture rootU=GetRoot(u) once and compare to GetRoot(v) before rerooting, reusing rootU as the Reroot input.",
+   "rationale": "Cuts two to three full root-to-leaf pointer-chasing walks per Link, each of which is a chain of dependent loads likely to miss cache. Fewer redundant O(log n) traversals on a hot structural-update path.",
+   "risk": "Must confirm Reroot's returned root equals what GetRoot(u) would yield afterward (Merge(r,l) returns the merged root; verify it is the tree containing u). Connectivity early-out semantics must remain identical (still returns without modifying when already connected)."
+  },
+  {
+   "file": "src/IAFahim.Graph.DynamicTrees/EulerTourTree.cs",
+   "symbol": "EttNode",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "EttNode is 8 ints/uints + 2 longs + padding; field order (mixing 4-byte and 8-byte fields) forces alignment padding, inflating the struct beyond the minimum 48 bytes and worsening cache density for large node arrays.",
+   "currentCost": "Sequential layout: Parent,Left,Right(int) Priority(uint) Size(int) [4 bytes] then Val,SubSum(long) Twin(int). The trailing int Twin after two longs likely adds 4 bytes tail padding; total ~56 bytes/node, so fewer nodes per 64-byte cache line during treap walks.",
+   "proposedChange": "Group the five 4-byte fields together and the two 8-byte longs together: order as Val, SubSum (longs first, 8-byte aligned), then Parent, Left, Right, Size, Priority, Twin (six 4-byte fields = 24 bytes). Total 16+24 = 40 bytes with no internal padding.",
+   "rationale": "Removes alignment padding (56 -> 40 bytes, ~28% smaller working set), increasing nodes per cache line and reducing cache misses across the pointer-chasing GetRoot/GetIndex/Split walks that dominate runtime.",
+   "risk": "StructLayout(Sequential) means field order is the memory layout; any external code that memcpys or interops by field offset would break. Within this library all access is by named field so it is safe, but verify no serialization depends on current offsets."
+  },
+  {
+   "file": "src/IAFahim.Graph.DynamicTrees/EulerTourTree.cs",
+   "symbol": "PushUp / Split / Merge / GetIndex",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Repeated `nodes[u].Field` and especially nested `nodes[nodes[root].Left].Size` re-evaluate the base+index*stride address arithmetic and reload through a non-cached pointer on every field touch.",
+   "currentCost": "E.g. PushUp reads nodes[u].Left and nodes[u].Right then nodes[l].Size, nodes[l].SubSum, nodes[u].Val etc.; Split reads nodes[root].Left twice plus nodes[nodes[root].Left].Size. Each `nodes[idx]` recomputes idx*sizeof(EttNode) and the compiler may not prove aliasing to cache the load.",
+   "proposedChange": "Introduce local `EttNode* p = nodes + u;` (and `EttNode* lp = nodes + l;` once l != -1) at the top of PushUp, Split, Merge, GetIndex and access fields via p->Field / lp->Size. Compute child Size/SubSum once into a local instead of re-indexing nodes[nodes[root].Left] twice.",
+   "rationale": "Hoists address arithmetic and deduplicates dependent loads, shortening the dependency chain on the hottest leaf method (PushUp runs after every Split/Merge level). Burst then keeps the node base pointer in a register and indexes once.",
+   "risk": "Through-pointer writes alias the same memory as reads; must keep load/store ordering identical (do not cache a field across a write that the algorithm later re-reads through nodes[..]). Pure address-arithmetic hoisting is semantics-neutral as long as no intervening write invalidates the cached child index."
+  }
+ ]
+}

@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.NT/PhiSieve.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/PhiSieve.cs",
+   "symbol": "PhiSieve.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "The inner sieve loop does an integer divide (phi[j]/i) for every multiple of every prime; replace the divide with the standard phi recurrence phi[j] -= phi[j]/i ... but specifically the j=i term and the whole division can be reduced by iterating j from 2*i and using subtraction, plus the prime test re-reads phi[i].",
+   "currentCost": "For each prime i, the inner loop runs n/i times and each iteration performs `phi[j] / i` \u2014 a 32-bit integer division (10-30 cycles). Total divisions ~ n*ln(ln n), dominating runtime. The j loop also starts at j=i (the prime itself), where phi[i]==i so phi[i]-=phi[i]/i is required, fine, but division per multiple is the hot cost.",
+   "proposedChange": "Keep the algorithm but hoist: the division by i cannot be removed in general, however you can replace it by precomputing nothing and instead noting phi[j] is always divisible by i at this point only for j==i; the canonical fast linear sieve (smallest-prime-factor based, O(n)) eliminates per-multiple division entirely. Switch to a linear phi sieve: maintain primes[] and spf, phi[i*p] = phi[i]*p when p|i else phi[i]*(p-1). That removes ALL divisions in the inner work.",
+   "rationale": "Current sieve is O(n log log n) with a division in the hot loop. A linear (Euler) sieve computes phi in O(n) with only multiplies/adds and no division, and touches each composite exactly once instead of once per prime factor \u2014 strictly fewer memory writes and zero divides. Large asymptotic + constant-factor win.",
+   "risk": "Linear sieve needs an extra primes[] buffer (up to ~n/ln n ints) \u2014 more RAM, which conflicts with the in-place int* phi-only signature. If the API must stay single-buffer, instead keep current algorithm but this is the real win; flag the RAM/API tradeoff. Behavior (phi values) identical."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/PhiSieve.cs",
+   "symbol": "PhiSieve.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Within the current algorithm, the prime's own slot j=i: phi[i]/i == 1 always, so the first iteration can be peeled to avoid a division and start the loop at j=2*i.",
+   "currentCost": "When i is prime, the first inner iteration with j==i computes phi[i] -= phi[i]/i where phi[i]==i, so phi[i]/i==1 \u2014 a known result computed via a full division each prime.",
+   "proposedChange": "Peel: `phi[i] = i - 1; for (int j = 2*i; j <= n; j += i) phi[j] -= phi[j] / i;` This removes one division per prime (O(n/ln n) divisions saved) and sets the prime's value directly.",
+   "rationale": "phi[i]/i for the prime i is provably 1; replacing it with phi[i]=i-1 skips one division per prime. Small but free and semantics-identical.",
+   "risk": "None: phi[i]==i guaranteed at that point because i is only modified by primes < i, and a prime has no smaller prime factor, so phi[i] still equals i. 2*i cannot overflow int for valid n (n is int, i<=n, 2*i could overflow if i>2^30; guard or use long index). Use `for (long j = 2L*i...)` if n near int.MaxValue, else fine."
+  }
+ ]
+}

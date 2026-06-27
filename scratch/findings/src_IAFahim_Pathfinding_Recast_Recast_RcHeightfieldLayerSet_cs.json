@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Recast/RcHeightfieldLayerSet.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/RcHeightfieldLayerSet.cs",
+   "symbol": "RcHeightfieldLayerSet.Dispose",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Loop uses 'var' instead of explicit 'int', inconsistent with house explicit-type constraint.",
+   "currentCost": "`for (var i = 0; i < this.NLayers; i++)` \u2014 inferred type, inconsistent with library style.",
+   "proposedChange": "Use `for (int i = 0; i < this.NLayers; i++)`.",
+   "rationale": "Consistency with house constraint; no codegen impact.",
+   "risk": "None. Identical IL."
+  }
+ ]
+}

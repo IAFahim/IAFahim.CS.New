@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Graph.DAG/CountTopologicalOrders.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.DAG/CountTopologicalOrders.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Skip the full inner i-loop by iterating only over the unset bits that are ready, and precompute (1<<i) reuse.",
+   "currentCost": "For every reachable mask the inner loop runs n iterations doing a bit-test, an unset-check, and a full dependency-mask compare (adjMask[i] & mask) == adjMask[i]. That is O(2^n * n) with two branches per i regardless of whether the bit is set. For dense masks most i are already set and waste the iteration.",
+   "proposedChange": "Compute 'int free = (maxMask - 1) & ~mask;' once per mask, then loop 'while (free != 0) { int bit = free & -free; int i = math.tzcnt(bit); if ((adjMask[i] & mask) == adjMask[i]) dp[mask | bit] += dp[mask]; free &= free - 1; }'. This visits only the unset bits (no wasted iterations on set bits) and replaces (1<<i) with the already-isolated 'bit'.",
+   "rationale": "Iterating set bits via free&-free / free&(free-1) processes exactly popcount(~mask) candidates instead of always n, removing the '(mask & (1<<i))==0' branch entirely and the redundant 1<<i shift in the dp index. tzcnt is a single Burst intrinsic. Fewer branches shorten the dependency chain and the loop trip count drops for dense masks.",
+   "risk": "Behavior identical for all valid inputs (n <= 31 so 1<<n is well-defined as currently assumed). 'bit & -bit' is safe on the positive int 'free'. Requires Unity.Mathematics for math.tzcnt; if unavailable, a de Bruijn table or intrinsic equivalent is needed. No signedness hazard since free is built from (maxMask-1) which is positive for n<31."
+  },
+  {
+   "file": "src/IAFahim.Graph.DAG/CountTopologicalOrders.cs",
+   "symbol": "Run",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "The dp zero-init loop can be a single memset-style clear.",
+   "currentCost": "The explicit 'for (i<maxMask) dp[i]=0' is a scalar store loop of 2^n longs (8*2^n bytes), not auto-recognized as a block clear in all Burst configs.",
+   "proposedChange": "Replace the manual zeroing loop with 'Unsafe.InitBlockUnaligned(dp, 0, (uint)(maxMask * sizeof(long)))' (or UnsafeUtility.MemClear). Then set dp[0]=1.",
+   "rationale": "A bulk clear maps to vectorized/wide stores (or rep stosb) instead of one 8-byte store per iteration, reducing the init cost and instruction count before the main DP. The main DP loop dominates, so impact is low, but it is a free, semantics-identical win.",
+   "risk": "maxMask*sizeof(long) must not overflow uint; for n<=28 it is fine, and the algorithm is already infeasible well before that. Observable result unchanged."
+  }
+ ]
+}

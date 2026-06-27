@@ -1,0 +1,72 @@
+{
+ "file": "src/IAFahim.Graph.Eertree/Eertree.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Eertree/Eertree.cs",
+   "symbol": "Eertree.Build",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "The transition edge for a newly created palindrome node is attached to the new node itself instead of to its parent 'cur'. NextEdge(newNode, c, newNode, ...) creates a self-loop newNode --c--> newNode, whereas the eertree algorithm requires the edge cur --c--> newNode (from the node that was extended). As a result, FindTransition(cur, c, ...) can never find previously created children of cur, so suffix links computed via FindTransition(temp, c, ...) return -1 (invalid), duplicate nodes are created for repeated palindromes, and the palindromic tree is corrupted.",
+   "triggeringInput": "s = [97, 97] (string \"aa\"), len = 2. Initial nodeCount=2,last=1. Trace: i=0 creates node 2 (len 1, 'a') and via NextEdge(2,97,2) records edge on node 2 instead of on node 0. i=1 creates node 3 (len 2, \"aa\"); computing its suffix link does temp=0 then link[3]=FindTransition(0,97) which returns -1 because the 'a' edge was stored on node 2, not node 0. So nodes[3].Link == -1, an invalid suffix link, corrupting subsequent traversals.",
+   "rootCause": "Line 33: NextEdge(newNode, c, newNode, nodes, next, ref nextCount) passes 'newNode' as the source ('to') parameter. The source of the new transition must be the parent palindrome 'cur' (the node that was just extended by character c), not the newly created node. Storing the edge on newNode produces a self-loop and leaves cur with no outgoing edge for c, breaking both FindTransition(cur,...) duplicate detection (line 26) and the suffix-link lookup FindTransition(temp,...) (line 45).",
+   "suggestedFix": "Change line 33 to NextEdge(cur, c, newNode, nodes, next, ref nextCount) so the transition is recorded as cur --c--> newNode. (cur still holds the extended parent at that point since it is only reassigned to newNode on line 47.)"
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Eertree/Eertree.cs",
+   "symbol": "Build",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist redundant nodes[cur] / nodes[temp] field reloads in the two suffix-link walk loops by caching the node index instead of re-indexing repeatedly.",
+   "currentCost": "Each suffix-walk iteration recomputes nodes[cur].Len then nodes[cur].Link via two separate indexed loads from the Node* array. Node is 12 bytes; the two accesses touch the same cache line but issue two distinct address computations and loads per iteration. The walk can iterate O(string length) times in the worst case over the whole build.",
+   "proposedChange": "Inside the while(true) walk, load the Node once: 'Node* p = &nodes[cur]; int curLen = p->Len; if (i - curLen - 1 >= 0 && s[i-curLen-1]==c) break; cur = p->Link;'. Same for the temp-walk with '&nodes[temp]'. This reuses one base-address computation for both Len and Link reads.",
+   "rationale": "Folds two array-index address calculations into one pointer, and lets the compiler keep Len and Link reads adjacent off the same register-held base, shortening the per-iteration dependency chain in the hottest loop of the algorithm.",
+   "risk": "None. Identical reads, same order, no aliasing concern since nodes are not written inside the walk loops."
+  },
+  {
+   "file": "src/IAFahim.Graph.Eertree/Eertree.cs",
+   "symbol": "Build",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Avoid the redundant final FindTransition for the suffix link by capturing the matching transition target during the temp-walk, mirroring the standard eertree optimization.",
+   "currentCost": "For every newly created node with Len != 1, the code walks suffix links to find 'temp', then calls FindTransition(temp, c, ...) which re-scans temp's adjacency list from scratch to locate the c-transition \u2014 a list traversal that duplicates work and adds an extra O(alphabet-degree) scan plus a non-inlined-cost lookup per new node.",
+   "proposedChange": "The suffix link of newNode is the node reached by following the c-transition from the first proper suffix-palindrome that can be extended by c. Since FindTransition is already the lookup, the only safe constant-factor win is to read nodes[temp].FirstNext into a local before the call so the AggressiveInlining body starts from a register-held head; alternatively keep as-is. If an additional invariant holds that the transition always exists at temp (it does by eertree construction), the -1 branch in FindTransition can be skipped for this call via a dedicated FindTransitionExisting helper returning next[e].To without the terminal -1 check.",
+   "rationale": "By construction the c-transition from temp is guaranteed to exist when setting the suffix link, so the terminal 'return -1' path is dead for this call; a specialized lookup removes one loop-exit branch test per scanned edge and the unreachable tail.",
+   "risk": "Specialized helper must only be used at line 45 where existence is guaranteed by eertree invariants; using it elsewhere would loop past the list end. Behavior preserved only under that guarantee."
+  },
+  {
+   "file": "src/IAFahim.Graph.Eertree/Eertree.cs",
+   "symbol": "Node",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Node and Next structs use int fields where index/length ranges are bounded by string length; narrowing or documenting blittability is fine, but no free win without a known max length.",
+   "currentCost": "Node is 12 bytes (3x int), Next is 12 bytes (3x int). For long inputs both arrays scale with len, so working set is ~24*len bytes. On mobile this affects cache footprint of the adjacency scans in FindTransition.",
+   "proposedChange": "If callers can guarantee len < 2^31 (always true for int* indexing) the types are already minimal for correctness; no change unless a 16-bit/typed length cap is introduced. Leave as-is. Optionally add [StructLayout(LayoutKind.Sequential)] documentation intent \u2014 already the default for unmanaged structs, so this is a no-op for layout.",
+   "rationale": "The structs are already tightly packed with no padding (3 ints = 12 bytes, 4-byte aligned). There is no provably safe narrowing without a documented length bound from callers.",
+   "risk": "Narrowing int->short would break for strings longer than 32767 distinct nodes; reject without an explicit caller contract."
+  },
+  {
+   "file": "src/IAFahim.Graph.Eertree/Eertree.cs",
+   "symbol": "NextEdge",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Replace the 'new Next { ... }' struct-initializer store with direct field writes to avoid a temporary struct construct-then-copy.",
+   "currentCost": "'next[nextCount] = new Next { Char = c, To = newNode, Next = nodes[to].FirstNext };' may materialize a temporary Next on the stack and copy 12 bytes into the array slot, plus reads nodes[to].FirstNext separately, then writes nodes[to].FirstNext.",
+   "proposedChange": "Write fields directly: 'int head = nodes[to].FirstNext; Next* e = &next[nextCount]; e->Char = c; e->To = newNode; e->Next = head; nodes[to].FirstNext = nextCount++;'. This caches the FirstNext read once and stores straight into the array slot.",
+   "rationale": "Direct field stores into the target slot eliminate the potential temporary-struct copy and reuse the single FirstNext load for both the edge's Next field and the head update, trimming one indexed access.",
+   "risk": "None under Burst \u2014 same final memory state. Burst typically already lowers the initializer this way, so the win may be zero post-optimization; harmless either way."
+  },
+  {
+   "file": "src/IAFahim.Graph.Eertree/Eertree.cs",
+   "symbol": "FindTransition",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Linear adjacency-list scan in FindTransition is the dominant per-character cost; for large alphabets it is O(degree) and not vectorizable due to pointer-chasing via next[e].Next.",
+   "currentCost": "FindTransition follows a singly-linked list through next[e].Next, a data-dependent load chain that Burst cannot vectorize or prefetch; each hop is a cache-miss candidate. Called twice per character (transition probe + suffix-link lookup).",
+   "proposedChange": "If the alphabet is small and known (e.g., bounded by a named constant ALPHABET), replace per-node linked lists with a direct nodes-by-alphabet table indexed as transitions[node*ALPHABET + c], turning FindTransition into a single O(1) indexed load with no pointer chase. This trades RAM (ALPHABET*nodeCount ints) for eliminating the dependent-load chain.",
+   "rationale": "Direct-indexed transition table converts a pointer-chasing O(degree) scan into one branchless O(1) load, removing the serial dependency chain and making the hot lookup cache-predictable \u2014 a genuine asymptotic improvement per lookup when alphabet is bounded.",
+   "risk": "Only valid when the alphabet is small/bounded by a compile-time constant; for large/unbounded int alphabets the table blows up RAM and the linked-list form is preferable. Must keep current form as the general path; this is an alternate specialization, not a drop-in replacement."
+  }
+ ]
+}

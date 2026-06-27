@@ -28,7 +28,7 @@ namespace IAFahim.DS.PersistentDsu.Bench
         [GlobalSetup]
         public void Setup()
         {
-            _capacity = 4 * N;
+            _capacity = 40 * N;
             _parent = (int*)Marshal.AllocHGlobal(_capacity * sizeof(int));
             _size = (int*)Marshal.AllocHGlobal(_capacity * sizeof(int));
             _lc = (int*)Marshal.AllocHGlobal(_capacity * sizeof(int));
@@ -50,6 +50,7 @@ namespace IAFahim.DS.PersistentDsu.Bench
         [Benchmark(Baseline = true)]
         public void PersistentDsuUnion()
         {
+            ResetTree();
             _prevRoot = _root;
             Random rng = new Random(42);
             int root = _root;

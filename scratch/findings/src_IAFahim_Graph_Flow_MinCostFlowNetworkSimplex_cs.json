@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Graph.Flow/MinCostFlowNetworkSimplex.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph.Flow/MinCostFlowNetworkSimplex.cs",
+   "symbol": "MinCostFlowNetworkSimplex.Run",
+   "severity": "critical",
+   "category": "wrong-algorithm",
+   "summary": "After the initial Bellman-Ford potential init (lines 14-26), the augmenting loop (lines 36-51) finds an ARBITRARY residual augmenting path via BFS over any edge with residual capacity (lines 41,47), with no restriction to tight/zero-reduced-cost edges and no shortest-path selection. It pushes max flow along whatever path BFS happens to find first, ignoring cost. The result is a feasible (max) flow but NOT a minimum-cost flow; the returned totalCost can exceed the optimum.",
+   "triggeringInput": "n=4, s=0, t=3 with edges (ids: forward even, reverse odd cap 0): 0->1 cap=1 cost=0, 1->3 cap=1 cost=10 listed FIRST in head[1], 1->2 cap=1 cost=1, 2->3 cap=1 cost=1. Bottleneck 0->1 limits max flow to 1. Optimal is 0->1->2->3 cost 2, but BFS scans 1->3 first and augments 0->1->3 -> returns 10 instead of 2.",
+   "rootCause": "The method name implies network-simplex/min-cost augmentation, but it performs a plain BFS max-flow augmentation that disregards reduced costs entirely. Min-cost flow requires augmenting only along shortest (here: zero-reduced-cost admissible) paths so each augmentation preserves optimality of the reduced-cost objective.",
+   "suggestedFix": "Restrict the BFS/augmentation to admissible edges (reduced cost cost[e]+pi[u]-pi[v]==0) and recompute potentials between phases (as the Dijkstra/PrimalDual variants do), or replace with a shortest-augmenting-path search; do not augment along arbitrary positive-reduced-cost edges."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Flow/MinCostFlowNetworkSimplex.cs",
+   "symbol": "Run",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "d/p/eid/q stackalloc'd inside the second while(true); hoist and fuse the init.",
+   "currentCost": "Four stackalloc int[n] (d,p,eid,q) plus a 3-field init loop occur each augmenting iteration. Persisted to method end regardless, so re-declaring per pass is wasted frame churn.",
+   "proposedChange": "Hoist d, p, eid, q above the second while(true); keep only the per-iteration reset of d (and p/eid as needed). Note p/eid only need reset where d is reset, and d acts as the visited guard, so resetting d[i]=0 alone suffices for correctness (p/eid are only read along the t->s path where d==1).",
+   "rationale": "One allocation instead of O(augmentations); and the reset can be narrowed to just `d[i]=0` because p[]/eid[] are only consulted for nodes with d==1 on the recovered path, removing two of three stores per init element.",
+   "risk": "Low \u2014 must confirm p/eid are never read for a node with d==0; the path walk starts at t (d[t]!=0) and follows p[] which only points to enqueued (d==1) nodes, so unread entries are never touched. Verify before dropping p/eid resets."
+  },
+  {
+   "file": "src/IAFahim.Graph.Flow/MinCostFlowNetworkSimplex.cs",
+   "symbol": "Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "BFS does two separate adjacency passes per node (forward residual then reverse positive-flow) doubling pointer-chasing over the same edge list.",
+   "currentCost": "For each dequeued node uu, the code walks `for(e=head[uu]...)` twice: once filtering `cap[e]-flow[e]>0`, once filtering `flow[e]>0`. That is two full traversals of the linked adjacency list (two cache-miss-laden pointer chases) per node per BFS.",
+   "proposedChange": "Merge into a single pass: for each e, treat it as usable if its residual `cap[e]-flow[e] > 0` (note the reverse edge e^1 already represents pushed flow as residual capacity in this representation). Verify the edge model: if reverse residual is captured by e^1's cap-flow, the second `flow[e]>0` pass is redundant; otherwise fold both conditions into one `if (cap[e]-flow[e] > 0 || flow[e] > 0)` over a single traversal.",
+   "rationale": "Halves the number of linked-list traversals per BFS node, which is the dominant cache-miss source here; fewer next[e] dependency-chain loads.",
+   "risk": "Medium \u2014 depends on whether the graph uses paired residual edges (e^1) or stores forward/backward separately. If reverse residual is already via e^1, the second loop double-counts reachability harmlessly but wastes cycles; merging conditions in one pass preserves the visited set exactly. Validate edge representation before applying."
+  }
+ ]
+}

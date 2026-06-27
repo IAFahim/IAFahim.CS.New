@@ -1,0 +1,83 @@
+{
+ "file": "src/IAFahim.Graph/Tournament.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Graph/Tournament.cs",
+   "symbol": "Tournament.ProcessEulerianCircuit",
+   "severity": "high",
+   "category": "overflow",
+   "summary": "ProcessEulerianCircuit (used by the public EulerianOrientation) allocates a fixed Hierholzer stack of 1024 ints ('stackalloc int[1024]', commented 'Simplified stack size'), but the stack depth grows with the number of edges traversed (up to ~m+1). For any graph with m >= 1024 edges in a single circuit, 'stack[ss++] = v' writes past the 1024-element buffer, corrupting the stack frame / adjacent stackalloc memory (undefined behavior).",
+   "triggeringInput": "A connected even-degree graph with m = 2000 edges (e.g. a single cycle of 2000 edges) passed to EulerianOrientation; the Hierholzer traversal pushes well over 1024 vertices, overflowing stack[1024].",
+   "rootCause": "Line 134 'int* stack = stackalloc int[1024];' hardcodes a capacity unrelated to n or m, while the algorithm can push up to m+1 entries before any pop.",
+   "suggestedFix": "Size the stack from the actual edge count, e.g. 'int* stack = stackalloc int[m + 1];' (or accept a caller-provided scratch buffer), so capacity matches the maximum Hierholzer stack depth."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph/Tournament.cs",
+   "symbol": "Tournament.ProcessEulerianCircuit",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "Euler-circuit DFS uses a fixed `stackalloc int[1024]`; the explicit stack can hold up to m+1 entries, so this both wastes stack for tiny graphs and silently corrupts/overflows for m >= 1024.",
+   "currentCost": "Always reserves 1024 ints (4 KB) regardless of m, and has no bound for m>=1024 \u2014 a latent correctness/overflow bug as well as a fixed cost that is too big for small m and too small for large m.",
+   "proposedChange": "Pass m (or n) down and size the stack as `int* stack = stackalloc int[m + 1];` (an Eulerian walk pushes at most one node per directed half-edge plus the start). Allocate once in EulerianOrientation and reuse across the per-component calls rather than re-stackallocing inside the loop.",
+   "rationale": "Right-sizes the buffer to the true bound (m+1), removing the magic 1024, eliminating overflow for large graphs, and cutting stack footprint for small graphs; reusing one buffer avoids repeated stack frame growth across components.",
+   "risk": "Must thread m into ProcessEulerianCircuit. The m+1 bound is the standard Hierholzer stack bound; verify against the half-edge encoding (ve indexed by e/2). Reusing the buffer requires resetting only the stack pointer, not the contents."
+  },
+  {
+   "file": "src/IAFahim.Graph/Tournament.cs",
+   "symbol": "Tournament.TryInsertIntoCycle",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Inner loop uses `(j + 1) % len` modulo every iteration to wrap the cycle index, where len is generally not a power of two.",
+   "currentCost": "An integer division (modulo) per j iteration inside the O(len) insertion scan, which itself runs for each of up to n uninserted vertices => up to O(n^2) divisions on a non-power-of-two divisor (slow on mobile ARM).",
+   "proposedChange": "Replace the modulo with a branchless wrap: compute `int jn = j + 1; if (jn == len) jn = 0;` (or precompute the successor as cycle[j+1] for j<len-1 and cycle[0] for the last index, since adj[u*n+ ...] only needs the next element).",
+   "rationale": "Replaces a 20-40 cycle integer division with a single compare+conditional-move, removing division from a quadratic hot path; len changes only between outer iterations so the wrap is trivial.",
+   "risk": "Behavior identical for all len>=1 since j ranges [0,len); the only wrap occurs at j==len-1. Guard: ensure len>=1 (true, cycle always non-empty here)."
+  },
+  {
+   "file": "src/IAFahim.Graph/Tournament.cs",
+   "symbol": "Tournament.TournamentMedianOrder / FeedbackArcTournament",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "Both enumerate all n! permutations via backtracking with an O(n^2) score recomputed from scratch at each leaf, giving O(n! * n^2).",
+   "currentCost": "MedianOrderBacktrack/FeedbackArcBacktrack reach n! leaves and UpdateBestOrder/UpdateBestFeedbackOrder each rescan the full upper-triangular O(n^2) pair set, so total work is O(n! * n^2). The score also ignores partial progress already fixed by earlier steps.",
+   "proposedChange": "Maintain the score incrementally: when placing vertex i at `step`, add the count of edges between cur[step] and the already-placed prefix cur[0..step-1] (O(step)), and subtract on backtrack. Prune branches whose partial score already exceeds best (for feedback-min) / cannot beat best. This turns leaf evaluation into O(1) and enables branch-and-bound pruning.",
+   "rationale": "Removes the O(n^2) per-leaf rescan (drops a factor n^2) and the prefix-sum bound lets the search abandon hopeless subtrees, cutting the explored permutation count well below n! in practice.",
+   "risk": "Incremental score must exactly mirror UpdateBest* counting (count adj[cur[j]*n+cur[i]]==1 for j<i for feedback; adj[cur[i]*n+cur[j]] for median) to preserve the chosen optimum. Tie-breaking (strict > / <) must match so the same best order is selected."
+  },
+  {
+   "file": "src/IAFahim.Graph/Tournament.cs",
+   "symbol": "Tournament.StrongDfs / DfsReach / MedianOrderBacktrack / FeedbackArcBacktrack",
+   "dimension": "burst",
+   "impact": "medium",
+   "summary": "Recursive DFS/backtracking routines use native call recursion, which Burst cannot inline/optimize well and risks deep stack growth.",
+   "currentCost": "Each recursion is a real call with full argument marshalling of many pointers; deep graphs (StrongDfs/DfsReach up to n deep, backtracking n deep) build large native frames and defeat Burst's preference for flat loops.",
+   "proposedChange": "Convert StrongDfs and DfsReach to explicit-stack iterative DFS using a stackalloc int[n] frontier (the file already does this for ProcessEulerianCircuit), and consider an iterative permutation/Heap's-algorithm formulation for the backtrackers.",
+   "rationale": "Iterative DFS removes per-edge call overhead and the multi-pointer argument push, keeps the hot loop flat for Burst, and bounds stack at n ints instead of n native frames.",
+   "risk": "Iterative rewrite must preserve visitation order where it affects output (StrongDfs assigns ou/ov on first traversal; DfsReach only counts reachability so order is irrelevant). Verify the orientation written by StrongDfs matches the recursive edge-discovery order."
+  },
+  {
+   "file": "src/IAFahim.Graph/Tournament.cs",
+   "symbol": "Tournament.IsKing / TournamentKingFind",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "King search is O(n) candidates * O(n) non-neighbors * O(n) reach-2 probe = O(n^3) worst case, when a king is guaranteed to be any maximum-out-degree vertex (O(n^2)).",
+   "currentCost": "TournamentKingFind tries u=0..n-1 and IsKing does an O(n^2) two-step reachability test per candidate => O(n^3) in the worst case.",
+   "proposedChange": "Use the tournament theorem: the vertex of maximum out-degree is always a king. Compute out-degrees in one O(n^2) pass over adj and return the argmax. Keep IsKing only if exact-first-index semantics must be preserved.",
+   "rationale": "Drops an entire factor of n (O(n^3) -> O(n^2)) using a known structural guarantee for tournaments.",
+   "risk": "Changes WHICH king is returned (max-out-degree vertex vs first-by-index). Only safe if callers accept any valid king; if the specific returned index is part of the contract, reject this opt or keep it behind a separate method."
+  },
+  {
+   "file": "src/IAFahim.Graph/Tournament.cs",
+   "symbol": "Tournament.CheckEulerianPossible",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Parity check uses `deg[i] % 2 != 0` on signed ints instead of a bit-test.",
+   "currentCost": "A modulo (or div) per vertex for the parity test; deg is a non-negative counter.",
+   "proposedChange": "Replace with `(deg[i] & 1) != 0`.",
+   "rationale": "deg[i] is always >= 0 here (it is incremented from 0), so &1 is identical to %2 and is a single ALU op versus a division-pattern; mirrors the power-of-two strength reduction the house style favors.",
+   "risk": "Equivalent only for non-negative deg, which holds (counts). For signed negatives %2 and &1 differ, but that case cannot occur."
+  }
+ ]
+}

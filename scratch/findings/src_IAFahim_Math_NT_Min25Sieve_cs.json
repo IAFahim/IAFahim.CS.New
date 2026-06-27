@@ -1,0 +1,82 @@
+{
+ "file": "src/IAFahim.Math.NT/Min25Sieve.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Math.NT/Min25Sieve.cs",
+   "symbol": "Min25Sieve.Sieve",
+   "severity": "high",
+   "category": "overflow",
+   "summary": "Inner sieve loop computes the composite-marking start index as `i * 2` (and steps `j += i`) in 32-bit int arithmetic; for sufficiently large n the prime `i` exceeds 2^30 and `i*2` overflows to a negative int, so multiples of `i` are never marked composite, yielding wrong prime lists and wrong PrimePi/PrimeSum/MultiplicativeSum results.",
+   "triggeringInput": "PrimePi(n=1152921504606846976 /* 2^60 */, ...): maxV=(int)sqrt(n)=1073741824 fits int, but the first prime i>1073741823 makes `i*2` overflow int.MaxValue. Even earlier, e.g. n=1300000000000000000 produces maxV~1.14e9 and primes i in (2^30, maxV] whose `i*2` overflows.",
+   "rootCause": "`for (int j = i * 2; j <= maxV; j += i)` uses int*int for the start index. When i > int.MaxValue/2 (~1.07e9), `i*2` overflows to negative, the loop body is skipped (or `j += i` wraps), so composites with smallest factor i are left marked prime. maxV can legitimately reach near int.MaxValue for n approaching ~4.6e18 (all within long contract).",
+   "suggestedFix": "Use a wider start index, e.g. `for (long j = (long)i * 2; j <= maxV; j += i) isPrime[(int)j] = false;`, keeping j as long to avoid the int overflow."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/Min25Sieve.cs",
+   "symbol": "Min25Sieve.MultiplicativeSum",
+   "severity": "high",
+   "category": "logic",
+   "summary": "MultiplicativeSum combines g0 (prime count) and g1 (prime sum) as f(p)=c0+c1*p, but UpdateMultiplicativeBlocks only sieves g0; g1 is never reduced from 'sum of all integers <= val' to 'sum of primes <= val' (the code even comments the g1 update is missing). For any c1 != 0 the prime-base values g[i] are wrong, producing an incorrect multiplicative sum.",
+   "triggeringInput": "MultiplicativeSum(n=10, c0=0, c1=1, fPower=(p,e)=>p^e (identity on primes), mod=1000000007, ...): expected sum over k<=10 of a multiplicative f with f(p)=p equals (e.g.) sum of all integers' value under that f; g1[*] stays as 1+2+...+val instead of (sum of primes <= val), so g[idx] and SolveS return wrong results. Concretely for n=10 the base prime sum should be 2+3+5+7=17, but g1 is left as 1+2+...+10=55 minus 1 => 54.",
+   "rootCause": "InitializeMultiplicativeBlocks sets g1 to the full triangular-number sum (sum of all integers in [2,val]); UpdateMultiplicativeBlocks performs the inclusion-exclusion sieve only on g0 and omits the analogous g1 = g1 - p*(g1[idx]-prefixPrimeSum) update. Thus g1 never becomes the prime-restricted sum required by line 114's `c1*g1`.",
+   "suggestedFix": "Add the g1 sieve step mirroring PrimeSum's UpdatePrimeSumBlocks: maintain a prefix sum sp of primes and update `g1[j] = (g1[j] - p%mod*(g1[idx]-sp[i]+mod)%mod + mod)%mod;` inside the same inner loop as the g0 update."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/Min25Sieve.cs",
+   "symbol": "Min25Sieve.Sieve",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Start composite marking at i*i and use j+=i from there; skip even numbers; current code starts at i*2.",
+   "currentCost": "Inner crossing loop starts at j = i*2, re-marking many composites already crossed by smaller primes; also marks all multiples including those below i*i which are redundant in a sieve of Eratosthenes.",
+   "proposedChange": "Start at j = i*i (guard i <= maxV/i to avoid overflow) and step j += i. Optionally only sieve odd i and step j += 2*i to skip even multiples. This is the standard Eratosthenes optimization.",
+   "rationale": "Starting at i*i instead of 2*i eliminates redundant writes for all composites < i^2 (already handled), reducing total inner iterations from ~n ln ln n with a large constant to the tighter standard bound. Fewer stores = fewer cache-line dirties.",
+   "risk": "i*i can overflow int when maxV is large; guard with long or 'if ((long)i*i > maxV) continue;'. maxV = sqrt(n) so i up to ~n^0.25-ish; for n near long.max maxV ~ 3e9 which exceeds int \u2014 but maxV is typed int here, implying n <= ~4.6e18 keeps maxV in int range; i*i still needs a long guard."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/Min25Sieve.cs",
+   "symbol": "Min25Sieve.UpdatePrimePiBlocks",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist invariant n/p-class index lookups and avoid recomputing n/val in the idx select by reusing w[j]/p structure.",
+   "currentCost": "Inner loop computes val = w[j]/p (a division per j), then idx via val<=maxV?map1[val]:map2[n/val] (a second division n/val on the large-value branch). Two divisions per inner iteration in the core Min25 update \u2014 the dominant cost.",
+   "proposedChange": "For the map2 branch, n/val where val=w[j]/p: since w[j] is itself n/(something), n/(w[j]/p) often simplifies, but minimally cache p and note w[j] is monotonically decreasing so the val<=maxV crossover index can be precomputed per prime, splitting the j-loop into a no-extra-division prefix (map1) and a map2 suffix, hoisting the branch out of the hot loop.",
+   "rationale": "The val<=maxV test flips exactly once as j increases (w[j] decreasing). Precomputing the split point lets each half run branchlessly: the map1 half avoids the n/val division entirely. Removes a per-iteration unpredictable branch and a division on the small-value side.",
+   "risk": "Requires confirming w[] monotonicity (it is, by construction in InitializeBlocks). The map2 branch still needs n/val unless a closed form is derived; the win is branch removal + eliminating the division on the map1 side. Index arithmetic must be verified."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/Min25Sieve.cs",
+   "symbol": "Min25Sieve.SolveS",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist repeated fPower(p,e) evaluations and the (g[idx]-gPrimeSum...) modulo; fPower is called 2x per (e) with adjacent exponents.",
+   "currentCost": "Inside the e-loop, fPower(p,e) and fPower(p,e+1) are both computed each iteration. Next iteration recomputes fPower(p,e+1) again as the new fPower(p,e). Each is a managed delegate call. Also pe*p<=x recomputes the product.",
+   "proposedChange": "Carry feNext = fPower(p,e+1) across iterations so each loop does one fPower call instead of two: fe = (first iter) fPower(p,1); loop: feNext = fPower(p,e+1); use fe and feNext; fe = feNext. Halves the delegate invocations in the deepest recursion.",
+   "rationale": "fPower is a managed delegate* call (non-inlinable, defeats Burst, multi-cycle); SolveS is recursive and the e-loop is its inner hot path. Halving fPower calls roughly halves the dominant cost of the deepest level.",
+   "risk": "Must preserve exact summation order/values for modular arithmetic (it does \u2014 same terms, just reused). delegate* managed already blocks Burst; recommend delegate* unmanaged. Recurrence depth makes stackalloc-free recursion fine but watch stack for huge n."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/Min25Sieve.cs",
+   "symbol": "Min25Sieve.UpdateMultiplicativeBlocks",
+   "dimension": "complexity",
+   "impact": "low",
+   "summary": "The g1 (prime-sum) update is stubbed out with only a comment; if MultiplicativeSum depends on g1 being sieved, results are incomplete \u2014 flag as correctness, and if intended, remove the unused g1 work.",
+   "currentCost": "InitializeMultiplicativeBlocks fills g1 but UpdateMultiplicativeBlocks never sieves g1 (only g0), per the inline TODO comment. Either g1 is dead (wasted init cost) or the algorithm is incorrect.",
+   "proposedChange": "If g1 is required for the c1 term in MultiplicativeSum's 'c1*g1[i]' combination, implement the g1 sieve with the prime prefix-sum (as PrimeSum does). If c1 paths are unused, drop g1/g1 init entirely to save a full O(tot) init pass and an array.",
+   "rationale": "Removes either a latent correctness gap or a wasted initialization loop + array (RAM). Currently g1 is initialized (cost) but never updated, so any nonzero c1 yields wrong sums \u2014 pure waste at best.",
+   "risk": "This is a semantics/correctness flag, not a blind micro-opt. Confirm whether c1!=0 is a supported path before removing or implementing; do not silently delete if callers pass c1."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/Min25Sieve.cs",
+   "symbol": "Min25Sieve.InitializePrimeSumBlocks",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "The even/odd triangular-number modular formula recomputes several % mod operations that can be reduced; and val%2 branch can be made branchless.",
+   "currentCost": "Per block: a val%2 branch selecting between two expressions each with 2-3 modulo ops. Modulo is multi-cycle; the branch is on val parity (somewhat predictable but still a branch).",
+   "proposedChange": "Compute t = val%mod and t1=(val+1)%mod once, then the triangular sum is (val*(val+1)/2)%mod = (t*t1/2)... but division by 2 under mod needs the parity to pick which factor is halved; instead halve whichever of val or val+1 is even before taking %mod (exactly the current intent) \u2014 but compute (val/2) and ((val+1)/2) unconditionally as h0=val>>1, h1=(val+1)>>1 and pick based on parity without recomputing %mod on both branches.",
+   "rationale": "Reduces redundant %mod operations and shared subexpressions across the two branches; modulo is the bottleneck here. tot can be O(sqrt n) so this runs O(sqrt n) times.",
+   "risk": "Must preserve exact modular value; halving must apply to the even operand to keep integer exactness before reduction. Low impact since tot is only O(sqrt n)."
+  }
+ ]
+}

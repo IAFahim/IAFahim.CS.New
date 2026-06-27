@@ -1,0 +1,104 @@
+{
+ "file": "src/IAFahim.Search.Numerical/Numerical.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Search.Numerical/Numerical.cs",
+   "symbol": "GaussLegendre.ComputeNodesWeights",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "The Gauss-Legendre quadrature weight formula is mathematically wrong, so Run produces grossly incorrect integrals for every n. The correct weight is w_i = 2 / ((1 - x_i^2) * P'_n(x_i)^2); the code instead computes 2 / ((1 - x_i^2) * (n*(n+1)) / (2.0*(n+1)*(n-1))), which has no dependence on the derivative of the Legendre polynomial and is dimensionally nonsensical.",
+   "triggeringInput": "Run(2, 0.0, 1.0, func) with func = {1,0,0} (integrating x^2 over [0,1], true value 1/3). The method returns ~1.183 instead of ~0.3333. For n=2 each weight should be 1.0 but the formula yields 3.0.",
+   "rootCause": "Weight expression on line 85 does not implement the Gauss-Legendre weight w = 2/((1-x^2)*P'_n(x)^2). The denominator factor (n*(n+1))/(2.0*(n+1)*(n-1)) is an invented expression unrelated to the Legendre derivative at the node, so every weight is wrong (e.g. 3.0 instead of 1.0 at n=2). Additionally, for n==1 the factor (n-1)=0 makes the divisor 0, giving an infinite/NaN weight.",
+   "suggestedFix": "Compute the Legendre derivative pder at the converged node (as already done inside RefineRoot) and set w[n-i] = 2.0 / ((1 - x*x) * pder * pder). Pass/return pder out of RefineRoot, or recompute the n-degree Legendre polynomial and its derivative at the final node. Also handle n==1 explicitly (single node 0, weight 2)."
+  },
+  {
+   "file": "src/IAFahim.Search.Numerical/Numerical.cs",
+   "symbol": "AdaptiveSimpson.AdaptiveSimpsonRecursive",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Adaptive Simpson samples the two half-interval Simpson estimates at the wrong abscissae. For the left subinterval [a, mid] it must evaluate the function at the midpoint (3a+b)/4, and for the right subinterval [mid, b] at (a+3b)/4, but the code evaluates fLeft at the global midpoint (a+b)/2 and fRight at the right endpoint b. The resulting estimates (and the fMid values forwarded into the recursion) are wrong, so even quadratics, which Simpson integrates exactly, come out wrong.",
+   "triggeringInput": "Run(func, 0.0, 2.0, 1e-9, 10) with func = {1,0,0} (integrating x^2 over [0,2], exact value 8/3 = 2.66667). The method returns ~2.6693 instead of the exact 2.66667.",
+   "rootCause": "Lines 53-55: fLeft = Evaluate(f, (a+b)/2) and fRight = Evaluate(f, b) are not the midpoints of the half-intervals. Simpson on [a, mid] needs f at (a + (a+b)/2)/2 = (3a+b)/4, and Simpson on [mid, b] needs f at ((a+b)/2 + b)/2 = (a+3b)/4. Using (a+b)/2 and b makes both 'left' and 'right' Simpson sums incorrect, and these wrong values are passed as fMid into the child recursions (line 57), compounding the error.",
+   "suggestedFix": "Let mid = (a+b)/2, lm = (a+mid)/2, rm = (mid+b)/2; fLeft = Evaluate(f, lm); fRight = Evaluate(f, rm); left = (mid-a)*(Evaluate(f,a)+4*fLeft+fMid)/6; right = (b-mid)*(fMid+4*fRight+Evaluate(f,b))/6; and recurse with AdaptiveSimpsonRecursive(f, a, mid, tol/2, depth-1, fLeft) + AdaptiveSimpsonRecursive(f, mid, b, tol/2, depth-1, fRight). Use the standard error criterion (left+right-whole)/15."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Search.Numerical/Numerical.cs",
+   "symbol": "SimulatedAnnealing.Run",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "stackalloc inside the iteration loop allocates newState every iteration",
+   "currentCost": "`double* newState = stackalloc double[dim];` is on line 15 inside the `for (int iter ...)` loop. Although the C# spec lets the runtime reuse the slot, the canonical/portable expectation is one stackalloc per loop iteration; under some JIT/Burst codegen this can re-zero or re-reserve stack each iteration, and it bloats the frame conceptually each pass.",
+   "proposedChange": "Hoist a single `double* newState = stackalloc double[dim];` to before the `for (int iter...)` loop (right after `*bestValue = currentVal;`). The buffer is fully overwritten each iteration (line 16 writes all dim entries unconditionally before any read), so reusing one allocation is semantics-preserving.",
+   "rationale": "One stack reservation instead of `iterations` reservations; removes any per-iteration stack-pointer adjustment / implicit zeroing and shortens the dependency chain at loop entry. Working set is identical (dim doubles) but allocated once.",
+   "risk": "None for semantics: every element of newState is written (line 16) before being read (line 17/20). Caller already assumes dim>0 valid. Keep stackalloc outside the loop but still inside Run so frame size is bounded by dim."
+  },
+  {
+   "file": "src/IAFahim.Search.Numerical/Numerical.cs",
+   "symbol": "SimulatedAnnealing.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Math.Exp is evaluated eagerly and the accepted-state copy can be avoided by mutating state in place",
+   "currentCost": "Line 18 `if (delta > 0 || Rand(seed) < Math.Exp(delta / temp))` always relies on short-circuit (Exp only runs when delta<=0, which is fine). But line 20 copies newState back into state with a full loop after the candidate was built into a separate buffer. Two full dim-length copies of work per accepted step.",
+   "proposedChange": "Eliminate the separate newState buffer entirely: keep a single scratch `cand` built from `state`, and on acceptance swap the `state`/`cand` pointers instead of element-wise copying (`double* tmp = state; state = cand; cand = tmp;`). On rejection, leave state untouched. This removes the dim-length copy on every accepted iteration. Note: since `state` is a caller-owned out buffer, instead keep state as the canonical buffer and only element-copy on the rarer best-improvement path; the candidate copy-back on accept is unavoidable if state must stay the caller's pointer \u2014 in that case at least mark `Rand` with [MethodImpl(AggressiveInlining)].",
+   "rationale": "Pointer swap is O(1) vs O(dim) copy per accepted step; over many iterations with high accept rate this removes the dominant memory traffic. Inlining Rand removes call overhead in the hottest leaf (called 2x/iter).",
+   "risk": "Pointer-swap variant changes which physical buffer `state` points to inside Run; the caller's `state` pointer value is passed by value so the caller still sees its original buffer only if you copy back once at the end. Guard: after the loop, copy the winning buffer into the caller's original `state` pointer once. If that final-state contract is not required by callers, the swap is safe; otherwise keep the in-loop copy and only apply the AggressiveInlining part."
+  },
+  {
+   "file": "src/IAFahim.Search.Numerical/Numerical.cs",
+   "symbol": "SimulatedAnnealing.Rand",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hot leaf RNG lacks AggressiveInlining and divides by uint.MaxValue each call",
+   "currentCost": "`Rand` is called twice per iteration (lines 16 in a dim-loop, and 18) yet is a non-inlined static method doing a `(double)*seed / uint.MaxValue` division. Division and call overhead in the innermost loop (line 16 runs dim times per iteration).",
+   "proposedChange": "Add `[MethodImpl(MethodImplOptions.AggressiveInlining)]` to `Rand`. Replace the division `(double)*seed / uint.MaxValue` with a multiply by a precomputed constant: `*seed * (1.0 / 4294967295.0)` (named const `private const double InvUintMax = 1.0 / uint.MaxValue;`).",
+   "rationale": "Reciprocal-multiply replaces a ~20-cycle double division with a ~4-cycle multiply; inlining removes call/return and lets Burst keep `*seed` in a register across the dim-loop body. Multiply-by-reciprocal of the exact same constant yields bit-identical results here because 1.0/4294967295.0 is computed once at compile time \u2014 note this is NOT generally bit-identical to division, so see risk.",
+   "risk": "x/y vs x*(1/y) are not always bit-identical; results can differ by 1 ULP for some seeds, which slightly changes the random stream and therefore the optimization trajectory (still a valid SA run, but not bit-identical output). If exact reproducibility of *bestValue across versions is required, reject the reciprocal change and keep only AggressiveInlining. AggressiveInlining alone is fully semantics-preserving."
+  },
+  {
+   "file": "src/IAFahim.Search.Numerical/Numerical.cs",
+   "symbol": "AdaptiveSimpson.AdaptiveSimpsonRecursive",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Massive redundant recomputation of Evaluate at the same points; fMid passed in is ignored and recomputed",
+   "currentCost": "In each call, `Evaluate(f, a)` is computed 3 times (lines 52/54 are separate branches, but line 56 computes `Evaluate(f,a)` and `Evaluate(f,b)` again, and line 54/55 also call `Evaluate(f, (a+b)/2)` as fLeft while the *passed-in* fMid is the midpoint value but the code recomputes the whole-interval Simpson on line 56 using fresh Evaluate calls). `Evaluate(f,a)`, `Evaluate(f,b)` and the midpoint are each evaluated multiple times per node. `(a+b)/2` is recomputed ~5 times. For a depth-d recursion this multiplies the eval count several-fold.",
+   "proposedChange": "At the top of the method compute `double mid = (a + b)/2; double fa = Evaluate(f,a); double fb = Evaluate(f,b);` once. Reuse `fMid` (the passed-in midpoint value) instead of recomputing it. Compute `fLeft = Evaluate(f,(a+mid)/2)` and `fRight = Evaluate(f,(mid+b)/2)` (the quarter points \u2014 note current line 53 uses (a+b)/2 and b which is a BUG, see risk). Build `whole`, `left`, `right` from these cached values; reuse them in the recursive calls so children receive their fMid (fLeft/fRight) without recomputation.",
+   "rationale": "Cuts Evaluate calls per node from ~7-8 to 2 new evaluations per level (the two quarter points), the textbook adaptive-Simpson recurrence. Also removes repeated `(a+b)/2` divisions. Asymptotically same node count but ~3-4x fewer function evals and divisions per node \u2014 large constant-factor win on the hot recursive path.",
+   "risk": "The current code is mathematically incorrect (line 53 `fLeft = Evaluate(f,(a+b)/2)` is the midpoint not the left-quarter; `fRight = Evaluate(f,b)` is the endpoint not the right-quarter; the recursive children are passed fLeft/fRight as their fMid which is inconsistent). A faithful 'preserve observable behavior' refactor would replicate these wrong points \u2014 but that contradicts a correctness fix. Recommend flagging as a correctness bug and, only if behavior must be preserved exactly, cache the *currently-evaluated* points verbatim to remove redundancy without changing which points are sampled."
+  },
+  {
+   "file": "src/IAFahim.Search.Numerical/Numerical.cs",
+   "symbol": "SimpsonIntegral.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Per-iteration parity branch and i*h multiply can be strength-reduced; coefficient pattern is branchless",
+   "currentCost": "Line 68 `sum += (i % 2 == 0) ? 2*Evaluate(...) : 4*Evaluate(...)` runs a `%`-based parity test and an unpredictable-ish ternary every iteration, plus `a + i*h` recomputes an integer-to-double multiply each step. n iterations.",
+   "proposedChange": "Replace `i % 2 == 0` with `(i & 1) == 0` (i is a non-negative loop counter, so `&` is exact). Hoist the coefficient as a branchless expression: `double coef = 2.0 + 2.0 * (i & 1);` (gives 2 for even, 4 for odd) then `sum += coef * Evaluate(f, x);`. Maintain `x` incrementally: `double x = a + h; for (...) { ...; x += h; }` to replace `a + i*h` with one add per step. Optionally split into two strided loops (even indices coef 2, odd indices coef 4) to make the coefficient a loop-invariant constant and improve vectorization.",
+   "rationale": "`& 1` is a single-cycle mask vs `%` (may lower to a longer sequence on some targets); branchless `coef` removes a data-dependent branch the predictor can mispredict; incremental `x += h` removes an int->double conversion and multiply per iteration, shortening the dependency chain. The two-strided-loop form lets Burst hoist the constant coefficient and vectorize cleanly.",
+   "risk": "Incremental `x += h` accumulates floating-point rounding differently than `a + i*h`, so results are not bit-identical (typically <1 ULP*n drift). If bit-identical output is required, keep `a + i*h` and apply only the `& 1` and branchless-coef changes, which ARE bit-identical (same products, just reordered selection). `& 1` is safe because i >= 1 and never negative."
+  },
+  {
+   "file": "src/IAFahim.Search.Numerical/Numerical.cs",
+   "symbol": "GaussLegendre.RefineRoot",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Legendre polynomial recurrence divides by (k+1) each step and recomputes invariants",
+   "currentCost": "Inner loop (line 91) runs the full n-term recurrence 50 times (Newton iterations) per root, with a `/(k+1)` division each of the n steps. Line 92 recomputes `n*(...)/(x0*x0 - 1)`. Total ~50*n divisions per root, n roots => O(50*n^2) divisions.",
+   "proposedChange": "Note the polynomial recurrence coefficients `(2k+1)/(k+1)` and `k/(k+1)` depend only on k and n, not on x0 or the Newton iteration. Precompute two stackalloc arrays `a_k = (2k+1)/(k+1)` and `b_k = k/(k+1)` once per Run (size n), then the inner loop becomes `p = a_k[k]*x0*p1 - b_k[k]*p2;` with multiplies only. This lifts n divisions out of the 50-iteration Newton loop and out of the per-root loop.",
+   "rationale": "Replaces ~50*n*nroots divisions with n precomputed divisions total, converting the hot inner loop to fused multiply-add friendly form that Burst vectorizes/pipelines far better. Divisions (~20 cyc) dominate this kernel; removing them from the innermost loop is the single biggest cycle win in GaussLegendre.",
+   "risk": "Precomputing a_k/b_k and multiplying gives results within 1 ULP of the original divide-in-loop, not necessarily bit-identical, so computed nodes/weights may differ in the last bits and thus the integral. If bit-identical output is mandatory, reject; otherwise the quadrature accuracy is unchanged (well below eps=1e-14 tolerance). Extra 2*n doubles of stack \u2014 negligible."
+  },
+  {
+   "file": "src/IAFahim.Search.Numerical/Numerical.cs",
+   "symbol": "GaussLegendre.RefineRoot",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "No early-out reuse of converged Newton state and missing AggressiveInlining on Evaluate leaves",
+   "currentCost": "`Evaluate` (lines 43/59/71/96) are tiny leaf methods returning a polynomial; not marked AggressiveInlining. Called in tight loops (SimpsonIntegral line 68 n times, GaussLegendre line 79 n times, AdaptiveSimpson recursively).",
+   "proposedChange": "Add `[MethodImpl(MethodImplOptions.AggressiveInlining)]` to all four `Evaluate` helpers and to `TernaryReal.Evaluate`. They are 2-3 FLOP leaves in hot loops.",
+   "rationale": "Guarantees inlining so the loads of f[0..2] hoist and the polynomial becomes register FMAs, removing call overhead and enabling vectorization across loop iterations. Pure refactor, bit-identical.",
+   "risk": "None \u2014 inlining a pure expression-bodied method does not change results. Burst typically inlines these anyway, but the attribute makes it explicit and helps non-Burst managed/IL2CPP builds."
+  }
+ ]
+}

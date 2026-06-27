@@ -1,0 +1,71 @@
+{
+ "file": "src/IAFahim.String.Parse/Earley.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.String.Parse/Earley.cs",
+   "symbol": "Earley.Parse",
+   "severity": "critical",
+   "category": "wrong-recurrence",
+   "summary": "The Earley parser has NO completer step and never advances a parent rule's dot past a nonterminal, and the final acceptance test does not require the completed rule to be the start rule. This makes it accept strings outside the language (false accepts).",
+   "triggeringInput": "rules = {rule0=[256,257,98], rule1=[257,97,-1]} (S -> T 'b', T -> 'a'); ruleCount=2; startRule=0; input=\"a\" (len=1). L(S)={\"ab\"} so \"a\" must be rejected, but Parse returns true.",
+   "rootCause": "The main loop only implements the predictor (symbol>=256, lines 43-55) and scanner (lines 56-65). There is no completer: when a state with dot at end is found, line 41 just `continue`s, so no state with dot in the middle of a nonterminal is ever advanced. Separately, the final loop (lines 69-75) returns true for ANY completed state whose Origin==0 (line 73), never checking that S[...].Rule == startRule. The predicted child rule (rule1) completes over [0,1] with Origin 0, so the start rule's incomplete derivation is ignored and the string is wrongly accepted.",
+   "suggestedFix": "Add a completer: when a state (rule, dot=end, origin=o) completes in set k, scan set o for states whose next symbol is rules[rule*3] (the LHS) and add advanced copies (dot+1) into set k; loop until no new states (note this requires re-scanning set k as it grows). In the acceptance loop also require S[len*maxStates+i].Rule == startRule in addition to completeness and Origin==0."
+  },
+  {
+   "file": "src/IAFahim.String.Parse/Earley.cs",
+   "symbol": "Earley.Parse",
+   "severity": "high",
+   "category": "edge-case",
+   "summary": "Empty input (len==0) causes a zero-byte allocation followed by an out-of-bounds write, corrupting the heap / UB.",
+   "triggeringInput": "input=any, len=0, ruleCount=1, startRule=0. maxStates = 0*1*4 = 0, byteCount = 0, so S is a 0-byte allocation; line 27 writes S[0].Rule (12 bytes) out of bounds.",
+   "rootCause": "Line 18 computes maxStates = len * ruleCount * 4, which is 0 when len==0. Line 19 then allocates 0 bytes for S, but lines 27-30 unconditionally write the initial start state into S[0] and set counts[0]=1, writing past the zero-byte buffer.",
+   "suggestedFix": "Size maxStates with a floor, e.g. int maxStates = (len + 1) * ruleCount * 4 (or max(1, len) * ruleCount * 4), so at least one state set is allocated for the empty-input case; the final acceptance check at set len then works for len==0."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Parse/Earley.cs",
+   "symbol": "Earley.Parse",
+   "dimension": "ram",
+   "impact": "high",
+   "summary": "maxStates = len*ruleCount*4 over-allocates the column dimension; the S buffer is (len*ruleCount*4)*(len+1)*12 bytes which is O(len^2) and frequently huge.",
+   "currentCost": "byteCount = len*ruleCount*4 * (len+1) * sizeof(State)=12. For len=1000, ruleCount=50 that is 200000*1001*12 ~ 2.4 GB single allocation \u2014 impractical on mobile and mostly untouched memory.",
+   "proposedChange": "Per Earley theory the number of states in any column is bounded by ruleCount*(maxRuleLen+1), independent of len. Cap maxStates at a grammar-derived bound (e.g. ruleCount * (maxDot+1) or a passed capacity) rather than scaling by len. Keep counts[] guards as-is.",
+   "rationale": "Reduces allocation from O(len^2 * ruleCount) to O(len * ruleCount * constant), an asymptotic memory reduction. Smaller footprint = fewer page faults, fits mobile.",
+   "risk": "Must not under-size: the bound must hold for the grammar. Since rules here have a fixed 3-int layout (single RHS slot per dot via rule*3+dot+1), dot is small; a safe cap needs the max RHS length. State as required guard: cap must be >= max states per column for the given grammar."
+  },
+  {
+   "file": "src/IAFahim.String.Parse/Earley.cs",
+   "symbol": "Earley.Parse",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Hoist the k*maxStates row base and counts[k] into locals inside the main scan loop.",
+   "currentCost": "Each iteration recomputes k*maxStates + i three times (lines 36-38) and re-reads counts[k] as the loop bound and counts[k]++ inside the predictor; the predictor also recomputes k*maxStates+counts[k] four times per added state.",
+   "proposedChange": "Compute int baseK = k*maxStates once per k; use State* row = S + baseK; read fields via row[i]. In the predictor, cache int c = counts[k] and write row[c] fields then store counts[k]=c after the loop (re-reading length each iter is required since it grows, but the multiply k*maxStates is invariant).",
+   "rationale": "Removes repeated k*maxStates multiplies (a multiply + add per access) from the hot scan; converts 3 indexed struct loads into pointer-relative loads with a shared base. Fewer integer ops and a shorter address-dependency chain.",
+   "risk": "counts[k] grows during the predictor loop (states added to same column), so the loop bound i<counts[k] must keep re-reading counts[k]; only the k*maxStates base is invariant. Preserve that re-read. Otherwise identical."
+  },
+  {
+   "file": "src/IAFahim.String.Parse/Earley.cs",
+   "symbol": "Earley.Parse",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "The predictor scans all ruleCount rules to find rules whose LHS == symbol; this O(ruleCount) per prediction can be an index lookup.",
+   "currentCost": "For every state whose next symbol is a nonterminal (>=256), the inner loop iterates all ruleCount rules testing rules[r*3]==symbol. Total predictor work is O(states * ruleCount).",
+   "proposedChange": "Precompute (once, or caller-provided) a CSR-style index mapping nonterminal symbol -> list of rule ids with that LHS (start offsets + flat rule-id array). Predictor then iterates only the matching rules.",
+   "rationale": "Reduces predictor from O(ruleCount) per call to O(rulesForThatLHS), lowering total from O(S*R) toward O(S * avgRulesPerLHS). Asymptotic win for grammars with many rules.",
+   "risk": "Requires an auxiliary index structure (extra allocation or an added parameter). Behavior identical. Also de-dup of predicted states is still absent (already not done), so no semantic change."
+  },
+  {
+   "file": "src/IAFahim.String.Parse/Earley.cs",
+   "symbol": "Earley.Parse",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "State struct (3 ints = 12 bytes) can be narrowed and the counts init loop replaced with a bulk zero.",
+   "currentCost": "counts init is a scalar loop `for i<=len counts[i]=0`. State holds three 32-bit ints even though Dot and often Rule/Origin are small.",
+   "proposedChange": "Zero counts via Unsafe.InitBlockUnaligned over (len+1)*4 bytes. If rule/dot/origin ranges permit, pack State into smaller fields (e.g. Dot as short) and add [StructLayout(LayoutKind.Sequential, Pack=...)] \u2014 but only if provably within range.",
+   "rationale": "Bulk zero is vectorizable; narrower State shrinks the O(len^2) S buffer proportionally, improving cache behavior.",
+   "risk": "Narrowing fields needs proven bounds on rule/dot/origin (origin up to len can exceed short for len>32767). Keep ints unless bounds known. Bulk zero of counts is always safe."
+  }
+ ]
+}

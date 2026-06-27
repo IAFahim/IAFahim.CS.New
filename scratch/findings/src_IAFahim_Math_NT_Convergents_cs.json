@@ -1,0 +1,28 @@
+{
+ "file": "src/IAFahim.Math.NT/Convergents.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/Convergents.cs",
+   "symbol": "Convergents.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hot recurrence loop re-reads num[i-1]/num[i-2]/den[i-1]/den[i-2] from memory; carry them in registers to shorten the dependency chain.",
+   "currentCost": "Each iteration loads num[i-1], num[i-2], den[i-1], den[i-2] from the output arrays (store-to-load forwarding through memory just written the prior iteration) and stores num[i], den[i]. The loop-carried dependency goes through memory, which can stall on store->load forwarding on mobile cores.",
+   "proposedChange": "Carry the recurrence in locals: keep `nPrev, nPrev2, dPrev, dPrev2` in registers, compute `nCur = cf[i]*nPrev + nPrev2`, store to num[i], then shift the locals. Only cf[i] is loaded from memory each iteration; num/den are write-only.",
+   "rationale": "Eliminates 4 loads per iteration, replacing the memory-carried dependency chain with a register-carried one. Shorter critical path and fewer store->load forwarding stalls, which matters on in-order/mobile pipelines.",
+   "risk": "None: cf, num, den are distinct buffers in valid usage. If a caller aliased cf with num/den the read-after-write semantics would differ, but that is unsupported. Outputs are bit-identical."
+  },
+  {
+   "file": "src/IAFahim.Math.NT/Convergents.cs",
+   "symbol": "Convergents.Run",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "cf[0] and cf[1] are read multiple times; minor, plus the method is a small leaf that benefits from AggressiveInlining is not applicable (it has a loop) \u2014 keep as is otherwise.",
+   "currentCost": "Negligible: cf[0] read at lines 10 and 13. Not a real hot-path concern.",
+   "proposedChange": "Hoist `long c0 = cf[0];` used for both num[0] and the num[1] computation. Cosmetic.",
+   "rationale": "One fewer load on the prologue; Burst likely already CSEs this. Listed only for completeness \u2014 very low impact.",
+   "risk": "None. Reject if treating the file as already optimal; the loop register-carry above is the only meaningful win here."
+  }
+ ]
+}

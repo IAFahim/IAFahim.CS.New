@@ -1,0 +1,83 @@
+{
+ "file": "src/IAFahim.DS.PerfectHashMap/UnsafePerfectHashMap.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.DS.PerfectHashMap/UnsafePerfectHashMap.cs",
+   "symbol": "UnsafePerfectHashMap.TryGetIndex / TryGetValue / this[]",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "Lookup never compares the stored key against the queried key. TryGetIndex computes index = hash(key) & (size-1), which is ALWAYS in [0, size-1], so it always returns true. TryGetValue then reads Values[index] and only rejects the result if it happens to equal NullValue. A querying key that is absent but hashes to a slot occupied by a DIFFERENT present key returns true with that other key's value (wrong result), and the this[] getter returns it instead of throwing KeyNotPresent. The Keys[] array is written during construction (line 48) but never read back, so the membership check that makes a 'perfect hash map' correct is missing.",
+   "triggeringInput": "keys=[1,2], values=[100,200], nullValue=0 (assume int GetHashCode returns the int itself). FindSize selects size=2 (1&1=1 -> slot1=value100, 2&1=0 -> slot0=value200). Now map[3] or TryGetValue(3,out v): 3&1=1 -> slot1 -> returns true with v=100, falsely reporting key 3 is present with key 1's value. The indexer getter returns 100 for absent key 3 instead of throwing.",
+   "rootCause": "TryGetIndex/TryGetValue validate only that the computed slot index is in range (which is trivially always true for a power-of-two mask) and that the slot's value differs from NullValue. They never verify Keys[index].Equals(key), so any absent key colliding into an occupied slot is treated as present with the wrong value. The same defect makes the indexer setter (this[key]=value) silently overwrite another key's slot for an absent key because TryGetIndex never returns false, so ThrowKeyNotPresent is unreachable.",
+   "suggestedFix": "After computing index, confirm membership before returning success: in TryGetIndex (or TryGetValue) check that Keys[index].Equals(key); if not, fail (return false / item=default). E.g. TryGetIndex: index = IndexFor(key); return index >= 0 && index < Size && Keys[index].Equals(key);. This also requires that empty slots hold a distinguishable key; since the underlying buffer is not guaranteed zero-initialized, rely on the value==NullValue check OR explicitly initialize empty Keys slots. Note the sentinel-only approach is insufficient for the indexer setter path."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.PerfectHashMap/UnsafePerfectHashMap.cs",
+   "symbol": "TryGetIndex",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Bounds check in TryGetIndex is provably always-true dead code on the hottest lookup path",
+   "currentCost": "Every TryGetValue / indexer get executes index = key.GetHashCode() & (Size-1) then the comparison (index >= 0 && index < Size) and returns the result. The two comparisons plus the boolean &&, plus the out-param store and branch on the caller side, run on every single lookup.",
+   "proposedChange": "Recognize that index = hash & (Size-1) with Size a power of two >= 1 always yields a value in [0, Size-1]. So index >= 0 && index < Size is a tautology. Make TryGetIndex always return true (or inline the mask directly into TryGetValue / the indexer and drop the predicate entirely). TryGetValue already re-validates presence via item.Equals(NullValue), so removing the index range branch does not change observable results.",
+   "rationale": "Eliminates two compares, a logical-and, and a conditional branch from the innermost lookup loop. The branch is also nominally a misprediction candidate; removing it shortens the dependency chain (hash -> mask -> load) and lets Burst fold the indexer get into a single masked load + NullValue compare. Asymptotically same, but a real constant-factor win on the dominant operation.",
+   "risk": "Relies on the invariant that Size is always a power of two (guaranteed by FindSize starting at 1 and only doing size <<= 1) and that GetHashCode() & (Size-1) is non-negative for any int hash (true: AND with a non-negative mask clears the sign bit, so result is always in [0, Size-1] regardless of hash sign). No signed-% pitfall here because it is already &, not %. Safe."
+  },
+  {
+   "file": "src/IAFahim.DS.PerfectHashMap/UnsafePerfectHashMap.cs",
+   "symbol": "IndexFor / Size",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Precompute and store the (Size-1) mask instead of recomputing size-1 on every IndexFor call",
+   "currentCost": "Each IndexFor(key, size) computes (size - 1) at runtime. On lookups this is a dependent subtract before the AND; in the build loop HasCollisions/constructor it runs once per key per probe.",
+   "proposedChange": "Add an internal int Mask field set to Size - 1 at construction. Have the instance IndexFor use key.GetHashCode() & this.Mask directly. Keep the static IndexFor(key, size) only for the FindSize/HasCollisions build phase. This removes the subtract from the steady-state lookup path.",
+   "rationale": "Strength-reduces one ALU op out of the lookup dependency chain (hash -> AND vs hash -> SUB -> AND), and removes a recompute that the JIT/Burst may not always hoist since size is passed by value. Storing Mask costs 4 bytes already available via struct padding alignment in many TKey/TValue combos.",
+   "risk": "Must keep Mask in sync with Size (only set once at construction; map is immutable after build, so no resync needed). Behavior identical. Minor RAM cost of 4 bytes per map instance."
+  },
+  {
+   "file": "src/IAFahim.DS.PerfectHashMap/UnsafePerfectHashMap.cs",
+   "symbol": ".ctor build loop",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "NativeArray indexer re-fetches keys[i] twice and recomputes the mask each iteration during build",
+   "currentCost": "for loop body does IndexFor(keys[i], size) then this.Keys[index] = keys[i] and this.Values[index] = values[i]. keys[i] goes through the NativeArray indexer (with bounds/safety checks under collections-checks) twice per iteration, and IndexFor recomputes size-1 each iteration.",
+   "proposedChange": "Hoist int mask = size - 1; before the loop. Load TKey k = keys[i]; TValue v = values[i]; once into locals, compute int index = k.GetHashCode() & mask;, then store this.Keys[index] = k; this.Values[index] = v;. This halves the NativeArray indexer calls and removes per-iteration mask recompute.",
+   "rationale": "NativeArray<T> indexer under ENABLE_UNITY_COLLECTIONS_CHECKS is not free (safety handle check + range check); fetching keys[i] once removes a redundant guarded load and a second GetHashCode-feeding read. Build is one-shot but proportional to key count; this is a clean fused-pass win.",
+   "risk": "None; reading the same element into a local is semantically identical. keys.Length read can also be hoisted to a local for the loop bound."
+  },
+  {
+   "file": "src/IAFahim.DS.PerfectHashMap/UnsafePerfectHashMap.cs",
+   "symbol": "FindSize / HasCollisions",
+   "dimension": "complexity",
+   "impact": "medium",
+   "summary": "FindSize rebuilds the hash set from scratch for every candidate size, giving O(n log(range)) set operations with repeated allocget churn",
+   "currentCost": "FindSize doubles size from 1 upward; for each candidate it calls HasCollisions which Clear()s the NativeHashSet and re-Add()s all n keys, hashing every key again at every size step. Total work is O(n * number_of_doublings) hash+insert operations, and each Add touches the hash set's internal buckets.",
+   "proposedChange": "Precompute all n GetHashCode() values once into a temp stackalloc/Temp buffer (hashes are size-independent), then in HasCollisions only mask the cached hash (hash & (size-1)) instead of recomputing key.GetHashCode() each probe. This removes a full re-hash of every key at every size doubling. For small key counts the doubling count is small, but GetHashCode on large TKey structs can be expensive, so caching the hash is the real saving.",
+   "rationale": "GetHashCode() may be a non-trivial function for big unmanaged structs; computing it once instead of once-per-doubling cuts the hash work from O(n * doublings) to O(n). The collision probe then becomes a cheap mask + set-insert.",
+   "risk": "Build-time only, not steady-state. Requires a Temp allocation of n ints (already allocating a NativeHashSet of capacity n, so no worse). Behavior identical since hash values do not depend on size."
+  },
+  {
+   "file": "src/IAFahim.DS.PerfectHashMap/UnsafePerfectHashMap.cs",
+   "symbol": "CalculateDataSize / Keys-Values layout",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Single allocation packs Keys then Values contiguously; Values start may straddle a cache line, and offset is recomputable",
+   "currentCost": "keysSize = sizeof(TKey)*count rounds to no alignment, so Values begin at an arbitrary byte offset that can split a TValue across a cache line on the first value, hurting the lookup load. valueOffset is also stored/passed out though it is trivially derivable.",
+   "proposedChange": "Align valueOffset up to sizeof(TValue) (or to a small power-of-two like 8/16) so Values is naturally aligned, improving the single hot load in TryGetValue. Since the block is already cache-line-aligned at allocation (JobsUtility.CacheLineSize), only the intra-block Values base needs alignment. This is a one-line round-up: valueOffset = AlignUp(keysSize, max(sizeof(TValue), alignof(TValue))).",
+   "rationale": "Lookups touch exactly one Values[index] load; guaranteeing alignment avoids split-line loads for that access and keeps Burst's vectorized/aligned-load assumptions valid. Costs a few padding bytes once.",
+   "risk": "Adds up to (align-1) padding bytes to the allocation. Must keep the same valueOffset used for both write (ctor) and read (lookup) so they stay consistent. Behavior identical."
+  },
+  {
+   "file": "src/IAFahim.DS.PerfectHashMap/UnsafePerfectHashMap.cs",
+   "symbol": "this[TKey] get / TryGetValue",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Indexer get path computes the index twice (once via TryGetValue, value already loaded) - acceptable, but the get could share one masked load",
+   "currentCost": "this[key].get calls TryGetValue which calls TryGetIndex (mask + dead bounds check), loads Values[index], compares to NullValue. The chain is fine, but combined with the dead bounds-check finding the get can collapse to: index = hash & Mask; value = Values[index]; if (value.Equals(NullValue)) throw.",
+   "proposedChange": "Once the dead bounds check is removed and Mask is cached, fold the indexer get into a single masked load plus one NullValue compare, dropping the out-param plumbing of TryGetValue for the throwing getter. Keep public TryGetValue as-is for the Try* API.",
+   "rationale": "Removes out-param store/load and a redundant boolean return through the inlined call, shortening the getter to load + compare + (unlikely) throw. Pairs with the bounds-check removal for a clean hot path.",
+   "risk": "Must preserve that the getter throws (under DOTS_DEBUG) exactly when value.Equals(NullValue), matching current TryGetValue semantics. Pure refactor; identical observable behavior."
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Math.NT/DivisorSum.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Math.NT/DivisorSum.cs",
+   "symbol": "DivisorSum.Run",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Same even-skip / wheel opportunity as DivisorCount: test 2 then odd p only.",
+   "currentCost": "`for (long p = 2; p*p <= n; p++)` walks every integer to sqrt(n). Even candidates >=4 contribute a wasted p*p multiply and a `n % p` idiv (the dominant cost) that never succeeds after the factor 2 is stripped.",
+   "proposedChange": "Handle p=2 separately (compute its geometric-sum factor with a dedicated loop), then iterate `for (long p = 3; p*p <= n; p += 2)`. Optionally a 2-3-5 wheel for further candidate reduction.",
+   "rationale": "Halves (or more) the number of expensive 64-bit modulo and multiply operations on the trial-division hot path. Same big-O, ~2x smaller constant.",
+   "risk": "Same `p*p` overflow caveat as the original near long.MAX; stride change does not alter it. Geometric-sum accumulator `sum` and `result` overflow for large highly-composite n exactly as today \u2014 behavior preserved."
+  }
+ ]
+}

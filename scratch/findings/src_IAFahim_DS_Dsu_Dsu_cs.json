@@ -1,0 +1,72 @@
+{
+ "file": "src/IAFahim.DS.Dsu/Dsu.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.Dsu/Dsu.cs",
+   "symbol": "DsuFind.RunPathCompression",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Convert recursive path-compression find into an iterative two-pass loop to remove call-stack overhead and stack-overflow risk on deep chains.",
+   "currentCost": "Recursion: one stack frame per node along the path to root, each with a call/return, argument passing, and a write-back on unwind. Under Burst the recursion is unlikely to be inlined/optimized into a loop, so a chain of length L costs L frames plus L dependency-chained returns. On pathological long chains (e.g. union without union-by-size feeding this find) it can stack overflow.",
+   "proposedChange": "Rewrite iteratively: first walk `root = x; while (parent[root] != root) root = parent[root];` then a second walk `while (parent[x] != root) { int next = parent[x]; parent[x] = root; x = next; }` Two linear passes, no recursion, identical final parent[] state and return value.",
+   "rationale": "Eliminates per-node call frames and the return dependency chain; both passes are simple pointer-chase loops Burst compiles tightly. Same O(path length) work but lower constant factor and bounded stack usage.",
+   "risk": "Observable behavior identical: every node on the path ends pointing directly at root, return value is root. No signedness/overflow concerns."
+  },
+  {
+   "file": "src/IAFahim.DS.Dsu/Dsu.cs",
+   "symbol": "DsuParityFind.Run",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Convert recursive parity find into an iterative two-pass loop to remove recursion overhead and stack-overflow risk.",
+   "currentCost": "Recursion with a post-order side effect: parity[x] ^= parity[p] and parent[x] = root are applied on unwind, so the whole path is held on the call stack (L frames) before any write-back. Deep chains risk stack overflow and the unwind creates a serial dependency chain.",
+   "proposedChange": "Two-pass iterative: pass 1 find root via `r = x; while (parent[r] != r) r = parent[r];` then accumulate parity along the path and compress. Standard approach: walk from x to root summing XOR of edge parities to get total parity-to-root, then second walk re-pointing each node to root and setting parity[node] = (running XOR from node to root). Preserves the same compressed parent[] and parity[] result.",
+   "rationale": "Removes L call frames and the unwind dependency chain; pointer-chase loops vectorize/pipeline far better under Burst than self-recursion, which Burst generally cannot turn into a loop.",
+   "risk": "Must reproduce the exact accumulated parity semantics (parity[x] relative to root) so outputs are bit-identical; careful ordering of the XOR accumulation required. No overflow concern (parity is 0/1)."
+  },
+  {
+   "file": "src/IAFahim.DS.Dsu/Dsu.cs",
+   "symbol": "DsuFind.Run",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Add [MethodImpl(MethodImplOptions.AggressiveInlining)] to the hot leaf find/swap/record helpers.",
+   "currentCost": "DsuFind.Run, DsuRollbackUnion.FindSimple, Swap, RecordHistory, DsuBipartiteAdd.FindBipartiteRoot etc. are tiny leaf methods called once or twice per union. Without explicit inlining hints, call overhead (arg setup, branch) is paid per invocation; `using System.Runtime.CompilerServices;` is already imported but the attribute is unused.",
+   "proposedChange": "Annotate the small hot helpers (DsuFind.Run, FindSimple, Swap, RecordHistory, FindBipartiteRoot, RecordBipartiteHistory, UpdateBipartiteMerge) with [MethodImpl(MethodImplOptions.AggressiveInlining)].",
+   "rationale": "Inlining these leaf functions removes call/return overhead and lets Burst/LLVM see across the boundary to keep root indices and size values in registers, eliminating redundant reloads through the int* pointers.",
+   "risk": "None semantically. Inlining the two find calls in Union duplicates a pointer-chase loop but does not change results; only code size grows slightly."
+  },
+  {
+   "file": "src/IAFahim.DS.Dsu/Dsu.cs",
+   "symbol": "DsuParityUnion.Run",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Hoist parity[a]^parity[b] and use the already-computed roots instead of re-reading parent[ra] for the attach-direction test.",
+   "currentCost": "`parity[a] ^ parity[b]` is computed up to twice (the same-root branch and the two merge branches each recompute it). Also `if (parent[ra] == ra)` re-loads parent[ra] from memory even though ra is already a root by construction (DsuParityFind compresses so parent[ra]==ra is always true after the find), making the else-branch effectively dead/asymmetric and the load redundant.",
+   "proposedChange": "Compute `int pab = parity[a] ^ parity[b];` once and reuse. Since ra is always a root after a compressing find, the `parent[ra] == ra` test is always true and the else branch is unreachable for valid input; if union-by-size is not desired here, drop the branch and always do `parent[ra] = rb; parity[ra] = pab ^ w;`. If the asymmetric attach is intentional, document it; otherwise this removes a redundant load and a never-taken branch.",
+   "rationale": "Eliminates a redundant XOR recompute and a redundant memory load plus an always-true branch, shortening the dependency chain on the hot union path.",
+   "risk": "Must confirm parent[ra]==ra invariant holds (it does given RunPathCompression-style find sets parent[root]=root). If a caller mutates parent between find and union the branch could matter \u2014 but within Run it cannot. Verify before removing the branch; the pab hoist alone is unconditionally safe."
+  },
+  {
+   "file": "src/IAFahim.DS.Dsu/Dsu.cs",
+   "symbol": "DsuRollbackSnapshot.Run",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "DsuRollbackSnapshot.Run is an identity function taking an unused int* history; drop the dead pointer parameter.",
+   "currentCost": "`Run(int* history, int histSize)` ignores `history` and returns `histSize` unchanged \u2014 a no-op wrapper that still forces the caller to pass and the JIT/Burst to pass an unused pointer argument, and is misleading API surface.",
+   "proposedChange": "Either remove the class entirely (callers can read histSize directly) or reduce the signature to `Run(int histSize) => histSize`, dropping the unused int* history parameter.",
+   "rationale": "Removes an unused argument from the calling convention and clarifies the API; a snapshot of an append-only history is just its current length, so no work is needed.",
+   "risk": "API change \u2014 any caller passing history must be updated. Purely mechanical; no behavioral change to the value returned."
+  },
+  {
+   "file": "src/IAFahim.DS.Dsu/Dsu.cs",
+   "symbol": "DsuRollback.RollbackStep",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Cache *currentHistSize in a local across the rollback loop instead of dereferencing the pointer on every step.",
+   "currentCost": "In the `while (*currentHistSize > targetHistSize)` loop, RollbackStep does `*currentHistSize -= 3` and then three `history[*currentHistSize + k]` reads, each re-dereferencing the currentHistSize pointer. The loop condition also re-loads *currentHistSize each iteration. That is repeated pointer indirection that the compiler may not prove non-aliasing against history/parent/size.",
+   "proposedChange": "Load `int hs = *currentHistSize;` once, run the loop on the local (`while (hs > targetHistSize) { hs -= 3; int par = history[hs]; ... }`), then write back `*currentHistSize = hs;` after the loop. Inline RollbackStep into the loop body.",
+   "rationale": "Removes potential aliasing barrier: the compiler cannot assume *currentHistSize is unchanged by writes through history/parent/size pointers, so keeping it in a local breaks the reload-per-iteration and shortens the dependency chain.",
+   "risk": "currentHistSize must not alias history/parent/size such that an external observer needs the intermediate value mid-loop \u2014 it does not, since the final value is the only observable. Write-back after the loop preserves the same end state."
+  }
+ ]
+}

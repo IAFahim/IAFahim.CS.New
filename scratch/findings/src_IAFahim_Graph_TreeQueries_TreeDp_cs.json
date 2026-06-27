@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Graph.TreeQueries/TreeDp.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.TreeQueries/TreeDp.cs",
+   "symbol": "FindMaxMatchingCandidate",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Avoid recomputing Math.Max(dp0[v],dp1[v]) and re-walking the adjacency list; fold dp1 computation into the existing child loop of DfsMatching.",
+   "currentCost": "DfsMatching first loop computes dp0[u] += Math.Max(dp0[v],dp1[v]) over all children, then FindMaxMatchingCandidate walks the same adjacency list AGAIN recomputing Math.Max(dp0[v],dp1[v]) for every child. Two passes over head/to/next (extra pointer-chasing/cache misses) plus a redundant Max per edge.",
+   "proposedChange": "The candidate term simplifies: dp0[u] - Max(dp0[v],dp1[v]) + dp0[v] + edgeWeight[e] = dp0[u] + (dp0[v] - Max(dp0[v],dp1[v]) + edgeWeight[e]). Since dp0[u] is constant across candidates, in the first loop accumulate maxExtra = Math.Max(maxExtra, dp0[v] - Math.Max(dp0[v],dp1[v]) + edgeWeight[e]); then dp1[u] = dp0[u] + Math.Max(0, maxExtra). Removes the second adjacency walk entirely.",
+   "rationale": "One pass instead of two over the edge list halves pointer-chasing through next[] (the main cache-miss source in tree DP) and removes one Math.Max per edge. dp0[u] is loop-invariant once the loop finishes, so factoring it out is exact.",
+   "risk": "maxCand starts at 0 (empty matching at u), so the fused form must keep dp1[u] = dp0[u] + Math.Max(0, maxExtra); for a leaf maxExtra stays at a sentinel <=0 giving dp1=dp0=0, matching current. dp0[u] must be fully accumulated before adding, so compute dp1 after the loop. long arithmetic preserved."
+  }
+ ]
+}

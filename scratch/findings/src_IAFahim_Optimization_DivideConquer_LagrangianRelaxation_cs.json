@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.Optimization.DivideConquer/LagrangianRelaxation.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.Optimization.DivideConquer/LagrangianRelaxation.cs",
+   "symbol": "LagrangianRelaxation.Search",
+   "severity": "high",
+   "category": "overflow",
+   "summary": "Midpoint mid=(lo+hi)>>1 overflows long when lo+hi exceeds long.MaxValue, producing a negative/garbage mid that breaks the binary-search invariant and can loop or return a wrong lambda.",
+   "triggeringInput": "lo=4_000_000_000_000_000_000, hi=5_000_000_000_000_000_000 (both valid longs with hi-lo>1). lo+hi = 9e18 > long.MaxValue(~9.223e18)? sum=9e18 still fits, but lo=6e18, hi=7e18 -> sum=1.3e19 overflows to a negative number, mid becomes negative, mid is no longer in (lo,hi), so the branch sum>=k sets lo=mid (decreasing lo) or hi=mid, violating monotonic narrowing and yielding a wrong result.",
+   "rootCause": "Classic binary-search midpoint overflow: (lo+hi) is computed before the shift, so for large positive bounds the addition overflows long even though each bound is in range and hi-lo>1 holds.",
+   "suggestedFix": "Use mid = lo + ((hi - lo) >> 1) which never overflows for lo<=hi, instead of (lo + hi) >> 1."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.Optimization.DivideConquer/LagrangianRelaxation.cs",
+   "symbol": "Search",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "Branchless accumulation in the hot inner loop removes a data-dependent branch per element.",
+   "currentCost": "Inner loop runs n times per binary-search iteration (O(n log(hi-lo)) total). Each iteration has a data-dependent branch `if (v > 0) sum += v;` that the compiler cannot perfectly predict for arbitrary w[i], causing branch mispredicts and breaking auto-vectorization.",
+   "proposedChange": "Replace `long v = w[i] - mid; if (v > 0) sum += v;` with a branchless form: `long v = w[i] - mid; sum += v & ~(v >> 63);`. For 64-bit signed v, `v >> 63` is 0 when v>=0 and all-ones (-1) when v<0, so `v & ~(v>>63)` yields v for v>0 and 0 for v<=0 (note v==0 gives 0, matching the original which only adds when v>0).",
+   "rationale": "Eliminates the per-element conditional branch and produces a straight-line dependency that Burst/LLVM can vectorize into SIMD masked-add across the w[] array, turning a scalar branchy loop into a vectorizable reduction. Fewer mispredicts, higher ILP.",
+   "risk": "Relies on arithmetic right shift of signed long (guaranteed in C#). w[i]-mid must not overflow long; this overflow risk already exists in the current code (w[i] and mid are long), so semantics are unchanged. v==0 contributes 0 in both versions, so behavior is identical for all inputs."
+  },
+  {
+   "file": "src/IAFahim.Optimization.DivideConquer/LagrangianRelaxation.cs",
+   "symbol": "Search",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Early-exit once sum >= k lets the inner reduction stop short on large-k-satisfying mids.",
+   "currentCost": "The inner loop always scans all n elements even after `sum` has already exceeded k, so the >= k decision is known. For large n this wastes work when the threshold is crossed early.",
+   "proposedChange": "Add `if (sum >= k) { /* mark satisfied */ break; }` inside the loop (or hoist the comparison so the loop terminates as soon as sum>=k), then branch lo/hi on the satisfied flag. Keep the branchless body for the common not-yet-satisfied case.",
+   "rationale": "Reduces average inner-loop trip count; the predicate is monotone in the partial sum (all added terms are non-negative), so once sum>=k the final answer is fixed regardless of remaining elements.",
+   "risk": "Adds a branch back into the loop, which can defeat vectorization; this is a tradeoff vs the branchless win above. Only beneficial when k is frequently crossed early. Behavior preserved because remaining terms are >=0 and cannot lower sum below k."
+  }
+ ]
+}

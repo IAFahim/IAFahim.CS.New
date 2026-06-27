@@ -1,0 +1,72 @@
+{
+ "file": "src/IAFahim.DS.Splay/SplayRangeReverse.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.DS.Splay/SplayRangeReverse.cs",
+   "symbol": "SplayRangeReverse.Reverse",
+   "severity": "critical",
+   "category": "logic",
+   "summary": "In the both-neighbors-present branch, the range subtree is extracted as right->Left->Right after splaying both `left` (index l-1) and `right` (index r+1) fully to the root. This incorrectly assumes right->Left == left. Splaying `right` all the way to root only guarantees right->Left is the subtree of all indices < r+1; its ROOT is generally NOT `left`, so right->Left->Right is not the [l,r] subtree. The wrong subtree gets its Rev flag toggled, reversing the wrong elements (and corrupting Size/Sum semantics of the structure).",
+   "triggeringInput": "Sequence of 5 nodes with keys 1..5 (indices 0..4) built as a right-spine, then Reverse(&root, 1, 3). left=Kth(0), right=Kth(4); after both splays right->Left is the index-1 node and right->Left->Right is the index-3 node whose subtree is {index2,index3}, so only positions 2..3 get reversed instead of 1..3.",
+   "rootCause": "To isolate range [l,r] you must splay left (l-1) to root, then splay right (r+1) only until right->Parent == left (make right the right child of root). Then the range is right->Left. Splaying right ALL the way to root makes right the new root and buries `left` somewhere inside right->Left rather than being right->Left itself, so right->Left->Right is not the target subtree.",
+   "suggestedFix": "Splay `right` only up to being a child of root after splaying `left`: e.g. splay right within left's right subtree (stop when right->Parent == left), then set mid = right->Left. Equivalently, perform a constrained splay that leaves `left` at the root and `right` as left->Right, making mid = right->Left the [l,r] subtree. Then call Push/Update appropriately."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.Splay/SplayRangeReverse.cs",
+   "symbol": "Rotate",
+   "dimension": "cycles",
+   "impact": "medium",
+   "summary": "Update(x) recomputes Size and Sum that are invariant under a single rotation (equal p's pre-rotation values).",
+   "currentCost": "Update(p)+Update(x) per Rotate: each Update does 4 null-checks + 4 field loads (2 Size, 2 Sum) + several adds. Doubled work since x's aggregates are derivable.",
+   "proposedChange": "Before mutating, capture int oldPSize = p->Size; long oldPSum = p->Sum; call Update(p) to recompute p (it lost a subtree), then set x->Size = oldPSize; x->Sum = oldPSum; instead of Update(x).",
+   "rationale": "After one rotation, x's subtree is exactly p's old subtree, so both Size and Sum are unchanged. Replaces a full Update (8+ loads/adds + 4 branches) with two register-to-memory stores, cutting the per-rotation aggregate cost roughly in half.",
+   "risk": "Must read oldPSize/oldPSum before any pointer rewiring and before Update(p). Sum is a plain additive aggregate so it is subtree-invariant; Key is not touched. Behavior preserved. The lazy Rev flag is unaffected (Push already applied along Splay path before rotations)."
+  },
+  {
+   "file": "src/IAFahim.DS.Splay/SplayRangeReverse.cs",
+   "symbol": "Rotate",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Redundant null guard: Rotate checks x==null || x->Parent==null but every caller (Splay loop) already guarantees x and x->Parent are non-null.",
+   "currentCost": "Two branches at the top of every Rotate call; Splay only calls Rotate from inside 'while(!IsRoot(x))' and after loading p=x->Parent (non-null), so the guard never trips.",
+   "proposedChange": "Drop the guard in the hot Rotate, or keep a Debug-only assert. Since Rotate is private and only called from Splay where non-null is established, the check is dead on the hot path. (Matches the 'Unchecked Run' house convention.)",
+   "rationale": "Removes two never-taken branches per rotation, shortening the instruction stream and helping Burst\u2019s straight-line codegen.",
+   "risk": "Only safe because Rotate is private and the sole caller Splay guarantees x!=null and x->Parent!=null (it dereferences p=x->Parent unconditionally). If a future external caller appears this guard would need restoring. Note Splay.cs Rotate already omits this guard, so this also unifies the two implementations."
+  },
+  {
+   "file": "src/IAFahim.DS.Splay/SplayRangeReverse.cs",
+   "symbol": "PushAll",
+   "dimension": "ram",
+   "impact": "low",
+   "summary": "Recursive PushAll uses O(depth) stack frames; convert to an explicit top-down pass without recursion.",
+   "currentCost": "PushAll recurses parent-ward then pushes on unwind, costing one call frame per ancestor (O(tree height), up to O(n) for a degenerate splay tree before balancing). Recursion also blocks Burst (Burst cannot compile recursive functions).",
+   "proposedChange": "Walk up to the root collecting nodes into a fixed stackalloc SplayRevNode* buffer (height bounded by current depth) then Push them top-down in a loop; or, since Splay immediately rotates x to root, push along the descent in Kth (already done) and push x's ancestors iteratively. Replace recursion with an iterative two-pointer/stack loop.",
+   "rationale": "Eliminates per-frame call overhead and, critically, makes the function Burst-compilable (Burst rejects recursion). An iterative version also has better i-cache behavior and no risk of deep-recursion stack growth.",
+   "risk": "Must preserve top-down push order (root first) since Rev flags must propagate parent-to-child before children are read. A stackalloc buffer needs a safe upper bound on height; for a splay tree height is unbounded in the worst case, so use a heap-free growable scheme or push during the upward walk only if order is corrected. Get ordering wrong and reversals corrupt \u2014 verify carefully."
+  },
+  {
+   "file": "src/IAFahim.DS.Splay/SplayRangeReverse.cs",
+   "symbol": "Update",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "Update loads each child pointer twice (once for Size, once for Sum).",
+   "currentCost": "x->Left is tested/loaded for both l and ls; x->Right for both r and rs. That is 4 redundant null-compares and the JIT may reload the child pointer.",
+   "proposedChange": "Load children once: SplayRevNode* L = x->Left; SplayRevNode* R = x->Right; int l = L!=null?L->Size:0; long ls = L!=null?L->Sum:0; etc. Better, fold: x->Size = (L!=null?L->Size:0)+(R!=null?R->Size:0)+1; x->Sum = (L!=null?L->Sum:0)+(R!=null?R->Sum:0)+x->Key; reusing the same L/R locals.",
+   "rationale": "Halves the null-check count (2 instead of 4) and lets Size and Sum reuse the same loaded child pointer and the same branch predicate, reducing dependency chain length and branch count in a function called twice per rotation.",
+   "risk": "None; pure recompute from current child state, single-threaded. Identical result."
+  },
+  {
+   "file": "src/IAFahim.DS.Splay/SplayRangeReverse.cs",
+   "symbol": "Splay",
+   "dimension": "cycles",
+   "impact": "low",
+   "summary": "zig/zag predicate recomputes child relations available from cached p,g.",
+   "currentCost": "bool zig = (g->Left==p)==(p->Left==x): fine, but g may be re-dereferenced; combined with the Rotate guard removal the dependency chain can be tightened.",
+   "proposedChange": "Keep the zig computation (already uses cached p,g) but pair it with removing Rotate's redundant null guard (separate item) so the inner Rotate calls are branch-lean. Optionally hoist bool pLeft = (p->Left==x) once and reuse.",
+   "rationale": "Marginal: keeps the well-written predicate but ensures the rotations it drives are not re-validating non-null pointers. Mostly realized via the Rotate-guard removal.",
+   "risk": "None on its own; this is a coordination note with the Rotate-guard item rather than an independent change."
+  }
+ ]
+}

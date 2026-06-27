@@ -1,0 +1,39 @@
+{
+ "file": "src/IAFahim.String.Match/AhoOffline.cs",
+ "correctness": [
+  {
+   "file": "src/IAFahim.String.Match/AhoOffline.cs",
+   "symbol": "AhoOffline.Query",
+   "severity": "high",
+   "category": "edge-case",
+   "summary": "The flattened automaton format steals column 254 (output flag) and column 255 (fail link) out of the 256-wide transition row, but Query indexes the row directly with the raw text byte. When a text byte equals 254 or 255 the transition lookup reads the output-flag/fail-link slot instead of a real transition, producing wrong matches or jumping to a garbage state (potential out-of-range read). text is a plain byte* with no documented alphabet restriction, so bytes 0xFE/0xFF are valid inputs.",
+   "triggeringInput": "A state automaton built for pattern \"a\" (states[0*256+97]=1, states[1*256+254]=1 as output flag, states[1*256+255]=0 as fail link) queried over text={0x61,0xFE} (textLen=2): after consuming 'a' v=1; for byte 0xFE, line 17 reads states[1*256+254]=1 (the output flag) as a transition and sets v=1 again, and line 19 then reports a bogus match. With a larger output-flag value it would set v to an out-of-range state index.",
+   "rootCause": "Hardcoded magic indices states[v*256+254] (output) and states[v*256+255] (fail link) overlap the transition column space states[v*256+text[i]] for the same 256-wide row; bytes 254 and 255 collide with reserved metadata columns.",
+   "suggestedFix": "Reserve the metadata in extra columns (use a row width of 258 and put fail link at +256, output at +257), or document/enforce that the alphabet must be <=254 and reject/clamp text bytes >=254 (treat them as the no-transition / restart case)."
+  }
+ ],
+ "perf": [
+  {
+   "file": "src/IAFahim.String.Match/AhoOffline.cs",
+   "symbol": "Query",
+   "dimension": "cycles",
+   "impact": "high",
+   "summary": "states[v * 256 + text[i]] is recomputed up to four times per character and v * 256 uses a multiply where a shift suffices.",
+   "currentCost": "Per character: text[i] re-read multiple times, v*256 recomputed in the while-condition body and twice more after, and states[v*256+text[i]] indexed 3x. That is several redundant integer multiplies/loads on the hottest loop in the matcher.",
+   "proposedChange": "Hoist int b = text[i]; once per iteration. Replace v * 256 with v << 8 (define const int StateStride = 256, const int LinkSlot = 255, const int OutSlot = 254). Compute int* row = states + (v << 8); load int nxt = row[b]; once and reuse it in the while/if instead of re-indexing. After updating v, recompute the row pointer once.",
+   "rationale": "Cuts the per-character work to a single load of nxt plus one base-pointer add; removes 2-3 redundant array index computations and the multiply (shift is 1 cycle, multiply 3-4). Burst auto-vectorizes nothing here but the scalar dependency chain shortens, helping the gather-bound inner loop.",
+   "risk": "v*256 == v<<8 exactly for non-negative v (state ids are always >= 0). Named constants change no values. Behavior identical."
+  },
+  {
+   "file": "src/IAFahim.String.Match/AhoOffline.cs",
+   "symbol": "Query",
+   "dimension": "ergonomics",
+   "impact": "low",
+   "summary": "Magic constants 256 (stride), 255 (fail/link slot), and 254 (output slot) are unnamed, and the parameter stateCount is unused.",
+   "currentCost": "Readability/maintenance cost; the layout contract (254/255 reserved slots) is implicit. stateCount is dead.",
+   "proposedChange": "Introduce const int Sigma = 256, const int FailSlot = 255, const int OutSlot = 254. Either remove the unused stateCount parameter or use it to bound-check in a Try* variant per house convention.",
+   "rationale": "Self-documenting layout reduces the chance of an off-by-one when this packed table format is reused; no codegen change.",
+   "risk": "Removing a parameter is a signature/API change; if external callers exist, keep it or add a parallel overload. No behavioral change otherwise."
+  }
+ ]
+}

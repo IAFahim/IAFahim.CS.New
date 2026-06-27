@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Pathfinding.Recast/Recast/RcSpanPool.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Pathfinding.Recast/Recast/RcSpanPool.cs",
+   "symbol": "GetSpan",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "fixed-statement pin per call to obtain the address of an inline fixed buffer that sits at a known struct offset.",
+   "currentCost": "GetSpan opens 'fixed (byte* ptr = this.Items)' on every call to compute (RcSpan*)ptr + index. For a fixed-size buffer the address is just the field offset; the fixed statement still emits pinned-local bookkeeping and discourages inlining into the span-allocation hot path.",
+   "proposedChange": "Mark GetSpan with [MethodImpl(AggressiveInlining)] and obtain the pointer without the fixed block \u2014 cleanest is a by-pointer form (RcSpanPool* pool) returning (RcSpan*)pool->Items + index, or use UnsafeUtility.AddressOf(ref this) plus the buffer offset. Keep the ENABLE_UNITY_COLLECTIONS_CHECKS bounds check.",
+   "rationale": "Removes the pinned-local prologue/epilogue and enables inlining; in unmanaged/Burst context the buffer never moves so pinning is pure overhead.",
+   "risk": "Caller must hold a stable pointer to the pool (already the RcSpanPool* usage pattern). Behavior identical; only the address-acquisition mechanism changes."
+  }
+ ]
+}

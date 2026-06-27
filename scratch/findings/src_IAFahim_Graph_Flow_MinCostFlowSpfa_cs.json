@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.Graph.Flow/MinCostFlowSpfa.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.Graph.Flow/MinCostFlowSpfa.cs",
+   "symbol": "Run",
+   "dimension": "burst",
+   "impact": "high",
+   "summary": "q/inq/cnt stackalloc reside inside while(true) and dist/parent re-init each iteration; hoist the buffers.",
+   "currentCost": "Three stackalloc (int[n], byte[n], int[n]) plus a full init loop occur per augmenting iteration. The buffers persist to method end anyway (stackalloc is not freed per loop), so re-declaring them only confuses the frame and forces re-zeroing logic each pass.",
+   "proposedChange": "Hoist q, inq, cnt stackalloc above while(true); keep the per-iteration reset loop for inq/cnt (still required), but allocate once. Combine the inq/cnt/dist/parent resets into a single pass over i since they are all length n.",
+   "rationale": "Single stack reservation; one fused reset loop instead of two separate loops over [0,n) (the dist/parent loop and the inq/cnt loop), halving loop overhead and improving streaming write locality.",
+   "risk": "None for hoisting (stackalloc lifetime is method scope regardless). Fusing resets is safe because all arrays are length n and independent."
+  }
+ ]
+}

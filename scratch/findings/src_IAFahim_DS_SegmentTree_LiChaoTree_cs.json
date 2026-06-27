@@ -1,0 +1,17 @@
+{
+ "file": "src/IAFahim.DS.SegmentTree/LiChaoTree.cs",
+ "correctness": [],
+ "perf": [
+  {
+   "file": "src/IAFahim.DS.SegmentTree/LiChaoTree.cs",
+   "symbol": "LiChaoTree (all methods) / Line.Eval",
+   "dimension": "burst",
+   "impact": "low",
+   "summary": "Methods are empty stubs; only Line.Eval is real. Line struct is blittable/Burst-friendly already. Unused usings.",
+   "currentCost": "PersistentLiChaoAdd/Query, DynamicLiChaoRollback, LiChaoRollback, DivideConquerHullOptimization, OnlineChtAdd/Query are empty. Line.Eval (M*x+C) is one fma-shaped expression, already optimal. `using System;` and CompilerServices unused.",
+   "proposedChange": "Add [MethodImpl(AggressiveInlining)] to Line.Eval (hot leaf when implemented) and remove unused usings. No other action until the tree is implemented.",
+   "rationale": "Line.Eval will be the innermost hot operation of any Li Chao / CHT query; marking it inline ensures it folds into query loops. The rest is unimplemented.",
+   "risk": "None; Eval is pure (M*x+C), deterministic, blittable."
+  }
+ ]
+}
