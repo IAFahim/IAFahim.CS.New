@@ -201,20 +201,17 @@ namespace IAFahim.Graph
             long mstWeight = 0;
             int edgeCount = 0;
             MstMinHeap pq = new MstMinHeap(n);
-            try
+            bestW[RootVertex] = 0;
+            pq.PushOrUpdate(RootVertex, 0);
+            while (pq.Size > 0 && edgeCount < n - 1)
             {
-                bestW[RootVertex] = 0;
-                pq.PushOrUpdate(RootVertex, 0);
-                while (pq.Size > 0 && edgeCount < n - 1)
-                {
-                    int u = pq.Pop(out long d);
-                    if (used[u]) continue;
-                    used[u] = true;
-                    if (u != RootVertex) { mstEdges[edgeCount++] = parentEdge[u]; mstWeight += d; }
-                    PrimRelax(u, head, to, next, weight, used, bestW, parentEdge, &pq);
-                }
+                int u = pq.Pop(out long d);
+                if (used[u]) continue;
+                used[u] = true;
+                if (u != RootVertex) { mstEdges[edgeCount++] = parentEdge[u]; mstWeight += d; }
+                PrimRelax(u, head, to, next, weight, used, bestW, parentEdge, &pq);
             }
-            finally { pq.Dispose(); }
+            pq.Dispose();
             return edgeCount == n - 1 ? mstWeight : -1;
         }
 

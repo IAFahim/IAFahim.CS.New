@@ -22,57 +22,53 @@ namespace IAFahim.Graph.Functional
             if (n <= 0) return 0;
 
             byte* seen = (byte*)Marshal.AllocHGlobal(n);
-            try
+            for (int i = 0; i < n; i++) seen[i] = 0;
+
+            // Running CRT solution: k ≡ rem (mod mod). Empty constraint to start.
+            long rem = 0;
+            long mod = 1;
+            long result = 0;
+
+            for (int start = 0; start < n; start++)
             {
-                for (int i = 0; i < n; i++) seen[i] = 0;
+                if (seen[start] != 0) continue; // cycle already processed
 
-                // Running CRT solution: k ≡ rem (mod mod). Empty constraint to start.
-                long rem = 0;
-                long mod = 1;
-
-                for (int start = 0; start < n; start++)
+                // 1) Measure cycle length L and find d = steps from 'start' to p2[start]
+                //    while marking the cycle as seen. If p2[start] never appears on the
+                //    walk it lies on a different cycle => no solution.
+                int t = p2[start];
+                long len = 0;
+                int d = -1;
+                int node = start;
+                do
                 {
-                    if (seen[start] != 0) continue; // cycle already processed
+                    seen[node] = 1;
+                    if (node == t) d = (int)len;
+                    node = p1[node];
+                    len++;
+                } while (node != start);
 
-                    // 1) Measure cycle length L and find d = steps from 'start' to p2[start]
-                    //    while marking the cycle as seen. If p2[start] never appears on the
-                    //    walk it lies on a different cycle => no solution.
-                    int t = p2[start];
-                    long len = 0;
-                    int d = -1;
-                    int node = start;
-                    do
-                    {
-                        seen[node] = 1;
-                        if (node == t) d = (int)len;
-                        node = p1[node];
-                        len++;
-                    } while (node != start);
+                if (d < 0) { result = -1; goto done; } // p2 maps 'start' off its p1-cycle
 
-                    if (d < 0) return -1; // p2 maps 'start' off its p1-cycle
-
-                    // 2) Verify the rotation is uniform: a second pointer 'ahead', kept exactly
-                    //    d steps in front of 'node', must equal p2[node] for every member.
-                    int ahead = start;
-                    for (int s = 0; s < d; s++) ahead = p1[ahead];
-                    node = start;
-                    for (long s = 0; s < len; s++)
-                    {
-                        if (p2[node] != ahead) return -1; // non-uniform rotation
-                        node = p1[node];
-                        ahead = p1[ahead];
-                    }
-
-                    // 3) Fold k ≡ d (mod len) into the running CRT solution.
-                    if (!CrtMerge(ref rem, ref mod, d, len)) return -1;
+                // 2) Verify the rotation is uniform: a second pointer 'ahead', kept exactly
+                //    d steps in front of 'node', must equal p2[node] for every member.
+                int ahead = start;
+                for (int s = 0; s < d; s++) ahead = p1[ahead];
+                node = start;
+                for (long s = 0; s < len; s++)
+                {
+                    if (p2[node] != ahead) { result = -1; goto done; } // non-uniform rotation
+                    node = p1[node];
+                    ahead = p1[ahead];
                 }
 
-                return rem;
+                // 3) Fold k ≡ d (mod len) into the running CRT solution.
+                if (!CrtMerge(ref rem, ref mod, d, len)) { result = -1; goto done; }
             }
-            finally
-            {
-                Marshal.FreeHGlobal(new System.IntPtr((void*)seen));
-            }
+            result = rem;
+            done:
+            Marshal.FreeHGlobal(new System.IntPtr((void*)seen));
+            return result;
         }
 
         // Merge k ≡ rem (mod mod) with k ≡ r2 (mod m2). Returns false if inconsistent;

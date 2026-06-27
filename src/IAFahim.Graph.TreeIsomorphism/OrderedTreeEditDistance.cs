@@ -45,7 +45,6 @@ namespace IAFahim.Graph.TreeIsomorphism
             long totalWords = t1Words + t2Words + fdSize;
 
             int* block = (int*)Marshal.AllocHGlobal((nint)(totalWords * sizeof(int)));
-            try
             {
                 int* cur = block;
 
@@ -71,22 +70,20 @@ namespace IAFahim.Graph.TreeIsomorphism
 
                 int kr1 = Preprocess(p1, n1, post1, postOf1, lmld1, keyroots1,
                     childStart1, children1, stackNode1, stackState1);
-                if (kr1 < 0) return -1;
+                if (kr1 < 0) { Marshal.FreeHGlobal((nint)block); return -1; }
 
                 int kr2 = Preprocess(p2, n2, post2, postOf2, lmld2, keyroots2,
                     childStart2, children2, stackNode2, stackState2);
-                if (kr2 < 0) return -1;
+                if (kr2 < 0) { Marshal.FreeHGlobal((nint)block); return -1; }
 
                 // The DP needs a persistent tree-distance table (allocated inside ZhangShasha) plus
                 // the per-keyroot-pair forest-distance scratch 'fd' carved from this block.
-                return ZhangShasha(
+                int result = ZhangShasha(
                     n1, post1, lmld1, keyroots1, kr1,
                     n2, post2, lmld2, keyroots2, kr2,
                     fd);
-            }
-            finally
-            {
                 Marshal.FreeHGlobal((nint)block);
+                return result;
             }
         }
 
@@ -221,11 +218,9 @@ namespace IAFahim.Graph.TreeIsomorphism
             // Only filled at keyroot crossings but read back by later (outer) keyroot pairs.
             long tdSize = (long)n1 * n2;
             int* td = (int*)Marshal.AllocHGlobal((nint)(tdSize * sizeof(int)));
-            try
-            {
-                for (long t = 0; t < tdSize; t++) td[t] = 0;
+            for (long t = 0; t < tdSize; t++) td[t] = 0;
 
-                int fdW = n2 + 1; // row stride of fd
+            int fdW = n2 + 1; // row stride of fd
 
                 for (int a = 0; a < kr1; a++)
                 {
@@ -284,12 +279,8 @@ namespace IAFahim.Graph.TreeIsomorphism
 
                 // Roots are the last node in each postorder (postorder index n-1).
                 int result = td[(n1 - 1) * n2 + (n2 - 1)];
-                return result;
-            }
-            finally
-            {
                 Marshal.FreeHGlobal((nint)td);
-            }
+                return result;
         }
     }
 }

@@ -41,63 +41,57 @@ namespace IAFahim.Graph.Functional
             int* cycleStart = (int*)Marshal.AllocHGlobal(sizeof(int) * n);
             int* cycleLen = (int*)Marshal.AllocHGlobal(sizeof(int) * n);
             int* group = (int*)Marshal.AllocHGlobal(sizeof(int) * n);
-            try
+            // Pass 1: enumerate every cycle of p, marking members visited (res != -1).
+            int cycleCount = 0;
+            for (int start = 0; start < n; start++)
             {
-                // Pass 1: enumerate every cycle of p, marking members visited (res != -1).
-                int cycleCount = 0;
-                for (int start = 0; start < n; start++)
+                if (res[start] != -1) continue; // already inside an earlier cycle
+
+                int len = 0;
+                int node = start;
+                do
                 {
-                    if (res[start] != -1) continue; // already inside an earlier cycle
+                    res[node] = -2;     // "seen, value pending"
+                    node = p[node];
+                    len++;
+                } while (node != start);
 
-                    int len = 0;
-                    int node = start;
-                    do
-                    {
-                        res[node] = -2;     // "seen, value pending"
-                        node = p[node];
-                        len++;
-                    } while (node != start);
+                cycleStart[cycleCount] = start;
+                cycleLen[cycleCount] = len;
+                cycleCount++;
+            }
 
-                    cycleStart[cycleCount] = start;
-                    cycleLen[cycleCount] = len;
-                    cycleCount++;
-                }
+            // For each distinct length L, gather its cycles and merge them in groups of t.
+            // A length is "done" once we've consumed all its cycles; we mark consumed entries len=0.
+            bool ok = true;
+            for (int ci = 0; ci < cycleCount; ci++)
+            {
+                int L = cycleLen[ci];
+                if (L == 0) continue; // already consumed as part of an earlier length-group sweep
 
-                // For each distinct length L, gather its cycles and merge them in groups of t.
-                // A length is "done" once we've consumed all its cycles; we mark consumed entries len=0.
-                for (int ci = 0; ci < cycleCount; ci++)
+                int t = MergeCount(L, k); // canonical number of length-L cycles per root cycle
+
+                // Collect the t starts of one group, sweeping forward over remaining length-L cycles.
+                int filled = 0;
+                for (int cj = ci; cj < cycleCount; cj++)
                 {
-                    int L = cycleLen[ci];
-                    if (L == 0) continue; // already consumed as part of an earlier length-group sweep
-
-                    int t = MergeCount(L, k); // canonical number of length-L cycles per root cycle
-
-                    // Collect the t starts of one group, sweeping forward over remaining length-L cycles.
-                    int filled = 0;
-                    for (int cj = ci; cj < cycleCount; cj++)
+                    if (cycleLen[cj] != L) continue;
+                    cycleLen[cj] = 0;          // consume
+                    group[filled++] = cycleStart[cj];
+                    if (filled == t)
                     {
-                        if (cycleLen[cj] != L) continue;
-                        cycleLen[cj] = 0;          // consume
-                        group[filled++] = cycleStart[cj];
-                        if (filled == t)
-                        {
-                            BuildMergedRoot(p, group, t, L, k, res);
-                            filled = 0;
-                        }
+                        BuildMergedRoot(p, group, t, L, k, res);
+                        filled = 0;
                     }
-
-                    // Leftover cycles that couldn't form a full group => no k-th root exists.
-                    if (filled != 0) return false;
                 }
 
-                return true;
+                // Leftover cycles that couldn't form a full group => no k-th root exists.
+                if (filled != 0) { ok = false; break; }
             }
-            finally
-            {
-                Marshal.FreeHGlobal(new System.IntPtr((void*)group));
-                Marshal.FreeHGlobal(new System.IntPtr((void*)cycleLen));
-                Marshal.FreeHGlobal(new System.IntPtr((void*)cycleStart));
-            }
+            Marshal.FreeHGlobal(new System.IntPtr((void*)group));
+            Marshal.FreeHGlobal(new System.IntPtr((void*)cycleLen));
+            Marshal.FreeHGlobal(new System.IntPtr((void*)cycleStart));
+            return ok;
         }
 
         // Least fixed point of t -> gcd(L*t, k) starting at t = 1: the number of length-L p-cycles
@@ -121,33 +115,27 @@ namespace IAFahim.Graph.Functional
         {
             long m = (long)t * L;
             int* cyc = (int*)Marshal.AllocHGlobal(sizeof(int) * (int)m);
-            try
+            long kr = k % m; // step is taken mod m; kr in [0, m)
+            for (int x = 0; x < t; x++)
             {
-                long kr = k % m; // step is taken mod m; kr in [0, m)
-                for (int x = 0; x < t; x++)
+                int node = group[x];
+                long pos = x;          // y = 0 -> index x
+                for (int y = 0; y < L; y++)
                 {
-                    int node = group[x];
-                    long pos = x;          // y = 0 -> index x
-                    for (int y = 0; y < L; y++)
-                    {
-                        cyc[pos] = node;
-                        node = p[node];
-                        pos += kr;
-                        if (pos >= m) pos -= m;
-                    }
+                    cyc[pos] = node;
+                    node = p[node];
+                    pos += kr;
+                    if (pos >= m) pos -= m;
                 }
+            }
 
-                for (long i = 0; i < m; i++)
-                {
-                    long ni = i + 1;
-                    if (ni == m) ni = 0;
-                    res[cyc[i]] = cyc[ni];
-                }
-            }
-            finally
+            for (long i = 0; i < m; i++)
             {
-                Marshal.FreeHGlobal(new System.IntPtr((void*)cyc));
+                long ni = i + 1;
+                if (ni == m) ni = 0;
+                res[cyc[i]] = cyc[ni];
             }
+            Marshal.FreeHGlobal(new System.IntPtr((void*)cyc));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

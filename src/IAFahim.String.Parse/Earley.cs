@@ -22,50 +22,45 @@ namespace IAFahim.String.Parse
             int* counts = (int*)Marshal.AllocHGlobal((nint)countsByteCount);
             for (int i = 0; i <= len; i++) counts[i] = 0;
 
-            try
+            AddState(S, counts, maxStates, 0, startRule, 0, 0);
+
+            for (int k = 0; k <= len; k++)
             {
-                AddState(S, counts, maxStates, 0, startRule, 0, 0);
-
-                for (int k = 0; k <= len; k++)
+                int i = 0;
+                while (i < counts[k])
                 {
-                    int i = 0;
-                    while (i < counts[k])
-                    {
-                        int idx = k * maxStates + i;
-                        i++;
-                        int rule = S[idx].Rule;
-                        int dot = S[idx].Dot;
-                        int origin = S[idx].Origin;
-                        int symbol = rules[rule * 3 + dot + 1];
+                    int idx = k * maxStates + i;
+                    i++;
+                    int rule = S[idx].Rule;
+                    int dot = S[idx].Dot;
+                    int origin = S[idx].Origin;
+                    int symbol = rules[rule * 3 + dot + 1];
 
-                        if (symbol == -1)
-                        {
-                            Complete(S, counts, maxStates, k, rules, ruleCount, rule, dot, origin, symbol);
-                        }
-                        else if (symbol >= 256)
-                        {
-                            Predict(S, counts, maxStates, k, rules, ruleCount, rule, dot, origin, symbol);
-                        }
-                        else if (k < len && input[k] == symbol)
-                        {
-                            Scan(S, counts, maxStates, k, rule, dot, origin);
-                        }
+                    if (symbol == -1)
+                    {
+                        Complete(S, counts, maxStates, k, rules, ruleCount, rule, dot, origin, symbol);
+                    }
+                    else if (symbol >= 256)
+                    {
+                        Predict(S, counts, maxStates, k, rules, ruleCount, rule, dot, origin, symbol);
+                    }
+                    else if (k < len && input[k] == symbol)
+                    {
+                        Scan(S, counts, maxStates, k, rule, dot, origin);
                     }
                 }
+            }
 
-                for (int i = 0; i < counts[len]; i++)
-                {
-                    State sp = S[len * maxStates + i];
-                    if (sp.Rule == startRule && sp.Origin == 0 && rules[sp.Rule * 3 + sp.Dot + 1] == -1)
-                        return true;
-                }
-                return false;
-            }
-            finally
+            bool result = false;
+            for (int i = 0; i < counts[len]; i++)
             {
-                Marshal.FreeHGlobal((nint)S);
-                Marshal.FreeHGlobal((nint)counts);
+                State sp = S[len * maxStates + i];
+                if (sp.Rule == startRule && sp.Origin == 0 && rules[sp.Rule * 3 + sp.Dot + 1] == -1)
+                { result = true; break; }
             }
+            Marshal.FreeHGlobal((nint)S);
+            Marshal.FreeHGlobal((nint)counts);
+            return result;
         }
 
         private static void AddState(State* S, int* counts, int maxStates, int setIdx, int rule, int dot, int origin)

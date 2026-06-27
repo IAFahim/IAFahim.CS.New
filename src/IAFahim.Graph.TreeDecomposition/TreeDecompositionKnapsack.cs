@@ -37,45 +37,39 @@ namespace IAFahim.Graph.TreeDecomposition
             long dpSize = (long)niceNodesCount * nodeStride * sizeof(long);
 
             long* dp = (long*)Marshal.AllocHGlobal((nint)dpSize);
-            try
-            {
-                long cells = (long)niceNodesCount * nodeStride;
-                for (long i = 0; i < cells; i++) dp[i] = NEG_INF;
+            long cells = (long)niceNodesCount * nodeStride;
+            for (long i = 0; i < cells; i++) dp[i] = NEG_INF;
 
-                for (int u = niceNodesCount - 1; u >= 0; u--)
-                {
-                    int type = nodeType[u];
-                    switch (type)
-                    {
-                        case TYPE_LEAF:
-                            ProcessLeaf(u, bagSizes, bagElements, maxBagSize, capacity, capStride, nodeStride, weights, values, dp);
-                            break;
-                        case TYPE_INTRODUCE:
-                            ProcessIntroduce(u, leftChild[u], introForgetVertex[u], bagSizes, capacity, capStride, nodeStride, weights, values, dp);
-                            break;
-                        case TYPE_FORGET:
-                            ProcessForget(u, leftChild[u], introForgetVertex[u], bagSizes, bagElements, maxBagSize, capStride, nodeStride, dp);
-                            break;
-                        case TYPE_JOIN:
-                            ProcessJoin(u, leftChild[u], rightChild[u], bagSizes, bagElements, maxBagSize, capacity, capStride, nodeStride, weights, values, dp);
-                            break;
-                    }
-                }
-
-                long* root = dp;
-                long rootCells = nodeStride;
-                long best = 0;
-                for (long i = 0; i < rootCells; i++)
-                {
-                    long v = root[i];
-                    if (v > best) best = v;
-                }
-                return best;
-            }
-            finally
+            for (int u = niceNodesCount - 1; u >= 0; u--)
             {
-                Marshal.FreeHGlobal((nint)dp);
+                int type = nodeType[u];
+                switch (type)
+                {
+                    case TYPE_LEAF:
+                        ProcessLeaf(u, bagSizes, bagElements, maxBagSize, capacity, capStride, nodeStride, weights, values, dp);
+                        break;
+                    case TYPE_INTRODUCE:
+                        ProcessIntroduce(u, leftChild[u], introForgetVertex[u], bagSizes, capacity, capStride, nodeStride, weights, values, dp);
+                        break;
+                    case TYPE_FORGET:
+                        ProcessForget(u, leftChild[u], introForgetVertex[u], bagSizes, bagElements, maxBagSize, capStride, nodeStride, dp);
+                        break;
+                    case TYPE_JOIN:
+                        ProcessJoin(u, leftChild[u], rightChild[u], bagSizes, bagElements, maxBagSize, capacity, capStride, nodeStride, weights, values, dp);
+                        break;
+                }
             }
+
+            long* root = dp;
+            long rootCells = nodeStride;
+            long best = 0;
+            for (long i = 0; i < rootCells; i++)
+            {
+                long v = root[i];
+                if (v > best) best = v;
+            }
+            Marshal.FreeHGlobal((nint)dp);
+            return best;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

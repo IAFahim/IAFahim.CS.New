@@ -43,48 +43,42 @@ namespace IAFahim.String.Automata
             int head = 0, tail = 0;
             queue[tail++] = 1;
 
-            try
+            while (head < tail)
             {
-                while (head < tail)
+                int subset = queue[head++];
+                for (int c = 0; c < sigma; c++)
                 {
-                    int subset = queue[head++];
-                    for (int c = 0; c < sigma; c++)
+                    int next = SubsetMove(nfaTrans, nfaStates, subset, c);
+                    if (stateMap[next] == -1)
                     {
-                        int next = SubsetMove(nfaTrans, nfaStates, subset, c);
-                        if (stateMap[next] == -1)
-                        {
-                            stateMap[next] = stateCount++;
-                            queue[tail++] = next;
-                        }
+                        stateMap[next] = stateCount++;
+                        queue[tail++] = next;
                     }
                 }
-
-                dfa->StateCount = stateCount;
-                dfa->AlphabetSize = sigma;
-
-                for (int i = 0; i < stateCount; i++)
-                {
-                    for (int c = 0; c < sigma; c++) dfa->Transitions[i][c] = 0;
-                    dfa->IsAccept[i] = false;
-                }
-
-                for (int mask = 0; mask < maxDfaStates; mask++)
-                {
-                    if (stateMap[mask] == -1) continue;
-                    int dfaState = stateMap[mask];
-                    for (int c = 0; c < sigma; c++)
-                    {
-                        int next = SubsetMove(nfaTrans, nfaStates, mask, c);
-                        dfa->Transitions[dfaState][c] = stateMap[next];
-                    }
-                    dfa->IsAccept[dfaState] = SubsetAccepts(nfaAccept, nfaStates, mask);
-                }
             }
-            finally
+
+            dfa->StateCount = stateCount;
+            dfa->AlphabetSize = sigma;
+
+            for (int i = 0; i < stateCount; i++)
             {
-                Marshal.FreeHGlobal((nint)queue);
-                Marshal.FreeHGlobal((nint)tempNext);
+                for (int c = 0; c < sigma; c++) dfa->Transitions[i][c] = 0;
+                dfa->IsAccept[i] = false;
             }
+
+            for (int mask = 0; mask < maxDfaStates; mask++)
+            {
+                if (stateMap[mask] == -1) continue;
+                int dfaState = stateMap[mask];
+                for (int c = 0; c < sigma; c++)
+                {
+                    int next = SubsetMove(nfaTrans, nfaStates, mask, c);
+                    dfa->Transitions[dfaState][c] = stateMap[next];
+                }
+                dfa->IsAccept[dfaState] = SubsetAccepts(nfaAccept, nfaStates, mask);
+            }
+            Marshal.FreeHGlobal((nint)queue);
+            Marshal.FreeHGlobal((nint)tempNext);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -139,10 +133,8 @@ namespace IAFahim.String.Automata
             int* ord = (int*)Marshal.AllocHGlobal((nint)((long)sizeof(int) * n));
 
             bool changed;
-            try
-            {
-                // Initial partition: accepting vs non-accepting.
-                int classCount = 0;
+            // Initial partition: accepting vs non-accepting.
+            int classCount = 0;
                 bool seenAccept = false, seenReject = false;
                 int acceptId = 0, rejectId = 0;
                 for (int s = 0; s < n; s++)
@@ -234,14 +226,10 @@ namespace IAFahim.String.Automata
                     }
                     dfa->StateCount = next;
                 }
-            }
-            finally
-            {
-                Marshal.FreeHGlobal((nint)cls);
-                Marshal.FreeHGlobal((nint)newCls);
-                Marshal.FreeHGlobal((nint)sig);
-                Marshal.FreeHGlobal((nint)ord);
-            }
+            Marshal.FreeHGlobal((nint)cls);
+            Marshal.FreeHGlobal((nint)newCls);
+            Marshal.FreeHGlobal((nint)sig);
+            Marshal.FreeHGlobal((nint)ord);
             return changed;
         }
 

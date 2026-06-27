@@ -82,34 +82,28 @@ namespace IAFahim.String
                 int* tempStack = stackalloc int[numEdges + 1];
                 stack = tempStack;
             }
-            try
+            int stackPtr = 0;
+            stack[stackPtr++] = 0;
+            int writePtr = 0;
+            while (stackPtr > 0)
             {
-                int stackPtr = 0;
-                stack[stackPtr++] = 0;
-                int writePtr = 0;
-                while (stackPtr > 0)
+                int u = stack[stackPtr - 1];
+                if (edgeIdx[u] < k)
                 {
-                    int u = stack[stackPtr - 1];
-                    if (edgeIdx[u] < k)
-                    {
-                        int nextEdge = edgeIdx[u]++;
-                        int v = (u * k + nextEdge) % numVertices;
-                        stack[stackPtr++] = v;
-                    }
-                    else
-                    {
-                        path[writePtr++] = u;
-                        stackPtr--;
-                    }
+                    int nextEdge = edgeIdx[u]++;
+                    int v = (u * k + nextEdge) % numVertices;
+                    stack[stackPtr++] = v;
                 }
-                *pathLen = writePtr;
+                else
+                {
+                    path[writePtr++] = u;
+                    stackPtr--;
+                }
             }
-            finally
+            *pathLen = writePtr;
+            if (allocated)
             {
-                if (allocated)
-                {
-                    Marshal.FreeHGlobal((nint)stack);
-                }
+                Marshal.FreeHGlobal((nint)stack);
             }
         }
     }

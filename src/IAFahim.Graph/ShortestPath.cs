@@ -127,27 +127,24 @@ namespace IAFahim.Graph
             SpArrays.InitParent(parent, n);
             dist[start] = 0;
             SpMinHeap pq = new SpMinHeap(n);
-            try
+            pq.PushOrUpdate(start, 0);
+            while (pq.Size > 0)
             {
-                pq.PushOrUpdate(start, 0);
-                while (pq.Size > 0)
+                int u = pq.Pop(out long d);
+                if (d != dist[u]) continue;
+                for (int e = head[u]; e != 0; e = next[e])
                 {
-                    int u = pq.Pop(out long d);
-                    if (d != dist[u]) continue;
-                    for (int e = head[u]; e != 0; e = next[e])
+                    int v = to[e];
+                    long nd = dist[u] + weight[e];
+                    if (nd < dist[v])
                     {
-                        int v = to[e];
-                        long nd = dist[u] + weight[e];
-                        if (nd < dist[v])
-                        {
-                            dist[v] = nd;
-                            parent[v] = u;
-                            pq.PushOrUpdate(v, nd);
-                        }
+                        dist[v] = nd;
+                        parent[v] = u;
+                        pq.PushOrUpdate(v, nd);
                     }
                 }
             }
-            finally { pq.Dispose(); }
+            pq.Dispose();
         }
     }
 
@@ -416,28 +413,25 @@ namespace IAFahim.Graph
             for (int i = 0; i < n; i++) dBase[i] = long.MaxValue;
             dBase[s] = 0;
             SpMinHeap pq = new SpMinHeap(n);
-            try
+            pq.PushOrUpdate(s, 0);
+            while (pq.Size > 0)
             {
-                pq.PushOrUpdate(s, 0);
-                while (pq.Size > 0)
+                int u = pq.Pop(out long d);
+                if (d != dBase[u]) continue;
+                long hu = h[u];
+                for (int i = 0; i < m; i++)
                 {
-                    int u = pq.Pop(out long d);
-                    if (d != dBase[u]) continue;
-                    long hu = h[u];
-                    for (int i = 0; i < m; i++)
+                    if (eu[i] != u) continue;
+                    int v = ev[i];
+                    long nd = d + ew[i] + hu - h[v];
+                    if (nd < dBase[v])
                     {
-                        if (eu[i] != u) continue;
-                        int v = ev[i];
-                        long nd = d + ew[i] + hu - h[v];
-                        if (nd < dBase[v])
-                        {
-                            dBase[v] = nd;
-                            pq.PushOrUpdate(v, nd);
-                        }
+                        dBase[v] = nd;
+                        pq.PushOrUpdate(v, nd);
                     }
                 }
             }
-            finally { pq.Dispose(); }
+            pq.Dispose();
             for (int t = 0; t < n; t++)
             {
                 if (dBase[t] != long.MaxValue)
@@ -539,28 +533,25 @@ namespace IAFahim.Graph
             SpArrays.InitParent(parent, n);
             dist[start] = 0;
             SpMinHeap pq = new SpMinHeap(n);
-            try
+            pq.PushOrUpdate(start, 0);
+            while (pq.Size > 0)
             {
-                pq.PushOrUpdate(start, 0);
-                while (pq.Size > 0)
+                int u = pq.Pop(out long d);
+                if (d != dist[u]) continue;
+                for (int e = head[u]; e != 0; e = next[e])
                 {
-                    int u = pq.Pop(out long d);
-                    if (d != dist[u]) continue;
-                    for (int e = head[u]; e != 0; e = next[e])
+                    int v = to[e];
+                    long reduced = weight[e] + potential[u] - potential[v];
+                    long nd = dist[u] + reduced;
+                    if (nd < dist[v])
                     {
-                        int v = to[e];
-                        long reduced = weight[e] + potential[u] - potential[v];
-                        long nd = dist[u] + reduced;
-                        if (nd < dist[v])
-                        {
-                            dist[v] = nd;
-                            parent[v] = u;
-                            pq.PushOrUpdate(v, nd);
-                        }
+                        dist[v] = nd;
+                        parent[v] = u;
+                        pq.PushOrUpdate(v, nd);
                     }
                 }
             }
-            finally { pq.Dispose(); }
+            pq.Dispose();
             for (int i = 0; i < n; i++)
             {
                 if (dist[i] != long.MaxValue)

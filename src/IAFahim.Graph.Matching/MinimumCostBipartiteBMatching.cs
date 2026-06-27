@@ -56,9 +56,7 @@ namespace IAFahim.Graph.Matching
             int* queue = (int*)AllocatorManager.Allocate(Allocator.Temp, sizeof(int) * (nNodes + 1), align);
 
             int totalCost;
-            try
-            {
-                for (int i = 0; i < nNodes; i++) gHead[i] = -1;
+            for (int i = 0; i < nNodes; i++) gHead[i] = -1;
                 int arcCount = 0;
 
                 // source -> left (cost 0)
@@ -88,19 +86,15 @@ namespace IAFahim.Graph.Matching
                 }
 
                 totalCost = MinCostMaxFlow(gHead, gNext, gTo, gCap, gCost, dist, prevArc, inQueue, queue, nNodes, source, sink);
-            }
-            finally
-            {
-                AllocatorManager.Free(Allocator.Temp, queue);
-                AllocatorManager.Free(Allocator.Temp, inQueue);
-                AllocatorManager.Free(Allocator.Temp, prevArc);
-                AllocatorManager.Free(Allocator.Temp, dist);
-                AllocatorManager.Free(Allocator.Temp, gCost);
-                AllocatorManager.Free(Allocator.Temp, gCap);
-                AllocatorManager.Free(Allocator.Temp, gTo);
-                AllocatorManager.Free(Allocator.Temp, gNext);
-                AllocatorManager.Free(Allocator.Temp, gHead);
-            }
+            AllocatorManager.Free(Allocator.Temp, queue);
+            AllocatorManager.Free(Allocator.Temp, inQueue);
+            AllocatorManager.Free(Allocator.Temp, prevArc);
+            AllocatorManager.Free(Allocator.Temp, dist);
+            AllocatorManager.Free(Allocator.Temp, gCost);
+            AllocatorManager.Free(Allocator.Temp, gCap);
+            AllocatorManager.Free(Allocator.Temp, gTo);
+            AllocatorManager.Free(Allocator.Temp, gNext);
+            AllocatorManager.Free(Allocator.Temp, gHead);
 
             return totalCost;
         }

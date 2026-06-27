@@ -25,14 +25,8 @@ namespace IAFahim.Sort.Merge
         {
             if (len <= 1) return;
             T* tmp = (T*)Marshal.AllocHGlobal((nint)((long)len * sizeof(T)));
-            try
-            {
-                RunInPlaceCore(ptr, len, tmp);
-            }
-            finally
-            {
-                Marshal.FreeHGlobal((nint)tmp);
-            }
+            RunInPlaceCore(ptr, len, tmp);
+            Marshal.FreeHGlobal((nint)tmp);
         }
 
         private static void RunInPlaceCore<T>(T* ptr, int len, T* tmp) where T : unmanaged, IComparable<T>

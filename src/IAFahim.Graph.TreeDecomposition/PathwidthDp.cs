@@ -19,52 +19,46 @@ namespace IAFahim.Graph.TreeDecomposition
             long* dp = (long*)Marshal.AllocHGlobal((nint)dpSize);
             long reachedSize = 2L * (1L << maxBagSize) * sizeof(byte);
             byte* reached = (byte*)Marshal.AllocHGlobal((nint)reachedSize);
-            try
-            {
-                UnsafeUtilityMemClear(dp, dpSize);
-                UnsafeUtilityMemClear(reached, reachedSize);
-                long* curDp = dp;
-                long* nextDp = dp + (1L << maxBagSize);
-                byte* reachedCur = reached;
-                byte* reachedNext = reached + (1L << maxBagSize);
+            UnsafeUtilityMemClear(dp, dpSize);
+            UnsafeUtilityMemClear(reached, reachedSize);
+            long* curDp = dp;
+            long* nextDp = dp + (1L << maxBagSize);
+            byte* reachedCur = reached;
+            byte* reachedNext = reached + (1L << maxBagSize);
 
-                curDp[0] = 0;
-                reachedCur[0] = 1;
-                
-                for (int i = 0; i < pathLength - 1; i++)
-                {
-                    int oldSize = bagSizes[i];
-                    int newSize = bagSizes[i + 1];
-                    
-                    UnsafeUtilityMemClear(nextDp, (1L << maxBagSize) * sizeof(long));
-                    UnsafeUtilityMemClear(reachedNext, (1L << maxBagSize) * sizeof(byte));
-                    
-                    MapOldToNewMasks(oldSize, newSize, i, maxBagSize, bagElements, curDp, nextDp, reachedCur, reachedNext);
-                    TryIntroduceNewVertices(oldSize, newSize, i, maxBagSize, bagElements, weights, graphHead, graphTo, graphNext, nextDp, reachedNext);
-                    
-                    long* temp = curDp;
-                    curDp = nextDp;
-                    nextDp = temp;
-                    byte* tempR = reachedCur;
-                    reachedCur = reachedNext;
-                    reachedNext = tempR;
-                }
-                
-                long ans = 0;
-                for (int mask = 0; mask < (1 << bagSizes[pathLength - 1]); mask++)
-                {
-                    if (reachedCur[mask] != 0 && curDp[mask] > ans)
-                    {
-                        ans = curDp[mask];
-                    }
-                }
-                return ans;
-            }
-            finally
+            curDp[0] = 0;
+            reachedCur[0] = 1;
+            
+            for (int i = 0; i < pathLength - 1; i++)
             {
-                Marshal.FreeHGlobal((nint)dp);
-                Marshal.FreeHGlobal((nint)reached);
+                int oldSize = bagSizes[i];
+                int newSize = bagSizes[i + 1];
+                
+                UnsafeUtilityMemClear(nextDp, (1L << maxBagSize) * sizeof(long));
+                UnsafeUtilityMemClear(reachedNext, (1L << maxBagSize) * sizeof(byte));
+                
+                MapOldToNewMasks(oldSize, newSize, i, maxBagSize, bagElements, curDp, nextDp, reachedCur, reachedNext);
+                TryIntroduceNewVertices(oldSize, newSize, i, maxBagSize, bagElements, weights, graphHead, graphTo, graphNext, nextDp, reachedNext);
+                
+                long* temp = curDp;
+                curDp = nextDp;
+                nextDp = temp;
+                byte* tempR = reachedCur;
+                reachedCur = reachedNext;
+                reachedNext = tempR;
             }
+            
+            long ans = 0;
+            for (int mask = 0; mask < (1 << bagSizes[pathLength - 1]); mask++)
+            {
+                if (reachedCur[mask] != 0 && curDp[mask] > ans)
+                {
+                    ans = curDp[mask];
+                }
+            }
+            Marshal.FreeHGlobal((nint)dp);
+            Marshal.FreeHGlobal((nint)reached);
+            return ans;
         }
 
         private static bool AreAdjacent(int u, int v, int* graphHead, int* graphTo, int* graphNext)

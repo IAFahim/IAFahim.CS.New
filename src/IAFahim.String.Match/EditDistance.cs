@@ -18,17 +18,15 @@ using System.Runtime.InteropServices;
         {
             if (Math.Abs(lenA - lenB) > maxDist) return maxDist + 1;
             int* prev = (int*)Marshal.AllocHGlobal(sizeof(int) * (lenB + 1)), curr = (int*)Marshal.AllocHGlobal(sizeof(int) * (lenB + 1));
-            try
+            InitializeLevenshtein(lenB, prev);
+            for (int i = 1; i <= lenA; i++)
             {
-                InitializeLevenshtein(lenB, prev);
-                for (int i = 1; i <= lenA; i++)
-                {
-                    if (UpdateLevenshteinRow(i, lenB, a, b, prev, curr) > maxDist) break;
-                    SwapBuffers(ref prev, ref curr);
-                }
-                return prev[lenB];
+                if (UpdateLevenshteinRow(i, lenB, a, b, prev, curr) > maxDist) break;
+                SwapBuffers(ref prev, ref curr);
             }
-            finally { Marshal.FreeHGlobal((nint)prev); Marshal.FreeHGlobal((nint)curr); }
+            int result = prev[lenB];
+            Marshal.FreeHGlobal((nint)prev); Marshal.FreeHGlobal((nint)curr);
+            return result;
         }
 
         private static void InitializeLevenshtein(int lenB, int* prev)

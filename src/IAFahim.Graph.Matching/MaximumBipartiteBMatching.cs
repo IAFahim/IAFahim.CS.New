@@ -46,9 +46,7 @@ namespace IAFahim.Graph.Matching
             int* queue = (int*)AllocatorManager.Allocate(Allocator.Temp, sizeof(int) * nNodes, align);
 
             int flow;
-            try
-            {
-                for (int i = 0; i < nNodes; i++) gHead[i] = -1;
+            for (int i = 0; i < nNodes; i++) gHead[i] = -1;
                 int arcCount = 0;
 
                 // source -> left
@@ -78,21 +76,16 @@ namespace IAFahim.Graph.Matching
                 }
 
                 flow = Dinic(gHead, gNext, gTo, gCap, level, iter, queue, nNodes, source, sink);
-            }
-            finally
-            {
-                AllocatorManager.Free(Allocator.Temp, queue);
+            AllocatorManager.Free(Allocator.Temp, queue);
                 AllocatorManager.Free(Allocator.Temp, iter);
                 AllocatorManager.Free(Allocator.Temp, level);
                 AllocatorManager.Free(Allocator.Temp, gCap);
                 AllocatorManager.Free(Allocator.Temp, gTo);
                 AllocatorManager.Free(Allocator.Temp, gNext);
                 AllocatorManager.Free(Allocator.Temp, gHead);
-            }
 
             return flow;
         }
-
         // Adds a forward arc (cap) and its residual back arc (cap 0). Paired arcs
         // are adjacent: forward at even index, back at odd index, so xor 1 toggles.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

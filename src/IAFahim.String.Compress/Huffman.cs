@@ -89,30 +89,27 @@ using System.Runtime.InteropServices;
             Node* nodes = stackalloc Node[2 * sigma];
             int nodeCount = 0;
             var pq = new NodeHeap(2 * sigma);
-            try
+            for (int c = 0; c < sigma; c++)
             {
-                for (int c = 0; c < sigma; c++)
+                if (freq[c] > 0)
                 {
-                    if (freq[c] > 0)
-                    {
-                        nodes[nodeCount] = new Node { Freq = freq[c], Symbol = c, Left = -1, Right = -1 };
-                        pq.Push(nodeCount, freq[c]);
-                        nodeCount++;
-                    }
+                    nodes[nodeCount] = new Node { Freq = freq[c], Symbol = c, Left = -1, Right = -1 };
+                    pq.Push(nodeCount, freq[c]);
+                    nodeCount++;
                 }
-                if (pq.Size == 0) return;
-                while (pq.Size > 1)
-                {
-                    int leftId = pq.Pop(out int leftFreq);
-                    int rightId = pq.Pop(out int rightFreq);
-                    int parentId = nodeCount++;
-                    nodes[parentId] = new Node { Freq = leftFreq + rightFreq, Symbol = -1, Left = leftId, Right = rightId };
-                    pq.Push(parentId, nodes[parentId].Freq);
-                }
-                int rootId = pq.Pop(out _);
-                Traverse(rootId, nodes, nodeCount, codes);
             }
-            finally { pq.Dispose(); }
+            if (pq.Size == 0) { pq.Dispose(); return; }
+            while (pq.Size > 1)
+            {
+                int leftId = pq.Pop(out int leftFreq);
+                int rightId = pq.Pop(out int rightFreq);
+                int parentId = nodeCount++;
+                nodes[parentId] = new Node { Freq = leftFreq + rightFreq, Symbol = -1, Left = leftId, Right = rightId };
+                pq.Push(parentId, nodes[parentId].Freq);
+            }
+            int rootId = pq.Pop(out _);
+            Traverse(rootId, nodes, nodeCount, codes);
+            pq.Dispose();
         }
 
         private static void Traverse(int rootId, Node* nodes, int capacity, Code* codes)

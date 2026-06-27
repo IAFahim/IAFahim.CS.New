@@ -35,58 +35,52 @@ namespace IAFahim.Graph.Functional
 
             // pendingByLen[L] = start of an even cycle of length L still waiting for a partner, or -1.
             int* pendingByLen = (int*)Marshal.AllocHGlobal(sizeof(int) * (n + 1));
-            try
+            for (int i = 0; i <= n; i++) pendingByLen[i] = -1;
+
+            // Pass 1: measure every cycle; build odd roots immediately; pair up even cycles.
+            for (int start = 0; start < n; start++)
             {
-                for (int i = 0; i <= n; i++) pendingByLen[i] = -1;
+                if (res[start] != -1) continue; // already consumed by an earlier cycle
 
-                // Pass 1: measure every cycle; build odd roots immediately; pair up even cycles.
-                for (int start = 0; start < n; start++)
+                // Measure the cycle length, marking members as visited (res != -1) as we go.
+                int len = 0;
+                int node = start;
+                do
                 {
-                    if (res[start] != -1) continue; // already consumed by an earlier cycle
+                    res[node] = -2;        // temporary "seen, value pending" marker
+                    node = p[node];
+                    len++;
+                } while (node != start);
 
-                    // Measure the cycle length, marking members as visited (res != -1) as we go.
-                    int len = 0;
-                    int node = start;
-                    do
+                if ((len & 1) != 0)
+                {
+                    // Odd cycle: build its root in place.
+                    BuildOddRoot(p, start, len, res);
+                }
+                else
+                {
+                    // Even cycle: try to match with a previously pending one of the same length.
+                    int partner = pendingByLen[len];
+                    if (partner == -1)
                     {
-                        res[node] = -2;        // temporary "seen, value pending" marker
-                        node = p[node];
-                        len++;
-                    } while (node != start);
-
-                    if ((len & 1) != 0)
-                    {
-                        // Odd cycle: build its root in place.
-                        BuildOddRoot(p, start, len, res);
+                        pendingByLen[len] = start; // wait for a future partner
                     }
                     else
                     {
-                        // Even cycle: try to match with a previously pending one of the same length.
-                        int partner = pendingByLen[len];
-                        if (partner == -1)
-                        {
-                            pendingByLen[len] = start; // wait for a future partner
-                        }
-                        else
-                        {
-                            pendingByLen[len] = -1;
-                            BuildEvenRoot(p, partner, start, len, res);
-                        }
+                        pendingByLen[len] = -1;
+                        BuildEvenRoot(p, partner, start, len, res);
                     }
                 }
-
-                // Any even-length cycle left unpaired => no square root exists.
-                for (int L = 1; L <= n; L++)
-                {
-                    if (pendingByLen[L] != -1) return false;
-                }
-
-                return true;
             }
-            finally
+
+            // Any even-length cycle left unpaired => no square root exists.
+            bool ok = true;
+            for (int L = 1; L <= n; L++)
             {
-                Marshal.FreeHGlobal(new System.IntPtr((void*)pendingByLen));
+                if (pendingByLen[L] != -1) { ok = false; break; }
             }
+            Marshal.FreeHGlobal(new System.IntPtr((void*)pendingByLen));
+            return ok;
         }
 
         // Odd cycle (length L) starting at 'start': res successor advances (L+1)/2 steps along p,
