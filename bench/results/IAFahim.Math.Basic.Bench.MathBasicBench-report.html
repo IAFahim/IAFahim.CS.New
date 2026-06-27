@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>IAFahim.Math.Basic.Bench.MathBasicBench-20260627-231007</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.14.0, Ubuntu 24.04.4 LTS (Noble Numbat)
+AMD EPYC 7763, 1 CPU, 4 logical and 2 physical cores
+.NET SDK 10.0.301
+  [Host] : .NET 10.0.9 (10.0.926.27113), X64 RyuJIT AVX2
+  Dry    : .NET 10.0.9 (10.0.926.27113), X64 RyuJIT AVX2
+</code></pre>
+<pre><code>Job=Dry  IterationCount=1  LaunchCount=1  
+RunStrategy=ColdStart  UnrollFactor=1  WarmupCount=1  
+</code></pre>
+
+<table>
+<thead><tr><th>Method  </th><th>N</th><th>Mean</th><th>Error</th><th>Allocated</th>
+</tr>
+</thead><tbody><tr><td>CeilDiv_Bench</td><td>1000</td><td>543.6 &mu;s</td><td>NA</td><td>-</td>
+</tr><tr><td>FloorDiv_Bench</td><td>1000</td><td>506.6 &mu;s</td><td>NA</td><td>-</td>
+</tr><tr><td>AbsInt_Bench</td><td>1000</td><td>680.8 &mu;s</td><td>NA</td><td>-</td>
+</tr><tr><td>MinInt_Bench</td><td>1000</td><td>489.2 &mu;s</td><td>NA</td><td>-</td>
+</tr><tr><td>MaxInt_Bench</td><td>1000</td><td>481.5 &mu;s</td><td>NA</td><td>-</td>
+</tr><tr><td>Clamp_Bench</td><td>1000</td><td>524.8 &mu;s</td><td>NA</td><td>-</td>
+</tr><tr><td>CeilDiv_Bench</td><td>1000000</td><td>1,167.8 &mu;s</td><td>NA</td><td>-</td>
+</tr><tr><td>FloorDiv_Bench</td><td>1000000</td><td>1,190.9 &mu;s</td><td>NA</td><td>-</td>
+</tr><tr><td>AbsInt_Bench</td><td>1000000</td><td>518.2 &mu;s</td><td>NA</td><td>-</td>
+</tr><tr><td>MinInt_Bench</td><td>1000000</td><td>1,118.5 &mu;s</td><td>NA</td><td>-</td>
+</tr><tr><td>MaxInt_Bench</td><td>1000000</td><td>1,103.9 &mu;s</td><td>NA</td><td>-</td>
+</tr><tr><td>Clamp_Bench</td><td>1000000</td><td>1,800.3 &mu;s</td><td>NA</td><td>-</td>
+</tr></tbody></table>
+</body>
+</html>
