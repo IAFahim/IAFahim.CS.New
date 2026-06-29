@@ -2,6 +2,7 @@ namespace IAFahim.String
 {
     using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     public static unsafe class KmpPrefix
     {
@@ -242,7 +243,7 @@ namespace IAFahim.String
     {
         public static int Run(byte* a, int la, byte* b, int lb)
         {
-            int* dp = stackalloc int[(la + 1) * (lb + 1)];
+            int* dp = (int*)Marshal.AllocHGlobal((nint)((long)(la + 1) * (lb + 1) * sizeof(int)));
             for (int i = 0; i <= la; i++) dp[i * (lb + 1)] = i;
             for (int j = 0; j <= lb; j++) dp[j] = j;
             for (int i = 1; i <= la; i++)
@@ -256,7 +257,9 @@ namespace IAFahim.String
                     dp[i * (lb + 1) + j] = Math.Min(d, Math.Min(ins, sub));
                 }
             }
-            return dp[la * (lb + 1) + lb];
+            int edResult = dp[la * (lb + 1) + lb];
+            Marshal.FreeHGlobal((nint)dp);
+            return edResult;
         }
     }
 
@@ -272,7 +275,7 @@ namespace IAFahim.String
     {
         public static int Run(byte* a, int la, byte* b, int lb, byte* result)
         {
-            int* dp = stackalloc int[(la + 1) * (lb + 1)];
+            int* dp = (int*)Marshal.AllocHGlobal((nint)((long)(la + 1) * (lb + 1) * sizeof(int)));
             for (int i = 0; i <= la; i++) dp[i * (lb + 1)] = 0;
             for (int j = 0; j <= lb; j++) dp[j] = 0;
             for (int i = 1; i <= la; i++)
@@ -299,6 +302,7 @@ namespace IAFahim.String
                 else
                     cj--;
             }
+            Marshal.FreeHGlobal((nint)dp);
             return len;
         }
     }

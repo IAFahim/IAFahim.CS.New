@@ -1,6 +1,8 @@
 namespace IAFahim.Math.Polynomial
 {
+    using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     public static unsafe class PolynomialTaylorShift
     {
@@ -17,7 +19,7 @@ namespace IAFahim.Math.Polynomial
                 pw = pw * c % mod;
             }
 
-            long* res = stackalloc long[2 * n - 1];
+            long* res = (long*)Marshal.AllocHGlobal((nint)((long)(2 * n - 1) * sizeof(long)));
             for (int i = 0; i < 2 * n - 1; i++) res[i] = 0;
             for (int i = 0; i < n; i++)
                 for (int j = 0; j < n; j++)
@@ -25,6 +27,7 @@ namespace IAFahim.Math.Polynomial
 
             for (int i = 0; i < n; i++)
                 a[i] = res[n - 1 + i] * invFact[i] % mod;
+            Marshal.FreeHGlobal((nint)res);
         }
     }
 }

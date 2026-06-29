@@ -2,6 +2,7 @@ namespace IAFahim.Math.Polynomial
 {
     using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     public static unsafe class PolyModArith
     {
@@ -160,7 +161,7 @@ namespace IAFahim.Math.Polynomial
             res[0] = PolyModArith.ModInverse(a[0], mod);
             int sz = 1;
             while (sz < n) sz <<= 1;
-            long* tmp = stackalloc long[sz * 6];
+            long* tmp = (long*)Marshal.AllocHGlobal((nint)((long)sz * 6 * sizeof(long)));
             int m = 1;
             while (m < n)
             {
@@ -183,6 +184,7 @@ namespace IAFahim.Math.Polynomial
                 PolynomialMul.RunMod(m / 2, fb, m, fc, fr, mod);
                 for (int i = 0; i < cur; i++) res[i] = fr[i] % mod;
             }
+            Marshal.FreeHGlobal((nint)tmp);
             return n;
         }
     }
@@ -192,17 +194,21 @@ namespace IAFahim.Math.Polynomial
         public static int Run(int n, long* a, long* res, long mod)
         {
             if (a[0] != 1) return -1;
-            long* der = stackalloc long[n];
+            long* der = (long*)Marshal.AllocHGlobal((nint)((long)n * sizeof(long)));
             int derLen = PolynomialDerivative.Run(n, a, der);
-            long* inv = stackalloc long[n];
+            long* inv = (long*)Marshal.AllocHGlobal((nint)((long)n * sizeof(long)));
             PolynomialInverse.Run(n, a, inv, mod);
-            long* buf = stackalloc long[2 * n];
+            long* buf = (long*)Marshal.AllocHGlobal((nint)((long)2 * n * sizeof(long)));
             for (int i = 0; i < 2 * n; i++) buf[i] = 0;
             PolynomialMul.RunMod(derLen, der, n, inv, buf, mod);
-            long* bufTrunc = stackalloc long[n];
+            long* bufTrunc = (long*)Marshal.AllocHGlobal((nint)((long)n * sizeof(long)));
             for (int i = 0; i < n - 1; i++) bufTrunc[i] = buf[i] % mod;
             PolynomialIntegral.Run(n - 1, bufTrunc, res, mod);
             for (int i = 0; i < n; i++) res[i] = (res[i] % mod + mod) % mod;
+            Marshal.FreeHGlobal((nint)bufTrunc);
+            Marshal.FreeHGlobal((nint)buf);
+            Marshal.FreeHGlobal((nint)inv);
+            Marshal.FreeHGlobal((nint)der);
             return n;
         }
     }
@@ -215,9 +221,9 @@ namespace IAFahim.Math.Polynomial
             res[0] = 1;
             for (int i = 1; i < n; i++) res[i] = 0;
             int m = 1;
-            long* lnBuf = stackalloc long[n];
-            long* diff = stackalloc long[n];
-            long* newRes = stackalloc long[2 * n];
+            long* lnBuf = (long*)Marshal.AllocHGlobal((nint)((long)n * sizeof(long)));
+            long* diff = (long*)Marshal.AllocHGlobal((nint)((long)n * sizeof(long)));
+            long* newRes = (long*)Marshal.AllocHGlobal((nint)((long)2 * n * sizeof(long)));
             while (m < n)
             {
                 m <<= 1;
@@ -231,6 +237,9 @@ namespace IAFahim.Math.Polynomial
                 PolynomialMul.RunMod(Math.Min(m / 2, n), res, cur, diff, newRes, mod);
                 for (int i = 0; i < cur; i++) res[i] = newRes[i] % mod;
             }
+            Marshal.FreeHGlobal((nint)newRes);
+            Marshal.FreeHGlobal((nint)diff);
+            Marshal.FreeHGlobal((nint)lnBuf);
             return n;
         }
     }
@@ -244,7 +253,9 @@ namespace IAFahim.Math.Polynomial
                 res[0] = 1;
                 return 1;
             }
-            long* temp = stackalloc long[n];
+            long* temp = (long*)Marshal.AllocHGlobal((nint)((long)n * sizeof(long)));
+            long* buf = (long*)Marshal.AllocHGlobal((nint)((long)n * 2 * sizeof(long)));
+            long* sqr = (long*)Marshal.AllocHGlobal((nint)((long)n * 2 * sizeof(long)));
             for (int i = 0; i < n; i++) temp[i] = a[i];
             res[0] = 1;
             int len = 1;
@@ -252,16 +263,17 @@ namespace IAFahim.Math.Polynomial
             {
                 if ((k & 1) == 1)
                 {
-                    long* buf = stackalloc long[n * 2];
                     len = PolynomialMul.Run(len, res, n, temp, buf);
                     if (len > n) len = n;
                     for (int i = 0; i < len; i++) res[i] = buf[i] % mod;
                 }
-                long* sqr = stackalloc long[n * 2];
                 int sqrLen = PolynomialMul.Run(n, temp, n, temp, sqr);
                 for (int i = 0; i < sqrLen && i < n; i++) temp[i] = sqr[i] % mod;
                 k >>= 1;
             }
+            Marshal.FreeHGlobal((nint)sqr);
+            Marshal.FreeHGlobal((nint)buf);
+            Marshal.FreeHGlobal((nint)temp);
             return len;
         }
     }
@@ -273,8 +285,9 @@ namespace IAFahim.Math.Polynomial
             if ((a[0] & 1) == 0 && a[0] != 1) return -1;
             res[0] = 1;
             long inv2 = (mod + 1) >> 1;
-            long* inv = stackalloc long[n];
-            long* tmp = stackalloc long[2 * n];
+            long* inv = (long*)Marshal.AllocHGlobal((nint)((long)n * sizeof(long)));
+            long* tmp = (long*)Marshal.AllocHGlobal((nint)((long)2 * n * sizeof(long)));
+            long* aTrunc = (long*)Marshal.AllocHGlobal((nint)((long)n * sizeof(long)));
             int m = 1;
             while (m < n)
             {
@@ -283,12 +296,14 @@ namespace IAFahim.Math.Polynomial
                 for (int i = 0; i < cur; i++) inv[i] = 0;
                 PolynomialInverse.Run(cur, res, inv, mod);
                 for (int i = 0; i < 2 * n; i++) tmp[i] = 0;
-                long* aTrunc = stackalloc long[cur];
                 for (int i = 0; i < cur; i++) aTrunc[i] = a[i] % mod;
                 PolynomialMul.RunMod(cur, aTrunc, cur, inv, tmp, mod);
                 for (int i = 0; i < cur; i++)
                     res[i] = (res[i] + tmp[i]) % mod * inv2 % mod;
             }
+            Marshal.FreeHGlobal((nint)aTrunc);
+            Marshal.FreeHGlobal((nint)tmp);
+            Marshal.FreeHGlobal((nint)inv);
             return n;
         }
     }

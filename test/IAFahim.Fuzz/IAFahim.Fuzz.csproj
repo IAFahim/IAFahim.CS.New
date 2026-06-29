@@ -8,5 +8,6 @@
     <ProjectReference Include="../../src/IAFahim.Math.Transform.Ntt/IAFahim.Math.Transform.Ntt.csproj" />
     <ProjectReference Include="../../src/IAFahim.Math.Gauss/IAFahim.Math.Gauss.csproj" />
     <ProjectReference Include="../../src/IAFahim.String.SuffixTree/IAFahim.String.SuffixTree.csproj" />
+    <ProjectReference Include="../../src/IAFahim.String.SuffixArray/IAFahim.String.SuffixArray.csproj" />
   </ItemGroup>
 </Project>

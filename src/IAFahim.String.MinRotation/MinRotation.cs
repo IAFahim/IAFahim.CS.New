@@ -2,6 +2,7 @@ namespace IAFahim.String.MinRotation
 {
     using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     public static unsafe class Booth
     {
@@ -15,7 +16,7 @@ namespace IAFahim.String.MinRotation
         public static int Run(byte* s, int len)
         {
             if (len <= 1) return 0;
-            int* f = stackalloc int[len * 2];
+            int* f = (int*)Marshal.AllocHGlobal((nint)((long)len * 2 * sizeof(int)));
             for (int i = 0; i < len * 2; i++) f[i] = 0;
             int i2 = 0, j = 1, k = 0;
             while (i2 < len && j < len && k < len)
@@ -27,7 +28,9 @@ namespace IAFahim.String.MinRotation
                 else AdvanceLoser(ref j, i2, k);
                 k = 0;
             }
-            return i2 < j ? i2 : j;
+            int mrResult = i2 < j ? i2 : j;
+            Marshal.FreeHGlobal((nint)f);
+            return mrResult;
         }
 
         public static int Run(int* s, int len)

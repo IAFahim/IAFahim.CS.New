@@ -1,6 +1,8 @@
 namespace IAFahim.Graph.Matching
 {
+    using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     public static unsafe class AssignmentHungarianRectangular
     {
@@ -25,17 +27,17 @@ namespace IAFahim.Graph.Matching
 
             int bigDim = n > m ? n : m;
 
-            long* c = stackalloc long[bigDim * bigDim];
+            long* c = (long*)Marshal.AllocHGlobal((nint)((long)bigDim * bigDim * sizeof(long)));
             for (int i = 0; i < bigDim; i++)
                 for (int j = 0; j < bigDim; j++)
                     c[i * bigDim + j] = (i < n && j < m) ? cost[i * m + j] : big;
 
-            long* u = stackalloc long[bigDim + 1];
-            long* v = stackalloc long[bigDim + 1];
-            long* p = stackalloc long[bigDim + 1];
-            long* way = stackalloc long[bigDim + 1];
-            long* minv = stackalloc long[bigDim + 1];
-            byte* used = stackalloc byte[bigDim + 1];
+            long* u = (long*)Marshal.AllocHGlobal((nint)((long)(bigDim + 1) * sizeof(long)));
+            long* v = (long*)Marshal.AllocHGlobal((nint)((long)(bigDim + 1) * sizeof(long)));
+            long* p = (long*)Marshal.AllocHGlobal((nint)((long)(bigDim + 1) * sizeof(long)));
+            long* way = (long*)Marshal.AllocHGlobal((nint)((long)(bigDim + 1) * sizeof(long)));
+            long* minv = (long*)Marshal.AllocHGlobal((nint)((long)(bigDim + 1) * sizeof(long)));
+            byte* used = (byte*)Marshal.AllocHGlobal((nint)((long)(bigDim + 1)));
             for (int k = 0; k <= bigDim; k++) { u[k] = 0; v[k] = 0; p[k] = 0; way[k] = 0; }
 
             long inf = long.MaxValue >> 2;
@@ -66,7 +68,7 @@ namespace IAFahim.Graph.Matching
             }
 
             // p[j] (1-based) = row assigned to column j. Invert to col-per-row.
-            int* colForRow = stackalloc int[bigDim + 1];
+            int* colForRow = (int*)Marshal.AllocHGlobal((nint)((long)(bigDim + 1) * sizeof(int)));
             for (int j = 1; j <= bigDim; j++) colForRow[(int)p[j]] = j; // p[j] in 1..bigDim
 
             for (int i = 0; i < n; i++)
@@ -79,6 +81,14 @@ namespace IAFahim.Graph.Matching
                 long row1 = p[j + 1];
                 matchRight[j] = (row1 >= 1 && row1 <= n) ? (int)row1 - 1 : -1;
             }
+            Marshal.FreeHGlobal((nint)colForRow);
+            Marshal.FreeHGlobal((nint)used);
+            Marshal.FreeHGlobal((nint)minv);
+            Marshal.FreeHGlobal((nint)way);
+            Marshal.FreeHGlobal((nint)p);
+            Marshal.FreeHGlobal((nint)v);
+            Marshal.FreeHGlobal((nint)u);
+            Marshal.FreeHGlobal((nint)c);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

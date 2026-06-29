@@ -8,6 +8,7 @@ namespace IAFahim.DS.Heap
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Parent(int i) => (i - 1) >> 1;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Run<T>(T* ptr, int len, T val) where T : unmanaged, IComparable<T>
         {
             int i = len;
@@ -35,6 +36,7 @@ namespace IAFahim.DS.Heap
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void Swap<T>(T* a, T* b) where T : unmanaged { T t = *a; *a = *b; *b = t; }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T Run<T>(T* ptr, int len) where T : unmanaged, IComparable<T>
         {
             T result = ptr[0];
@@ -52,6 +54,7 @@ namespace IAFahim.DS.Heap
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Right(int i) => (i << 1) + 2;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Run<T>(T* ptr, int i, int len) where T : unmanaged, IComparable<T>
         {
             while (true)
@@ -78,6 +81,7 @@ namespace IAFahim.DS.Heap
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Left(int i) => (i << 1) + 1;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Run<T>(T* ptr, int i, int len) where T : unmanaged, IComparable<T>
         {
             ptr[i] = ptr[len - 1];

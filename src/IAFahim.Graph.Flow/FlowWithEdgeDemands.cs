@@ -2,6 +2,7 @@ namespace IAFahim.Graph.Flow
 {
     using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     public static unsafe class FlowWithEdgeDemands
     {
@@ -30,12 +31,12 @@ namespace IAFahim.Graph.Flow
         public static bool Run(int n, int s, int t, int* head, int* to, int* next, int* lower, int* upper, int* flow, int* result)
         {
             int nn = n + 2, ss = n, tt = n + 1;
-            int* newHead = stackalloc int[nn];
-            int* newTo = stackalloc int[n * 4 + 10];
-            int* newNext = stackalloc int[n * 4 + 10];
-            int* newCap = stackalloc int[n * 4 + 10];
-            int* newFlow = stackalloc int[n * 4 + 10];
-            long* b = stackalloc long[n];
+            int* newHead = (int*)Marshal.AllocHGlobal((nint)((long)nn * sizeof(int)));
+            int* newTo = (int*)Marshal.AllocHGlobal((nint)((long)(n * 4 + 10) * sizeof(int)));
+            int* newNext = (int*)Marshal.AllocHGlobal((nint)((long)(n * 4 + 10) * sizeof(int)));
+            int* newCap = (int*)Marshal.AllocHGlobal((nint)((long)(n * 4 + 10) * sizeof(int)));
+            int* newFlow = (int*)Marshal.AllocHGlobal((nint)((long)(n * 4 + 10) * sizeof(int)));
+            long* b = (long*)Marshal.AllocHGlobal((nint)((long)n * sizeof(long)));
             for (int i = 0; i < n; i++) b[i] = 0;
 
             BuildDemandNetwork(n, s, t, ss, tt, head, to, next, lower, upper, b, newHead, newTo, newNext, newCap, nn);
@@ -43,6 +44,12 @@ namespace IAFahim.Graph.Flow
             for (int u = 0; u < n; u++)
                 for (int e = head[u]; e != 0; e = next[e]) flow[e] = newFlow[e] + lower[e];
             *result = flow[head[s]];
+            Marshal.FreeHGlobal((nint)b);
+            Marshal.FreeHGlobal((nint)newFlow);
+            Marshal.FreeHGlobal((nint)newCap);
+            Marshal.FreeHGlobal((nint)newNext);
+            Marshal.FreeHGlobal((nint)newTo);
+            Marshal.FreeHGlobal((nint)newHead);
             return true;
         }
     }

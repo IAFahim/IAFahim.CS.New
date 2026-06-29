@@ -2,13 +2,14 @@ namespace IAFahim.Search.Automaton
 {
     using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     public static unsafe class ModMatrixPow
     {
         public static void Run(int n, long* a, long* result, long exp, long mod)
         {
             InitializeIdentity(n, result);
-            long* temp = stackalloc long[n * n];
+            long* temp = (long*)Marshal.AllocHGlobal((nint)((long)n * n * sizeof(long)));
             Buffer.MemoryCopy(a, temp, n * n * sizeof(long), n * n * sizeof(long));
             
             while (exp > 0)
@@ -17,6 +18,7 @@ namespace IAFahim.Search.Automaton
                 if (exp > 1) MultiplyMatrices(n, temp, temp, mod);
                 exp >>= 1;
             }
+            Marshal.FreeHGlobal((nint)temp);
         }
 
         private static void InitializeIdentity(int n, long* res)
@@ -27,7 +29,7 @@ namespace IAFahim.Search.Automaton
 
         private static void MultiplyMatrices(int n, long* a, long* b, long mod)
         {
-            long* tmp = stackalloc long[n * n];
+            long* tmp = (long*)Marshal.AllocHGlobal((nint)((long)n * n * sizeof(long)));
             for (int i = 0; i < n; i++)
                 for (int j = 0; j < n; j++)
                 {
@@ -36,6 +38,7 @@ namespace IAFahim.Search.Automaton
                     tmp[i * n + j] = sum;
                 }
             Buffer.MemoryCopy(tmp, a, n * n * sizeof(long), n * n * sizeof(long));
+            Marshal.FreeHGlobal((nint)tmp);
         }
     }
 

@@ -2,6 +2,7 @@ namespace IAFahim.Optimization.Games
 {
     using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     public static unsafe class Simplex
     {
@@ -10,22 +11,25 @@ namespace IAFahim.Optimization.Games
         public static Result Run(int m, int n, double* a, double* b, double* c, double* x)
         {
             double eps = 1e-9; int cols = n + m + 2, rows = m + 2;
-            double* tab = stackalloc double[rows * cols]; for (int i = 0; i < rows * cols; i++) tab[i] = 0;
+            double* tab = (double*)Marshal.AllocHGlobal((nint)((long)rows * cols * sizeof(double))); for (int i = 0; i < rows * cols; i++) tab[i] = 0;
             
             InitializeTableau(m, n, a, b, c, cols, tab, out int minBIdx);
-            int* basis = stackalloc int[m]; for (int i = 0; i < m; i++) basis[i] = n + i;
+            int* basis = (int*)Marshal.AllocHGlobal((nint)((long)m * sizeof(int))); for (int i = 0; i < m; i++) basis[i] = n + i;
 
             if (minBIdx != -1)
             {
                 basis[minBIdx] = cols - 2; Pivot(rows, cols, tab, minBIdx, cols - 2);
                 int status = SimplexCore(rows, cols, m, tab, m + 1, basis, true, eps);
-                if (status == 1) return new Result { Status = 1 };
-                if (tab[(m + 1) * cols + cols - 1] < -eps) return new Result { Status = 2 };
+                if (status == 1) { Marshal.FreeHGlobal((nint)basis); Marshal.FreeHGlobal((nint)tab); return new Result { Status = 1 }; }
+                if (tab[(m + 1) * cols + cols - 1] < -eps) { Marshal.FreeHGlobal((nint)basis); Marshal.FreeHGlobal((nint)tab); return new Result { Status = 2 }; }
             }
 
-            if (SimplexCore(rows, cols, m, tab, m, basis, false, eps) == 1) return new Result { Status = 1 };
+            if (SimplexCore(rows, cols, m, tab, m, basis, false, eps) == 1) { Marshal.FreeHGlobal((nint)basis); Marshal.FreeHGlobal((nint)tab); return new Result { Status = 1 }; }
             ExtractSolution(m, n, cols, tab, basis, x);
-            return new Result { Value = tab[m * cols + cols - 1], Status = 0 };
+            Result res = new Result { Value = tab[m * cols + cols - 1], Status = 0 };
+            Marshal.FreeHGlobal((nint)basis);
+            Marshal.FreeHGlobal((nint)tab);
+            return res;
         }
 
         private static void InitializeTableau(int m, int n, double* a, double* b, double* c, int cols, double* tab, out int minBIdx)

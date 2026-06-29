@@ -2,6 +2,7 @@ namespace IAFahim.Graph
 {
     using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
     using IAFahim.Graph.Flow;
 
     public static unsafe class Planar
@@ -107,11 +108,12 @@ namespace IAFahim.Graph
         private static bool TryFindSplitEdge(int n, int* m, int s, int* u, int* v, int initialMin, int* resultU, int* resultV, int* resultCount)
         {
             int incidentCount = 0;
-            int* incident = stackalloc int[*m];
+            int* incident = (int*)Marshal.AllocHGlobal((nint)((long)(*m) * sizeof(int)));
             for (int i = 0; i < *m; i++) if (u[i] == s || v[i] == s) incident[incidentCount++] = i;
-            if (incidentCount < 2) return false;
+            if (incidentCount < 2) { Marshal.FreeHGlobal((nint)incident); return false; }
 
-            for (int i = 0; i < incidentCount; i++)
+            bool found = false;
+            for (int i = 0; i < incidentCount && !found; i++)
             for (int j = i + 1; j < incidentCount; j++)
             {
                 int e1 = incident[i], e2 = incident[j];
@@ -119,20 +121,26 @@ namespace IAFahim.Graph
                 if (CheckSplitValidity(n, m, s, u, v, initialMin, e1, e2, a, b))
                 {
                     PerformSplit(m, u, v, e1, e2, a, b, resultU, resultV, resultCount);
-                    return true;
+                    found = true;
+                    break;
                 }
             }
-            return false;
+            Marshal.FreeHGlobal((nint)incident);
+            return found;
         }
 
         private static bool CheckSplitValidity(int n, int* m, int s, int* u, int* v, int initialMin, int e1, int e2, int a, int b)
         {
             int tempM = *m - 1;
-            int* tu = stackalloc int[tempM], tv = stackalloc int[tempM];
+            int* tu = (int*)Marshal.AllocHGlobal((nint)((long)tempM * sizeof(int)));
+            int* tv = (int*)Marshal.AllocHGlobal((nint)((long)tempM * sizeof(int)));
             int tidx = 0;
             for (int k = 0; k < *m; k++) if (k != e1 && k != e2) { tu[tidx] = u[k]; tv[tidx++] = v[k]; }
             tu[tidx] = a; tv[tidx] = b;
-            return GetMinConnectivity(n, tempM, tu, tv, s) >= initialMin;
+            bool csvResult = GetMinConnectivity(n, tempM, tu, tv, s) >= initialMin;
+            Marshal.FreeHGlobal((nint)tv);
+            Marshal.FreeHGlobal((nint)tu);
+            return csvResult;
         }
 
         private static void PerformSplit(int* m, int* u, int* v, int e1, int e2, int a, int b, int* resultU, int* resultV, int* resultCount)
@@ -144,7 +152,12 @@ namespace IAFahim.Graph
         private static int GetMinConnectivity(int n, int m, int* u, int* v, int s)
         {
             int minConn = 999999;
-            int* head = stackalloc int[n], to = stackalloc int[m * 2 + 2], nxt = stackalloc int[m * 2 + 2], cap = stackalloc int[m * 2 + 2], flow = stackalloc int[m * 2 + 2];
+            int sz = m * 2 + 2;
+            int* head = (int*)Marshal.AllocHGlobal((nint)((long)n * sizeof(int)));
+            int* to = (int*)Marshal.AllocHGlobal((nint)((long)sz * sizeof(int)));
+            int* nxt = (int*)Marshal.AllocHGlobal((nint)((long)sz * sizeof(int)));
+            int* cap = (int*)Marshal.AllocHGlobal((nint)((long)sz * sizeof(int)));
+            int* flow = (int*)Marshal.AllocHGlobal((nint)((long)sz * sizeof(int)));
             for (int i = 0; i < n; i++) head[i] = -1;
             int ec = 0;
             for (int i = 0; i < m; i++)
@@ -153,15 +166,21 @@ namespace IAFahim.Graph
                 to[ec] = vi; cap[ec] = 1; nxt[ec] = head[ui]; head[ui] = ec++;
                 to[ec] = ui; cap[ec] = 1; nxt[ec] = head[vi]; head[vi] = ec++;
             }
-            int* active = stackalloc int[n]; int ac = 0;
+            int* active = (int*)Marshal.AllocHGlobal((nint)((long)n * sizeof(int))); int ac = 0;
             for (int i = 0; i < n; i++) if (i != s) active[ac++] = i;
-            if (ac < 2) return 0;
+            if (ac < 2) { Marshal.FreeHGlobal((nint)active); Marshal.FreeHGlobal((nint)flow); Marshal.FreeHGlobal((nint)cap); Marshal.FreeHGlobal((nint)nxt); Marshal.FreeHGlobal((nint)to); Marshal.FreeHGlobal((nint)head); return 0; }
             for (int i = 0; i < ac; i++)
             for (int j = i + 1; j < ac; j++)
             {
                 for (int k = 0; k < ec; k++) flow[k] = 0;
                 minConn = Math.Min(minConn, (int)DinicMaxFlow.Run(n, active[i], active[j], head, to, nxt, cap, flow));
             }
+            Marshal.FreeHGlobal((nint)active);
+            Marshal.FreeHGlobal((nint)flow);
+            Marshal.FreeHGlobal((nint)cap);
+            Marshal.FreeHGlobal((nint)nxt);
+            Marshal.FreeHGlobal((nint)to);
+            Marshal.FreeHGlobal((nint)head);
             return minConn;
         }
 
@@ -260,14 +279,23 @@ namespace IAFahim.Graph
 
         public static bool StNumbering(int n, int m, int* u, int* v, int s, int t, int* stOrder)
         {
-            int* head = stackalloc int[n], to = stackalloc int[m * 2], nxt = stackalloc int[m * 2];
+            int* head = (int*)Marshal.AllocHGlobal((nint)((long)n * sizeof(int)));
+            int* to = (int*)Marshal.AllocHGlobal((nint)((long)m * 2 * sizeof(int)));
+            int* nxt = (int*)Marshal.AllocHGlobal((nint)((long)m * 2 * sizeof(int)));
             BuildAdjacency(n, m, u, v, head, to, nxt);
-            int* dfn = stackalloc int[n], low = stackalloc int[n], p = stackalloc int[n], order = stackalloc int[n];
+            int* dfn = (int*)Marshal.AllocHGlobal((nint)((long)n * sizeof(int)));
+            int* low = (int*)Marshal.AllocHGlobal((nint)((long)n * sizeof(int)));
+            int* p = (int*)Marshal.AllocHGlobal((nint)((long)n * sizeof(int)));
+            int* order = (int*)Marshal.AllocHGlobal((nint)((long)n * sizeof(int)));
             for (int i = 0; i < n; i++) dfn[i] = 0;
             int timer = 0; StDfs(s, s, head, to, nxt, dfn, low, p, order, &timer, t);
-            for (int i = 0; i < n; i++) if (dfn[i] == 0) return false;
+            bool stOk = true;
+            for (int i = 0; i < n; i++) if (dfn[i] == 0) { stOk = false; break; }
+            if (!stOk) { Marshal.FreeHGlobal((nint)order); Marshal.FreeHGlobal((nint)p); Marshal.FreeHGlobal((nint)low); Marshal.FreeHGlobal((nint)dfn); Marshal.FreeHGlobal((nint)nxt); Marshal.FreeHGlobal((nint)to); Marshal.FreeHGlobal((nint)head); return false; }
 
-            byte* sign = stackalloc byte[n]; int* nl = stackalloc int[n], pl = stackalloc int[n];
+            byte* sign = (byte*)Marshal.AllocHGlobal((nint)((long)n));
+            int* nl = (int*)Marshal.AllocHGlobal((nint)((long)n * sizeof(int)));
+            int* pl = (int*)Marshal.AllocHGlobal((nint)((long)n * sizeof(int)));
             for (int i = 0; i < n; i++) { sign[i] = 0; nl[i] = pl[i] = -1; }
             nl[s] = t; pl[t] = s;
             sign[s] = 0; sign[t] = 1;
@@ -278,7 +306,18 @@ namespace IAFahim.Graph
                 if (sign[lvn] == 0) { LinkBefore(par, curr, nl, pl); sign[curr] = 0; }
                 else { LinkAfter(par, curr, nl, pl); sign[curr] = 1; }
             }
-            return FinalizeStOrder(s, n, nl, stOrder);
+            bool stResult = FinalizeStOrder(s, n, nl, stOrder);
+            Marshal.FreeHGlobal((nint)pl);
+            Marshal.FreeHGlobal((nint)nl);
+            Marshal.FreeHGlobal((nint)sign);
+            Marshal.FreeHGlobal((nint)order);
+            Marshal.FreeHGlobal((nint)p);
+            Marshal.FreeHGlobal((nint)low);
+            Marshal.FreeHGlobal((nint)dfn);
+            Marshal.FreeHGlobal((nint)nxt);
+            Marshal.FreeHGlobal((nint)to);
+            Marshal.FreeHGlobal((nint)head);
+            return stResult;
         }
 
         private static void BuildAdjacency(int n, int m, int* u, int* v, int* head, int* to, int* nxt)
@@ -444,10 +483,12 @@ namespace IAFahim.Graph
 
         public static bool PlanarDualBuild(int n, int m, int* u, int* v, int* embeddingHead, int* embeddingNext, int* embeddingTo, int* dualN, int* dualM, int* dualU, int* dualV, int* faceSizes)
         {
-            byte* hvv = stackalloc byte[2 * m]; int* hf = stackalloc int[2 * m];
+            byte* hvv = (byte*)Marshal.AllocHGlobal((nint)((long)2 * m));
+            int* hf = (int*)Marshal.AllocHGlobal((nint)((long)2 * m * sizeof(int)));
             for (int i = 0; i < 2 * m; i++) { hvv[i] = 0; hf[i] = -1; }
             int fc = 0;
-            for (int i = 0; i < 2 * m; i++)
+            bool pdbOk = true;
+            for (int i = 0; i < 2 * m && pdbOk; i++)
                 if (hvv[i] == 0)
                 {
                     int ce = i, fs = 0;
@@ -455,9 +496,9 @@ namespace IAFahim.Graph
                     {
                         hvv[ce] = 1; hf[ce] = fc; fs++;
                         ce = GetNextHalfEdge(n, m, u, v, embeddingHead, embeddingNext, embeddingTo, ce);
-                        if (ce == -1) return false;
+                        if (ce == -1) { pdbOk = false; break; }
                     }
-                    faceSizes[fc++] = fs;
+                    if (pdbOk) faceSizes[fc++] = fs;
                 }
             *dualN = fc; int dm = 0;
             for (int e = 0; e < m; e++)
@@ -465,7 +506,10 @@ namespace IAFahim.Graph
                 int f1 = hf[2 * e], f2 = hf[2 * e + 1];
                 if (f1 != -1 && f2 != -1) { dualU[dm] = f1; dualV[dm++] = f2; }
             }
-            *dualM = dm; return true;
+            *dualM = dm;
+            Marshal.FreeHGlobal((nint)hf);
+            Marshal.FreeHGlobal((nint)hvv);
+            return pdbOk;
         }
 
         private static int GetNextHalfEdge(int n, int m, int* u, int* v, int* eh, int* en, int* et, int ce)
@@ -535,25 +579,35 @@ namespace IAFahim.Graph
 
         public static long PlanarMaxFlow(int n, int s, int t, int* head, int* to, int* next, int* cap, int m)
         {
-            int* tc = stackalloc int[m * 2 + 2]; for (int i = 0; i < m * 2 + 2; i++) tc[i] = cap[i];
-            int* tf = stackalloc int[m * 2 + 2]; return DinicMaxFlow.Run(n, s, t, head, to, next, tc, tf);
+            int sz = m * 2 + 2;
+            int* tc = (int*)Marshal.AllocHGlobal((nint)((long)sz * sizeof(int))); for (int i = 0; i < sz; i++) tc[i] = cap[i];
+            int* tf = (int*)Marshal.AllocHGlobal((nint)((long)sz * sizeof(int))); long pmfResult = DinicMaxFlow.Run(n, s, t, head, to, next, tc, tf);
+            Marshal.FreeHGlobal((nint)tf);
+            Marshal.FreeHGlobal((nint)tc);
+            return pmfResult;
         }
 
         public static long PlanarMinCut(int n, int s, int t, int* head, int* to, int* next, int* cap, int m, int* cutEdges, int* cutCount)
         {
-            int* tc = stackalloc int[m * 2 + 2]; for (int i = 0; i < m * 2 + 2; i++) tc[i] = cap[i];
-            int* flow = stackalloc int[m * 2 + 2]; for (int i = 0; i < m * 2 + 2; i++) flow[i] = 0;
+            int sz = m * 2 + 2;
+            int* tc = (int*)Marshal.AllocHGlobal((nint)((long)sz * sizeof(int))); for (int i = 0; i < sz; i++) tc[i] = cap[i];
+            int* flow = (int*)Marshal.AllocHGlobal((nint)((long)sz * sizeof(int))); for (int i = 0; i < sz; i++) flow[i] = 0;
             long mf = DinicMaxFlow.Run(n, s, t, head, to, next, tc, flow);
-            byte* vis = stackalloc byte[n]; for (int i = 0; i < n; i++) vis[i] = 0;
-            int* q = stackalloc int[n]; int qh = 0, qt = 0; vis[s] = 1; q[qt++] = s;
+            byte* vis = (byte*)Marshal.AllocHGlobal((nint)((long)n)); for (int i = 0; i < n; i++) vis[i] = 0;
+            int* q = (int*)Marshal.AllocHGlobal((nint)((long)n * sizeof(int))); int qh = 0, qt = 0; vis[s] = 1; q[qt++] = s;
             while (qh < qt)
             {
                 int u = q[qh++];
                 for (int e = head[u]; e != 0; e = next[e]) if (vis[to[e]] == 0 && tc[e] - flow[e] > 0) { vis[to[e]] = 1; q[qt++] = to[e]; }
             }
-            *cutCount = 0; byte* ec = stackalloc byte[m + 1]; for (int i = 0; i <= m; i++) ec[i] = 0;
+            *cutCount = 0; byte* ec = (byte*)Marshal.AllocHGlobal((nint)((long)(m + 1))); for (int i = 0; i <= m; i++) ec[i] = 0;
             for (int un = 0; un < n; un++) if (vis[un] == 1)
                 for (int e = head[un]; e != 0; e = next[e]) if (vis[to[e]] == 0) { int oe = e / 2; if (ec[oe] == 0) { ec[oe] = 1; cutEdges[(*cutCount)++] = oe; } }
+            Marshal.FreeHGlobal((nint)ec);
+            Marshal.FreeHGlobal((nint)q);
+            Marshal.FreeHGlobal((nint)vis);
+            Marshal.FreeHGlobal((nint)flow);
+            Marshal.FreeHGlobal((nint)tc);
             return mf;
         }
 

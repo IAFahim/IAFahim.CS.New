@@ -96,13 +96,13 @@ namespace IAFahim.Graph
         public static long ArborescenceCount(int n, int root, int* u, int* v, int m)
         {
             const long Mod = 1000000007;
-            long* laplacian = stackalloc long[(n - 1) * (n - 1)];
+            long* laplacian = (long*)Marshal.AllocHGlobal((nint)((long)(n - 1) * (n - 1) * sizeof(long)));
             for (int i = 0; i < (n - 1) * (n - 1); i++)
             {
                 laplacian[i] = 0;
             }
 
-            int* map = stackalloc int[n];
+            int* map = (int*)Marshal.AllocHGlobal((nint)((long)n * sizeof(int)));
             int idx = 0;
             for (int i = 0; i < n; i++)
             {
@@ -141,6 +141,8 @@ namespace IAFahim.Graph
                 int pivot = SelectPivotRow(laplacian, dim, i);
                 if (laplacian[pivot * dim + i] == 0)
                 {
+                    Marshal.FreeHGlobal((nint)map);
+                    Marshal.FreeHGlobal((nint)laplacian);
                     return 0;
                 }
                 if (pivot != i)
@@ -152,6 +154,8 @@ namespace IAFahim.Graph
                 long inv = Power(laplacian[i * dim + i], Mod - 2, Mod);
                 EliminateBelow(laplacian, dim, i, inv, Mod);
             }
+            Marshal.FreeHGlobal((nint)map);
+            Marshal.FreeHGlobal((nint)laplacian);
             return det;
         }
 
@@ -211,9 +215,9 @@ namespace IAFahim.Graph
 
         public static bool DegreeConstrainedMst(int n, int m, int* u, int* v, long* w, int r, int k, int* resultEdges, int* resultCount)
         {
-            int* parent = stackalloc int[n];
-            int* rank = stackalloc int[n];
-            int* edgeIndices = stackalloc int[m];
+            int* parent = (int*)Marshal.AllocHGlobal((nint)((long)n * sizeof(int)));
+            int* rank = (int*)Marshal.AllocHGlobal((nint)((long)n * sizeof(int)));
+            int* edgeIndices = (int*)Marshal.AllocHGlobal((nint)((long)m * sizeof(int)));
             for (int i = 0; i < m; i++)
             {
                 edgeIndices[i] = i;
@@ -279,7 +283,7 @@ namespace IAFahim.Graph
                 return true;
             }
 
-            byte* inTree = stackalloc byte[m];
+            byte* inTree = (byte*)Marshal.AllocHGlobal((nint)((long)m));
             for (int i = 0; i < m; i++)
             {
                 inTree[i] = 0;
@@ -328,6 +332,10 @@ namespace IAFahim.Graph
                     int e = minEdgeToR[i];
                     if (e == -1)
                     {
+                        Marshal.FreeHGlobal((nint)inTree);
+                        Marshal.FreeHGlobal((nint)edgeIndices);
+                        Marshal.FreeHGlobal((nint)rank);
+                        Marshal.FreeHGlobal((nint)parent);
                         return false;
                     }
                     inTree[e] = 1;
@@ -337,8 +345,18 @@ namespace IAFahim.Graph
 
             if (deg > k)
             {
+                Marshal.FreeHGlobal((nint)inTree);
+                Marshal.FreeHGlobal((nint)edgeIndices);
+                Marshal.FreeHGlobal((nint)rank);
+                Marshal.FreeHGlobal((nint)parent);
                 return false;
             }
+
+            int* head = (int*)Marshal.AllocHGlobal((nint)((long)n * sizeof(int)));
+            int* next = (int*)Marshal.AllocHGlobal((nint)((long)n * 2 * sizeof(int)));
+            int* to = (int*)Marshal.AllocHGlobal((nint)((long)n * 2 * sizeof(int)));
+            int* edgeId = (int*)Marshal.AllocHGlobal((nint)((long)n * 2 * sizeof(int)));
+            int* cycleEdges = (int*)Marshal.AllocHGlobal((nint)((long)n * sizeof(int)));
 
             while (deg < k)
             {
@@ -359,10 +377,6 @@ namespace IAFahim.Graph
 
                     int other = (u[eAdd] == r) ? v[eAdd] : u[eAdd];
 
-                    int* head = stackalloc int[n];
-                    int* next = stackalloc int[n * 2];
-                    int* to = stackalloc int[n * 2];
-                    int* edgeId = stackalloc int[n * 2];
                     for (int i = 0; i < n; i++)
                     {
                         head[i] = -1;
@@ -380,7 +394,7 @@ namespace IAFahim.Graph
                         }
                     }
 
-                    int* cycleEdges = stackalloc int[n];
+                    int* cycleEdgesLocal = cycleEdges;
                     int cycleEdgeCount = 0;
                     bool pathFound = false;
 
@@ -397,7 +411,7 @@ namespace IAFahim.Graph
                             int idVal = edgeId[edge];
                             if (idVal != parentEdge)
                             {
-                                cycleEdges[cycleEdgeCount++] = idVal;
+                                cycleEdgesLocal[cycleEdgeCount++] = idVal;
                                 DfsPath(neighbor, target, idVal);
                                 if (pathFound)
                                 {
@@ -456,6 +470,15 @@ namespace IAFahim.Graph
                 }
             }
 
+            Marshal.FreeHGlobal((nint)cycleEdges);
+            Marshal.FreeHGlobal((nint)edgeId);
+            Marshal.FreeHGlobal((nint)to);
+            Marshal.FreeHGlobal((nint)next);
+            Marshal.FreeHGlobal((nint)head);
+            Marshal.FreeHGlobal((nint)inTree);
+            Marshal.FreeHGlobal((nint)edgeIndices);
+            Marshal.FreeHGlobal((nint)rank);
+            Marshal.FreeHGlobal((nint)parent);
             return true;
         }
 
@@ -795,14 +818,14 @@ namespace IAFahim.Graph
 
         public static long MinimumBottleneckPath(int n, int m, int* u, int* v, long* w, int src, int dest)
         {
-            int* mstEdges = stackalloc int[n - 1];
+            int* mstEdges = (int*)Marshal.AllocHGlobal((nint)((long)(n - 1) * sizeof(int)));
             int mstCount = 0;
             MinimumBottleneckSpanningTree(n, m, u, v, w, mstEdges, &mstCount);
 
-            int* head = stackalloc int[n];
-            int* next = stackalloc int[n * 2];
-            int* to = stackalloc int[n * 2];
-            long* weight = stackalloc long[n * 2];
+            int* head = (int*)Marshal.AllocHGlobal((nint)((long)n * sizeof(int)));
+            int* next = (int*)Marshal.AllocHGlobal((nint)((long)n * 2 * sizeof(int)));
+            int* to = (int*)Marshal.AllocHGlobal((nint)((long)n * 2 * sizeof(int)));
+            long* weight = (long*)Marshal.AllocHGlobal((nint)((long)n * 2 * sizeof(long)));
             for (int i = 0; i < n; i++)
             {
                 head[i] = -1;
@@ -845,7 +868,13 @@ namespace IAFahim.Graph
             }
 
             Dfs(src, dest, -1, 0);
-            return found ? maxWeight : -1;
+            long mbpResult = found ? maxWeight : -1;
+            Marshal.FreeHGlobal((nint)weight);
+            Marshal.FreeHGlobal((nint)to);
+            Marshal.FreeHGlobal((nint)next);
+            Marshal.FreeHGlobal((nint)head);
+            Marshal.FreeHGlobal((nint)mstEdges);
+            return mbpResult;
         }
 
         public static void MaximumCapacitySpanningTree(int n, int m, int* u, int* v, long* w, int* resultEdges, int* resultCount)
@@ -908,14 +937,14 @@ namespace IAFahim.Graph
 
         public static long WidestPath(int n, int m, int* u, int* v, long* w, int src, int dest)
         {
-            int* mstEdges = stackalloc int[n - 1];
+            int* mstEdges = (int*)Marshal.AllocHGlobal((nint)((long)(n - 1) * sizeof(int)));
             int mstCount = 0;
             MaximumCapacitySpanningTree(n, m, u, v, w, mstEdges, &mstCount);
 
-            int* head = stackalloc int[n];
-            int* next = stackalloc int[n * 2];
-            int* to = stackalloc int[n * 2];
-            long* weight = stackalloc long[n * 2];
+            int* head = (int*)Marshal.AllocHGlobal((nint)((long)n * sizeof(int)));
+            int* next = (int*)Marshal.AllocHGlobal((nint)((long)n * 2 * sizeof(int)));
+            int* to = (int*)Marshal.AllocHGlobal((nint)((long)n * 2 * sizeof(int)));
+            long* weight = (long*)Marshal.AllocHGlobal((nint)((long)n * 2 * sizeof(long)));
             for (int i = 0; i < n; i++)
             {
                 head[i] = -1;
@@ -958,7 +987,13 @@ namespace IAFahim.Graph
             }
 
             Dfs(src, dest, -1, minWeight);
-            return found ? minWeight : -1;
+            long wpResult = found ? minWeight : -1;
+            Marshal.FreeHGlobal((nint)weight);
+            Marshal.FreeHGlobal((nint)to);
+            Marshal.FreeHGlobal((nint)next);
+            Marshal.FreeHGlobal((nint)head);
+            Marshal.FreeHGlobal((nint)mstEdges);
+            return wpResult;
         }
 
         public static long MaximumCapacityPath(int n, int m, int* u, int* v, long* w, int src, int dest)
@@ -1189,10 +1224,10 @@ namespace IAFahim.Graph
                 return false;
             }
 
-            int* head = stackalloc int[numVertices];
-            int* next = stackalloc int[numVertices * 2];
-            int* to = stackalloc int[numVertices * 2];
-            long* edgeW = stackalloc long[numVertices * 2];
+            int* head = (int*)Marshal.AllocHGlobal((nint)((long)numVertices * sizeof(int)));
+            int* next = (int*)Marshal.AllocHGlobal((nint)((long)numVertices * 2 * sizeof(int)));
+            int* to = (int*)Marshal.AllocHGlobal((nint)((long)numVertices * 2 * sizeof(int)));
+            long* edgeW = (long*)Marshal.AllocHGlobal((nint)((long)numVertices * 2 * sizeof(long)));
             for (int i = 0; i < numVertices; i++)
             {
                 head[i] = -1;
@@ -1246,11 +1281,19 @@ namespace IAFahim.Graph
                     DfsPath(x, y, -1, 0);
                     if (w < maxW)
                     {
+                        Marshal.FreeHGlobal((nint)edgeW);
+                        Marshal.FreeHGlobal((nint)to);
+                        Marshal.FreeHGlobal((nint)next);
+                        Marshal.FreeHGlobal((nint)head);
                         return false;
                     }
                 }
             }
 
+            Marshal.FreeHGlobal((nint)edgeW);
+            Marshal.FreeHGlobal((nint)to);
+            Marshal.FreeHGlobal((nint)next);
+            Marshal.FreeHGlobal((nint)head);
             return true;
         }
 
@@ -1394,10 +1437,10 @@ namespace IAFahim.Graph
 
         public static long CutTreeQuery(int n, int* parent, int* weight, int src, int dest)
         {
-            int* head = stackalloc int[n];
-            int* next = stackalloc int[n * 2];
-            int* to = stackalloc int[n * 2];
-            int* cap = stackalloc int[n * 2];
+            int* head = (int*)Marshal.AllocHGlobal((nint)((long)n * sizeof(int)));
+            int* next = (int*)Marshal.AllocHGlobal((nint)((long)n * 2 * sizeof(int)));
+            int* to = (int*)Marshal.AllocHGlobal((nint)((long)n * 2 * sizeof(int)));
+            int* cap = (int*)Marshal.AllocHGlobal((nint)((long)n * 2 * sizeof(int)));
             for (int i = 0; i < n; i++)
             {
                 head[i] = -1;
@@ -1442,26 +1485,33 @@ namespace IAFahim.Graph
             }
 
             Dfs(src, dest, -1, minWeight);
-            return found ? minWeight : -1;
+            long ctqResult = found ? minWeight : -1;
+            Marshal.FreeHGlobal((nint)cap);
+            Marshal.FreeHGlobal((nint)to);
+            Marshal.FreeHGlobal((nint)next);
+            Marshal.FreeHGlobal((nint)head);
+            return ctqResult;
         }
 
         public static int EdgeConnectivity(int n, int m, int* head, int* to, int* next, int* cap)
         {
             long minCut = 999999999999;
+            int* tempCap = (int*)Marshal.AllocHGlobal((nint)((long)m * 2 * sizeof(int)));
+            int* tempFlow = (int*)Marshal.AllocHGlobal((nint)((long)m * 2 * sizeof(int)));
             for (int i = 1; i < n; i++)
             {
-                int* tempCap = stackalloc int[m * 2];
                 for (int j = 0; j < m * 2; j++)
                 {
                     tempCap[j] = cap[j];
                 }
-                int* tempFlow = stackalloc int[m * 2];
                 long flow = DinicMaxFlow.Run(n, 0, i, head, to, next, tempCap, tempFlow);
                 if (flow < minCut)
                 {
                     minCut = flow;
                 }
             }
+            Marshal.FreeHGlobal((nint)tempFlow);
+            Marshal.FreeHGlobal((nint)tempCap);
             return (int)minCut;
         }
 
@@ -1474,10 +1524,10 @@ namespace IAFahim.Graph
 
             int newN = n * 2;
             int newM = n + m;
-            int* head = stackalloc int[newN];
-            int* next = stackalloc int[newM * 4];
-            int* to = stackalloc int[newM * 4];
-            int* cap = stackalloc int[newM * 4];
+            int* head = (int*)Marshal.AllocHGlobal((nint)((long)newN * sizeof(int)));
+            int* next = (int*)Marshal.AllocHGlobal((nint)((long)newM * 4 * sizeof(int)));
+            int* to = (int*)Marshal.AllocHGlobal((nint)((long)newM * 4 * sizeof(int)));
+            int* cap = (int*)Marshal.AllocHGlobal((nint)((long)newM * 4 * sizeof(int)));
             for (int i = 0; i < newN; i++)
             {
                 head[i] = -1;
@@ -1519,21 +1569,27 @@ namespace IAFahim.Graph
                         continue;
                     }
 
-                    int* tempCap = stackalloc int[edgeIdx];
+                    int* tempCap = (int*)Marshal.AllocHGlobal((nint)((long)edgeIdx * sizeof(int)));
                     for (int cIdx = 0; cIdx < edgeIdx; cIdx++)
                     {
                         tempCap[cIdx] = cap[cIdx];
                     }
 
-                    int* tempFlow = stackalloc int[edgeIdx];
+                    int* tempFlow = (int*)Marshal.AllocHGlobal((nint)((long)edgeIdx * sizeof(int)));
                     long flow = DinicMaxFlow.Run(newN, i + n, j, head, to, next, tempCap, tempFlow);
                     if (flow < minCut)
                     {
                         minCut = flow;
                     }
+                    Marshal.FreeHGlobal((nint)tempFlow);
+                    Marshal.FreeHGlobal((nint)tempCap);
                 }
             }
 
+            Marshal.FreeHGlobal((nint)cap);
+            Marshal.FreeHGlobal((nint)to);
+            Marshal.FreeHGlobal((nint)next);
+            Marshal.FreeHGlobal((nint)head);
             if (minCut == 999999999999)
             {
                 return n - 1;

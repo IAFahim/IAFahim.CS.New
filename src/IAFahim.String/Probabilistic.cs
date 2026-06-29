@@ -168,14 +168,14 @@ namespace IAFahim.String
             {
                 return false;
             }
-            int* head = stackalloc int[numVertices];
+            int* head = (int*)Marshal.AllocHGlobal((nint)((long)numVertices * sizeof(int)));
             for (int i = 0; i < numVertices; i++)
             {
                 head[i] = -1;
             }
-            int* to = stackalloc int[2 * numVertices];
-            long* edgeWeight = stackalloc long[2 * numVertices];
-            int* next = stackalloc int[2 * numVertices];
+            int* to = (int*)Marshal.AllocHGlobal((nint)((long)2 * numVertices * sizeof(int)));
+            long* edgeWeight = (long*)Marshal.AllocHGlobal((nint)((long)2 * numVertices * sizeof(long)));
+            int* next = (int*)Marshal.AllocHGlobal((nint)((long)2 * numVertices * sizeof(int)));
             int edgeIdx = 0;
             for (int i = 0; i < numEdges; i++)
             {
@@ -209,7 +209,7 @@ namespace IAFahim.String
                     maxEdge[(long)i * logV + j] = 0;
                 }
             }
-            int* stack = stackalloc int[numVertices];
+            int* stack = (int*)Marshal.AllocHGlobal((nint)((long)numVertices * sizeof(int)));
             int stackPtr = 0;
             stack[stackPtr++] = 0;
             parent[0] = 0;
@@ -250,10 +250,20 @@ namespace IAFahim.String
                 {
                     if (!VerifyNonMstEdge(u[i], v[i], weight[i], logV, depth, up, maxEdge))
                     {
+                        Marshal.FreeHGlobal((nint)stack);
+                        Marshal.FreeHGlobal((nint)next);
+                        Marshal.FreeHGlobal((nint)edgeWeight);
+                        Marshal.FreeHGlobal((nint)to);
+                        Marshal.FreeHGlobal((nint)head);
                         return false;
                     }
                 }
             }
+            Marshal.FreeHGlobal((nint)stack);
+            Marshal.FreeHGlobal((nint)next);
+            Marshal.FreeHGlobal((nint)edgeWeight);
+            Marshal.FreeHGlobal((nint)to);
+            Marshal.FreeHGlobal((nint)head);
             return true;
         }
 

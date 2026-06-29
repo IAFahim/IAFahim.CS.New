@@ -2,6 +2,7 @@ namespace IAFahim.String.Parse
 {
     using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     public static unsafe class LlParse
     {
@@ -21,7 +22,7 @@ namespace IAFahim.String.Parse
 
         public static bool Parse(byte* input, int len, int* table, int nontermCount, int termCount)
         {
-            int* stack = stackalloc int[len * 2 + 2];
+            int* stack = (int*)Marshal.AllocHGlobal((nint)((long)(len * 2 + 2) * sizeof(int)));
             int top = 0;
             stack[top++] = -1;
             stack[top++] = 0;
@@ -32,15 +33,17 @@ namespace IAFahim.String.Parse
                 if (sym == -1) continue;
                 if (sym < 256)
                 {
-                    if (pos >= len || input[pos] != sym) return false;
+                    if (pos >= len || input[pos] != sym) { Marshal.FreeHGlobal((nint)stack); return false; }
                     pos++;
                 }
                 else
                 {
-                    if (!ExpandNonterminal(table, sym, termCount, input, len, pos, ref top, stack)) return false;
+                    if (!ExpandNonterminal(table, sym, termCount, input, len, pos, ref top, stack)) { Marshal.FreeHGlobal((nint)stack); return false; }
                 }
             }
-            return pos == len;
+            bool llResult = pos == len;
+            Marshal.FreeHGlobal((nint)stack);
+            return llResult;
         }
     }
 }

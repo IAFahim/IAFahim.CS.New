@@ -2,6 +2,7 @@ namespace IAFahim.Algebra.Polynomial
 {
     using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     public static unsafe class BostanMori
     {
@@ -18,14 +19,14 @@ namespace IAFahim.Algebra.Polynomial
             //   V = Q * Q(-x)  -> 2*qLen - 1 coefficients
             // both of which fit in 2*sz entries with sz = max(pLen, qLen).
             int sz = Math.Max(pLen, qLen);
-            long* qneg = stackalloc long[qLen];
-            long* r = stackalloc long[sz * 2];
-            long* s = stackalloc long[sz * 2];
+            long* qneg = (long*)Marshal.AllocHGlobal((nint)((long)qLen * sizeof(long)));
+            long* r = (long*)Marshal.AllocHGlobal((nint)((long)sz * 2 * sizeof(long)));
+            long* s = (long*)Marshal.AllocHGlobal((nint)((long)sz * 2 * sizeof(long)));
             // Dedicated numerator scratch. The caller's p buffer only has pLen
             // capacity, but the rebuilt proper-fraction numerator has up to qLen
             // coefficients, so it would overflow p when pLen < qLen. Write the new
             // numerator here instead and read it back on the next iteration.
-            long* num = stackalloc long[qLen];
+            long* num = (long*)Marshal.AllocHGlobal((nint)((long)qLen * sizeof(long)));
 
             // Current numerator: starts as the caller's p (length pLen), then lives
             // in num (length qLen) after the first halving step.
@@ -63,9 +64,12 @@ namespace IAFahim.Algebra.Polynomial
             if (numerator < 0L) numerator += mod;
             long result = (numerator * ModInv(q[0] % mod, mod)) % mod;
             if (result < 0L) result += mod;
+            Marshal.FreeHGlobal((nint)num);
+            Marshal.FreeHGlobal((nint)s);
+            Marshal.FreeHGlobal((nint)r);
+            Marshal.FreeHGlobal((nint)qneg);
             return result;
         }
-
         // Writes dstLen coefficients of the (parity)-shifted even/odd part of src:
         // dst[i] = src[parity + 2*i] when that index lies inside the srcLen valid
         // coefficients produced by ToomCook.Multiply, otherwise 0.

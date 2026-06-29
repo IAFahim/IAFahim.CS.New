@@ -6,20 +6,29 @@ namespace IAFahim.String.SuffixArray
     {
         public static int Find(int* sa, int* lcp, int len, int* lcpIntv, int queryStart, int queryLen)
         {
-            int l = 0, r = len - 1;
-            while (l < r)
+            if ((uint)queryStart >= (uint)len || queryLen < 0)
             {
-                int mid = (l + r + 1) >> 1;
-                if (lcp[mid] >= queryLen) l = mid;
-                else r = mid - 1;
+                lcpIntv[0] = -1;
+                lcpIntv[1] = -1;
+                return 0;
             }
-            int interval = 0;
-            for (int i = l; i < len; i++)
+
+            if (queryLen == 0)
             {
-                if (lcp[i] >= queryLen) interval++;
-                else break;
+                lcpIntv[0] = 0;
+                lcpIntv[1] = len - 1;
+                return len;
             }
-            return interval;
+
+            int left = queryStart;
+            while (left > 0 && lcp[left] >= queryLen) left--;
+
+            int right = queryStart;
+            while (right + 1 < len && lcp[right + 1] >= queryLen) right++;
+
+            lcpIntv[0] = left;
+            lcpIntv[1] = right;
+            return right - left + 1;
         }
     }
 }

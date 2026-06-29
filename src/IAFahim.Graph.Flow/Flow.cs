@@ -2,6 +2,7 @@ namespace IAFahim.Graph.Flow
 {
     using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     public unsafe struct MinHeap
     {
@@ -217,15 +218,18 @@ namespace IAFahim.Graph.Flow
             int ss = n, tt = n + 1, nn = n + 2, edgeId = 2;
             for (int i = 0; i < nn; i++) newHead[i] = 0;
 
-            long* b = stackalloc long[n];
+            long* b = (long*)Marshal.AllocHGlobal((nint)((long)n * sizeof(long)));
             for (int i = 0; i < n; i++) b[i] = 0;
 
             BuildAuxiliaryGraph(n, head, to, next, lower, upper, b, newHead, newTo, newNext, newCost, newCap, &edgeId);
             AddSuperSourceSink(n, s, t, ss, tt, b, newHead, newTo, newNext, newCost, newCap, &edgeId);
 
-            int* newFlow = stackalloc int[nn * 2 + edgeId]; // Sufficient size
-            for (int i = 0; i < nn * 2 + edgeId; i++) newFlow[i] = 0;
+            int nfSize = nn * 2 + edgeId;
+            int* newFlow = (int*)Marshal.AllocHGlobal((nint)((long)nfSize * sizeof(int))); // Sufficient size
+            for (int i = 0; i < nfSize; i++) newFlow[i] = 0;
             DinicMaxFlow.Run(nn, ss, tt, newHead, newTo, newNext, newCap, newFlow);
+            Marshal.FreeHGlobal((nint)newFlow);
+            Marshal.FreeHGlobal((nint)b);
             return 0;
         }
 

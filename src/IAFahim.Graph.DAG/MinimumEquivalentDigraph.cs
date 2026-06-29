@@ -1,6 +1,8 @@
 namespace IAFahim.Graph.DAG
 {
+    using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     public static unsafe class MinimumEquivalentDigraph
     {
@@ -18,7 +20,7 @@ namespace IAFahim.Graph.DAG
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Run(bool* adjMatrix, int n)
         {
-            bool* reach = stackalloc bool[n * n];
+            bool* reach = (bool*)Marshal.AllocHGlobal((nint)((long)n * n));
             DagShared.ComputeReachability(adjMatrix, n, reach);
             for (int i = 0; i < n; i++)
             {
@@ -28,6 +30,7 @@ namespace IAFahim.Graph.DAG
                     if (HasAlternatePath(adjMatrix, reach, n, i, j)) adjMatrix[i * n + j] = false;
                 }
             }
+            Marshal.FreeHGlobal((nint)reach);
         }
     }
 }

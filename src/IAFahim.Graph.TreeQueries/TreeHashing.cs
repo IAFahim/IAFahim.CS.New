@@ -2,6 +2,7 @@ namespace IAFahim.Graph.TreeQueries
 {
     using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     public static unsafe class TreeHashing
     {
@@ -190,7 +191,10 @@ namespace IAFahim.Graph.TreeQueries
 
         private static bool CanMatchChildren(int cc1, int cc2, int* children1, int* children2, int u1, int u2, int* head1, int* to1, int* next1, int* head2, int* to2, int* next2)
         {
-            int* bHead = stackalloc int[cc1], bTo = stackalloc int[cc1 * cc2 + 1], bNext = stackalloc int[cc1 * cc2 + 1];
+            int bCap = cc1 * cc2 + 1;
+            int* bHead = (int*)Marshal.AllocHGlobal((nint)((long)cc1 * sizeof(int)));
+            int* bTo = (int*)Marshal.AllocHGlobal((nint)((long)bCap * sizeof(int)));
+            int* bNext = (int*)Marshal.AllocHGlobal((nint)((long)bCap * sizeof(int)));
             int bEc = 1; for (int i = 0; i < cc1; i++) bHead[i] = 0;
 
             for (int i = 0; i < cc1; i++)
@@ -200,34 +204,58 @@ namespace IAFahim.Graph.TreeQueries
                         bTo[bEc] = j; bNext[bEc] = bHead[i]; bHead[i] = bEc++;
                     }
 
-            int* match = stackalloc int[cc2]; for (int j = 0; j < cc2; j++) match[j] = -1;
-            int mc = 0; byte* vis = stackalloc byte[cc2];
+            int* match = (int*)Marshal.AllocHGlobal((nint)((long)cc2 * sizeof(int))); for (int j = 0; j < cc2; j++) match[j] = -1;
+            int mc = 0; byte* vis = (byte*)Marshal.AllocHGlobal((nint)((long)cc2));
             for (int i = 0; i < cc1; i++)
             {
                 for (int j = 0; j < cc2; j++) vis[j] = 0;
                 if (Kuhn(i, bHead, bTo, bNext, match, vis)) mc++;
             }
-            return mc == cc1;
+            bool cmResult = mc == cc1;
+            Marshal.FreeHGlobal((nint)vis);
+            Marshal.FreeHGlobal((nint)match);
+            Marshal.FreeHGlobal((nint)bNext);
+            Marshal.FreeHGlobal((nint)bTo);
+            Marshal.FreeHGlobal((nint)bHead);
+            return cmResult;
         }
 
         public static int TreeEditDistance(int n1, int* head1, int* to1, int* next1, int n2, int* head2, int* to2, int* next2)
         {
-            int* po1 = stackalloc int[n1 + 1], lm1 = stackalloc int[n1 + 1], poi1 = stackalloc int[n1];
+            int* po1 = (int*)Marshal.AllocHGlobal((nint)((long)(n1 + 1) * sizeof(int)));
+            int* lm1 = (int*)Marshal.AllocHGlobal((nint)((long)(n1 + 1) * sizeof(int)));
+            int* poi1 = (int*)Marshal.AllocHGlobal((nint)((long)n1 * sizeof(int)));
             int pt1 = 1; PostOrder(0, -1, head1, to1, next1, po1, ref pt1, lm1, poi1);
 
-            int* po2 = stackalloc int[n2 + 1], lm2 = stackalloc int[n2 + 1], poi2 = stackalloc int[n2];
+            int* po2 = (int*)Marshal.AllocHGlobal((nint)((long)(n2 + 1) * sizeof(int)));
+            int* lm2 = (int*)Marshal.AllocHGlobal((nint)((long)(n2 + 1) * sizeof(int)));
+            int* poi2 = (int*)Marshal.AllocHGlobal((nint)((long)n2 * sizeof(int)));
             int pt2 = 1; PostOrder(0, -1, head2, to2, next2, po2, ref pt2, lm2, poi2);
 
-            byte* kr1 = stackalloc byte[n1 + 1], kr2 = stackalloc byte[n2 + 1];
+            byte* kr1 = (byte*)Marshal.AllocHGlobal((nint)((long)(n1 + 1)));
+            byte* kr2 = (byte*)Marshal.AllocHGlobal((nint)((long)(n2 + 1)));
             IdentifyKeyroots(n1, lm1, kr1); IdentifyKeyroots(n2, lm2, kr2);
 
-            int* td = stackalloc int[(n1 + 1) * (n2 + 1)], fd = stackalloc int[(n1 + 1) * (n2 + 1)];
+            int fdCap = (n1 + 1) * (n2 + 1);
+            int* td = (int*)Marshal.AllocHGlobal((nint)((long)fdCap * sizeof(int)));
+            int* fd = (int*)Marshal.AllocHGlobal((nint)((long)fdCap * sizeof(int)));
             for (int i = 1; i <= n1; i++)
                 if (kr1[i] != 0)
                     for (int j = 1; j <= n2; j++)
                         if (kr2[j] != 0) UpdateForestDistances(i, j, n2, lm1, lm2, td, fd);
 
-            return td[n1 * (n2 + 1) + n2];
+            int tedResult = td[n1 * (n2 + 1) + n2];
+            Marshal.FreeHGlobal((nint)fd);
+            Marshal.FreeHGlobal((nint)td);
+            Marshal.FreeHGlobal((nint)kr2);
+            Marshal.FreeHGlobal((nint)kr1);
+            Marshal.FreeHGlobal((nint)poi2);
+            Marshal.FreeHGlobal((nint)lm2);
+            Marshal.FreeHGlobal((nint)po2);
+            Marshal.FreeHGlobal((nint)poi1);
+            Marshal.FreeHGlobal((nint)lm1);
+            Marshal.FreeHGlobal((nint)po1);
+            return tedResult;
         }
 
         private static void IdentifyKeyroots(int n, int* lm, byte* kr)

@@ -2,6 +2,7 @@ namespace IAFahim.Linear.Matrix
 {
     using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     public static unsafe class BerlekampMassey
     {
@@ -49,8 +50,9 @@ namespace IAFahim.Linear.Matrix
             // Binary exponentiation of the base polynomial x (pol) into the accumulator 1 (res),
             // all modulo the characteristic polynomial f(x) = x^k - trans[k-1]*x^(k-1) - ... - trans[0].
             // After the loop res == x^n mod f, and a[n] == sum_j res[j] * init[j].
-            long* pol = stackalloc long[k]; long* res = stackalloc long[k];
-            long* newRes = stackalloc long[2 * k];
+            long* pol = (long*)Marshal.AllocHGlobal((nint)((long)k * sizeof(long)));
+            long* res = (long*)Marshal.AllocHGlobal((nint)((long)k * sizeof(long)));
+            long* newRes = (long*)Marshal.AllocHGlobal((nint)((long)2 * k * sizeof(long)));
             for (int i = 0; i < k; i++) { pol[i] = 0; res[i] = 0; }
             res[0] = 1; pol[1] = 1;
             long exp = n;
@@ -60,7 +62,11 @@ namespace IAFahim.Linear.Matrix
                 if (exp > 1) PerformKitamasaStep(k, pol, pol, trans, mod, newRes);
                 exp >>= 1;
             }
-            return ComputeResult(k, res, init, mod);
+            long recResult = ComputeResult(k, res, init, mod);
+            Marshal.FreeHGlobal((nint)newRes);
+            Marshal.FreeHGlobal((nint)res);
+            Marshal.FreeHGlobal((nint)pol);
+            return recResult;
         }
 
         private static void PerformKitamasaStep(int k, long* a, long* b, long* trans, long mod, long* newRes)

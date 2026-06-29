@@ -2,6 +2,7 @@ namespace IAFahim.Combinatorics.Generation;
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
     public static unsafe class CatalanStructures
     {
@@ -57,7 +58,7 @@ using System.Runtime.CompilerServices;
         public static void UnrankCatalanObject(long rank, int n, byte* outObj)
         {
             if (n == 0) return;
-            long* dp = stackalloc long[(n + 2) * (n + 2)];
+            long* dp = (long*)Marshal.AllocHGlobal((nint)((long)(n + 2) * (n + 2) * sizeof(long)));
             PrecomputeCatalanDp(n, dp);
 
             int x = 0, y = 0;
@@ -68,12 +69,13 @@ using System.Runtime.CompilerServices;
                 if (rank < ways) { outObj[i] = 1; x++; }
                 else { outObj[i] = 0; rank -= ways; y++; }
             }
+            Marshal.FreeHGlobal((nint)dp);
         }
 
         public static long RankCatalanObject(byte* obj, int n)
         {
             if (n == 0) return 0;
-            long* dp = stackalloc long[(n + 2) * (n + 2)];
+            long* dp = (long*)Marshal.AllocHGlobal((nint)((long)(n + 2) * (n + 2) * sizeof(long)));
             PrecomputeCatalanDp(n, dp);
 
             int x = 0, y = 0;
@@ -87,6 +89,7 @@ using System.Runtime.CompilerServices;
                 }
                 else x++;
             }
+            Marshal.FreeHGlobal((nint)dp);
             return rank;
         }
 

@@ -590,10 +590,10 @@ namespace IAFahim.Graph
         public static int Run(int n, int m, int* eu, int* ev, int* match)
         {
             for (int i = 0; i < n; i++) match[i] = -1;
-            int* head = stackalloc int[n];
+            int* head = (int*)Marshal.AllocHGlobal((nint)((long)n * sizeof(int)));
             for (int i = 0; i < n; i++) head[i] = 0;
-            int* to = stackalloc int[2 * m + 2];
-            int* next = stackalloc int[2 * m + 2];
+            int* to = (int*)Marshal.AllocHGlobal((nint)((long)(2 * m + 2) * sizeof(int)));
+            int* next = (int*)Marshal.AllocHGlobal((nint)((long)(2 * m + 2) * sizeof(int)));
             int edgeId = 1;
             for (int i = 0; i < m; i++)
             {
@@ -607,11 +607,11 @@ namespace IAFahim.Graph
                 next[edgeId] = head[v];
                 head[v] = edgeId++;
             }
-            int* base_ = stackalloc int[n];
-            int* p = stackalloc int[n];
-            int* vArr = stackalloc int[n];
-            int* blossom = stackalloc int[n];
-            int* q = stackalloc int[n];
+            int* base_ = (int*)Marshal.AllocHGlobal((nint)((long)n * sizeof(int)));
+            int* p = (int*)Marshal.AllocHGlobal((nint)((long)n * sizeof(int)));
+            int* vArr = (int*)Marshal.AllocHGlobal((nint)((long)n * sizeof(int)));
+            int* blossom = (int*)Marshal.AllocHGlobal((nint)((long)n * sizeof(int)));
+            int* q = (int*)Marshal.AllocHGlobal((nint)((long)n * sizeof(int)));
             int result = 0;
             for (int s = 0; s < n; s++)
             {
@@ -621,6 +621,14 @@ namespace IAFahim.Graph
                     result++;
                 }
             }
+            Marshal.FreeHGlobal((nint)q);
+            Marshal.FreeHGlobal((nint)blossom);
+            Marshal.FreeHGlobal((nint)vArr);
+            Marshal.FreeHGlobal((nint)p);
+            Marshal.FreeHGlobal((nint)base_);
+            Marshal.FreeHGlobal((nint)next);
+            Marshal.FreeHGlobal((nint)to);
+            Marshal.FreeHGlobal((nint)head);
             return result;
         }
     }

@@ -1,6 +1,8 @@
 namespace IAFahim.Graph.Matching
 {
+    using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     public static unsafe class HospitalResidentsMatching
     {
@@ -17,20 +19,20 @@ namespace IAFahim.Graph.Matching
             if (numResidents <= 0 || numHospitals <= 0) return;
 
             // rankHosp[h * numResidents + r] = preference rank of resident r at hospital h (lower = preferred).
-            int* rankHosp = stackalloc int[numHospitals * numResidents];
+            int* rankHosp = (int*)Marshal.AllocHGlobal((nint)((long)numHospitals * numResidents * sizeof(int)));
             for (int i = 0; i < numHospitals * numResidents; i++) rankHosp[i] = int.MaxValue;
             for (int h = 0; h < numHospitals; h++)
                 for (int t = 0; t < numResidents; t++)
                     rankHosp[h * numResidents + hospitalPref[h * numResidents + t]] = t;
 
-            int* nextProp = stackalloc int[numResidents];
-            int* heldCount = stackalloc int[numHospitals];
+            int* nextProp = (int*)Marshal.AllocHGlobal((nint)((long)numResidents * sizeof(int)));
+            int* heldCount = (int*)Marshal.AllocHGlobal((nint)((long)numHospitals * sizeof(int)));
             // held[h * numResidents + slot] holds the currently-accepted resident indices at hospital h.
-            int* held = stackalloc int[numHospitals * numResidents];
+            int* held = (int*)Marshal.AllocHGlobal((nint)((long)numHospitals * numResidents * sizeof(int)));
             for (int i = 0; i < numResidents; i++) nextProp[i] = 0;
             for (int h = 0; h < numHospitals; h++) heldCount[h] = 0;
 
-            int* queue = stackalloc int[numResidents];
+            int* queue = (int*)Marshal.AllocHGlobal((nint)((long)numResidents * sizeof(int)));
             int qh = 0, qt = 0;
             for (int i = 0; i < numResidents; i++) queue[qt++] = i;
 
@@ -50,6 +52,11 @@ namespace IAFahim.Graph.Matching
                     Contest(rankHosp, held, matchResident, queue, ref qt, h, r, heldCount[h], numResidents);
                 }
             }
+            Marshal.FreeHGlobal((nint)queue);
+            Marshal.FreeHGlobal((nint)held);
+            Marshal.FreeHGlobal((nint)heldCount);
+            Marshal.FreeHGlobal((nint)nextProp);
+            Marshal.FreeHGlobal((nint)rankHosp);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

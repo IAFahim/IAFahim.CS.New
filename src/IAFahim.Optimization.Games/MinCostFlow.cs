@@ -2,6 +2,7 @@ namespace IAFahim.Optimization.Games
 {
     using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     public static unsafe class MinCostFlow
     {
@@ -208,7 +209,7 @@ namespace IAFahim.Optimization.Games
             // starting from a virtual source linked to every vertex with cost 0.
             // We need levels 0..n inclusive, i.e. (n + 1) rows of n vertices.
             int rows = n + 1;
-            long* d = stackalloc long[rows * n];
+            long* d = (long*)Marshal.AllocHGlobal((nint)((long)rows * n * sizeof(long)));
 
             for (int k = 0; k <= n; k++)
             {
@@ -277,11 +278,12 @@ namespace IAFahim.Optimization.Games
                 }
             }
 
-            if (!found) return Inf;
+            if (!found) { Marshal.FreeHGlobal((nint)d); return Inf; }
 
             // Floor division of bestNum / bestDen (bestDen > 0).
             long q = bestNum / bestDen;
             if (bestNum % bestDen != 0 && bestNum < 0) q--;
+            Marshal.FreeHGlobal((nint)d);
             return q;
         }
 

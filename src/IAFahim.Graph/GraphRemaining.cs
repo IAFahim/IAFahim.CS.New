@@ -2,6 +2,7 @@ namespace IAFahim.Graph
 {
     using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     internal unsafe struct RemMinHeap
     {
@@ -327,28 +328,28 @@ namespace IAFahim.Graph
         public static int Run(int n, int src, int dst, int k, int* head, int* to, int* next, long* dist, long* pathCosts, long* work)
         {
             int maxK = MaxK;
-            int* pathNodes = stackalloc int[maxK * n];
-            int* pathLens = stackalloc int[maxK];
-            long* pathCostsArr = stackalloc long[maxK];
+            int* pathNodes = (int*)Marshal.AllocHGlobal((nint)((long)maxK * n * sizeof(int)));
+            int* pathLens = (int*)Marshal.AllocHGlobal((nint)((long)maxK * sizeof(int)));
+            long* pathCostsArr = (long*)Marshal.AllocHGlobal((nint)((long)maxK * sizeof(long)));
             int found = 0;
 
-            long* distTo = stackalloc long[n];
-            int* prev = stackalloc int[n];
-            int* spurPath = stackalloc int[n];
-            int* combinedPath = stackalloc int[n];
+            long* distTo = (long*)Marshal.AllocHGlobal((nint)((long)n * sizeof(long)));
+            int* prev = (int*)Marshal.AllocHGlobal((nint)((long)n * sizeof(int)));
+            int* spurPath = (int*)Marshal.AllocHGlobal((nint)((long)n * sizeof(int)));
+            int* combinedPath = (int*)Marshal.AllocHGlobal((nint)((long)n * sizeof(int)));
 
             long shortestCost = Dijkstra(n, src, dst, head, to, next, dist, distTo, prev, (int*)0, (int*)0, 0);
-            if (shortestCost == long.MaxValue) return 0;
+            if (shortestCost == long.MaxValue) { Marshal.FreeHGlobal((nint)combinedPath); Marshal.FreeHGlobal((nint)spurPath); Marshal.FreeHGlobal((nint)prev); Marshal.FreeHGlobal((nint)distTo); Marshal.FreeHGlobal((nint)pathCostsArr); Marshal.FreeHGlobal((nint)pathLens); Marshal.FreeHGlobal((nint)pathNodes); return 0; }
 
             pathLens[0] = ReconstructPath(prev, src, dst, pathNodes, n);
             pathCostsArr[0] = shortestCost;
             pathCosts[0] = shortestCost;
             found = 1;
 
-            bool* blockedU = stackalloc bool[n];
-            bool* blockedV = stackalloc bool[n];
-            int* blockedUList = stackalloc int[n];
-            int* blockedVList = stackalloc int[n];
+            bool* blockedU = (bool*)Marshal.AllocHGlobal((nint)((long)n));
+            bool* blockedV = (bool*)Marshal.AllocHGlobal((nint)((long)n));
+            int* blockedUList = (int*)Marshal.AllocHGlobal((nint)((long)n * sizeof(int)));
+            int* blockedVList = (int*)Marshal.AllocHGlobal((nint)((long)n * sizeof(int)));
 
             for (int ki = 1; ki < k && found < maxK; ki++)
             {
@@ -413,9 +414,19 @@ namespace IAFahim.Graph
                 }
             }
 
+            Marshal.FreeHGlobal((nint)blockedVList);
+            Marshal.FreeHGlobal((nint)blockedUList);
+            Marshal.FreeHGlobal((nint)blockedV);
+            Marshal.FreeHGlobal((nint)blockedU);
+            Marshal.FreeHGlobal((nint)combinedPath);
+            Marshal.FreeHGlobal((nint)spurPath);
+            Marshal.FreeHGlobal((nint)prev);
+            Marshal.FreeHGlobal((nint)distTo);
+            Marshal.FreeHGlobal((nint)pathCostsArr);
+            Marshal.FreeHGlobal((nint)pathLens);
+            Marshal.FreeHGlobal((nint)pathNodes);
             return found;
         }
-
         private static long Dijkstra(int n, int src, int dst, int* head, int* to, int* next, long* dist, long* distTo, int* prev, int* blockedU, int* blockedV, int blockCount)
         {
             for (int i = 0; i < n; i++) { distTo[i] = long.MaxValue; prev[i] = -1; }

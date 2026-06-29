@@ -2,6 +2,7 @@ namespace IAFahim.Search.Imos
 {
     using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     public static unsafe class ImosRectangle
     {
@@ -143,7 +144,7 @@ namespace IAFahim.Search.Imos
     {
         public static int Run(int n, long* xs, long* ys1, long* ys2, long* ys, long* res, long mod)
         {
-            long* events = stackalloc long[n * 4];
+            long* events = (long*)Marshal.AllocHGlobal((nint)((long)n * 4 * sizeof(long)));
             for (int i = 0; i < n; i++)
             {
                 events[i * 2] = xs[i];
@@ -154,6 +155,7 @@ namespace IAFahim.Search.Imos
             int eventCount = n * 2;
             for (int i = 0; i < eventCount; i++) ys[i] = events[i * 2 + 1];
             for (int i = 0; i < eventCount; i++) res[i] = 0;
+            Marshal.FreeHGlobal((nint)events);
             return eventCount;
         }
     }
@@ -162,7 +164,7 @@ namespace IAFahim.Search.Imos
     {
         public static long Run(int n, long* xs1, long* ys1, long* xs2, long* ys2, long* res)
         {
-            long* events = stackalloc long[n * 4];
+            long* events = (long*)Marshal.AllocHGlobal((nint)((long)n * 4 * sizeof(long)));
             int eventCount = 0;
             for (int i = 0; i < n; i++)
             {
@@ -172,6 +174,7 @@ namespace IAFahim.Search.Imos
                 events[eventCount++] = ys2[i];
             }
             for (int i = 0; i < eventCount; i++) res[i] = 0;
+            Marshal.FreeHGlobal((nint)events);
             return 0;
         }
     }
