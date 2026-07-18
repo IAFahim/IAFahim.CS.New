@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.Optimization.Exact/IAFahim.Optimization.Exact.csproj" />
+  </ItemGroup>
+</Project>

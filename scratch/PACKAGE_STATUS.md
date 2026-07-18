@@ -1,188 +1,178 @@
-# Package status — reference upgrade pass
+# Algorithm package inventory + status (single source of truth)
 
-## Summary
-- Total packages: **162**
-- already_correct (PASS test): **103**
-- upgraded this pass: **2**
-- verified_build (build only): **50**
-- deferred (honest limitation / shell): **7**
+Packages: 162
+- already_correct: 103
+- upgraded: 5
+- build_ok_untested: 45
+- deferred: 9
 
-Artifacts: `scratch/INVENTORY.md`, `scratch/REFERENCE_MAP.md`, `scratch/PACKAGE_STATUS.json`, `{SCRATCH}/verify-*.log`, `scratch/contract-notes.txt`
+Status meanings:
+- **already_correct**: isolated PASS(test) with existing defining tests
+- **upgraded**: fixed this pass + new defining tests PASS
+- **build_ok_untested**: isolated build OK; **not** claimed world-class/reference-correct
+- **deferred**: shell package or honest NotImplemented / contract gap
 
-## Top-tier reference sources
-| Source | Use |
-|---|---|
-| AtCoder Library (atcoder/ac-library) | DSU, fenwick, segtree, Dinic, SCC, NTT/convolution, string |
-| KACTL (kth-competitive-programming/kactl) | Geometry, graph, NT, strings |
-| CP-Algorithms (cp-algorithms.com) | Reference algorithms + proofs |
-| Boost.Graph | Industrial graph concepts |
-| geogram / CGAL | Robust Delaunay/Voronoi/hull |
-| recastnavigation | Navmesh build + Detour |
-| .NET BCL Span.Sort | Sort behavioral baseline only |
-| Erin Catto GJK / Bullet | Collision GJK-EPA |
-
-## Per-package
-| Package | Status | Verify | Family reference | Notes |
-|---|---|---|---|---|
-| `IAFahim.Algebra.GraphPoly` | already_correct | PASS(test) | AtCoder Library / CP-Algorithms poly | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Algebra.Polynomial` | verified_build | PASS(build) | AtCoder Library / CP-Algorithms poly | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Algebra.Sequence` | already_correct | PASS(test) | AtCoder Library / CP-Algorithms poly | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Collections.NoDeps` | already_correct | PASS(test) | Unity.Collections contract | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Collision.Gjk` | already_correct | PASS(test) | Erin Catto GJK / Bullet Physics | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Combinatorics.Generation` | already_correct | PASS(test) | FKM prenecklace / next_permutation | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Compress` | already_correct | PASS(test) | coordinate compression literature | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Compress.Coordinate` | already_correct | PASS(test) | coordinate compression literature | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.DP` | verified_build | PASS(build) | CP-Algorithms DP | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.DP.General` | verified_build | PASS(build) | CP-Algorithms DP | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.DP.Knapsack` | already_correct | PASS(test) | CP-Algorithms DP | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.DP.Optimization` | verified_build | PASS(build) | CP-Algorithms DP | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.DS.Dsu` | already_correct | PASS(test) | ACL dsu/fenwick/segtree + KACTL | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.DS.Fenwick` | already_correct | PASS(test) | ACL dsu/fenwick/segtree + KACTL | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.DS.FixedCollections` | verified_build | PASS(build) | ACL dsu/fenwick/segtree + KACTL | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.DS.GapBuffer` | already_correct | PASS(test) | ACL dsu/fenwick/segtree + KACTL | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.DS.Grid` | already_correct | PASS(test) | ACL dsu/fenwick/segtree + KACTL | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.DS.Heap` | already_correct | PASS(test) | ACL dsu/fenwick/segtree + KACTL | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.DS.HilbertOrder` | upgraded | PASS(test) | ACL dsu/fenwick/segtree + KACTL | aligned to reference defining mechanics; tests strengthened/added |
-| `IAFahim.DS.LinkCut` | already_correct | PASS(test) | ACL dsu/fenwick/segtree + KACTL | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.DS.Mo` | already_correct | PASS(test) | ACL dsu/fenwick/segtree + KACTL | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.DS.OrderedSet` | already_correct | PASS(test) | ACL dsu/fenwick/segtree + KACTL | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.DS.PerfectHashMap` | verified_build | PASS(build) | ACL dsu/fenwick/segtree + KACTL | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.DS.PersistentDsu` | already_correct | PASS(test) | ACL dsu/fenwick/segtree + KACTL | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.DS.PersistentTreap` | already_correct | PASS(test) | ACL dsu/fenwick/segtree + KACTL | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.DS.PieceTable` | already_correct | PASS(test) | ACL dsu/fenwick/segtree + KACTL | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.DS.RollbackSeg` | already_correct | PASS(test) | ACL dsu/fenwick/segtree + KACTL | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.DS.RollbackStack` | already_correct | PASS(test) | ACL dsu/fenwick/segtree + KACTL | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.DS.Rope` | already_correct | PASS(test) | ACL dsu/fenwick/segtree + KACTL | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.DS.SegmentTree` | already_correct | PASS(test) | ACL dsu/fenwick/segtree + KACTL | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.DS.Sparse` | already_correct | PASS(test) | ACL dsu/fenwick/segtree + KACTL | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.DS.SpatialMap` | verified_build | PASS(build) | ACL dsu/fenwick/segtree + KACTL | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.DS.Splay` | already_correct | PASS(test) | ACL dsu/fenwick/segtree + KACTL | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.DS.Treap` | already_correct | PASS(test) | ACL dsu/fenwick/segtree + KACTL | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.DS.Trie` | already_correct | PASS(test) | ACL dsu/fenwick/segtree + KACTL | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.DS.UnsafeArray` | already_correct | PASS(test) | ACL dsu/fenwick/segtree + KACTL | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.DS.WaveletMatrix` | already_correct | PASS(test) | ACL dsu/fenwick/segtree + KACTL | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.GameTheory` | already_correct | PASS(test) | Sprague–Grundy theorem | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Geometry.Advanced` | already_correct | PASS(test) | KACTL geometry / geogram / CGAL | Package tests green; PolygonBoolean Union/Diff/XOR honest NI until DCEL contract |
-| `IAFahim.Geometry.Arrangement` | verified_build | PASS(build) | KACTL geometry / geogram / CGAL | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Geometry.Azimuth` | already_correct | PASS(test) | KACTL geometry / geogram / CGAL | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Geometry.Basic` | already_correct | PASS(test) | KACTL geometry / geogram / CGAL | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Geometry.Bvh` | verified_build | PASS(build) | KACTL geometry / geogram / CGAL | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Geometry.Curve` | verified_build | PASS(build) | KACTL geometry / geogram / CGAL | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Geometry.Delaunay` | verified_build | PASS(build) | KACTL geometry / geogram / CGAL | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Geometry.Frame` | verified_build | PASS(build) | KACTL geometry / geogram / CGAL | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Geometry.Hull` | already_correct | PASS(test) | KACTL geometry / geogram / CGAL | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Geometry.Intersect` | already_correct | PASS(test) | KACTL geometry / geogram / CGAL | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Geometry.MarchingCubes` | verified_build | PASS(build) | KACTL geometry / geogram / CGAL | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Geometry.Mesh` | verified_build | PASS(build) | KACTL geometry / geogram / CGAL | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Geometry.PolygonClip` | verified_build | PASS(build) | KACTL geometry / geogram / CGAL | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Geometry.Spatial` | verified_build | PASS(build) | KACTL geometry / geogram / CGAL | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Geometry.Subdivision` | verified_build | PASS(build) | KACTL geometry / geogram / CGAL | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Geometry.SweepPrune` | verified_build | PASS(build) | KACTL geometry / geogram / CGAL | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Geometry.Triangulation` | verified_build | PASS(build) | KACTL geometry / geogram / CGAL | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Geometry.Voronoi` | already_correct | PASS(test) | KACTL geometry / geogram / CGAL | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Graph` | already_correct | PASS(test) | ACL maxflow/SCC + KACTL + Boost.Graph | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Graph.Bridges` | already_correct | PASS(test) | ACL maxflow/SCC + KACTL + Boost.Graph | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Graph.Cactus` | verified_build | PASS(build) | ACL maxflow/SCC + KACTL + Boost.Graph | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Graph.Centroid` | already_correct | PASS(test) | ACL maxflow/SCC + KACTL + Boost.Graph | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Graph.Clique` | deferred | PASS(build) | ACL maxflow/SCC + KACTL + Boost.Graph | README shell; no algorithm sources (empty package) |
-| `IAFahim.Graph.Connectivity` | already_correct | PASS(test) | ACL maxflow/SCC + KACTL + Boost.Graph | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Graph.Cut` | deferred | PASS(build) | ACL maxflow/SCC + KACTL + Boost.Graph | README shell; min-cut covered by Graph.Flow |
-| `IAFahim.Graph.DAG` | verified_build | PASS(build) | ACL maxflow/SCC + KACTL + Boost.Graph | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Graph.Decomposition` | deferred | PASS(build) | ACL maxflow/SCC + KACTL + Boost.Graph | README shell; no algorithm sources |
-| `IAFahim.Graph.Dominator` | deferred | PASS(build) | ACL maxflow/SCC + KACTL + Boost.Graph | README shell; no algorithm sources |
-| `IAFahim.Graph.DynamicTrees` | already_correct | PASS(test) | ACL maxflow/SCC + KACTL + Boost.Graph | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Graph.Eertree` | already_correct | PASS(test) | ACL maxflow/SCC + KACTL + Boost.Graph | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Graph.Eulerian` | already_correct | PASS(test) | ACL maxflow/SCC + KACTL + Boost.Graph | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Graph.Flow` | already_correct | PASS(test) | ACL maxflow/SCC + KACTL + Boost.Graph | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Graph.Functional` | verified_build | PASS(build) | ACL maxflow/SCC + KACTL + Boost.Graph | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Graph.Matching` | already_correct | PASS(test) | ACL maxflow/SCC + KACTL + Boost.Graph | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Graph.Misc` | verified_build | PASS(build) | ACL maxflow/SCC + KACTL + Boost.Graph | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Graph.RandomWalk` | deferred | PASS(build) | ACL maxflow/SCC + KACTL + Boost.Graph | README shell; no algorithm sources |
-| `IAFahim.Graph.SCC` | already_correct | PASS(test) | ACL maxflow/SCC + KACTL + Boost.Graph | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Graph.ShortestPath` | already_correct | PASS(test) | ACL maxflow/SCC + KACTL + Boost.Graph | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Graph.SpanningTrees` | already_correct | PASS(test) | ACL maxflow/SCC + KACTL + Boost.Graph | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Graph.Tree` | already_correct | PASS(test) | ACL maxflow/SCC + KACTL + Boost.Graph | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Graph.TreeDecomposition` | already_correct | PASS(test) | ACL maxflow/SCC + KACTL + Boost.Graph | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Graph.TreeIsomorphism` | verified_build | PASS(build) | ACL maxflow/SCC + KACTL + Boost.Graph | Build OK; UnorderedTreeEditDistance unconstrained NP-hard NI; RunConstrained is poly path |
-| `IAFahim.Graph.TreeQueries` | already_correct | PASS(test) | ACL maxflow/SCC + KACTL + Boost.Graph | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Linear` | deferred | n/a | Gaussian elimination / eigen literature | meta-folder only (no csproj); use Linear.Matrix/Eigen/Matrix2 |
-| `IAFahim.Linear.Eigen` | already_correct | PASS(test) | Gaussian elimination / eigen literature | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Linear.Matrix` | already_correct | PASS(test) | Gaussian elimination / eigen literature | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Linear.Matrix2` | verified_build | PASS(build) | Gaussian elimination / eigen literature | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Math.Arithmetic` | already_correct | PASS(test) | KACTL NT + ACL convolution/NTT | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Math.Barycentric` | already_correct | PASS(test) | KACTL NT + ACL convolution/NTT | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Math.Basic` | already_correct | PASS(test) | KACTL NT + ACL convolution/NTT | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Math.BigInt` | already_correct | PASS(test) | KACTL NT + ACL convolution/NTT | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Math.Combinatorics` | already_correct | PASS(test) | KACTL NT + ACL convolution/NTT | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Math.Gauss` | verified_build | PASS(build) | KACTL NT + ACL convolution/NTT | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Math.Kalman` | already_correct | PASS(test) | KACTL NT + ACL convolution/NTT | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Math.Modular` | already_correct | PASS(test) | KACTL NT + ACL convolution/NTT | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Math.NT` | already_correct | PASS(test) | KACTL NT + ACL convolution/NTT | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Math.Noise` | verified_build | PASS(build) | KACTL NT + ACL convolution/NTT | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Math.PoissonDisk` | already_correct | PASS(test) | KACTL NT + ACL convolution/NTT | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Math.Polynomial` | already_correct | PASS(test) | KACTL NT + ACL convolution/NTT | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Math.Polynomial.Eval` | already_correct | PASS(test) | KACTL NT + ACL convolution/NTT | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Math.Polynomial.Fps` | already_correct | PASS(test) | KACTL NT + ACL convolution/NTT | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Math.PotentialField` | already_correct | PASS(test) | KACTL NT + ACL convolution/NTT | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Math.Quaternion` | already_correct | PASS(test) | KACTL NT + ACL convolution/NTT | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Math.Sdf` | already_correct | PASS(test) | KACTL NT + ACL convolution/NTT | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Math.SphericalHarmonics` | already_correct | PASS(test) | KACTL NT + ACL convolution/NTT | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Math.Spline` | already_correct | PASS(test) | KACTL NT + ACL convolution/NTT | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Math.Transform` | already_correct | PASS(test) | KACTL NT + ACL convolution/NTT | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Math.Transform.AnyMod` | verified_build | PASS(build) | KACTL NT + ACL convolution/NTT | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Math.Transform.Fft` | already_correct | PASS(test) | KACTL NT + ACL convolution/NTT | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Math.Transform.Ntt` | verified_build | PASS(build) | KACTL NT + ACL convolution/NTT | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Memory.Allocators` | verified_build | PASS(build) | Unity allocator contracts | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Optimization.Approximation` | verified_build | PASS(build) | CP-Algo CHT/Li Chao/D&C opt / approx | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Optimization.DivideConquer` | verified_build | PASS(build) | CP-Algo CHT/Li Chao/D&C opt / approx | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Optimization.Exact` | verified_build | PASS(build) | CP-Algo CHT/Li Chao/D&C opt / approx | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Optimization.Games` | verified_build | PASS(build) | CP-Algo CHT/Li Chao/D&C opt / approx | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Optimization.Geometric` | verified_build | PASS(build) | CP-Algo CHT/Li Chao/D&C opt / approx | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Optimization.Knapsack` | verified_build | PASS(build) | CP-Algo CHT/Li Chao/D&C opt / approx | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Optimization.Matroid` | verified_build | PASS(build) | CP-Algo CHT/Li Chao/D&C opt / approx | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Optimization.Offline` | already_correct | PASS(test) | CP-Algo CHT/Li Chao/D&C opt / approx | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Optimization.Submodular` | verified_build | PASS(build) | CP-Algo CHT/Li Chao/D&C opt / approx | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Optimization.Treewidth` | verified_build | PASS(build) | CP-Algo CHT/Li Chao/D&C opt / approx | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Pathfinding.Jps` | verified_build | PASS(build) | recastnavigation + Harabor JPS | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Pathfinding.Recast` | already_correct | PASS(test) | recastnavigation + Harabor JPS | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Permutation` | already_correct | PASS(test) | cycle decomposition literature | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Physics.Xpbd` | already_correct | PASS(test) | Müller XPBD paper | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Search` | deferred | n/a | CP-Algorithms / KACTL search | meta-folder only (no csproj); use Search.* packages |
-| `IAFahim.Search.Automaton` | verified_build | PASS(build) | CP-Algorithms / KACTL search | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Search.Bit` | already_correct | PASS(test) | CP-Algorithms / KACTL search | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Search.DifferenceArray` | already_correct | PASS(test) | CP-Algorithms / KACTL search | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Search.ExactCover` | already_correct | PASS(test) | CP-Algorithms / KACTL search | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Search.Imos` | already_correct | PASS(test) | CP-Algorithms / KACTL search | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Search.Interval` | already_correct | PASS(test) | CP-Algorithms / KACTL search | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Search.LIS` | verified_build | PASS(build) | CP-Algorithms / KACTL search | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Search.MeetInMiddle` | already_correct | PASS(test) | CP-Algorithms / KACTL search | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Search.Numerical` | verified_build | PASS(build) | CP-Algorithms / KACTL search | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Search.Prefix` | already_correct | PASS(test) | CP-Algorithms / KACTL search | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Search.Range` | already_correct | PASS(test) | CP-Algorithms / KACTL search | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Search.RangeQueries` | already_correct | PASS(test) | CP-Algorithms / KACTL search | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Search.Selection` | already_correct | PASS(test) | CP-Algorithms / KACTL search | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Search.Specialized` | already_correct | PASS(test) | CP-Algorithms / KACTL search | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Search.Subset` | already_correct | PASS(test) | CP-Algorithms / KACTL search | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Search.Suffix` | already_correct | PASS(test) | CP-Algorithms / KACTL search | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Search.TwoPointer` | already_correct | PASS(test) | CP-Algorithms / KACTL search | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Search.Window` | already_correct | PASS(test) | CP-Algorithms / KACTL search | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Sort.Insertion` | already_correct | PASS(test) | .NET Span.Sort baseline + CLRS | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Sort.Merge` | already_correct | PASS(test) | .NET Span.Sort baseline + CLRS | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Sort.Partition` | already_correct | PASS(test) | .NET Span.Sort baseline + CLRS | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Sort.QuickSort` | upgraded | PASS(test) | .NET Span.Sort baseline + CLRS | aligned to reference defining mechanics; tests strengthened/added |
-| `IAFahim.Sort.RadixSort` | already_correct | PASS(test) | .NET Span.Sort baseline + CLRS | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.Sort.Specialized` | already_correct | PASS(test) | .NET Span.Sort baseline + CLRS | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.String` | already_correct | PASS(test) | ACL string + KACTL string | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.String.Automata` | verified_build | PASS(build) | ACL string + KACTL string | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.String.Compress` | verified_build | PASS(build) | ACL string + KACTL string | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.String.FMIndex` | already_correct | PASS(test) | ACL string + KACTL string | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.String.Grammar` | verified_build | PASS(build) | ACL string + KACTL string | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.String.Match` | already_correct | PASS(test) | ACL string + KACTL string | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.String.MinRotation` | already_correct | PASS(test) | ACL string + KACTL string | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.String.Palindrome` | verified_build | PASS(build) | ACL string + KACTL string | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.String.Parse` | already_correct | PASS(test) | ACL string + KACTL string | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.String.Pattern` | verified_build | PASS(build) | ACL string + KACTL string | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.String.SuffixArray` | verified_build | PASS(build) | ACL string + KACTL string | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.String.SuffixAutomaton` | already_correct | PASS(test) | ACL string + KACTL string | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
-| `IAFahim.String.SuffixTree` | verified_build | PASS(build) | ACL string + KACTL string | isolated build OK; no dedicated test project; mechanics match family reference by review |
-| `IAFahim.Unique` | already_correct | PASS(test) | std::unique / adjacent unique | isolated NUnit green; defining outcomes asserted; historical crit findings revalidated fix |
+| Package | Family | Tests | Crit | High | Status | Verify | Reference | Notes |
+|---|---|:---:|---:|---:|---|---|---|---|
+| `IAFahim.Algebra.GraphPoly` | Algebra | Y | 1 | 1 | already_correct | PASS(test) | AtCoder Library / CP-Algorithms pol | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Algebra.Polynomial` | Algebra | N | 3 | 5 | build_ok_untested | PASS(build) | AtCoder Library / CP-Algorithms pol | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Algebra.Sequence` | Algebra | Y | 0 | 2 | already_correct | PASS(test) | AtCoder Library / CP-Algorithms pol | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Collections.NoDeps` | Collections | Y | 2 | 6 | already_correct | PASS(test) | Unity.Collections contract | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Collision.Gjk` | Collision | Y | 1 | 0 | already_correct | PASS(test) | Erin Catto GJK / Bullet | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Combinatorics.Generation` | Combinatorics | Y | 0 | 1 | already_correct | PASS(test) | FKM / next_permutation | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Compress` | Compress | Y | 0 | 0 | already_correct | PASS(test) | coordinate compression | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Compress.Coordinate` | Compress | Y | 0 | 0 | already_correct | PASS(test) | coordinate compression | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.DP` | DP | N | 0 | 2 | build_ok_untested | PASS(build) | CP-Algorithms DP | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.DP.General` | DP | N | 2 | 1 | build_ok_untested | PASS(build) | CP-Algorithms DP | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.DP.Knapsack` | DP | Y | 0 | 1 | already_correct | PASS(test) | CP-Algorithms DP | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.DP.Optimization` | DP | N | 1 | 0 | build_ok_untested | PASS(build) | CP-Algorithms DP | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.DS.Dsu` | DS | Y | 0 | 0 | already_correct | PASS(test) | ACL + KACTL DS | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.DS.Fenwick` | DS | Y | 0 | 0 | already_correct | PASS(test) | ACL + KACTL DS | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.DS.FixedCollections` | DS | N | 0 | 0 | build_ok_untested | PASS(build) | ACL + KACTL DS | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.DS.GapBuffer` | DS | Y | 2 | 0 | already_correct | PASS(test) | ACL + KACTL DS | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.DS.Grid` | DS | Y | 0 | 0 | already_correct | PASS(test) | ACL + KACTL DS | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.DS.Heap` | DS | Y | 0 | 0 | already_correct | PASS(test) | ACL + KACTL DS | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.DS.HilbertOrder` | DS | Y | 3 | 0 | upgraded | PASS(test) | ACL + KACTL DS | Hilbert uniqueness + BlockOrder round-trip + padded Hilbert for Gilber |
+| `IAFahim.DS.LinkCut` | DS | Y | 0 | 0 | already_correct | PASS(test) | ACL + KACTL DS | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.DS.Mo` | DS | Y | 1 | 0 | already_correct | PASS(test) | ACL + KACTL DS | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.DS.OrderedSet` | DS | Y | 0 | 0 | already_correct | PASS(test) | ACL + KACTL DS | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.DS.PerfectHashMap` | DS | N | 1 | 0 | build_ok_untested | PASS(build) | ACL + KACTL DS | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.DS.PersistentDsu` | DS | Y | 0 | 0 | already_correct | PASS(test) | ACL + KACTL DS | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.DS.PersistentTreap` | DS | Y | 1 | 0 | already_correct | PASS(test) | ACL + KACTL DS | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.DS.PieceTable` | DS | Y | 0 | 1 | already_correct | PASS(test) | ACL + KACTL DS | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.DS.RollbackSeg` | DS | Y | 2 | 0 | already_correct | PASS(test) | ACL + KACTL DS | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.DS.RollbackStack` | DS | Y | 2 | 1 | already_correct | PASS(test) | ACL + KACTL DS | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.DS.Rope` | DS | Y | 0 | 0 | already_correct | PASS(test) | ACL + KACTL DS | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.DS.SegmentTree` | DS | Y | 1 | 0 | already_correct | PASS(test) | ACL + KACTL DS | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.DS.Sparse` | DS | Y | 0 | 0 | already_correct | PASS(test) | ACL + KACTL DS | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.DS.SpatialMap` | DS | N | 0 | 4 | build_ok_untested | PASS(build) | ACL + KACTL DS | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.DS.Splay` | DS | Y | 2 | 0 | already_correct | PASS(test) | ACL + KACTL DS | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.DS.Treap` | DS | Y | 0 | 0 | already_correct | PASS(test) | ACL + KACTL DS | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.DS.Trie` | DS | Y | 1 | 0 | already_correct | PASS(test) | ACL + KACTL DS | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.DS.UnsafeArray` | DS | Y | 0 | 0 | already_correct | PASS(test) | ACL + KACTL DS | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.DS.WaveletMatrix` | DS | Y | 3 | 1 | already_correct | PASS(test) | ACL + KACTL DS | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.GameTheory` | GameTheory | Y | 0 | 1 | already_correct | PASS(test) | Sprague–Grundy | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Geometry.Advanced` | Geometry | Y | 1 | 0 | already_correct | PASS(test) | KACTL / geogram / CGAL | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Geometry.Arrangement` | Geometry | N | 0 | 4 | build_ok_untested | PASS(build) | KACTL / geogram / CGAL | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Geometry.Azimuth` | Geometry | Y | 0 | 0 | already_correct | PASS(test) | KACTL / geogram / CGAL | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Geometry.Basic` | Geometry | Y | 1 | 0 | already_correct | PASS(test) | KACTL / geogram / CGAL | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Geometry.Bvh` | Geometry | N | 0 | 1 | build_ok_untested | PASS(build) | KACTL / geogram / CGAL | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Geometry.Curve` | Geometry | N | 0 | 0 | build_ok_untested | PASS(build) | KACTL / geogram / CGAL | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Geometry.Delaunay` | Geometry | N | 0 | 0 | build_ok_untested | PASS(build) | KACTL / geogram / CGAL | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Geometry.Frame` | Geometry | N | 0 | 1 | build_ok_untested | PASS(build) | KACTL / geogram / CGAL | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Geometry.Hull` | Geometry | Y | 1 | 2 | already_correct | PASS(test) | KACTL / geogram / CGAL | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Geometry.Intersect` | Geometry | Y | 1 | 0 | already_correct | PASS(test) | KACTL / geogram / CGAL | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Geometry.MarchingCubes` | Geometry | N | 0 | 0 | build_ok_untested | PASS(build) | KACTL / geogram / CGAL | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Geometry.Mesh` | Geometry | N | 0 | 0 | build_ok_untested | PASS(build) | KACTL / geogram / CGAL | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Geometry.PolygonClip` | Geometry | N | 0 | 0 | build_ok_untested | PASS(build) | KACTL / geogram / CGAL | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Geometry.Spatial` | Geometry | Y | 1 | 2 | upgraded | PASS(test) | KACTL / geogram / CGAL | CoverTree hierarchical Build + exact NN via cover radii; tests |
+| `IAFahim.Geometry.Subdivision` | Geometry | N | 0 | 0 | build_ok_untested | PASS(build) | KACTL / geogram / CGAL | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Geometry.SweepPrune` | Geometry | N | 0 | 0 | build_ok_untested | PASS(build) | KACTL / geogram / CGAL | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Geometry.Triangulation` | Geometry | N | 1 | 0 | build_ok_untested | PASS(build) | KACTL / geogram / CGAL | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Geometry.Voronoi` | Geometry | Y | 0 | 0 | already_correct | PASS(test) | KACTL / geogram / CGAL | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Graph` | Graph | Y | 5 | 6 | already_correct | PASS(test) | ACL + KACTL + Boost.Graph | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Graph.Bridges` | Graph | Y | 2 | 0 | already_correct | PASS(test) | ACL + KACTL + Boost.Graph | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Graph.Cactus` | Graph | N | 0 | 0 | deferred | PASS(build) | ACL + KACTL + Boost.Graph | BlockCutTreeLca/CactusLca honest NI (contract lacks tree buffers); oth |
+| `IAFahim.Graph.Centroid` | Graph | Y | 1 | 0 | already_correct | PASS(test) | ACL + KACTL + Boost.Graph | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Graph.Clique` | Graph | N | 0 | 0 | deferred | PASS(build) | ACL + KACTL + Boost.Graph | README shell; no algorithm .cs sources |
+| `IAFahim.Graph.Connectivity` | Graph | Y | 0 | 0 | already_correct | PASS(test) | ACL + KACTL + Boost.Graph | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Graph.Cut` | Graph | N | 0 | 0 | deferred | PASS(build) | ACL + KACTL + Boost.Graph | README shell; min-cut covered by Graph.Flow |
+| `IAFahim.Graph.DAG` | Graph | N | 3 | 2 | build_ok_untested | PASS(build) | ACL + KACTL + Boost.Graph | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Graph.Decomposition` | Graph | N | 0 | 0 | deferred | PASS(build) | ACL + KACTL + Boost.Graph | README shell; no algorithm .cs sources |
+| `IAFahim.Graph.Dominator` | Graph | N | 0 | 0 | deferred | PASS(build) | ACL + KACTL + Boost.Graph | README shell; no algorithm .cs sources |
+| `IAFahim.Graph.DynamicTrees` | Graph | Y | 2 | 0 | already_correct | PASS(test) | ACL + KACTL + Boost.Graph | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Graph.Eertree` | Graph | Y | 1 | 0 | already_correct | PASS(test) | ACL + KACTL + Boost.Graph | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Graph.Eulerian` | Graph | Y | 2 | 1 | already_correct | PASS(test) | ACL + KACTL + Boost.Graph | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Graph.Flow` | Graph | Y | 17 | 3 | already_correct | PASS(test) | ACL + KACTL + Boost.Graph | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Graph.Functional` | Graph | N | 0 | 0 | build_ok_untested | PASS(build) | ACL + KACTL + Boost.Graph | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Graph.Matching` | Graph | Y | 6 | 3 | already_correct | PASS(test) | ACL + KACTL + Boost.Graph | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Graph.Misc` | Graph | N | 0 | 0 | build_ok_untested | PASS(build) | ACL + KACTL + Boost.Graph | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Graph.RandomWalk` | Graph | N | 0 | 0 | deferred | PASS(build) | ACL + KACTL + Boost.Graph | README shell; no algorithm .cs sources |
+| `IAFahim.Graph.SCC` | Graph | Y | 1 | 0 | already_correct | PASS(test) | ACL + KACTL + Boost.Graph | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Graph.ShortestPath` | Graph | Y | 0 | 0 | already_correct | PASS(test) | ACL + KACTL + Boost.Graph | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Graph.SpanningTrees` | Graph | Y | 0 | 0 | already_correct | PASS(test) | ACL + KACTL + Boost.Graph | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Graph.Tree` | Graph | Y | 1 | 0 | already_correct | PASS(test) | ACL + KACTL + Boost.Graph | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Graph.TreeDecomposition` | Graph | Y | 1 | 1 | already_correct | PASS(test) | ACL + KACTL + Boost.Graph | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Graph.TreeIsomorphism` | Graph | N | 0 | 0 | deferred | PASS(build) | ACL + KACTL + Boost.Graph | UnorderedTreeEditDistance unconstrained NP-hard NI; other entry points |
+| `IAFahim.Graph.TreeQueries` | Graph | Y | 1 | 0 | already_correct | PASS(test) | ACL + KACTL + Boost.Graph | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Linear` | Linear | N | 0 | 0 | deferred | n/a | Gaussian elimination | meta-folder only (no csproj/sources) |
+| `IAFahim.Linear.Eigen` | Linear | Y | 0 | 0 | already_correct | PASS(test) | Gaussian elimination | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Linear.Matrix` | Linear | Y | 2 | 0 | already_correct | PASS(test) | Gaussian elimination | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Linear.Matrix2` | Linear | N | 0 | 0 | build_ok_untested | PASS(build) | Gaussian elimination | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Math.Arithmetic` | Math | Y | 0 | 0 | already_correct | PASS(test) | KACTL NT + ACL convolution | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Math.Barycentric` | Math | Y | 0 | 0 | already_correct | PASS(test) | KACTL NT + ACL convolution | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Math.Basic` | Math | Y | 0 | 2 | already_correct | PASS(test) | KACTL NT + ACL convolution | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Math.BigInt` | Math | Y | 1 | 0 | already_correct | PASS(test) | KACTL NT + ACL convolution | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Math.Combinatorics` | Math | Y | 0 | 1 | already_correct | PASS(test) | KACTL NT + ACL convolution | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Math.Gauss` | Math | N | 0 | 0 | build_ok_untested | PASS(build) | KACTL NT + ACL convolution | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Math.Kalman` | Math | Y | 0 | 0 | already_correct | PASS(test) | KACTL NT + ACL convolution | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Math.Modular` | Math | Y | 0 | 1 | already_correct | PASS(test) | KACTL NT + ACL convolution | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Math.NT` | Math | Y | 12 | 11 | already_correct | PASS(test) | KACTL NT + ACL convolution | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Math.Noise` | Math | N | 0 | 0 | build_ok_untested | PASS(build) | KACTL NT + ACL convolution | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Math.PoissonDisk` | Math | Y | 0 | 3 | already_correct | PASS(test) | KACTL NT + ACL convolution | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Math.Polynomial` | Math | Y | 1 | 2 | already_correct | PASS(test) | KACTL NT + ACL convolution | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Math.Polynomial.Eval` | Math | Y | 1 | 0 | already_correct | PASS(test) | KACTL NT + ACL convolution | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Math.Polynomial.Fps` | Math | Y | 0 | 1 | already_correct | PASS(test) | KACTL NT + ACL convolution | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Math.PotentialField` | Math | Y | 0 | 0 | already_correct | PASS(test) | KACTL NT + ACL convolution | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Math.Quaternion` | Math | Y | 0 | 1 | already_correct | PASS(test) | KACTL NT + ACL convolution | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Math.Sdf` | Math | Y | 0 | 0 | already_correct | PASS(test) | KACTL NT + ACL convolution | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Math.SphericalHarmonics` | Math | Y | 0 | 0 | already_correct | PASS(test) | KACTL NT + ACL convolution | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Math.Spline` | Math | Y | 0 | 0 | already_correct | PASS(test) | KACTL NT + ACL convolution | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Math.Transform` | Math | Y | 1 | 2 | already_correct | PASS(test) | KACTL NT + ACL convolution | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Math.Transform.AnyMod` | Math | N | 1 | 0 | build_ok_untested | PASS(build) | KACTL NT + ACL convolution | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Math.Transform.Fft` | Math | Y | 0 | 0 | already_correct | PASS(test) | KACTL NT + ACL convolution | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Math.Transform.Ntt` | Math | N | 0 | 0 | build_ok_untested | PASS(build) | KACTL NT + ACL convolution | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Memory.Allocators` | Memory | N | 0 | 0 | build_ok_untested | PASS(build) | Unity allocator contracts | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Optimization.Approximation` | Optimization | N | 0 | 2 | build_ok_untested | PASS(build) | CP-Algo / Dreyfus–Wagner / cut-and- | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Optimization.DivideConquer` | Optimization | N | 1 | 2 | build_ok_untested | PASS(build) | CP-Algo / Dreyfus–Wagner / cut-and- | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Optimization.Exact` | Optimization | Y | 4 | 1 | upgraded | PASS(test) | CP-Algo / Dreyfus–Wagner / cut-and- | SteinerDreyfusWagner distinct terminal masks + SP relax; Steiner tests |
+| `IAFahim.Optimization.Games` | Optimization | N | 3 | 1 | build_ok_untested | PASS(build) | CP-Algo / Dreyfus–Wagner / cut-and- | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Optimization.Geometric` | Optimization | N | 1 | 0 | build_ok_untested | PASS(build) | CP-Algo / Dreyfus–Wagner / cut-and- | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Optimization.Knapsack` | Optimization | N | 1 | 3 | build_ok_untested | PASS(build) | CP-Algo / Dreyfus–Wagner / cut-and- | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Optimization.Matroid` | Optimization | N | 0 | 1 | build_ok_untested | PASS(build) | CP-Algo / Dreyfus–Wagner / cut-and- | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Optimization.Offline` | Optimization | Y | 0 | 3 | already_correct | PASS(test) | CP-Algo / Dreyfus–Wagner / cut-and- | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Optimization.Submodular` | Optimization | N | 0 | 1 | build_ok_untested | PASS(build) | CP-Algo / Dreyfus–Wagner / cut-and- | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Optimization.Treewidth` | Optimization | Y | 1 | 1 | upgraded | PASS(test) | CP-Algo / Dreyfus–Wagner / cut-and- | CutAndCount counts connected induced bag subsets into dp; tests |
+| `IAFahim.Pathfinding.Jps` | Pathfinding | N | 0 | 0 | build_ok_untested | PASS(build) | recastnavigation + JPS | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Pathfinding.Recast` | Pathfinding | Y | 0 | 0 | already_correct | PASS(test) | recastnavigation + JPS | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Permutation` | Permutation | Y | 0 | 1 | already_correct | PASS(test) | cycle decomp | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Physics.Xpbd` | Physics | Y | 1 | 1 | already_correct | PASS(test) | Müller XPBD | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Search` | Search | N | 0 | 0 | deferred | n/a | CP-Algorithms / KACTL | meta-folder only (no csproj/sources) |
+| `IAFahim.Search.Automaton` | Search | N | 0 | 0 | build_ok_untested | PASS(build) | CP-Algorithms / KACTL | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Search.Bit` | Search | Y | 1 | 0 | already_correct | PASS(test) | CP-Algorithms / KACTL | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Search.DifferenceArray` | Search | Y | 0 | 0 | already_correct | PASS(test) | CP-Algorithms / KACTL | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Search.ExactCover` | Search | Y | 1 | 2 | already_correct | PASS(test) | CP-Algorithms / KACTL | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Search.Imos` | Search | Y | 1 | 1 | already_correct | PASS(test) | CP-Algorithms / KACTL | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Search.Interval` | Search | Y | 0 | 1 | already_correct | PASS(test) | CP-Algorithms / KACTL | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Search.LIS` | Search | N | 0 | 0 | build_ok_untested | PASS(build) | CP-Algorithms / KACTL | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Search.MeetInMiddle` | Search | Y | 0 | 0 | already_correct | PASS(test) | CP-Algorithms / KACTL | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Search.Numerical` | Search | N | 2 | 0 | build_ok_untested | PASS(build) | CP-Algorithms / KACTL | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Search.Prefix` | Search | Y | 0 | 1 | already_correct | PASS(test) | CP-Algorithms / KACTL | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Search.Range` | Search | Y | 0 | 3 | already_correct | PASS(test) | CP-Algorithms / KACTL | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Search.RangeQueries` | Search | Y | 1 | 0 | already_correct | PASS(test) | CP-Algorithms / KACTL | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Search.Selection` | Search | Y | 0 | 1 | already_correct | PASS(test) | CP-Algorithms / KACTL | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Search.Specialized` | Search | Y | 0 | 0 | already_correct | PASS(test) | CP-Algorithms / KACTL | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Search.Subset` | Search | Y | 1 | 0 | already_correct | PASS(test) | CP-Algorithms / KACTL | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Search.Suffix` | Search | Y | 0 | 2 | already_correct | PASS(test) | CP-Algorithms / KACTL | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Search.TwoPointer` | Search | Y | 0 | 1 | already_correct | PASS(test) | CP-Algorithms / KACTL | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Search.Window` | Search | Y | 0 | 0 | already_correct | PASS(test) | CP-Algorithms / KACTL | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Sort.Insertion` | Sort | Y | 0 | 0 | already_correct | PASS(test) | .NET Span.Sort + CLRS | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Sort.Merge` | Sort | Y | 0 | 0 | already_correct | PASS(test) | .NET Span.Sort + CLRS | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Sort.Partition` | Sort | Y | 0 | 0 | already_correct | PASS(test) | .NET Span.Sort + CLRS | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Sort.QuickSort` | Sort | Y | 2 | 0 | upgraded | PASS(test) | .NET Span.Sort + CLRS | Hoare-correct; defining NUnit tests added |
+| `IAFahim.Sort.RadixSort` | Sort | Y | 3 | 0 | already_correct | PASS(test) | .NET Span.Sort + CLRS | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.Sort.Specialized` | Sort | Y | 0 | 0 | already_correct | PASS(test) | .NET Span.Sort + CLRS | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.String` | String | Y | 0 | 1 | already_correct | PASS(test) | ACL + KACTL string | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.String.Automata` | String | N | 1 | 0 | build_ok_untested | PASS(build) | ACL + KACTL string | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.String.Compress` | String | N | 1 | 1 | build_ok_untested | PASS(build) | ACL + KACTL string | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.String.FMIndex` | String | Y | 1 | 0 | already_correct | PASS(test) | ACL + KACTL string | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.String.Grammar` | String | N | 1 | 3 | build_ok_untested | PASS(build) | ACL + KACTL string | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.String.Match` | String | Y | 1 | 3 | already_correct | PASS(test) | ACL + KACTL string | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.String.MinRotation` | String | Y | 0 | 0 | already_correct | PASS(test) | ACL + KACTL string | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.String.Palindrome` | String | N | 2 | 0 | build_ok_untested | PASS(build) | ACL + KACTL string | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.String.Parse` | String | Y | 1 | 2 | already_correct | PASS(test) | ACL + KACTL string | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.String.Pattern` | String | N | 0 | 0 | build_ok_untested | PASS(build) | ACL + KACTL string | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.String.SuffixArray` | String | N | 0 | 1 | build_ok_untested | PASS(build) | ACL + KACTL string | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.String.SuffixAutomaton` | String | Y | 2 | 2 | already_correct | PASS(test) | ACL + KACTL string | isolated NUnit green; do not treat historical findings as auto-fixed w |
+| `IAFahim.String.SuffixTree` | String | N | 1 | 0 | build_ok_untested | PASS(build) | ACL + KACTL string | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Unique` | Unique | Y | 0 | 0 | already_correct | PASS(test) | std::unique | isolated NUnit green; do not treat historical findings as auto-fixed w |

@@ -1,5 +1,6 @@
 namespace IAFahim.Graph.Cactus
 {
+    using System;
     using System.Runtime.CompilerServices;
 
     public static unsafe class BlockCutTreeLca
@@ -7,7 +8,9 @@ namespace IAFahim.Graph.Cactus
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Run(int u, int v)
         {
-            return u;
+            throw new NotImplementedException(
+                "BlockCutTreeLca needs parent/depth (or RMQ) buffers for a prebuilt block-cut tree; "
+                + "Run(u,v) alone cannot compute LCA. Extend the contract with tree arrays.");
         }
     }
 }

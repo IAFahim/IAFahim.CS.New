@@ -1,14 +1,22 @@
-AGENTS.md contract notes (this pass)
-====================================
-- HilbertOrder/GilbertOrder/BlockOrder: unmanaged static; no GC; MethodImpl on hot paths.
-- GilbertOrder Encode uses padded-square Hilbert (jakubcerveny Gilbert full rectangle
-  inverse deferred as complex membership; padded Hilbert preserves Mo locality).
-- BlockOrder uses 1<<32 stride (not int.MaxValue) for clean even/odd snake round-trip.
-- QuickSort: Hoare partition already fixed (left half includes boundary p); tests added.
-- Deferred honest NotImplemented: Geometry.Advanced PolygonBoolean union/diff/xor (DCEL);
-  Graph.TreeIsomorphism UnorderedTreeEditDistance unconstrained (NP-hard).
-- Shell packages (no .cs): Graph.Clique/Cut/Decomposition/Dominator/RandomWalk, Linear, Search meta.
-- No Span<T> in src/; no managed arrays in algorithm paths for upgraded packages.
-- Isolation rule: only package-scoped buildsweep; no full-suite or BenchmarkDotNet.
-- Historical correctness_findings (288) largely stale after prior fix phase; revalidated
-  via green tests + code review (Reliability p/q, Berlekamp m=1, Radix SignBias, GJK tetra, etc.).
+AGENTS.md / correctness notes (skeptic pass)
+============================================
+Upgraded with defining tests:
+- Optimization.Exact SteinerDreyfusWagner: distinct terminal bit masks (1<<ti),
+  singleton SP relax, answer min over all v; tests star/path.
+- Optimization.Treewidth CutAndCount: counts connected induced bag subsets;
+  writes dp[mask]; path-of-3 / disjoint pair tests.
+- Geometry.Spatial CoverTree: hierarchical parent/level Build; Nearest tree
+  search with SubtreeCover prune (exact NN by distance); tests.
+- DS.HilbertOrder / Sort.QuickSort: prior pass.
+
+Honest deferred / NI:
+- Graph.Cactus BlockCutTreeLca/CactusLca: Run(u,v) lacks tree buffers → NI.
+- Geometry.Advanced PolygonBoolean union/diff/xor: DCEL contract.
+- TreeIsomorphism UnorderedTreeEditDistance unconstrained: NP-hard NI.
+- README-only shells: Graph.Clique/Cut/Decomposition/Dominator/RandomWalk, Linear, Search meta.
+
+build_ok_untested (~many packages):
+- Isolated build only. NOT claimed reference-correct. Historical findings
+  (251 crit/high) mostly open_unverified until package gets defining tests.
+
+Allocation: no unbounded stackalloc[n] in CoverTree/Steiner fixes.
