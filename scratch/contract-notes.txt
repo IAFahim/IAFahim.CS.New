@@ -1,0 +1,14 @@
+AGENTS.md contract notes (this pass)
+====================================
+- HilbertOrder/GilbertOrder/BlockOrder: unmanaged static; no GC; MethodImpl on hot paths.
+- GilbertOrder Encode uses padded-square Hilbert (jakubcerveny Gilbert full rectangle
+  inverse deferred as complex membership; padded Hilbert preserves Mo locality).
+- BlockOrder uses 1<<32 stride (not int.MaxValue) for clean even/odd snake round-trip.
+- QuickSort: Hoare partition already fixed (left half includes boundary p); tests added.
+- Deferred honest NotImplemented: Geometry.Advanced PolygonBoolean union/diff/xor (DCEL);
+  Graph.TreeIsomorphism UnorderedTreeEditDistance unconstrained (NP-hard).
+- Shell packages (no .cs): Graph.Clique/Cut/Decomposition/Dominator/RandomWalk, Linear, Search meta.
+- No Span<T> in src/; no managed arrays in algorithm paths for upgraded packages.
+- Isolation rule: only package-scoped buildsweep; no full-suite or BenchmarkDotNet.
+- Historical correctness_findings (288) largely stale after prior fix phase; revalidated
+  via green tests + code review (Reliability p/q, Berlekamp m=1, Radix SignBias, GJK tetra, etc.).

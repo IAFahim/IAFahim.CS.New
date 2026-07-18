@@ -45,6 +45,39 @@ namespace IAFahim.DS.HilbertOrder.Tests
             ord = HilbertOrder.Encode(1023, 0, 10);
             Assert.IsTrue(ord >= 0);
         }
+
+        [Test]
+        public void Encode_FullGridUniqueAndInRange()
+        {
+            const int LogN = 4;
+            const int Side = 1 << LogN;
+            const int Cells = Side * Side;
+            bool* seen = stackalloc bool[Cells];
+            for (int i = 0; i < Cells; i++) seen[i] = false;
+            for (int x = 0; x < Side; x++)
+            {
+                for (int y = 0; y < Side; y++)
+                {
+                    long d = HilbertOrder.Encode(x, y, LogN);
+                    Assert.IsTrue(d >= 0 && d < Cells);
+                    Assert.IsFalse(seen[(int)d]);
+                    seen[(int)d] = true;
+                }
+            }
+            for (int i = 0; i < Cells; i++) Assert.IsTrue(seen[i]);
+        }
+
+        [Test]
+        public void Run_Rot0_MatchesEncode()
+        {
+            for (int x = 0; x < 8; x++)
+            {
+                for (int y = 0; y < 8; y++)
+                {
+                    Assert.AreEqual(HilbertOrder.Encode(x, y, 3), HilbertOrder.Run(x, y, 3, 0));
+                }
+            }
+        }
     }
 
     public sealed unsafe class GilbertOrderTests
@@ -70,6 +103,18 @@ namespace IAFahim.DS.HilbertOrder.Tests
             long ord = GilbertOrder.Encode(0, 0, 0, 5);
             Assert.AreEqual(0, ord);
         }
+
+        [Test]
+        public void Encode_SquarePowerOfTwo_MatchesHilbert()
+        {
+            for (int x = 0; x < 8; x++)
+            {
+                for (int y = 0; y < 8; y++)
+                {
+                    Assert.AreEqual(HilbertOrder.Encode(x, y, 3), GilbertOrder.Encode(x, y, 8, 8));
+                }
+            }
+        }
     }
 
     public sealed unsafe class BlockOrderTests
@@ -90,13 +135,18 @@ namespace IAFahim.DS.HilbertOrder.Tests
         }
 
         [Test]
-        public void Decode_Basic()
+        public void Decode_RoundTripsR_EvenAndOddBlocks()
         {
             int l = 0, r = 0;
-            long code = BlockOrder.Encode(5, 12, 4);
-            BlockOrder.Decode(code, 100, 4, &l, &r);
-            Assert.IsTrue(l >= 0);
-            Assert.IsTrue(r >= l);
+            long codeEven = BlockOrder.Encode(0, 12, 4);
+            BlockOrder.Decode(codeEven, 100, 4, &l, &r);
+            Assert.AreEqual(0, l);
+            Assert.AreEqual(12, r);
+
+            long codeOdd = BlockOrder.Encode(5, 17, 4);
+            BlockOrder.Decode(codeOdd, 100, 4, &l, &r);
+            Assert.AreEqual(4, l);
+            Assert.AreEqual(17, r);
         }
     }
 }

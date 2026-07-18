@@ -47,37 +47,46 @@ namespace IAFahim.DS.HilbertOrder
 
     public static unsafe class GilbertOrder
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long Encode(long x, long y, int w, int h)
         {
             if (w <= 0 || h <= 0) return 0;
-            if (w >= h) return EncodeRecursive(x, y, 0, 0, w, 0, 0, h);
-            return EncodeRecursive(x, y, 0, 0, 0, h, w, 0);
-        }
-
-        private static long EncodeRecursive(long x, long y, long ax, long ay, long bx, long by, long cx, long cy)
-        {
-            long w = Math.Abs(bx + cx), h = Math.Abs(by + cy);
-            if (w <= 1 && h <= 1) return 0;
-            // Placeholder for real Gilbert curve logic
-            return x * h + y;
+            if ((ulong)x >= (ulong)w || (ulong)y >= (ulong)h) return 0;
+            int m = w > h ? w : h;
+            int logN = 0;
+            while ((1 << logN) < m) logN++;
+            if (logN == 0) return 0;
+            return HilbertOrder.Encode(x, y, logN);
         }
     }
 
     public static unsafe class BlockOrder
     {
+        private const long BlockStride = 1L << 32;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long Encode(int l, int r, int blockSize)
         {
+            if (blockSize <= 0) return 0;
             int block = l / blockSize;
-            long off = (block & 1) != 0 ? (long)(int.MaxValue - 1 - r) : r;
-            return (long)block * int.MaxValue + off;
+            long off = (block & 1) != 0 ? (BlockStride - 1 - (uint)r) : (uint)r;
+            return (long)block * BlockStride + off;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Decode(long code, int n, int blockSize, int* l, int* r)
         {
-            int block = (int)(code / int.MaxValue);
-            long off = code % int.MaxValue;
+            if (blockSize <= 0)
+            {
+                *l = 0;
+                *r = 0;
+                return;
+            }
+            int block = (int)(code / BlockStride);
+            long off = code % BlockStride;
+            if (off < 0) off += BlockStride;
             *l = block * blockSize;
-            *r = (block & 1) != 0 ? (int)(int.MaxValue - 1 - off) : (int)off;
+            *r = (block & 1) != 0 ? (int)(BlockStride - 1 - off) : (int)off;
         }
     }
 }

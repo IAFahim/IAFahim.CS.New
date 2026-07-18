@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.Sort.QuickSort/IAFahim.Sort.QuickSort.csproj" />
+  </ItemGroup>
+</Project>
