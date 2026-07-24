@@ -7190,7 +7190,7 @@
       }
     ],
     "algorithms_summary": "HospitalResidentsMatching, StableRoommates, MaximumBipartiteBMatching, BlossomGeneral, WeightedBlossom, BottleneckAssignment, HungarianMin, HungarianMax, AssignmentSolve, StableMarriage, GaleShapley, StableMarriageIncomplete (+9)",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "deferred: public stubs/incomplete solvers (auction/hungarian/treewidth knapsack) \u2014 not world-class yet"
   },
   {
     "package": "IAFahim.Graph.Misc",
@@ -7707,7 +7707,7 @@
       }
     ],
     "algorithms_summary": "TreeDecompositionDp, PathwidthDpAlgorithm, MoQuery, MoAlgorithmOnTree, TreeDecompositionKnapsackAlgorithm, NiceTreeDecomposition, HldSegNode, HeavyLightDecomposition",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "deferred: public stubs/incomplete solvers (auction/hungarian/treewidth knapsack) \u2014 not world-class yet"
   },
   {
     "package": "IAFahim.Graph.TreeIsomorphism",
