@@ -10599,7 +10599,19 @@
       }
     ],
     "algorithms_summary": "SlopeTrick, State, LagrangianRelaxation, MatrixSearch, OnlineDp, DequeOpt, Quad",
-    "notes": "DequeOpt equal-A CHT; Lagrangian mid; findings fixed"
+    "notes": "DequeOpt equal-A CHT; Lagrangian mid; findings fixed",
+    "deferred_apis": [
+      "AddAbs",
+      "AddAbsWithHeaps",
+      "AddMaxZero",
+      "Init",
+      "Query",
+      "Recompute",
+      "Run",
+      "RunSortedColumns",
+      "Search",
+      "Shift"
+    ]
   },
   {
     "package": "IAFahim.Optimization.Exact",
