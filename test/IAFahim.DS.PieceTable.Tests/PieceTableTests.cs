@@ -44,6 +44,37 @@ namespace IAFahim.DS.PieceTable.Tests
         }
 
         [Test]
+        public void PieceTableInsert_CapShort_UsesCopiedLength()
+        {
+            const int AddCap = 3;
+            byte* orig = (byte*)Marshal.AllocHGlobal(8);
+            byte* added = (byte*)Marshal.AllocHGlobal(AddCap);
+            Piece* pieces = (Piece*)Marshal.AllocHGlobal(8 * sizeof(Piece));
+            try
+            {
+                PieceTableState s;
+                s.Original = orig;
+                s.OriginalLen = 0;
+                s.Added = added;
+                s.AddedLen = 0;
+                s.AddedCap = AddCap;
+                s.Head = null;
+                int pc = 0;
+                byte* data = stackalloc byte[5];
+                for (int i = 0; i < 5; i++) data[i] = (byte)('A' + i);
+                PieceTableInsert.Run(ref s, 0, data, 5, pieces, ref pc);
+                Assert.AreEqual(3, s.AddedLen);
+                Assert.AreEqual(3, pieces[0].Length);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal((nint)orig);
+                Marshal.FreeHGlobal((nint)added);
+                Marshal.FreeHGlobal((nint)pieces);
+            }
+        }
+
+        [Test]
         public void PieceTableDelete_Basic()
         {
             const int AddCap = 64;

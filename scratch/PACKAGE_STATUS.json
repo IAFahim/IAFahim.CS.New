@@ -2147,7 +2147,7 @@
     "package": "IAFahim.DS.PieceTable",
     "family": "DS",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL + KACTL",
     "defining_mechanics": "DSU/fenwick/heap/segtree",
@@ -2196,7 +2196,7 @@
       }
     ],
     "algorithms_summary": "Piece, PieceTableState, PieceTableShared, PieceTableInsert, PieceTableDelete",
-    "notes": "gate: open findings (1)"
+    "notes": "Length=copied not len; PieceTableInsert_CapShort_UsesCopiedLength. tests 3/3."
   },
   {
     "package": "IAFahim.DS.RollbackSeg",
@@ -4480,7 +4480,7 @@
     "package": "IAFahim.Geometry.Bvh",
     "family": "Geometry",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "KACTL/geogram/CGAL",
     "defining_mechanics": "hull/spatial/predicates",
@@ -4516,7 +4516,7 @@
       }
     ],
     "algorithms_summary": "BvhNode, CentroidSortItem, BvhTree",
-    "notes": "gate: open findings (1)"
+    "notes": "median-of-three pivot; Build/Raycast tests. tests 2/2."
   },
   {
     "package": "IAFahim.Geometry.Curve",
@@ -4570,7 +4570,7 @@
     "package": "IAFahim.Geometry.Frame",
     "family": "Geometry",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "KACTL/geogram/CGAL",
     "defining_mechanics": "hull/spatial/predicates",
@@ -4587,7 +4587,7 @@
       }
     ],
     "algorithms_summary": "ParallelTransport",
-    "notes": "gate: open findings (1)"
+    "notes": "c1>Threshold*Threshold for squared length; existing Compute tests. tests 2/2."
   },
   {
     "package": "IAFahim.Geometry.Hull",
@@ -9627,7 +9627,7 @@
     "package": "IAFahim.Math.Polynomial.Fps",
     "family": "Math",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "KACTL NT + ACL",
     "defining_mechanics": "mod/FFT/NTT",
@@ -9684,7 +9684,11 @@
       }
     ],
     "algorithms_summary": "FormalPowerSeriesSqrt, FormalPowerSeriesInverse, FormalPowerSeriesLog, FormalPowerSeriesExp, FormalPowerSeriesPow",
-    "notes": "gate: open findings (1); gate: public API untested: FastPow, ModInverse"
+    "notes": "r0==0 returns zero series or -1 if nonzero tail; Sqrt_ZeroSeries. helpers deferr",
+    "deferred_apis": [
+      "FastPow",
+      "ModInverse"
+    ]
   },
   {
     "package": "IAFahim.Math.PotentialField",
@@ -9728,7 +9732,7 @@
     "package": "IAFahim.Math.Quaternion",
     "family": "Math",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "KACTL NT + ACL",
     "defining_mechanics": "mod/FFT/NTT",
@@ -9773,7 +9777,14 @@
       }
     ],
     "algorithms_summary": "QuaternionSlerp, QuaternionOps, SwingTwistDecomposition",
-    "notes": "gate: open findings (1); gate: public API untested: FromEuler, Length, LookRotation, ToAxisAngle, ToEuler"
+    "notes": "atan2(signed dot, w); TwistAngle_NegativeDirection_Signed. tests 13/13.",
+    "deferred_apis": [
+      "FromEuler",
+      "Length",
+      "LookRotation",
+      "ToAxisAngle",
+      "ToEuler"
+    ]
   },
   {
     "package": "IAFahim.Math.Sdf",
@@ -10396,7 +10407,7 @@
     "package": "IAFahim.Optimization.Exact",
     "family": "Optimization",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "CP-Algo/opt literature",
     "defining_mechanics": "Steiner/knapsack/games",
@@ -10493,7 +10504,7 @@
       }
     ],
     "algorithms_summary": "MaxIndependentSet, MinSetCover, MaximumClique, HamiltonianPath, TspHeldKarp, MinDominatingSet, HamiltonianCycle, TspBitonic, GraphColoring, SteinerDreyfusWagner, TspMeetInMiddle",
-    "notes": "gate: open findings (1)"
+    "notes": "full chromatic search with pruning; GraphColoring_Triangle_NeedsThree. tests 6/6"
   },
   {
     "package": "IAFahim.Optimization.Games",
@@ -13990,7 +14001,7 @@
     "package": "IAFahim.String.SuffixArray",
     "family": "String",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL string",
     "defining_mechanics": "SA/Manacher/Aho",
@@ -14071,7 +14082,18 @@
       }
     ],
     "algorithms_summary": "DynamicStringNode, DynamicSuffixArray, Locate, LcpIntervalTree, Node, LcpInterval, SuffixArray",
-    "notes": "gate: open findings (1); gate: public API untested: CompareSuffix, Erase, Find, GetHash, GetSize, GetSubstringHash, Insert, Lcp (+2)"
+    "notes": "suffix shorter than pattern treated as less; Locate_Find_ExactAndLongerPattern. ",
+    "deferred_apis": [
+      "CompareSuffix",
+      "Erase",
+      "GetHash",
+      "GetSize",
+      "GetSubstringHash",
+      "Insert",
+      "Lcp",
+      "Pull",
+      "Split"
+    ]
   },
   {
     "package": "IAFahim.String.SuffixAutomaton",

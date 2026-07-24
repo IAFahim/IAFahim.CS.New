@@ -337,8 +337,8 @@
     "symbol": "PieceTableInsert.Run",
     "severity": "high",
     "summary": "Insert copies only as many bytes as fit in the Added buffer (loop guarded by s.AddedLen < s.AddedCap), but unconditionally sets newPiece->Length = len. When the requested data does not fully fit, the ",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Length=copied not len; PieceTableInsert_CapShort_UsesCopiedLength. tests 3/3.",
     "package": "IAFahim.DS.PieceTable"
   },
   {
@@ -562,8 +562,8 @@
     "symbol": "BvhTree.QuickSort/Partition",
     "severity": "high",
     "summary": "Recursive quicksort with last-element (Lomuto) pivot degenerates to O(n^2) time and O(n) recursion depth on already-sorted or all-equal centroid data, causing stack overflow / hang for large meshes.",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "median-of-three pivot; Build/Raycast tests. tests 2/2.",
     "package": "IAFahim.Geometry.Bvh"
   },
   {
@@ -571,8 +571,8 @@
     "symbol": "ParallelTransport.Compute",
     "severity": "high",
     "summary": "The R1 reflection in the double-reflection rotation-minimizing-frame loop is guarded by `c1 > Threshold` where `c1 = dot(v1,v1)` is the SQUARED segment length, but `Threshold = 1e-6` was chosen as a L",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "c1>Threshold*Threshold for squared length; existing Compute tests. tests 2/2.",
     "package": "IAFahim.Geometry.Frame"
   },
   {
@@ -1489,8 +1489,8 @@
     "symbol": "FormalPowerSeriesSqrt.Run",
     "severity": "high",
     "summary": "When a[0]==0, TonelliShanks returns r0=0 and the code computes ModInverse(2*0 % mod)=ModInverse(0)=1 (a bogus 'inverse'), then runs the Newton recurrence dividing by 2*r0=0. The method returns n (sign",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "r0==0 returns zero series or -1 if nonzero tail; Sqrt_ZeroSeries. helpers deferred. tests 6/6.",
     "package": "IAFahim.Math.Polynomial.Fps"
   },
   {
@@ -1525,8 +1525,8 @@
     "symbol": "SwingTwistDecomposition.TwistAngle",
     "severity": "high",
     "summary": "TwistAngle uses math.length(projection) (always non-negative) as the y-argument to atan2, discarding the sign of the twist component. Twists about the axis in the negative direction are reported with ",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "atan2(signed dot, w); TwistAngle_NegativeDirection_Signed. tests 13/13.",
     "package": "IAFahim.Math.Quaternion"
   },
   {
@@ -1615,8 +1615,8 @@
     "symbol": "GraphColoring.Search",
     "severity": "high",
     "summary": "GraphColoring.Run is documented/named as an exact chromatic-number solver but actually returns the color count of the FIRST greedy DSATUR-style coloring it finds, which is only an upper bound, not the",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "full chromatic search with pruning; GraphColoring_Triangle_NeedsThree. tests 6/6.",
     "package": "IAFahim.Optimization.Exact"
   },
   {
@@ -2200,8 +2200,8 @@
     "symbol": "Locate.Find",
     "severity": "high",
     "summary": "Binary pattern search misses real occurrences when a suffix is a proper prefix of the pattern. Compare() only inspects min(patLen, textLen-sa[mid]) bytes; if those bytes all match (cmp==0) but the suf",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "suffix shorter than pattern treated as less; Locate_Find_ExactAndLongerPattern. DSA APIs deferred. tests 4/4.",
     "package": "IAFahim.String.SuffixArray"
   },
   {

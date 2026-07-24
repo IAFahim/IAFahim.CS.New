@@ -3,6 +3,32 @@ namespace IAFahim.Optimization.Exact.Tests
     using System.Runtime.InteropServices;
     using NUnit.Framework;
 
+    public sealed unsafe class GraphColoringTests
+    {
+        [Test]
+        public void GraphColoring_Triangle_NeedsThree()
+        {
+            const int N = 3;
+            bool* adj = stackalloc bool[N * N];
+            for (int i = 0; i < N * N; i++) adj[i] = false;
+            adj[0 * N + 1] = adj[1 * N + 0] = true;
+            adj[1 * N + 2] = adj[2 * N + 1] = true;
+            adj[0 * N + 2] = adj[2 * N + 0] = true;
+            int* colors = stackalloc int[N];
+            int* sat = stackalloc int[N];
+            int chi = GraphColoring.Run(N, adj, colors, sat);
+            Assert.AreEqual(3, chi);
+        }
+
+        [Test]
+        public void GraphColoring_Empty_Zero()
+        {
+            int* colors = stackalloc int[1];
+            int* sat = stackalloc int[1];
+            Assert.AreEqual(0, GraphColoring.Run(0, null, colors, sat));
+        }
+    }
+
     public sealed unsafe class SteinerTests
     {
         [Test]

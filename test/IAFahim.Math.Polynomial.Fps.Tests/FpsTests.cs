@@ -85,6 +85,26 @@ namespace IAFahim.Math.Polynomial.Fps.Tests
             for (int i = 0; i < N; i++)
                 Assert.AreEqual(FpsTestHelper.ModNorm(basePoly[i], Mod), FpsTestHelper.ModNorm(res[i], Mod));
         }
+
+        [Test]
+        public void Sqrt_ZeroSeries_ReturnsZero()
+        {
+            const int N = 4;
+            long* a = stackalloc long[N];
+            long* res = stackalloc long[N];
+            for (int i = 0; i < N; i++) a[i] = 0;
+            int len = FormalPowerSeriesSqrt.Run(N, a, res, Mod);
+            Assert.AreEqual(N, len);
+            for (int i = 0; i < N; i++) Assert.AreEqual(0, res[i]);
+        }
+
+        [Test]
+        public void Sqrt_LeadingZeroNonzeroTail_Fails()
+        {
+            long* a = stackalloc long[] { 0, 1, 0, 0 };
+            long* res = stackalloc long[4];
+            Assert.AreEqual(-1, FormalPowerSeriesSqrt.Run(4, a, res, Mod));
+        }
     }
 
     internal static unsafe class FpsTestHelper

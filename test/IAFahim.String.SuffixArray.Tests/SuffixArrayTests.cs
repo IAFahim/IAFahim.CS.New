@@ -61,5 +61,37 @@ namespace IAFahim.String.SuffixArray.Tests
                 Marshal.FreeHGlobal((nint)tmpRank);
             }
         }
+
+        [Test]
+        public void Locate_Find_ExactAndLongerPattern()
+        {
+            byte[] s = Encoding.ASCII.GetBytes("banana");
+            const int N = 6;
+            int* sa = (int*)Marshal.AllocHGlobal(N * sizeof(int));
+            int* rank = (int*)Marshal.AllocHGlobal(N * 2 * sizeof(int));
+            int* tmpSa = (int*)Marshal.AllocHGlobal(N * sizeof(int));
+            int* count = (int*)Marshal.AllocHGlobal(Math.Max(256, N * 2) * sizeof(int));
+            int* tmpRank = (int*)Marshal.AllocHGlobal(N * sizeof(int));
+            try
+            {
+                fixed (byte* p = s)
+                {
+                    SuffixArray.Build(p, N, sa, rank, tmpSa, count, tmpRank);
+                    byte* pat = stackalloc byte[] { (byte)'a', (byte)'n', (byte)'a' };
+                    int pos = Locate.Find(sa, N, p, N, pat, 3);
+                    Assert.IsTrue(pos == 1 || pos == 3);
+                    byte* longPat = stackalloc byte[] { (byte)'a', (byte)'n', (byte)'a', (byte)'x' };
+                    Assert.AreEqual(-1, Locate.Find(sa, N, p, N, longPat, 4));
+                }
+            }
+            finally
+            {
+                Marshal.FreeHGlobal((nint)sa);
+                Marshal.FreeHGlobal((nint)rank);
+                Marshal.FreeHGlobal((nint)tmpSa);
+                Marshal.FreeHGlobal((nint)count);
+                Marshal.FreeHGlobal((nint)tmpRank);
+            }
+        }
     }
 }

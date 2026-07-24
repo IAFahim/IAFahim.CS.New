@@ -32,7 +32,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 23 [x] | `IAFahim.DS.PerfectHashMap` | deferred | Unity container |
 | 24 [x] | `IAFahim.DS.PersistentDsu` | deferred | gate: public API untested: Query, Update |
 | 25 [x] | `IAFahim.DS.PersistentTreap` | perfect | Erase path-clone merge children |
-| 26 [x] | `IAFahim.DS.PieceTable` | deferred | gate: open findings (1) |
+| 26 [x] | `IAFahim.DS.PieceTable` | perfect | Length=copied not len; PieceTableInsert_CapShort_UsesCopiedLength. tests 3/3. |
 | 27 [x] | `IAFahim.DS.RollbackSeg` | deferred | 2 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 28 [x] | `IAFahim.DS.RollbackStack` | deferred | 2 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 29 [x] | `IAFahim.DS.Rope` | deferred | gate: public API untested: SplitAt, Update |
@@ -49,10 +49,10 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 40 [x] | `IAFahim.Geometry.Arrangement` | deferred | gate: open findings (4); gate: public API untested: BuildKdTree, QueryKdTree |
 | 41 [x] | `IAFahim.Geometry.Azimuth` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 42 [x] | `IAFahim.Geometry.Basic` | perfect | PolygonContains dy normalize; deferred Int256 helpers |
-| 43 [x] | `IAFahim.Geometry.Bvh` | deferred | gate: open findings (1) |
+| 43 [x] | `IAFahim.Geometry.Bvh` | perfect | median-of-three pivot; Build/Raycast tests. tests 2/2. |
 | 44 [x] | `IAFahim.Geometry.Curve` | deferred | gate: public API untested: EvaluateTangent, UniformSample |
 | 45 [x] | `IAFahim.Geometry.Delaunay` | deferred | empty package |
-| 46 [x] | `IAFahim.Geometry.Frame` | deferred | gate: open findings (1) |
+| 46 [x] | `IAFahim.Geometry.Frame` | perfect | c1>Threshold*Threshold for squared length; existing Compute tests. tests 2/2. |
 | 47 [x] | `IAFahim.Geometry.Hull` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 48 [x] | `IAFahim.Geometry.Intersect` | perfect | PlaneIntersection + polyhedron Faces/Volume |
 | 49 [x] | `IAFahim.Geometry.MarchingCubes` | deferred | empty package |
@@ -105,9 +105,9 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 96 [x] | `IAFahim.Math.PoissonDisk` | deferred | gate: open findings (3) |
 | 97 [x] | `IAFahim.Math.Polynomial` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 98 [x] | `IAFahim.Math.Polynomial.Eval` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
-| 99 [x] | `IAFahim.Math.Polynomial.Fps` | deferred | gate: open findings (1); gate: public API untested: FastPow, ModInverse |
+| 99 [x] | `IAFahim.Math.Polynomial.Fps` | perfect | r0==0 returns zero series or -1 if nonzero tail; Sqrt_ZeroSeries. helpers deferr |
 | 100 [x] | `IAFahim.Math.PotentialField` | perfect | defining tests + all historical criticals revalidated fixed/absent |
-| 101 [x] | `IAFahim.Math.Quaternion` | deferred | gate: open findings (1); gate: public API untested: FromEuler, Length, LookRotation, ToAxi |
+| 101 [x] | `IAFahim.Math.Quaternion` | perfect | atan2(signed dot, w); TwistAngle_NegativeDirection_Signed. tests 13/13. |
 | 102 [x] | `IAFahim.Math.Sdf` | deferred | gate: public API untested: AmbientOcclusion, Cone, Ellipsoid, MirrorY, MirrorZ, Octahedron |
 | 103 [x] | `IAFahim.Math.SphericalHarmonics` | deferred | gate: public API untested: BasisL1M0, BasisL1M1, BasisL1P1, BasisL2M0, BasisL2M1, BasisL2M |
 | 104 [x] | `IAFahim.Math.Spline` | perfect | defining tests + all historical criticals revalidated fixed/absent |
@@ -118,7 +118,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 109 [x] | `IAFahim.Memory.Allocators` | deferred | infra allocators |
 | 110 [x] | `IAFahim.Optimization.Approximation` | deferred | gate: open findings (2); gate: public API untested: HillClimb, MonteCarlo, SimulatedAnneal |
 | 111 [x] | `IAFahim.Optimization.DivideConquer` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
-| 112 [x] | `IAFahim.Optimization.Exact` | deferred | gate: open findings (1) |
+| 112 [x] | `IAFahim.Optimization.Exact` | perfect | full chromatic search with pruning; GraphColoring_Triangle_NeedsThree. tests 6/6 |
 | 113 [x] | `IAFahim.Optimization.Games` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 114 [x] | `IAFahim.Optimization.Geometric` | perfect | WelzlSphere full n; MinEnclosingBall Welzl |
 | 115 [x] | `IAFahim.Optimization.Knapsack` | deferred | gate: open findings (3); gate: public API untested: BinarySplit, Count, FourSum, MonotoneQ |
@@ -165,7 +165,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 156 [x] | `IAFahim.String.Palindrome` | deferred | gate: public API untested: Add, Factorize, Init, SeriesLink |
 | 157 [x] | `IAFahim.String.Parse` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 158 [x] | `IAFahim.String.Pattern` | perfect | defining tests + all historical criticals revalidated fixed/absent |
-| 159 [x] | `IAFahim.String.SuffixArray` | deferred | gate: open findings (1); gate: public API untested: CompareSuffix, Erase, Find, GetHash, G |
+| 159 [x] | `IAFahim.String.SuffixArray` | perfect | suffix shorter than pattern treated as less; Locate_Find_ExactAndLongerPattern.  |
 | 160 [x] | `IAFahim.String.SuffixAutomaton` | deferred | 2 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 161 [x] | `IAFahim.String.SuffixTree` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 162 [x] | `IAFahim.Unique` | perfect | defining tests + all historical criticals revalidated fixed/absent |

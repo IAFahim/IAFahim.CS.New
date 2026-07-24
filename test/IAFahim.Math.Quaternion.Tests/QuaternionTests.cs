@@ -128,5 +128,16 @@ namespace IAFahim.Math.Quaternion.Tests
             float recovered = SwingTwistDecomposition.TwistAngle(q, axis);
             Assert.IsTrue(math.abs(recovered - angle) < 1e-4f);
         }
+
+        [Test]
+        public void TwistAngle_NegativeDirection_Signed()
+        {
+            float angle = -math.PI * 0.5f;
+            float3 axis = new float3(0, 1, 0);
+            quaternion q = SwingTwistDecomposition.FromTwistAngle(angle, axis);
+            float recovered = SwingTwistDecomposition.TwistAngle(q, axis);
+            Assert.IsTrue(math.abs(recovered - angle) < 1e-4f);
+            Assert.IsTrue(recovered < 0);
+        }
     }
 }
