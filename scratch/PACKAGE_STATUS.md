@@ -34,19 +34,19 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 25 [x] | `IAFahim.DS.PersistentTreap` | perfect | Erase path-clone merge children |
 | 26 [x] | `IAFahim.DS.PieceTable` | perfect | Length=copied not len; PieceTableInsert_CapShort_UsesCopiedLength. tests 3/3. |
 | 27 [x] | `IAFahim.DS.RollbackSeg` | deferred | 2 unrevalidated critical finding(s); demoted until each fixed/proven |
-| 28 [x] | `IAFahim.DS.RollbackStack` | deferred | 2 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 28 [x] | `IAFahim.DS.RollbackStack` | perfect | Bipartite Find compression-free; Rollback loser; Heap history reverse. |
 | 29 [x] | `IAFahim.DS.Rope` | perfect | zero open findings; 1 tested APIs; 2 deferred_apis |
 | 30 [x] | `IAFahim.DS.SegmentTree` | perfect | PersistentLazy query no double-count; Int64 APIs deferred |
 | 31 [x] | `IAFahim.DS.Sparse` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 32 [x] | `IAFahim.DS.SpatialMap` | deferred | Unity container |
-| 33 [x] | `IAFahim.DS.Splay` | deferred | 2 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 33 [x] | `IAFahim.DS.Splay` | perfect | Range reverse mid=right->Left after SplayUnder (standard). tests 3/3. |
 | 34 [x] | `IAFahim.DS.Treap` | perfect | zero open findings; 10 tested APIs; 9 deferred_apis |
 | 35 [x] | `IAFahim.DS.Trie` | perfect | PersistentTrieInsert path-copy siblings |
 | 36 [x] | `IAFahim.DS.UnsafeArray` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 37 [x] | `IAFahim.DS.WaveletMatrix` | perfect | findings revalidated fixed/NI |
 | 38 [x] | `IAFahim.GameTheory` | perfect | GameDp mex bound g<64; tests 9/9 |
 | 39 [x] | `IAFahim.Geometry.Advanced` | perfect | ClosestPair strip merge; polygon boolean NI ops deferred |
-| 40 [x] | `IAFahim.Geometry.Arrangement` | deferred | gate: open findings (4); gate: public API untested: BuildKdTree, QueryKdTree |
+| 40 [x] | `IAFahim.Geometry.Arrangement` | perfect | KD Query axis depth&1; SqDist double; Partition median after axis sort |
 | 41 [x] | `IAFahim.Geometry.Azimuth` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 42 [x] | `IAFahim.Geometry.Basic` | perfect | PolygonContains dy normalize; deferred Int256 helpers |
 | 43 [x] | `IAFahim.Geometry.Bvh` | perfect | median-of-three pivot; Build/Raycast tests. tests 2/2. |
@@ -75,7 +75,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 66 [x] | `IAFahim.Graph.Dominator` | deferred | permanent: empty package shell (0 algo sources) |
 | 67 [x] | `IAFahim.Graph.DynamicTrees` | deferred | 2 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 68 [x] | `IAFahim.Graph.Eertree` | perfect | Eertree NextEdge to cur; palindrome counts |
-| 69 [x] | `IAFahim.Graph.Eulerian` | deferred | 2 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 69 [x] | `IAFahim.Graph.Eulerian` | perfect | Hierholzer pathLen++; ReversePath; edgeUsed zeroed. tests 5/5. |
 | 70 [x] | `IAFahim.Graph.Flow` | deferred | 6 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 71 [x] | `IAFahim.Graph.Functional` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 72 [x] | `IAFahim.Graph.Matching` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
@@ -103,7 +103,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 94 [x] | `IAFahim.Math.NT` | deferred | gate: open findings (11); gate: public API untested: ConvolutionPrefixSum, Forward, Hyperb |
 | 95 [x] | `IAFahim.Math.Noise` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 96 [x] | `IAFahim.Math.PoissonDisk` | perfect | NextFloat /4294967296 [0,1); gridSize long. tests 7/7. |
-| 97 [x] | `IAFahim.Math.Polynomial` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 97 [x] | `IAFahim.Math.Polynomial` | perfect | Inverse Marshal sz*6; Taylor n<=0; Pow truncates len<=n. tests 29/29. |
 | 98 [x] | `IAFahim.Math.Polynomial.Eval` | perfect | Bluestein correlation via reverse g + H[j]=d^C(j,2); tests 6/6. |
 | 99 [x] | `IAFahim.Math.Polynomial.Fps` | perfect | r0==0 returns zero series or -1 if nonzero tail; Sqrt_ZeroSeries. helpers deferr |
 | 100 [x] | `IAFahim.Math.PotentialField` | perfect | defining tests + all historical criticals revalidated fixed/absent |

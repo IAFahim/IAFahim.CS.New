@@ -364,8 +364,8 @@
     "symbol": "UndoableBipartiteDsu.Find",
     "severity": "critical",
     "summary": "Find performs path compression (parent[x]=root, parity[x]^=acc) that mutates the structure without recording it in history. A rollback DSU must NOT use path compression because compression is irrevers",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Bipartite Find compression-free; Rollback loser; Heap history reverse. tests 5/5.",
     "package": "IAFahim.DS.RollbackStack"
   },
   {
@@ -373,8 +373,8 @@
     "symbol": "UndoableBipartiteDsu.Rollback",
     "severity": "critical",
     "summary": "Rollback restores the wrong node. Union pushes [pa, parity[pa], pb] but the node actually modified is the LOSER of the pa/pb comparison (sometimes pa, sometimes pb), and the value that must be restore",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Bipartite Find compression-free; Rollback loser; Heap history reverse. tests 5/5.",
     "package": "IAFahim.DS.RollbackStack"
   },
   {
@@ -382,8 +382,8 @@
     "symbol": "UndoableHeap.Rollback",
     "severity": "high",
     "summary": "Rollback ignores the recorded history log entirely and instead re-heapifies from scratch using HeapifyDown over [0,targetSize). HeapifyUp/HeapifyDown maintain heapIdx[] (the position of each element i",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Bipartite Find compression-free; Rollback loser; Heap history reverse. tests 5/5.",
     "package": "IAFahim.DS.RollbackStack"
   },
   {
@@ -436,8 +436,8 @@
     "symbol": "SplayRangeReverse.Reverse",
     "severity": "critical",
     "summary": "In the both-neighbors-present branch, the range subtree is extracted as right->Left->Right after splaying both `left` (index l-1) and `right` (index r+1) fully to the root. This incorrectly assumes ri",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Range reverse mid=right->Left after SplayUnder (standard). tests 3/3.",
     "package": "IAFahim.DS.Splay"
   },
   {
@@ -445,8 +445,8 @@
     "symbol": "SplayRangeQuery.QuerySum",
     "severity": "critical",
     "summary": "Same defect as SplayRangeReverse.Reverse: when both neighbors exist, mid = right->Left->Right after fully splaying both `left` (l-1) and `right` (r+1) to root. This assumes right->Left == left, which ",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Range reverse mid=right->Left after SplayUnder (standard). tests 3/3.",
     "package": "IAFahim.DS.Splay"
   },
   {
@@ -517,8 +517,8 @@
     "symbol": "PointLocationQuery.QueryKdTree",
     "severity": "high",
     "summary": "k-d tree nearest-neighbor uses the wrong split coordinate to decide which subtree to descend, comparing the query against the wrong axis and producing a wrong nearest neighbor.",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "KD Query axis depth&1; SqDist double; Partition median after axis sort. tests 2/2.",
     "package": "IAFahim.Geometry.Arrangement"
   },
   {
@@ -526,8 +526,8 @@
     "symbol": "PointLocationQuery.QueryKdTree",
     "severity": "high",
     "summary": "Squared-distance computation overflows long for large coordinate magnitudes, yielding negative/garbage distances and a wrong nearest neighbor.",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "KD Query axis depth&1; SqDist double; Partition median after axis sort. tests 2/2.",
     "package": "IAFahim.Geometry.Arrangement"
   },
   {
@@ -535,8 +535,8 @@
     "symbol": "ArrangementFaces.Run",
     "severity": "high",
     "summary": "Edge index 0 can never be visited because 0 is used as the adjacency-list terminator, so a face incident only to edge 0 (and its twin 1) is silently dropped.",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "KD Query axis depth&1; SqDist double; Partition median after axis sort. tests 2/2.",
     "package": "IAFahim.Geometry.Arrangement"
   },
   {
@@ -544,8 +544,8 @@
     "symbol": "PointLocationBuild.BuildKdTree",
     "severity": "high",
     "summary": "Partition does not actually partition around the median: it fully sorts the [l,r] range but then ignores axis-balance correctness only superficially; more critically the median index returned is reuse",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "KD Query axis depth&1; SqDist double; Partition median after axis sort. tests 2/2.",
     "package": "IAFahim.Geometry.Arrangement"
   },
   {
@@ -751,8 +751,8 @@
     "symbol": "EulerianPathUndirected.Run",
     "severity": "critical",
     "summary": "Path is written at indices path[n-1-top], assuming the Euler path has exactly n vertices, but an Euler path has (numEdges+1) vertices. When numEdges+1 > n (any connected graph with a cycle, e.g. a mul",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Hierholzer pathLen++; ReversePath; edgeUsed zeroed. tests 5/5.",
     "package": "IAFahim.Graph.Eulerian"
   },
   {
@@ -760,8 +760,8 @@
     "symbol": "EulerianPathUndirected.Run",
     "severity": "critical",
     "summary": "edgeUsed = stackalloc int[n*4] is never zero-initialized (unlike the directed Run on line 70). The author attempts to mask this with the 'ec > 0 &&' guard on line 32, but that only skips the used-chec",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Hierholzer pathLen++; ReversePath; edgeUsed zeroed. tests 5/5.",
     "package": "IAFahim.Graph.Eulerian"
   },
   {
@@ -769,8 +769,8 @@
     "symbol": "EulerianPathDirected.Run",
     "severity": "high",
     "summary": "For directed graphs the popped vertices in Hierholzer's algorithm form the Euler path in REVERSE order and must be reversed before returning. This method writes them in pop order via path[pathLen++] =",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Hierholzer pathLen++; ReversePath; edgeUsed zeroed. tests 5/5.",
     "package": "IAFahim.Graph.Eulerian"
   },
   {
@@ -1498,8 +1498,8 @@
     "symbol": "PolynomialInverse.Run",
     "severity": "critical",
     "summary": "Newton-iteration scratch buffer is allocated as stackalloc long[n*6] but the iteration uses fr = tmp + 4*m with length 2*m, requiring up to index 6*M-1 where M = nextPow2(n) (the largest value the loo",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Inverse Marshal sz*6; Taylor n<=0; Pow truncates len<=n. tests 29/29.",
     "package": "IAFahim.Math.Polynomial"
   },
   {
@@ -1507,8 +1507,8 @@
     "symbol": "PolynomialPow.Run",
     "severity": "high",
     "summary": "The returned length `len` is taken from PolynomialMul.Run, which returns the full untruncated product length (len_prev + n - 1), even though only the first min(len,n) coefficients are actually stored ",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Inverse Marshal sz*6; Taylor n<=0; Pow truncates len<=n. tests 29/29.",
     "package": "IAFahim.Math.Polynomial"
   },
   {
@@ -1516,8 +1516,8 @@
     "symbol": "PolynomialTaylorShift.Run",
     "severity": "high",
     "summary": "For n == 0 the convolution buffer is allocated as `stackalloc long[2 * n - 1]` = `stackalloc long[-1]`, a negative stackalloc size which is undefined behavior / crash. An empty polynomial (n==0) is a ",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Inverse Marshal sz*6; Taylor n<=0; Pow truncates len<=n. tests 29/29.",
     "package": "IAFahim.Math.Polynomial"
   },
   {

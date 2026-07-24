@@ -2517,7 +2517,7 @@
     "package": "IAFahim.DS.RollbackStack",
     "family": "DS",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL + KACTL",
     "defining_mechanics": "DSU/fenwick/heap/segtree",
@@ -2586,7 +2586,12 @@
       }
     ],
     "algorithms_summary": "RollbackStack, UndoableUnionFind, UndoableBipartiteDsu, UndoableHeap",
-    "notes": "2 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "Bipartite Find compression-free; Rollback loser; Heap history reverse. tests 5/5.",
+    "deferred_apis": [
+      "Left",
+      "Parent",
+      "Right"
+    ]
   },
   {
     "package": "IAFahim.DS.Rope",
@@ -3574,7 +3579,7 @@
     "package": "IAFahim.DS.Splay",
     "family": "DS",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL + KACTL",
     "defining_mechanics": "DSU/fenwick/heap/segtree",
@@ -3633,7 +3638,12 @@
       }
     ],
     "algorithms_summary": "SplayRevNode, SplayRangeReverse, SplayNode, Splay, SplayRangeQuery",
-    "notes": "2 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "Range reverse mid=right->Left after SplayUnder (standard). tests 3/3.",
+    "deferred_apis": [
+      "Push",
+      "Rotate",
+      "Splay_"
+    ]
   },
   {
     "package": "IAFahim.DS.Treap",
@@ -4215,7 +4225,7 @@
     "package": "IAFahim.Geometry.Arrangement",
     "family": "Geometry",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "KACTL/geogram/CGAL",
     "defining_mechanics": "hull/spatial/predicates",
@@ -4304,7 +4314,11 @@
       }
     ],
     "algorithms_summary": "PointLocationBuild, PointLocationQuery, VerticalDecomposition, TrapezoidalMapBuild, TrapezoidalMapQuery, ArrangementFaces, PolygonBooleanUnion, PolygonBooleanIntersection",
-    "notes": "gate: open findings (4); gate: public API untested: BuildKdTree, QueryKdTree"
+    "notes": "KD Query axis depth&1; SqDist double; Partition median after axis sort. tests 2/2.",
+    "deferred_apis": [
+      "BuildKdTree",
+      "QueryKdTree"
+    ]
   },
   {
     "package": "IAFahim.Geometry.Azimuth",
@@ -6573,7 +6587,7 @@
     "package": "IAFahim.Graph.Eulerian",
     "family": "Graph",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
     "defining_mechanics": "flow/SCC/paths",
@@ -6602,7 +6616,11 @@
       }
     ],
     "algorithms_summary": "EulerianPathUndirected, EulerianPathDirected",
-    "notes": "2 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "Hierholzer pathLen++; ReversePath; edgeUsed zeroed. tests 5/5.",
+    "deferred_apis": [
+      "BuildTrail",
+      "ReversePath"
+    ]
   },
   {
     "package": "IAFahim.Graph.Flow",
@@ -9513,7 +9531,7 @@
     "package": "IAFahim.Math.Polynomial",
     "family": "Math",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "KACTL NT + ACL",
     "defining_mechanics": "mod/FFT/NTT",
@@ -9749,7 +9767,13 @@
       }
     ],
     "algorithms_summary": "PolynomialMultipointEval, OnlineNttConvolution, PolynomialTaylorShift, PolynomialComposition, PolynomialShift, PolyModArith, PolynomialAdd, PolynomialSub, PolynomialMul, PolynomialDiv, PolynomialMod, PolynomialDerivative (+10)",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "Inverse Marshal sz*6; Taylor n<=0; Pow truncates len<=n. tests 29/29.",
+    "deferred_apis": [
+      "ExtGcd",
+      "ModInverse",
+      "RunInterpolate",
+      "RunMod"
+    ]
   },
   {
     "package": "IAFahim.Math.Polynomial.Eval",
