@@ -229,8 +229,8 @@
     "symbol": "BitsetSubsetSum.Run",
     "severity": "high",
     "summary": "The bitset word-count `size = (target+63)>>6` is one word too small whenever `target` is an exact multiple of 64. The word that holds the target bit (index `target>>6`) is then never allocated/process",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "size=(target>>6)+1 already present; BitsetSubsetSum_TargetMultipleOf64_HoldsTopBit target=64 returns 1. verify 20/20.",
     "package": "IAFahim.DP.Knapsack"
   },
   {
@@ -499,8 +499,8 @@
     "symbol": "GameDp.Run",
     "severity": "high",
     "summary": "The mex extraction loop `while ((seen & (1L << g)) != 0) g++;` has no upper bound on g; when g reaches 64 the shift 1L<<g wraps (shift amount masked to 6 bits), so 1L<<64 == 1, producing a wrong mex /",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "mex loop bound g<64; GameDp tests in GameTheoryTests. verify 9/9.",
     "package": "IAFahim.GameTheory"
   },
   {
@@ -1228,8 +1228,8 @@
     "symbol": "SegmentedSieve.Run",
     "severity": "high",
     "summary": "When low==0, the value 1 is never marked non-prime and is incorrectly reported as prime. Line 45 only marks index 0 (value 0) false for low==0; value 1 lives at index 1 and is handled only in the sepa",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "marks 0 and 1 composite; stackalloc stays in Run (no dangling return). SegmentedSieve_LowZero. verify 18/18.",
     "package": "IAFahim.Math.Combinatorics"
   },
   {
@@ -1237,8 +1237,8 @@
     "symbol": "ModInv.Run",
     "severity": "high",
     "summary": "Modular inverse fails (returns -1 \"no inverse\") for negative inputs whose true gcd with mod is 1, because ExtendedGcd returns a NEGATIVE gcd g for negative a, so the check `g != 1` is wrong.",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "negates negative gcd/x; NegativeCoprime_ReturnsInverse ModInv(-3,10). verify 32/32.",
     "package": "IAFahim.Math.Modular"
   },
   {
@@ -1741,8 +1741,8 @@
     "symbol": "MatroidGreedy.Run",
     "severity": "high",
     "summary": "Greedy matroid maximum-weight algorithm unconditionally adds every independent element, including those with negative weight, so it returns a suboptimal (wrong) maximum-weight value whenever a negativ",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "skips weight<=0; NegativeWeights_Skipped + MixedWeights_OnlyPositiveSummed. verify 5/5.",
     "package": "IAFahim.Optimization.Matroid"
   },
   {
@@ -1777,8 +1777,8 @@
     "symbol": "SubmodularGreedy.Run",
     "severity": "high",
     "summary": "Run accumulates the selected gains into a long 'total' but returns it as 'return (int)total;', truncating/overflowing the result for sums that exceed int range even though every individual gain is a r",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "returns long total (not (int)cast); Run_LargeGains_ReturnsLongNotTruncated 3e9. verify 8/8.",
     "package": "IAFahim.Optimization.Submodular"
   },
   {
@@ -1804,8 +1804,8 @@
     "symbol": "GrayCode.FromGray",
     "severity": "high",
     "summary": "FromGray uses arithmetic (sign-extending) right shifts on a signed int, so it is NOT the inverse of ToGray for any code whose high bit is set. The XOR-cascade Gray decode requires logical (unsigned) s",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "ToGray/FromGray both uint logical shifts; FromGray_HighBit_RoundTrip MinValue/MaxValue. verify 17/17.",
     "package": "IAFahim.Permutation"
   },
   {
@@ -1831,8 +1831,8 @@
     "symbol": "KthElement.Run",
     "severity": "critical",
     "summary": "Binary search over the full int range computes a wrong/overflowing midpoint on the very first iteration, causing no progress and an infinite loop (and a wrong midpoint generally).",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "mid=lo+((hi-lo)>>1) on long bounds; KthElement_FullIntRange_DoesNotHang covers MinValue/MaxValue. verify 19/19.",
     "package": "IAFahim.Search.Bit"
   },
   {
@@ -1993,8 +1993,8 @@
     "symbol": "TwoPointers.CountPairsWithSum",
     "severity": "high",
     "summary": "Two-pointer pair counting undercounts when a and b contain duplicate values equal to half of (or complementary to) target. On a match it advances BOTH pointers once, counting only one diagonal pair in",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "duplicate runs multiply lc*rc; CountPairsWithSum_Duplicates_MultipliesRuns expect 6. verify 4/4.",
     "package": "IAFahim.Search.TwoPointer"
   },
   {

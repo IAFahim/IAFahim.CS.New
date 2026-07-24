@@ -14,6 +14,15 @@ namespace IAFahim.Search.TwoPointer.Tests
         }
 
         [Test]
+        public void CountPairsWithSum_Duplicates_MultipliesRuns()
+        {
+            int* a = stackalloc int[] { 1, 1, 2, 2 };
+            int* b = stackalloc int[] { 3, 3, 4 };
+            int count = TwoPointers.CountPairsWithSum(a, 4, b, 3, 5);
+            Assert.AreEqual(6, count);
+        }
+
+        [Test]
         public void HasPairWithSum_Found()
         {
             int* a = stackalloc int[] { 1, 2, 4 };

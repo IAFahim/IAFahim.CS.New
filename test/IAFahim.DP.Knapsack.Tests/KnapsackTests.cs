@@ -207,5 +207,35 @@ namespace IAFahim.DP.Knapsack.Tests
             long result = KnapsackBounded.Run(3, 10, w, v, cnt, dp);
             Assert.AreEqual(20, result);
         }
+
+        [Test]
+        public void BitsetSubsetSum_MatchesBoolDp()
+        {
+            long* a = stackalloc long[] { 3, 5, 7, 8 };
+            long* bits = stackalloc long[1];
+            Assert.AreEqual(1, BitsetSubsetSum.Run(4, 10, a, bits));
+            Assert.AreEqual(0, BitsetSubsetSum.Run(4, 9, a, bits));
+            Assert.AreEqual(1, BitsetSubsetSum.Run(4, 0, a, bits));
+        }
+
+        [Test]
+        public void BitsetSubsetSum_TargetMultipleOf64_HoldsTopBit()
+        {
+            long* a = stackalloc long[] { 64 };
+            long* bits = stackalloc long[2];
+            long hit = BitsetSubsetSum.Run(1, 64, a, bits);
+            Assert.AreEqual(1, hit);
+            Assert.AreEqual(0, BitsetSubsetSum.Run(1, 63, a, bits));
+            Assert.AreEqual(0, BitsetSubsetSum.Run(1, 128, a, bits));
+        }
+
+        [Test]
+        public void BitsetSubsetSum_Empty_OnlyZero()
+        {
+            long* a = stackalloc long[1];
+            long* bits = stackalloc long[1];
+            Assert.AreEqual(1, BitsetSubsetSum.Run(0, 0, a, bits));
+            Assert.AreEqual(0, BitsetSubsetSum.Run(0, 5, a, bits));
+        }
     }
 }

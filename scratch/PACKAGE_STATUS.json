@@ -1108,7 +1108,7 @@
     "package": "IAFahim.DP.Knapsack",
     "family": "DP",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "CP-Algorithms DP / SMAWK row minima",
     "defining_mechanics": "knapsack; row-minima; SOS/subset DP",
@@ -1162,7 +1162,7 @@
       }
     ],
     "algorithms_summary": "Knapsack01, KnapsackUnbounded, KnapsackBounded, SubsetSum, BitsetSubsetSum",
-    "notes": "gate: open findings (1)"
+    "notes": "BitsetSubsetSum size fix proven target=64; tests 20/20"
   },
   {
     "package": "IAFahim.DP.Optimization",
@@ -3975,7 +3975,7 @@
     "package": "IAFahim.GameTheory",
     "family": "GameTheory",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "Sprague-Grundy",
     "defining_mechanics": "nimbers",
@@ -4016,7 +4016,7 @@
       }
     ],
     "algorithms_summary": "GrundyDAG, NimSum, Minimax, GameDp",
-    "notes": "gate: open findings (1)"
+    "notes": "GameDp mex bound g<64; tests 9/9"
   },
   {
     "package": "IAFahim.Geometry.Advanced",
@@ -8297,7 +8297,7 @@
     "package": "IAFahim.Math.Combinatorics",
     "family": "Math",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "KACTL NT + ACL",
     "defining_mechanics": "mod/FFT/NTT",
@@ -8468,7 +8468,7 @@
       }
     ],
     "algorithms_summary": "PermuteCount, MultisetPermutations, Catalan, StirlingFirst, StirlingSecond, BellNumbers, PartitionNumbers, Derangements, StarsBars, Factorial, LinearCongruence, Binom (+6)",
-    "notes": "gate: open findings (1); gate: public API untested: ExtGcd, ModInverse"
+    "notes": "SegmentedSieve 0/1 + stackalloc fix 18/18"
   },
   {
     "package": "IAFahim.Math.Gauss",
@@ -8548,7 +8548,7 @@
     "package": "IAFahim.Math.Modular",
     "family": "Math",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "KACTL NT + ACL",
     "defining_mechanics": "mod/FFT/NTT",
@@ -8661,7 +8661,7 @@
       }
     ],
     "algorithms_summary": "ExtendedGcd, ModSub, ModMul, Crt, ModPow, Lcm, ModInv, ModNormalize, ModSqrt, Excrt, ModAdd, Gcd (+1)",
-    "notes": "gate: open findings (1)"
+    "notes": "ModInv negative gcd; tests 32/32"
   },
   {
     "package": "IAFahim.Math.NT",
@@ -10670,7 +10670,7 @@
     "package": "IAFahim.Optimization.Matroid",
     "family": "Optimization",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "CP-Algo/opt literature",
     "defining_mechanics": "Steiner/knapsack/games",
@@ -10695,7 +10695,7 @@
       }
     ],
     "algorithms_summary": "MatroidGreedy, LinearMatroid",
-    "notes": "gate: open findings (1); gate: public API untested: Rank"
+    "notes": "skip nonpositive weights; Rank tests 5/5"
   },
   {
     "package": "IAFahim.Optimization.Offline",
@@ -10776,7 +10776,7 @@
     "package": "IAFahim.Optimization.Submodular",
     "family": "Optimization",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "CP-Algo/opt literature",
     "defining_mechanics": "Steiner/knapsack/games",
@@ -10813,7 +10813,7 @@
       }
     ],
     "algorithms_summary": "MaxCut, SubmodularGreedy, Rounding",
-    "notes": "gate: open findings (1); gate: public API untested: Dependent, GoemansWilliamson, GreedySetCover, Pipage, Random, Run"
+    "notes": "long total; API tests 8/8"
   },
   {
     "package": "IAFahim.Optimization.Treewidth",
@@ -11107,7 +11107,7 @@
     "package": "IAFahim.Permutation",
     "family": "Permutation",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "cycle decomp",
     "defining_mechanics": "cycles",
@@ -11219,7 +11219,7 @@
       }
     ],
     "algorithms_summary": "ValidatePermutation, InversePermutation, ComposePermutation, PermPower, CycleDecomposition, KthPermutation, PermutationRank, GrayRank, GrayUnrank, PrevPermutation, GrayCode, NextPermutation (+1)",
-    "notes": "gate: open findings (1)"
+    "notes": "Gray uint shifts; high-bit roundtrip 17/17"
   },
   {
     "package": "IAFahim.Physics.Xpbd",
@@ -11337,7 +11337,7 @@
     "package": "IAFahim.Search.Bit",
     "family": "Search",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "CP-Algo/KACTL",
     "defining_mechanics": "LIS/bound",
@@ -11494,7 +11494,7 @@
       }
     ],
     "algorithms_summary": "BitsetOr, BitsetAnd, BitsetShift, BitsetSet, BitsetGet, BitsetCount, BitsetNextSet, BitsetPrevSet, FirstTrue, LastTrue, LisLength, LdsLength (+7)",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "KthElement long mid; full int range tests 19/19"
   },
   {
     "package": "IAFahim.Search.DifferenceArray",
@@ -12655,7 +12655,7 @@
     "package": "IAFahim.Search.TwoPointer",
     "family": "Search",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "CP-Algo/KACTL",
     "defining_mechanics": "LIS/bound",
@@ -12673,7 +12673,7 @@
       }
     ],
     "algorithms_summary": "TwoPointers",
-    "notes": "gate: open findings (1)"
+    "notes": "duplicate pair multiply lc*rc; tests 4/4"
   },
   {
     "package": "IAFahim.Search.Window",

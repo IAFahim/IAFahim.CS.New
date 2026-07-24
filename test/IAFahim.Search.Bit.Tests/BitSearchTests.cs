@@ -131,5 +131,26 @@ namespace IAFahim.Search.Bit.Tests
             Assert.IsTrue(result > 0);
             Assert.AreEqual(1, piles[0]);
         }
+
+        [Test]
+        public void KthElement_SortedOrder()
+        {
+            int* arr = stackalloc int[] { 7, 1, 5, 3, 9 };
+            Assert.AreEqual(1, KthElement.Run(arr, 5, 1));
+            Assert.AreEqual(3, KthElement.Run(arr, 5, 2));
+            Assert.AreEqual(5, KthElement.Run(arr, 5, 3));
+            Assert.AreEqual(7, KthElement.Run(arr, 5, 4));
+            Assert.AreEqual(9, KthElement.Run(arr, 5, 5));
+        }
+
+        [Test]
+        public void KthElement_FullIntRange_DoesNotHang()
+        {
+            int* arr = stackalloc int[] { int.MinValue, -1, 0, int.MaxValue };
+            Assert.AreEqual(int.MinValue, KthElement.Run(arr, 4, 1));
+            Assert.AreEqual(-1, KthElement.Run(arr, 4, 2));
+            Assert.AreEqual(0, KthElement.Run(arr, 4, 3));
+            Assert.AreEqual(int.MaxValue, KthElement.Run(arr, 4, 4));
+        }
     }
 }

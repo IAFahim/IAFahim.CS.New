@@ -37,14 +37,11 @@ namespace IAFahim.Math.Combinatorics
     public static unsafe class SegmentedSieve
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool* InitSegmentFlags(long low, long high)
+        private static void InitSegmentFlags(long low, long high, bool* isPrime, long size)
         {
-            long size = high - low + 1;
-            bool* isPrime = stackalloc bool[(int)size];
             for (long i = 0; i < size; i++) isPrime[i] = true;
             if (low <= 0 && high >= 0) isPrime[0 - low] = false;
             if (low <= 1 && high >= 1) isPrime[1 - low] = false;
-            return isPrime;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -63,7 +60,10 @@ namespace IAFahim.Math.Combinatorics
         public static int Run(long low, long high, int* primes, int primeCount, int* result)
         {
             int count = 0;
-            bool* isPrime = InitSegmentFlags(low, high);
+            long size = high - low + 1;
+            if (size <= 0) return 0;
+            bool* isPrime = stackalloc bool[(int)size];
+            InitSegmentFlags(low, high, isPrime, size);
             MarkCompositesInSegment(low, high, primes, primeCount, isPrime);
             for (long i = low; i <= high; i++) if (isPrime[i - low]) result[count++] = (int)i;
             return count;

@@ -188,5 +188,23 @@ namespace IAFahim.Math.Combinatorics.Tests
             Assert.AreEqual(2, g);
             Assert.AreEqual(2, x);
         }
+
+        [Test]
+        public void SegmentedSieve_LowZero_DoesNotMarkOnePrime()
+        {
+            bool* isPrime = stackalloc bool[21];
+            int* basePrimes = stackalloc int[21];
+            int pc = SievePrimes.Run(basePrimes, isPrime, 20);
+            int* result = stackalloc int[21];
+            int count = SegmentedSieve.Run(0, 20, basePrimes, pc, result);
+            for (int i = 0; i < count; i++)
+            {
+                Assert.AreNotEqual(0, result[i]);
+                Assert.AreNotEqual(1, result[i]);
+            }
+            Assert.IsTrue(count >= 8);
+            Assert.AreEqual(2, result[0]);
+        }
+
     }
 }

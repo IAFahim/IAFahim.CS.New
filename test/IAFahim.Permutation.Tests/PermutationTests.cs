@@ -34,6 +34,17 @@ namespace IAFahim.Permutation.Tests
         }
 
         [Test]
+        public void FromGray_HighBit_RoundTrip()
+        {
+            int[] samples = { unchecked((int)0x80000000), -1, int.MinValue + 1, int.MaxValue };
+            for (int i = 0; i < samples.Length; i++)
+            {
+                int n = samples[i];
+                Assert.AreEqual(n, GrayCode.FromGray(GrayCode.ToGray(n)));
+            }
+        }
+
+        [Test]
         public void Generate_Count()
         {
             int* dst = stackalloc int[4];

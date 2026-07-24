@@ -8,7 +8,8 @@ namespace IAFahim.Permutation
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int ToGray(int n)
         {
-            return n ^ (n >> 1);
+            uint u = (uint)n;
+            return (int)(u ^ (u >> 1));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

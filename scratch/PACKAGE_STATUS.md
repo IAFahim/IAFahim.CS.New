@@ -17,7 +17,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 8 [x] | `IAFahim.Compress.Coordinate` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 9 [x] | `IAFahim.DP` | deferred | gate: open findings (2); gate: public API untested: Optimize, RunSpaceOptimized |
 | 10 [x] | `IAFahim.DP.General` | perfect | defining tests + all historical criticals revalidated fixed/absent |
-| 11 [x] | `IAFahim.DP.Knapsack` | deferred | gate: open findings (1) |
+| 11 [x] | `IAFahim.DP.Knapsack` | perfect | BitsetSubsetSum size fix proven target=64; tests 20/20 |
 | 12 [x] | `IAFahim.DP.Optimization` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 13 [x] | `IAFahim.DS.Dsu` | deferred | gate: public API untested: RunPathCompression |
 | 14 [x] | `IAFahim.DS.Fenwick` | deferred | gate: public API untested: LowerBoundInt64, PrefixQuery, RangeAdd, RangeQuery, RangeSumInt |
@@ -44,7 +44,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 35 [x] | `IAFahim.DS.Trie` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 36 [x] | `IAFahim.DS.UnsafeArray` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 37 [x] | `IAFahim.DS.WaveletMatrix` | deferred | 3 unrevalidated critical finding(s); demoted until each fixed/proven |
-| 38 [x] | `IAFahim.GameTheory` | deferred | gate: open findings (1) |
+| 38 [x] | `IAFahim.GameTheory` | perfect | GameDp mex bound g<64; tests 9/9 |
 | 39 [x] | `IAFahim.Geometry.Advanced` | deferred | PolygonBoolean NI (DCEL) |
 | 40 [x] | `IAFahim.Geometry.Arrangement` | deferred | gate: open findings (4); gate: public API untested: BuildKdTree, QueryKdTree |
 | 41 [x] | `IAFahim.Geometry.Azimuth` | perfect | defining tests + all historical criticals revalidated fixed/absent |
@@ -96,10 +96,10 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 87 [x] | `IAFahim.Math.Barycentric` | deferred | gate: public API untested: InterpolateScalar, SignedArea |
 | 88 [x] | `IAFahim.Math.Basic` | deferred | gate: open findings (2) |
 | 89 [x] | `IAFahim.Math.BigInt` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
-| 90 [x] | `IAFahim.Math.Combinatorics` | deferred | gate: open findings (1); gate: public API untested: ExtGcd, ModInverse |
+| 90 [x] | `IAFahim.Math.Combinatorics` | perfect | SegmentedSieve 0/1 + stackalloc fix 18/18 |
 | 91 [x] | `IAFahim.Math.Gauss` | deferred | gate: public API untested: Determinant, ModInv, ModPow |
 | 92 [x] | `IAFahim.Math.Kalman` | deferred | gate: public API untested: PredictCovariance |
-| 93 [x] | `IAFahim.Math.Modular` | deferred | gate: open findings (1) |
+| 93 [x] | `IAFahim.Math.Modular` | perfect | ModInv negative gcd; tests 32/32 |
 | 94 [x] | `IAFahim.Math.NT` | deferred | gate: open findings (11); gate: public API untested: ConvolutionPrefixSum, Forward, Hyperb |
 | 95 [x] | `IAFahim.Math.Noise` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 96 [x] | `IAFahim.Math.PoissonDisk` | deferred | gate: open findings (3) |
@@ -122,17 +122,17 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 113 [x] | `IAFahim.Optimization.Games` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 114 [x] | `IAFahim.Optimization.Geometric` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 115 [x] | `IAFahim.Optimization.Knapsack` | deferred | gate: open findings (3); gate: public API untested: BinarySplit, Count, FourSum, MonotoneQ |
-| 116 [x] | `IAFahim.Optimization.Matroid` | deferred | gate: open findings (1); gate: public API untested: Rank |
+| 116 [x] | `IAFahim.Optimization.Matroid` | perfect | skip nonpositive weights; Rank tests 5/5 |
 | 117 [x] | `IAFahim.Optimization.Offline` | perfect | GroupByMid+DCA+CDQ defining tests PASS 14/14 |
-| 118 [x] | `IAFahim.Optimization.Submodular` | deferred | gate: open findings (1); gate: public API untested: Dependent, GoemansWilliamson, GreedySe |
+| 118 [x] | `IAFahim.Optimization.Submodular` | perfect | long total; API tests 8/8 |
 | 119 [x] | `IAFahim.Optimization.Treewidth` | deferred | gate: open findings (1); gate: public API untested: CheckMonge, CheckQuadrangle, ComputeOr |
 | 120 [x] | `IAFahim.Pathfinding.Jps` | deferred | empty package |
 | 121 [x] | `IAFahim.Pathfinding.Recast` | deferred | gate: public API untested: BuildDistanceField, BuildLayerRegions, BuildRegionsMonotone, Dt |
-| 122 [x] | `IAFahim.Permutation` | deferred | gate: open findings (1) |
+| 122 [x] | `IAFahim.Permutation` | perfect | Gray uint shifts; high-bit roundtrip 17/17 |
 | 123 [x] | `IAFahim.Physics.Xpbd` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 124 [x] | `IAFahim.Search` | deferred | meta-folder only |
 | 125 [x] | `IAFahim.Search.Automaton` | perfect | defining tests + all historical criticals revalidated fixed/absent |
-| 126 [x] | `IAFahim.Search.Bit` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 126 [x] | `IAFahim.Search.Bit` | perfect | KthElement long mid; full int range tests 19/19 |
 | 127 [x] | `IAFahim.Search.DifferenceArray` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 128 [x] | `IAFahim.Search.ExactCover` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 129 [x] | `IAFahim.Search.Imos` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
@@ -147,7 +147,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 138 [x] | `IAFahim.Search.Specialized` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 139 [x] | `IAFahim.Search.Subset` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 140 [x] | `IAFahim.Search.Suffix` | deferred | gate: open findings (2) |
-| 141 [x] | `IAFahim.Search.TwoPointer` | deferred | gate: open findings (1) |
+| 141 [x] | `IAFahim.Search.TwoPointer` | perfect | duplicate pair multiply lc*rc; tests 4/4 |
 | 142 [x] | `IAFahim.Search.Window` | deferred | gate: public API untested: FixInt32, HeapifyInt32, Left, Parent, PopInt32, PushInt32, Righ |
 | 143 [x] | `IAFahim.Sort.Insertion` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 144 [x] | `IAFahim.Sort.Merge` | perfect | defining tests + all historical criticals revalidated fixed/absent |

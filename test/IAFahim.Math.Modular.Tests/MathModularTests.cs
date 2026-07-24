@@ -114,6 +114,14 @@ namespace IAFahim.Math.Modular.Tests
 
         [Test]
         public void NoInverse() { Assert.AreEqual(-1, ModInv.Run(2, 4)); }
+
+        [Test]
+        public void NegativeCoprime_ReturnsInverse()
+        {
+            long inv = ModInv.Run(-3, 10);
+            Assert.AreNotEqual(-1, inv);
+            Assert.AreEqual(1, ModMul.Run(-3, inv, 10));
+        }
     }
 
     public sealed unsafe class CrtTests

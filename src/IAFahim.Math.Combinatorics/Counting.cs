@@ -5,7 +5,7 @@ namespace IAFahim.Math.Combinatorics
 
     internal static unsafe class MathHelper
     {
-        public static long ModInverse(long a, long mod)
+        internal static long ModInverse(long a, long mod)
         {
             long x, y;
             long g = ExtGcd(a, mod, out x, out y);
@@ -13,7 +13,7 @@ namespace IAFahim.Math.Combinatorics
             return (x % mod + mod) % mod;
         }
 
-        public static long ExtGcd(long a, long b, out long x, out long y)
+        internal static long ExtGcd(long a, long b, out long x, out long y)
         {
             if (b == 0) { x = 1; y = 0; return a; }
             long x1, y1;

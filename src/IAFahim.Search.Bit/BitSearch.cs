@@ -85,13 +85,16 @@ namespace IAFahim.Search.Bit
     {
         public static int Run(int* arr, int n, int k)
         {
-            long lo = int.MinValue, hi = int.MaxValue;
+            long lo = int.MinValue;
+            long hi = int.MaxValue;
             while (lo < hi)
             {
-                int mid = (int)((lo + hi) >> 1);
+                long mid = lo + ((hi - lo) >> 1);
                 int cnt = 0;
                 for (int i = 0; i < n; i++)
-                    cnt += (arr[i] <= mid) ? 1 : 0;
+                {
+                    if (arr[i] <= mid) cnt++;
+                }
                 if (cnt >= k) hi = mid;
                 else lo = mid + 1;
             }
