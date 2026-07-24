@@ -44,7 +44,7 @@ namespace IAFahim.Math.NT
             {
                 result[i] = 1;
             }
-            for (long i = 2; i * i <= n; i++)
+            for (long i = 2; i <= n / i; i++)
             {
                 long i2 = i * i;
                 for (long j = i2; j <= n; j += i2)

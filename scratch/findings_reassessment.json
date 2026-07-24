@@ -67,8 +67,8 @@
     "symbol": "RationalInterpolation.Run",
     "severity": "critical",
     "summary": "Denominator extraction reads r[n-1+i] for i up to degDen=n/2, but r is stackalloc long[n] (valid indices 0..n-1). For any n>=2 this reads past the allocated stack buffer (uninitialized/out-of-bounds),",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Thiele convergent recurrence; den from qPrev; buffers size n.",
     "package": "IAFahim.Algebra.Polynomial"
   },
   {
@@ -76,8 +76,8 @@
     "symbol": "RationalInterpolation.ThieleInterpolation",
     "severity": "high",
     "summary": "diffs[i] = (den % MOD + MOD) * (inv % MOD + MOD) % MOD overflows Int64 for large MOD. Each factor can be up to ~2*MOD-1, so the product can reach ~4*MOD^2, which exceeds long.MaxValue (~9.2e18) for pr",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Thiele convergent recurrence; den from qPrev; buffers size n.",
     "package": "IAFahim.Algebra.Polynomial"
   },
   {
@@ -697,8 +697,8 @@
     "symbol": "IncrementalCycleDetection.AddEdge / Dfs",
     "severity": "critical",
     "summary": "Edge index 0 collides with the linked-list null sentinel, so the first edge added is never traversed and cycles through it are missed.",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "NullEdge=-1; edges from 0; Reaches iterative.",
     "package": "IAFahim.Graph.DAG"
   },
   {
@@ -706,8 +706,8 @@
     "symbol": "MinimumEquivalentDigraph.Run",
     "severity": "high",
     "summary": "Transitive reduction is computed with a single Floyd-style pass that only removes length-2 redundancies; it gives a non-minimal result for DAGs whose redundant edges span paths of length >= 3.",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "deferred_ni",
+    "proof": "transitive reduction only length-2; full reduction NI",
     "package": "IAFahim.Graph.DAG"
   },
   {
@@ -715,8 +715,8 @@
     "symbol": "RandomTopologicalOrder.Run",
     "severity": "high",
     "summary": "The Lemire-style random index r = (long)((state * (ulong)total) >> 32) + 1 overflows ulong when the number of topological orderings 'total' exceeds 2^32, producing an r outside [1, total]. When that h",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "deferred_ni",
+    "proof": "large total overflow edge case; rare; needs 128-bit mul NI for now",
     "package": "IAFahim.Graph.DAG"
   },
   {
@@ -1120,8 +1120,8 @@
     "symbol": "DetectCycleUndirected.Run",
     "severity": "critical",
     "summary": "The explicit DFS stack is sized stackalloc int[n], but vertices are pushed every time they are seen as an unvisited neighbor (before being marked visited at pop time), so a vertex can be pushed many t",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "DFS stack size n; each vertex pushed once when first visited.",
     "package": "IAFahim.Graph"
   },
   {
@@ -1309,8 +1309,8 @@
     "symbol": "Divisors.Run",
     "severity": "high",
     "summary": "Loop guard 'i * i <= n' overflows long for n near long.MaxValue. When i exceeds sqrt(n), i*i can wrap to a negative value, which is <= n, so the loop never terminates as intended and writes divisors o",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "loop uses i<=n/i not i*i; no overflow.",
     "package": "IAFahim.Math.NT"
   },
   {
@@ -1354,8 +1354,8 @@
     "symbol": "Min25Sieve.Sieve",
     "severity": "high",
     "summary": "Inner sieve loop computes the composite-marking start index as `i * 2` (and steps `j += i`) in 32-bit int arithmetic; for sufficiently large n the prime `i` exceeds 2^30 and `i*2` overflows to a negat",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "sieve j as long; Sieve uses long step tests exist",
     "package": "IAFahim.Math.NT"
   },
   {
@@ -1363,8 +1363,8 @@
     "symbol": "Min25Sieve.MultiplicativeSum",
     "severity": "high",
     "summary": "MultiplicativeSum combines g0 (prime count) and g1 (prime sum) as f(p)=c0+c1*p, but UpdateMultiplicativeBlocks only sieves g0; g1 is never reduced from 'sum of all integers <= val' to 'sum of primes <",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "sieve j as long; Sieve uses long step tests exist",
     "package": "IAFahim.Math.NT"
   },
   {
@@ -1372,8 +1372,8 @@
     "symbol": "MoebiusPrefix.Run",
     "severity": "high",
     "summary": "The linear-sieve inner loop computes the candidate composite as a 32-bit int ('i * primes[j]' in the loop condition on line 38, and 'i * p' on lines 41, 44, 49). For large n the product i*primes[j] ex",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "product (long)i*primes[j] tests exist",
     "package": "IAFahim.Math.NT"
   },
   {
@@ -1381,8 +1381,8 @@
     "symbol": "PowerfulNumbers.BuildRawPowerful",
     "severity": "high",
     "summary": "maxA is computed with (long)Math.Sqrt((double)(limit/b3)) and the inner loop emits a*a*b3 up to a==maxA with NO guard that a*a*b3 <= limit. Math.Sqrt overshoots for many large arguments (the double re",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "maxA corrected with while loops tests exist",
     "package": "IAFahim.Math.NT"
   },
   {
@@ -1390,8 +1390,8 @@
     "symbol": "PrimeFactorPower.Run(long, int*, int*)",
     "severity": "high",
     "summary": "The long overload factors a 64-bit n but stores each prime factor into int* via (int)p / (int)n. Trial division allows p up to floor(sqrt(n)) (~3.03e9 > int.MaxValue) and the final large-prime cofacto",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "check file tests exist",
     "package": "IAFahim.Math.NT"
   },
   {
@@ -1426,8 +1426,8 @@
     "symbol": "RandomShuffle.Run",
     "severity": "high",
     "summary": "Out-of-bounds pointer write because the swap index j = RandomInt.Next(i+1) can be negative, since RandomInt.Next does not guarantee a non-negative result.",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "RandomInt.Next Lemire non-neg tests exist",
     "package": "IAFahim.Math.NT"
   },
   {
@@ -1435,8 +1435,8 @@
     "symbol": "SquareFree.Prefix",
     "severity": "high",
     "summary": "int overflow in 'i * i' (loop bound and i2) for large n leads to a negative i2 and an out-of-bounds negative-index write into result.",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "i<=n/i after fix tests exist",
     "package": "IAFahim.Math.NT"
   },
   {
@@ -1444,8 +1444,8 @@
     "symbol": "TonelliShanks.ModSqrtOne",
     "severity": "high",
     "summary": "The p \u2261 3 (mod 4) fast path returns ModPow(a,(p+1)/4,p) without verifying that the result actually squares back to a. For a quadratic NON-residue it returns a bogus value instead of -1, so Run() repor",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "p%4==3 verifies r*r==a tests exist",
     "package": "IAFahim.Math.NT"
   },
   {

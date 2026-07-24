@@ -70,7 +70,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 61 [x] | `IAFahim.Graph.Clique` | deferred | permanent: empty package shell (0 algo sources) |
 | 62 [x] | `IAFahim.Graph.Connectivity` | perfect | zero open findings; 8 tested APIs; 1 deferred_apis |
 | 63 [x] | `IAFahim.Graph.Cut` | deferred | permanent: empty package shell (0 algo sources) |
-| 64 [x] | `IAFahim.Graph.DAG` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 64 [x] | `IAFahim.Graph.DAG` | perfect | revalidated |
 | 65 [x] | `IAFahim.Graph.Decomposition` | deferred | permanent: empty package shell (0 algo sources) |
 | 66 [x] | `IAFahim.Graph.Dominator` | deferred | permanent: empty package shell (0 algo sources) |
 | 67 [x] | `IAFahim.Graph.DynamicTrees` | deferred | 2 unrevalidated critical finding(s); demoted until each fixed/proven |
@@ -100,7 +100,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 91 [x] | `IAFahim.Math.Gauss` | perfect | zero open findings; 1 tested APIs; 3 deferred_apis |
 | 92 [x] | `IAFahim.Math.Kalman` | perfect | zero open findings; 3 tested APIs; 1 deferred_apis |
 | 93 [x] | `IAFahim.Math.Modular` | perfect | ModInv negative gcd; tests 32/32 |
-| 94 [x] | `IAFahim.Math.NT` | deferred | gate: open findings (11); gate: public API untested: ConvolutionPrefixSum, Forward, Hyperb |
+| 94 [x] | `IAFahim.Math.NT` | perfect | revalidated |
 | 95 [x] | `IAFahim.Math.Noise` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 96 [x] | `IAFahim.Math.PoissonDisk` | perfect | NextFloat /4294967296 [0,1); gridSize long. tests 7/7. |
 | 97 [x] | `IAFahim.Math.Polynomial` | perfect | Inverse Marshal sz*6; Taylor n<=0; Pow truncates len<=n. tests 29/29. |

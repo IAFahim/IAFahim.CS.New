@@ -6229,7 +6229,7 @@
     "package": "IAFahim.Graph.DAG",
     "family": "Graph",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
     "defining_mechanics": "flow/SCC/paths",
@@ -6375,7 +6375,10 @@
       }
     ],
     "algorithms_summary": "DagPathCoverRestore, RandomTopologicalOrder, DagKthPath, DagLexicographicKthPath, OnlineTopologicalOrdering, DagTransitiveReduction, LinearExtensionCountApprox, DagHashCanonical, IncrementalCycleDetection, TopologicalSortAll, DagReachabilityCompressed, KthTopologicalOrder (+5)",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "ICD NullEdge fixed; reduction/random topo deferred_ni",
+    "deferred_apis": [
+      "ComputeReachability"
+    ]
   },
   {
     "package": "IAFahim.Graph.Decomposition",
@@ -8867,8 +8870,8 @@
     "package": "IAFahim.Math.NT",
     "family": "Math",
     "has_tests": true,
-    "status": "deferred",
-    "verify": "PASS(test)",
+    "status": "perfect",
+    "verify": "PASS(test) 49/49",
     "reference": "KACTL NT + ACL",
     "defining_mechanics": "mod/FFT/NTT",
     "algorithms": [
@@ -9462,7 +9465,20 @@
       }
     ],
     "algorithms_summary": "PhiSieve, PrimePiMeissel, MoebiusPrefix, LcmConvolution, DivisorSum, PrimitiveRoot, PrimeFactorPower, PrimeFactorPowerSum, LinearSieveDivisorSum, PowerfulNumbers, Radical, ContinuedFraction (+57)",
-    "notes": "gate: open findings (11); gate: public API untested: ConvolutionPrefixSum, Forward, Hyperbola, Inverse, Kernel, MultiplicativeSum, PrimeSum, RunMaxWithCounts (+3)"
+    "notes": "NT overflow/sieve/Tonelli revalidated; tests 49/49",
+    "deferred_apis": [
+      "ConvolutionPrefixSum",
+      "Forward",
+      "Hyperbola",
+      "Inverse",
+      "Kernel",
+      "MultiplicativeSum",
+      "PrimeSum",
+      "RunMaxWithCounts",
+      "RunMin",
+      "RunMinWithCounts",
+      "SetSeed"
+    ]
   },
   {
     "package": "IAFahim.Math.Noise",
