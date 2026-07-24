@@ -10607,9 +10607,7 @@
       "Init",
       "Query",
       "Recompute",
-      "Run",
       "RunSortedColumns",
-      "Search",
       "Shift"
     ]
   },
