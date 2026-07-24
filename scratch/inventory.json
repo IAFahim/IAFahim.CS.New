@@ -14,14 +14,14 @@
   {
     "package": "IAFahim.Algebra.Polynomial",
     "family": "Algebra",
-    "has_tests": false,
+    "has_tests": true,
     "findings_critical": 3,
     "findings_high": 5,
-    "status": "build_ok_untested",
-    "verify": "PASS(build)",
+    "status": "upgraded",
+    "verify": "PASS(test)",
     "reference": "AtCoder Library / CP-Algorithms poly",
     "defining_mechanics": "Berlekamp-Massey; poly gcd; reliability p/(1-p)",
-    "notes": "builds in isolation; NO defining tests \u2014 not claimed reference-correct until tests added"
+    "notes": "BM/Gcd/BostanMori/ToomCook defining tests; prior fixes revalidated"
   },
   {
     "package": "IAFahim.Algebra.Sequence",
@@ -758,14 +758,14 @@
   {
     "package": "IAFahim.Graph.DAG",
     "family": "Graph",
-    "has_tests": false,
+    "has_tests": true,
     "findings_critical": 3,
     "findings_high": 2,
-    "status": "build_ok_untested",
-    "verify": "PASS(build)",
+    "status": "upgraded",
+    "verify": "PASS(test)",
     "reference": "ACL + KACTL + Boost.Graph",
     "defining_mechanics": "flow=mincut; SCC; Dijkstra non-neg",
-    "notes": "builds in isolation; NO defining tests \u2014 not claimed reference-correct until tests added"
+    "notes": "path cover + Dilworth antichain defining tests"
   },
   {
     "package": "IAFahim.Graph.Decomposition",
@@ -1586,14 +1586,14 @@
   {
     "package": "IAFahim.Search.Numerical",
     "family": "Search",
-    "has_tests": false,
+    "has_tests": true,
     "findings_critical": 2,
     "findings_high": 0,
-    "status": "build_ok_untested",
-    "verify": "PASS(build)",
+    "status": "upgraded",
+    "verify": "PASS(test)",
     "reference": "CP-Algorithms / KACTL",
     "defining_mechanics": "lower_bound; LIS; two-pointer",
-    "notes": "builds in isolation; NO defining tests \u2014 not claimed reference-correct until tests added"
+    "notes": "Simpson/GaussLegendre/AdaptiveSimpson \u222bx\u00b2 + ternary min tests"
   },
   {
     "package": "IAFahim.Search.Prefix",
@@ -1862,14 +1862,14 @@
   {
     "package": "IAFahim.String.Palindrome",
     "family": "String",
-    "has_tests": false,
+    "has_tests": true,
     "findings_critical": 2,
     "findings_high": 0,
-    "status": "build_ok_untested",
-    "verify": "PASS(build)",
+    "status": "upgraded",
+    "verify": "PASS(test)",
     "reference": "ACL + KACTL string",
     "defining_mechanics": "KMP; Manacher; SA/LCP",
-    "notes": "builds in isolation; NO defining tests \u2014 not claimed reference-correct until tests added"
+    "notes": "Manacher odd/even + eertree distinct count tests"
   },
   {
     "package": "IAFahim.String.Parse",

@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.String.Palindrome/IAFahim.String.Palindrome.csproj" />
+  </ItemGroup>
+</Project>

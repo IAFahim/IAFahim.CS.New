@@ -2,20 +2,14 @@
 
 Packages: 162
 - already_correct: 103
-- upgraded: 5
-- build_ok_untested: 45
+- upgraded: 9
+- build_ok_untested: 41
 - deferred: 9
-
-Status meanings:
-- **already_correct**: isolated PASS(test) with existing defining tests
-- **upgraded**: fixed this pass + new defining tests PASS
-- **build_ok_untested**: isolated build OK; **not** claimed world-class/reference-correct
-- **deferred**: shell package or honest NotImplemented / contract gap
 
 | Package | Family | Tests | Crit | High | Status | Verify | Reference | Notes |
 |---|---|:---:|---:|---:|---|---|---|---|
 | `IAFahim.Algebra.GraphPoly` | Algebra | Y | 1 | 1 | already_correct | PASS(test) | AtCoder Library / CP-Algorithms pol | isolated NUnit green; do not treat historical findings as auto-fixed w |
-| `IAFahim.Algebra.Polynomial` | Algebra | N | 3 | 5 | build_ok_untested | PASS(build) | AtCoder Library / CP-Algorithms pol | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Algebra.Polynomial` | Algebra | Y | 3 | 5 | upgraded | PASS(test) | AtCoder Library / CP-Algorithms pol | BM/Gcd/BostanMori/ToomCook defining tests; prior fixes revalidated |
 | `IAFahim.Algebra.Sequence` | Algebra | Y | 0 | 2 | already_correct | PASS(test) | AtCoder Library / CP-Algorithms pol | isolated NUnit green; do not treat historical findings as auto-fixed w |
 | `IAFahim.Collections.NoDeps` | Collections | Y | 2 | 6 | already_correct | PASS(test) | Unity.Collections contract | isolated NUnit green; do not treat historical findings as auto-fixed w |
 | `IAFahim.Collision.Gjk` | Collision | Y | 1 | 0 | already_correct | PASS(test) | Erin Catto GJK / Bullet | isolated NUnit green; do not treat historical findings as auto-fixed w |
@@ -77,7 +71,7 @@ Status meanings:
 | `IAFahim.Graph.Clique` | Graph | N | 0 | 0 | deferred | PASS(build) | ACL + KACTL + Boost.Graph | README shell; no algorithm .cs sources |
 | `IAFahim.Graph.Connectivity` | Graph | Y | 0 | 0 | already_correct | PASS(test) | ACL + KACTL + Boost.Graph | isolated NUnit green; do not treat historical findings as auto-fixed w |
 | `IAFahim.Graph.Cut` | Graph | N | 0 | 0 | deferred | PASS(build) | ACL + KACTL + Boost.Graph | README shell; min-cut covered by Graph.Flow |
-| `IAFahim.Graph.DAG` | Graph | N | 3 | 2 | build_ok_untested | PASS(build) | ACL + KACTL + Boost.Graph | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Graph.DAG` | Graph | Y | 3 | 2 | upgraded | PASS(test) | ACL + KACTL + Boost.Graph | path cover + Dilworth antichain defining tests |
 | `IAFahim.Graph.Decomposition` | Graph | N | 0 | 0 | deferred | PASS(build) | ACL + KACTL + Boost.Graph | README shell; no algorithm .cs sources |
 | `IAFahim.Graph.Dominator` | Graph | N | 0 | 0 | deferred | PASS(build) | ACL + KACTL + Boost.Graph | README shell; no algorithm .cs sources |
 | `IAFahim.Graph.DynamicTrees` | Graph | Y | 2 | 0 | already_correct | PASS(test) | ACL + KACTL + Boost.Graph | isolated NUnit green; do not treat historical findings as auto-fixed w |
@@ -146,7 +140,7 @@ Status meanings:
 | `IAFahim.Search.Interval` | Search | Y | 0 | 1 | already_correct | PASS(test) | CP-Algorithms / KACTL | isolated NUnit green; do not treat historical findings as auto-fixed w |
 | `IAFahim.Search.LIS` | Search | N | 0 | 0 | build_ok_untested | PASS(build) | CP-Algorithms / KACTL | builds in isolation; NO defining tests — not claimed reference-correct |
 | `IAFahim.Search.MeetInMiddle` | Search | Y | 0 | 0 | already_correct | PASS(test) | CP-Algorithms / KACTL | isolated NUnit green; do not treat historical findings as auto-fixed w |
-| `IAFahim.Search.Numerical` | Search | N | 2 | 0 | build_ok_untested | PASS(build) | CP-Algorithms / KACTL | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Search.Numerical` | Search | Y | 2 | 0 | upgraded | PASS(test) | CP-Algorithms / KACTL | Simpson/GaussLegendre/AdaptiveSimpson ∫x² + ternary min tests |
 | `IAFahim.Search.Prefix` | Search | Y | 0 | 1 | already_correct | PASS(test) | CP-Algorithms / KACTL | isolated NUnit green; do not treat historical findings as auto-fixed w |
 | `IAFahim.Search.Range` | Search | Y | 0 | 3 | already_correct | PASS(test) | CP-Algorithms / KACTL | isolated NUnit green; do not treat historical findings as auto-fixed w |
 | `IAFahim.Search.RangeQueries` | Search | Y | 1 | 0 | already_correct | PASS(test) | CP-Algorithms / KACTL | isolated NUnit green; do not treat historical findings as auto-fixed w |
@@ -169,7 +163,7 @@ Status meanings:
 | `IAFahim.String.Grammar` | String | N | 1 | 3 | build_ok_untested | PASS(build) | ACL + KACTL string | builds in isolation; NO defining tests — not claimed reference-correct |
 | `IAFahim.String.Match` | String | Y | 1 | 3 | already_correct | PASS(test) | ACL + KACTL string | isolated NUnit green; do not treat historical findings as auto-fixed w |
 | `IAFahim.String.MinRotation` | String | Y | 0 | 0 | already_correct | PASS(test) | ACL + KACTL string | isolated NUnit green; do not treat historical findings as auto-fixed w |
-| `IAFahim.String.Palindrome` | String | N | 2 | 0 | build_ok_untested | PASS(build) | ACL + KACTL string | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.String.Palindrome` | String | Y | 2 | 0 | upgraded | PASS(test) | ACL + KACTL string | Manacher odd/even + eertree distinct count tests |
 | `IAFahim.String.Parse` | String | Y | 1 | 2 | already_correct | PASS(test) | ACL + KACTL string | isolated NUnit green; do not treat historical findings as auto-fixed w |
 | `IAFahim.String.Pattern` | String | N | 0 | 0 | build_ok_untested | PASS(build) | ACL + KACTL string | builds in isolation; NO defining tests — not claimed reference-correct |
 | `IAFahim.String.SuffixArray` | String | N | 0 | 1 | build_ok_untested | PASS(build) | ACL + KACTL string | builds in isolation; NO defining tests — not claimed reference-correct |

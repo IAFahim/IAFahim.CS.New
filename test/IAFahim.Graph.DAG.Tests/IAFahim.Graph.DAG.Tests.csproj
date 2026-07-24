@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.Graph.DAG/IAFahim.Graph.DAG.csproj" />
+  </ItemGroup>
+</Project>
