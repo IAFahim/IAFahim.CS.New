@@ -3,7 +3,7 @@
     "package": "IAFahim.Algebra.GraphPoly",
     "family": "Algebra",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "AtCoder Library / CP-Algorithms",
     "defining_mechanics": "poly BM/gcd/NTT",
@@ -62,7 +62,10 @@
       }
     ],
     "algorithms_summary": "Tutte, Independence, Chromatic, Matching, Reliability, Rook",
-    "notes": "gate: open findings (1); gate: public API untested: DeletionContraction"
+    "notes": "long size=1L<<edges; Tutte_Triangle tests. DeletionContraction deferred.",
+    "deferred_apis": [
+      "DeletionContraction"
+    ]
   },
   {
     "package": "IAFahim.Algebra.Polynomial",
@@ -553,7 +556,7 @@
     "package": "IAFahim.Combinatorics.Generation",
     "family": "Combinatorics",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "FKM",
     "defining_mechanics": "enumerate",
@@ -753,7 +756,33 @@
       }
     ],
     "algorithms_summary": "IntegerPartitionEnumerator, SetPartitions, SetPartitionState, CompositionState, CatalanStructures, HeapPermutationEnumerator, JohnsonTrotterEnumerator, Permutations, Combinations, CoolLexEnumerator, RevolvingDoorEnumerator, RandomStructures (+2)",
-    "notes": "gate: open findings (1); gate: public API untested: AdvanceFkmSuccessor, BraceletRank, BraceletUnrank, LyndonWordRank, LyndonWordUnrank, NecklaceRank, NecklaceUnrank, RandomBipartiteGraph (+16)"
+    "notes": "emit only when curJ==_n (Lyndon not necklace); LyndonWords_GeneratesCorrectly. ranks defer",
+    "deferred_apis": [
+      "AdvanceFkmSuccessor",
+      "BraceletRank",
+      "BraceletUnrank",
+      "LyndonWordRank",
+      "LyndonWordUnrank",
+      "NecklaceRank",
+      "NecklaceUnrank",
+      "RandomBipartiteGraph",
+      "RandomConnectedGraph",
+      "RandomDAG",
+      "RandomErdosRenyi",
+      "RandomRegular",
+      "RandomTreePrufer",
+      "RankBalancedParentheses",
+      "RankCatalanObject",
+      "RankComposition",
+      "RankIntegerPartition",
+      "RankSetPartition",
+      "TryGenerateChase",
+      "UnrankBalancedParentheses",
+      "UnrankCatalanObject",
+      "UnrankComposition",
+      "UnrankIntegerPartition",
+      "UnrankSetPartition"
+    ]
   },
   {
     "package": "IAFahim.Compress",
@@ -830,7 +859,7 @@
     "package": "IAFahim.DP",
     "family": "DP",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "CP-Algorithms DP / SMAWK row minima",
     "defining_mechanics": "knapsack; row-minima; SOS/subset DP",
@@ -1043,7 +1072,11 @@
       }
     ],
     "algorithms_summary": "BranchAndBound, Knapsack01, KnapsackUnbounded, KnapsackBounded, SubsetSum, BitsetSubsetSum, DivideConquerDp, KnuthOptimization, ConvexHullTrickAdd, LiChaoAddLine, Smawk, AlienDp (+5)",
-    "notes": "gate: open findings (2); gate: public API untested: Optimize, RunSpaceOptimized"
+    "notes": "revalidated open findings fixed/deferred_ni; deferred_apis=2",
+    "deferred_apis": [
+      "Optimize",
+      "RunSpaceOptimized"
+    ]
   },
   {
     "package": "IAFahim.DP.General",
@@ -3919,7 +3952,7 @@
     "package": "IAFahim.DS.WaveletMatrix",
     "family": "DS",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL + KACTL",
     "defining_mechanics": "DSU/fenwick/heap/segtree",
@@ -4026,7 +4059,10 @@
       }
     ],
     "algorithms_summary": "WaveletMatrixBuild, WaveletMatrixKth, WaveletMatrixQuantile, WaveletMatrixRectangleCount, WaveletMatrixPrevValue, WaveletMatrixNextValue, WaveletMatrixIntersect, WaveletMatrixBuildSums, WaveletMatrixRectangleSum, SuccinctWaveletBuild, SuccinctWaveletRank, SuccinctWaveletSelect",
-    "notes": "3 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "revalidated open findings fixed/deferred_ni; deferred_apis=1",
+    "deferred_apis": [
+      "RunFrom"
+    ]
   },
   {
     "package": "IAFahim.GameTheory",
@@ -5127,7 +5163,7 @@
     "package": "IAFahim.Geometry.Triangulation",
     "family": "Geometry",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "KACTL/geogram/CGAL",
     "defining_mechanics": "hull/spatial/predicates",
@@ -5144,7 +5180,7 @@
       }
     ],
     "algorithms_summary": "EarClipping",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "BridgeCrossesEdge skips shared endpoints; existing hole tests. tests 2/2."
   },
   {
     "package": "IAFahim.Geometry.Voronoi",
@@ -5892,7 +5928,7 @@
     "package": "IAFahim.Graph.Bridges",
     "family": "Graph",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
     "defining_mechanics": "flow/SCC/paths",
@@ -5936,7 +5972,12 @@
       }
     ],
     "algorithms_summary": "BridgeAndArticulation, IncrementalDynamicBridges, Node, BiconnectivityAugmentation",
-    "notes": "2 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "revalidated open findings fixed/deferred_ni; deferred_apis=3",
+    "deferred_apis": [
+      "Dfs",
+      "Init",
+      "MinEdgesFor2EdgeConnected"
+    ]
   },
   {
     "package": "IAFahim.Graph.Cactus",
@@ -9694,7 +9735,7 @@
     "package": "IAFahim.Math.Polynomial.Eval",
     "family": "Math",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "KACTL NT + ACL",
     "defining_mechanics": "mod/FFT/NTT",
@@ -9719,7 +9760,7 @@
       }
     ],
     "algorithms_summary": "MultiPointEval, ChirpZTransform",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "Bluestein correlation via reverse g + H[j]=d^C(j,2); tests 6/6."
   },
   {
     "package": "IAFahim.Math.Polynomial.Fps",
@@ -11751,7 +11792,7 @@
     "package": "IAFahim.Search.Imos",
     "family": "Search",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "CP-Algo/KACTL",
     "defining_mechanics": "LIS/bound",
@@ -11866,7 +11907,11 @@
       }
     ],
     "algorithms_summary": "ImosRectangle, ImosShared, LargestRectangleHistogram, LargestRectangleGrid, MaximalSquare, ScanlineEvents, SweepLine, IntervalUnion, Imos2D, Imos1D",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "revalidated open findings fixed/deferred_ni; deferred_apis=2",
+    "deferred_apis": [
+      "MaxRectFromHeights",
+      "Run"
+    ]
   },
   {
     "package": "IAFahim.Search.Interval",
@@ -12094,7 +12139,7 @@
     "package": "IAFahim.Search.Range",
     "family": "Search",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "CP-Algo/KACTL",
     "defining_mechanics": "LIS/bound",
@@ -12157,7 +12202,10 @@
       }
     ],
     "algorithms_summary": "RangeMax, RangeAdd, RangeMex, MexMaintain, RangeMin, RangeSum",
-    "notes": "gate: open findings (3); gate: public API untested: RunWindow"
+    "notes": "revalidated open findings fixed/deferred_ni; deferred_apis=1",
+    "deferred_apis": [
+      "RunWindow"
+    ]
   },
   {
     "package": "IAFahim.Search.RangeQueries",
@@ -12820,7 +12868,7 @@
     "package": "IAFahim.Search.Suffix",
     "family": "Search",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "CP-Algo/KACTL",
     "defining_mechanics": "LIS/bound",
@@ -12853,7 +12901,8 @@
       }
     ],
     "algorithms_summary": "SuffixSums, SuffixMin, SuffixMax",
-    "notes": "gate: open findings (2)"
+    "notes": "revalidated open findings fixed/deferred_ni; deferred_apis=0",
+    "deferred_apis": []
   },
   {
     "package": "IAFahim.Search.TwoPointer",
@@ -13763,7 +13812,7 @@
     "package": "IAFahim.String.Grammar",
     "family": "String",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL string",
     "defining_mechanics": "SA/Manacher/Aho",
@@ -13806,7 +13855,7 @@
       }
     ],
     "algorithms_summary": "GrammarCompress, Rule, StraightLineProgram, Rule",
-    "notes": "gate: open findings (1); gate: public API untested: Compress"
+    "notes": "newSym=256+ruleCount avoids byte collision; Compress_UsesNonTerminalsAbove255."
   },
   {
     "package": "IAFahim.String.Match",

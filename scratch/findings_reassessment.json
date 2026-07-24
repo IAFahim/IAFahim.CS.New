@@ -13,8 +13,8 @@
     "symbol": "Tutte.Subset",
     "severity": "high",
     "summary": "size = 1 << edges overflows int for edges >= 31, producing a negative size that makes the subset-enumeration loop run zero iterations and return 0 (and undefined shift behavior for edges >= 32).",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "long size=1L<<edges; Tutte_Triangle tests. DeletionContraction deferred.",
     "package": "IAFahim.Algebra.GraphPoly"
   },
   {
@@ -193,8 +193,8 @@
     "symbol": "LyndonWordEnumerator.MoveNext",
     "severity": "high",
     "summary": "LyndonWordEnumerator emits all NECKLACE representatives (FKM prenecklaces where n % j == 0), not Lyndon words. It outputs periodic words and words of length < n, so it both over-generates and returns ",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "emit only when curJ==_n (Lyndon not necklace); LyndonWords_GeneratesCorrectly. ranks deferred.",
     "package": "IAFahim.Combinatorics.Generation"
   },
   {
@@ -247,8 +247,8 @@
     "symbol": "ConvexHullTrickAdd.AddLine/Query",
     "severity": "high",
     "summary": "AddLine only appends lines and never removes lines that are no longer part of the lower envelope, but Query performs a binary search that assumes the stored lines form a valid convex lower hull (Eval(",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "AddLine pops Redundant while envelope; Query binary search. tests 8/8.",
     "package": "IAFahim.DP"
   },
   {
@@ -256,8 +256,8 @@
     "symbol": "Smawk.UpdateSmawkRow",
     "severity": "high",
     "summary": "The row update only writes dp[j] for columns j that survive on the monotone stack; columns popped/never pushed keep their previous (row i-1) value. For i==1 in particular, only stacked columns are ove",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "deferred_ni",
+    "proof": "Smawk.Run is O(nm) row-min placeholder; fully-concave SMAWK not implemented \u2014 honest limitation.",
     "package": "IAFahim.DP"
   },
   {
@@ -463,8 +463,8 @@
     "symbol": "WaveletMatrixKth.Run / GetCountInLevel",
     "severity": "critical",
     "summary": "kth-smallest branch logic is inverted: GetCountInLevel returns rankPtr[ri+1]-rankPtr[li] which is the count of ONES (bit==1) in the range, but Run compares 'k < leftCount' and on true descends into th",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "stable zeros-then-ones partition; mids=zeros; kth tests 11/11.",
     "package": "IAFahim.DS.WaveletMatrix"
   },
   {
@@ -472,8 +472,8 @@
     "symbol": "WaveletMatrixKth.Run / UpdateIndicesZero / UpdateIndicesOne",
     "severity": "critical",
     "summary": "The query reads rank data for the wrong level. WaveletMatrixBuild stores level b's prefix-rank table at ranks[b*(n+1) + i] (offset = b*(n+1)). But Run and its helpers index rankPtr[li], rankPtr[ri+1] ",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "stable zeros-then-ones partition; mids=zeros; kth tests 11/11.",
     "package": "IAFahim.DS.WaveletMatrix"
   },
   {
@@ -481,8 +481,8 @@
     "symbol": "WaveletMatrixBuild.Run / ComputeBitmapsAndCountOnes / FinalizeLevel",
     "severity": "critical",
     "summary": "The wavelet-matrix build never performs the stable partition (zeros-then-ones reordering) of the data between levels. Each level b extracts bit b directly from the ORIGINAL data array, so the bitmap/r",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "stable zeros-then-ones partition; mids=zeros; kth tests 11/11.",
     "package": "IAFahim.DS.WaveletMatrix"
   },
   {
@@ -490,8 +490,8 @@
     "symbol": "WaveletMatrixKth.UpdateIndicesOne",
     "severity": "high",
     "summary": "mids[b] is set to the number of ONES at the level (FinalizeLevel: mids[b]=ones), but UpdateIndicesOne uses it as the start offset of the ones region: li = mid + (li - rankPtr[li]). In a zeros-first st",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "stable zeros-then-ones partition; mids=zeros; kth tests 11/11.",
     "package": "IAFahim.DS.WaveletMatrix"
   },
   {
@@ -643,8 +643,8 @@
     "symbol": "EarClipping.IsValidBridge",
     "severity": "critical",
     "summary": "Every hole-bridge candidate is rejected because the bridge endpoints coincide with polygon/hole edge endpoints, so LineSegmentsIntersect's shared-endpoint touch test always fires; no hole is ever merg",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "BridgeCrossesEdge skips shared endpoints; existing hole tests. tests 2/2.",
     "package": "IAFahim.Geometry.Triangulation"
   },
   {
@@ -652,8 +652,8 @@
     "symbol": "BridgeAndArticulation.Dfs",
     "severity": "critical",
     "summary": "The adjacency-list iteration uses the wrong empty/terminator sentinel: `for (int e = head[u]; e != 0; e = next[e])`. The caller convention (confirmed by the module's own sibling file BiconnectivityAug",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "BridgeAndArticulation uses convention-A edges from 1, head sentinel 0 (tests). Biconnectivity uses -1. tests 1/1.",
     "package": "IAFahim.Graph.Bridges"
   },
   {
@@ -661,8 +661,8 @@
     "symbol": "BridgeAndArticulation.Dfs",
     "severity": "critical",
     "summary": "Because the loop uses `e != 0` while the caller initializes head[u] = -1 to mark vertices with no edges (isolated vertices) and to start the loop, an isolated vertex (or any vertex whose adjacency lis",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "BridgeAndArticulation uses convention-A edges from 1, head sentinel 0 (tests). Biconnectivity uses -1. tests 1/1.",
     "package": "IAFahim.Graph.Bridges"
   },
   {
@@ -1480,8 +1480,8 @@
     "symbol": "ChirpZTransform.Run",
     "severity": "critical",
     "summary": "The Chirp-Z / Bluestein transform builds the kernel h symmetrically as h[n-1+i] = h[n-1-i] = d^(-C(i,2)), i.e. it uses C(|k-i|,2) as the convolution exponent. But C(x,2)=x(x-1)/2 is not symmetric (C(1",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Bluestein correlation via reverse g + H[j]=d^C(j,2); tests 6/6.",
     "package": "IAFahim.Math.Polynomial.Eval"
   },
   {
@@ -1867,8 +1867,8 @@
     "symbol": "ScanlineEvents.Run",
     "severity": "critical",
     "summary": "events buffer is stackalloc long[n*2] but the loop writes to index up to 4n-1 (and Build-read reads up to 4n-1), overflowing the stack buffer by 2n longs for any n>=1.",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "ScanlineEvents Marshal n*4; LargestRectangle uses long heights. tests 4/4.",
     "package": "IAFahim.Search.Imos"
   },
   {
@@ -1876,8 +1876,8 @@
     "symbol": "LargestRectangleHistogram.Run",
     "severity": "high",
     "summary": "Histogram heights from long* h are truncated to int via (int)h[...] before computing area, producing wrong areas for heights outside int range even though h is a long array.",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "ScanlineEvents Marshal n*4; LargestRectangle uses long heights. tests 4/4.",
     "package": "IAFahim.Search.Imos"
   },
   {
@@ -1921,8 +1921,8 @@
     "symbol": "RangeMex.Run",
     "severity": "high",
     "summary": "When all values 0..63 are present in the queried range, mex reaches 64 and the loop `while ((seen & (1L << mex)) != 0) mex++` reads `1L << 64`, which C# masks to `1L << 0` == 1. Since bit 0 is set, th",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "mex bound mex<MexUniverse(64); Advance helpers. tests 6/6.",
     "package": "IAFahim.Search.Range"
   },
   {
@@ -1930,8 +1930,8 @@
     "symbol": "MexMaintain.Run",
     "severity": "high",
     "summary": "The prefix-mex maintenance loop `while ((seen & (1L << mex)) != 0 && left <= right) mex++` (left is always 0) never bounds mex by 64. Once values 0..63 have all appeared, mex reaches 64 and `1L << 64`",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "mex bound mex<MexUniverse(64); Advance helpers. tests 6/6.",
     "package": "IAFahim.Search.Range"
   },
   {
@@ -1939,8 +1939,8 @@
     "symbol": "MexMaintain.RunWindow",
     "severity": "high",
     "summary": "Two defects. (1) The initial-window mex loop at lines 53-54 `while ((seen & (1L << mex)) != 0) mex++` lacks a `mex < 64` bound, so a first window containing all values 0..63 causes the same `1L << 64`",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "mex bound mex<MexUniverse(64); Advance helpers. tests 6/6.",
     "package": "IAFahim.Search.Range"
   },
   {
@@ -1975,8 +1975,8 @@
     "symbol": "SuffixSums.Run<T>",
     "severity": "high",
     "summary": "Generic Run<T> reinterprets the element bytes as int/long and sums them with integer arithmetic. For floating-point element types (float has sizeof==4, double has sizeof==8) this adds the raw IEEE-754",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Run/RangeSum float+double specialized; int/long paths. tests exist.",
     "package": "IAFahim.Search.Suffix"
   },
   {
@@ -1984,8 +1984,8 @@
     "symbol": "SuffixSums.RangeSum<T>",
     "severity": "high",
     "summary": "RangeSum<T> uses the same sizeof(T)==4/8 -> int*/long* reinterpretation as Run<T>, so it sums float/double elements as integer bit patterns, yielding a wrong (or Infinity/NaN) result for floating-poin",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Run/RangeSum float+double specialized; int/long paths. tests exist.",
     "package": "IAFahim.Search.Suffix"
   },
   {
@@ -2110,8 +2110,8 @@
     "symbol": "GrammarCompress.Compress",
     "severity": "high",
     "summary": "The new non-terminal symbol newSym=(byte)(254-ruleCount) can collide with byte values already present in the input or with symbols introduced by earlier rules, aliasing two different symbols to the sa",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "newSym=256+ruleCount avoids byte collision; Compress_UsesNonTerminalsAbove255.",
     "package": "IAFahim.String.Grammar"
   },
   {

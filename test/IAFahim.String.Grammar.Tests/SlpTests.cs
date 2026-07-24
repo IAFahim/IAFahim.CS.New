@@ -43,4 +43,21 @@ namespace IAFahim.String.Grammar.Tests
             }
         }
     }
+
+    public sealed unsafe class GrammarCompressTests
+    {
+        [Test]
+        public void Compress_UsesNonTerminalsAbove255()
+        {
+            byte* input = stackalloc byte[] { 1, 2, 1, 2, 1, 2 };
+            GrammarCompress.Rule* rules = stackalloc GrammarCompress.Rule[8];
+            int* work = stackalloc int[16];
+            int count = GrammarCompress.Compress(input, 6, rules, 8, work);
+            Assert.IsTrue(count >= 0);
+            for (int i = 0; i < count; i++)
+            {
+                Assert.IsTrue(rules[i].Left >= 0);
+            }
+        }
+    }
 }

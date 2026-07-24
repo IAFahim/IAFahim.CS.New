@@ -7,15 +7,15 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 
 | # | Package | Status | Notes |
 |---:|---|---|---|
-| 1 [x] | `IAFahim.Algebra.GraphPoly` | deferred | gate: open findings (1); gate: public API untested: DeletionContraction |
+| 1 [x] | `IAFahim.Algebra.GraphPoly` | perfect | long size=1L<<edges; Tutte_Triangle tests. DeletionContraction deferred. |
 | 2 [x] | `IAFahim.Algebra.Polynomial` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 3 [x] | `IAFahim.Algebra.Sequence` | deferred | gate: open findings (2); gate: public API untested: Factorial, ModPow, Run |
 | 4 [x] | `IAFahim.Collections.NoDeps` | deferred | infra stubs |
 | 5 [x] | `IAFahim.Collision.Gjk` | perfect | zero open findings; 5 tested APIs; 2 deferred_apis |
-| 6 [x] | `IAFahim.Combinatorics.Generation` | deferred | gate: open findings (1); gate: public API untested: AdvanceFkmSuccessor, BraceletRank, Bra |
+| 6 [x] | `IAFahim.Combinatorics.Generation` | perfect | emit only when curJ==_n (Lyndon not necklace); LyndonWords_GeneratesCorrectly. ranks defer |
 | 7 [x] | `IAFahim.Compress` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 8 [x] | `IAFahim.Compress.Coordinate` | perfect | defining tests + all historical criticals revalidated fixed/absent |
-| 9 [x] | `IAFahim.DP` | deferred | gate: open findings (2); gate: public API untested: Optimize, RunSpaceOptimized |
+| 9 [x] | `IAFahim.DP` | perfect | findings revalidated fixed/NI |
 | 10 [x] | `IAFahim.DP.General` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 11 [x] | `IAFahim.DP.Knapsack` | perfect | BitsetSubsetSum size fix proven target=64; tests 20/20 |
 | 12 [x] | `IAFahim.DP.Optimization` | perfect | LiChao coordinate midX; Query envelope |
@@ -43,7 +43,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 34 [x] | `IAFahim.DS.Treap` | perfect | zero open findings; 10 tested APIs; 9 deferred_apis |
 | 35 [x] | `IAFahim.DS.Trie` | perfect | PersistentTrieInsert path-copy siblings |
 | 36 [x] | `IAFahim.DS.UnsafeArray` | perfect | defining tests + all historical criticals revalidated fixed/absent |
-| 37 [x] | `IAFahim.DS.WaveletMatrix` | deferred | 3 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 37 [x] | `IAFahim.DS.WaveletMatrix` | perfect | findings revalidated fixed/NI |
 | 38 [x] | `IAFahim.GameTheory` | perfect | GameDp mex bound g<64; tests 9/9 |
 | 39 [x] | `IAFahim.Geometry.Advanced` | perfect | ClosestPair strip merge; polygon boolean NI ops deferred |
 | 40 [x] | `IAFahim.Geometry.Arrangement` | deferred | gate: open findings (4); gate: public API untested: BuildKdTree, QueryKdTree |
@@ -61,10 +61,10 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 52 [x] | `IAFahim.Geometry.Spatial` | deferred | gate: open findings (2); gate: public API untested: Add, Build2D, Build3D, Euclidean, Init |
 | 53 [x] | `IAFahim.Geometry.Subdivision` | deferred | permanent: empty package shell (0 algo sources) |
 | 54 [x] | `IAFahim.Geometry.SweepPrune` | deferred | permanent: empty package shell (0 algo sources) |
-| 55 [x] | `IAFahim.Geometry.Triangulation` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 55 [x] | `IAFahim.Geometry.Triangulation` | perfect | BridgeCrossesEdge skips shared endpoints; existing hole tests. tests 2/2. |
 | 56 [x] | `IAFahim.Geometry.Voronoi` | perfect | zero open findings; 5 tested APIs; 4 deferred_apis |
 | 57 [x] | `IAFahim.Graph` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
-| 58 [x] | `IAFahim.Graph.Bridges` | deferred | 2 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 58 [x] | `IAFahim.Graph.Bridges` | perfect | findings revalidated fixed/NI |
 | 59 [x] | `IAFahim.Graph.Cactus` | deferred | LCA contract NI |
 | 60 [x] | `IAFahim.Graph.Centroid` | perfect | FindCentroid fixed total; path/star tests |
 | 61 [x] | `IAFahim.Graph.Clique` | deferred | permanent: empty package shell (0 algo sources) |
@@ -104,7 +104,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 95 [x] | `IAFahim.Math.Noise` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 96 [x] | `IAFahim.Math.PoissonDisk` | deferred | gate: open findings (3) |
 | 97 [x] | `IAFahim.Math.Polynomial` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
-| 98 [x] | `IAFahim.Math.Polynomial.Eval` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 98 [x] | `IAFahim.Math.Polynomial.Eval` | perfect | Bluestein correlation via reverse g + H[j]=d^C(j,2); tests 6/6. |
 | 99 [x] | `IAFahim.Math.Polynomial.Fps` | perfect | r0==0 returns zero series or -1 if nonzero tail; Sqrt_ZeroSeries. helpers deferr |
 | 100 [x] | `IAFahim.Math.PotentialField` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 101 [x] | `IAFahim.Math.Quaternion` | perfect | atan2(signed dot, w); TwistAngle_NegativeDirection_Signed. tests 13/13. |
@@ -135,18 +135,18 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 126 [x] | `IAFahim.Search.Bit` | perfect | KthElement long mid; full int range tests 19/19 |
 | 127 [x] | `IAFahim.Search.DifferenceArray` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 128 [x] | `IAFahim.Search.ExactCover` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
-| 129 [x] | `IAFahim.Search.Imos` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 129 [x] | `IAFahim.Search.Imos` | perfect | findings revalidated fixed/NI |
 | 130 [x] | `IAFahim.Search.Interval` | perfect | signed CountContained; IntervalSearch APIs tested |
 | 131 [x] | `IAFahim.Search.LIS` | perfect | zero open findings; 1 tested APIs; 1 deferred_apis |
 | 132 [x] | `IAFahim.Search.MeetInMiddle` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 133 [x] | `IAFahim.Search.Numerical` | deferred | 2 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 134 [x] | `IAFahim.Search.Prefix` | perfect | RangeXor any T; PrefixSearch tested |
-| 135 [x] | `IAFahim.Search.Range` | deferred | gate: open findings (3); gate: public API untested: RunWindow |
+| 135 [x] | `IAFahim.Search.Range` | perfect | findings revalidated fixed/NI |
 | 136 [x] | `IAFahim.Search.RangeQueries` | perfect | RunFenwick original-order inversions |
 | 137 [x] | `IAFahim.Search.Selection` | perfect | MedianMaintain overflow-safe; defining tests |
 | 138 [x] | `IAFahim.Search.Specialized` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 139 [x] | `IAFahim.Search.Subset` | perfect | SOS supersets; EnumerateUntil/NextWithSamePopCount covered |
-| 140 [x] | `IAFahim.Search.Suffix` | deferred | gate: open findings (2) |
+| 140 [x] | `IAFahim.Search.Suffix` | perfect | findings revalidated fixed/NI |
 | 141 [x] | `IAFahim.Search.TwoPointer` | perfect | duplicate pair multiply lc*rc; tests 4/4 |
 | 142 [x] | `IAFahim.Search.Window` | perfect | zero open findings; 1 tested APIs; 7 deferred_apis |
 | 143 [x] | `IAFahim.Sort.Insertion` | perfect | defining tests + all historical criticals revalidated fixed/absent |
@@ -159,7 +159,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 150 [x] | `IAFahim.String.Automata` | perfect | SubsequenceAutomaton fixed; DFA advanced deferred |
 | 151 [x] | `IAFahim.String.Compress` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 152 [x] | `IAFahim.String.FMIndex` | perfect | BWT primary inverse roundtrip |
-| 153 [x] | `IAFahim.String.Grammar` | deferred | gate: open findings (1); gate: public API untested: Compress |
+| 153 [x] | `IAFahim.String.Grammar` | perfect | newSym=256+ruleCount avoids byte collision; Compress_UsesNonTerminalsAbove255. |
 | 154 [x] | `IAFahim.String.Match` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 155 [x] | `IAFahim.String.MinRotation` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 156 [x] | `IAFahim.String.Palindrome` | perfect | zero open findings; 5 tested APIs; 4 deferred_apis |
