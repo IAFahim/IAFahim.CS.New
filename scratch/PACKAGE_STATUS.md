@@ -8,7 +8,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | # | Package | Status | Notes |
 |---:|---|---|---|
 | 1 [x] | `IAFahim.Algebra.GraphPoly` | perfect | long size=1L<<edges; Tutte_Triangle tests. DeletionContraction deferred. |
-| 2 [x] | `IAFahim.Algebra.Polynomial` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 2 [x] | `IAFahim.Algebra.Polynomial` | perfect | poly fixes; Berlekamp NI |
 | 3 [x] | `IAFahim.Algebra.Sequence` | perfect | InverseBinomial sign (-1)^(n-k); LagrangeInversion. tests 35/35. |
 | 4 [x] | `IAFahim.Collections.NoDeps` | deferred | infra stubs |
 | 5 [x] | `IAFahim.Collision.Gjk` | perfect | zero open findings; 5 tested APIs; 2 deferred_apis |

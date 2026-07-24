@@ -40,8 +40,8 @@
     "symbol": "Berlekamp.ExtractBasis",
     "severity": "high",
     "summary": "Berlekamp factorization is supposed to return null-space basis vectors of (Q - I) (the Berlekamp subalgebra) as splitting polynomials, but ExtractBasis ignores the reduced matrix entirely and emits th",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "deferred_ni",
+    "proof": "Berlekamp ExtractBasis nullspace basis incomplete vs full factoring algorithm NI",
     "package": "IAFahim.Algebra.Polynomial"
   },
   {
@@ -85,8 +85,8 @@
     "symbol": "ToomCook.Multiply",
     "severity": "high",
     "summary": "Result coefficients are not normalized to [0, MOD): C# '%' yields a negative remainder when an accumulated value is negative, so negative input coefficients (valid longs) produce negative output coeff",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "result[i+j]=v<0?v+mod:v after %",
     "package": "IAFahim.Algebra.Polynomial"
   },
   {
@@ -1138,8 +1138,8 @@
     "symbol": "IterativeDfs.Run",
     "severity": "high",
     "summary": "Visited state is tracked via parent[v]==-1, but the start vertex keeps parent[start]==-1 for the whole run, so any edge pointing back to start treats start as unvisited and re-pushes it, causing re-tr",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "IterativeDfs uses visited[]; DetectCycle pushes once per vertex",
     "package": "IAFahim.Graph"
   },
   {

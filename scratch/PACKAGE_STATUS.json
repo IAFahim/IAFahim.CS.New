@@ -71,7 +71,7 @@
     "package": "IAFahim.Algebra.Polynomial",
     "family": "Algebra",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "AtCoder Library / CP-Algorithms",
     "defining_mechanics": "poly BM/gcd/NTT",
@@ -210,7 +210,16 @@
       }
     ],
     "algorithms_summary": "BerlekampMassey, CantorZassenhaus, PowMod, SquareFree, RootFind, OfflineQuery, ProductTree, Ntt, RationalInterpolation, Berlekamp, DivMod, Gcd (+4)",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "Gcd/PowMod/Rational/Toom fixed; Berlekamp NI",
+    "deferred_apis": [
+      "Build",
+      "Convolve",
+      "Crt",
+      "Factor",
+      "Find",
+      "MultiEval",
+      "ThreePrime"
+    ]
   },
   {
     "package": "IAFahim.Algebra.Sequence",
