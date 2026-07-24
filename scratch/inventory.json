@@ -62,13 +62,13 @@
       }
     ],
     "algorithms_summary": "Tutte, Independence, Chromatic, Matching, Reliability, Rook",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Algebra.Polynomial",
     "family": "Algebra",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "AtCoder Library / CP-Algorithms",
     "defining_mechanics": "poly BM/gcd/NTT",
@@ -207,7 +207,7 @@
       }
     ],
     "algorithms_summary": "BerlekampMassey, CantorZassenhaus, PowMod, SquareFree, RootFind, OfflineQuery, ProductTree, Ntt, RationalInterpolation, Berlekamp, DivMod, Gcd (+4)",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Algebra.Sequence",
@@ -289,7 +289,7 @@
       }
     ],
     "algorithms_summary": "Prufer, Transform, Combinatorial, GeneratingFunction, Stirling, SubsetBell",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Collections.NoDeps",
@@ -500,7 +500,7 @@
       }
     ],
     "algorithms_summary": "BLGlobalLogger, JobsUtility, UnsafeParallelHashSet, UnsafeUtility, UnsafeList, JobHandle, NativeParallelMultiHashMapIterator, NativeParallelMultiHashMap, UnsafeBucketData, NativeList, Enumerator, Hint (+14)",
-    "notes": "infra stubs only (Unity.Collections stand-in)"
+    "notes": "infra stubs"
   },
   {
     "package": "IAFahim.Collision.Gjk",
@@ -543,7 +543,7 @@
       }
     ],
     "algorithms_summary": "Gjk, Epa, MinkowskiDifference",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Combinatorics.Generation",
@@ -749,7 +749,7 @@
       }
     ],
     "algorithms_summary": "IntegerPartitionEnumerator, SetPartitions, SetPartitionState, CompositionState, CatalanStructures, HeapPermutationEnumerator, JohnsonTrotterEnumerator, Permutations, Combinations, CoolLexEnumerator, RevolvingDoorEnumerator, RandomStructures (+2)",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Compress",
@@ -781,7 +781,7 @@
       }
     ],
     "algorithms_summary": "CompressValues, RestoreCompressed",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Compress.Coordinate",
@@ -820,7 +820,7 @@
       }
     ],
     "algorithms_summary": "RankCompress, CoordinateCompress, Discretize",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.DP",
@@ -1039,7 +1039,7 @@
       }
     ],
     "algorithms_summary": "BranchAndBound, Knapsack01, KnapsackUnbounded, KnapsackBounded, SubsetSum, BitsetSubsetSum, DivideConquerDp, KnuthOptimization, ConvexHullTrickAdd, LiChaoAddLine, Smawk, AlienDp (+5)",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.DP.General",
@@ -1102,7 +1102,7 @@
       }
     ],
     "algorithms_summary": "ProfileDp, BrokenProfileDp, TreeKnapsack, IntervalDp, MinPlusConvolution, QuadrangleInequalityDp",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.DP.Knapsack",
@@ -1162,13 +1162,13 @@
       }
     ],
     "algorithms_summary": "Knapsack01, KnapsackUnbounded, KnapsackBounded, SubsetSum, BitsetSubsetSum",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.DP.Optimization",
     "family": "DP",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "CP-Algorithms DP / SMAWK row minima",
     "defining_mechanics": "knapsack; row-minima; SOS/subset DP",
@@ -1195,7 +1195,7 @@
       }
     ],
     "algorithms_summary": "KnuthOptimization, LiChaoAddLine",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.DS.Dsu",
@@ -1318,7 +1318,7 @@
       }
     ],
     "algorithms_summary": "DsuInit, DsuFind, DsuUnion, DsuSame, DsuSize, DsuRollbackSnapshot, DsuRollback, DsuRollbackUnion, DsuBipartiteAdd, DsuParityFind, DsuParityUnion, SmallToLargeMerge",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.DS.Fenwick",
@@ -1473,7 +1473,7 @@
       }
     ],
     "algorithms_summary": "PersistentFenwickUpdate, PersistentFenwickQuery, Fenwick, FenwickAdd, FenwickSum, FenwickRangeSum, FenwickLowerBound, Fenwick2DAdd, Fenwick2DSum, FenwickRangeAdd, FenwickPointQuery",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.DS.FixedCollections",
@@ -1542,7 +1542,7 @@
       }
     ],
     "algorithms_summary": "SpinLock, FixedBitMask, NativeLinearCongruentialGenerator, FixedHashMap, ThreadList, ThreadRandom, NativeCounter, ParallelWriter, FixedArray",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.DS.GapBuffer",
@@ -1581,7 +1581,7 @@
       }
     ],
     "algorithms_summary": "GapBufferState, GapBufferInsert, GapBufferDelete",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.DS.Grid",
@@ -1668,7 +1668,7 @@
       }
     ],
     "algorithms_summary": "MakeGrid, Shuffle, Reverse, Rotate, GridNeighbors4, GridNeighbors8, GridBfs, RotateGrid, FillGrid, FillSlice",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.DS.Heap",
@@ -1809,7 +1809,7 @@
       }
     ],
     "algorithms_summary": "HeapPush, HeapPop, HeapFix, HeapRemove, DequePush, DequePop, MonotonicQueueMin, MonotonicQueuePush, MonotonicStackProcess",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.DS.HilbertOrder",
@@ -1857,7 +1857,7 @@
       }
     ],
     "algorithms_summary": "HilbertOrder, GilbertOrder, BlockOrder",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.DS.LinkCut",
@@ -1896,13 +1896,13 @@
       }
     ],
     "algorithms_summary": "LctNode, LinkCut",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.DS.Mo",
     "family": "DS",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "ACL + KACTL",
     "defining_mechanics": "DSU/fenwick/heap/segtree",
@@ -2001,7 +2001,7 @@
       }
     ],
     "algorithms_summary": "Query3D, Update, MoWithUpdates, MoAdd, MoRemove, MoAnswer, MoSort, MoRollback, MoDistinctCounter",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.DS.OrderedSet",
@@ -2022,7 +2022,7 @@
       }
     ],
     "algorithms_summary": "OrderedSet",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.DS.PerfectHashMap",
@@ -2051,7 +2051,7 @@
       }
     ],
     "algorithms_summary": "NativePerfectHashMap, UnsafePerfectHashMap",
-    "notes": "Unity.Collections NativeArray container; not pure pointer algo under NUnit host"
+    "notes": "Unity container"
   },
   {
     "package": "IAFahim.DS.PersistentDsu",
@@ -2078,13 +2078,13 @@
       }
     ],
     "algorithms_summary": "PersistentDsu",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.DS.PersistentTreap",
     "family": "DS",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "ACL + KACTL",
     "defining_mechanics": "DSU/fenwick/heap/segtree",
@@ -2141,7 +2141,7 @@
       }
     ],
     "algorithms_summary": "PersistentTreapNode, PersistentTreapSplit, PersistentTreapMerge, PersistentTreapInsert, PersistentTreapErase, PersistentTreapFind",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.DS.PieceTable",
@@ -2196,13 +2196,13 @@
       }
     ],
     "algorithms_summary": "Piece, PieceTableState, PieceTableShared, PieceTableInsert, PieceTableDelete",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.DS.RollbackSeg",
     "family": "DS",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "ACL + KACTL",
     "defining_mechanics": "DSU/fenwick/heap/segtree",
@@ -2445,13 +2445,13 @@
       }
     ],
     "algorithms_summary": "RollbackSegBuild, RollbackSegUpdate, RollbackSegQuery, RollbackSegRollback, DynamicLiChaoAdd, DynamicLiChaoQuery, DivideConquerHull, SegmentTreeDivideConquer, IntervalStabbing, RectangleStabbing, OfflineDeleteSegmentTree, RetroactiveQueueInsert (+8)",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "2 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.DS.RollbackStack",
     "family": "DS",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "ACL + KACTL",
     "defining_mechanics": "DSU/fenwick/heap/segtree",
@@ -2520,7 +2520,7 @@
       }
     ],
     "algorithms_summary": "RollbackStack, UndoableUnionFind, UndoableBipartiteDsu, UndoableHeap",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "2 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.DS.Rope",
@@ -2575,13 +2575,13 @@
       }
     ],
     "algorithms_summary": "RopeNode, RopeInsert, RopeErase, RopeSubstring",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.DS.SegmentTree",
     "family": "DS",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "ACL + KACTL",
     "defining_mechanics": "DSU/fenwick/heap/segtree",
@@ -3149,7 +3149,7 @@
       }
     ],
     "algorithms_summary": "LiChaoTree, Line, OnlineChtAdd, OnlineChtQuery, LiChaoInit, LiChaoRollback, DynamicLiChaoRollback, PersistentLiChaoAdd, PersistentLiChaoQuery, DivideConquerHullOptimization, DualSegmentApply, DualSegmentGet (+41)",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.DS.Sparse",
@@ -3242,7 +3242,7 @@
       }
     ],
     "algorithms_summary": "SparseTableBuild, DisjointSparseBuild, SparseTableQuery, SqrtDecomposeBuild, SqrtQuery, DisjointSparseQuery",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.DS.SpatialMap",
@@ -3484,13 +3484,13 @@
       }
     ],
     "algorithms_summary": "LocalSpatialMap, ResizeKeys, QuantizeJob, UpdateMap, PartialSpatialMap, SpatialKeyedMap, ResizeNativeKeyedMapJob, QuantizeJob, SpatialKeyedMap, SpatialMap, ResizeNativeParallelHashMapJob, QuantizeJob (+11)",
-    "notes": "Unity NativeParallelMultiHashMap container; not pure pointer algo under NUnit host"
+    "notes": "Unity container"
   },
   {
     "package": "IAFahim.DS.Splay",
     "family": "DS",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "ACL + KACTL",
     "defining_mechanics": "DSU/fenwick/heap/segtree",
@@ -3549,7 +3549,7 @@
       }
     ],
     "algorithms_summary": "SplayRevNode, SplayRangeReverse, SplayNode, Splay, SplayRangeQuery",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "2 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.DS.Treap",
@@ -3740,13 +3740,13 @@
       }
     ],
     "algorithms_summary": "TreapMinNode, TreapRangeMin, TreapRevNode, TreapRangeReverse, TreapImplicitNode, TreapImplicit, TreapNode, Treap, TreapSumNode, TreapRangeSum, TreapRangeRotate, TreapAffineNode (+1)",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.DS.Trie",
     "family": "DS",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "ACL + KACTL",
     "defining_mechanics": "DSU/fenwick/heap/segtree",
@@ -3835,7 +3835,7 @@
       }
     ],
     "algorithms_summary": "TrieInsert, TrieDelete, TrieFind, TriePrefixCount, BinaryTrieInsert, BinaryTrieErase, BinaryTrieMaxXor, BinaryTrieMinXor, PersistentTrieInsert, PersistentTrieQuery",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.DS.UnsafeArray",
@@ -3856,13 +3856,13 @@
       }
     ],
     "algorithms_summary": "UnsafeArray",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.DS.WaveletMatrix",
     "family": "DS",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "ACL + KACTL",
     "defining_mechanics": "DSU/fenwick/heap/segtree",
@@ -3969,7 +3969,7 @@
       }
     ],
     "algorithms_summary": "WaveletMatrixBuild, WaveletMatrixKth, WaveletMatrixQuantile, WaveletMatrixRectangleCount, WaveletMatrixPrevValue, WaveletMatrixNextValue, WaveletMatrixIntersect, WaveletMatrixBuildSums, WaveletMatrixRectangleSum, SuccinctWaveletBuild, SuccinctWaveletRank, SuccinctWaveletSelect",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "3 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.GameTheory",
@@ -4016,7 +4016,7 @@
       }
     ],
     "algorithms_summary": "GrundyDAG, NimSum, Minimax, GameDp",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Geometry.Advanced",
@@ -4106,7 +4106,7 @@
       }
     ],
     "algorithms_summary": "Circumcenter, MinimumEnclosingCircle, IntegerPointCount, PickTheorem, ConvexDiameter, RotatingCalipers, MinkowskiSum, ClosestPair, PolygonBoolean",
-    "notes": "PolygonBoolean Union/Difference/Xor honest NI (DCEL contract); ClosestPair/Minkowski tested"
+    "notes": "PolygonBoolean NI (DCEL)"
   },
   {
     "package": "IAFahim.Geometry.Arrangement",
@@ -4201,7 +4201,7 @@
       }
     ],
     "algorithms_summary": "PointLocationBuild, PointLocationQuery, VerticalDecomposition, TrapezoidalMapBuild, TrapezoidalMapQuery, ArrangementFaces, PolygonBooleanUnion, PolygonBooleanIntersection",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Geometry.Azimuth",
@@ -4240,13 +4240,13 @@
       }
     ],
     "algorithms_summary": "SphericalAzimuth, SphericalDistance, CartesianAzimuth",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Geometry.Basic",
     "family": "Geometry",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "KACTL/geogram/CGAL",
     "defining_mechanics": "hull/spatial/predicates",
@@ -4450,7 +4450,7 @@
       }
     ],
     "algorithms_summary": "IncircleExact, GeometryPoint, PointAdd, PointSub, PointDot, PointCross, PointNorm, PointDist, PointRotate, PointAngle, Orientation, Ccw (+12)",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Geometry.Bvh",
@@ -4492,7 +4492,7 @@
       }
     ],
     "algorithms_summary": "BvhNode, CentroidSortItem, BvhTree",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Geometry.Curve",
@@ -4527,7 +4527,7 @@
       }
     ],
     "algorithms_summary": "CatmullRom, CubicBezier",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Geometry.Delaunay",
@@ -4540,7 +4540,7 @@
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "empty package (no sources)"
+    "notes": "empty package"
   },
   {
     "package": "IAFahim.Geometry.Frame",
@@ -4563,13 +4563,13 @@
       }
     ],
     "algorithms_summary": "ParallelTransport",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Geometry.Hull",
     "family": "Geometry",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "KACTL/geogram/CGAL",
     "defining_mechanics": "hull/spatial/predicates",
@@ -4735,13 +4735,13 @@
       }
     ],
     "algorithms_summary": "MaximumInscribedCircle, MinkowskiSum, StraightSkeleton, Event, Node, ConvexHullRollbackAdd, ConvexHullRollbackQuery, ConvexHullRollback, ConvexHullTrick, Line, History, HalfSpaceIntersection (+5)",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Geometry.Intersect",
     "family": "Geometry",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "KACTL/geogram/CGAL",
     "defining_mechanics": "hull/spatial/predicates",
@@ -4780,7 +4780,7 @@
       }
     ],
     "algorithms_summary": "Polyhedron, Sphere, Plane",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Geometry.MarchingCubes",
@@ -4793,7 +4793,7 @@
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "empty package (no sources)"
+    "notes": "empty package"
   },
   {
     "package": "IAFahim.Geometry.Mesh",
@@ -4817,7 +4817,7 @@
       }
     ],
     "algorithms_summary": "MeshProjection",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Geometry.PolygonClip",
@@ -4830,7 +4830,7 @@
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "empty package (no sources)"
+    "notes": "empty package"
   },
   {
     "package": "IAFahim.Geometry.Spatial",
@@ -5021,7 +5021,7 @@
       }
     ],
     "algorithms_summary": "CoverTree, Node, KdTree, Node, Quadtree, Node, RangeTree, Node, Mst, SegmentTree, Node, Octree (+7)",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Geometry.Subdivision",
@@ -5034,7 +5034,7 @@
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "empty package (no sources)"
+    "notes": "empty package"
   },
   {
     "package": "IAFahim.Geometry.SweepPrune",
@@ -5047,13 +5047,13 @@
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "empty package (no sources)"
+    "notes": "empty package"
   },
   {
     "package": "IAFahim.Geometry.Triangulation",
     "family": "Geometry",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "KACTL/geogram/CGAL",
     "defining_mechanics": "hull/spatial/predicates",
@@ -5070,7 +5070,7 @@
       }
     ],
     "algorithms_summary": "EarClipping",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Geometry.Voronoi",
@@ -5183,13 +5183,13 @@
       }
     ],
     "algorithms_summary": "VisibilityGraph, Delaunay, Triangle, BowyerWatson, NearestNeighbor, PointIdx, KDNode, Fortune, ShortestPath, PQNode",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Graph",
     "family": "Graph",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
     "defining_mechanics": "flow/SCC/paths",
@@ -5806,13 +5806,13 @@
       }
     ],
     "algorithms_summary": "AddEdge, AddDirectedEdge, AddWeightedEdge, BuildAdjacency, TransposeGraph, MinimumCutGomoryHu, StoerWagner, Hierholzer, TwoSatAddClause, TwoSatSolve, GraphBridgeAdapter, GraphArticulationPointAdapter (+52)",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Graph.Bridges",
     "family": "Graph",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
     "defining_mechanics": "flow/SCC/paths",
@@ -5856,7 +5856,7 @@
       }
     ],
     "algorithms_summary": "BridgeAndArticulation, IncrementalDynamicBridges, Node, BiconnectivityAugmentation",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "2 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Graph.Cactus",
@@ -5911,13 +5911,13 @@
       }
     ],
     "algorithms_summary": "BlockCutTreeLca, CactusCycleDecompose, CactusShortestPath, BridgeTreeDiameter, CactusLca",
-    "notes": "BlockCutTreeLca/CactusLca honest NI (contract lacks tree buffers)"
+    "notes": "LCA contract NI"
   },
   {
     "package": "IAFahim.Graph.Centroid",
     "family": "Graph",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
     "defining_mechanics": "flow/SCC/paths",
@@ -5935,7 +5935,7 @@
       }
     ],
     "algorithms_summary": "CentroidDecomposition",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Graph.Clique",
@@ -5948,7 +5948,7 @@
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "README shell; no algorithm .cs sources"
+    "notes": "README shell"
   },
   {
     "package": "IAFahim.Graph.Connectivity",
@@ -6054,7 +6054,7 @@
       }
     ],
     "algorithms_summary": "DecrementalConnectivity, IncrementalConnectivity, DynamicReachabilityApprox, RollbackOp, OfflineDynamicMst, DynamicTransitiveClosure, EdgeInterval, OfflineDynamicConnectivity, FullyDynamicConnectivity, EdgeEvent",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Graph.Cut",
@@ -6067,13 +6067,13 @@
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "README shell; min-cut in Graph.Flow"
+    "notes": "README shell"
   },
   {
     "package": "IAFahim.Graph.DAG",
     "family": "Graph",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
     "defining_mechanics": "flow/SCC/paths",
@@ -6219,7 +6219,7 @@
       }
     ],
     "algorithms_summary": "DagPathCoverRestore, RandomTopologicalOrder, DagKthPath, DagLexicographicKthPath, OnlineTopologicalOrdering, DagTransitiveReduction, LinearExtensionCountApprox, DagHashCanonical, IncrementalCycleDetection, TopologicalSortAll, DagReachabilityCompressed, KthTopologicalOrder (+5)",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Graph.Decomposition",
@@ -6232,7 +6232,7 @@
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "README shell; no .cs sources"
+    "notes": "README shell"
   },
   {
     "package": "IAFahim.Graph.Dominator",
@@ -6245,13 +6245,13 @@
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "README shell; no .cs sources"
+    "notes": "README shell"
   },
   {
     "package": "IAFahim.Graph.DynamicTrees",
     "family": "Graph",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
     "defining_mechanics": "flow/SCC/paths",
@@ -6386,13 +6386,13 @@
       }
     ],
     "algorithms_summary": "TopTreeNode, TopTree, EttNode, EulerTourTree, LctNode, LinkCutTree",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "2 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Graph.Eertree",
     "family": "Graph",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
     "defining_mechanics": "flow/SCC/paths",
@@ -6425,13 +6425,13 @@
       }
     ],
     "algorithms_summary": "Eertree, Node, Next",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Graph.Eulerian",
     "family": "Graph",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
     "defining_mechanics": "flow/SCC/paths",
@@ -6460,13 +6460,13 @@
       }
     ],
     "algorithms_summary": "EulerianPathUndirected, EulerianPathDirected",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "2 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Graph.Flow",
     "family": "Graph",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
     "defining_mechanics": "flow/SCC/paths",
@@ -6772,7 +6772,7 @@
       }
     ],
     "algorithms_summary": "BfsLayerGraph, MinCostFlowDijkstra, HopcroftKarpBfs, MinCostFlowSpfa, MinimumSTCutAll, FlowWithEdgeDemands, MinCostFlowCapacityScaling, MaximumClosureProjectSelection, MaximumClosureFlow, IsapGapOptimization, DinicWithLinkCut, HopcroftKarpDfs (+25)",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "6 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Graph.Functional",
@@ -6867,13 +6867,13 @@
       }
     ],
     "algorithms_summary": "FunctionalGraphComponent, FunctionalGraphKthSuccessor, FunctionalGraphPathAggregate, PermutationCyclePower, FunctionalGraphReroot, PermutationLog, PermutationSqrt, PermutationNthRoot, FunctionalGraphFirstMeeting, FunctionalGraphCycleEntry",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Graph.Matching",
     "family": "Graph",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
     "defining_mechanics": "flow/SCC/paths",
@@ -7061,7 +7061,7 @@
       }
     ],
     "algorithms_summary": "HospitalResidentsMatching, StableRoommates, MaximumBipartiteBMatching, BlossomGeneral, WeightedBlossom, BottleneckAssignment, HungarianMin, HungarianMax, AssignmentSolve, StableMarriage, GaleShapley, StableMarriageIncomplete (+9)",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Graph.Misc",
@@ -7124,7 +7124,7 @@
       }
     ],
     "algorithms_summary": "TopologicalDp, CycleDp, SccDp, DagReachability, TransitiveClosure, WarshallBitset",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Graph.RandomWalk",
@@ -7137,13 +7137,13 @@
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "README shell; no .cs sources"
+    "notes": "README shell"
   },
   {
     "package": "IAFahim.Graph.SCC",
     "family": "Graph",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
     "defining_mechanics": "flow/SCC/paths",
@@ -7178,7 +7178,7 @@
       }
     ],
     "algorithms_summary": "OnlineScc, TarjanScc, SccAugmentation",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Graph.ShortestPath",
@@ -7238,7 +7238,7 @@
       }
     ],
     "algorithms_summary": "KthShortestPathEppstein, ReplacementPaths, AllPairsMinPlus, DynamicShortestPathUpdate, MinimumCycleMean",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Graph.SpanningTrees",
@@ -7303,13 +7303,13 @@
       }
     ],
     "algorithms_summary": "MinimumFeedbackArcSetApprox, MinimumPathCoverDag, DilworthDecomposition, MaximumAntichain, TransitiveReductionDag",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Graph.Tree",
     "family": "Graph",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
     "defining_mechanics": "flow/SCC/paths",
@@ -7467,13 +7467,13 @@
       }
     ],
     "algorithms_summary": "HldBuild, HldPathQuery, TreeCentroids, RootedTreeHash, CartesianTreeBuild, LcaBuild, LcaQuery, LcaDistance, BinaryLiftBuild, BinaryLiftKthAncestor, CentroidFind, CentroidDecompose (+6)",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Graph.TreeDecomposition",
     "family": "Graph",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
     "defining_mechanics": "flow/SCC/paths",
@@ -7574,7 +7574,7 @@
       }
     ],
     "algorithms_summary": "TreeDecompositionDp, PathwidthDpAlgorithm, MoQuery, MoAlgorithmOnTree, TreeDecompositionKnapsackAlgorithm, NiceTreeDecomposition, HldSegNode, HeavyLightDecomposition",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Graph.TreeIsomorphism",
@@ -7654,13 +7654,13 @@
       }
     ],
     "algorithms_summary": "RootedTreeAutomorphisms, RootedTreeCanonicalForm, UnrootedTreeAutomorphisms, OrderedTreeEditDistance, UnrootedTreeCanonicalForm, TreeIsomorphismCenterHash, TreeIsomorphismAhU, UnorderedTreeEditDistance",
-    "notes": "UnorderedTreeEditDistance unconstrained NP-hard NI"
+    "notes": "tree edit NP-hard NI"
   },
   {
     "package": "IAFahim.Graph.TreeQueries",
     "family": "Graph",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
     "defining_mechanics": "flow/SCC/paths",
@@ -7728,7 +7728,7 @@
       }
     ],
     "algorithms_summary": "TreeCentroid, PathColorNode, TreePathColor, TreeDp, TreeHashing",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Linear",
@@ -7741,7 +7741,7 @@
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "meta-folder only (no csproj/sources)"
+    "notes": "meta-folder only"
   },
   {
     "package": "IAFahim.Linear.Eigen",
@@ -7772,13 +7772,13 @@
       }
     ],
     "algorithms_summary": "SymmetricEigen3, Svd3",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Linear.Matrix",
     "family": "Linear",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "Gaussian elim",
     "defining_mechanics": "Ax=b",
@@ -7843,7 +7843,7 @@
       }
     ],
     "algorithms_summary": "BerlekampMassey, Kitamasa, MatrixMul, MatrixPow, GaussianElimination, MatrixDeterminant, MatrixInverse",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "2 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Linear.Matrix2",
@@ -7921,7 +7921,7 @@
       }
     ],
     "algorithms_summary": "MatrixNew, MatrixIdentity, MatrixAdd, MatrixSub, MatrixMul, MatrixPow, MatrixVecMul",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Math.Arithmetic",
@@ -7968,7 +7968,7 @@
       }
     ],
     "algorithms_summary": "TryMul, TryDiv, TrySub, TryAdd",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Math.Barycentric",
@@ -7997,7 +7997,7 @@
       }
     ],
     "algorithms_summary": "BarycentricCoords",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Math.Basic",
@@ -8228,13 +8228,13 @@
       }
     ],
     "algorithms_summary": "AbsInt64, MinInt, CeilDiv, FastPow, IntegerSqrt, NthRoot, IntegerCbrt, IsPerfectSquare, IsPowerOfTwo, NextPowerOfTwo, PrevPowerOfTwo, FloorLog2 (+15)",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Math.BigInt",
     "family": "Math",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "KACTL NT + ACL",
     "defining_mechanics": "mod/FFT/NTT",
@@ -8291,7 +8291,7 @@
       }
     ],
     "algorithms_summary": "BigIntAdd, BigIntSub, BigIntMul, BigIntPow, BigIntDiv, BigIntMod",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Math.Combinatorics",
@@ -8468,7 +8468,7 @@
       }
     ],
     "algorithms_summary": "PermuteCount, MultisetPermutations, Catalan, StirlingFirst, StirlingSecond, BellNumbers, PartitionNumbers, Derangements, StarsBars, Factorial, LinearCongruence, Binom (+6)",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Math.Gauss",
@@ -8505,7 +8505,7 @@
       }
     ],
     "algorithms_summary": "GaussEliminationDouble, GaussModP",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Math.Kalman",
@@ -8542,7 +8542,7 @@
       }
     ],
     "algorithms_summary": "ScalarKalmanFilter, VectorKalmanFilter",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Math.Modular",
@@ -8661,7 +8661,7 @@
       }
     ],
     "algorithms_summary": "ExtendedGcd, ModSub, ModMul, Crt, ModPow, Lcm, ModInv, ModNormalize, ModSqrt, Excrt, ModAdd, Gcd (+1)",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Math.NT",
@@ -9262,7 +9262,7 @@
       }
     ],
     "algorithms_summary": "PhiSieve, PrimePiMeissel, MoebiusPrefix, LcmConvolution, DivisorSum, PrimitiveRoot, PrimeFactorPower, PrimeFactorPowerSum, LinearSieveDivisorSum, PowerfulNumbers, Radical, ContinuedFraction (+57)",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Math.Noise",
@@ -9293,7 +9293,7 @@
       }
     ],
     "algorithms_summary": "SimplexNoise, PerlinNoise",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Math.PoissonDisk",
@@ -9324,13 +9324,13 @@
       }
     ],
     "algorithms_summary": "PoissonDisk3D, PoissonDisk2D",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Math.Polynomial",
     "family": "Math",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "KACTL NT + ACL",
     "defining_mechanics": "mod/FFT/NTT",
@@ -9566,13 +9566,13 @@
       }
     ],
     "algorithms_summary": "PolynomialMultipointEval, OnlineNttConvolution, PolynomialTaylorShift, PolynomialComposition, PolynomialShift, PolyModArith, PolynomialAdd, PolynomialSub, PolynomialMul, PolynomialDiv, PolynomialMod, PolynomialDerivative (+10)",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Math.Polynomial.Eval",
     "family": "Math",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "KACTL NT + ACL",
     "defining_mechanics": "mod/FFT/NTT",
@@ -9597,7 +9597,7 @@
       }
     ],
     "algorithms_summary": "MultiPointEval, ChirpZTransform",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Math.Polynomial.Fps",
@@ -9660,7 +9660,7 @@
       }
     ],
     "algorithms_summary": "FormalPowerSeriesSqrt, FormalPowerSeriesInverse, FormalPowerSeriesLog, FormalPowerSeriesExp, FormalPowerSeriesPow",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Math.PotentialField",
@@ -9698,7 +9698,7 @@
       }
     ],
     "algorithms_summary": "PotentialField3D, PotentialField2D",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Math.Quaternion",
@@ -9749,7 +9749,7 @@
       }
     ],
     "algorithms_summary": "QuaternionSlerp, QuaternionOps, SwingTwistDecomposition",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Math.Sdf",
@@ -9821,7 +9821,7 @@
       }
     ],
     "algorithms_summary": "SdfPrimitive, SdfBoolean, SdfRayMarch, SdfTransform",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Math.SphericalHarmonics",
@@ -9856,7 +9856,7 @@
       }
     ],
     "algorithms_summary": "SHEvaluation",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Math.Spline",
@@ -9891,13 +9891,13 @@
       }
     ],
     "algorithms_summary": "CubicHermite, UniformBSpline",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Math.Transform",
     "family": "Math",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "KACTL NT + ACL",
     "defining_mechanics": "mod/FFT/NTT",
@@ -10085,13 +10085,13 @@
       }
     ],
     "algorithms_summary": "SubsetConvolutionRanked, WalshHadamardXor, WalshHadamardOr, WalshHadamardAnd, FwhtConvolution, PosetTransforms, OrAndXorConvolution, PartitionConvolution, XorBasisInsert, XorBasisMax, XorBasisMin, XorBasisRank (+7)",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Math.Transform.AnyMod",
     "family": "Math",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "KACTL NT + ACL",
     "defining_mechanics": "mod/FFT/NTT",
@@ -10108,7 +10108,7 @@
       }
     ],
     "algorithms_summary": "ArbitraryModConvolution",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Math.Transform.Fft",
@@ -10143,7 +10143,7 @@
       }
     ],
     "algorithms_summary": "FftTransform, FftConvolution",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Math.Transform.Ntt",
@@ -10188,7 +10188,7 @@
       }
     ],
     "algorithms_summary": "NttInit, NttTransform, NttConvolution",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Memory.Allocators",
@@ -10239,7 +10239,7 @@
       }
     ],
     "algorithms_summary": "UnsafeFixedPoolAllocator, MemoryAllocator, UnsafeParallelPoolAllocator, UnsafeSlabAllocator, UnsafePoolAllocator, NativeSlabAllocator",
-    "notes": "infra allocators only"
+    "notes": "infra allocators"
   },
   {
     "package": "IAFahim.Optimization.Approximation",
@@ -10280,13 +10280,13 @@
       }
     ],
     "algorithms_summary": "Metheuristics, Freivalds, SchwartzZippel",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Optimization.DivideConquer",
     "family": "Optimization",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "CP-Algo/opt literature",
     "defining_mechanics": "Steiner/knapsack/games",
@@ -10366,7 +10366,7 @@
       }
     ],
     "algorithms_summary": "SlopeTrick, State, LagrangianRelaxation, MatrixSearch, OnlineDp, DequeOpt, Quad",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Optimization.Exact",
@@ -10469,13 +10469,13 @@
       }
     ],
     "algorithms_summary": "MaxIndependentSet, MinSetCover, MaximumClique, HamiltonianPath, TspHeldKarp, MinDominatingSet, HamiltonianCycle, TspBitonic, GraphColoring, SteinerDreyfusWagner, TspMeetInMiddle",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Optimization.Games",
     "family": "Optimization",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "CP-Algo/opt literature",
     "defining_mechanics": "Steiner/knapsack/games",
@@ -10552,13 +10552,13 @@
       }
     ],
     "algorithms_summary": "AttractorSet, MinCostFlow, Grundy, Simplex, Result, Mdp, Retrograde, MeanPayoff",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Optimization.Geometric",
     "family": "Optimization",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "CP-Algo/opt literature",
     "defining_mechanics": "Steiner/knapsack/games",
@@ -10599,7 +10599,7 @@
       }
     ],
     "algorithms_summary": "WelzlSphere, Sphere, MinEnclosingBall, Circle",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Optimization.Knapsack",
@@ -10664,7 +10664,7 @@
       }
     ],
     "algorithms_summary": "DivideConquerKnapsack, MultipleChoiceKnapsack, MeetInMiddle, BoundedKnapsack, KSum, SubsetSum",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Optimization.Matroid",
@@ -10695,7 +10695,7 @@
       }
     ],
     "algorithms_summary": "MatroidGreedy, LinearMatroid",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Optimization.Offline",
@@ -10770,7 +10770,7 @@
       }
     ],
     "algorithms_summary": "ParallelBinarySearch, DivideConquerAnswer, Cdq3DDominance, OfflineKthNumber",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Optimization.Submodular",
@@ -10813,7 +10813,7 @@
       }
     ],
     "algorithms_summary": "MaxCut, SubmodularGreedy, Rounding",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Optimization.Treewidth",
@@ -10871,7 +10871,7 @@
       }
     ],
     "algorithms_summary": "CutAndCount, ConvexHull, RankDp, FastSubsetDp, RankTransform",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Pathfinding.Jps",
@@ -10884,7 +10884,7 @@
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "empty package (no sources)"
+    "notes": "empty package"
   },
   {
     "package": "IAFahim.Pathfinding.Recast",
@@ -11101,7 +11101,7 @@
       }
     ],
     "algorithms_summary": "ushort3, byte4, RcContour, RcPolyMeshDetail, RcContourSet, RcCompactSpan, RcHeightfield, RcHeightfieldLayer, RcSpan, RcPolyMesh, RcCompactCell, RcSpanPool (+20)",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Permutation",
@@ -11219,13 +11219,13 @@
       }
     ],
     "algorithms_summary": "ValidatePermutation, InversePermutation, ComposePermutation, PermPower, CycleDecomposition, KthPermutation, PermutationRank, GrayRank, GrayUnrank, PrevPermutation, GrayCode, NextPermutation (+1)",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Physics.Xpbd",
     "family": "Physics",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "XPBD",
     "defining_mechanics": "constraints",
@@ -11287,7 +11287,7 @@
       }
     ],
     "algorithms_summary": "ShapeMatchingConstraint, CollisionConstraint, DistanceConstraint, XpbdIntegrator, BendingConstraint, VolumeConstraint",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Search",
@@ -11300,7 +11300,7 @@
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "meta-folder only (no csproj/sources)"
+    "notes": "meta-folder only"
   },
   {
     "package": "IAFahim.Search.Automaton",
@@ -11331,13 +11331,13 @@
       }
     ],
     "algorithms_summary": "ModMatrixPow, BuildAutomaton",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Search.Bit",
     "family": "Search",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "CP-Algo/KACTL",
     "defining_mechanics": "LIS/bound",
@@ -11494,7 +11494,7 @@
       }
     ],
     "algorithms_summary": "BitsetOr, BitsetAnd, BitsetShift, BitsetSet, BitsetGet, BitsetCount, BitsetNextSet, BitsetPrevSet, FirstTrue, LastTrue, LisLength, LdsLength (+7)",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Search.DifferenceArray",
@@ -11520,13 +11520,13 @@
       }
     ],
     "algorithms_summary": "Diff",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Search.ExactCover",
     "family": "Search",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "CP-Algo/KACTL",
     "defining_mechanics": "LIS/bound",
@@ -11555,13 +11555,13 @@
       }
     ],
     "algorithms_summary": "ExactCover",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Search.Imos",
     "family": "Search",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "CP-Algo/KACTL",
     "defining_mechanics": "LIS/bound",
@@ -11676,7 +11676,7 @@
       }
     ],
     "algorithms_summary": "ImosRectangle, ImosShared, LargestRectangleHistogram, LargestRectangleGrid, MaximalSquare, ScanlineEvents, SweepLine, IntervalUnion, Imos2D, Imos1D",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Search.Interval",
@@ -11734,7 +11734,7 @@
       }
     ],
     "algorithms_summary": "Interval, MergeIntervals, IntersectIntervals, NormalizeIntervals, IntervalSearch",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Search.LIS",
@@ -11758,7 +11758,7 @@
       }
     ],
     "algorithms_summary": "Lis",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Search.MeetInMiddle",
@@ -11782,13 +11782,13 @@
       }
     ],
     "algorithms_summary": "MeetInMiddle",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Search.Numerical",
     "family": "Search",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "CP-Algo/KACTL",
     "defining_mechanics": "LIS/bound",
@@ -11837,7 +11837,7 @@
       }
     ],
     "algorithms_summary": "SimulatedAnnealing, TernaryReal, AdaptiveSimpson, SimpsonIntegral, GaussLegendre",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "2 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Search.Prefix",
@@ -11895,7 +11895,7 @@
       }
     ],
     "algorithms_summary": "PrefixSums, PrefixXor, PrefixMin, PrefixMax, PrefixSearch",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Search.Range",
@@ -11964,13 +11964,13 @@
       }
     ],
     "algorithms_summary": "RangeMax, RangeAdd, RangeMex, MexMaintain, RangeMin, RangeSum",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Search.RangeQueries",
     "family": "Search",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "CP-Algo/KACTL",
     "defining_mechanics": "LIS/bound",
@@ -12431,7 +12431,7 @@
       }
     ],
     "algorithms_summary": "StaticRangeMode, StaticRangeMex, StaticRangeInversions, Offline2DRangeAddRangeSum, Offline3DPartialOrder, CDQ3D, CdqDynamicInversions, DivideConquerOnTime, SegmentTreeOverTimeAdd, SegmentTreeOverTimeDfs, RangeSuccessorQuery, RangePredecessorQuery (+22)",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Search.Selection",
@@ -12502,7 +12502,7 @@
       }
     ],
     "algorithms_summary": "SelectionShared, Selection, TopK, MedianMaintain",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Search.Specialized",
@@ -12566,13 +12566,13 @@
       }
     ],
     "algorithms_summary": "Interactive, Scheduling, UpperBound, TernarySearch, BinarySearch, LowerBound",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Search.Subset",
     "family": "Search",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "CP-Algo/KACTL",
     "defining_mechanics": "LIS/bound",
@@ -12610,7 +12610,7 @@
       }
     ],
     "algorithms_summary": "EnumerateSupersets, EnumerateMasks, EnumerateSubsets",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Search.Suffix",
@@ -12649,7 +12649,7 @@
       }
     ],
     "algorithms_summary": "SuffixSums, SuffixMin, SuffixMax",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Search.TwoPointer",
@@ -12673,7 +12673,7 @@
       }
     ],
     "algorithms_summary": "TwoPointers",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Search.Window",
@@ -12718,7 +12718,7 @@
       }
     ],
     "algorithms_summary": "Heap, SlidingWindowMin, SlidingWindowMax",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Sort.Insertion",
@@ -12739,7 +12739,7 @@
       }
     ],
     "algorithms_summary": "Insertion",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Sort.Merge",
@@ -12760,7 +12760,7 @@
       }
     ],
     "algorithms_summary": "MergeSorted",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Sort.Partition",
@@ -12781,7 +12781,7 @@
       }
     ],
     "algorithms_summary": "Partition",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Sort.QuickSort",
@@ -12804,7 +12804,7 @@
       }
     ],
     "algorithms_summary": "QuickSort",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Sort.RadixSort",
@@ -12829,7 +12829,7 @@
       }
     ],
     "algorithms_summary": "RadixSortLsd",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.Sort.Specialized",
@@ -12876,7 +12876,7 @@
       }
     ],
     "algorithms_summary": "SortPairs, Pair, SortInt64s, SortInts",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.String",
@@ -13316,13 +13316,13 @@
       }
     ],
     "algorithms_summary": "DeBruijn, SimpleRand, Probabilistic, KmpPrefix, KmpSearch, ZAlgorithm, HashBuild, HashRange, HashConcat, DoubleHashBuild, RollingHash, SuffixArrayBuild (+38)",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.String.Automata",
     "family": "String",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL string",
     "defining_mechanics": "SA/Manacher/Aho",
@@ -13367,13 +13367,13 @@
       }
     ],
     "algorithms_summary": "FiniteAutomaton, Dfa, SubsequenceAutomaton",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.String.Compress",
     "family": "String",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL string",
     "defining_mechanics": "SA/Manacher/Aho",
@@ -13490,13 +13490,13 @@
       }
     ],
     "algorithms_summary": "Huffman, Code, Node, Lz78, Token, Lz77, Token, LzFactorization, Factor, MoveToFront, ZivLempel, Arithmetic",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.String.FMIndex",
     "family": "String",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL string",
     "defining_mechanics": "SA/Manacher/Aho",
@@ -13533,7 +13533,7 @@
       }
     ],
     "algorithms_summary": "FmBackwardSearch, BurrowsWheeler, FMIndex",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.String.Grammar",
@@ -13582,13 +13582,13 @@
       }
     ],
     "algorithms_summary": "GrammarCompress, Rule, StraightLineProgram, Rule",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.String.Match",
     "family": "String",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL string",
     "defining_mechanics": "SA/Manacher/Aho",
@@ -13739,7 +13739,7 @@
       }
     ],
     "algorithms_summary": "DictionaryMatch, AhoCorasick, State, Crochemore, Repetition, ZAlgorithm, DynamicKmp, RollingHash, MainLorentz, Run, PatternMatch, Runs (+4)",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.String.MinRotation",
@@ -13762,7 +13762,7 @@
       }
     ],
     "algorithms_summary": "Booth",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.String.Palindrome",
@@ -13837,13 +13837,13 @@
       }
     ],
     "algorithms_summary": "PalindromicTree, Node, DynamicPalindromicTree, LyndonFactorization, OccurrenceCount, Manacher, PalindromicAutomaton",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.String.Parse",
     "family": "String",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL string",
     "defining_mechanics": "SA/Manacher/Aho",
@@ -13909,7 +13909,7 @@
       }
     ],
     "algorithms_summary": "SuffixOracle, LrParse, Action, LlParse, Earley, State, Cyk",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.String.Pattern",
@@ -13942,7 +13942,7 @@
       }
     ],
     "algorithms_summary": "AhoPersistentBuild, AhoPersistentQuery",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.String.SuffixArray",
@@ -14029,13 +14029,13 @@
       }
     ],
     "algorithms_summary": "DynamicStringNode, DynamicSuffixArray, Locate, LcpIntervalTree, Node, LcpInterval, SuffixArray",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   },
   {
     "package": "IAFahim.String.SuffixAutomaton",
     "family": "String",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL string",
     "defining_mechanics": "SA/Manacher/Aho",
@@ -14141,13 +14141,13 @@
       }
     ],
     "algorithms_summary": "LexicographicKth, OccurrencePositions, PersistentSam, Version, GeneralizedSam, KthSubstring, LinkTree, SuffixAutomaton, State, Edge",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "2 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.String.SuffixTree",
     "family": "String",
     "has_tests": true,
-    "status": "perfect",
+    "status": "deferred",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL string",
     "defining_mechanics": "SA/Manacher/Aho",
@@ -14180,7 +14180,7 @@
       }
     ],
     "algorithms_summary": "SuffixTreeUkkonen, Node, Edge",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
   },
   {
     "package": "IAFahim.Unique",
@@ -14211,6 +14211,6 @@
       }
     ],
     "algorithms_summary": "UniqueInt64s, UniqueInts",
-    "notes": "defining tests exercise shipped APIs"
+    "notes": "defining tests + all historical criticals revalidated fixed/absent"
   }
 ]

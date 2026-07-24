@@ -1,10 +1,13 @@
-Skeptic-pass contract notes
-- Smawk.Run: fixed to ROW minima (dp[i]=min of row i); was wrong column mins.
-  Dense explicit matrix form is O(nm) data-touching (SMAWK output semantics).
-- Geometry.Advanced: deferred — public PolygonBoolean Union/Diff/Xor throw NI.
-- PerfectHashMap/SpatialMap: deferred Unity container surface.
-- Inventory lists public algorithm types per package (PACKAGE_STATUS.md).
-- Strengthened defining tests: Bvh bounds+raycast, Frame axes, Mesh unit normals,
-  Ukkonen leaves, Aho exact counts, Perlin locked sample, DP Smawk/SOS/CHT/MinPlus.
-- Historical findings: many remain open_unverified until per-finding recheck;
-  only entries revalidated as fixed/deferred_ni are marked so.
+Critical-finding discipline (skeptic pass)
+=========================================
+- findings_reassessment.json: each critical/high has reassessment
+  fixed | needs_manual | deferred_ni with proof string.
+- PACKAGE_STATUS: perfect ONLY if package has defining tests AND zero
+  critical findings still needs_manual/still_open.
+- Packages with unrevalidated criticals demoted to deferred with count.
+- Permanent deferred: shells, Unity containers, PolygonBoolean NI, Cactus LCA NI.
+- Revalidated fixed examples: edgeId=2 flow builders, SumSourceOutFlow,
+  ulong BitCompress, StableMarriage scratch layout, DuJiao sieve-before-Get,
+  Smawk row minima, Steiner masks, etc.
+- Remaining needs_manual (~70 critical) live only on deferred packages —
+  not claimed perfect.

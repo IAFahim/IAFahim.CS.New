@@ -3,1757 +3,2259 @@
     "file": "src/IAFahim.Algebra.GraphPoly/Reliability.cs",
     "symbol": "Reliability.CalculateProbability",
     "severity": "critical",
+    "summary": "Edge success/failure probabilities are swapped: present edges (those in the mask, counted by edgeCount) are multiplied by the failure probability q=(1-p), and absent edges (totalEdges-edgeCount) are m",
     "reassessment": "fixed",
-    "summary": "Edge success/failure probabilities are swapped: present edges (those in the mask, counted by edgeCount) are multiplied by the failure probability q=(1-p), and a"
+    "proof": "reliability p",
+    "package": "IAFahim.Algebra.GraphPoly"
   },
   {
     "file": "src/IAFahim.Algebra.GraphPoly/Tutte.cs",
     "symbol": "Tutte.Subset",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "size = 1 << edges overflows int for edges >= 31, producing a negative size that makes the subset-enumeration loop run zero iterations and return 0 (and undefine"
+    "summary": "size = 1 << edges overflows int for edges >= 31, producing a negative size that makes the subset-enumeration loop run zero iterations and return 0 (and undefined shift behavior for edges >= 32).",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Algebra.GraphPoly"
   },
   {
     "file": "src/IAFahim.Algebra.Polynomial/BerlekampMassey.cs",
     "symbol": "BerlekampMassey.Run",
     "severity": "critical",
+    "summary": "After a length-increasing update (the 2*L<=i branch) the shift counter m is reset to 0 instead of 1. In the single-array Berlekamp-Massey, the correction polynomial b must be applied shifted by m=1 on",
     "reassessment": "fixed",
-    "summary": "After a length-increasing update (the 2*L<=i branch) the shift counter m is reset to 0 instead of 1. In the single-array Berlekamp-Massey, the correction polyno"
+    "proof": "BM m=1",
+    "package": "IAFahim.Algebra.Polynomial"
   },
   {
     "file": "src/IAFahim.Algebra.Polynomial/BostanMori.cs",
     "symbol": "BostanMori.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Computes [x^k] P/Q but is wrong on essentially all inputs. Three independent defects: (1) the final result `p[0] % MOD` is never divided by q[0], so even k=0 wi"
+    "summary": "Computes [x^k] P/Q but is wrong on essentially all inputs. Three independent defects: (1) the final result `p[0] % MOD` is never divided by q[0], so even k=0 with q[0]!=1 returns p[0] instead of p[0]/",
+    "reassessment": "fixed",
+    "proof": "BM inv",
+    "package": "IAFahim.Algebra.Polynomial"
   },
   {
     "file": "src/IAFahim.Algebra.Polynomial/Berlekamp.cs",
     "symbol": "Berlekamp.ExtractBasis",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Berlekamp factorization is supposed to return null-space basis vectors of (Q - I) (the Berlekamp subalgebra) as splitting polynomials, but ExtractBasis ignores "
+    "summary": "Berlekamp factorization is supposed to return null-space basis vectors of (Q - I) (the Berlekamp subalgebra) as splitting polynomials, but ExtractBasis ignores the reduced matrix entirely and emits th",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Algebra.Polynomial"
   },
   {
     "file": "src/IAFahim.Algebra.Polynomial/Gcd.cs",
     "symbol": "Gcd.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Stack buffer overflow when the second polynomial has higher degree than the first (lenB > lenA). The working buffer `u` is sized only `stackalloc long[lenA]`, b"
+    "summary": "Stack buffer overflow when the second polynomial has higher degree than the first (lenB > lenA). The working buffer `u` is sized only `stackalloc long[lenA]`, but the Euclidean loop performs `u <- v` ",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Algebra.Polynomial"
   },
   {
     "file": "src/IAFahim.Algebra.Polynomial/PowMod.cs",
     "symbol": "PowMod.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Stack buffer overflow when the base polynomial's degree is >= the modulus polynomial's degree (lenPoly close to or larger than lenModPoly). The base/temp/q/r bu"
+    "summary": "Stack buffer overflow when the base polynomial's degree is >= the modulus polynomial's degree (lenPoly close to or larger than lenModPoly). The base/temp/q/r buffers are sized `lenModPoly*2+1`, but th",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Algebra.Polynomial"
   },
   {
     "file": "src/IAFahim.Algebra.Polynomial/RationalInterpolation.cs",
     "symbol": "RationalInterpolation.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Denominator extraction reads r[n-1+i] for i up to degDen=n/2, but r is stackalloc long[n] (valid indices 0..n-1). For any n>=2 this reads past the allocated sta"
+    "summary": "Denominator extraction reads r[n-1+i] for i up to degDen=n/2, but r is stackalloc long[n] (valid indices 0..n-1). For any n>=2 this reads past the allocated stack buffer (uninitialized/out-of-bounds),",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Algebra.Polynomial"
   },
   {
     "file": "src/IAFahim.Algebra.Polynomial/RationalInterpolation.cs",
     "symbol": "RationalInterpolation.ThieleInterpolation",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "diffs[i] = (den % MOD + MOD) * (inv % MOD + MOD) % MOD overflows Int64 for large MOD. Each factor can be up to ~2*MOD-1, so the product can reach ~4*MOD^2, whic"
+    "summary": "diffs[i] = (den % MOD + MOD) * (inv % MOD + MOD) % MOD overflows Int64 for large MOD. Each factor can be up to ~2*MOD-1, so the product can reach ~4*MOD^2, which exceeds long.MaxValue (~9.2e18) for pr",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Algebra.Polynomial"
   },
   {
     "file": "src/IAFahim.Algebra.Polynomial/ToomCook.cs",
     "symbol": "ToomCook.Multiply",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Result coefficients are not normalized to [0, MOD): C# '%' yields a negative remainder when an accumulated value is negative, so negative input coefficients (va"
+    "summary": "Result coefficients are not normalized to [0, MOD): C# '%' yields a negative remainder when an accumulated value is negative, so negative input coefficients (valid longs) produce negative output coeff",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Algebra.Polynomial"
   },
   {
     "file": "src/IAFahim.Algebra.Sequence/GeneratingFunction.cs",
     "symbol": "GeneratingFunction.LagrangeInversion",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "LagrangeInversion does not implement Lagrange inversion at all; it returns the k-th derivative coefficient of f divided by k, i.e. effectively f[k], rather than"
+    "summary": "LagrangeInversion does not implement Lagrange inversion at all; it returns the k-th derivative coefficient of f divided by k, i.e. effectively f[k], rather than the k-th coefficient of the composition",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Algebra.Sequence"
   },
   {
     "file": "src/IAFahim.Algebra.Sequence/Transform.cs",
     "symbol": "Transform.ComputeInverseBinomialTerm",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "InverseBinomial uses the wrong sign parity (-1)^k instead of (-1)^(n-k), so it is NOT the inverse of Binomial. For every odd index n2 the result is the negation"
+    "summary": "InverseBinomial uses the wrong sign parity (-1)^k instead of (-1)^(n-k), so it is NOT the inverse of Binomial. For every odd index n2 the result is the negation of the correct value, making the round-",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Algebra.Sequence"
   },
   {
     "file": "src/IAFahim.Collections.NoDeps/Memory.cs",
     "symbol": "Unmanaged.Allocate",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Allocate ignores the requested alignment, returning Marshal.AllocHGlobal memory aligned only to the CRT default (typically 8/16 bytes). Callers that request a s"
+    "summary": "Allocate ignores the requested alignment, returning Marshal.AllocHGlobal memory aligned only to the CRT default (typically 8/16 bytes). Callers that request a stronger alignment (e.g. 32 or CacheLineS",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Collections.NoDeps"
   },
   {
     "file": "src/IAFahim.Collections.NoDeps/NativeHashSet.cs",
     "symbol": "NativeHashSet<T>.Capacity.set / Reallocate",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Setting Capacity to a value smaller than the current Length writes past the freshly allocated, smaller Keys/Next buffers, corrupting the heap. The Capacity sett"
+    "summary": "Setting Capacity to a value smaller than the current Length writes past the freshly allocated, smaller Keys/Next buffers, corrupting the heap. The Capacity setter only clamps value<0 to 0 and never cl",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Collections.NoDeps"
   },
   {
     "file": "src/IAFahim.Collections.NoDeps/NativeList.cs",
     "symbol": "NativeList<T>.this[int].get/set (and Add, RemoveAt, RemoveRange, Resize offset math)",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Byte-offset computation uses 32-bit int multiplication (index * ElementSize), which overflows for valid in-range indices once index*sizeof(T) exceeds 2^31 bytes"
+    "summary": "Byte-offset computation uses 32-bit int multiplication (index * ElementSize), which overflows for valid in-range indices once index*sizeof(T) exceeds 2^31 bytes, producing a wrong (often negative) poi",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Collections.NoDeps"
   },
   {
     "file": "src/IAFahim.Collections.NoDeps/NativeArray.cs",
     "symbol": "NativeArray<T>.this[int].get/set",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Indexer computes the byte offset as index * UnsafeUtility.SizeOf<T>() in 32-bit int arithmetic, overflowing for valid in-range indices when index*sizeof(T) exce"
+    "summary": "Indexer computes the byte offset as index * UnsafeUtility.SizeOf<T>() in 32-bit int arithmetic, overflowing for valid in-range indices when index*sizeof(T) exceeds 2^31, yielding a wrong pointer and o",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Collections.NoDeps"
   },
   {
     "file": "src/IAFahim.Collections.NoDeps/UnsafeKeyedMap.cs",
     "symbol": "KeyedMapData.ReallocateHashMap",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "On grow, the per-region copy of Buckets uses the WRONG source pointer arithmetic relative to recomputed offsets, but more importantly the Next region is only in"
+    "summary": "On grow, the per-region copy of Buckets uses the WRONG source pointer arithmetic relative to recomputed offsets, but more importantly the Next region is only initialized to -1 for indices [oldKeyCapac",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Collections.NoDeps"
   },
   {
     "file": "src/IAFahim.Collections.NoDeps/UnsafeKeyedMap.cs",
     "symbol": "UnsafeKeyedMap.Add",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Add grows KeyCapacity via ReallocateHashMap when Length>=KeyCapacity, but ReallocateHashMap copies the Next array using data->KeyCapacity*SizeOf<int>() and then"
+    "summary": "Add grows KeyCapacity via ReallocateHashMap when Length>=KeyCapacity, but ReallocateHashMap copies the Next array using data->KeyCapacity*SizeOf<int>() and then sets newNext[oldKeyCapacity..newCapacit",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Collections.NoDeps"
   },
   {
     "file": "src/IAFahim.Collections.NoDeps/UnsafeList.cs",
     "symbol": "UnsafeList.this[int].get/set",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Indexer computes byte offset as `_buffer + index * _elementSize` using 32-bit int arithmetic for `index * _elementSize`. For a large list where index*_elementSi"
+    "summary": "Indexer computes byte offset as `_buffer + index * _elementSize` using 32-bit int arithmetic for `index * _elementSize`. For a large list where index*_elementSize exceeds int.MaxValue (e.g. element si",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Collections.NoDeps"
   },
   {
     "file": "src/IAFahim.Collections.NoDeps/UnsafeList.cs",
     "symbol": "UnsafeList.RemoveRange",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "RemoveRange validates `index < 0 || count < 0 || index >= _length` but does NOT clamp/validate when index==_length is excluded incorrectly: when count==0 it sti"
+    "summary": "RemoveRange validates `index < 0 || count < 0 || index >= _length` but does NOT clamp/validate when index==_length is excluded incorrectly: when count==0 it still decrements length by 0 (fine). The re",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Collections.NoDeps"
   },
   {
     "file": "src/IAFahim.Collision.Gjk/Gjk.cs",
     "symbol": "Gjk.ComputeClosestPointToOrigin / Gjk.Distance",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "ComputeClosestPointToOrigin only handles simplex count 1 and 2; for count==3 (triangle) and count==4 (tetrahedron) it falls through and returns float3.zero. In "
+    "summary": "ComputeClosestPointToOrigin only handles simplex count 1 and 2; for count==3 (triangle) and count==4 (tetrahedron) it falls through and returns float3.zero. In Distance(), once the witness simplex gro",
+    "reassessment": "fixed",
+    "proof": "gjk",
+    "package": "IAFahim.Collision.Gjk"
   },
   {
     "file": "src/IAFahim.Combinatorics.Generation/NecklacesAndBracelets.cs",
     "symbol": "LyndonWordEnumerator.MoveNext",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "LyndonWordEnumerator emits all NECKLACE representatives (FKM prenecklaces where n % j == 0), not Lyndon words. It outputs periodic words and words of length < n"
+    "summary": "LyndonWordEnumerator emits all NECKLACE representatives (FKM prenecklaces where n % j == 0), not Lyndon words. It outputs periodic words and words of length < n, so it both over-generates and returns ",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Combinatorics.Generation"
   },
   {
     "file": "src/IAFahim.DP.General/General.cs",
     "symbol": "IntervalDp.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The interval-DP base case zeroes the wrong cells: it writes dp[i] (i.e. dp[0*n+i]) for i in [0,n), instead of the diagonal dp[i*n+i]. The diagonal cells dp[1*n+"
+    "summary": "The interval-DP base case zeroes the wrong cells: it writes dp[i] (i.e. dp[0*n+i]) for i in [0,n), instead of the diagonal dp[i*n+i]. The diagonal cells dp[1*n+1], dp[2*n+2], ... are never initialized",
+    "reassessment": "fixed",
+    "proof": "interval diagonal",
+    "package": "IAFahim.DP.General"
   },
   {
     "file": "src/IAFahim.DP.General/General.cs",
     "symbol": "QuadrangleInequalityDp.FindBestQuadrangleSplit",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The split recurrence uses dp[k*n+j] for the right sub-interval instead of dp[(k+1)*n+j]. For k==i this references dp[i*n+j] \u2014 the very cell currently being comp"
+    "summary": "The split recurrence uses dp[k*n+j] for the right sub-interval instead of dp[(k+1)*n+j]. For k==i this references dp[i*n+j] \u2014 the very cell currently being computed (still at its uninitialized/MaxValu",
+    "reassessment": "fixed",
+    "proof": "interval diagonal",
+    "package": "IAFahim.DP.General"
   },
   {
     "file": "src/IAFahim.DP.General/General.cs",
     "symbol": "QuadrangleInequalityDp.FindBestQuadrangleSplit",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "When no candidate split is valid (all d1/d2 == long.MaxValue), bestK stays -1 and is stored via opt[i] = bestK = -1. On the next (longer) length iteration for t"
+    "summary": "When no candidate split is valid (all d1/d2 == long.MaxValue), bestK stays -1 and is stored via opt[i] = bestK = -1. On the next (longer) length iteration for the same i, `start = opt[i]` = -1 is used",
+    "reassessment": "fixed",
+    "proof": "interval diagonal",
+    "package": "IAFahim.DP.General"
   },
   {
     "file": "src/IAFahim.DP.Knapsack/Knapsack.cs",
     "symbol": "BitsetSubsetSum.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "The bitset word-count `size = (target+63)>>6` is one word too small whenever `target` is an exact multiple of 64. The word that holds the target bit (index `tar"
+    "summary": "The bitset word-count `size = (target+63)>>6` is one word too small whenever `target` is an exact multiple of 64. The word that holds the target bit (index `target>>6`) is then never allocated/process",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.DP.Knapsack"
   },
   {
     "file": "src/IAFahim.DP.Optimization/Optimization.cs",
     "symbol": "LiChaoAddLine.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Li Chao tree descends children using the INDEX midpoint mid=(l+r)>>1 for the index range [l,mid)/[mid,r) but a SEPARATE, divergent COORDINATE midpoint midX=x1+("
+    "summary": "Li Chao tree descends children using the INDEX midpoint mid=(l+r)>>1 for the index range [l,mid)/[mid,r) but a SEPARATE, divergent COORDINATE midpoint midX=x1+(x2-x1)/2 for the x range [x1,midX]/[midX",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.DP.Optimization"
   },
   {
     "file": "src/IAFahim.DP/Dp.cs",
     "symbol": "ConvexHullTrickAdd.AddLine/Query",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "AddLine only appends lines and never removes lines that are no longer part of the lower envelope, but Query performs a binary search that assumes the stored lin"
+    "summary": "AddLine only appends lines and never removes lines that are no longer part of the lower envelope, but Query performs a binary search that assumes the stored lines form a valid convex lower hull (Eval(",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.DP"
   },
   {
     "file": "src/IAFahim.DP/Dp.cs",
     "symbol": "Smawk.UpdateSmawkRow",
     "severity": "high",
-    "reassessment": "fixed",
-    "summary": "The row update only writes dp[j] for columns j that survive on the monotone stack; columns popped/never pushed keep their previous (row i-1) value. For i==1 in "
+    "summary": "The row update only writes dp[j] for columns j that survive on the monotone stack; columns popped/never pushed keep their previous (row i-1) value. For i==1 in particular, only stacked columns are ove",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.DP"
   },
   {
     "file": "src/IAFahim.DS.GapBuffer/GapBuffer.cs",
     "symbol": "GapBufferInsert.MoveGap",
     "severity": "critical",
+    "summary": "When moving the gap LEFT (pos < GapStart), the relocation loop iterates gapLen times instead of shift = (GapStart - pos) times. It copies the wrong number of text bytes, corrupting the buffer whenever",
     "reassessment": "fixed",
-    "summary": "When moving the gap LEFT (pos < GapStart), the relocation loop iterates gapLen times instead of shift = (GapStart - pos) times. It copies the wrong number of te"
+    "proof": "gap shift",
+    "package": "IAFahim.DS.GapBuffer"
   },
   {
     "file": "src/IAFahim.DS.GapBuffer/GapBuffer.cs",
     "symbol": "GapBufferDelete.MoveGapTo",
     "severity": "critical",
+    "summary": "When moving the gap LEFT (pos < GapStart), the loop iterates gapLen times instead of shift = (GapStart - pos) times, copying the wrong number of text bytes and corrupting the buffer whenever shift != ",
     "reassessment": "fixed",
-    "summary": "When moving the gap LEFT (pos < GapStart), the loop iterates gapLen times instead of shift = (GapStart - pos) times, copying the wrong number of text bytes and "
+    "proof": "gap shift",
+    "package": "IAFahim.DS.GapBuffer"
   },
   {
     "file": "src/IAFahim.DS.HilbertOrder/HilbertOrder.cs",
     "symbol": "HilbertOrder.Encode",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Hilbert d-index accumulation is wrong: it unconditionally adds 1L<<(2*i-2) (= s*s) each level plus a tiny (rx<<1)+ry term, instead of adding s*s*((3*rx)^ry). Th"
+    "summary": "Hilbert d-index accumulation is wrong: it unconditionally adds 1L<<(2*i-2) (= s*s) each level plus a tiny (rx<<1)+ry term, instead of adding s*s*((3*rx)^ry). The result is not a Hilbert curve mapping ",
+    "reassessment": "fixed",
+    "proof": "hilbert",
+    "package": "IAFahim.DS.HilbertOrder"
   },
   {
     "file": "src/IAFahim.DS.HilbertOrder/HilbertOrder.cs",
     "symbol": "HilbertOrder.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Recursive Hilbert Run only adds subSize on the seg==3 branch and adds nothing for seg 0/1/2, and uses an incorrect quadrant-to-offset mapping. The output is not"
+    "summary": "Recursive Hilbert Run only adds subSize on the seg==3 branch and adds nothing for seg 0/1/2, and uses an incorrect quadrant-to-offset mapping. The output is not a Hilbert ordering and is not a bijecti",
+    "reassessment": "fixed",
+    "proof": "hilbert",
+    "package": "IAFahim.DS.HilbertOrder"
   },
   {
     "file": "src/IAFahim.DS.HilbertOrder/HilbertOrder.cs",
     "symbol": "BlockOrder.Decode",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Decode does not invert Encode for odd blocks. Encode subtracts r from block*int.MaxValue for odd blocks, which underflows the block multiple, so integer divisio"
+    "summary": "Decode does not invert Encode for odd blocks. Encode subtracts r from block*int.MaxValue for odd blocks, which underflows the block multiple, so integer division recovers block-1 and the remainder rec",
+    "reassessment": "fixed",
+    "proof": "hilbert",
+    "package": "IAFahim.DS.HilbertOrder"
   },
   {
     "file": "src/IAFahim.DS.Mo/MoUpdates.cs",
     "symbol": "MoWithUpdates.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "stackalloc int[1000001] allocates ~3.8 MB on the stack, far exceeding the default 1 MB managed-thread stack, causing a StackOverflowException (uncatchable, proc"
+    "summary": "stackalloc int[1000001] allocates ~3.8 MB on the stack, far exceeding the default 1 MB managed-thread stack, causing a StackOverflowException (uncatchable, process abort) on every single invocation re",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.DS.Mo"
   },
   {
     "file": "src/IAFahim.DS.PerfectHashMap/UnsafePerfectHashMap.cs",
     "symbol": "UnsafePerfectHashMap.TryGetIndex / TryGetValue / this[]",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Lookup never compares the stored key against the queried key. TryGetIndex computes index = hash(key) & (size-1), which is ALWAYS in [0, size-1], so it always re"
+    "summary": "Lookup never compares the stored key against the queried key. TryGetIndex computes index = hash(key) & (size-1), which is ALWAYS in [0, size-1], so it always returns true. TryGetValue then reads Value",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.DS.PerfectHashMap"
   },
   {
     "file": "src/IAFahim.DS.PersistentTreap/Treap.cs",
     "symbol": "PersistentTreapErase.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Erase is an unimplemented stub: it splits the tree on val into l (<= val) and r (> val), then returns only l, discarding r entirely and never removing val. Ever"
+    "summary": "Erase is an unimplemented stub: it splits the tree on val into l (<= val) and r (> val), then returns only l, discarding r entirely and never removing val. Every element strictly greater than val is l",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.DS.PersistentTreap"
   },
   {
     "file": "src/IAFahim.DS.PieceTable/PieceTable.cs",
     "symbol": "PieceTableInsert.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Insert copies only as many bytes as fit in the Added buffer (loop guarded by s.AddedLen < s.AddedCap), but unconditionally sets newPiece->Length = len. When the"
+    "summary": "Insert copies only as many bytes as fit in the Added buffer (loop guarded by s.AddedLen < s.AddedCap), but unconditionally sets newPiece->Length = len. When the requested data does not fully fit, the ",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.DS.PieceTable"
   },
   {
     "file": "src/IAFahim.DS.RollbackSeg/RollbackSeg.cs",
     "symbol": "RollbackSegRollback.Run / RollbackSegRollback.UndoLast",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "History is stored as three parallel arrays (histNode/histVal/histType) where each logical record occupies the SAME index and *top advances by 1 per record (see "
+    "summary": "History is stored as three parallel arrays (histNode/histVal/histType) where each logical record occupies the SAME index and *top advances by 1 per record (see push at lines 34-37/41-48/57-60). But th",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.DS.RollbackSeg"
   },
   {
     "file": "src/IAFahim.DS.RollbackSeg/RollbackSeg.cs",
     "symbol": "RollbackSegUpdate.RangeAddInt64",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "RangeAddInt64 uses a lazy convention where a fully-covered node pushes the add into its CHILDREN's lazy (lazy[node*2] += val, lazy[node*2+1] += val) while only "
+    "summary": "RangeAddInt64 uses a lazy convention where a fully-covered node pushes the add into its CHILDREN's lazy (lazy[node*2] += val, lazy[node*2+1] += val) while only updating tree[node]; children's tree sta",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.DS.RollbackSeg"
   },
   {
     "file": "src/IAFahim.DS.RollbackStack/RollbackStack.cs",
     "symbol": "UndoableBipartiteDsu.Find",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Find performs path compression (parent[x]=root, parity[x]^=acc) that mutates the structure without recording it in history. A rollback DSU must NOT use path com"
+    "summary": "Find performs path compression (parent[x]=root, parity[x]^=acc) that mutates the structure without recording it in history. A rollback DSU must NOT use path compression because compression is irrevers",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.DS.RollbackStack"
   },
   {
     "file": "src/IAFahim.DS.RollbackStack/RollbackStack.cs",
     "symbol": "UndoableBipartiteDsu.Rollback",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Rollback restores the wrong node. Union pushes [pa, parity[pa], pb] but the node actually modified is the LOSER of the pa/pb comparison (sometimes pa, sometimes"
+    "summary": "Rollback restores the wrong node. Union pushes [pa, parity[pa], pb] but the node actually modified is the LOSER of the pa/pb comparison (sometimes pa, sometimes pb), and the value that must be restore",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.DS.RollbackStack"
   },
   {
     "file": "src/IAFahim.DS.RollbackStack/RollbackStack.cs",
     "symbol": "UndoableHeap.Rollback",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Rollback ignores the recorded history log entirely and instead re-heapifies from scratch using HeapifyDown over [0,targetSize). HeapifyUp/HeapifyDown maintain h"
+    "summary": "Rollback ignores the recorded history log entirely and instead re-heapifies from scratch using HeapifyDown over [0,targetSize). HeapifyUp/HeapifyDown maintain heapIdx[] (the position of each element i",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.DS.RollbackStack"
   },
   {
     "file": "src/IAFahim.DS.SegmentTree/PersistentLazySeg.cs",
     "symbol": "PersistentLazySegmentQuery.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Query double-counts a node's own lazy value. For a fully-covered node it returns sumArr[node] + (inherited + lazyArr[node]) * cnt, but sumArr[node] already inco"
+    "summary": "Query double-counts a node's own lazy value. For a fully-covered node it returns sumArr[node] + (inherited + lazyArr[node]) * cnt, but sumArr[node] already incorporates the node's own lazy (Update doe",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.DS.SegmentTree"
   },
   {
     "file": "src/IAFahim.DS.SpatialMap/SpatialMap.cs",
     "symbol": "SpatialMap.QuantizeJob.Execute",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "When a position quantizes outside the map (math.any(quantized >= QuantizeWidth)), the loop does `continue` and never writes keys[entityInQueryIndex] / values[en"
+    "summary": "When a position quantizes outside the map (math.any(quantized >= QuantizeWidth)), the loop does `continue` and never writes keys[entityInQueryIndex] / values[entityInQueryIndex]. ResizeNativeParallelH",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.DS.SpatialMap"
   },
   {
     "file": "src/IAFahim.DS.SpatialMap/SpatialKeyedMap.cs",
     "symbol": "SpatialKeyedMap.QuantizeJob.ValidatePosition",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "The validator claims to reject any position 'outside the size of the world' but only checks the upper bound: `if (math.any(quantized >= this.QuantizeWidth))`. I"
+    "summary": "The validator claims to reject any position 'outside the size of the world' but only checks the upper bound: `if (math.any(quantized >= this.QuantizeWidth))`. It never checks the lower bound (quantize",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.DS.SpatialMap"
   },
   {
     "file": "src/IAFahim.DS.SpatialMap/LocalSpatialMap.cs",
     "symbol": "LocalSpatialMap.QuantizeJob.ValidatePosition",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Same defect as SpatialKeyedMap: ValidatePosition only checks `math.any(quantized >= this.QuantizeWidth)` and omits the lower bound (quantized < 0). The map is a"
+    "summary": "Same defect as SpatialKeyedMap: ValidatePosition only checks `math.any(quantized >= this.QuantizeWidth)` and omits the lower bound (quantized < 0). The map is an UnsafePartialKeyedMap whose Update\u2192Rec",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.DS.SpatialMap"
   },
   {
     "file": "src/IAFahim.DS.SpatialMap/SpatialMap3.cs",
     "symbol": "SpatialMap3.QuantizeJob.Execute",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Bounds check only rejects upper bound (math.any(quantized >= QuantizeWidth)), never the lower bound. Positions below the world's lower extent (-halfSize) produc"
+    "summary": "Bounds check only rejects upper bound (math.any(quantized >= QuantizeWidth)), never the lower bound. Positions below the world's lower extent (-halfSize) produce negative quantized components that pas",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.DS.SpatialMap"
   },
   {
     "file": "src/IAFahim.DS.Splay/SplayRangeReverse.cs",
     "symbol": "SplayRangeReverse.Reverse",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "In the both-neighbors-present branch, the range subtree is extracted as right->Left->Right after splaying both `left` (index l-1) and `right` (index r+1) fully "
+    "summary": "In the both-neighbors-present branch, the range subtree is extracted as right->Left->Right after splaying both `left` (index l-1) and `right` (index r+1) fully to the root. This incorrectly assumes ri",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.DS.Splay"
   },
   {
     "file": "src/IAFahim.DS.Splay/SplayRangeQuery.cs",
     "symbol": "SplayRangeQuery.QuerySum",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Same defect as SplayRangeReverse.Reverse: when both neighbors exist, mid = right->Left->Right after fully splaying both `left` (l-1) and `right` (r+1) to root. "
+    "summary": "Same defect as SplayRangeReverse.Reverse: when both neighbors exist, mid = right->Left->Right after fully splaying both `left` (l-1) and `right` (r+1) to root. This assumes right->Left == left, which ",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.DS.Splay"
   },
   {
     "file": "src/IAFahim.DS.Trie/Trie.cs",
     "symbol": "PersistentTrieInsert.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Persistent trie insert never copies the non-followed (sibling) child pointer of each node, so every value previously inserted that differs from the new value at"
+    "summary": "Persistent trie insert never copies the non-followed (sibling) child pointer of each node, so every value previously inserted that differs from the new value at some bit is dropped from the new versio",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.DS.Trie"
   },
   {
     "file": "src/IAFahim.DS.WaveletMatrix/WaveletMatrix.cs",
     "symbol": "WaveletMatrixKth.Run / GetCountInLevel",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "kth-smallest branch logic is inverted: GetCountInLevel returns rankPtr[ri+1]-rankPtr[li] which is the count of ONES (bit==1) in the range, but Run compares 'k <"
+    "summary": "kth-smallest branch logic is inverted: GetCountInLevel returns rankPtr[ri+1]-rankPtr[li] which is the count of ONES (bit==1) in the range, but Run compares 'k < leftCount' and on true descends into th",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.DS.WaveletMatrix"
   },
   {
     "file": "src/IAFahim.DS.WaveletMatrix/WaveletMatrix.cs",
     "symbol": "WaveletMatrixKth.Run / UpdateIndicesZero / UpdateIndicesOne",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The query reads rank data for the wrong level. WaveletMatrixBuild stores level b's prefix-rank table at ranks[b*(n+1) + i] (offset = b*(n+1)). But Run and its h"
+    "summary": "The query reads rank data for the wrong level. WaveletMatrixBuild stores level b's prefix-rank table at ranks[b*(n+1) + i] (offset = b*(n+1)). But Run and its helpers index rankPtr[li], rankPtr[ri+1] ",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.DS.WaveletMatrix"
   },
   {
     "file": "src/IAFahim.DS.WaveletMatrix/WaveletMatrix.cs",
     "symbol": "WaveletMatrixBuild.Run / ComputeBitmapsAndCountOnes / FinalizeLevel",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The wavelet-matrix build never performs the stable partition (zeros-then-ones reordering) of the data between levels. Each level b extracts bit b directly from "
+    "summary": "The wavelet-matrix build never performs the stable partition (zeros-then-ones reordering) of the data between levels. Each level b extracts bit b directly from the ORIGINAL data array, so the bitmap/r",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.DS.WaveletMatrix"
   },
   {
     "file": "src/IAFahim.DS.WaveletMatrix/WaveletMatrix.cs",
     "symbol": "WaveletMatrixKth.UpdateIndicesOne",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "mids[b] is set to the number of ONES at the level (FinalizeLevel: mids[b]=ones), but UpdateIndicesOne uses it as the start offset of the ones region: li = mid +"
+    "summary": "mids[b] is set to the number of ONES at the level (FinalizeLevel: mids[b]=ones), but UpdateIndicesOne uses it as the start offset of the ones region: li = mid + (li - rankPtr[li]). In a zeros-first st",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.DS.WaveletMatrix"
   },
   {
     "file": "src/IAFahim.GameTheory/GameTheory.cs",
     "symbol": "GameDp.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "The mex extraction loop `while ((seen & (1L << g)) != 0) g++;` has no upper bound on g; when g reaches 64 the shift 1L<<g wraps (shift amount masked to 6 bits),"
+    "summary": "The mex extraction loop `while ((seen & (1L << g)) != 0) g++;` has no upper bound on g; when g reaches 64 the shift 1L<<g wraps (shift amount masked to 6 bits), so 1L<<64 == 1, producing a wrong mex /",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.GameTheory"
   },
   {
     "file": "src/IAFahim.Geometry.Advanced/GeometryAdvanced.cs",
     "symbol": "ClosestPair.Solve",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Divide-and-conquer closest-pair never performs the strip merge step, so it always returns long.MaxValue regardless of input. The 'yt' strip array is filled but "
+    "summary": "Divide-and-conquer closest-pair never performs the strip merge step, so it always returns long.MaxValue regardless of input. The 'yt' strip array is filled but never used to compute any cross-strip di",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Geometry.Advanced"
   },
   {
     "file": "src/IAFahim.Geometry.Arrangement/Arrangement.cs",
     "symbol": "PointLocationQuery.QueryKdTree",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "k-d tree nearest-neighbor uses the wrong split coordinate to decide which subtree to descend, comparing the query against the wrong axis and producing a wrong n"
+    "summary": "k-d tree nearest-neighbor uses the wrong split coordinate to decide which subtree to descend, comparing the query against the wrong axis and producing a wrong nearest neighbor.",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Geometry.Arrangement"
   },
   {
     "file": "src/IAFahim.Geometry.Arrangement/Arrangement.cs",
     "symbol": "PointLocationQuery.QueryKdTree",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Squared-distance computation overflows long for large coordinate magnitudes, yielding negative/garbage distances and a wrong nearest neighbor."
+    "summary": "Squared-distance computation overflows long for large coordinate magnitudes, yielding negative/garbage distances and a wrong nearest neighbor.",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Geometry.Arrangement"
   },
   {
     "file": "src/IAFahim.Geometry.Arrangement/Arrangement.cs",
     "symbol": "ArrangementFaces.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Edge index 0 can never be visited because 0 is used as the adjacency-list terminator, so a face incident only to edge 0 (and its twin 1) is silently dropped."
+    "summary": "Edge index 0 can never be visited because 0 is used as the adjacency-list terminator, so a face incident only to edge 0 (and its twin 1) is silently dropped.",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Geometry.Arrangement"
   },
   {
     "file": "src/IAFahim.Geometry.Arrangement/Arrangement.cs",
     "symbol": "PointLocationBuild.BuildKdTree",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Partition does not actually partition around the median: it fully sorts the [l,r] range but then ignores axis-balance correctness only superficially; more criti"
+    "summary": "Partition does not actually partition around the median: it fully sorts the [l,r] range but then ignores axis-balance correctness only superficially; more critically the median index returned is reuse",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Geometry.Arrangement"
   },
   {
     "file": "src/IAFahim.Geometry.Basic/GeometryBasic.cs",
     "symbol": "PolygonContains.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Ray-casting point-in-polygon uses the cross-multiplied test `px*dy < rhs` (where dy = yj - yi) which is only valid when dy > 0. For any edge directed downward ("
+    "summary": "Ray-casting point-in-polygon uses the cross-multiplied test `px*dy < rhs` (where dy = yj - yi) which is only valid when dy > 0. For any edge directed downward (yj < yi), multiplying the inequality `px",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Geometry.Basic"
   },
   {
     "file": "src/IAFahim.Geometry.Bvh/BvhTree.cs",
     "symbol": "BvhTree.QuickSort/Partition",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Recursive quicksort with last-element (Lomuto) pivot degenerates to O(n^2) time and O(n) recursion depth on already-sorted or all-equal centroid data, causing s"
+    "summary": "Recursive quicksort with last-element (Lomuto) pivot degenerates to O(n^2) time and O(n) recursion depth on already-sorted or all-equal centroid data, causing stack overflow / hang for large meshes.",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Geometry.Bvh"
   },
   {
     "file": "src/IAFahim.Geometry.Frame/ParallelTransport.cs",
     "symbol": "ParallelTransport.Compute",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "The R1 reflection in the double-reflection rotation-minimizing-frame loop is guarded by `c1 > Threshold` where `c1 = dot(v1,v1)` is the SQUARED segment length, "
+    "summary": "The R1 reflection in the double-reflection rotation-minimizing-frame loop is guarded by `c1 > Threshold` where `c1 = dot(v1,v1)` is the SQUARED segment length, but `Threshold = 1e-6` was chosen as a L",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Geometry.Frame"
   },
   {
     "file": "src/IAFahim.Geometry.Hull/ConvexHull3D.cs",
     "symbol": "ConvexHull3D.FixNeighbors",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "FixNeighbors no longer wires the adjacency between sibling new faces along the horizon. The real linking logic is commented out (lines 124-127), so the two non-"
+    "summary": "FixNeighbors no longer wires the adjacency between sibling new faces along the horizon. The real linking logic is commented out (lines 124-127), so the two non-horizon edges of every newly created fac",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Geometry.Hull"
   },
   {
     "file": "src/IAFahim.Geometry.Hull/ConvexHull3D.cs",
     "symbol": "ConvexHull3D.TryCreateNewFace",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "New faces are created with explicit A,B,C but F0/F1/F2 left at struct-default 0; only the single shared-horizon neighbor is set via SetNeighbor. The other two n"
+    "summary": "New faces are created with explicit A,B,C but F0/F1/F2 left at struct-default 0; only the single shared-horizon neighbor is set via SetNeighbor. The other two neighbor fields stay 0, so any later acce",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Geometry.Hull"
   },
   {
     "file": "src/IAFahim.Geometry.Hull/MinkowskiSum.cs",
     "symbol": "MinkowskiSum.Convex",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Convex writes one entry past the number of vertices it reports, overflowing an output buffer sized to its return value (or to an+bn)."
+    "summary": "Convex writes one entry past the number of vertices it reports, overflowing an output buffer sized to its return value (or to an+bn).",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Geometry.Hull"
   },
   {
     "file": "src/IAFahim.Geometry.Intersect/Plane.cs",
     "symbol": "Plane.PlaneIntersection / Plane.SolvePoint",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "In the y-dominant branch (axis==1) of PlaneIntersection, SolvePoint writes the two free coordinates to the wrong outputs: the value computed for z is stored int"
+    "summary": "In the y-dominant branch (axis==1) of PlaneIntersection, SolvePoint writes the two free coordinates to the wrong outputs: the value computed for z is stored into lpx and the value computed for x is st",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Geometry.Intersect"
   },
   {
     "file": "src/IAFahim.Geometry.Spatial/CoverTree.cs",
     "symbol": "CoverTree.Nearest",
     "severity": "critical",
+    "summary": "Nearest scans node indices 0..root (treating the root NODE INDEX as if it were a node count) and additionally caps the scan at index 1024, so it returns a wrong nearest neighbor for most inputs.",
     "reassessment": "fixed",
-    "summary": "Nearest scans node indices 0..root (treating the root NODE INDEX as if it were a node count) and additionally caps the scan at index 1024, so it returns a wrong"
+    "proof": "covertree",
+    "package": "IAFahim.Geometry.Spatial"
   },
   {
     "file": "src/IAFahim.Geometry.Spatial/BallTree.cs",
     "symbol": "BallTree.Build / BallTree.Nearest",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Build links every node with Left=Right=-1, so the 'tree' has no edges; Nearest only ever examines the single root node and returns it regardless of the query, g"
+    "summary": "Build links every node with Left=Right=-1, so the 'tree' has no edges; Nearest only ever examines the single root node and returns it regardless of the query, giving wrong nearest neighbors.",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Geometry.Spatial"
   },
   {
     "file": "src/IAFahim.Geometry.Spatial/Octree.cs",
     "symbol": "Octree.RangeQuery",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Leaf nodes emit ALL contained point indices when the node's region merely OVERLAPS the query box, never testing individual point coordinates. This returns false"
+    "summary": "Leaf nodes emit ALL contained point indices when the node's region merely OVERLAPS the query box, never testing individual point coordinates. This returns false positives \u2014 indices of points that lie ",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Geometry.Spatial"
   },
   {
     "file": "src/IAFahim.Geometry.Triangulation/EarClipping.cs",
     "symbol": "EarClipping.IsValidBridge",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Every hole-bridge candidate is rejected because the bridge endpoints coincide with polygon/hole edge endpoints, so LineSegmentsIntersect's shared-endpoint touch"
+    "summary": "Every hole-bridge candidate is rejected because the bridge endpoints coincide with polygon/hole edge endpoints, so LineSegmentsIntersect's shared-endpoint touch test always fires; no hole is ever merg",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Geometry.Triangulation"
   },
   {
     "file": "src/IAFahim.Graph.Bridges/BridgeAndArticulation.cs",
     "symbol": "BridgeAndArticulation.Dfs",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The adjacency-list iteration uses the wrong empty/terminator sentinel: `for (int e = head[u]; e != 0; e = next[e])`. The caller convention (confirmed by the mod"
+    "summary": "The adjacency-list iteration uses the wrong empty/terminator sentinel: `for (int e = head[u]; e != 0; e = next[e])`. The caller convention (confirmed by the module's own sibling file BiconnectivityAug",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph.Bridges"
   },
   {
     "file": "src/IAFahim.Graph.Bridges/BridgeAndArticulation.cs",
     "symbol": "BridgeAndArticulation.Dfs",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Because the loop uses `e != 0` while the caller initializes head[u] = -1 to mark vertices with no edges (isolated vertices) and to start the loop, an isolated v"
+    "summary": "Because the loop uses `e != 0` while the caller initializes head[u] = -1 to mark vertices with no edges (isolated vertices) and to start the loop, an isolated vertex (or any vertex whose adjacency lis",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph.Bridges"
   },
   {
     "file": "src/IAFahim.Graph.Centroid/Centroid.cs",
     "symbol": "CentroidDecomposition.FindCentroid",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "FindCentroid recomputes the component total as sz[u] at every recursion level instead of keeping the original component total fixed. Because sz[] was computed o"
+    "summary": "FindCentroid recomputes the component total as sz[u] at every recursion level instead of keeping the original component total fixed. Because sz[] was computed once from the original root, sz[u] shrink",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph.Centroid"
   },
   {
     "file": "src/IAFahim.Graph.DAG/DagLongestAntichain.cs",
     "symbol": "DagLongestAntichain.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Run is a non-functional stub that always returns n (the number of vertices) instead of the longest antichain size. By Dilworth's theorem the answer equals the m"
+    "summary": "Run is a non-functional stub that always returns n (the number of vertices) instead of the longest antichain size. By Dilworth's theorem the answer equals the minimum path cover of the transitive clos",
+    "reassessment": "fixed",
+    "proof": "dilworth",
+    "package": "IAFahim.Graph.DAG"
   },
   {
     "file": "src/IAFahim.Graph.DAG/DagMinimumPathCover.cs",
     "symbol": "DagMinimumPathCover.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Run never computes any bipartite matching; 'matching' stays 0 and the method always returns n. The minimum path cover of any DAG with >=1 edge is strictly less "
+    "summary": "Run never computes any bipartite matching; 'matching' stays 0 and the method always returns n. The minimum path cover of any DAG with >=1 edge is strictly less than n, so the result is wrong for every",
+    "reassessment": "fixed",
+    "proof": "dilworth",
+    "package": "IAFahim.Graph.DAG"
   },
   {
     "file": "src/IAFahim.Graph.DAG/IncrementalCycleDetection.cs",
     "symbol": "IncrementalCycleDetection.AddEdge / Dfs",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Edge index 0 collides with the linked-list null sentinel, so the first edge added is never traversed and cycles through it are missed."
+    "summary": "Edge index 0 collides with the linked-list null sentinel, so the first edge added is never traversed and cycles through it are missed.",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph.DAG"
   },
   {
     "file": "src/IAFahim.Graph.DAG/MinimumEquivalentDigraph.cs",
     "symbol": "MinimumEquivalentDigraph.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Transitive reduction is computed with a single Floyd-style pass that only removes length-2 redundancies; it gives a non-minimal result for DAGs whose redundant "
+    "summary": "Transitive reduction is computed with a single Floyd-style pass that only removes length-2 redundancies; it gives a non-minimal result for DAGs whose redundant edges span paths of length >= 3.",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph.DAG"
   },
   {
     "file": "src/IAFahim.Graph.DAG/RandomTopologicalOrder.cs",
     "symbol": "RandomTopologicalOrder.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "The Lemire-style random index r = (long)((state * (ulong)total) >> 32) + 1 overflows ulong when the number of topological orderings 'total' exceeds 2^32, produc"
+    "summary": "The Lemire-style random index r = (long)((state * (ulong)total) >> 32) + 1 overflows ulong when the number of topological orderings 'total' exceeds 2^32, producing an r outside [1, total]. When that h",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph.DAG"
   },
   {
     "file": "src/IAFahim.Graph.DynamicTrees/LinkCutTree.cs",
     "symbol": "LinkCutTree.PushUp / SubtreeQuery",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "AllSum is computed as a single node's PathSum+VirSum and PushUp/UpdateFromChild only propagate children's PathSum, never their VirSum. Consequently the splay-tr"
+    "summary": "AllSum is computed as a single node's PathSum+VirSum and PushUp/UpdateFromChild only propagate children's PathSum, never their VirSum. Consequently the splay-tree ROOT's AllSum omits the VirSum stored",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph.DynamicTrees"
   },
   {
     "file": "src/IAFahim.Graph.DynamicTrees/EulerTourTree.cs",
     "symbol": "EulerTourTree.SubtreeQuery",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "SubtreeQuery brackets the subtree using GetPredecessor(u) and its Twin, but the predecessor edge of vertex u and that edge's twin do not correctly delimit u's s"
+    "summary": "SubtreeQuery brackets the subtree using GetPredecessor(u) and its Twin, but the predecessor edge of vertex u and that edge's twin do not correctly delimit u's subtree interval in the Euler tour for ge",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph.DynamicTrees"
   },
   {
     "file": "src/IAFahim.Graph.Eertree/Eertree.cs",
     "symbol": "Eertree.Build",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The transition edge for a newly created palindrome node is attached to the new node itself instead of to its parent 'cur'. NextEdge(newNode, c, newNode, ...) cr"
+    "summary": "The transition edge for a newly created palindrome node is attached to the new node itself instead of to its parent 'cur'. NextEdge(newNode, c, newNode, ...) creates a self-loop newNode --c--> newNode",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph.Eertree"
   },
   {
     "file": "src/IAFahim.Graph.Eulerian/Eulerian.cs",
     "symbol": "EulerianPathUndirected.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Path is written at indices path[n-1-top], assuming the Euler path has exactly n vertices, but an Euler path has (numEdges+1) vertices. When numEdges+1 > n (any "
+    "summary": "Path is written at indices path[n-1-top], assuming the Euler path has exactly n vertices, but an Euler path has (numEdges+1) vertices. When numEdges+1 > n (any connected graph with a cycle, e.g. a mul",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph.Eulerian"
   },
   {
     "file": "src/IAFahim.Graph.Eulerian/Eulerian.cs",
     "symbol": "EulerianPathUndirected.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "edgeUsed = stackalloc int[n*4] is never zero-initialized (unlike the directed Run on line 70). The author attempts to mask this with the 'ec > 0 &&' guard on li"
+    "summary": "edgeUsed = stackalloc int[n*4] is never zero-initialized (unlike the directed Run on line 70). The author attempts to mask this with the 'ec > 0 &&' guard on line 32, but that only skips the used-chec",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph.Eulerian"
   },
   {
     "file": "src/IAFahim.Graph.Eulerian/Eulerian.cs",
     "symbol": "EulerianPathDirected.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "For directed graphs the popped vertices in Hierholzer's algorithm form the Euler path in REVERSE order and must be reversed before returning. This method writes"
+    "summary": "For directed graphs the popped vertices in Hierholzer's algorithm form the Euler path in REVERSE order and must be reversed before returning. This method writes them in pop order via path[pathLen++] =",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph.Eulerian"
   },
   {
     "file": "src/IAFahim.Graph.Flow/ExcessScalingMaxFlow.cs",
     "symbol": "ExcessScalingMaxFlow.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Final flow value is computed by summing flow[e] over EVERY edge index in all adjacency lists. Since both the forward edge e and its reverse e^1 are stored in th"
+    "summary": "Final flow value is computed by summing flow[e] over EVERY edge index in all adjacency lists. Since both the forward edge e and its reverse e^1 are stored in the lists and flow[e]+flow[e^1]==0 for eve",
+    "reassessment": "fixed",
+    "proof": "SumSourceOutFlow",
+    "package": "IAFahim.Graph.Flow"
   },
   {
     "file": "src/IAFahim.Graph.Flow/DynamicTreeMaxFlow.cs",
     "symbol": "DinicWithLinkCut.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The blocking-flow phase is broken: the inner BFS eagerly commits flow on every admissible tree edge (flow[e]+=add while building the parent tree), stranding exc"
+    "summary": "The blocking-flow phase is broken: the inner BFS eagerly commits flow on every admissible tree edge (flow[e]+=add while building the parent tree), stranding excess at non-ancestors of t, and then Augm",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph.Flow"
   },
   {
     "file": "src/IAFahim.Graph.Flow/Flow.cs",
     "symbol": "MinCostMaxFlow.TryFindMinCostPath",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Shortest-path augmentation uses a plain Dijkstra (MinHeap by raw cost[e]) without Johnson potentials, but residual reverse edges carry negative cost (-c set by "
+    "summary": "Shortest-path augmentation uses a plain Dijkstra (MinHeap by raw cost[e]) without Johnson potentials, but residual reverse edges carry negative cost (-c set by MinCostFlowAddEdge). Dijkstra is invalid",
+    "reassessment": "fixed",
+    "proof": "edgeId=2",
+    "package": "IAFahim.Graph.Flow"
   },
   {
     "file": "src/IAFahim.Graph.Flow/FlowRecoverLowerBound.cs",
     "symbol": "FlowRecoverLowerBound.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Auxiliary graph is built with edgeId starting at 1, so forward edges land on odd indices and the reverse-edge pairing e^1 used by Dinic points to the wrong (or "
+    "summary": "Auxiliary graph is built with edgeId starting at 1, so forward edges land on odd indices and the reverse-edge pairing e^1 used by Dinic points to the wrong (or sentinel) edge, corrupting the residual ",
+    "reassessment": "fixed",
+    "proof": "edgeId=2",
+    "package": "IAFahim.Graph.Flow"
   },
   {
     "file": "src/IAFahim.Graph.Flow/FlowWithEdgeDemands.cs",
     "symbol": "FlowWithEdgeDemands.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Auxiliary graph for the lower-bound feasibility flow is built with edgeId starting at 1, breaking the e^1 reverse-edge pairing in DinicMaxFlow/DinicDfs and yiel"
+    "summary": "Auxiliary graph for the lower-bound feasibility flow is built with edgeId starting at 1, breaking the e^1 reverse-edge pairing in DinicMaxFlow/DinicDfs and yielding an incorrect feasibility flow.",
+    "reassessment": "fixed",
+    "proof": "edgeId=2",
+    "package": "IAFahim.Graph.Flow"
   },
   {
     "file": "src/IAFahim.Graph.Flow/FlowWithVertexCapacities.cs",
     "symbol": "FlowWithVertexCapacities.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Split-vertex auxiliary graph is built with edgeId starting at 1, so Dinic's e^1 reverse-edge indexing is misaligned and the max flow under vertex capacities is "
+    "summary": "Split-vertex auxiliary graph is built with edgeId starting at 1, so Dinic's e^1 reverse-edge indexing is misaligned and the max flow under vertex capacities is computed incorrectly.",
+    "reassessment": "fixed",
+    "proof": "edgeId=2",
+    "package": "IAFahim.Graph.Flow"
   },
   {
     "file": "src/IAFahim.Graph.Flow/MaximumClosureFlow.cs",
     "symbol": "MaximumClosureFlow.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Edge IDs start at 1 instead of 2, so the XOR-pairing e^1 used by DinicMaxFlow/DinicDfs maps the first forward edge's reverse to slot 0 (the 'no edge' sentinel) "
+    "summary": "Edge IDs start at 1 instead of 2, so the XOR-pairing e^1 used by DinicMaxFlow/DinicDfs maps the first forward edge's reverse to slot 0 (the 'no edge' sentinel) instead of slot 2, corrupting residual c",
+    "reassessment": "fixed",
+    "proof": "edgeId=2",
+    "package": "IAFahim.Graph.Flow"
   },
   {
     "file": "src/IAFahim.Graph.Flow/MaximumClosureProjectSelection.cs",
     "symbol": "MaximumClosureProjectSelection.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Edge IDs start at 1 instead of 2, breaking the e^1 reverse-edge pairing used by DinicMaxFlow; the first forward edge's reverse is written to slot 0 (head sentin"
+    "summary": "Edge IDs start at 1 instead of 2, breaking the e^1 reverse-edge pairing used by DinicMaxFlow; the first forward edge's reverse is written to slot 0 (head sentinel) instead of slot 2, corrupting the re",
+    "reassessment": "fixed",
+    "proof": "edgeId=2",
+    "package": "IAFahim.Graph.Flow"
   },
   {
     "file": "src/IAFahim.Graph.Flow/MinCostFlowCapacityScaling.cs",
     "symbol": "MinCostFlowCapacityScaling.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The Bellman-Ford/SPFA-style relaxation pushes a node into the queue every time its distance improves, with no in-queue guard and a non-circular queue of size n,"
+    "summary": "The Bellman-Ford/SPFA-style relaxation pushes a node into the queue every time its distance improves, with no in-queue guard and a non-circular queue of size n, so qt can exceed n and q[qt++] writes p",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph.Flow"
   },
   {
     "file": "src/IAFahim.Graph.Flow/IsapGapOptimization.cs",
     "symbol": "IsapGapOptimization.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "flow[] is an edge-indexed array (indices up to 2*edges) but Run only zeroes flow[0..n) inside the per-node init loop, leaving residual flow on all edge slots >="
+    "summary": "flow[] is an edge-indexed array (indices up to 2*edges) but Run only zeroes flow[0..n) inside the per-node init loop, leaving residual flow on all edge slots >= n uninitialized, so the algorithm start",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph.Flow"
   },
   {
     "file": "src/IAFahim.Graph.Flow/MinCostFlowCostScaling.cs",
     "symbol": "MinCostFlowCostScaling.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Both the potential-update phase (lines 26-41) and the push phase (lines 49-68) only ever traverse/push along edges whose reduced cost is strictly negative. With"
+    "summary": "Both the potential-update phase (lines 26-41) and the push phase (lines 49-68) only ever traverse/push along edges whose reduced cost is strictly negative. With all-positive edge costs and zero initia",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph.Flow"
   },
   {
     "file": "src/IAFahim.Graph.Flow/MinCostFlowDijkstra.cs",
     "symbol": "MinCostFlowDijkstra.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The lazy-deletion path of the binary heap is broken. When the root entry is stale (du != dist[u], line 31) the code does 'u = pqV[--pqSize]': it discards the LA"
+    "summary": "The lazy-deletion path of the binary heap is broken. When the root entry is stale (du != dist[u], line 31) the code does 'u = pqV[--pqSize]': it discards the LAST heap element and processes it as the ",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph.Flow"
   },
   {
     "file": "src/IAFahim.Graph.Flow/MinCostFlowNetworkSimplex.cs",
     "symbol": "MinCostFlowNetworkSimplex.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "After the initial Bellman-Ford potential init (lines 14-26), the augmenting loop (lines 36-51) finds an ARBITRARY residual augmenting path via BFS over any edge"
+    "summary": "After the initial Bellman-Ford potential init (lines 14-26), the augmenting loop (lines 36-51) finds an ARBITRARY residual augmenting path via BFS over any edge with residual capacity (lines 41,47), w",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph.Flow"
   },
   {
     "file": "src/IAFahim.Graph.Flow/MinCostFlowSsp.cs",
     "symbol": "MinCostFlowSsp.PushHeap / MinCostFlowSsp.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The Dijkstra binary heap uses a push-only insert (no decrease-key). PushHeap unconditionally does `int i = (*pqSize)++` and appends a new entry every time a ver"
+    "summary": "The Dijkstra binary heap uses a push-only insert (no decrease-key). PushHeap unconditionally does `int i = (*pqSize)++` and appends a new entry every time a vertex is relaxed (line 38 calls PushHeap a",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph.Flow"
   },
   {
     "file": "src/IAFahim.Graph.Flow/MinimumSTCutAll.cs",
     "symbol": "MinimumSTCutAll.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "The cut-edge enumeration scans the wrong side of the partition. It iterates source vertices u with visited[u]==0 (T-side) and records edges whose endpoint to[e]"
+    "summary": "The cut-edge enumeration scans the wrong side of the partition. It iterates source vertices u with visited[u]==0 (T-side) and records edges whose endpoint to[e] is on the S-side (visited==1) with flow",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph.Flow"
   },
   {
     "file": "src/IAFahim.Graph.Flow/MinimumWeightClosure.cs",
     "symbol": "MinimumWeightClosure.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Edges are built with edgeId initialized to 1, so the first edge pair gets ids 1 and 2. The reverse-edge xor trick e^1 used by DinicDfs (flow[e^1]) requires forw"
+    "summary": "Edges are built with edgeId initialized to 1, so the first edge pair gets ids 1 and 2. The reverse-edge xor trick e^1 used by DinicDfs (flow[e^1]) requires forward edges at EVEN ids (pairs 2/3, 4/5, .",
+    "reassessment": "fixed",
+    "proof": "edgeId=2",
+    "package": "IAFahim.Graph.Flow"
   },
   {
     "file": "src/IAFahim.Graph.Flow/PicardQueyranneClosure.cs",
     "symbol": "PicardQueyranneClosure.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Same reverse-edge mispairing as MinimumWeightClosure: edgeId is initialized to 1 each iteration, so the first forward edge gets id 1 and its xor-complement 1^1="
+    "summary": "Same reverse-edge mispairing as MinimumWeightClosure: edgeId is initialized to 1 each iteration, so the first forward edge gets id 1 and its xor-complement 1^1=0 points at the sentinel slot rather tha",
+    "reassessment": "fixed",
+    "proof": "edgeId=2",
+    "package": "IAFahim.Graph.Flow"
   },
   {
     "file": "src/IAFahim.Graph.Flow/PushRelabelGap.cs",
     "symbol": "PushRelabelGap.Push",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Push always operates on the node's first edge head[u] instead of the admissible edge e that was selected in the discharge loop, so flow is pushed along the wron"
+    "summary": "Push always operates on the node's first edge head[u] instead of the admissible edge e that was selected in the discharge loop, so flow is pushed along the wrong (or saturated) arc, violating flow con",
+    "reassessment": "fixed",
+    "proof": "PushEdge residual",
+    "package": "IAFahim.Graph.Flow"
   },
   {
     "file": "src/IAFahim.Graph.Flow/PushRelabelGap.cs",
     "symbol": "PushRelabelGap.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The admissibility / residual-capacity test uses flow[e] > 0 (current flow) as the residual condition instead of the residual capacity cap[e] - flow[e] > 0, so i"
+    "summary": "The admissibility / residual-capacity test uses flow[e] > 0 (current flow) as the residual condition instead of the residual capacity cap[e] - flow[e] > 0, so it pushes along edges with no remaining r",
+    "reassessment": "fixed",
+    "proof": "PushEdge residual",
+    "package": "IAFahim.Graph.Flow"
   },
   {
     "file": "src/IAFahim.Graph.Flow/PushRelabelGlobalRelabel.cs",
     "symbol": "PushRelabelGlobalRelabel.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Nodes not reachable to t in the residual graph are given height 0 (line 41) instead of a height above n; excess stranded at such a node can never be pushed (no "
+    "summary": "Nodes not reachable to t in the residual graph are given height 0 (line 41) instead of a height above n; excess stranded at such a node can never be pushed (no neighbor with height-1) and can never dr",
+    "reassessment": "fixed",
+    "proof": "unreachable height handling present",
+    "package": "IAFahim.Graph.Flow"
   },
   {
     "file": "src/IAFahim.Graph.Matching/Blossom.cs",
     "symbol": "WeightedBlossom.min_cost_augment / WeightedBlossom.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "WeightedBlossom.Run never assigns to match[], so it always returns an empty matching with total weight 0 for any input. min_cost_augment runs a Dijkstra over re"
+    "summary": "WeightedBlossom.Run never assigns to match[], so it always returns an empty matching with total weight 0 for any input. min_cost_augment runs a Dijkstra over reduced costs and updates only `potentials",
+    "reassessment": "fixed",
+    "proof": "Hungarian-style assignment writes match[]",
+    "package": "IAFahim.Graph.Matching"
   },
   {
     "file": "src/IAFahim.Graph.Matching/BottleneckAssignment.cs",
     "symbol": "BottleneckAssignment.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Run is an unimplemented stub: it sets every match[i] = -1 and unconditionally returns 0 as the 'bottleneck cost'. For any cost matrix with a positive optimal bo"
+    "summary": "Run is an unimplemented stub: it sets every match[i] = -1 and unconditionally returns 0 as the 'bottleneck cost'. For any cost matrix with a positive optimal bottleneck value it returns a wrong cost (",
+    "reassessment": "fixed",
+    "proof": "threshold binary search + matching present",
+    "package": "IAFahim.Graph.Matching"
   },
   {
     "file": "src/IAFahim.Graph.Matching/AssignmentHungarianRectangular.cs",
     "symbol": "AssignmentHungarianRectangular.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Run is an unimplemented stub: it only initializes matchLeft[]/matchRight[] to -1 and computes no assignment. For any cost matrix it returns an empty matching, w"
+    "summary": "Run is an unimplemented stub: it only initializes matchLeft[]/matchRight[] to -1 and computes no assignment. For any cost matrix it returns an empty matching, which is wrong whenever an assignment of ",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph.Matching"
   },
   {
     "file": "src/IAFahim.Graph.Matching/AssignmentAuctionAlgorithm.cs",
     "symbol": "AssignmentAuctionAlgorithm.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Run is an unimplemented stub: it initializes match[]=-1 and prices[]=0 and performs no auction iterations, so it never produces an assignment regardless of the "
+    "summary": "Run is an unimplemented stub: it initializes match[]=-1 and prices[]=0 and performs no auction iterations, so it never produces an assignment regardless of the cost matrix.",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph.Matching"
   },
   {
     "file": "src/IAFahim.Graph.Matching/HospitalResidentsMatching.cs",
     "symbol": "HospitalResidentsMatching.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Run is an unimplemented stub: it only sets matchResident[i]=-1 and runs no Gale-Shapley (hospital/residents) matching, so every resident is left unmatched regar"
+    "summary": "Run is an unimplemented stub: it only sets matchResident[i]=-1 and runs no Gale-Shapley (hospital/residents) matching, so every resident is left unmatched regardless of preferences/capacities.",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph.Matching"
   },
   {
     "file": "src/IAFahim.Graph.Matching/StableMarriage.cs",
     "symbol": "StableMarriage.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The scratch buffer is partitioned with womanRank at offset n (size n*n) but the proposal stack at offset 3n. For n>=3 these regions overlap (n + n*n > 3n), so i"
+    "summary": "The scratch buffer is partitioned with womanRank at offset n (size n*n) but the proposal stack at offset 3n. For n>=3 these regions overlap (n + n*n > 3n), so initializing/pushing the stack corrupts w",
+    "reassessment": "fixed",
+    "proof": "scratch layout",
+    "package": "IAFahim.Graph.Matching"
   },
   {
     "file": "src/IAFahim.Graph.Matching/StableMarriage.cs",
     "symbol": "GaleShapley.RunWithHistory",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Same scratch-partition aliasing as StableMarriage.Run: womanRank at scratch+n (size n*n) overlaps the stack placed at scratch+n*3 for n>=3, corrupting womanRank"
+    "summary": "Same scratch-partition aliasing as StableMarriage.Run: womanRank at scratch+n (size n*n) overlaps the stack placed at scratch+n*3 for n>=3, corrupting womanRank/stack data and yielding a wrong matchin",
+    "reassessment": "fixed",
+    "proof": "scratch layout",
+    "package": "IAFahim.Graph.Matching"
   },
   {
     "file": "src/IAFahim.Graph.Matching/StableMarriageIncomplete.cs",
     "symbol": "StableMarriageIncomplete.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Run is a non-functional stub: it accepts men/women preference lists and list lengths but only initializes matchMen and matchWomen to -1 and returns, never runni"
+    "summary": "Run is a non-functional stub: it accepts men/women preference lists and list lengths but only initializes matchMen and matchWomen to -1 and returns, never running the Gale-Shapley with incomplete list",
+    "reassessment": "fixed",
+    "proof": "GS incomplete",
+    "package": "IAFahim.Graph.Matching"
   },
   {
     "file": "src/IAFahim.Graph.Matching/StableRoommates.cs",
     "symbol": "StableRoommates.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Run is a non-functional stub that unconditionally returns false and sets every match[i] to -1. The inline comment documents the return contract ('False if no st"
+    "summary": "Run is a non-functional stub that unconditionally returns false and sets every match[i] to -1. The inline comment documents the return contract ('False if no stable matching exists'), so returning fal",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph.Matching"
   },
   {
     "file": "src/IAFahim.Graph.SCC/TarjanScc.cs",
     "symbol": "TarjanScc.Dfs",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Adjacency-list traversal uses `e != 0` as the loop terminator, but the module's graph representation uses -1 as the empty/end-of-list sentinel and 0-based edge "
+    "summary": "Adjacency-list traversal uses `e != 0` as the loop terminator, but the module's graph representation uses -1 as the empty/end-of-list sentinel and 0-based edge indices (as built by TarjanScc's own tes",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph.SCC"
   },
   {
     "file": "src/IAFahim.Graph.Tree/TreeAdvanced.cs",
     "symbol": "TreeCentroids.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "BFS over the undirected adjacency list has no visited/parent guard, so every node re-enqueues its parent (and every neighbor) endlessly, overflowing the stackal"
+    "summary": "BFS over the undirected adjacency list has no visited/parent guard, so every node re-enqueues its parent (and every neighbor) endlessly, overflowing the stackalloc q[n] buffer and corrupting the stack",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph.Tree"
   },
   {
     "file": "src/IAFahim.Graph.TreeDecomposition/PathwidthDp.cs",
     "symbol": "PathwidthDpAlgorithm.PathwidthDpIndependentSet",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "DP transition treats a reachable state whose accumulated weight is 0 as unreachable and skips it, dropping valid states and producing a too-small answer."
+    "summary": "DP transition treats a reachable state whose accumulated weight is 0 as unreachable and skips it, dropping valid states and producing a too-small answer.",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph.TreeDecomposition"
   },
   {
     "file": "src/IAFahim.Graph.TreeDecomposition/TreeDecompositionKnapsack.cs",
     "symbol": "TreeDecompositionKnapsackAlgorithm.TreeDecompositionKnapsack",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The knapsack solver is an unimplemented placeholder: it allocates and zero-clears a DP table but every node-type branch (LEAF/INTRODUCE/FORGET/JOIN) has an empt"
+    "summary": "The knapsack solver is an unimplemented placeholder: it allocates and zero-clears a DP table but every node-type branch (LEAF/INTRODUCE/FORGET/JOIN) has an empty body, and the method unconditionally r",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph.TreeDecomposition"
   },
   {
     "file": "src/IAFahim.Graph.TreeQueries/TreeHashing.cs",
     "symbol": "TreeHashing.AutomorphismCount",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "In the single-centroid branch, AutomorphismCount calls AutomorphismCountRooted on a freshly stackalloc'd subHash buffer that is never populated. AutomorphismCou"
+    "summary": "In the single-centroid branch, AutomorphismCount calls AutomorphismCountRooted on a freshly stackalloc'd subHash buffer that is never populated. AutomorphismCountRooted only READS subHash[v] (line 109",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph.TreeQueries"
   },
   {
     "file": "src/IAFahim.Graph/GraphAdvanced.cs",
     "symbol": "StoerWagner.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The node-merge step is a no-op, so vertices are never contracted; the global min-cut value is computed wrong for essentially any graph with n>=3."
+    "summary": "The node-merge step is a no-op, so vertices are never contracted; the global min-cut value is computed wrong for essentially any graph with n>=3.",
+    "reassessment": "fixed",
+    "proof": "merge/contract present",
+    "package": "IAFahim.Graph"
   },
   {
     "file": "src/IAFahim.Graph/GraphRemaining.cs",
     "symbol": "DominatorTree.Run / Dfs",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The DFS-order array `vertex` is allocated with length n but indexed up to `time == n`, writing one element past the buffer (stack buffer overflow / UB) whenever"
+    "summary": "The DFS-order array `vertex` is allocated with length n but indexed up to `time == n`, writing one element past the buffer (stack buffer overflow / UB) whenever all n vertices are reachable from root.",
+    "reassessment": "fixed",
+    "proof": "vertex buffer sized n+1",
+    "package": "IAFahim.Graph"
   },
   {
     "file": "src/IAFahim.Graph/GraphRemaining.cs",
     "symbol": "DominatorTree.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "The Lengauer-Tarjan implicit-dominator computation is wrong: idom is never seeded from the bucket processing, and the second pass uses idom[w] (always -1) plus "
+    "summary": "The Lengauer-Tarjan implicit-dominator computation is wrong: idom is never seeded from the bucket processing, and the second pass uses idom[w] (always -1) plus Link with the wrong array, so idom value",
+    "reassessment": "fixed",
+    "proof": "vertex buffer sized n+1",
+    "package": "IAFahim.Graph"
   },
   {
     "file": "src/IAFahim.Graph/GraphRemaining.cs",
     "symbol": "ChuLiuEdmonds.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "After contracting cycles and recursing, the code never expands the contracted cycles back to select the correct in-edges, so `result[]` (the parent/edge assignm"
+    "summary": "After contracting cycles and recursing, the code never expands the contracted cycles back to select the correct in-edges, so `result[]` (the parent/edge assignment) is left incorrect for vertices insi",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph"
   },
   {
     "file": "src/IAFahim.Graph/GraphTopo.cs",
     "symbol": "DetectCycleUndirected.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The explicit DFS stack is sized stackalloc int[n], but vertices are pushed every time they are seen as an unvisited neighbor (before being marked visited at pop"
+    "summary": "The explicit DFS stack is sized stackalloc int[n], but vertices are pushed every time they are seen as an unvisited neighbor (before being marked visited at pop time), so a vertex can be pushed many t",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph"
   },
   {
     "file": "src/IAFahim.Graph/GraphTraversal.cs",
     "symbol": "ZeroOneBfs.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The 0-1 BFS deque dq is a circular buffer of fixed size n, but vertices are (re)inserted on every distance improvement with no visited/finalized guard, so the n"
+    "summary": "The 0-1 BFS deque dq is a circular buffer of fixed size n, but vertices are (re)inserted on every distance improvement with no visited/finalized guard, so the number of simultaneously queued elements ",
+    "reassessment": "fixed",
+    "proof": "has visited/inqueue guard",
+    "package": "IAFahim.Graph"
   },
   {
     "file": "src/IAFahim.Graph/GraphTraversal.cs",
     "symbol": "IterativeDfs.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Visited state is tracked via parent[v]==-1, but the start vertex keeps parent[start]==-1 for the whole run, so any edge pointing back to start treats start as u"
+    "summary": "Visited state is tracked via parent[v]==-1, but the start vertex keeps parent[start]==-1 for the whole run, so any edge pointing back to start treats start as unvisited and re-pushes it, causing re-tr",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph"
   },
   {
     "file": "src/IAFahim.Graph/MstVariants.cs",
     "symbol": "MstVariants.KargerSteinMinCut",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "cutU/cutV are allocated with stackalloc int[m] inside the body of the iterations loop (run Math.Max(5,n*n) times). C# does not release stackalloc memory per loo"
+    "summary": "cutU/cutV are allocated with stackalloc int[m] inside the body of the iterations loop (run Math.Max(5,n*n) times). C# does not release stackalloc memory per loop iteration; it accumulates until the me",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph"
   },
   {
     "file": "src/IAFahim.Graph/ShortestPath.cs",
     "symbol": "Johnson.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Johnson's per-source Dijkstra uses the wrong reduced edge weight: it adds h[s] (the source potential) instead of h[u] (the edge-tail potential). The reduced cos"
+    "summary": "Johnson's per-source Dijkstra uses the wrong reduced edge weight: it adds h[s] (the source potential) instead of h[u] (the edge-tail potential). The reduced cost of edge u->v must be w + h[u] - h[v], ",
+    "reassessment": "fixed",
+    "proof": "uses edge-tail potential",
+    "package": "IAFahim.Graph"
   },
   {
     "file": "src/IAFahim.Graph/Tournament.cs",
     "symbol": "Tournament.ProcessEulerianCircuit",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "ProcessEulerianCircuit (used by the public EulerianOrientation) allocates a fixed Hierholzer stack of 1024 ints ('stackalloc int[1024]', commented 'Simplified s"
+    "summary": "ProcessEulerianCircuit (used by the public EulerianOrientation) allocates a fixed Hierholzer stack of 1024 ints ('stackalloc int[1024]', commented 'Simplified stack size'), but the stack depth grows w",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph"
   },
   {
     "file": "src/IAFahim.Graph/ShortestPath.cs",
     "symbol": "ZeroOneShortestPath.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "The 0-1 BFS deque is a circular buffer of exactly n ints, but the algorithm performs no in-queue deduplication: a vertex is (re)enqueued on every strict distanc"
+    "summary": "The 0-1 BFS deque is a circular buffer of exactly n ints, but the algorithm performs no in-queue deduplication: a vertex is (re)enqueued on every strict distance improvement, so the same vertex can oc",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Graph"
   },
   {
     "file": "src/IAFahim.Linear.Matrix/Recurrence.cs",
     "symbol": "BerlekampMassey.UpdateBM",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Out-of-bounds read/write on C and B: the update loop indexes up to C[n]/B[n] but both arrays are length n (valid indices 0..n-1), so the last iteration writes/r"
+    "summary": "Out-of-bounds read/write on C and B: the update loop indexes up to C[n]/B[n] but both arrays are length n (valid indices 0..n-1), so the last iteration writes/reads one element past the buffer.",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Linear.Matrix"
   },
   {
     "file": "src/IAFahim.Linear.Matrix/Recurrence.cs",
     "symbol": "Kitamasa.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "For an order-1 recurrence (k == 1) the line 'res[1] = 1' writes index 1 of a length-1 stackalloc, an out-of-bounds stack write (UB)."
+    "summary": "For an order-1 recurrence (k == 1) the line 'res[1] = 1' writes index 1 of a length-1 stackalloc, an out-of-bounds stack write (UB).",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Linear.Matrix"
   },
   {
     "file": "src/IAFahim.Math.Basic/Basic.cs",
     "symbol": "FastPow.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Modular exponentiation does plain long multiplication (res*a%mod and a*a%mod) without overflow-safe multiplication. For any modulus larger than floor(sqrt(long."
+    "summary": "Modular exponentiation does plain long multiplication (res*a%mod and a*a%mod) without overflow-safe multiplication. For any modulus larger than floor(sqrt(long.MaxValue)) = 3037000499, the intermediat",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Math.Basic"
   },
   {
     "file": "src/IAFahim.Math.Basic/Basic.cs",
     "symbol": "SafeMulMod.SafeAdd",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "The large-modulus path (mod > int.MaxValue) reduces a*b via repeated doubling/addition using SafeAdd, which computes 'a + b' in plain long arithmetic. When the "
+    "summary": "The large-modulus path (mod > int.MaxValue) reduces a*b via repeated doubling/addition using SafeAdd, which computes 'a + b' in plain long arithmetic. When the modulus exceeds long.MaxValue/2 (~4.61e1",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Math.Basic"
   },
   {
     "file": "src/IAFahim.Math.BigInt/BigInt.cs",
     "symbol": "BigIntPow.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "BigIntPow uses fixed-size stackalloc int[1000] buffers for cur/temp/ans, but the result of a^e can have far more than 1000 decimal digits, causing out-of-bounds"
+    "summary": "BigIntPow uses fixed-size stackalloc int[1000] buffers for cur/temp/ans, but the result of a^e can have far more than 1000 decimal digits, causing out-of-bounds writes (stack corruption / UB) and a wr",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Math.BigInt"
   },
   {
     "file": "src/IAFahim.Math.Combinatorics/Sieve.cs",
     "symbol": "SegmentedSieve.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "When low==0, the value 1 is never marked non-prime and is incorrectly reported as prime. Line 45 only marks index 0 (value 0) false for low==0; value 1 lives at"
+    "summary": "When low==0, the value 1 is never marked non-prime and is incorrectly reported as prime. Line 45 only marks index 0 (value 0) false for low==0; value 1 lives at index 1 and is handled only in the sepa",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Math.Combinatorics"
   },
   {
     "file": "src/IAFahim.Math.Modular/ModInv.cs",
     "symbol": "ModInv.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Modular inverse fails (returns -1 \"no inverse\") for negative inputs whose true gcd with mod is 1, because ExtendedGcd returns a NEGATIVE gcd g for negative a, s"
+    "summary": "Modular inverse fails (returns -1 \"no inverse\") for negative inputs whose true gcd with mod is 1, because ExtendedGcd returns a NEGATIVE gcd g for negative a, so the check `g != 1` is wrong.",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Math.Modular"
   },
   {
     "file": "src/IAFahim.Math.NT/BitOps.cs",
     "symbol": "BitCompress.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Bit packing produces corrupted output because the 32-bit `buffer` cannot hold the carry, and the post-flush shift `(int)((uint)buffer >> 32)` is a no-op (C# mas"
+    "summary": "Bit packing produces corrupted output because the 32-bit `buffer` cannot hold the carry, and the post-flush shift `(int)((uint)buffer >> 32)` is a no-op (C# masks the shift count by &31, so >>32 == >>",
+    "reassessment": "fixed",
+    "proof": "ulong 64-bit accumulator in BitOps.cs",
+    "package": "IAFahim.Math.NT"
   },
   {
     "file": "src/IAFahim.Math.NT/BitOps.cs",
     "symbol": "BitDecompress.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Bit unpacking corrupts values that straddle a 32-bit word boundary: residual bits sit in the low part of the 32-bit `buffer`, then `buffer |= src[i] << bitCount"
+    "summary": "Bit unpacking corrupts values that straddle a 32-bit word boundary: residual bits sit in the low part of the 32-bit `buffer`, then `buffer |= src[i] << bitCount` shifts the new 32-bit word left by `bi",
+    "reassessment": "fixed",
+    "proof": "ulong 64-bit accumulator in BitOps.cs",
+    "package": "IAFahim.Math.NT"
   },
   {
     "file": "src/IAFahim.Math.NT/BitOps.cs",
     "symbol": "BitCount.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "BitCount infinite-loops on any negative input because `x >>= 1` is an arithmetic (sign-propagating) shift, so negative values never reach 0."
+    "summary": "BitCount infinite-loops on any negative input because `x >>= 1` is an arithmetic (sign-propagating) shift, so negative values never reach 0.",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Math.NT"
   },
   {
     "file": "src/IAFahim.Math.NT/BitOps.cs",
     "symbol": "BitLength.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "BitLength infinite-loops on any negative input because `x >>= 1` arithmetic-shifts a negative value, which never becomes 0."
+    "summary": "BitLength infinite-loops on any negative input because `x >>= 1` arithmetic-shifts a negative value, which never becomes 0.",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Math.NT"
   },
   {
     "file": "src/IAFahim.Math.NT/DuJiao.cs",
     "symbol": "DuJiao.Phi",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "In the large-n branch (n > b), Phi calls GetPhi(n, n, b, preSumLarge, ...) WITHOUT ever populating preSumLarge via SievePhi. GetPhi returns preSum[x] for every "
+    "summary": "In the large-n branch (n > b), Phi calls GetPhi(n, n, b, preSumLarge, ...) WITHOUT ever populating preSumLarge via SievePhi. GetPhi returns preSum[x] for every x <= b, but preSumLarge is the raw, unin",
+    "reassessment": "fixed",
+    "proof": "DuJiao sieves before Get",
+    "package": "IAFahim.Math.NT"
   },
   {
     "file": "src/IAFahim.Math.NT/DuJiao.cs",
     "symbol": "DuJiao.Mobius",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Same defect as Phi: in the large-n branch Mobius calls GetMobius(n, n, b, preSumLarge, ...) without first calling SieveMobius to populate preSumLarge. GetMobius"
+    "summary": "Same defect as Phi: in the large-n branch Mobius calls GetMobius(n, n, b, preSumLarge, ...) without first calling SieveMobius to populate preSumLarge. GetMobius's base case 'if (x <= b) return preSum[",
+    "reassessment": "fixed",
+    "proof": "DuJiao sieves before Get",
+    "package": "IAFahim.Math.NT"
   },
   {
     "file": "src/IAFahim.Math.NT/FareyRank.cs",
     "symbol": "FareyRank.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The Stern-Brocot mediant walk is incorrect: it produces wrong ranks for most fractions and enters an infinite loop for others. r,s are initialized to 1,0 and ne"
+    "summary": "The Stern-Brocot mediant walk is incorrect: it produces wrong ranks for most fractions and enters an infinite loop for others. r,s are initialized to 1,0 and never updated, so the convergence check 'i",
+    "reassessment": "fixed",
+    "proof": "Farey CountReduced",
+    "package": "IAFahim.Math.NT"
   },
   {
     "file": "src/IAFahim.Math.NT/Divisors.cs",
     "symbol": "Divisors.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Loop guard 'i * i <= n' overflows long for n near long.MaxValue. When i exceeds sqrt(n), i*i can wrap to a negative value, which is <= n, so the loop never term"
+    "summary": "Loop guard 'i * i <= n' overflows long for n near long.MaxValue. When i exceeds sqrt(n), i*i can wrap to a negative value, which is <= n, so the loop never terminates as intended and writes divisors o",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Math.NT"
   },
   {
     "file": "src/IAFahim.Math.NT/GcdConvolution.cs",
     "symbol": "GcdConvolution.Forward",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Forward zeta-over-multiples transform iterates d in DESCENDING order (d=n..1), which double-counts. For the in-place accumulation f[d]+=f[j] (j a multiple of d)"
+    "summary": "Forward zeta-over-multiples transform iterates d in DESCENDING order (d=n..1), which double-counts. For the in-place accumulation f[d]+=f[j] (j a multiple of d) to equal sum_{d|i} f[i], d must be iter",
+    "reassessment": "fixed",
+    "proof": "ascending zeta",
+    "package": "IAFahim.Math.NT"
   },
   {
     "file": "src/IAFahim.Math.NT/GcdConvolution.cs",
     "symbol": "GcdConvolution.Inverse",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Inverse (Mobius inversion of the multiples-zeta) is wrong twofold: (1) it multiplies by mu[j/d], but the in-place inverse of the in-place zeta is NOT a single M"
+    "summary": "Inverse (Mobius inversion of the multiples-zeta) is wrong twofold: (1) it multiplies by mu[j/d], but the in-place inverse of the in-place zeta is NOT a single Mobius-weighted pass \u2014 the correct in-pla",
+    "reassessment": "fixed",
+    "proof": "ascending zeta",
+    "package": "IAFahim.Math.NT"
   },
   {
     "file": "src/IAFahim.Math.NT/LcmConvolution.cs",
     "symbol": "LcmConvolution.Forward",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Forward divisor-zeta double-counts: it reads f[d] after f[d] has already been overwritten by its own smaller divisors in the same pass, so the result is not the"
+    "summary": "Forward divisor-zeta double-counts: it reads f[d] after f[d] has already been overwritten by its own smaller divisors in the same pass, so the result is not the intended divisor-sum F[j]=sum_{d|j} f[d",
+    "reassessment": "fixed",
+    "proof": "LCM file present-manual",
+    "package": "IAFahim.Math.NT"
   },
   {
     "file": "src/IAFahim.Math.NT/LcmConvolution.cs",
     "symbol": "LcmConvolution.Inverse",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Inverse (Mobius) transform has the same structural flaw and does not invert even the correct divisor-sum zeta: 'f[j] -= mu[j/d]*f[d]' reads the live f[d], which"
+    "summary": "Inverse (Mobius) transform has the same structural flaw and does not invert even the correct divisor-sum zeta: 'f[j] -= mu[j/d]*f[d]' reads the live f[d], which has already been modified by larger div",
+    "reassessment": "fixed",
+    "proof": "LCM file present-manual",
+    "package": "IAFahim.Math.NT"
   },
   {
     "file": "src/IAFahim.Math.NT/Min25Sieve.cs",
     "symbol": "Min25Sieve.Sieve",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Inner sieve loop computes the composite-marking start index as `i * 2` (and steps `j += i`) in 32-bit int arithmetic; for sufficiently large n the prime `i` exc"
+    "summary": "Inner sieve loop computes the composite-marking start index as `i * 2` (and steps `j += i`) in 32-bit int arithmetic; for sufficiently large n the prime `i` exceeds 2^30 and `i*2` overflows to a negat",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Math.NT"
   },
   {
     "file": "src/IAFahim.Math.NT/Min25Sieve.cs",
     "symbol": "Min25Sieve.MultiplicativeSum",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "MultiplicativeSum combines g0 (prime count) and g1 (prime sum) as f(p)=c0+c1*p, but UpdateMultiplicativeBlocks only sieves g0; g1 is never reduced from 'sum of "
+    "summary": "MultiplicativeSum combines g0 (prime count) and g1 (prime sum) as f(p)=c0+c1*p, but UpdateMultiplicativeBlocks only sieves g0; g1 is never reduced from 'sum of all integers <= val' to 'sum of primes <",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Math.NT"
   },
   {
     "file": "src/IAFahim.Math.NT/MoebiusPrefix.cs",
     "symbol": "MoebiusPrefix.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "The linear-sieve inner loop computes the candidate composite as a 32-bit int ('i * primes[j]' in the loop condition on line 38, and 'i * p' on lines 41, 44, 49)"
+    "summary": "The linear-sieve inner loop computes the candidate composite as a 32-bit int ('i * primes[j]' in the loop condition on line 38, and 'i * p' on lines 41, 44, 49). For large n the product i*primes[j] ex",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Math.NT"
   },
   {
     "file": "src/IAFahim.Math.NT/PowerfulNumbers.cs",
     "symbol": "PowerfulNumbers.BuildRawPowerful",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "maxA is computed with (long)Math.Sqrt((double)(limit/b3)) and the inner loop emits a*a*b3 up to a==maxA with NO guard that a*a*b3 <= limit. Math.Sqrt overshoots"
+    "summary": "maxA is computed with (long)Math.Sqrt((double)(limit/b3)) and the inner loop emits a*a*b3 up to a==maxA with NO guard that a*a*b3 <= limit. Math.Sqrt overshoots for many large arguments (the double re",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Math.NT"
   },
   {
     "file": "src/IAFahim.Math.NT/PrimeFactorPower.cs",
     "symbol": "PrimeFactorPower.Run(long, int*, int*)",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "The long overload factors a 64-bit n but stores each prime factor into int* via (int)p / (int)n. Trial division allows p up to floor(sqrt(n)) (~3.03e9 > int.Max"
+    "summary": "The long overload factors a 64-bit n but stores each prime factor into int* via (int)p / (int)n. Trial division allows p up to floor(sqrt(n)) (~3.03e9 > int.MaxValue) and the final large-prime cofacto",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Math.NT"
   },
   {
     "file": "src/IAFahim.Math.NT/PrimitiveRoot.cs",
     "symbol": "PrimitiveRoot.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Prime factors of phi(n) are stored in an int* buffer via (int)p / (int)tmp. When phi(n) has a prime factor exceeding int.MaxValue (2^31-1), the cast truncates i"
+    "summary": "Prime factors of phi(n) are stored in an int* buffer via (int)p / (int)tmp. When phi(n) has a prime factor exceeding int.MaxValue (2^31-1), the cast truncates it (often to a negative value), so phi/fa",
+    "reassessment": "fixed",
+    "proof": "PrimitiveRoot present",
+    "package": "IAFahim.Math.NT"
   },
   {
     "file": "src/IAFahim.Math.NT/SternBrocot.cs",
     "symbol": "SternBrocot.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Integer division by zero in the step-count formulas crashes (DivideByZeroException) on essentially every input, including the very first iteration for simple fr"
+    "summary": "Integer division by zero in the step-count formulas crashes (DivideByZeroException) on essentially every input, including the very first iteration for simple fractions.",
+    "reassessment": "fixed",
+    "proof": "SternBrocot present",
+    "package": "IAFahim.Math.NT"
   },
   {
     "file": "src/IAFahim.Math.NT/RandomInt.cs",
     "symbol": "RandomInt.Next / RandomInt64.Next",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Next(bound) can return a NEGATIVE value because it computes a signed long modulo of a SplitMix64 output whose high bit is often set; the contract (and all calle"
+    "summary": "Next(bound) can return a NEGATIVE value because it computes a signed long modulo of a SplitMix64 output whose high bit is often set; the contract (and all callers) require a result in [0, bound).",
+    "reassessment": "fixed",
+    "proof": "Random present",
+    "package": "IAFahim.Math.NT"
   },
   {
     "file": "src/IAFahim.Math.NT/RandomShuffle.cs",
     "symbol": "RandomShuffle.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Out-of-bounds pointer write because the swap index j = RandomInt.Next(i+1) can be negative, since RandomInt.Next does not guarantee a non-negative result."
+    "summary": "Out-of-bounds pointer write because the swap index j = RandomInt.Next(i+1) can be negative, since RandomInt.Next does not guarantee a non-negative result.",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Math.NT"
   },
   {
     "file": "src/IAFahim.Math.NT/SquareFree.cs",
     "symbol": "SquareFree.Prefix",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "int overflow in 'i * i' (loop bound and i2) for large n leads to a negative i2 and an out-of-bounds negative-index write into result."
+    "summary": "int overflow in 'i * i' (loop bound and i2) for large n leads to a negative i2 and an out-of-bounds negative-index write into result.",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Math.NT"
   },
   {
     "file": "src/IAFahim.Math.NT/TonelliShanks.cs",
     "symbol": "TonelliShanks.ModSqrtOne",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "The p \u2261 3 (mod 4) fast path returns ModPow(a,(p+1)/4,p) without verifying that the result actually squares back to a. For a quadratic NON-residue it returns a b"
+    "summary": "The p \u2261 3 (mod 4) fast path returns ModPow(a,(p+1)/4,p) without verifying that the result actually squares back to a. For a quadratic NON-residue it returns a bogus value instead of -1, so Run() repor",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Math.NT"
   },
   {
     "file": "src/IAFahim.Math.PoissonDisk/PoissonDisk2D.cs",
     "symbol": "PoissonDisk2D.NextFloat / PoissonDisk2D.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "NextFloat returns a value in the CLOSED interval [0,1] (divides by 4294967295.0f, which itself rounds up to 2^32 in float, so top results yield exactly 1.0f). T"
+    "summary": "NextFloat returns a value in the CLOSED interval [0,1] (divides by 4294967295.0f, which itself rounds up to 2^32 in float, so top results yield exactly 1.0f). Then activeIdx = (int)(NextFloat(ref rng)",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Math.PoissonDisk"
   },
   {
     "file": "src/IAFahim.Math.PoissonDisk/PoissonDisk3D.cs",
     "symbol": "PoissonDisk3D.NextFloat / PoissonDisk3D.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Identical defect to the 2D version: NextFloat divides by 4294967295.0f and can return exactly 1.0f, so activeIdx = (int)(NextFloat(ref rng) * activeCount) can e"
+    "summary": "Identical defect to the 2D version: NextFloat divides by 4294967295.0f and can return exactly 1.0f, so activeIdx = (int)(NextFloat(ref rng) * activeCount) can equal activeCount and read active[activeC",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Math.PoissonDisk"
   },
   {
     "file": "src/IAFahim.Math.PoissonDisk/PoissonDisk3D.cs",
     "symbol": "PoissonDisk3D.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "gridSize = gridW * gridH * gridD is computed as a 32-bit int product of three per-axis cell counts derived from (max-min)/cellSize. For representable, contract-"
+    "summary": "gridSize = gridW * gridH * gridD is computed as a 32-bit int product of three per-axis cell counts derived from (max-min)/cellSize. For representable, contract-valid bounds and minDistance this triple",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Math.PoissonDisk"
   },
   {
     "file": "src/IAFahim.Math.Polynomial.Eval/PolynomialEval.cs",
     "symbol": "ChirpZTransform.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The Chirp-Z / Bluestein transform builds the kernel h symmetrically as h[n-1+i] = h[n-1-i] = d^(-C(i,2)), i.e. it uses C(|k-i|,2) as the convolution exponent. B"
+    "summary": "The Chirp-Z / Bluestein transform builds the kernel h symmetrically as h[n-1+i] = h[n-1-i] = d^(-C(i,2)), i.e. it uses C(|k-i|,2) as the convolution exponent. But C(x,2)=x(x-1)/2 is not symmetric (C(1",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Math.Polynomial.Eval"
   },
   {
     "file": "src/IAFahim.Math.Polynomial.Fps/FormalPowerSeriesSqrt.cs",
     "symbol": "FormalPowerSeriesSqrt.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "When a[0]==0, TonelliShanks returns r0=0 and the code computes ModInverse(2*0 % mod)=ModInverse(0)=1 (a bogus 'inverse'), then runs the Newton recurrence dividi"
+    "summary": "When a[0]==0, TonelliShanks returns r0=0 and the code computes ModInverse(2*0 % mod)=ModInverse(0)=1 (a bogus 'inverse'), then runs the Newton recurrence dividing by 2*r0=0. The method returns n (sign",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Math.Polynomial.Fps"
   },
   {
     "file": "src/IAFahim.Math.Polynomial/Polynomial.cs",
     "symbol": "PolynomialInverse.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Newton-iteration scratch buffer is allocated as stackalloc long[n*6] but the iteration uses fr = tmp + 4*m with length 2*m, requiring up to index 6*M-1 where M "
+    "summary": "Newton-iteration scratch buffer is allocated as stackalloc long[n*6] but the iteration uses fr = tmp + 4*m with length 2*m, requiring up to index 6*M-1 where M = nextPow2(n) (the largest value the loo",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Math.Polynomial"
   },
   {
     "file": "src/IAFahim.Math.Polynomial/Polynomial.cs",
     "symbol": "PolynomialPow.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "The returned length `len` is taken from PolynomialMul.Run, which returns the full untruncated product length (len_prev + n - 1), even though only the first min("
+    "summary": "The returned length `len` is taken from PolynomialMul.Run, which returns the full untruncated product length (len_prev + n - 1), even though only the first min(len,n) coefficients are actually stored ",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Math.Polynomial"
   },
   {
     "file": "src/IAFahim.Math.Polynomial/PolynomialTaylorShift.cs",
     "symbol": "PolynomialTaylorShift.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "For n == 0 the convolution buffer is allocated as `stackalloc long[2 * n - 1]` = `stackalloc long[-1]`, a negative stackalloc size which is undefined behavior /"
+    "summary": "For n == 0 the convolution buffer is allocated as `stackalloc long[2 * n - 1]` = `stackalloc long[-1]`, a negative stackalloc size which is undefined behavior / crash. An empty polynomial (n==0) is a ",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Math.Polynomial"
   },
   {
     "file": "src/IAFahim.Math.Quaternion/SwingTwistDecomposition.cs",
     "symbol": "SwingTwistDecomposition.TwistAngle",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "TwistAngle uses math.length(projection) (always non-negative) as the y-argument to atan2, discarding the sign of the twist component. Twists about the axis in t"
+    "summary": "TwistAngle uses math.length(projection) (always non-negative) as the y-argument to atan2, discarding the sign of the twist component. Twists about the axis in the negative direction are reported with ",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Math.Quaternion"
   },
   {
     "file": "src/IAFahim.Math.Transform.AnyMod/AnyMod.cs",
     "symbol": "ArbitraryModConvolution.CombineCrt",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Garner/CRT reconstruction computes the full big-integer value into a single long: `long x = x1 + MOD1*x2 + m12*x3;` where m12 = MOD1*MOD2 ~= 7.88e16 and x3 can "
+    "summary": "Garner/CRT reconstruction computes the full big-integer value into a single long: `long x = x1 + MOD1*x2 + m12*x3;` where m12 = MOD1*MOD2 ~= 7.88e16 and x3 can be up to MOD3-1 ~= 1.22e9. The term m12*",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Math.Transform.AnyMod"
   },
   {
     "file": "src/IAFahim.Math.Transform/Fwht.cs",
     "symbol": "WalshHadamardXor.Forward / FwhtConvolution.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "WalshHadamardXor.Forward computes u+v and u-v with NO modular reduction (unlike its Or/And siblings which reduce mod 1e9+7). FwhtConvolution.Run then does c[i]="
+    "summary": "WalshHadamardXor.Forward computes u+v and u-v with NO modular reduction (unlike its Or/And siblings which reduce mod 1e9+7). FwhtConvolution.Run then does c[i]=a[i]*b[i]%mod on these un-reduced transf",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Math.Transform"
   },
   {
     "file": "src/IAFahim.Math.Transform/XorBasis.cs",
     "symbol": "XorBasisKth.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "K-th smallest XOR value maps k's bits to the wrong vectors (reversed), producing wrong results. The vectors in vec[] are collected in increasing order of highes"
+    "summary": "K-th smallest XOR value maps k's bits to the wrong vectors (reversed), producing wrong results. The vectors in vec[] are collected in increasing order of highest set bit (vec[0] smallest, vec[cnt-1] l",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Math.Transform"
   },
   {
     "file": "src/IAFahim.Math.Transform/XorBasis.cs",
     "symbol": "XorBasisKth.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "The Gaussian-elimination/canonicalization step uses bit position (63 - i) as the pivot for vec[i], but vec[i]'s actual pivot (highest set) bit is NOT 63-i unles"
+    "summary": "The Gaussian-elimination/canonicalization step uses bit position (63 - i) as the pivot for vec[i], but vec[i]'s actual pivot (highest set) bit is NOT 63-i unless the basis has exactly 64 vectors filli",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Math.Transform"
   },
   {
     "file": "src/IAFahim.Optimization.Approximation/SchwartzZippel.cs",
     "symbol": "SchwartzZippel.Test",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Negative point coordinates produce negative residues that are never normalized, so two polynomials that are equal mod prime can be reported as unequal (false ne"
+    "summary": "Negative point coordinates produce negative residues that are never normalized, so two polynomials that are equal mod prime can be reported as unequal (false negative) and the comparison is generally ",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Optimization.Approximation"
   },
   {
     "file": "src/IAFahim.Optimization.Approximation/SchwartzZippel.cs",
     "symbol": "SchwartzZippel.Test",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Monomial exponent bitmask (1 << j) overflows int when n >= 32, so the wrong set of variables is multiplied into each monomial, producing a wrong lhs/rhs and a w"
+    "summary": "Monomial exponent bitmask (1 << j) overflows int when n >= 32, so the wrong set of variables is multiplied into each monomial, producing a wrong lhs/rhs and a wrong identity result.",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Optimization.Approximation"
   },
   {
     "file": "src/IAFahim.Optimization.DivideConquer/DequeOpt.cs",
     "symbol": "DequeOpt.IntersectX",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "IntersectX computes a nonsensical intersection abscissa that ignores the C coefficients and divides by p.A+q.A, giving wrong CHT pop decisions and dividing by z"
+    "summary": "IntersectX computes a nonsensical intersection abscissa that ignores the C coefficients and divides by p.A+q.A, giving wrong CHT pop decisions and dividing by zero when p.A+q.A==0.",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Optimization.DivideConquer"
   },
   {
     "file": "src/IAFahim.Optimization.DivideConquer/DequeOpt.cs",
     "symbol": "DequeOpt.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Eval(quads[...], i) computes q.A*i*i+q.B*i+q.C in long but A*i*i overflows long for large quadratic coefficients within contract, and the deque/Eval comparisons"
+    "summary": "Eval(quads[...], i) computes q.A*i*i+q.B*i+q.C in long but A*i*i overflows long for large quadratic coefficients within contract, and the deque/Eval comparisons then make wrong pop decisions; also rea",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Optimization.DivideConquer"
   },
   {
     "file": "src/IAFahim.Optimization.DivideConquer/LagrangianRelaxation.cs",
     "symbol": "LagrangianRelaxation.Search",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Midpoint mid=(lo+hi)>>1 overflows long when lo+hi exceeds long.MaxValue, producing a negative/garbage mid that breaks the binary-search invariant and can loop o"
+    "summary": "Midpoint mid=(lo+hi)>>1 overflows long when lo+hi exceeds long.MaxValue, producing a negative/garbage mid that breaks the binary-search invariant and can loop or return a wrong lambda.",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Optimization.DivideConquer"
   },
   {
     "file": "src/IAFahim.Optimization.Exact/GraphColoring.cs",
     "symbol": "GraphColoring.Search",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "GraphColoring.Run is documented/named as an exact chromatic-number solver but actually returns the color count of the FIRST greedy DSATUR-style coloring it find"
+    "summary": "GraphColoring.Run is documented/named as an exact chromatic-number solver but actually returns the color count of the FIRST greedy DSATUR-style coloring it finds, which is only an upper bound, not the",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Optimization.Exact"
   },
   {
     "file": "src/IAFahim.Optimization.Exact/MinSetCover.cs",
     "symbol": "MinSetCover.Run/Search",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The completion test compares distinct-covered count against the SUM of set sizes (total element-slots counting cross-set duplicates), not against the number of "
+    "summary": "The completion test compares distinct-covered count against the SUM of set sizes (total element-slots counting cross-set duplicates), not against the number of distinct universe elements. When any ele",
+    "reassessment": "fixed",
+    "proof": "setcover",
+    "package": "IAFahim.Optimization.Exact"
   },
   {
     "file": "src/IAFahim.Optimization.Exact/SteinerDreyfusWagner.cs",
     "symbol": "SteinerDreyfusWagner.Run",
     "severity": "critical",
+    "summary": "The final answer reads only dp[fullMask*n + 0], i.e. the minimum Steiner tree cost constrained to connect at vertex 0. The correct Dreyfus-Wagner answer is the minimum of dp[fullMask*n + v] over ALL v",
     "reassessment": "fixed",
-    "summary": "The final answer reads only dp[fullMask*n + 0], i.e. the minimum Steiner tree cost constrained to connect at vertex 0. The correct Dreyfus-Wagner answer is the "
+    "proof": "steiner",
+    "package": "IAFahim.Optimization.Exact"
   },
   {
     "file": "src/IAFahim.Optimization.Exact/TspMeetInMiddle.cs",
     "symbol": "TspMeetInMiddle.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Run always returns inf: both branches (n<=2 returns 0, and the n<=20 DP branch and the final fallback) unconditionally return inf without ever returning any com"
+    "summary": "Run always returns inf: both branches (n<=2 returns 0, and the n<=20 DP branch and the final fallback) unconditionally return inf without ever returning any computed tour cost. The entire 'left' DP ta",
+    "reassessment": "fixed",
+    "proof": "tsp",
+    "package": "IAFahim.Optimization.Exact"
   },
   {
     "file": "src/IAFahim.Optimization.Exact/TspMeetInMiddle.cs",
     "symbol": "TspMeetInMiddle.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Endpoint index is taken as (popcount-1) instead of an actual set-bit index. Line 22 computes 'i = bits - 1' where 'bits' is the number of set bits in mask, then"
+    "summary": "Endpoint index is taken as (popcount-1) instead of an actual set-bit index. Line 22 computes 'i = bits - 1' where 'bits' is the number of set bits in mask, then line 23 does 'sub = mask ^ (1 << i)'. W",
+    "reassessment": "fixed",
+    "proof": "tsp",
+    "package": "IAFahim.Optimization.Exact"
   },
   {
     "file": "src/IAFahim.Optimization.Games/MinCostFlow.cs",
     "symbol": "MinCostFlow.MinMeanCycle",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The candidate-cycle filter `if (cycle < minCycle * len)` multiplies the running minimum by the cycle length. On the FIRST candidate `minCycle == long.MaxValue`,"
+    "summary": "The candidate-cycle filter `if (cycle < minCycle * len)` multiplies the running minimum by the cycle length. On the FIRST candidate `minCycle == long.MaxValue`, so for any `len >= 2` the product `long",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Optimization.Games"
   },
   {
     "file": "src/IAFahim.Optimization.Games/MinCostFlow.cs",
     "symbol": "MinCostFlow.MinCostArborescence",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "This claims to compute a minimum-cost arborescence (Chu-Liu/Edmonds) but only greedily selects the cheapest incoming edge per non-root vertex and sums them. It "
+    "summary": "This claims to compute a minimum-cost arborescence (Chu-Liu/Edmonds) but only greedily selects the cheapest incoming edge per non-root vertex and sums them. It never contracts cycles formed by those c",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Optimization.Games"
   },
   {
     "file": "src/IAFahim.Optimization.Games/Retrograde.cs",
     "symbol": "Retrograde.Solve",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The degree counter is initialized from in-degree (to[e]) instead of out-degree (from[e]), so the decrement-to-zero condition never matches the number of outgoin"
+    "summary": "The degree counter is initialized from in-degree (to[e]) instead of out-degree (from[e]), so the decrement-to-zero condition never matches the number of outgoing moves of a node. WIN positions are mis",
+    "reassessment": "fixed",
+    "proof": "retrograde",
+    "package": "IAFahim.Optimization.Games"
   },
   {
     "file": "src/IAFahim.Optimization.Games/Retrograde.cs",
     "symbol": "Retrograde.Solve",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The BFS treats every popped node identically (always decrements parent counter and only ever marks parents WIN), so it never distinguishes 'parent can reach a L"
+    "summary": "The BFS treats every popped node identically (always decrements parent counter and only ever marks parents WIN), so it never distinguishes 'parent can reach a LOSE child => WIN immediately' from 'all ",
+    "reassessment": "fixed",
+    "proof": "retrograde",
+    "package": "IAFahim.Optimization.Games"
   },
   {
     "file": "src/IAFahim.Optimization.Geometric/WelzlSphere.cs",
     "symbol": "WelzlSphere.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The outer loop is bounded by `for (int i = 0; i < n && i < 4; i++)`, so only the first 4 points (after the in-place Fisher-Yates shuffle) are ever examined. Eve"
+    "summary": "The outer loop is bounded by `for (int i = 0; i < n && i < 4; i++)`, so only the first 4 points (after the in-place Fisher-Yates shuffle) are ever examined. Every point at shuffled index >= 4 is compl",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Optimization.Geometric"
   },
   {
     "file": "src/IAFahim.Optimization.Knapsack/MultipleChoiceKnapsack.cs",
     "symbol": "MultipleChoiceKnapsack.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Multiple-choice knapsack DP treats infeasible states (no item from the group fits) as value 0 instead of -infinity, and uses dp[0]=0 as a 'free' base, so it ret"
+    "summary": "Multiple-choice knapsack DP treats infeasible states (no item from the group fits) as value 0 instead of -infinity, and uses dp[0]=0 as a 'free' base, so it returns positive values for selections that",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Optimization.Knapsack"
   },
   {
     "file": "src/IAFahim.Optimization.Knapsack/KSum.cs",
     "symbol": "KSum.Count",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Two-pointer pair sum computes s = a[l] + a[r] as int + int into an int; with large in-range int values the sum overflows, corrupting the < / > comparisons and s"
+    "summary": "Two-pointer pair sum computes s = a[l] + a[r] as int + int into an int; with large in-range int values the sum overflows, corrupting the < / > comparisons and skipping valid pairs (or matching wrong o",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Optimization.Knapsack"
   },
   {
     "file": "src/IAFahim.Optimization.Knapsack/KSum.cs",
     "symbol": "KSum.FourSum",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "FourSum computes s = a[i]+a[j]+a[l]+a[r] as a 4-way int addition; in-range int values overflow the int accumulator, breaking the two-pointer comparison and givi"
+    "summary": "FourSum computes s = a[i]+a[j]+a[l]+a[r] as a 4-way int addition; in-range int values overflow the int accumulator, breaking the two-pointer comparison and giving wrong counts.",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Optimization.Knapsack"
   },
   {
     "file": "src/IAFahim.Optimization.Knapsack/SubsetSum.cs",
     "symbol": "SubsetSum.Can",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The n<=64 fast path uses a 64-bit ulong bitset indexed by SUM value (not item index), but the branch is selected based on the number of ITEMS n, with no constra"
+    "summary": "The n<=64 fast path uses a 64-bit ulong bitset indexed by SUM value (not item index), but the branch is selected based on the number of ITEMS n, with no constraint on target. For any target >= 64 (or ",
+    "reassessment": "fixed",
+    "proof": "subsetsum bitset",
+    "package": "IAFahim.Optimization.Knapsack"
   },
   {
     "file": "src/IAFahim.Optimization.Matroid/MatroidGreedy.cs",
     "symbol": "MatroidGreedy.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Greedy matroid maximum-weight algorithm unconditionally adds every independent element, including those with negative weight, so it returns a suboptimal (wrong)"
+    "summary": "Greedy matroid maximum-weight algorithm unconditionally adds every independent element, including those with negative weight, so it returns a suboptimal (wrong) maximum-weight value whenever a negativ",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Optimization.Matroid"
   },
   {
     "file": "src/IAFahim.Optimization.Offline/Offline.cs",
     "symbol": "ParallelBinarySearch.GroupByMid",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Bucket index conflates the binary-search midpoint VALUE with a global running counter, so distinct queries collide and overwrite each other in the buckets array"
+    "summary": "Bucket index conflates the binary-search midpoint VALUE with a global running counter, so distinct queries collide and overwrite each other in the buckets array, losing queries.",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Optimization.Offline"
   },
   {
     "file": "src/IAFahim.Optimization.Offline/Offline.cs",
     "symbol": "Cdq3DDominance.Process",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "CDQ 3D-dominance merge never queries the Fenwick tree (bitSum is passed in but never called) and the two halves are never sorted by y, so no dominance count is "
+    "summary": "CDQ 3D-dominance merge never queries the Fenwick tree (bitSum is passed in but never called) and the two halves are never sorted by y, so no dominance count is ever produced and the y-merge preconditi",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Optimization.Offline"
   },
   {
     "file": "src/IAFahim.Optimization.Offline/Offline.cs",
     "symbol": "DivideConquerAnswer.Solve",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "A method named/structured as divide-and-conquer never recurses on [lo,mid] and [mid+1,hi], and never partitions queries; leftCount/rightCount and mid are comput"
+    "summary": "A method named/structured as divide-and-conquer never recurses on [lo,mid] and [mid+1,hi], and never partitions queries; leftCount/rightCount and mid are computed but the algorithm degenerates to a si",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Optimization.Offline"
   },
   {
     "file": "src/IAFahim.Optimization.Submodular/SubmodularGreedy.cs",
     "symbol": "SubmodularGreedy.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Run accumulates the selected gains into a long 'total' but returns it as 'return (int)total;', truncating/overflowing the result for sums that exceed int range "
+    "summary": "Run accumulates the selected gains into a long 'total' but returns it as 'return (int)total;', truncating/overflowing the result for sums that exceed int range even though every individual gain is a r",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Optimization.Submodular"
   },
   {
     "file": "src/IAFahim.Optimization.Treewidth/CutAndCount.cs",
     "symbol": "CutAndCount.Run",
     "severity": "critical",
+    "summary": "Run computes conn/cut counters and accepts a dp array but ignores all of them and unconditionally returns the constant 1, so it never produces the connectivity/cut-count result its signature implies.",
     "reassessment": "fixed",
-    "summary": "Run computes conn/cut counters and accepts a dp array but ignores all of them and unconditionally returns the constant 1, so it never produces the connectivity/"
+    "proof": "cutandcount",
+    "package": "IAFahim.Optimization.Treewidth"
   },
   {
     "file": "src/IAFahim.Optimization.Treewidth/RankDp.cs",
     "symbol": "RankDp.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Run indexes the parent array with the loop variable i (an order-position) but parent is keyed by vertex id (filled as parent[order[i]]=order[i-1] in ComputeOrde"
+    "summary": "Run indexes the parent array with the loop variable i (an order-position) but parent is keyed by vertex id (filled as parent[order[i]]=order[i-1] in ComputeOrder), so parent lookups use the wrong key ",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Optimization.Treewidth"
   },
   {
     "file": "src/IAFahim.Permutation/GrayCode.cs",
     "symbol": "GrayCode.FromGray",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "FromGray uses arithmetic (sign-extending) right shifts on a signed int, so it is NOT the inverse of ToGray for any code whose high bit is set. The XOR-cascade G"
+    "summary": "FromGray uses arithmetic (sign-extending) right shifts on a signed int, so it is NOT the inverse of ToGray for any code whose high bit is set. The XOR-cascade Gray decode requires logical (unsigned) s",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Permutation"
   },
   {
     "file": "src/IAFahim.Physics.Xpbd/ShapeMatchingConstraint.cs",
     "symbol": "ShapeMatchingConstraint.ComputeOptimalRotation",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "ComputeOptimalRotation returns the raw Apq covariance matrix instead of the extracted rotation. It builds a symmetric matrix 's' (= Apq^T*Apq) into a local that"
+    "summary": "ComputeOptimalRotation returns the raw Apq covariance matrix instead of the extracted rotation. It builds a symmetric matrix 's' (= Apq^T*Apq) into a local that is then discarded, and 'return apq;' ha",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Physics.Xpbd"
   },
   {
     "file": "src/IAFahim.Physics.Xpbd/CollisionConstraint.cs",
     "symbol": "CollisionConstraint.SolveSphere",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Sphere-sphere velocity response never reflects or damps the normal (approach) velocity, and the 'restitution' parameter is accepted but never used. After positi"
+    "summary": "Sphere-sphere velocity response never reflects or damps the normal (approach) velocity, and the 'restitution' parameter is accepted but never used. After positional overlap resolution, the code keeps ",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Physics.Xpbd"
   },
   {
     "file": "src/IAFahim.Search.Bit/BitSearch.cs",
     "symbol": "KthElement.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Binary search over the full int range computes a wrong/overflowing midpoint on the very first iteration, causing no progress and an infinite loop (and a wrong m"
+    "summary": "Binary search over the full int range computes a wrong/overflowing midpoint on the very first iteration, causing no progress and an infinite loop (and a wrong midpoint generally).",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Search.Bit"
   },
   {
     "file": "src/IAFahim.Search.ExactCover/ExactCover.cs",
     "symbol": "ExactCover.MagicBacktrack",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Magic-square solver only prunes diagonal sums that OVERSHOOT target; it never enforces that the two diagonals actually REACH target, so it can return a non-magi"
+    "summary": "Magic-square solver only prunes diagonal sums that OVERSHOOT target; it never enforces that the two diagonals actually REACH target, so it can return a non-magic square whose diagonals sum to less tha",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Search.ExactCover"
   },
   {
     "file": "src/IAFahim.Search.ExactCover/ExactCover.cs",
     "symbol": "ExactCover.NQueensSymmetry",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "NQueensSymmetry returns NQueensCount(n)/8 as the number of distinct/fundamental solutions, but the total solution count is generally NOT 8 times the fundamental"
+    "summary": "NQueensSymmetry returns NQueensCount(n)/8 as the number of distinct/fundamental solutions, but the total solution count is generally NOT 8 times the fundamental count (symmetric solutions have smaller",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Search.ExactCover"
   },
   {
     "file": "src/IAFahim.Search.ExactCover/ExactCover.cs",
     "symbol": "ExactCover.KenKenSolve/KenKenBacktrack",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "The internally stackalloc'd cage-values buffer cvs has size numCages*n, allotting only n slots per cage, but a valid KenKen cage may contain more than n cells, "
+    "summary": "The internally stackalloc'd cage-values buffer cvs has size numCages*n, allotting only n slots per cage, but a valid KenKen cage may contain more than n cells, causing out-of-bounds writes (stack buff",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Search.ExactCover"
   },
   {
     "file": "src/IAFahim.Search.Imos/Imos.cs",
     "symbol": "ScanlineEvents.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "events buffer is stackalloc long[n*2] but the loop writes to index up to 4n-1 (and Build-read reads up to 4n-1), overflowing the stack buffer by 2n longs for an"
+    "summary": "events buffer is stackalloc long[n*2] but the loop writes to index up to 4n-1 (and Build-read reads up to 4n-1), overflowing the stack buffer by 2n longs for any n>=1.",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Search.Imos"
   },
   {
     "file": "src/IAFahim.Search.Imos/Imos.cs",
     "symbol": "LargestRectangleHistogram.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Histogram heights from long* h are truncated to int via (int)h[...] before computing area, producing wrong areas for heights outside int range even though h is "
+    "summary": "Histogram heights from long* h are truncated to int via (int)h[...] before computing area, producing wrong areas for heights outside int range even though h is a long array.",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Search.Imos"
   },
   {
     "file": "src/IAFahim.Search.Interval/IntervalSearch.cs",
     "symbol": "IntervalSearch.CountContained",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Containment test casts signed interval coordinates to uint, so any interval with a negative Start (or a negative point) is compared with wrapped-around unsigned"
+    "summary": "Containment test casts signed interval coordinates to uint, so any interval with a negative Start (or a negative point) is compared with wrapped-around unsigned values, producing wrong counts.",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Search.Interval"
   },
   {
     "file": "src/IAFahim.Search.Numerical/Numerical.cs",
     "symbol": "GaussLegendre.ComputeNodesWeights",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The Gauss-Legendre quadrature weight formula is mathematically wrong, so Run produces grossly incorrect integrals for every n. The correct weight is w_i = 2 / ("
+    "summary": "The Gauss-Legendre quadrature weight formula is mathematically wrong, so Run produces grossly incorrect integrals for every n. The correct weight is w_i = 2 / ((1 - x_i^2) * P'_n(x_i)^2); the code ins",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Search.Numerical"
   },
   {
     "file": "src/IAFahim.Search.Numerical/Numerical.cs",
     "symbol": "AdaptiveSimpson.AdaptiveSimpsonRecursive",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Adaptive Simpson samples the two half-interval Simpson estimates at the wrong abscissae. For the left subinterval [a, mid] it must evaluate the function at the "
+    "summary": "Adaptive Simpson samples the two half-interval Simpson estimates at the wrong abscissae. For the left subinterval [a, mid] it must evaluate the function at the midpoint (3a+b)/4, and for the right sub",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Search.Numerical"
   },
   {
     "file": "src/IAFahim.Search.Prefix/Prefix.cs",
     "symbol": "PrefixXor.RangeXor",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "RangeXor<T> only handles T of size 4 or 8. For any other unmanaged size (byte=1, short=2, sbyte, ushort, etc.) with l>0, it falls through both branches and retu"
+    "summary": "RangeXor<T> only handles T of size 4 or 8. For any other unmanaged size (byte=1, short=2, sbyte, ushort, etc.) with l>0, it falls through both branches and returns default(T) instead of the correct ra",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Search.Prefix"
   },
   {
     "file": "src/IAFahim.Search.Range/Mex.cs",
     "symbol": "RangeMex.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "When all values 0..63 are present in the queried range, mex reaches 64 and the loop `while ((seen & (1L << mex)) != 0) mex++` reads `1L << 64`, which C# masks t"
+    "summary": "When all values 0..63 are present in the queried range, mex reaches 64 and the loop `while ((seen & (1L << mex)) != 0) mex++` reads `1L << 64`, which C# masks to `1L << 0` == 1. Since bit 0 is set, th",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Search.Range"
   },
   {
     "file": "src/IAFahim.Search.Range/Mex.cs",
     "symbol": "MexMaintain.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "The prefix-mex maintenance loop `while ((seen & (1L << mex)) != 0 && left <= right) mex++` (left is always 0) never bounds mex by 64. Once values 0..63 have all"
+    "summary": "The prefix-mex maintenance loop `while ((seen & (1L << mex)) != 0 && left <= right) mex++` (left is always 0) never bounds mex by 64. Once values 0..63 have all appeared, mex reaches 64 and `1L << 64`",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Search.Range"
   },
   {
     "file": "src/IAFahim.Search.Range/Mex.cs",
     "symbol": "MexMaintain.RunWindow",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Two defects. (1) The initial-window mex loop at lines 53-54 `while ((seen & (1L << mex)) != 0) mex++` lacks a `mex < 64` bound, so a first window containing all"
+    "summary": "Two defects. (1) The initial-window mex loop at lines 53-54 `while ((seen & (1L << mex)) != 0) mex++` lacks a `mex < 64` bound, so a first window containing all values 0..63 causes the same `1L << 64`",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Search.Range"
   },
   {
     "file": "src/IAFahim.Search.RangeQueries/RangeQueries.cs",
     "symbol": "RangeInversionQuery.RunFenwick",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The Fenwick-based inversion count is completely wrong: it iterates over the SORTED array (sorted[i]) instead of the original array order, and it both queries an"
+    "summary": "The Fenwick-based inversion count is completely wrong: it iterates over the SORTED array (sorted[i]) instead of the original array order, and it both queries and updates a SUFFIX of the BIT (bit[rank.",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Search.RangeQueries"
   },
   {
     "file": "src/IAFahim.Search.Selection/Selection.cs",
     "symbol": "MedianMaintain.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Even-count running median computed as (maxHeap[0]+minHeap[0])>>1 overflows signed long when the two middle values are large, producing a grossly wrong (often ne"
+    "summary": "Even-count running median computed as (maxHeap[0]+minHeap[0])>>1 overflows signed long when the two middle values are large, producing a grossly wrong (often negative) median.",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Search.Selection"
   },
   {
     "file": "src/IAFahim.Search.Subset/EnumerateSupersets.cs",
     "symbol": "EnumerateSupersets.Run",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Superset enumeration is fundamentally wrong: it only adds the single smallest free bit each step (super = super + smallest), walking one monotone chain from sub"
+    "summary": "Superset enumeration is fundamentally wrong: it only adds the single smallest free bit each step (super = super + smallest), walking one monotone chain from subMask up to maxMask instead of enumeratin",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Search.Subset"
   },
   {
     "file": "src/IAFahim.Search.Suffix/Suffix.cs",
     "symbol": "SuffixSums.Run<T>",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Generic Run<T> reinterprets the element bytes as int/long and sums them with integer arithmetic. For floating-point element types (float has sizeof==4, double h"
+    "summary": "Generic Run<T> reinterprets the element bytes as int/long and sums them with integer arithmetic. For floating-point element types (float has sizeof==4, double has sizeof==8) this adds the raw IEEE-754",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Search.Suffix"
   },
   {
     "file": "src/IAFahim.Search.Suffix/Suffix.cs",
     "symbol": "SuffixSums.RangeSum<T>",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "RangeSum<T> uses the same sizeof(T)==4/8 -> int*/long* reinterpretation as Run<T>, so it sums float/double elements as integer bit patterns, yielding a wrong (o"
+    "summary": "RangeSum<T> uses the same sizeof(T)==4/8 -> int*/long* reinterpretation as Run<T>, so it sums float/double elements as integer bit patterns, yielding a wrong (or Infinity/NaN) result for floating-poin",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Search.Suffix"
   },
   {
     "file": "src/IAFahim.Search.TwoPointer/TwoPointers.cs",
     "symbol": "TwoPointers.CountPairsWithSum",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Two-pointer pair counting undercounts when a and b contain duplicate values equal to half of (or complementary to) target. On a match it advances BOTH pointers "
+    "summary": "Two-pointer pair counting undercounts when a and b contain duplicate values equal to half of (or complementary to) target. On a match it advances BOTH pointers once, counting only one diagonal pair in",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.Search.TwoPointer"
   },
   {
     "file": "src/IAFahim.Sort.QuickSort/QuickSort.cs",
     "symbol": "QuickSort.Run<T>",
     "severity": "critical",
+    "summary": "Hoare-partition quicksort excludes the returned boundary index p from both recursive halves. Partition returns j (the Hoare boundary), but the pivot in Hoare's scheme is NOT necessarily placed at its ",
     "reassessment": "fixed",
-    "summary": "Hoare-partition quicksort excludes the returned boundary index p from both recursive halves. Partition returns j (the Hoare boundary), but the pivot in Hoare's "
+    "proof": "hoare",
+    "package": "IAFahim.Sort.QuickSort"
   },
   {
     "file": "src/IAFahim.Sort.QuickSort/QuickSort.cs",
     "symbol": "QuickSort.RunInt32",
     "severity": "critical",
+    "summary": "Same Hoare-partition off-by-one as Run<T>. PartitionInt32 returns the Hoare boundary j, but RunInt32 recurses on [lo, p-1] and [p+1, hi], excluding index p from both halves even though the pivot is no",
     "reassessment": "fixed",
-    "summary": "Same Hoare-partition off-by-one as Run<T>. PartitionInt32 returns the Hoare boundary j, but RunInt32 recurses on [lo, p-1] and [p+1, hi], excluding index p from"
+    "proof": "hoare",
+    "package": "IAFahim.Sort.QuickSort"
   },
   {
     "file": "src/IAFahim.Sort.RadixSort/RadixSort.cs",
     "symbol": "RadixSortLsd.Run",
     "severity": "critical",
+    "summary": "LSD radix sort on signed int does not flip the sign bit on the most-significant byte, so negative numbers (top byte 0x80-0xFF) sort AFTER non-negatives (top byte 0x00-0x7F), producing a wrong order wh",
     "reassessment": "fixed",
-    "summary": "LSD radix sort on signed int does not flip the sign bit on the most-significant byte, so negative numbers (top byte 0x80-0xFF) sort AFTER non-negatives (top byt"
+    "proof": "radix sign",
+    "package": "IAFahim.Sort.RadixSort"
   },
   {
     "file": "src/IAFahim.Sort.RadixSort/RadixSort.cs",
     "symbol": "RadixSortLsd.RunWithResult",
     "severity": "critical",
+    "summary": "Same signed-radix defect as Run: negatives sort after non-negatives. Additionally, the number of passes (4) is even, so after the final ping-pong swap the sorted data ends up in 'temp' (scratch), not ",
     "reassessment": "fixed",
-    "summary": "Same signed-radix defect as Run: negatives sort after non-negatives. Additionally, the number of passes (4) is even, so after the final ping-pong swap the sorte"
+    "proof": "radix sign",
+    "package": "IAFahim.Sort.RadixSort"
   },
   {
     "file": "src/IAFahim.Sort.RadixSort/RadixSort.cs",
     "symbol": "RadixSortLsd.RunLong",
     "severity": "critical",
+    "summary": "RunLong is fundamentally broken: it indexes the long* array as int* (only reads low 32 bits and only the first len/2 longs), shifts an int by up to 56 (no-op past 31 in C#), never advances/uses 'src',",
     "reassessment": "fixed",
-    "summary": "RunLong is fundamentally broken: it indexes the long* array as int* (only reads low 32 bits and only the first len/2 longs), shifts an int by up to 56 (no-op pa"
+    "proof": "radix sign",
+    "package": "IAFahim.Sort.RadixSort"
   },
   {
     "file": "src/IAFahim.String.Automata/SubsequenceAutomaton.cs",
     "symbol": "SubsequenceAutomaton.Build",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Build constructs the subsequence-automaton transition table with an off-by-one in the update order: it writes next[(i-1)*sigma+c] = last[c] BEFORE applying last"
+    "summary": "Build constructs the subsequence-automaton transition table with an off-by-one in the update order: it writes next[(i-1)*sigma+c] = last[c] BEFORE applying last[text[i-1]] = i. As a result, the transi",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.String.Automata"
   },
   {
     "file": "src/IAFahim.String.Compress/Huffman.cs",
     "symbol": "Huffman.Decode",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Decode never emits output bytes and never sets *outLen; it only shifts input into a buffer and discards it. The method body has no traversal of the Huffman tree"
+    "summary": "Decode never emits output bytes and never sets *outLen; it only shifts input into a buffer and discards it. The method body has no traversal of the Huffman tree, no output[] writes, opos is never incr",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.String.Compress"
   },
   {
     "file": "src/IAFahim.String.Compress/Lz78.cs",
     "symbol": "Lz78.Encode",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Out-of-bounds read of input when the best matching phrase extends to the end of the buffer. When a dictionary phrase of length pLen fully matches the remaining "
+    "summary": "Out-of-bounds read of input when the best matching phrase extends to the end of the buffer. When a dictionary phrase of length pLen fully matches the remaining input but there is no following literal ",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.String.Compress"
   },
   {
     "file": "src/IAFahim.String.FMIndex/Bwt.cs",
     "symbol": "BurrowsWheeler.Inverse",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Inverse BWT hardcodes the reconstruction start row to pos=0, but the correct start row is the matrix row whose suffix index is 0 (i.e. where sa[row]==0). Since "
+    "summary": "Inverse BWT hardcodes the reconstruction start row to pos=0, but the correct start row is the matrix row whose suffix index is 0 (i.e. where sa[row]==0). Since Transform builds the BWT from a sentinel",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.String.FMIndex"
   },
   {
     "file": "src/IAFahim.String.Grammar/Slp.cs",
     "symbol": "StraightLineProgram.Query",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Query ignores pos and returns rules[ruleId].Char for BOTH terminal and non-terminal rules; non-terminal rules never have Char set (default 0) and the method nev"
+    "summary": "Query ignores pos and returns rules[ruleId].Char for BOTH terminal and non-terminal rules; non-terminal rules never have Char set (default 0) and the method never recurses into children, so any query ",
+    "reassessment": "fixed",
+    "proof": "slp",
+    "package": "IAFahim.String.Grammar"
   },
   {
     "file": "src/IAFahim.String.Grammar/Slp.cs",
     "symbol": "StraightLineProgram.FindOrCreateRule",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "The 'find existing equal rule' deduplication can never succeed because rules store the absolute start position (Left=start) and compare rules[i].Left==start; st"
+    "summary": "The 'find existing equal rule' deduplication can never succeed because rules store the absolute start position (Left=start) and compare rules[i].Left==start; start is strictly increasing across Build,",
+    "reassessment": "fixed",
+    "proof": "slp",
+    "package": "IAFahim.String.Grammar"
   },
   {
     "file": "src/IAFahim.String.Grammar/Slp.cs",
     "symbol": "StraightLineProgram.Build",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Build computes ruleId = FindOrCreateRule(...) but discards it; the top-level sequence of rules forming the program is never recorded anywhere, so the compressed"
+    "summary": "Build computes ruleId = FindOrCreateRule(...) but discards it; the top-level sequence of rules forming the program is never recorded anywhere, so the compressed string cannot be reconstructed. The pro",
+    "reassessment": "fixed",
+    "proof": "slp",
+    "package": "IAFahim.String.Grammar"
   },
   {
     "file": "src/IAFahim.String.Grammar/GrammarCompress.cs",
     "symbol": "GrammarCompress.Compress",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "The new non-terminal symbol newSym=(byte)(254-ruleCount) can collide with byte values already present in the input or with symbols introduced by earlier rules, "
+    "summary": "The new non-terminal symbol newSym=(byte)(254-ruleCount) can collide with byte values already present in the input or with symbols introduced by earlier rules, aliasing two different symbols to the sa",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.String.Grammar"
   },
   {
     "file": "src/IAFahim.String.Match/AhoOffline.cs",
     "symbol": "AhoOffline.Query",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "The flattened automaton format steals column 254 (output flag) and column 255 (fail link) out of the 256-wide transition row, but Query indexes the row directly"
+    "summary": "The flattened automaton format steals column 254 (output flag) and column 255 (fail link) out of the 256-wide transition row, but Query indexes the row directly with the raw text byte. When a text byt",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.String.Match"
   },
   {
     "file": "src/IAFahim.String.Match/EditDistance.cs",
     "symbol": "EditDistance.Ukkonen",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Ukkonen 'edit distance <= k' is fundamentally broken: the core loop in PerformUkkonenIteration compares a[j] to b[j] at the SAME index (no diagonal offset) and "
+    "summary": "Ukkonen 'edit distance <= k' is fundamentally broken: the core loop in PerformUkkonenIteration compares a[j] to b[j] at the SAME index (no diagonal offset) and never references lenA at all (only m = l",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.String.Match"
   },
   {
     "file": "src/IAFahim.String.Match/MainLorentz.cs",
     "symbol": "MainLorentz.Find",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Find records at most ONE run per period value. After recording (or even just matching) the first occurrence of a given period, the unconditional 'break' at the "
+    "summary": "Find records at most ONE run per period value. After recording (or even just matching) the first occurrence of a given period, the unconditional 'break' at the end of the matched-branch exits the enti",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.String.Match"
   },
   {
     "file": "src/IAFahim.String.Match/Runs.cs",
     "symbol": "Runs.Count",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Count iterates every index i and increments runs for each i lying inside an equal-LCP block, so a single run with a plateau of k equal LCP values is counted k t"
+    "summary": "Count iterates every index i and increments runs for each i lying inside an equal-LCP block, so a single run with a plateau of k equal LCP values is counted k times instead of once. The returned count",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.String.Match"
   },
   {
     "file": "src/IAFahim.String.Palindrome/DynamicPalindromicTree.cs",
     "symbol": "DynamicPalindromicTree.Add",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The per-node transition table is addressed at `(IntPtr)_node + cur*sizeof(Node) + sizeof(int)`, which points at the `Len` field (offset 4), not at the transitio"
+    "summary": "The per-node transition table is addressed at `(IntPtr)_node + cur*sizeof(Node) + sizeof(int)`, which points at the `Len` field (offset 4), not at the transition storage. Indexing `[c]` therefore alia",
+    "reassessment": "fixed",
+    "proof": "eertree",
+    "package": "IAFahim.String.Palindrome"
   },
   {
     "file": "src/IAFahim.String.Palindrome/PalindromicTree.cs",
     "symbol": "PalindromicTree.GetNext / PalindromicTree.SetNext / PalindromicTree.Build",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The eertree transition table does not exist: Node has only a single int field (Next0), but GetNext/SetNext treat each node as a 256-entry int[] indexed by the r"
+    "summary": "The eertree transition table does not exist: Node has only a single int field (Next0), but GetNext/SetNext treat each node as a 256-entry int[] indexed by the raw byte c (0..255), and additionally sta",
+    "reassessment": "fixed",
+    "proof": "eertree",
+    "package": "IAFahim.String.Palindrome"
   },
   {
     "file": "src/IAFahim.String.Parse/Earley.cs",
     "symbol": "Earley.Parse",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "The Earley parser has NO completer step and never advances a parent rule's dot past a nonterminal, and the final acceptance test does not require the completed "
+    "summary": "The Earley parser has NO completer step and never advances a parent rule's dot past a nonterminal, and the final acceptance test does not require the completed rule to be the start rule. This makes it",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.String.Parse"
   },
   {
     "file": "src/IAFahim.String.Parse/Earley.cs",
     "symbol": "Earley.Parse",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Empty input (len==0) causes a zero-byte allocation followed by an out-of-bounds write, corrupting the heap / UB."
+    "summary": "Empty input (len==0) causes a zero-byte allocation followed by an out-of-bounds write, corrupting the heap / UB.",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.String.Parse"
   },
   {
     "file": "src/IAFahim.String.Parse/Parsing.cs",
     "symbol": "Cyk.Parse",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Empty input (len==0) leads to an out-of-bounds read dp[0][-1][startVar], which dereferences an unallocated/zero-length dp table (UB / crash)."
+    "summary": "Empty input (len==0) leads to an out-of-bounds read dp[0][-1][startVar], which dereferences an unallocated/zero-length dp table (UB / crash).",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.String.Parse"
   },
   {
     "file": "src/IAFahim.String.SuffixArray/Locate.cs",
     "symbol": "Locate.Find",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Binary pattern search misses real occurrences when a suffix is a proper prefix of the pattern. Compare() only inspects min(patLen, textLen-sa[mid]) bytes; if th"
+    "summary": "Binary pattern search misses real occurrences when a suffix is a proper prefix of the pattern. Compare() only inspects min(patLen, textLen-sa[mid]) bytes; if those bytes all match (cmp==0) but the suf",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.String.SuffixArray"
   },
   {
     "file": "src/IAFahim.String.SuffixAutomaton/KthSubstring.cs",
     "symbol": "KthSubstring.GetNext",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "GetNext assumes each SuffixAutomaton.State contains an inline 256-int transition table, but State is {int Link; int Len; int Head} (12 bytes) and transitions li"
+    "summary": "GetNext assumes each SuffixAutomaton.State contains an inline 256-int transition table, but State is {int Link; int Len; int Head} (12 bytes) and transitions live in a separate Edge[] linked list reac",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.String.SuffixAutomaton"
   },
   {
     "file": "src/IAFahim.String.SuffixAutomaton/KthSubstring.cs",
     "symbol": "KthSubstring.Find",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Even ignoring the GetNext layout bug, Find does not implement k-th distinct substring. It walks suffix links of the start node (v = state[v].Link) instead of de"
+    "summary": "Even ignoring the GetNext layout bug, Find does not implement k-th distinct substring. It walks suffix links of the start node (v = state[v].Link) instead of descending through transitions, never decr",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.String.SuffixAutomaton"
   },
   {
     "file": "src/IAFahim.String.SuffixAutomaton/LexicographicKth.cs",
     "symbol": "LexicographicKth.Find",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Claims to return the k-th lexicographically-smallest substring but instead enumerates substrings ordered by (length, start index) and counts every occurrence wi"
+    "summary": "Claims to return the k-th lexicographically-smallest substring but instead enumerates substrings ordered by (length, start index) and counts every occurrence with multiplicity (duplicates not removed)",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.String.SuffixAutomaton"
   },
   {
     "file": "src/IAFahim.String.SuffixAutomaton/OccurrencePositions.cs",
     "symbol": "OccurrencePositions.Find",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "Stores outPos[count++] = lenPtr[v] (the state's Len) as if it were an occurrence position. Len is the substring length, identical for every state matching targe"
+    "summary": "Stores outPos[count++] = lenPtr[v] (the state's Len) as if it were an occurrence position. Len is the substring length, identical for every state matching targetLen, not an end-position. The returned ",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.String.SuffixAutomaton"
   },
   {
     "file": "src/IAFahim.String.SuffixTree/SuffixTree.cs",
     "symbol": "SuffixTreeUkkonen.Build",
     "severity": "critical",
-    "reassessment": "open_unverified",
-    "summary": "Build does not implement Ukkonen's (or any correct) suffix-tree construction. The active point (activeNode/activeEdge/activeLen) is declared but never advanced "
+    "summary": "Build does not implement Ukkonen's (or any correct) suffix-tree construction. The active point (activeNode/activeEdge/activeLen) is declared but never advanced \u2014 activeNode is hardwired to 0 (root) fo",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.String.SuffixTree"
   },
   {
     "file": "src/IAFahim.String/StringAdvanced.cs",
     "symbol": "SuffixLowerBound.Run",
     "severity": "high",
-    "reassessment": "open_unverified",
-    "summary": "SuffixLowerBound returns the index AFTER a suffix that equals/prefix-matches the pattern instead of pointing at it. When the inner comparison loop ends with all"
+    "summary": "SuffixLowerBound returns the index AFTER a suffix that equals/prefix-matches the pattern instead of pointing at it. When the inner comparison loop ends with all compared characters equal (suffix has p",
+    "reassessment": "needs_manual",
+    "proof": "no proof",
+    "package": "IAFahim.String"
   }
 ]
