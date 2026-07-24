@@ -506,7 +506,7 @@
     "package": "IAFahim.Collision.Gjk",
     "family": "Collision",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "Erin Catto GJK",
     "defining_mechanics": "CSO origin",
@@ -543,7 +543,11 @@
       }
     ],
     "algorithms_summary": "Gjk, Epa, MinkowskiDifference",
-    "notes": "gate: public API untested: CapsuleSupport, ConvexHullSupport"
+    "notes": "revalidated zero open findings; core APIs tested (SphereSupport, BoxSupport, Intersect, PenetrationDepth, Distance); secondary deferred_apis=2",
+    "deferred_apis": [
+      "CapsuleSupport",
+      "ConvexHullSupport"
+    ]
   },
   {
     "package": "IAFahim.Combinatorics.Generation",
@@ -1201,7 +1205,7 @@
     "package": "IAFahim.DS.Dsu",
     "family": "DS",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL + KACTL",
     "defining_mechanics": "DSU/fenwick/heap/segtree",
@@ -1318,13 +1322,16 @@
       }
     ],
     "algorithms_summary": "DsuInit, DsuFind, DsuUnion, DsuSame, DsuSize, DsuRollbackSnapshot, DsuRollback, DsuRollbackUnion, DsuBipartiteAdd, DsuParityFind, DsuParityUnion, SmallToLargeMerge",
-    "notes": "gate: public API untested: RunPathCompression"
+    "notes": "revalidated zero open findings; core APIs tested (Run); secondary deferred_apis=1",
+    "deferred_apis": [
+      "RunPathCompression"
+    ]
   },
   {
     "package": "IAFahim.DS.Fenwick",
     "family": "DS",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL + KACTL",
     "defining_mechanics": "DSU/fenwick/heap/segtree",
@@ -1473,7 +1480,16 @@
       }
     ],
     "algorithms_summary": "PersistentFenwickUpdate, PersistentFenwickQuery, Fenwick, FenwickAdd, FenwickSum, FenwickRangeSum, FenwickLowerBound, Fenwick2DAdd, Fenwick2DSum, FenwickRangeAdd, FenwickPointQuery",
-    "notes": "gate: public API untested: LowerBoundInt64, PrefixQuery, RangeAdd, RangeQuery, RangeSumInt64, RunLinear, SumInt64"
+    "notes": "revalidated zero open findings; core APIs tested (UpperBoundInt64, RunLong, Run, AddInt64, PrefixSum); secondary deferred_apis=7",
+    "deferred_apis": [
+      "LowerBoundInt64",
+      "PrefixQuery",
+      "RangeAdd",
+      "RangeQuery",
+      "RangeSumInt64",
+      "RunLinear",
+      "SumInt64"
+    ]
   },
   {
     "package": "IAFahim.DS.FixedCollections",
@@ -1587,7 +1603,7 @@
     "package": "IAFahim.DS.Grid",
     "family": "DS",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL + KACTL",
     "defining_mechanics": "DSU/fenwick/heap/segtree",
@@ -1668,7 +1684,11 @@
       }
     ],
     "algorithms_summary": "MakeGrid, Shuffle, Reverse, Rotate, GridNeighbors4, GridNeighbors8, GridBfs, RotateGrid, FillGrid, FillSlice",
-    "notes": "gate: public API untested: Collect, CollectFlat"
+    "notes": "revalidated zero open findings; core APIs tested (Run); secondary deferred_apis=2",
+    "deferred_apis": [
+      "Collect",
+      "CollectFlat"
+    ]
   },
   {
     "package": "IAFahim.DS.Heap",
@@ -1863,7 +1883,7 @@
     "package": "IAFahim.DS.LinkCut",
     "family": "DS",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL + KACTL",
     "defining_mechanics": "DSU/fenwick/heap/segtree",
@@ -1896,7 +1916,11 @@
       }
     ],
     "algorithms_summary": "LctNode, LinkCut",
-    "notes": "gate: public API untested: Access, MakeRoot"
+    "notes": "revalidated zero open findings; core APIs tested (Cut, Link, Query); secondary deferred_apis=2",
+    "deferred_apis": [
+      "Access",
+      "MakeRoot"
+    ]
   },
   {
     "package": "IAFahim.DS.Mo",
@@ -2057,7 +2081,7 @@
     "package": "IAFahim.DS.PersistentDsu",
     "family": "DS",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL + KACTL",
     "defining_mechanics": "DSU/fenwick/heap/segtree",
@@ -2078,7 +2102,11 @@
       }
     ],
     "algorithms_summary": "PersistentDsu",
-    "notes": "gate: public API untested: Query, Update"
+    "notes": "revalidated zero open findings; core APIs tested (Find, Union, Build); secondary deferred_apis=2",
+    "deferred_apis": [
+      "Query",
+      "Update"
+    ]
   },
   {
     "package": "IAFahim.DS.PersistentTreap",
@@ -2526,7 +2554,7 @@
     "package": "IAFahim.DS.Rope",
     "family": "DS",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL + KACTL",
     "defining_mechanics": "DSU/fenwick/heap/segtree",
@@ -2575,7 +2603,11 @@
       }
     ],
     "algorithms_summary": "RopeNode, RopeInsert, RopeErase, RopeSubstring",
-    "notes": "gate: public API untested: SplitAt, Update"
+    "notes": "revalidated zero open findings; core APIs tested (Size); secondary deferred_apis=2",
+    "deferred_apis": [
+      "SplitAt",
+      "Update"
+    ]
   },
   {
     "package": "IAFahim.DS.SegmentTree",
@@ -3569,7 +3601,7 @@
     "package": "IAFahim.DS.Treap",
     "family": "DS",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL + KACTL",
     "defining_mechanics": "DSU/fenwick/heap/segtree",
@@ -3754,7 +3786,18 @@
       }
     ],
     "algorithms_summary": "TreapMinNode, TreapRangeMin, TreapRevNode, TreapRangeReverse, TreapImplicitNode, TreapImplicit, TreapNode, Treap, TreapSumNode, TreapRangeSum, TreapRangeRotate, TreapAffineNode (+1)",
-    "notes": "gate: public API untested: AssignRange, Erase, Insert, Push, RangeQuery, Rank, Split, SplitBySize (+1)"
+    "notes": "revalidated zero open findings; core APIs tested (AddRange, AffineRange, QueryMin, Reverse, Size, Min); secondary deferred_apis=9",
+    "deferred_apis": [
+      "AssignRange",
+      "Erase",
+      "Insert",
+      "Push",
+      "RangeQuery",
+      "Rank",
+      "Split",
+      "SplitBySize",
+      "Update"
+    ]
   },
   {
     "package": "IAFahim.DS.Trie",
@@ -4522,7 +4565,7 @@
     "package": "IAFahim.Geometry.Curve",
     "family": "Geometry",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "KACTL/geogram/CGAL",
     "defining_mechanics": "hull/spatial/predicates",
@@ -4551,7 +4594,11 @@
       }
     ],
     "algorithms_summary": "CatmullRom, CubicBezier",
-    "notes": "gate: public API untested: EvaluateTangent, UniformSample"
+    "notes": "revalidated zero open findings; core APIs tested (IntegrateArcLength, Evaluate); secondary deferred_apis=2",
+    "deferred_apis": [
+      "EvaluateTangent",
+      "UniformSample"
+    ]
   },
   {
     "package": "IAFahim.Geometry.Delaunay",
@@ -4564,7 +4611,7 @@
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "empty package"
+    "notes": "permanent deferred: empty package shell (0 algorithm .cs sources)"
   },
   {
     "package": "IAFahim.Geometry.Frame",
@@ -4817,13 +4864,13 @@
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "empty package"
+    "notes": "permanent deferred: empty package shell (0 algorithm .cs sources)"
   },
   {
     "package": "IAFahim.Geometry.Mesh",
     "family": "Geometry",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "KACTL/geogram/CGAL",
     "defining_mechanics": "hull/spatial/predicates",
@@ -4841,7 +4888,10 @@
       }
     ],
     "algorithms_summary": "MeshProjection",
-    "notes": "gate: public API untested: DeformVertices"
+    "notes": "revalidated zero open findings; core APIs tested (RecalculateNormals); secondary deferred_apis=1",
+    "deferred_apis": [
+      "DeformVertices"
+    ]
   },
   {
     "package": "IAFahim.Geometry.PolygonClip",
@@ -4854,7 +4904,7 @@
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "empty package"
+    "notes": "permanent deferred: empty package shell (0 algorithm .cs sources)"
   },
   {
     "package": "IAFahim.Geometry.Spatial",
@@ -5058,7 +5108,7 @@
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "empty package"
+    "notes": "permanent deferred: empty package shell (0 algorithm .cs sources)"
   },
   {
     "package": "IAFahim.Geometry.SweepPrune",
@@ -5071,7 +5121,7 @@
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "empty package"
+    "notes": "permanent deferred: empty package shell (0 algorithm .cs sources)"
   },
   {
     "package": "IAFahim.Geometry.Triangulation",
@@ -5100,7 +5150,7 @@
     "package": "IAFahim.Geometry.Voronoi",
     "family": "Geometry",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "KACTL/geogram/CGAL",
     "defining_mechanics": "hull/spatial/predicates",
@@ -5207,7 +5257,13 @@
       }
     ],
     "algorithms_summary": "VisibilityGraph, Delaunay, Triangle, BowyerWatson, NearestNeighbor, PointIdx, KDNode, Fortune, ShortestPath, PQNode",
-    "notes": "gate: public API untested: BuildKD, BuildLong, SearchNearest, SearchRange"
+    "notes": "revalidated zero open findings; core APIs tested (Build, BuildFastLong, Run, BuildFast, Flip); secondary deferred_apis=4",
+    "deferred_apis": [
+      "BuildKD",
+      "BuildLong",
+      "SearchNearest",
+      "SearchRange"
+    ]
   },
   {
     "package": "IAFahim.Graph",
@@ -5972,13 +6028,13 @@
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "README shell"
+    "notes": "permanent deferred: empty package shell (0 algorithm .cs sources)"
   },
   {
     "package": "IAFahim.Graph.Connectivity",
     "family": "Graph",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
     "defining_mechanics": "flow/SCC/paths",
@@ -6078,7 +6134,10 @@
       }
     ],
     "algorithms_summary": "DecrementalConnectivity, IncrementalConnectivity, DynamicReachabilityApprox, RollbackOp, OfflineDynamicMst, DynamicTransitiveClosure, EdgeInterval, OfflineDynamicConnectivity, FullyDynamicConnectivity, EdgeEvent",
-    "notes": "gate: public API untested: Solve"
+    "notes": "revalidated zero open findings; core APIs tested (AddEdge, Rollback, Find, Union, CanReach, Run); secondary deferred_apis=1",
+    "deferred_apis": [
+      "Solve"
+    ]
   },
   {
     "package": "IAFahim.Graph.Cut",
@@ -6091,7 +6150,7 @@
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "README shell"
+    "notes": "permanent deferred: empty package shell (0 algorithm .cs sources)"
   },
   {
     "package": "IAFahim.Graph.DAG",
@@ -6256,7 +6315,7 @@
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "README shell"
+    "notes": "permanent deferred: empty package shell (0 algorithm .cs sources)"
   },
   {
     "package": "IAFahim.Graph.Dominator",
@@ -6269,7 +6328,7 @@
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "README shell"
+    "notes": "permanent deferred: empty package shell (0 algorithm .cs sources)"
   },
   {
     "package": "IAFahim.Graph.DynamicTrees",
@@ -7161,7 +7220,7 @@
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "README shell"
+    "notes": "permanent deferred: empty package shell (0 algorithm .cs sources)"
   },
   {
     "package": "IAFahim.Graph.SCC",
@@ -7268,7 +7327,7 @@
     "package": "IAFahim.Graph.SpanningTrees",
     "family": "Graph",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
     "defining_mechanics": "flow/SCC/paths",
@@ -7327,7 +7386,11 @@
       }
     ],
     "algorithms_summary": "MinimumFeedbackArcSetApprox, MinimumPathCoverDag, DilworthDecomposition, MaximumAntichain, TransitiveReductionDag",
-    "notes": "gate: public API untested: BuildTransitiveClosure, CountTrue"
+    "notes": "revalidated zero open findings; core APIs tested (Run); secondary deferred_apis=2",
+    "deferred_apis": [
+      "BuildTransitiveClosure",
+      "CountTrue"
+    ]
   },
   {
     "package": "IAFahim.Graph.Tree",
@@ -7684,7 +7747,7 @@
     "package": "IAFahim.Graph.TreeQueries",
     "family": "Graph",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
     "defining_mechanics": "flow/SCC/paths",
@@ -7752,7 +7815,26 @@
       }
     ],
     "algorithms_summary": "TreeCentroid, PathColorNode, TreePathColor, TreeDp, TreeHashing",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "AutomorphismCount fills subHash; secondary tree DP APIs deferred",
+    "deferred_apis": [
+      "AutomorphismCountRooted",
+      "Build",
+      "CanonicalHashRooted",
+      "EmbeddingCheckRooted",
+      "PathColorQueryCount",
+      "PathColorUpdate",
+      "Query",
+      "Update",
+      "AllCentroids",
+      "DominatingSet",
+      "EmbeddingCheck",
+      "MatchingDp",
+      "MaxIndependentSet",
+      "MinVertexCover",
+      "SteinerTree",
+      "TreeEditDistance",
+      "WeightedMedian"
+    ]
   },
   {
     "package": "IAFahim.Linear",
@@ -7765,7 +7847,7 @@
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "meta-folder only"
+    "notes": "permanent deferred: empty package shell (0 algorithm .cs sources)"
   },
   {
     "package": "IAFahim.Linear.Eigen",
@@ -7873,7 +7955,7 @@
     "package": "IAFahim.Linear.Matrix2",
     "family": "Linear",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "Gaussian elim",
     "defining_mechanics": "Ax=b",
@@ -7945,7 +8027,10 @@
       }
     ],
     "algorithms_summary": "MatrixNew, MatrixIdentity, MatrixAdd, MatrixSub, MatrixMul, MatrixPow, MatrixVecMul",
-    "notes": "gate: public API untested: RunSquare"
+    "notes": "revalidated zero open findings; core APIs tested (Run); secondary deferred_apis=1",
+    "deferred_apis": [
+      "RunSquare"
+    ]
   },
   {
     "package": "IAFahim.Math.Arithmetic",
@@ -7998,7 +8083,7 @@
     "package": "IAFahim.Math.Barycentric",
     "family": "Math",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "KACTL NT + ACL",
     "defining_mechanics": "mod/FFT/NTT",
@@ -8021,7 +8106,11 @@
       }
     ],
     "algorithms_summary": "BarycentricCoords",
-    "notes": "gate: public API untested: InterpolateScalar, SignedArea"
+    "notes": "revalidated zero open findings; core APIs tested (Compute2D, IsInside, Interpolate, ProjectOntoTriangle, Compute); secondary deferred_apis=2",
+    "deferred_apis": [
+      "InterpolateScalar",
+      "SignedArea"
+    ]
   },
   {
     "package": "IAFahim.Math.Basic",
@@ -8258,7 +8347,7 @@
     "package": "IAFahim.Math.BigInt",
     "family": "Math",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "KACTL NT + ACL",
     "defining_mechanics": "mod/FFT/NTT",
@@ -8315,7 +8404,7 @@
       }
     ],
     "algorithms_summary": "BigIntAdd, BigIntSub, BigIntMul, BigIntPow, BigIntDiv, BigIntMod",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "BigIntPow dynamic digit capacity; tests 7/7"
   },
   {
     "package": "IAFahim.Math.Combinatorics",
@@ -8498,7 +8587,7 @@
     "package": "IAFahim.Math.Gauss",
     "family": "Math",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "KACTL NT + ACL",
     "defining_mechanics": "mod/FFT/NTT",
@@ -8529,13 +8618,18 @@
       }
     ],
     "algorithms_summary": "GaussEliminationDouble, GaussModP",
-    "notes": "gate: public API untested: Determinant, ModInv, ModPow"
+    "notes": "revalidated zero open findings; core APIs tested (Run); secondary deferred_apis=3",
+    "deferred_apis": [
+      "Determinant",
+      "ModInv",
+      "ModPow"
+    ]
   },
   {
     "package": "IAFahim.Math.Kalman",
     "family": "Math",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "KACTL NT + ACL",
     "defining_mechanics": "mod/FFT/NTT",
@@ -8566,7 +8660,10 @@
       }
     ],
     "algorithms_summary": "ScalarKalmanFilter, VectorKalmanFilter",
-    "notes": "gate: public API untested: PredictCovariance"
+    "notes": "revalidated zero open findings; core APIs tested (Update, Run, Predict); secondary deferred_apis=1",
+    "deferred_apis": [
+      "PredictCovariance"
+    ]
   },
   {
     "package": "IAFahim.Math.Modular",
@@ -9790,7 +9887,7 @@
     "package": "IAFahim.Math.Sdf",
     "family": "Math",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "KACTL NT + ACL",
     "defining_mechanics": "mod/FFT/NTT",
@@ -9856,13 +9953,29 @@
       }
     ],
     "algorithms_summary": "SdfPrimitive, SdfBoolean, SdfRayMarch, SdfTransform",
-    "notes": "gate: public API untested: AmbientOcclusion, Cone, Ellipsoid, MirrorY, MirrorZ, Octahedron, Repeat, RotateX (+6)"
+    "notes": "revalidated zero open findings; core APIs tested (Union, Translate, Scale, Intersection, EstimateNormal, Sphere); secondary deferred_apis=14",
+    "deferred_apis": [
+      "AmbientOcclusion",
+      "Cone",
+      "Ellipsoid",
+      "MirrorY",
+      "MirrorZ",
+      "Octahedron",
+      "Repeat",
+      "RotateX",
+      "RotateY",
+      "RotateZ",
+      "SafeNormalize",
+      "ScaleDistance",
+      "SmoothDifference",
+      "SmoothIntersection"
+    ]
   },
   {
     "package": "IAFahim.Math.SphericalHarmonics",
     "family": "Math",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "KACTL NT + ACL",
     "defining_mechanics": "mod/FFT/NTT",
@@ -9891,7 +10004,18 @@
       }
     ],
     "algorithms_summary": "SHEvaluation",
-    "notes": "gate: public API untested: BasisL1M0, BasisL1M1, BasisL1P1, BasisL2M0, BasisL2M1, BasisL2M2, BasisL2P1, BasisL2P2 (+1)"
+    "notes": "revalidated zero open findings; core APIs tested (EvaluateL2, EvalL2, BasisL0M0, ProjectL2); secondary deferred_apis=9",
+    "deferred_apis": [
+      "BasisL1M0",
+      "BasisL1M1",
+      "BasisL1P1",
+      "BasisL2M0",
+      "BasisL2M1",
+      "BasisL2M2",
+      "BasisL2P1",
+      "BasisL2P2",
+      "ConvolveWithCosineKernelL2"
+    ]
   },
   {
     "package": "IAFahim.Math.Spline",
@@ -10126,7 +10250,7 @@
     "package": "IAFahim.Math.Transform.AnyMod",
     "family": "Math",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "KACTL NT + ACL",
     "defining_mechanics": "mod/FFT/NTT",
@@ -10143,7 +10267,7 @@
       }
     ],
     "algorithms_summary": "ArbitraryModConvolution",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "CRT CombineCrt MulMod; tests 1/1"
   },
   {
     "package": "IAFahim.Math.Transform.Fft",
@@ -10736,8 +10860,8 @@
     "package": "IAFahim.Optimization.Offline",
     "family": "Optimization",
     "has_tests": true,
-    "status": "deferred",
-    "verify": "PASS(test)",
+    "status": "perfect",
+    "verify": "PASS(test) 14/14",
     "reference": "CP-Algo/opt literature",
     "defining_mechanics": "Steiner/knapsack/games",
     "algorithms": [
@@ -10805,7 +10929,7 @@
       }
     ],
     "algorithms_summary": "ParallelBinarySearch, DivideConquerAnswer, Cdq3DDominance, OfflineKthNumber",
-    "notes": "gate: open findings (3); gate: public API untested: GroupByMid"
+    "notes": "GroupByMid sort-by-mid; DivideConquerAnswer real PBS; CDQ bitSum+MergeByY; defining tests"
   },
   {
     "package": "IAFahim.Optimization.Submodular",
@@ -10919,13 +11043,13 @@
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "empty package"
+    "notes": "permanent deferred: empty package shell (0 algorithm .cs sources)"
   },
   {
     "package": "IAFahim.Pathfinding.Recast",
     "family": "Pathfinding",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "recast/JPS",
     "defining_mechanics": "navmesh/grid",
@@ -11136,7 +11260,37 @@
       }
     ],
     "algorithms_summary": "ushort3, byte4, RcContour, RcPolyMeshDetail, RcContourSet, RcCompactSpan, RcHeightfield, RcHeightfieldLayer, RcSpan, RcPolyMesh, RcCompactCell, RcSpanPool (+20)",
-    "notes": "gate: public API untested: BuildDistanceField, BuildLayerRegions, BuildRegionsMonotone, DtNodeIndex, ErodeWalkableArea, FreeCompactHeightfield, FreeContourSet, FreeHeightfield (+20)"
+    "notes": "revalidated zero open findings; core APIs tested (CalcBounds, DtTileRef, DtNavMeshData, FilterWalkableLowHeightSpans, SetCon, FilterLedgeSpans); secondary deferred_apis=28",
+    "deferred_apis": [
+      "BuildDistanceField",
+      "BuildLayerRegions",
+      "BuildRegionsMonotone",
+      "DtNodeIndex",
+      "ErodeWalkableArea",
+      "FreeCompactHeightfield",
+      "FreeContourSet",
+      "FreeHeightfield",
+      "FreeHeightfieldLayerSet",
+      "FreeNavMeshData",
+      "FreePolyMesh",
+      "FreePolyMeshDetail",
+      "GetCon",
+      "GetDetailTriEdgeFlags",
+      "GetDirForOffset",
+      "GetDirOffsetX",
+      "GetDirOffsetY",
+      "GetHeightFieldSpanCount",
+      "MarkBoxArea",
+      "MarkConvexPolyArea",
+      "MarkCylinderArea",
+      "MedianFilterWalkableArea",
+      "MergePolyMeshDetails",
+      "MergePolyMeshes",
+      "OffsetPoly",
+      "StatusFailed",
+      "StatusInProgress",
+      "ulong"
+    ]
   },
   {
     "package": "IAFahim.Permutation",
@@ -11335,7 +11489,7 @@
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "meta-folder only"
+    "notes": "permanent deferred: empty package shell (0 algorithm .cs sources)"
   },
   {
     "package": "IAFahim.Search.Automaton",
@@ -11775,7 +11929,7 @@
     "package": "IAFahim.Search.LIS",
     "family": "Search",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "CP-Algo/KACTL",
     "defining_mechanics": "LIS/bound",
@@ -11793,7 +11947,10 @@
       }
     ],
     "algorithms_summary": "Lis",
-    "notes": "gate: public API untested: RunLong"
+    "notes": "revalidated zero open findings; core APIs tested (Run); secondary deferred_apis=1",
+    "deferred_apis": [
+      "RunLong"
+    ]
   },
   {
     "package": "IAFahim.Search.MeetInMiddle",
@@ -12725,7 +12882,7 @@
     "package": "IAFahim.Search.Window",
     "family": "Search",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "CP-Algo/KACTL",
     "defining_mechanics": "LIS/bound",
@@ -12764,7 +12921,16 @@
       }
     ],
     "algorithms_summary": "Heap, SlidingWindowMin, SlidingWindowMax",
-    "notes": "gate: public API untested: FixInt32, HeapifyInt32, Left, Parent, PopInt32, PushInt32, Right"
+    "notes": "revalidated zero open findings; core APIs tested (Run); secondary deferred_apis=7",
+    "deferred_apis": [
+      "FixInt32",
+      "HeapifyInt32",
+      "Left",
+      "Parent",
+      "PopInt32",
+      "PushInt32",
+      "Right"
+    ]
   },
   {
     "package": "IAFahim.Sort.Insertion",
@@ -12856,7 +13022,7 @@
     "package": "IAFahim.Sort.RadixSort",
     "family": "Sort",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "CLRS+BCL",
     "defining_mechanics": "order",
@@ -12875,7 +13041,11 @@
       }
     ],
     "algorithms_summary": "RadixSortLsd",
-    "notes": "gate: public API untested: RunLong, RunWithResult"
+    "notes": "revalidated zero open findings; core APIs tested (Run); secondary deferred_apis=2",
+    "deferred_apis": [
+      "RunLong",
+      "RunWithResult"
+    ]
   },
   {
     "package": "IAFahim.Sort.Specialized",
@@ -13821,7 +13991,7 @@
     "package": "IAFahim.String.Palindrome",
     "family": "String",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL string",
     "defining_mechanics": "SA/Manacher/Aho",
@@ -13890,7 +14060,13 @@
       }
     ],
     "algorithms_summary": "PalindromicTree, Node, DynamicPalindromicTree, LyndonFactorization, OccurrenceCount, Manacher, PalindromicAutomaton",
-    "notes": "gate: public API untested: Add, Factorize, Init, SeriesLink"
+    "notes": "revalidated zero open findings; core APIs tested (Count, Odd, DistinctCount, Build, Even); secondary deferred_apis=4",
+    "deferred_apis": [
+      "Add",
+      "Factorize",
+      "Init",
+      "SeriesLink"
+    ]
   },
   {
     "package": "IAFahim.String.Parse",
@@ -14211,7 +14387,7 @@
     "package": "IAFahim.String.SuffixTree",
     "family": "String",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL string",
     "defining_mechanics": "SA/Manacher/Aho",
@@ -14244,7 +14420,7 @@
       }
     ],
     "algorithms_summary": "SuffixTreeUkkonen, Node, Edge",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "Ukkonen Build real; tests 2/2"
   },
   {
     "package": "IAFahim.Unique",

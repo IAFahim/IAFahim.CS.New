@@ -1075,8 +1075,8 @@
     "symbol": "TreeHashing.AutomorphismCount",
     "severity": "critical",
     "summary": "In the single-centroid branch, AutomorphismCount calls AutomorphismCountRooted on a freshly stackalloc'd subHash buffer that is never populated. AutomorphismCountRooted only READS subHash[v] (line 109",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "CanonicalHashRooted fills subHash before AutomorphismCountRooted; single-centroid path fixed.",
     "package": "IAFahim.Graph.TreeQueries"
   },
   {
@@ -1219,8 +1219,8 @@
     "symbol": "BigIntPow.Run",
     "severity": "critical",
     "summary": "BigIntPow uses fixed-size stackalloc int[1000] buffers for cur/temp/ans, but the result of a^e can have far more than 1000 decimal digits, causing out-of-bounds writes (stack corruption / UB) and a wr",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "maxDigits=n*e+1 sized stackalloc; no fixed 1000 cap.",
     "package": "IAFahim.Math.BigInt"
   },
   {
@@ -1534,8 +1534,8 @@
     "symbol": "ArbitraryModConvolution.CombineCrt",
     "severity": "critical",
     "summary": "Garner/CRT reconstruction computes the full big-integer value into a single long: `long x = x1 + MOD1*x2 + m12*x3;` where m12 = MOD1*MOD2 ~= 7.88e16 and x3 can be up to MOD3-1 ~= 1.22e9. The term m12*",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Garner via MulMod/AddMod; no single long CRT product.",
     "package": "IAFahim.Math.Transform.AnyMod"
   },
   {
@@ -2245,8 +2245,8 @@
     "symbol": "SuffixTreeUkkonen.Build",
     "severity": "critical",
     "summary": "Build does not implement Ukkonen's (or any correct) suffix-tree construction. The active point (activeNode/activeEdge/activeLen) is declared but never advanced \u2014 activeNode is hardwired to 0 (root) fo",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Full Ukkonen active-point implementation present.",
     "package": "IAFahim.String.SuffixTree"
   },
   {
