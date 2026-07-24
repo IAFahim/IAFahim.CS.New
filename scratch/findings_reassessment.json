@@ -1750,8 +1750,8 @@
     "symbol": "ParallelBinarySearch.GroupByMid",
     "severity": "high",
     "summary": "Bucket index conflates the binary-search midpoint VALUE with a global running counter, so distinct queries collide and overwrite each other in the buckets array, losing queries.",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "GroupByMid collects active queries (lo<hi) into buckets[0..active), insertion-sorts by Mid(lo,hi). No mid+global-counter index. Tests: GroupByMid_SortsActiveByMid_SkipsFinished, GroupByMid_NoCollisionDistinctMids, GroupByMid_EmptyActive_ReturnsZero. verify PASS 14/14.",
     "package": "IAFahim.Optimization.Offline"
   },
   {
@@ -1759,8 +1759,8 @@
     "symbol": "Cdq3DDominance.Process",
     "severity": "high",
     "summary": "CDQ 3D-dominance merge never queries the Fenwick tree (bitSum is passed in but never called) and the two halves are never sorted by y, so no dominance count is ever produced and the y-merge preconditi",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Process recurses both halves, CountDominance calls bitSum after bitAdd for left y<=yj, MergeByY restores y-order. Tests: Process_CountsThreeDDominance (count[3]=3), Process_ChainDominance (0,1,2). verify PASS 14/14.",
     "package": "IAFahim.Optimization.Offline"
   },
   {
@@ -1768,8 +1768,8 @@
     "symbol": "DivideConquerAnswer.Solve",
     "severity": "high",
     "summary": "A method named/structured as divide-and-conquer never recurses on [lo,mid] and [mid+1,hi], and never partitions queries; leftCount/rightCount and mid are computed but the algorithm degenerates to a si",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Solve is real recursive PBS: apply [lo,mid], partition via checkFn, undo, recurse left, re-apply, recurse right, undo; base lo==hi writes answers. Marshal temps + try/finally. Tests: Solve_PrefixSumEarliestTime (answers 2,0,4,3), Solve_EmptyQueries_NoOp, Solve_SinglePointRange. verify PASS 14/14.",
     "package": "IAFahim.Optimization.Offline"
   },
   {

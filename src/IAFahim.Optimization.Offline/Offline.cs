@@ -2,6 +2,7 @@ namespace IAFahim.Optimization.Offline
 {
     using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     public static unsafe class ParallelBinarySearch
     {
@@ -29,71 +30,107 @@ namespace IAFahim.Optimization.Offline
             return lo + ((hi - lo) >> 1);
         }
 
-        public static void GroupByMid(int* lo, int* hi, int* queryIdx, int* bucketSize, int n, int* buckets)
+        public static int GroupByMid(int* lo, int* hi, int* queryIdx, int* bucketSize, int n, int* buckets)
         {
+            int active = 0;
             for (int i = 0; i < n; i++)
             {
-                int mid = Mid(lo[queryIdx[i]], hi[queryIdx[i]]);
-                buckets[mid * n + bucketSize[mid]] = queryIdx[i];
-                bucketSize[mid]++;
+                int q = queryIdx[i];
+                if (lo[q] >= hi[q]) continue;
+                buckets[active++] = q;
             }
+            for (int i = 1; i < active; i++)
+            {
+                int q = buckets[i];
+                int mq = Mid(lo[q], hi[q]);
+                int j = i - 1;
+                while (j >= 0 && Mid(lo[buckets[j]], hi[buckets[j]]) > mq)
+                {
+                    buckets[j + 1] = buckets[j];
+                    j--;
+                }
+                buckets[j + 1] = q;
+            }
+            if (bucketSize != null)
+            {
+                bucketSize[0] = active;
+            }
+            return active;
         }
     }
 
     public static unsafe class DivideConquerAnswer
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void AdvanceToMid(void* context, ref int k, int mid,
-            delegate*<void*, int, int, int, void> addFn,
-            delegate*<void*, int, int, int, void> removeFn,
-            delegate*<void*, int, bool> checkFn)
-        {
-            while (k < mid)
-            {
-                if (!checkFn(context, k))
-                {
-                    addFn(context, k, 0, 0);
-                }
-                k++;
-            }
-            while (k > mid)
-            {
-                k--;
-                if (!checkFn(context, k))
-                {
-                    removeFn(context, k, 0, 0);
-                }
-            }
-        }
-
-        public static void Solve<T>(
-            T* answers,
-            int lo, int hi,
-            int* queryL, int* queryR, int* queryK,
+        public static void Solve(
+            int* answers,
+            int lo,
+            int hi,
+            int* queryIdx,
             int nQueries,
             void* context,
-            delegate*<void*, int, int, int, void> addFn,
-            delegate*<void*, int, int, int, void> removeFn,
+            delegate*<void*, int, void> applyFn,
+            delegate*<void*, int, void> undoFn,
             delegate*<void*, int, bool> checkFn)
-            where T : unmanaged
         {
-            if (lo == hi || nQueries == 0) return;
-            int mid = lo + ((hi - lo) >> 1);
-            int leftCount = 0;
-            int rightCount = 0;
-            for (int i = 0; i < nQueries; i++)
+            if (nQueries <= 0) return;
+            if (lo == hi)
             {
-                int idx = i;
-                if (queryR[idx] < lo || queryL[idx] > hi)
+                for (int i = 0; i < nQueries; i++)
                 {
+                    answers[queryIdx[i]] = lo;
                 }
-                else if (queryL[idx] <= lo && hi <= queryR[idx])
+                return;
+            }
+
+            int mid = lo + ((hi - lo) >> 1);
+            for (int v = lo; v <= mid; v++)
+            {
+                applyFn(context, v);
+            }
+
+            long halfBytes = (long)nQueries * sizeof(int);
+            int* left = (int*)Marshal.AllocHGlobal((nint)halfBytes);
+            int* right = (int*)Marshal.AllocHGlobal((nint)halfBytes);
+            try
+            {
+                int leftCount = 0;
+                int rightCount = 0;
+                for (int i = 0; i < nQueries; i++)
                 {
-                    AdvanceToMid(context, ref queryK[idx], mid, addFn, removeFn, checkFn);
+                    int q = queryIdx[i];
+                    if (checkFn(context, q))
+                    {
+                        left[leftCount++] = q;
+                    }
+                    else
+                    {
+                        right[rightCount++] = q;
+                    }
                 }
-                else
+
+                for (int v = mid; v >= lo; v--)
                 {
+                    undoFn(context, v);
                 }
+
+                Solve(answers, lo, mid, left, leftCount, context, applyFn, undoFn, checkFn);
+
+                for (int v = lo; v <= mid; v++)
+                {
+                    applyFn(context, v);
+                }
+
+                Solve(answers, mid + 1, hi, right, rightCount, context, applyFn, undoFn, checkFn);
+
+                for (int v = mid; v >= lo; v--)
+                {
+                    undoFn(context, v);
+                }
+            }
+            finally
+            {
+                Marshal.FreeHGlobal((nint)right);
+                Marshal.FreeHGlobal((nint)left);
             }
         }
     }
