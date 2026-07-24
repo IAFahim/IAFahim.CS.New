@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.DS.FixedCollections/IAFahim.DS.FixedCollections.csproj" />
+  </ItemGroup>
+</Project>

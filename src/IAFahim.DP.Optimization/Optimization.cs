@@ -87,5 +87,31 @@ namespace IAFahim.DP.Optimization
             if (m * x1 + b < curMidM * x1 + curMidB) Run(seg, m, b, node * 2 + 1, l, r, x1, midX);
             else Run(seg, m, b, node * 2 + 2, l, r, midX + 1, x2);
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static long Query(long* seg, int node, long x, long x1, long x2, long inf)
+        {
+            long best = inf;
+            while (true)
+            {
+                long m = seg[node * 2 + 0];
+                long b = seg[node * 2 + 1];
+                long val = m * x + b;
+                if (val < best) best = val;
+                if (x1 == x2) return best;
+                long midX = x1 + ((x2 - x1) >> 1);
+                if (x <= midX)
+                {
+                    node = node * 2 + 1;
+                    x2 = midX;
+                }
+                else
+                {
+                    node = node * 2 + 2;
+                    x1 = midX + 1;
+                }
+            }
+        }
     }
 }
+

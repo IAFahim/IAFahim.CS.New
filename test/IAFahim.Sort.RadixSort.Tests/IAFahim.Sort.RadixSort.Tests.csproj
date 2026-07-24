@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.Sort.RadixSort/IAFahim.Sort.RadixSort.csproj" />
+  </ItemGroup>
+</Project>

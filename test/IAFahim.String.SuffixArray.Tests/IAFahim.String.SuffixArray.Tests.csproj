@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.String.SuffixArray/IAFahim.String.SuffixArray.csproj" />
+  </ItemGroup>
+</Project>

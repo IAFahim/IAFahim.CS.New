@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.Optimization.DivideConquer/IAFahim.Optimization.DivideConquer.csproj" />
+  </ItemGroup>
+</Project>

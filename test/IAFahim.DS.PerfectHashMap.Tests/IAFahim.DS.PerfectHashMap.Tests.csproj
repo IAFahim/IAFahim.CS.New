@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.DS.PerfectHashMap/IAFahim.DS.PerfectHashMap.csproj" />
+  </ItemGroup>
+</Project>

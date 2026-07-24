@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.Search.LIS/IAFahim.Search.LIS.csproj" />
+  </ItemGroup>
+</Project>

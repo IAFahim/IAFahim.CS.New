@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.Optimization.Approximation/IAFahim.Optimization.Approximation.csproj" />
+  </ItemGroup>
+</Project>

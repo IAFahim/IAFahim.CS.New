@@ -1,22 +1,6 @@
-AGENTS.md / correctness notes (skeptic pass)
-============================================
-Upgraded with defining tests:
-- Optimization.Exact SteinerDreyfusWagner: distinct terminal bit masks (1<<ti),
-  singleton SP relax, answer min over all v; tests star/path.
-- Optimization.Treewidth CutAndCount: counts connected induced bag subsets;
-  writes dp[mask]; path-of-3 / disjoint pair tests.
-- Geometry.Spatial CoverTree: hierarchical parent/level Build; Nearest tree
-  search with SubtreeCover prune (exact NN by distance); tests.
-- DS.HilbertOrder / Sort.QuickSort: prior pass.
-
-Honest deferred / NI:
-- Graph.Cactus BlockCutTreeLca/CactusLca: Run(u,v) lacks tree buffers → NI.
-- Geometry.Advanced PolygonBoolean union/diff/xor: DCEL contract.
-- TreeIsomorphism UnorderedTreeEditDistance unconstrained: NP-hard NI.
-- README-only shells: Graph.Clique/Cut/Decomposition/Dominator/RandomWalk, Linear, Search meta.
-
-build_ok_untested (~many packages):
-- Isolated build only. NOT claimed reference-correct. Historical findings
-  (251 crit/high) mostly open_unverified until package gets defining tests.
-
-Allocation: no unbounded stackalloc[n] in CoverTree/Steiner fixes.
+Contract notes (terminal pass)
+- LiChaoAddLine.Query added for defining envelope queries (coord-domain tree).
+- Deferred: empty shells (Delaunay/JPS/etc bin-only), Unity-native PerfectHashMap/SpatialMap,
+  Cactus LCA NI, TreeEditDistance NP-hard NI, Collections/Memory infra.
+- Tests use Marshal/stackalloc small fixed sizes; pointer APIs exercised.
+- Isolated buildsweep only; no full suite/bench.

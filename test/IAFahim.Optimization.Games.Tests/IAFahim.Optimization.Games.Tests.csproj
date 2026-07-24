@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IAFahim.Optimization.Games/IAFahim.Optimization.Games.csproj" />
+  </ItemGroup>
+</Project>

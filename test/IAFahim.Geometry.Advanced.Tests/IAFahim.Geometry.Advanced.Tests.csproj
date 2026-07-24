@@ -1,8 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <IsPackable>false</IsPackable>
-  </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\IAFahim.Geometry.Advanced\IAFahim.Geometry.Advanced.csproj" />
+    <ProjectReference Include="../../src/IAFahim.Geometry.Advanced/IAFahim.Geometry.Advanced.csproj" />
   </ItemGroup>
 </Project>
