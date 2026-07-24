@@ -199,7 +199,7 @@
     "file": "src/IAFahim.DP/Dp.cs",
     "symbol": "Smawk.UpdateSmawkRow",
     "severity": "high",
-    "reassessment": "open_unverified",
+    "reassessment": "fixed",
     "summary": "The row update only writes dp[j] for columns j that survive on the monotone stack; columns popped/never pushed keep their previous (row i-1) value. For i==1 in "
   },
   {
@@ -255,7 +255,7 @@
     "file": "src/IAFahim.DS.PersistentTreap/Treap.cs",
     "symbol": "PersistentTreapErase.Run",
     "severity": "critical",
-    "reassessment": "open_stub",
+    "reassessment": "open_unverified",
     "summary": "Erase is an unimplemented stub: it splits the tree on val into l (<= val) and r (> val), then returns only l, discarding r entirely and never removing val. Ever"
   },
   {
@@ -745,35 +745,35 @@
     "file": "src/IAFahim.Graph.Matching/Blossom.cs",
     "symbol": "WeightedBlossom.min_cost_augment / WeightedBlossom.Run",
     "severity": "critical",
-    "reassessment": "fixed",
+    "reassessment": "open_unverified",
     "summary": "WeightedBlossom.Run never assigns to match[], so it always returns an empty matching with total weight 0 for any input. min_cost_augment runs a Dijkstra over re"
   },
   {
     "file": "src/IAFahim.Graph.Matching/BottleneckAssignment.cs",
     "symbol": "BottleneckAssignment.Run",
     "severity": "critical",
-    "reassessment": "likely_fixed",
+    "reassessment": "open_unverified",
     "summary": "Run is an unimplemented stub: it sets every match[i] = -1 and unconditionally returns 0 as the 'bottleneck cost'. For any cost matrix with a positive optimal bo"
   },
   {
     "file": "src/IAFahim.Graph.Matching/AssignmentHungarianRectangular.cs",
     "symbol": "AssignmentHungarianRectangular.Run",
     "severity": "high",
-    "reassessment": "likely_fixed",
+    "reassessment": "open_unverified",
     "summary": "Run is an unimplemented stub: it only initializes matchLeft[]/matchRight[] to -1 and computes no assignment. For any cost matrix it returns an empty matching, w"
   },
   {
     "file": "src/IAFahim.Graph.Matching/AssignmentAuctionAlgorithm.cs",
     "symbol": "AssignmentAuctionAlgorithm.Run",
     "severity": "high",
-    "reassessment": "likely_fixed",
+    "reassessment": "open_unverified",
     "summary": "Run is an unimplemented stub: it initializes match[]=-1 and prices[]=0 and performs no auction iterations, so it never produces an assignment regardless of the "
   },
   {
     "file": "src/IAFahim.Graph.Matching/HospitalResidentsMatching.cs",
     "symbol": "HospitalResidentsMatching.Run",
     "severity": "high",
-    "reassessment": "likely_fixed",
+    "reassessment": "open_unverified",
     "summary": "Run is an unimplemented stub: it only sets matchResident[i]=-1 and runs no Gale-Shapley (hospital/residents) matching, so every resident is left unmatched regar"
   },
   {
@@ -1585,7 +1585,7 @@
     "file": "src/IAFahim.Sort.RadixSort/RadixSort.cs",
     "symbol": "RadixSortLsd.RunLong",
     "severity": "critical",
-    "reassessment": "open_unverified",
+    "reassessment": "fixed",
     "summary": "RunLong is fundamentally broken: it indexes the long* array as int* (only reads low 32 bits and only the first len/2 longs), shifts an int by up to 56 (no-op pa"
   },
   {

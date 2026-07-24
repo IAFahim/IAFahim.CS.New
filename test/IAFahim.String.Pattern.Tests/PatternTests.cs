@@ -7,7 +7,7 @@ namespace IAFahim.String.Pattern.Tests
     public sealed unsafe class AhoPersistentTests
     {
         [Test]
-        public void InsertQuery_FindsPattern()
+        public void InsertQuery_ExactMatchCount()
         {
             const int Sigma = 26;
             const int MaxNodes = 256;
@@ -30,7 +30,43 @@ namespace IAFahim.String.Pattern.Tests
                     AhoPersistentBuild.Insert(pp, 2, patterns, lengths, ref numPatterns,
                         roots, nexts, fails, counts, ref nodeCount, ref activeMask, Sigma, (byte)'a');
                     long hits = AhoPersistentQuery.Run(pt, 6, roots, activeMask, nexts, counts, Sigma, (byte)'a');
-                    Assert.IsTrue(hits >= 2);
+                    Assert.AreEqual(2, hits);
+                }
+            }
+            finally
+            {
+                Marshal.FreeHGlobal((nint)patterns);
+                Marshal.FreeHGlobal((nint)nexts);
+                Marshal.FreeHGlobal((nint)fails);
+                Marshal.FreeHGlobal((nint)counts);
+            }
+        }
+
+        [Test]
+        public void NoMatch_Zero()
+        {
+            const int Sigma = 26;
+            const int MaxNodes = 128;
+            byte[] pat = Encoding.ASCII.GetBytes("zz");
+            byte[] text = Encoding.ASCII.GetBytes("abc");
+            byte** patterns = (byte**)Marshal.AllocHGlobal(4 * sizeof(nint));
+            int* lengths = stackalloc int[4];
+            int* roots = stackalloc int[32];
+            int* nexts = (int*)Marshal.AllocHGlobal(MaxNodes * Sigma * sizeof(int));
+            int* fails = (int*)Marshal.AllocHGlobal(MaxNodes * sizeof(int));
+            int* counts = (int*)Marshal.AllocHGlobal(MaxNodes * sizeof(int));
+            try
+            {
+                for (int i = 0; i < MaxNodes * Sigma; i++) nexts[i] = 0;
+                for (int i = 0; i < MaxNodes; i++) { fails[i] = 0; counts[i] = 0; }
+                int numPatterns = 0, nodeCount = 0, activeMask = 0;
+                fixed (byte* pp = pat)
+                fixed (byte* pt = text)
+                {
+                    AhoPersistentBuild.Insert(pp, 2, patterns, lengths, ref numPatterns,
+                        roots, nexts, fails, counts, ref nodeCount, ref activeMask, Sigma, (byte)'a');
+                    long hits = AhoPersistentQuery.Run(pt, 3, roots, activeMask, nexts, counts, Sigma, (byte)'a');
+                    Assert.AreEqual(0, hits);
                 }
             }
             finally

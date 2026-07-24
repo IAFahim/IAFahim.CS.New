@@ -156,17 +156,22 @@ namespace IAFahim.DP
     {
         public static bool Run(int n, long target, long* arr, bool* dp)
         {
-            for (int i = 0; i <= target; i++) dp[i] = false;
+            int t = (int)target;
+            if (t < 0) return false;
+            for (int i = 0; i <= t; i++) dp[i] = false;
             dp[0] = true;
             for (int i = 0; i < n; i++)
-                UpdateSubsetSum(target, arr[i], dp);
-            return dp[target];
+                UpdateSubsetSum(t, arr[i], dp);
+            return dp[t];
         }
 
         private static void UpdateSubsetSum(long target, long val, bool* dp)
         {
-            for (long s = target; s >= val; s--)
-                if (dp[s - (int)val]) dp[s] = true;
+            int t = (int)target;
+            int v = (int)val;
+            if (v <= 0 || v > t) return;
+            for (int s = t; s >= v; s--)
+                if (dp[s - v]) dp[s] = true;
         }
     }
 
@@ -303,18 +308,21 @@ namespace IAFahim.DP
 
     public static unsafe class Smawk
     {
-        // Column-wise running minimum: dp[j] = min over rows i of mat[i*m+j].
         public static long Run(int n, int m, long* mat, long* dp)
         {
-            for (int j = 0; j < m; j++) dp[j] = mat[0 * m + j];
-            for (int i = 1; i < n; i++)
+            if (n <= 0 || m <= 0) return 0;
+            long ans = long.MaxValue;
+            for (int i = 0; i < n; i++)
             {
                 long* row = mat + (long)i * m;
-                for (int j = 0; j < m; j++)
-                    if (row[j] < dp[j]) dp[j] = row[j];
+                long best = row[0];
+                for (int j = 1; j < m; j++)
+                {
+                    if (row[j] < best) best = row[j];
+                }
+                dp[i] = best;
+                if (best < ans) ans = best;
             }
-            long ans = long.MaxValue;
-            for (int j = 0; j < m; j++) if (dp[j] < ans) ans = dp[j];
             return ans;
         }
     }

@@ -1,6 +1,10 @@
-Contract notes (terminal pass)
-- LiChaoAddLine.Query added for defining envelope queries (coord-domain tree).
-- Deferred: empty shells (Delaunay/JPS/etc bin-only), Unity-native PerfectHashMap/SpatialMap,
-  Cactus LCA NI, TreeEditDistance NP-hard NI, Collections/Memory infra.
-- Tests use Marshal/stackalloc small fixed sizes; pointer APIs exercised.
-- Isolated buildsweep only; no full suite/bench.
+Skeptic-pass contract notes
+- Smawk.Run: fixed to ROW minima (dp[i]=min of row i); was wrong column mins.
+  Dense explicit matrix form is O(nm) data-touching (SMAWK output semantics).
+- Geometry.Advanced: deferred — public PolygonBoolean Union/Diff/Xor throw NI.
+- PerfectHashMap/SpatialMap: deferred Unity container surface.
+- Inventory lists public algorithm types per package (PACKAGE_STATUS.md).
+- Strengthened defining tests: Bvh bounds+raycast, Frame axes, Mesh unit normals,
+  Ukkonen leaves, Aho exact counts, Perlin locked sample, DP Smawk/SOS/CHT/MinPlus.
+- Historical findings: many remain open_unverified until per-finding recheck;
+  only entries revalidated as fixed/deferred_ni are marked so.

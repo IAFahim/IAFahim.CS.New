@@ -6,7 +6,7 @@ namespace IAFahim.Geometry.Mesh.Tests
     public sealed unsafe class MeshProjectionTests
     {
         [Test]
-        public void RecalculateNormals_Triangle()
+        public void RecalculateNormals_UnitZTriangle()
         {
             float3* verts = stackalloc float3[3];
             int* indices = stackalloc int[3];
@@ -15,10 +15,15 @@ namespace IAFahim.Geometry.Mesh.Tests
             verts[1] = new float3(1, 0, 0);
             verts[2] = new float3(0, 1, 0);
             indices[0] = 0; indices[1] = 1; indices[2] = 2;
-            normals[0] = normals[1] = normals[2] = new float3(0,0,0);
+            normals[0] = normals[1] = normals[2] = new float3(0, 0, 0);
             MeshProjection.RecalculateNormals(verts, 3, indices, 3, normals);
             for (int i = 0; i < 3; i++)
-                Assert.IsTrue(math.lengthsq(normals[i]) > 0.5f);
+            {
+                Assert.AreEqual(0f, normals[i].x, 1e-4f);
+                Assert.AreEqual(0f, normals[i].y, 1e-4f);
+                Assert.AreEqual(1f, normals[i].z, 1e-4f);
+                Assert.AreEqual(1f, math.length(normals[i]), 1e-4f);
+            }
         }
     }
 }
