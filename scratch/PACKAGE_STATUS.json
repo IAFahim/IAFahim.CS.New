@@ -2084,7 +2084,7 @@
     "package": "IAFahim.DS.PersistentTreap",
     "family": "DS",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL + KACTL",
     "defining_mechanics": "DSU/fenwick/heap/segtree",
@@ -2141,7 +2141,7 @@
       }
     ],
     "algorithms_summary": "PersistentTreapNode, PersistentTreapSplit, PersistentTreapMerge, PersistentTreapInsert, PersistentTreapErase, PersistentTreapFind",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "Erase path-clone merge children"
   },
   {
     "package": "IAFahim.DS.PieceTable",
@@ -2581,7 +2581,7 @@
     "package": "IAFahim.DS.SegmentTree",
     "family": "DS",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL + KACTL",
     "defining_mechanics": "DSU/fenwick/heap/segtree",
@@ -3149,7 +3149,21 @@
       }
     ],
     "algorithms_summary": "LiChaoTree, Line, OnlineChtAdd, OnlineChtQuery, LiChaoInit, LiChaoRollback, DynamicLiChaoRollback, PersistentLiChaoAdd, PersistentLiChaoQuery, DivideConquerHullOptimization, DualSegmentApply, DualSegmentGet (+41)",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "PersistentLazy query no double-count; Int64 APIs deferred",
+    "deferred_apis": [
+      "AddInt64",
+      "GetCheckpoint",
+      "Init",
+      "LowerBound",
+      "PrefixSumInt64",
+      "RangeAddInt64",
+      "RangeSetInt32",
+      "RangeSumInt64",
+      "Rollback",
+      "RunInt64",
+      "TryRun",
+      "UpperBound"
+    ]
   },
   {
     "package": "IAFahim.DS.Sparse",
@@ -3746,7 +3760,7 @@
     "package": "IAFahim.DS.Trie",
     "family": "DS",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL + KACTL",
     "defining_mechanics": "DSU/fenwick/heap/segtree",
@@ -3835,7 +3849,7 @@
       }
     ],
     "algorithms_summary": "TrieInsert, TrieDelete, TrieFind, TriePrefixCount, BinaryTrieInsert, BinaryTrieErase, BinaryTrieMaxXor, BinaryTrieMinXor, PersistentTrieInsert, PersistentTrieQuery",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "PersistentTrieInsert path-copy siblings"
   },
   {
     "package": "IAFahim.DS.UnsafeArray",
@@ -4021,9 +4035,9 @@
   {
     "package": "IAFahim.Geometry.Advanced",
     "family": "Geometry",
-    "has_tests": false,
-    "status": "deferred",
-    "verify": "n/a",
+    "has_tests": true,
+    "status": "perfect",
+    "verify": "PASS(test)",
     "reference": "KACTL/geogram/CGAL",
     "defining_mechanics": "hull/spatial/predicates",
     "algorithms": [
@@ -4106,7 +4120,12 @@
       }
     ],
     "algorithms_summary": "Circumcenter, MinimumEnclosingCircle, IntegerPointCount, PickTheorem, ConvexDiameter, RotatingCalipers, MinkowskiSum, ClosestPair, PolygonBoolean",
-    "notes": "PolygonBoolean NI (DCEL)"
+    "notes": "ClosestPair strip merge; polygon boolean NI ops deferred",
+    "deferred_apis": [
+      "Union",
+      "Difference",
+      "Xor"
+    ]
   },
   {
     "package": "IAFahim.Geometry.Arrangement",
@@ -11975,7 +11994,7 @@
     "package": "IAFahim.Search.RangeQueries",
     "family": "Search",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "CP-Algo/KACTL",
     "defining_mechanics": "LIS/bound",
@@ -12436,7 +12455,18 @@
       }
     ],
     "algorithms_summary": "StaticRangeMode, StaticRangeMex, StaticRangeInversions, Offline2DRangeAddRangeSum, Offline3DPartialOrder, CDQ3D, CdqDynamicInversions, DivideConquerOnTime, SegmentTreeOverTimeAdd, SegmentTreeOverTimeDfs, RangeSuccessorQuery, RangePredecessorQuery (+22)",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "RunFenwick original-order inversions",
+    "deferred_apis": [
+      "Gcd",
+      "Lcm",
+      "RunAdd",
+      "RunInt32",
+      "RunInt64",
+      "RunLong",
+      "RunMax",
+      "RunMin",
+      "RunSetInt32"
+    ]
   },
   {
     "package": "IAFahim.Search.Selection",
@@ -12887,7 +12917,7 @@
     "package": "IAFahim.String",
     "family": "String",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL string",
     "defining_mechanics": "SA/Manacher/Aho",
@@ -13321,7 +13351,7 @@
       }
     ],
     "algorithms_summary": "DeBruijn, SimpleRand, Probabilistic, KmpPrefix, KmpSearch, ZAlgorithm, HashBuild, HashRange, HashConcat, DoubleHashBuild, RollingHash, SuffixArrayBuild (+38)",
-    "notes": "gate: open findings (1); gate: public API untested: BuildPrefixFunction"
+    "notes": "SuffixLowerBound + KMP prefix function"
   },
   {
     "package": "IAFahim.String.Automata",

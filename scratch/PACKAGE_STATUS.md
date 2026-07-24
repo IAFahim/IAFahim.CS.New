@@ -31,21 +31,21 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 22 [x] | `IAFahim.DS.OrderedSet` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 23 [x] | `IAFahim.DS.PerfectHashMap` | deferred | Unity container |
 | 24 [x] | `IAFahim.DS.PersistentDsu` | deferred | gate: public API untested: Query, Update |
-| 25 [x] | `IAFahim.DS.PersistentTreap` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 25 [x] | `IAFahim.DS.PersistentTreap` | perfect | Erase path-clone merge children |
 | 26 [x] | `IAFahim.DS.PieceTable` | deferred | gate: open findings (1) |
 | 27 [x] | `IAFahim.DS.RollbackSeg` | deferred | 2 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 28 [x] | `IAFahim.DS.RollbackStack` | deferred | 2 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 29 [x] | `IAFahim.DS.Rope` | deferred | gate: public API untested: SplitAt, Update |
-| 30 [x] | `IAFahim.DS.SegmentTree` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 30 [x] | `IAFahim.DS.SegmentTree` | perfect | PersistentLazy query no double-count; Int64 APIs deferred |
 | 31 [x] | `IAFahim.DS.Sparse` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 32 [x] | `IAFahim.DS.SpatialMap` | deferred | Unity container |
 | 33 [x] | `IAFahim.DS.Splay` | deferred | 2 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 34 [x] | `IAFahim.DS.Treap` | deferred | gate: public API untested: AssignRange, Erase, Insert, Push, RangeQuery, Rank, Split, Spli |
-| 35 [x] | `IAFahim.DS.Trie` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 35 [x] | `IAFahim.DS.Trie` | perfect | PersistentTrieInsert path-copy siblings |
 | 36 [x] | `IAFahim.DS.UnsafeArray` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 37 [x] | `IAFahim.DS.WaveletMatrix` | deferred | 3 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 38 [x] | `IAFahim.GameTheory` | perfect | GameDp mex bound g<64; tests 9/9 |
-| 39 [x] | `IAFahim.Geometry.Advanced` | deferred | PolygonBoolean NI (DCEL) |
+| 39 [x] | `IAFahim.Geometry.Advanced` | perfect | ClosestPair strip merge; polygon boolean NI ops deferred |
 | 40 [x] | `IAFahim.Geometry.Arrangement` | deferred | gate: open findings (4); gate: public API untested: BuildKdTree, QueryKdTree |
 | 41 [x] | `IAFahim.Geometry.Azimuth` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 42 [x] | `IAFahim.Geometry.Basic` | perfect | PolygonContains dy normalize; deferred Int256 helpers |
@@ -142,7 +142,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 133 [x] | `IAFahim.Search.Numerical` | deferred | 2 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 134 [x] | `IAFahim.Search.Prefix` | perfect | RangeXor any T; PrefixSearch tested |
 | 135 [x] | `IAFahim.Search.Range` | deferred | gate: open findings (3); gate: public API untested: RunWindow |
-| 136 [x] | `IAFahim.Search.RangeQueries` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 136 [x] | `IAFahim.Search.RangeQueries` | perfect | RunFenwick original-order inversions |
 | 137 [x] | `IAFahim.Search.Selection` | perfect | MedianMaintain overflow-safe; defining tests |
 | 138 [x] | `IAFahim.Search.Specialized` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 139 [x] | `IAFahim.Search.Subset` | perfect | SOS supersets; EnumerateUntil/NextWithSamePopCount covered |
@@ -155,7 +155,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 146 [x] | `IAFahim.Sort.QuickSort` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 147 [x] | `IAFahim.Sort.RadixSort` | deferred | gate: public API untested: RunLong, RunWithResult |
 | 148 [x] | `IAFahim.Sort.Specialized` | perfect | defining tests + all historical criticals revalidated fixed/absent |
-| 149 [x] | `IAFahim.String` | deferred | gate: open findings (1); gate: public API untested: BuildPrefixFunction |
+| 149 [x] | `IAFahim.String` | perfect | SuffixLowerBound + KMP prefix function |
 | 150 [x] | `IAFahim.String.Automata` | perfect | SubsequenceAutomaton fixed; DFA advanced deferred |
 | 151 [x] | `IAFahim.String.Compress` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 152 [x] | `IAFahim.String.FMIndex` | perfect | BWT primary inverse roundtrip |

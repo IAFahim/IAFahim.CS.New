@@ -44,6 +44,22 @@ namespace IAFahim.DS.PersistentTreap.Tests
             for (int i = 0; i < 50; i += 2) root = PersistentTreapInsert.Run(nodes, left, right, prio, size, &allocCnt, root, i);
             for (int i = 0; i < 50; i += 2) Assert.IsTrue(PersistentTreapFind.Run(nodes, left, right, root, i));
             for (int i = 1; i < 50; i += 2) Assert.IsFalse(PersistentTreapFind.Run(nodes, left, right, root, i));
+            PersistentTreapNode.Update(left, right, size, root);
+            Assert.IsTrue(size[root] > 0);
+        }
+
+        [Test]
+        public void Erase_RemovesValue()
+        {
+            const int maxNodes = 100;
+            int* nodes = stackalloc int[maxNodes], left = stackalloc int[maxNodes], right = stackalloc int[maxNodes], prio = stackalloc int[maxNodes], size = stackalloc int[maxNodes];
+            int allocCnt = 0;
+            int root = 0;
+            root = PersistentTreapInsert.Run(nodes, left, right, prio, size, &allocCnt, root, 1);
+            root = PersistentTreapInsert.Run(nodes, left, right, prio, size, &allocCnt, root, 2);
+            root = PersistentTreapErase.Run(nodes, left, right, prio, size, &allocCnt, root, 1);
+            Assert.IsFalse(PersistentTreapFind.Run(nodes, left, right, root, 1));
+            Assert.IsTrue(PersistentTreapFind.Run(nodes, left, right, root, 2));
         }
     }
 }

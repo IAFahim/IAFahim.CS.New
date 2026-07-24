@@ -198,6 +198,12 @@ namespace IAFahim.Search.RangeQueries.Tests
                     for (int j = i + 1; j < n; j++)
                         if (vals[i] > vals[j]) bruteInv++;
                 Assert.AreEqual(bruteInv, StaticRangeInversions.Run(arr, n, 0, n - 1), "full inversions");
+
+                int* bit = stackalloc int[n + 2];
+                for (int i = 0; i < n + 2; i++) bit[i] = 0;
+                long fen = RangeInversionQuery.RunFenwick(arr, n, 0, n - 1, bit);
+                Assert.AreEqual(bruteInv, fen);
+                Assert.AreEqual(bruteInv, RangeInversionQuery.Run(arr, n, 0, n - 1));
             }
             finally { Marshal.FreeHGlobal((nint)arr); }
         }

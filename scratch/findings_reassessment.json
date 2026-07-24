@@ -328,8 +328,8 @@
     "symbol": "PersistentTreapErase.Run",
     "severity": "critical",
     "summary": "Erase is an unimplemented stub: it splits the tree on val into l (<= val) and r (> val), then returns only l, discarding r entirely and never removing val. Every element strictly greater than val is l",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "path-clone erase merges children; Erase_RemovesValue. tests 4/4.",
     "package": "IAFahim.DS.PersistentTreap"
   },
   {
@@ -391,8 +391,8 @@
     "symbol": "PersistentLazySegmentQuery.Run",
     "severity": "critical",
     "summary": "Query double-counts a node's own lazy value. For a fully-covered node it returns sumArr[node] + (inherited + lazyArr[node]) * cnt, but sumArr[node] already incorporates the node's own lazy (Update doe",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "fully-covered returns sum+inherited*cnt (no double lazy); PersistentLazySeg tests. secondary Int64 deferred_apis. tests 12/12.",
     "package": "IAFahim.DS.SegmentTree"
   },
   {
@@ -454,8 +454,8 @@
     "symbol": "PersistentTrieInsert.Run",
     "severity": "critical",
     "summary": "Persistent trie insert never copies the non-followed (sibling) child pointer of each node, so every value previously inserted that differs from the new value at some bit is dropped from the new versio",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "CopyNode carries sibling pointers; TrieTests. tests 3/3.",
     "package": "IAFahim.DS.Trie"
   },
   {
@@ -508,8 +508,8 @@
     "symbol": "ClosestPair.Solve",
     "severity": "critical",
     "summary": "Divide-and-conquer closest-pair never performs the strip merge step, so it always returns long.MaxValue regardless of input. The 'yt' strip array is filled but never used to compute any cross-strip di",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "CombineStrip 7-neighbor strip; ClosestPairTests. Union/Difference/Xor deferred empty stubs. tests 6/6.",
     "package": "IAFahim.Geometry.Advanced"
   },
   {
@@ -1948,8 +1948,8 @@
     "symbol": "RangeInversionQuery.RunFenwick",
     "severity": "critical",
     "summary": "The Fenwick-based inversion count is completely wrong: it iterates over the SORTED array (sorted[i]) instead of the original array order, and it both queries and updates a SUFFIX of the BIT (bit[rank.",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "original order fenwick; RunFenwick matches brute. secondary overloads deferred. tests 16/16.",
     "package": "IAFahim.Search.RangeQueries"
   },
   {
@@ -2254,8 +2254,8 @@
     "symbol": "SuffixLowerBound.Run",
     "severity": "high",
     "summary": "SuffixLowerBound returns the index AFTER a suffix that equals/prefix-matches the pattern instead of pointing at it. When the inner comparison loop ends with all compared characters equal (suffix has p",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "lower_bound first not-less; SuffixLowerBound_FindsPatternStart + BuildPrefixFunction. tests 35/35.",
     "package": "IAFahim.String"
   }
 ]
