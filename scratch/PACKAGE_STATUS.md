@@ -2,8 +2,8 @@
 
 Packages: 162
 - already_correct: 103
-- upgraded: 9
-- build_ok_untested: 41
+- upgraded: 11
+- build_ok_untested: 39
 - deferred: 9
 
 | Package | Family | Tests | Crit | High | Status | Verify | Reference | Notes |
@@ -17,7 +17,7 @@ Packages: 162
 | `IAFahim.Compress` | Compress | Y | 0 | 0 | already_correct | PASS(test) | coordinate compression | isolated NUnit green; do not treat historical findings as auto-fixed w |
 | `IAFahim.Compress.Coordinate` | Compress | Y | 0 | 0 | already_correct | PASS(test) | coordinate compression | isolated NUnit green; do not treat historical findings as auto-fixed w |
 | `IAFahim.DP` | DP | N | 0 | 2 | build_ok_untested | PASS(build) | CP-Algorithms DP | builds in isolation; NO defining tests — not claimed reference-correct |
-| `IAFahim.DP.General` | DP | N | 2 | 1 | build_ok_untested | PASS(build) | CP-Algorithms DP | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.DP.General` | DP | Y | 2 | 1 | upgraded | PASS(test) | CP-Algorithms DP | IntervalDp diagonal base + min-plus convolution tests |
 | `IAFahim.DP.Knapsack` | DP | Y | 0 | 1 | already_correct | PASS(test) | CP-Algorithms DP | isolated NUnit green; do not treat historical findings as auto-fixed w |
 | `IAFahim.DP.Optimization` | DP | N | 1 | 0 | build_ok_untested | PASS(build) | CP-Algorithms DP | builds in isolation; NO defining tests — not claimed reference-correct |
 | `IAFahim.DS.Dsu` | DS | Y | 0 | 0 | already_correct | PASS(test) | ACL + KACTL DS | isolated NUnit green; do not treat historical findings as auto-fixed w |
@@ -122,7 +122,7 @@ Packages: 162
 | `IAFahim.Optimization.Exact` | Optimization | Y | 4 | 1 | upgraded | PASS(test) | CP-Algo / Dreyfus–Wagner / cut-and- | SteinerDreyfusWagner distinct terminal masks + SP relax; Steiner tests |
 | `IAFahim.Optimization.Games` | Optimization | N | 3 | 1 | build_ok_untested | PASS(build) | CP-Algo / Dreyfus–Wagner / cut-and- | builds in isolation; NO defining tests — not claimed reference-correct |
 | `IAFahim.Optimization.Geometric` | Optimization | N | 1 | 0 | build_ok_untested | PASS(build) | CP-Algo / Dreyfus–Wagner / cut-and- | builds in isolation; NO defining tests — not claimed reference-correct |
-| `IAFahim.Optimization.Knapsack` | Optimization | N | 1 | 3 | build_ok_untested | PASS(build) | CP-Algo / Dreyfus–Wagner / cut-and- | builds in isolation; NO defining tests — not claimed reference-correct |
+| `IAFahim.Optimization.Knapsack` | Optimization | Y | 1 | 3 | upgraded | PASS(test) | CP-Algo / Dreyfus–Wagner / cut-and- | SubsetSum single/multi-word bitset defining tests |
 | `IAFahim.Optimization.Matroid` | Optimization | N | 0 | 1 | build_ok_untested | PASS(build) | CP-Algo / Dreyfus–Wagner / cut-and- | builds in isolation; NO defining tests — not claimed reference-correct |
 | `IAFahim.Optimization.Offline` | Optimization | Y | 0 | 3 | already_correct | PASS(test) | CP-Algo / Dreyfus–Wagner / cut-and- | isolated NUnit green; do not treat historical findings as auto-fixed w |
 | `IAFahim.Optimization.Submodular` | Optimization | N | 0 | 1 | build_ok_untested | PASS(build) | CP-Algo / Dreyfus–Wagner / cut-and- | builds in isolation; NO defining tests — not claimed reference-correct |

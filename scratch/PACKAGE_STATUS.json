@@ -110,14 +110,14 @@
   {
     "package": "IAFahim.DP.General",
     "family": "DP",
-    "has_tests": false,
+    "has_tests": true,
     "findings_critical": 2,
     "findings_high": 1,
-    "status": "build_ok_untested",
-    "verify": "PASS(build)",
+    "status": "upgraded",
+    "verify": "PASS(test)",
     "reference": "CP-Algorithms DP",
     "defining_mechanics": "knapsack/interval DP structure",
-    "notes": "builds in isolation; NO defining tests \u2014 not claimed reference-correct until tests added"
+    "notes": "IntervalDp diagonal base + min-plus convolution tests"
   },
   {
     "package": "IAFahim.DP.Knapsack",
@@ -1370,14 +1370,14 @@
   {
     "package": "IAFahim.Optimization.Knapsack",
     "family": "Optimization",
-    "has_tests": false,
+    "has_tests": true,
     "findings_critical": 1,
     "findings_high": 3,
-    "status": "build_ok_untested",
-    "verify": "PASS(build)",
+    "status": "upgraded",
+    "verify": "PASS(test)",
     "reference": "CP-Algo / Dreyfus\u2013Wagner / cut-and-count literature",
     "defining_mechanics": "Steiner DP masks; connected bag subsets",
-    "notes": "builds in isolation; NO defining tests \u2014 not claimed reference-correct until tests added"
+    "notes": "SubsetSum single/multi-word bitset defining tests"
   },
   {
     "package": "IAFahim.Optimization.Matroid",
