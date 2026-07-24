@@ -4951,7 +4951,7 @@
     "package": "IAFahim.Geometry.Spatial",
     "family": "Geometry",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "KACTL/geogram/CGAL",
     "defining_mechanics": "hull/spatial/predicates",
@@ -5136,7 +5136,20 @@
       }
     ],
     "algorithms_summary": "CoverTree, Node, KdTree, Node, Quadtree, Node, RangeTree, Node, Mst, SegmentTree, Node, Octree (+7)",
-    "notes": "gate: open findings (2); gate: public API untested: Add, Build2D, Build3D, Euclidean, Init, Manhattan, Query2D, Query3D (+3)"
+    "notes": "BallTree BuildRec links Left/Right; CoverTree tests. tests 3/3.",
+    "deferred_apis": [
+      "Add",
+      "Build2D",
+      "Build3D",
+      "Euclidean",
+      "Init",
+      "Manhattan",
+      "Query2D",
+      "Query3D",
+      "RangeQuery",
+      "Rectilinear",
+      "Sum"
+    ]
   },
   {
     "package": "IAFahim.Geometry.Subdivision",
@@ -7930,7 +7943,7 @@
     "package": "IAFahim.Linear.Matrix",
     "family": "Linear",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "Gaussian elim",
     "defining_mechanics": "Ax=b",
@@ -7995,7 +8008,8 @@
       }
     ],
     "algorithms_summary": "BerlekampMassey, Kitamasa, MatrixMul, MatrixPow, GaussianElimination, MatrixDeterminant, MatrixInverse",
-    "notes": "2 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "Kitamasa k==1 geometric; BM arrays size n+1. tests 12/12.",
+    "deferred_apis": []
   },
   {
     "package": "IAFahim.Linear.Matrix2",
@@ -10459,7 +10473,7 @@
     "package": "IAFahim.Optimization.Approximation",
     "family": "Optimization",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "CP-Algo/opt literature",
     "defining_mechanics": "Steiner/knapsack/games",
@@ -10494,7 +10508,12 @@
       }
     ],
     "algorithms_summary": "Metheuristics, Freivalds, SchwartzZippel",
-    "notes": "gate: open findings (2); gate: public API untested: HillClimb, MonteCarlo, SimulatedAnnealing"
+    "notes": "SchwartzZippel normalizes points; 1L<<j. tests 2/2.",
+    "deferred_apis": [
+      "HillClimb",
+      "MonteCarlo",
+      "SimulatedAnnealing"
+    ]
   },
   {
     "package": "IAFahim.Optimization.DivideConquer",
@@ -12039,7 +12058,7 @@
     "package": "IAFahim.Search.Numerical",
     "family": "Search",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "CP-Algo/KACTL",
     "defining_mechanics": "LIS/bound",
@@ -12088,7 +12107,8 @@
       }
     ],
     "algorithms_summary": "SimulatedAnnealing, TernaryReal, AdaptiveSimpson, SimpsonIntegral, GaussLegendre",
-    "notes": "2 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "Gauss-Legendre weight 2/((1-x^2)P'^2); AdaptiveSimpson half mids. tests 4/4.",
+    "deferred_apis": []
   },
   {
     "package": "IAFahim.Search.Prefix",
@@ -13659,7 +13679,7 @@
     "package": "IAFahim.String.Compress",
     "family": "String",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL string",
     "defining_mechanics": "SA/Manacher/Aho",
@@ -13776,7 +13796,11 @@
       }
     ],
     "algorithms_summary": "Huffman, Code, Node, Lz78, Token, Lz77, Token, LzFactorization, Factor, MoveToFront, ZivLempel, Arithmetic",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "Huffman.Decode emits symbols; Lz78 skips OOB phrases. tests 2/2.",
+    "deferred_apis": [
+      "Build",
+      "Factorize"
+    ]
   },
   {
     "package": "IAFahim.String.FMIndex",

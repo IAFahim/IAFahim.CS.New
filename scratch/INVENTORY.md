@@ -58,7 +58,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 49 [x] | `IAFahim.Geometry.MarchingCubes` | deferred | permanent: empty package shell (0 algo sources) |
 | 50 [x] | `IAFahim.Geometry.Mesh` | perfect | zero open findings; 1 tested APIs; 1 deferred_apis |
 | 51 [x] | `IAFahim.Geometry.PolygonClip` | deferred | permanent: empty package shell (0 algo sources) |
-| 52 [x] | `IAFahim.Geometry.Spatial` | deferred | gate: open findings (2); gate: public API untested: Add, Build2D, Build3D, Euclidean, Init |
+| 52 [x] | `IAFahim.Geometry.Spatial` | perfect | BallTree BuildRec links Left/Right; CoverTree tests. tests 3/3. |
 | 53 [x] | `IAFahim.Geometry.Subdivision` | deferred | permanent: empty package shell (0 algo sources) |
 | 54 [x] | `IAFahim.Geometry.SweepPrune` | deferred | permanent: empty package shell (0 algo sources) |
 | 55 [x] | `IAFahim.Geometry.Triangulation` | perfect | BridgeCrossesEdge skips shared endpoints; existing hole tests. tests 2/2. |
@@ -90,7 +90,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 81 [x] | `IAFahim.Graph.TreeQueries` | perfect | AutomorphismCount fills subHash; secondary tree DP APIs deferred |
 | 82 [x] | `IAFahim.Linear` | deferred | permanent: empty package shell (0 algo sources) |
 | 83 [x] | `IAFahim.Linear.Eigen` | perfect | defining tests + all historical criticals revalidated fixed/absent |
-| 84 [x] | `IAFahim.Linear.Matrix` | deferred | 2 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 84 [x] | `IAFahim.Linear.Matrix` | perfect | Kitamasa k==1 geometric; BM arrays size n+1. tests 12/12. |
 | 85 [x] | `IAFahim.Linear.Matrix2` | perfect | zero open findings; 1 tested APIs; 1 deferred_apis |
 | 86 [x] | `IAFahim.Math.Arithmetic` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 87 [x] | `IAFahim.Math.Barycentric` | perfect | zero open findings; 5 tested APIs; 2 deferred_apis |
@@ -116,7 +116,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 107 [x] | `IAFahim.Math.Transform.Fft` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 108 [x] | `IAFahim.Math.Transform.Ntt` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 109 [x] | `IAFahim.Memory.Allocators` | deferred | infra allocators |
-| 110 [x] | `IAFahim.Optimization.Approximation` | deferred | gate: open findings (2); gate: public API untested: HillClimb, MonteCarlo, SimulatedAnneal |
+| 110 [x] | `IAFahim.Optimization.Approximation` | perfect | SchwartzZippel normalizes points; 1L<<j. tests 2/2. |
 | 111 [x] | `IAFahim.Optimization.DivideConquer` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 112 [x] | `IAFahim.Optimization.Exact` | perfect | full chromatic search with pruning; GraphColoring_Triangle_NeedsThree. tests 6/6 |
 | 113 [x] | `IAFahim.Optimization.Games` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
@@ -139,7 +139,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 130 [x] | `IAFahim.Search.Interval` | perfect | signed CountContained; IntervalSearch APIs tested |
 | 131 [x] | `IAFahim.Search.LIS` | perfect | zero open findings; 1 tested APIs; 1 deferred_apis |
 | 132 [x] | `IAFahim.Search.MeetInMiddle` | perfect | defining tests + all historical criticals revalidated fixed/absent |
-| 133 [x] | `IAFahim.Search.Numerical` | deferred | 2 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 133 [x] | `IAFahim.Search.Numerical` | perfect | Gauss-Legendre weight 2/((1-x^2)P'^2); AdaptiveSimpson half mids. tests 4/4. |
 | 134 [x] | `IAFahim.Search.Prefix` | perfect | RangeXor any T; PrefixSearch tested |
 | 135 [x] | `IAFahim.Search.Range` | perfect | findings revalidated fixed/NI |
 | 136 [x] | `IAFahim.Search.RangeQueries` | perfect | RunFenwick original-order inversions |
@@ -157,7 +157,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 148 [x] | `IAFahim.Sort.Specialized` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 149 [x] | `IAFahim.String` | perfect | SuffixLowerBound + KMP prefix function |
 | 150 [x] | `IAFahim.String.Automata` | perfect | SubsequenceAutomaton fixed; DFA advanced deferred |
-| 151 [x] | `IAFahim.String.Compress` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 151 [x] | `IAFahim.String.Compress` | perfect | Huffman.Decode emits symbols; Lz78 skips OOB phrases. tests 2/2. |
 | 152 [x] | `IAFahim.String.FMIndex` | perfect | BWT primary inverse roundtrip |
 | 153 [x] | `IAFahim.String.Grammar` | perfect | newSym=256+ruleCount avoids byte collision; Compress_UsesNonTerminalsAbove255. |
 | 154 [x] | `IAFahim.String.Match` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |

@@ -625,8 +625,8 @@
     "symbol": "BallTree.Build / BallTree.Nearest",
     "severity": "high",
     "summary": "Build links every node with Left=Right=-1, so the 'tree' has no edges; Nearest only ever examines the single root node and returns it regardless of the query, giving wrong nearest neighbors.",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "BallTree BuildRec links Left/Right; CoverTree tests. tests 3/3.",
     "package": "IAFahim.Geometry.Spatial"
   },
   {
@@ -634,8 +634,8 @@
     "symbol": "Octree.RangeQuery",
     "severity": "high",
     "summary": "Leaf nodes emit ALL contained point indices when the node's region merely OVERLAPS the query box, never testing individual point coordinates. This returns false positives \u2014 indices of points that lie ",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "BallTree BuildRec links Left/Right; CoverTree tests. tests 3/3.",
     "package": "IAFahim.Geometry.Spatial"
   },
   {
@@ -1183,8 +1183,8 @@
     "symbol": "BerlekampMassey.UpdateBM",
     "severity": "critical",
     "summary": "Out-of-bounds read/write on C and B: the update loop indexes up to C[n]/B[n] but both arrays are length n (valid indices 0..n-1), so the last iteration writes/reads one element past the buffer.",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Kitamasa k==1 geometric; BM arrays size n+1. tests 12/12.",
     "package": "IAFahim.Linear.Matrix"
   },
   {
@@ -1192,8 +1192,8 @@
     "symbol": "Kitamasa.Run",
     "severity": "critical",
     "summary": "For an order-1 recurrence (k == 1) the line 'res[1] = 1' writes index 1 of a length-1 stackalloc, an out-of-bounds stack write (UB).",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Kitamasa k==1 geometric; BM arrays size n+1. tests 12/12.",
     "package": "IAFahim.Linear.Matrix"
   },
   {
@@ -1570,8 +1570,8 @@
     "symbol": "SchwartzZippel.Test",
     "severity": "high",
     "summary": "Negative point coordinates produce negative residues that are never normalized, so two polynomials that are equal mod prime can be reported as unequal (false negative) and the comparison is generally ",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "SchwartzZippel normalizes points; 1L<<j. tests 2/2.",
     "package": "IAFahim.Optimization.Approximation"
   },
   {
@@ -1579,8 +1579,8 @@
     "symbol": "SchwartzZippel.Test",
     "severity": "high",
     "summary": "Monomial exponent bitmask (1 << j) overflows int when n >= 32, so the wrong set of variables is multiplied into each monomial, producing a wrong lhs/rhs and a wrong identity result.",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "SchwartzZippel normalizes points; 1L<<j. tests 2/2.",
     "package": "IAFahim.Optimization.Approximation"
   },
   {
@@ -1894,8 +1894,8 @@
     "symbol": "GaussLegendre.ComputeNodesWeights",
     "severity": "critical",
     "summary": "The Gauss-Legendre quadrature weight formula is mathematically wrong, so Run produces grossly incorrect integrals for every n. The correct weight is w_i = 2 / ((1 - x_i^2) * P'_n(x_i)^2); the code ins",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Gauss-Legendre weight 2/((1-x^2)P'^2); AdaptiveSimpson half mids. tests 4/4.",
     "package": "IAFahim.Search.Numerical"
   },
   {
@@ -1903,8 +1903,8 @@
     "symbol": "AdaptiveSimpson.AdaptiveSimpsonRecursive",
     "severity": "critical",
     "summary": "Adaptive Simpson samples the two half-interval Simpson estimates at the wrong abscissae. For the left subinterval [a, mid] it must evaluate the function at the midpoint (3a+b)/4, and for the right sub",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Gauss-Legendre weight 2/((1-x^2)P'^2); AdaptiveSimpson half mids. tests 4/4.",
     "package": "IAFahim.Search.Numerical"
   },
   {
@@ -2056,8 +2056,8 @@
     "symbol": "Huffman.Decode",
     "severity": "critical",
     "summary": "Decode never emits output bytes and never sets *outLen; it only shifts input into a buffer and discards it. The method body has no traversal of the Huffman tree, no output[] writes, opos is never incr",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Huffman.Decode emits symbols; Lz78 skips OOB phrases. tests 2/2.",
     "package": "IAFahim.String.Compress"
   },
   {
@@ -2065,8 +2065,8 @@
     "symbol": "Lz78.Encode",
     "severity": "high",
     "summary": "Out-of-bounds read of input when the best matching phrase extends to the end of the buffer. When a dictionary phrase of length pLen fully matches the remaining input but there is no following literal ",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Huffman.Decode emits symbols; Lz78 skips OOB phrases. tests 2/2.",
     "package": "IAFahim.String.Compress"
   },
   {
