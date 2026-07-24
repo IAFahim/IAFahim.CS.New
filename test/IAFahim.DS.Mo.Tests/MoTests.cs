@@ -70,5 +70,37 @@ namespace IAFahim.DS.Mo.Tests
             }
             finally { Marshal.FreeHGlobal((nint)freq); }
         }
+
+        [Test]
+        public void DistinctCount_AndAddRemoveInt()
+        {
+            int* freq = stackalloc int[10];
+            for (int i = 0; i < 10; i++) freq[i] = 0;
+            int distinct = 0;
+            MoDistinctCounter.AddInt(freq, &distinct, 3);
+            MoDistinctCounter.AddInt(freq, &distinct, 3);
+            MoDistinctCounter.AddInt(freq, &distinct, 5);
+            Assert.AreEqual(2, distinct);
+            Assert.AreEqual(2, MoAnswer.DistinctCount(freq, 10));
+            MoDistinctCounter.RemoveInt(freq, &distinct, 3);
+            MoDistinctCounter.RemoveInt(freq, &distinct, 3);
+            Assert.AreEqual(1, distinct);
+        }
+
+        [Test]
+        public void MoWithUpdates_CallerOwnedFreq_NoCrash()
+        {
+            const int n = 3;
+            int* arr = stackalloc int[] { 1, 2, 1 };
+            Query3D* queries = stackalloc Query3D[1];
+            queries[0] = new Query3D { L = 0, R = 2, T = 0, Id = 0 };
+            Update* updates = stackalloc Update[1];
+            updates[0] = new Update { Pos = 0, OldVal = 1, NewVal = 3 };
+            int* ans = stackalloc int[1];
+            int* freq = stackalloc int[16];
+            for (int i = 0; i < 16; i++) freq[i] = 0;
+            MoWithUpdates.Run(n, arr, 1, queries, 0, updates, ans, 2, freq);
+            Assert.IsTrue(ans[0] >= 0);
+        }
     }
 }

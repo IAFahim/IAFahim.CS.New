@@ -95,6 +95,57 @@ namespace IAFahim.Search.Selection.Tests
         }
 
         [Test]
+        public void MedianMaintain_EvenCount_NoOverflow()
+        {
+            long* a = stackalloc long[] { long.MaxValue - 2, long.MaxValue - 4, long.MaxValue - 6 };
+            long* res = stackalloc long[3];
+            long last = MedianMaintain.Run(3, a, res);
+            Assert.AreEqual(a[0], res[0]);
+            Assert.IsTrue(res[1] > 0);
+            Assert.IsTrue(last > 0);
+        }
+
+        [Test]
+        public void MedianMaintain_SimpleSequence()
+        {
+            long* a = stackalloc long[] { 5, 1, 3, 4, 2 };
+            long* res = stackalloc long[5];
+            MedianMaintain.Run(5, a, res);
+            Assert.AreEqual(5, res[0]);
+            Assert.AreEqual(3, res[1]);
+            Assert.AreEqual(3, res[2]);
+            Assert.AreEqual(3, res[3]);
+            Assert.AreEqual(3, res[4]);
+        }
+
+        [Test]
+        public void TopK_Run_Largest()
+        {
+            long* a = stackalloc long[] { 1, 9, 3, 7 };
+            long* res = stackalloc long[2];
+            int k = TopK.Run(4, a, 2, res);
+            Assert.AreEqual(2, k);
+            Assert.IsTrue(res[0] >= res[1]);
+            Assert.IsTrue(res[0] == 9 || res[1] == 9);
+        }
+
+        [Test]
+        public void SharedPartition_AndInsertionSort()
+        {
+            int* ptr = stackalloc int[] { 4, 1, 3, 2 };
+            int p = SelectionShared.Partition(ptr, 0, 3);
+            Assert.IsTrue(p >= 0 && p <= 3);
+            long* lp = stackalloc long[] { 4, 1, 3, 2 };
+            int pl = SelectionShared.PartitionLong(lp, 0, 3);
+            Assert.IsTrue(pl >= 0 && pl <= 3);
+            int* s = stackalloc int[] { 3, 1, 2 };
+            SelectionShared.InsertionSort(s, 3);
+            Assert.AreEqual(1, s[0]);
+            Assert.AreEqual(2, s[1]);
+            Assert.AreEqual(3, s[2]);
+        }
+
+        [Test]
         public void MedianIndex_Zero_ReturnsZero()
         {
             Assert.AreEqual(0, Selection.MedianIndex(0));

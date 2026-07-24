@@ -27,7 +27,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 18 [x] | `IAFahim.DS.Heap` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 19 [x] | `IAFahim.DS.HilbertOrder` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 20 [x] | `IAFahim.DS.LinkCut` | deferred | gate: public API untested: Access, MakeRoot |
-| 21 [x] | `IAFahim.DS.Mo` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 21 [x] | `IAFahim.DS.Mo` | perfect | MoWithUpdates caller freq; no giant stackalloc |
 | 22 [x] | `IAFahim.DS.OrderedSet` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 23 [x] | `IAFahim.DS.PerfectHashMap` | deferred | Unity container |
 | 24 [x] | `IAFahim.DS.PersistentDsu` | deferred | gate: public API untested: Query, Update |
@@ -48,7 +48,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 39 [x] | `IAFahim.Geometry.Advanced` | deferred | PolygonBoolean NI (DCEL) |
 | 40 [x] | `IAFahim.Geometry.Arrangement` | deferred | gate: open findings (4); gate: public API untested: BuildKdTree, QueryKdTree |
 | 41 [x] | `IAFahim.Geometry.Azimuth` | perfect | defining tests + all historical criticals revalidated fixed/absent |
-| 42 [x] | `IAFahim.Geometry.Basic` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 42 [x] | `IAFahim.Geometry.Basic` | perfect | PolygonContains dy normalize; deferred Int256 helpers |
 | 43 [x] | `IAFahim.Geometry.Bvh` | deferred | gate: open findings (1) |
 | 44 [x] | `IAFahim.Geometry.Curve` | deferred | gate: public API untested: EvaluateTangent, UniformSample |
 | 45 [x] | `IAFahim.Geometry.Delaunay` | deferred | empty package |
@@ -66,7 +66,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 57 [x] | `IAFahim.Graph` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 58 [x] | `IAFahim.Graph.Bridges` | deferred | 2 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 59 [x] | `IAFahim.Graph.Cactus` | deferred | LCA contract NI |
-| 60 [x] | `IAFahim.Graph.Centroid` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 60 [x] | `IAFahim.Graph.Centroid` | perfect | FindCentroid fixed total; path/star tests |
 | 61 [x] | `IAFahim.Graph.Clique` | deferred | README shell |
 | 62 [x] | `IAFahim.Graph.Connectivity` | deferred | gate: public API untested: Solve |
 | 63 [x] | `IAFahim.Graph.Cut` | deferred | README shell |
@@ -81,7 +81,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 72 [x] | `IAFahim.Graph.Matching` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 73 [x] | `IAFahim.Graph.Misc` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 74 [x] | `IAFahim.Graph.RandomWalk` | deferred | README shell |
-| 75 [x] | `IAFahim.Graph.SCC` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 75 [x] | `IAFahim.Graph.SCC` | perfect | Tarjan convention-A e!=0; Dfs/Init/MinEdges |
 | 76 [x] | `IAFahim.Graph.ShortestPath` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 77 [x] | `IAFahim.Graph.SpanningTrees` | deferred | gate: public API untested: BuildTransitiveClosure, CountTrue |
 | 78 [x] | `IAFahim.Graph.Tree` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
@@ -125,7 +125,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 116 [x] | `IAFahim.Optimization.Matroid` | perfect | skip nonpositive weights; Rank tests 5/5 |
 | 117 [x] | `IAFahim.Optimization.Offline` | perfect | GroupByMid+DCA+CDQ defining tests PASS 14/14 |
 | 118 [x] | `IAFahim.Optimization.Submodular` | perfect | long total; API tests 8/8 |
-| 119 [x] | `IAFahim.Optimization.Treewidth` | deferred | gate: open findings (1); gate: public API untested: CheckMonge, CheckQuadrangle, ComputeOr |
+| 119 [x] | `IAFahim.Optimization.Treewidth` | perfect | RankDp parent by vertex; Monge tests |
 | 120 [x] | `IAFahim.Pathfinding.Jps` | deferred | empty package |
 | 121 [x] | `IAFahim.Pathfinding.Recast` | deferred | gate: public API untested: BuildDistanceField, BuildLayerRegions, BuildRegionsMonotone, Dt |
 | 122 [x] | `IAFahim.Permutation` | perfect | Gray uint shifts; high-bit roundtrip 17/17 |
@@ -136,14 +136,14 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 127 [x] | `IAFahim.Search.DifferenceArray` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 128 [x] | `IAFahim.Search.ExactCover` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 129 [x] | `IAFahim.Search.Imos` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
-| 130 [x] | `IAFahim.Search.Interval` | deferred | gate: open findings (1); gate: public API untested: CountContained, CountOverlapping, Find |
+| 130 [x] | `IAFahim.Search.Interval` | perfect | signed CountContained; IntervalSearch APIs tested |
 | 131 [x] | `IAFahim.Search.LIS` | deferred | gate: public API untested: RunLong |
 | 132 [x] | `IAFahim.Search.MeetInMiddle` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 133 [x] | `IAFahim.Search.Numerical` | deferred | 2 unrevalidated critical finding(s); demoted until each fixed/proven |
-| 134 [x] | `IAFahim.Search.Prefix` | deferred | gate: open findings (1); gate: public API untested: CountOccurrences, FindFirst, LongestCo |
+| 134 [x] | `IAFahim.Search.Prefix` | perfect | RangeXor any T; PrefixSearch tested |
 | 135 [x] | `IAFahim.Search.Range` | deferred | gate: open findings (3); gate: public API untested: RunWindow |
 | 136 [x] | `IAFahim.Search.RangeQueries` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
-| 137 [x] | `IAFahim.Search.Selection` | deferred | gate: open findings (1); gate: public API untested: InsertionSort, Partition, PartitionLon |
+| 137 [x] | `IAFahim.Search.Selection` | perfect | MedianMaintain overflow-safe; defining tests |
 | 138 [x] | `IAFahim.Search.Specialized` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 139 [x] | `IAFahim.Search.Subset` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 140 [x] | `IAFahim.Search.Suffix` | deferred | gate: open findings (2) |

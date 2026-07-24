@@ -73,6 +73,30 @@ namespace IAFahim.Search.Prefix.Tests
         }
 
         [Test]
+        public void RangeXor_BytePrefix()
+        {
+            byte* ptr = stackalloc byte[] { 1, 3, 0, 0 };
+            ptr[1] = (byte)(ptr[1] ^ ptr[0]);
+            ptr[2] = (byte)(5 ^ ptr[1]);
+            ptr[3] = (byte)(7 ^ ptr[2]);
+            byte full = PrefixXor.RangeXor(ptr, 0, 3);
+            Assert.AreEqual((byte)(1 ^ 3 ^ 5 ^ 7), full);
+            byte mid = PrefixXor.RangeXor(ptr, 1, 2);
+            Assert.AreEqual((byte)(3 ^ 5), mid);
+        }
+
+        [Test]
+        public void PrefixSearch_MatchFindCount()
+        {
+            byte* text = stackalloc byte[] { (byte)'a', (byte)'b', (byte)'a', (byte)'b', (byte)'c' };
+            byte* pat = stackalloc byte[] { (byte)'a', (byte)'b' };
+            Assert.IsTrue(PrefixSearch.Match(text, 5, pat, 2));
+            Assert.AreEqual(0, PrefixSearch.FindFirst(text, 5, pat, 2));
+            Assert.AreEqual(2, PrefixSearch.CountOccurrences(text, 5, pat, 2));
+            Assert.AreEqual(2, PrefixSearch.LongestCommonPrefix(text, pat, 2));
+        }
+
+        [Test]
         public void PrefixMin_Normal_FindsMin()
         {
             int* ptr = stackalloc int[5];

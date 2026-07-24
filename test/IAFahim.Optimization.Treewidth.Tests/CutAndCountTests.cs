@@ -76,4 +76,65 @@ namespace IAFahim.Optimization.Treewidth.Tests
             }
         }
     }
+
+    public sealed unsafe class RankDpTests
+    {
+        [Test]
+        public void ComputeOrder_ParentKeyedByVertex()
+        {
+            const int N = 3;
+            int* adj = stackalloc int[N * N];
+            for (int i = 0; i < N * N; i++) adj[i] = 0;
+            adj[0 * N + 1] = 1; adj[1 * N + 0] = 1;
+            adj[1 * N + 2] = 1; adj[2 * N + 1] = 1;
+            int* order = stackalloc int[N];
+            int* parent = stackalloc int[N];
+            int* rank = stackalloc int[N];
+            RankDp.ComputeOrder(N, adj, order, parent, rank);
+            Assert.AreEqual(0, order[0]);
+            Assert.AreEqual(-1, parent[order[0]]);
+            Assert.AreEqual(order[0], parent[order[1]]);
+        }
+
+        [Test]
+        public void Run_AccumulatesOnParentVertex()
+        {
+            const int N = 3;
+            long* edgeW = stackalloc long[N * N];
+            for (int i = 0; i < N * N; i++) edgeW[i] = 0;
+            edgeW[0 * N + 1] = 2; edgeW[1 * N + 0] = 2;
+            edgeW[1 * N + 2] = 3; edgeW[2 * N + 1] = 3;
+            int* order = stackalloc int[] { 0, 1, 2 };
+            int* parent = stackalloc int[] { -1, 0, 1 };
+            long* dp = stackalloc long[N];
+            long root = RankDp.Run(N, edgeW, order, parent, dp);
+            Assert.IsTrue(root >= 0);
+            Assert.AreEqual(0, dp[2]);
+        }
+
+        [Test]
+        public void FillBag_IncludesNeighbors()
+        {
+            const int N = 3;
+            int* adj = stackalloc int[N * N];
+            for (int i = 0; i < N * N; i++) adj[i] = 0;
+            adj[0 * N + 1] = 1; adj[1 * N + 0] = 1;
+            int* bag = stackalloc int[N];
+            int bagSize = 0;
+            RankDp.FillBag(N, 0, adj, bag, &bagSize);
+            Assert.IsTrue(bagSize >= 2);
+            Assert.AreEqual(0, bag[0]);
+        }
+    }
+
+    public sealed unsafe class ConvexHullPropertyTests
+    {
+        [Test]
+        public void CheckMonge_AndQuadrangle_Identity()
+        {
+            long* b = stackalloc long[] { 0, 0, 0, 0 };
+            Assert.IsTrue(ConvexHull.CheckMonge(b, 2, 2));
+            Assert.IsTrue(ConvexHull.CheckQuadrangle(b, 2, 2));
+        }
+    }
 }

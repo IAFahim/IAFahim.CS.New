@@ -1902,7 +1902,7 @@
     "package": "IAFahim.DS.Mo",
     "family": "DS",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL + KACTL",
     "defining_mechanics": "DSU/fenwick/heap/segtree",
@@ -2001,7 +2001,7 @@
       }
     ],
     "algorithms_summary": "Query3D, Update, MoWithUpdates, MoAdd, MoRemove, MoAnswer, MoSort, MoRollback, MoDistinctCounter",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "MoWithUpdates caller freq; no giant stackalloc"
   },
   {
     "package": "IAFahim.DS.OrderedSet",
@@ -4246,7 +4246,7 @@
     "package": "IAFahim.Geometry.Basic",
     "family": "Geometry",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "KACTL/geogram/CGAL",
     "defining_mechanics": "hull/spatial/predicates",
@@ -4450,7 +4450,12 @@
       }
     ],
     "algorithms_summary": "IncircleExact, GeometryPoint, PointAdd, PointSub, PointDot, PointCross, PointNorm, PointDist, PointRotate, PointAngle, Orientation, Ccw (+12)",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "PolygonContains dy normalize; deferred Int256 helpers",
+    "deferred_apis": [
+      "FromCross",
+      "FromSquareSum",
+      "MulUnsigned"
+    ]
   },
   {
     "package": "IAFahim.Geometry.Bvh",
@@ -5917,7 +5922,7 @@
     "package": "IAFahim.Graph.Centroid",
     "family": "Graph",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
     "defining_mechanics": "flow/SCC/paths",
@@ -5935,7 +5940,7 @@
       }
     ],
     "algorithms_summary": "CentroidDecomposition",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "FindCentroid fixed total; path/star tests"
   },
   {
     "package": "IAFahim.Graph.Clique",
@@ -7143,7 +7148,7 @@
     "package": "IAFahim.Graph.SCC",
     "family": "Graph",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
     "defining_mechanics": "flow/SCC/paths",
@@ -7178,7 +7183,7 @@
       }
     ],
     "algorithms_summary": "OnlineScc, TarjanScc, SccAugmentation",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "Tarjan convention-A e!=0; Dfs/Init/MinEdges"
   },
   {
     "package": "IAFahim.Graph.ShortestPath",
@@ -10819,7 +10824,7 @@
     "package": "IAFahim.Optimization.Treewidth",
     "family": "Optimization",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "CP-Algo/opt literature",
     "defining_mechanics": "Steiner/knapsack/games",
@@ -10871,7 +10876,7 @@
       }
     ],
     "algorithms_summary": "CutAndCount, ConvexHull, RankDp, FastSubsetDp, RankTransform",
-    "notes": "gate: open findings (1); gate: public API untested: CheckMonge, CheckQuadrangle, ComputeOrder, FillBag"
+    "notes": "RankDp parent by vertex; Monge tests"
   },
   {
     "package": "IAFahim.Pathfinding.Jps",
@@ -11682,7 +11687,7 @@
     "package": "IAFahim.Search.Interval",
     "family": "Search",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "CP-Algo/KACTL",
     "defining_mechanics": "LIS/bound",
@@ -11734,7 +11739,7 @@
       }
     ],
     "algorithms_summary": "Interval, MergeIntervals, IntersectIntervals, NormalizeIntervals, IntervalSearch",
-    "notes": "gate: open findings (1); gate: public API untested: CountContained, CountOverlapping, FindFirstOverlapping, SortByStart"
+    "notes": "signed CountContained; IntervalSearch APIs tested"
   },
   {
     "package": "IAFahim.Search.LIS",
@@ -11843,7 +11848,7 @@
     "package": "IAFahim.Search.Prefix",
     "family": "Search",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "CP-Algo/KACTL",
     "defining_mechanics": "LIS/bound",
@@ -11895,7 +11900,7 @@
       }
     ],
     "algorithms_summary": "PrefixSums, PrefixXor, PrefixMin, PrefixMax, PrefixSearch",
-    "notes": "gate: open findings (1); gate: public API untested: CountOccurrences, FindFirst, LongestCommonPrefix, Match"
+    "notes": "RangeXor any T; PrefixSearch tested"
   },
   {
     "package": "IAFahim.Search.Range",
@@ -12437,7 +12442,7 @@
     "package": "IAFahim.Search.Selection",
     "family": "Search",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "CP-Algo/KACTL",
     "defining_mechanics": "LIS/bound",
@@ -12502,7 +12507,7 @@
       }
     ],
     "algorithms_summary": "SelectionShared, Selection, TopK, MedianMaintain",
-    "notes": "gate: open findings (1); gate: public API untested: InsertionSort, Partition, PartitionLong, Run"
+    "notes": "MedianMaintain overflow-safe; defining tests"
   },
   {
     "package": "IAFahim.Search.Specialized",

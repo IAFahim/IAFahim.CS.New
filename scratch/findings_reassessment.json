@@ -310,8 +310,8 @@
     "symbol": "MoWithUpdates.Run",
     "severity": "critical",
     "summary": "stackalloc int[1000001] allocates ~3.8 MB on the stack, far exceeding the default 1 MB managed-thread stack, causing a StackOverflowException (uncatchable, process abort) on every single invocation re",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "caller-owned freq buffer, no stackalloc 1e6; MoWithUpdates_CallerOwnedFreq_NoCrash. tests 5/5.",
     "package": "IAFahim.DS.Mo"
   },
   {
@@ -553,8 +553,8 @@
     "symbol": "PolygonContains.Run",
     "severity": "critical",
     "summary": "Ray-casting point-in-polygon uses the cross-multiplied test `px*dy < rhs` (where dy = yj - yi) which is only valid when dy > 0. For any edge directed downward (yj < yi), multiplying the inequality `px",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "upward-edge normalize dy>0; Square_InsideAndOutside + Triangle_DownwardEdgeCrossing. tests 8/8.",
     "package": "IAFahim.Geometry.Basic"
   },
   {
@@ -670,8 +670,8 @@
     "symbol": "CentroidDecomposition.FindCentroid",
     "severity": "critical",
     "summary": "FindCentroid recomputes the component total as sz[u] at every recursion level instead of keeping the original component total fixed. Because sz[] was computed once from the original root, sz[u] shrink",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "FindCentroid keeps fixed total; iterative heavy descent. PathGraph_CentroidIsMiddle. tests 5/5.",
     "package": "IAFahim.Graph.Centroid"
   },
   {
@@ -1039,8 +1039,8 @@
     "symbol": "TarjanScc.Dfs",
     "severity": "critical",
     "summary": "Adjacency-list traversal uses `e != 0` as the loop terminator, but the module's graph representation uses -1 as the empty/end-of-list sentinel and 0-based edge indices (as built by TarjanScc's own tes",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Convention-A edges from 1, head sentinel 0; e!=0 correct. TarjanScc_Dfs_EmptyHeadSentinelZero. tests 3/3.",
     "package": "IAFahim.Graph.SCC"
   },
   {
@@ -1795,8 +1795,8 @@
     "symbol": "RankDp.Run",
     "severity": "high",
     "summary": "Run indexes the parent array with the loop variable i (an order-position) but parent is keyed by vertex id (filled as parent[order[i]]=order[i-1] in ComputeOrder), so parent lookups use the wrong key ",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "parent[order[i]] keyed by vertex; ComputeOrder_ParentKeyedByVertex + Run. tests 7/7.",
     "package": "IAFahim.Optimization.Treewidth"
   },
   {
@@ -1885,8 +1885,8 @@
     "symbol": "IntervalSearch.CountContained",
     "severity": "high",
     "summary": "Containment test casts signed interval coordinates to uint, so any interval with a negative Start (or a negative point) is compared with wrapped-around unsigned values, producing wrong counts.",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "signed starts[i]<=point && point<ends[i]; CountContained_SignedPoints with negatives. tests PASS.",
     "package": "IAFahim.Search.Interval"
   },
   {
@@ -1912,8 +1912,8 @@
     "symbol": "PrefixXor.RangeXor",
     "severity": "high",
     "summary": "RangeXor<T> only handles T of size 4 or 8. For any other unmanaged size (byte=1, short=2, sbyte, ushort, etc.) with l>0, it falls through both branches and returns default(T) instead of the correct ra",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "byte-wise RangeXor for any sizeof(T); RangeXor_BytePrefix. tests 14/14.",
     "package": "IAFahim.Search.Prefix"
   },
   {
@@ -1957,8 +1957,8 @@
     "symbol": "MedianMaintain.Run",
     "severity": "high",
     "summary": "Even-count running median computed as (maxHeap[0]+minHeap[0])>>1 overflows signed long when the two middle values are large, producing a grossly wrong (often negative) median.",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "even median lo+(hi-lo)/2 no overflow; MedianMaintain_EvenCount_NoOverflow. tests 16/16.",
     "package": "IAFahim.Search.Selection"
   },
   {

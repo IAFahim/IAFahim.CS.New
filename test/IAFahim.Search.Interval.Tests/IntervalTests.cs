@@ -111,5 +111,38 @@ namespace IAFahim.Search.Interval.Tests
             int result = NormalizeIntervals.Run(ptr, 3);
             Assert.AreEqual(2, result);
         }
+
+        [Test]
+        public void CountContained_SignedPoints()
+        {
+            int* starts = stackalloc int[] { -5, 0, 2 };
+            int* ends = stackalloc int[] { -1, 4, 2 };
+            Assert.AreEqual(1, IntervalSearch.CountContained(starts, ends, 3, -3));
+            Assert.AreEqual(1, IntervalSearch.CountContained(starts, ends, 3, 0));
+            Assert.AreEqual(1, IntervalSearch.CountContained(starts, ends, 3, 2));
+            Assert.AreEqual(0, IntervalSearch.CountContained(starts, ends, 3, 10));
+        }
+
+        [Test]
+        public void CountOverlapping_AndFindFirst()
+        {
+            int* starts = stackalloc int[] { 1, 5, 10 };
+            int* ends = stackalloc int[] { 4, 8, 12 };
+            Assert.AreEqual(2, IntervalSearch.CountOverlapping(starts, ends, 3, 3, 6));
+            Assert.AreEqual(1, IntervalSearch.FindFirstOverlapping(starts, ends, 3, 6, 7));
+            Assert.AreEqual(-1, IntervalSearch.FindFirstOverlapping(starts, ends, 3, 20, 21));
+        }
+
+        [Test]
+        public void SortByStart_OrdersIntervals()
+        {
+            int* starts = stackalloc int[] { 5, 1, 3 };
+            int* ends = stackalloc int[] { 6, 2, 4 };
+            IntervalSearch.SortByStart(starts, ends, 3);
+            Assert.AreEqual(1, starts[0]);
+            Assert.AreEqual(3, starts[1]);
+            Assert.AreEqual(5, starts[2]);
+            Assert.AreEqual(2, ends[0]);
+        }
     }
 }
