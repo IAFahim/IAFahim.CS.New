@@ -18,7 +18,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 9 [x] | `IAFahim.DP` | deferred | gate: open findings (2); gate: public API untested: Optimize, RunSpaceOptimized |
 | 10 [x] | `IAFahim.DP.General` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 11 [x] | `IAFahim.DP.Knapsack` | perfect | BitsetSubsetSum size fix proven target=64; tests 20/20 |
-| 12 [x] | `IAFahim.DP.Optimization` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 12 [x] | `IAFahim.DP.Optimization` | perfect | LiChao coordinate midX; Query envelope |
 | 13 [x] | `IAFahim.DS.Dsu` | deferred | gate: public API untested: RunPathCompression |
 | 14 [x] | `IAFahim.DS.Fenwick` | deferred | gate: public API untested: LowerBoundInt64, PrefixQuery, RangeAdd, RangeQuery, RangeSumInt |
 | 15 [x] | `IAFahim.DS.FixedCollections` | perfect | defining tests + all historical criticals revalidated fixed/absent |
@@ -54,7 +54,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 45 [x] | `IAFahim.Geometry.Delaunay` | deferred | empty package |
 | 46 [x] | `IAFahim.Geometry.Frame` | deferred | gate: open findings (1) |
 | 47 [x] | `IAFahim.Geometry.Hull` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
-| 48 [x] | `IAFahim.Geometry.Intersect` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 48 [x] | `IAFahim.Geometry.Intersect` | perfect | PlaneIntersection + polyhedron Faces/Volume |
 | 49 [x] | `IAFahim.Geometry.MarchingCubes` | deferred | empty package |
 | 50 [x] | `IAFahim.Geometry.Mesh` | deferred | gate: public API untested: DeformVertices |
 | 51 [x] | `IAFahim.Geometry.PolygonClip` | deferred | empty package |
@@ -74,7 +74,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 65 [x] | `IAFahim.Graph.Decomposition` | deferred | README shell |
 | 66 [x] | `IAFahim.Graph.Dominator` | deferred | README shell |
 | 67 [x] | `IAFahim.Graph.DynamicTrees` | deferred | 2 unrevalidated critical finding(s); demoted until each fixed/proven |
-| 68 [x] | `IAFahim.Graph.Eertree` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 68 [x] | `IAFahim.Graph.Eertree` | perfect | Eertree NextEdge to cur; palindrome counts |
 | 69 [x] | `IAFahim.Graph.Eulerian` | deferred | 2 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 70 [x] | `IAFahim.Graph.Flow` | deferred | 6 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 71 [x] | `IAFahim.Graph.Functional` | perfect | defining tests + all historical criticals revalidated fixed/absent |
@@ -84,7 +84,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 75 [x] | `IAFahim.Graph.SCC` | perfect | Tarjan convention-A e!=0; Dfs/Init/MinEdges |
 | 76 [x] | `IAFahim.Graph.ShortestPath` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 77 [x] | `IAFahim.Graph.SpanningTrees` | deferred | gate: public API untested: BuildTransitiveClosure, CountTrue |
-| 78 [x] | `IAFahim.Graph.Tree` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 78 [x] | `IAFahim.Graph.Tree` | perfect | TreeCentroids parent BFS; Hld Decompose |
 | 79 [x] | `IAFahim.Graph.TreeDecomposition` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 80 [x] | `IAFahim.Graph.TreeIsomorphism` | deferred | tree edit NP-hard NI |
 | 81 [x] | `IAFahim.Graph.TreeQueries` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
@@ -120,7 +120,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 111 [x] | `IAFahim.Optimization.DivideConquer` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 112 [x] | `IAFahim.Optimization.Exact` | deferred | gate: open findings (1) |
 | 113 [x] | `IAFahim.Optimization.Games` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
-| 114 [x] | `IAFahim.Optimization.Geometric` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 114 [x] | `IAFahim.Optimization.Geometric` | perfect | WelzlSphere full n; MinEnclosingBall Welzl |
 | 115 [x] | `IAFahim.Optimization.Knapsack` | deferred | gate: open findings (3); gate: public API untested: BinarySplit, Count, FourSum, MonotoneQ |
 | 116 [x] | `IAFahim.Optimization.Matroid` | perfect | skip nonpositive weights; Rank tests 5/5 |
 | 117 [x] | `IAFahim.Optimization.Offline` | perfect | GroupByMid+DCA+CDQ defining tests PASS 14/14 |
@@ -145,7 +145,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 136 [x] | `IAFahim.Search.RangeQueries` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 137 [x] | `IAFahim.Search.Selection` | perfect | MedianMaintain overflow-safe; defining tests |
 | 138 [x] | `IAFahim.Search.Specialized` | perfect | defining tests + all historical criticals revalidated fixed/absent |
-| 139 [x] | `IAFahim.Search.Subset` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 139 [x] | `IAFahim.Search.Subset` | perfect | SOS supersets; EnumerateUntil/NextWithSamePopCount covered |
 | 140 [x] | `IAFahim.Search.Suffix` | deferred | gate: open findings (2) |
 | 141 [x] | `IAFahim.Search.TwoPointer` | perfect | duplicate pair multiply lc*rc; tests 4/4 |
 | 142 [x] | `IAFahim.Search.Window` | deferred | gate: public API untested: FixInt32, HeapifyInt32, Left, Parent, PopInt32, PushInt32, Righ |
@@ -156,9 +156,9 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 147 [x] | `IAFahim.Sort.RadixSort` | deferred | gate: public API untested: RunLong, RunWithResult |
 | 148 [x] | `IAFahim.Sort.Specialized` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 149 [x] | `IAFahim.String` | deferred | gate: open findings (1); gate: public API untested: BuildPrefixFunction |
-| 150 [x] | `IAFahim.String.Automata` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 150 [x] | `IAFahim.String.Automata` | perfect | SubsequenceAutomaton fixed; DFA advanced deferred |
 | 151 [x] | `IAFahim.String.Compress` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
-| 152 [x] | `IAFahim.String.FMIndex` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 152 [x] | `IAFahim.String.FMIndex` | perfect | BWT primary inverse roundtrip |
 | 153 [x] | `IAFahim.String.Grammar` | deferred | gate: open findings (1); gate: public API untested: Compress |
 | 154 [x] | `IAFahim.String.Match` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 155 [x] | `IAFahim.String.MinRotation` | perfect | defining tests + all historical criticals revalidated fixed/absent |

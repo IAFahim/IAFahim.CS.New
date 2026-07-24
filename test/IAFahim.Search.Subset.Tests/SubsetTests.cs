@@ -69,5 +69,15 @@ namespace IAFahim.Search.Subset.Tests
             Assert.AreEqual(1, EnumerateMasks.CountPopBits(4));
             Assert.AreEqual(0, EnumerateMasks.CountPopBits(0));
         }
+
+        [Test]
+        public void NextWithSamePopCount_AndEnumerateUntil()
+        {
+            int n = EnumerateMasks.NextWithSamePopCount(0b0101);
+            Assert.IsTrue(n > 0b0101);
+            int* dst = stackalloc int[4];
+            int c = EnumerateSubsets.EnumerateUntil(7, dst, 3);
+            Assert.AreEqual(3, c);
+        }
     }
 }

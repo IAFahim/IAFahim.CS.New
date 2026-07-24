@@ -44,4 +44,21 @@ namespace IAFahim.Optimization.Geometric.Tests
             }
         }
     }
+
+    public sealed unsafe class WelzlSphereTests
+    {
+        [Test]
+        public void Run_FivePoints_CoversAll()
+        {
+            double* xs = stackalloc double[] { 0, 1, 0, 1, 0.5 };
+            double* ys = stackalloc double[] { 0, 0, 1, 1, 0.5 };
+            double* zs = stackalloc double[] { 0, 0, 0, 0, 0 };
+            WelzlSphere.Sphere s = WelzlSphere.Run(xs, ys, zs, 5);
+            for (int i = 0; i < 5; i++)
+            {
+                double dx = xs[i] - s.X, dy = ys[i] - s.Y, dz = zs[i] - s.Z;
+                Assert.IsTrue(dx * dx + dy * dy + dz * dz <= s.R * s.R + 1e-6);
+            }
+        }
+    }
 }

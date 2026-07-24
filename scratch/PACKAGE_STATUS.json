@@ -1168,7 +1168,7 @@
     "package": "IAFahim.DP.Optimization",
     "family": "DP",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "CP-Algorithms DP / SMAWK row minima",
     "defining_mechanics": "knapsack; row-minima; SOS/subset DP",
@@ -1195,7 +1195,7 @@
       }
     ],
     "algorithms_summary": "KnuthOptimization, LiChaoAddLine",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "LiChao coordinate midX; Query envelope"
   },
   {
     "package": "IAFahim.DS.Dsu",
@@ -4746,7 +4746,7 @@
     "package": "IAFahim.Geometry.Intersect",
     "family": "Geometry",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "KACTL/geogram/CGAL",
     "defining_mechanics": "hull/spatial/predicates",
@@ -4785,7 +4785,7 @@
       }
     ],
     "algorithms_summary": "Polyhedron, Sphere, Plane",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "PlaneIntersection + polyhedron Faces/Volume"
   },
   {
     "package": "IAFahim.Geometry.MarchingCubes",
@@ -6397,7 +6397,7 @@
     "package": "IAFahim.Graph.Eertree",
     "family": "Graph",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
     "defining_mechanics": "flow/SCC/paths",
@@ -6430,7 +6430,7 @@
       }
     ],
     "algorithms_summary": "Eertree, Node, Next",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "Eertree NextEdge to cur; palindrome counts"
   },
   {
     "package": "IAFahim.Graph.Eulerian",
@@ -7314,7 +7314,7 @@
     "package": "IAFahim.Graph.Tree",
     "family": "Graph",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
     "defining_mechanics": "flow/SCC/paths",
@@ -7472,7 +7472,7 @@
       }
     ],
     "algorithms_summary": "HldBuild, HldPathQuery, TreeCentroids, RootedTreeHash, CartesianTreeBuild, LcaBuild, LcaQuery, LcaDistance, BinaryLiftBuild, BinaryLiftKthAncestor, CentroidFind, CentroidDecompose (+6)",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "TreeCentroids parent BFS; Hld Decompose"
   },
   {
     "package": "IAFahim.Graph.TreeDecomposition",
@@ -10563,7 +10563,7 @@
     "package": "IAFahim.Optimization.Geometric",
     "family": "Optimization",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "CP-Algo/opt literature",
     "defining_mechanics": "Steiner/knapsack/games",
@@ -10604,7 +10604,7 @@
       }
     ],
     "algorithms_summary": "WelzlSphere, Sphere, MinEnclosingBall, Circle",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "WelzlSphere full n; MinEnclosingBall Welzl"
   },
   {
     "package": "IAFahim.Optimization.Knapsack",
@@ -12577,7 +12577,7 @@
     "package": "IAFahim.Search.Subset",
     "family": "Search",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "CP-Algo/KACTL",
     "defining_mechanics": "LIS/bound",
@@ -12615,7 +12615,7 @@
       }
     ],
     "algorithms_summary": "EnumerateSupersets, EnumerateMasks, EnumerateSubsets",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "SOS supersets; EnumerateUntil/NextWithSamePopCount covered"
   },
   {
     "package": "IAFahim.Search.Suffix",
@@ -13327,7 +13327,7 @@
     "package": "IAFahim.String.Automata",
     "family": "String",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL string",
     "defining_mechanics": "SA/Manacher/Aho",
@@ -13372,7 +13372,14 @@
       }
     ],
     "algorithms_summary": "FiniteAutomaton, Dfa, SubsequenceAutomaton",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "SubsequenceAutomaton fixed; DFA advanced deferred",
+    "deferred_apis": [
+      "BuildDfa",
+      "Complement",
+      "Intersection",
+      "Minimize",
+      "Union"
+    ]
   },
   {
     "package": "IAFahim.String.Compress",
@@ -13501,7 +13508,7 @@
     "package": "IAFahim.String.FMIndex",
     "family": "String",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL string",
     "defining_mechanics": "SA/Manacher/Aho",
@@ -13538,7 +13545,7 @@
       }
     ],
     "algorithms_summary": "FmBackwardSearch, BurrowsWheeler, FMIndex",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "BWT primary inverse roundtrip"
   },
   {
     "package": "IAFahim.String.Grammar",

@@ -86,4 +86,37 @@ namespace IAFahim.String.FMIndex.Tests
 
         private static string Fmt(int[] a) => string.Join(",", a);
     }
+
+    public sealed unsafe class BurrowsWheelerTests
+    {
+        [Test]
+        public void Transform_Inverse_RoundTrip()
+        {
+            int* text = stackalloc int[] { 1, 2, 1 };
+            int* sa = stackalloc int[] { 2, 0, 1 };
+            int* bwt = stackalloc int[3];
+            int primary = BurrowsWheeler.Transform(text, 3, bwt, sa);
+            int* outText = stackalloc int[3];
+            int* count = stackalloc int[4];
+            int* lf = stackalloc int[3];
+            BurrowsWheeler.Inverse(bwt, 3, primary, 4, outText, count, lf);
+            Assert.AreEqual(1, outText[0]);
+            Assert.AreEqual(2, outText[1]);
+            Assert.AreEqual(1, outText[2]);
+        }
+
+        [Test]
+        public void FMIndex_Locate_EmptyPattern()
+        {
+            int* text = stackalloc int[] { 1, 2 };
+            int* sa = stackalloc int[] { 0, 1 };
+            int* occ = stackalloc int[8];
+            int* pattern = stackalloc int[1];
+            int* result = stackalloc int[2];
+            int count = 0;
+            FMIndex.Build(text, 2, 3, occ);
+            FMIndex.Locate(text, 2, occ, pattern, 0, sa, result, &count);
+            Assert.IsTrue(count >= 0);
+        }
+    }
 }

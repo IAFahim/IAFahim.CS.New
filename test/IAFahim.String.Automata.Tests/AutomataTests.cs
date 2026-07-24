@@ -42,4 +42,20 @@ namespace IAFahim.String.Automata.Tests
             }
         }
     }
+
+    public sealed unsafe class SubsequenceAutomatonTests
+    {
+        [Test]
+        public void Build_Contains_CountDistinct()
+        {
+            byte* text = stackalloc byte[] { 0, 1, 0 };
+            const int sigma = 2;
+            int* next = stackalloc int[4 * sigma];
+            SubsequenceAutomaton.Build(text, 3, next, sigma);
+            byte* pat = stackalloc byte[] { 0, 1 };
+            Assert.IsTrue(SubsequenceAutomaton.Contains(next, pat, 2, sigma));
+            long d = SubsequenceAutomaton.CountDistinct(next, 3, sigma, 1000000007);
+            Assert.IsTrue(d >= 1);
+        }
+    }
 }

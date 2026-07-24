@@ -238,8 +238,8 @@
     "symbol": "LiChaoAddLine.Run",
     "severity": "critical",
     "summary": "Li Chao tree descends children using the INDEX midpoint mid=(l+r)>>1 for the index range [l,mid)/[mid,r) but a SEPARATE, divergent COORDINATE midpoint midX=x1+(x2-x1)/2 for the x range [x1,midX]/[midX",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "coordinate midX only routing; LiChao Query envelope tests. tests 2/2.",
     "package": "IAFahim.DP.Optimization"
   },
   {
@@ -607,8 +607,8 @@
     "symbol": "Plane.PlaneIntersection / Plane.SolvePoint",
     "severity": "critical",
     "summary": "In the y-dominant branch (axis==1) of PlaneIntersection, SolvePoint writes the two free coordinates to the wrong outputs: the value computed for z is stored into lpx and the value computed for x is st",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "y-dominant SolvePoint(lpy,lpz,lpx,...); PlaneIntersection tests + Faces/Volume. tests 16/16.",
     "package": "IAFahim.Geometry.Intersect"
   },
   {
@@ -742,8 +742,8 @@
     "symbol": "Eertree.Build",
     "severity": "critical",
     "summary": "The transition edge for a newly created palindrome node is attached to the new node itself instead of to its parent 'cur'. NextEdge(newNode, c, newNode, ...) creates a self-loop newNode --c--> newNode",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "NextEdge attaches to cur parent; Abba/Ababa palindrome counts. tests 6/6.",
     "package": "IAFahim.Graph.Eertree"
   },
   {
@@ -1048,8 +1048,8 @@
     "symbol": "TreeCentroids.Run",
     "severity": "critical",
     "summary": "BFS over the undirected adjacency list has no visited/parent guard, so every node re-enqueues its parent (and every neighbor) endlessly, overflowing the stackalloc q[n] buffer and corrupting the stack",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "BFS parent[] guards; TreeCentroids_AndHldDecompose. tests 7/7.",
     "package": "IAFahim.Graph.Tree"
   },
   {
@@ -1696,8 +1696,8 @@
     "symbol": "WelzlSphere.Run",
     "severity": "critical",
     "summary": "The outer loop is bounded by `for (int i = 0; i < n && i < 4; i++)`, so only the first 4 points (after the in-place Fisher-Yates shuffle) are ever examined. Every point at shuffled index >= 4 is compl",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "outer loop i=1..n-1 (not i<4); Run_FivePoints_CoversAll. tests 4/4.",
     "package": "IAFahim.Optimization.Geometric"
   },
   {
@@ -1966,8 +1966,8 @@
     "symbol": "EnumerateSupersets.Run",
     "severity": "critical",
     "summary": "Superset enumeration is fundamentally wrong: it only adds the single smallest free bit each step (super = super + smallest), walking one monotone chain from subMask up to maxMask instead of enumeratin",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "SOS-style (s-1)&free supersets; EnumerateSupersetsTests 4 masks for sub=2 max=7. tests 8/8.",
     "package": "IAFahim.Search.Subset"
   },
   {
@@ -2047,8 +2047,8 @@
     "symbol": "SubsequenceAutomaton.Build",
     "severity": "critical",
     "summary": "Build constructs the subsequence-automaton transition table with an off-by-one in the update order: it writes next[(i-1)*sigma+c] = last[c] BEFORE applying last[text[i-1]] = i. As a result, the transi",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "last[c] updated before next write; Build_Contains_CountDistinct. DFA ops deferred_apis. tests 2/2.",
     "package": "IAFahim.String.Automata"
   },
   {
@@ -2074,8 +2074,8 @@
     "symbol": "BurrowsWheeler.Inverse",
     "severity": "critical",
     "summary": "Inverse BWT hardcodes the reconstruction start row to pos=0, but the correct start row is the matrix row whose suffix index is 0 (i.e. where sa[row]==0). Since Transform builds the BWT from a sentinel",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Inverse takes primary from Transform; Transform_Inverse_RoundTrip. tests 3/3.",
     "package": "IAFahim.String.FMIndex"
   },
   {

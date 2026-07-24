@@ -138,5 +138,34 @@ namespace IAFahim.Graph.Tree.Tests
             }
             finally { Marshal.FreeHGlobal((nint)removed); }
         }
+
+        [Test]
+        public void TreeCentroids_AndHldDecompose()
+        {
+            const int n = 3;
+            int* head = stackalloc int[n];
+            int* to = stackalloc int[5];
+            int* next = stackalloc int[5];
+            for (int i = 0; i < n; i++) head[i] = 0;
+            int edgeId = 1;
+            AddUndirectedEdge(head, to, next, &edgeId, 0, 1);
+            AddUndirectedEdge(head, to, next, &edgeId, 1, 2);
+            int* size = stackalloc int[n];
+            bool* removed = stackalloc bool[n];
+            for (int i = 0; i < n; i++) removed[i] = false;
+            int cent = TreeCentroids.Run(n, 0, head, to, next, size, removed);
+            Assert.IsTrue(cent >= 0 && cent < n);
+
+            int* parent = stackalloc int[n];
+            int* depth = stackalloc int[n];
+            int* heavy = stackalloc int[n];
+            int* sz = stackalloc int[n];
+            HldBuild.Run(0, -1, head, to, next, parent, depth, heavy, sz);
+            int* headChain = stackalloc int[n];
+            int* pos = stackalloc int[n];
+            int curPos = 0;
+            HldBuild.Decompose(0, 0, head, to, next, parent, heavy, headChain, pos, ref curPos);
+            Assert.IsTrue(curPos > 0);
+        }
     }
 }

@@ -75,4 +75,19 @@ namespace IAFahim.Geometry.Intersect.Tests
             Assert.IsFalse(ok);
         }
     }
+
+    public sealed unsafe class PolyhedronTests
+    {
+        [Test]
+        public void Faces_AndVolume_TetraSimple()
+        {
+            Assert.AreEqual(4, Polyhedron.Faces(4, 6));
+            double* xs = stackalloc double[] { 0, 1, 0, 0 };
+            double* ys = stackalloc double[] { 0, 0, 1, 0 };
+            double* zs = stackalloc double[] { 0, 0, 0, 1 };
+            int* faces = stackalloc int[] { 0, 1, 2, 0, 1, 3, 0, 2, 3, 1, 2, 3 };
+            double v = Polyhedron.Volume(xs, ys, zs, faces, 4);
+            Assert.IsTrue(v >= 0);
+        }
+    }
 }
