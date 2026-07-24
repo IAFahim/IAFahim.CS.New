@@ -94,7 +94,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 85 [x] | `IAFahim.Linear.Matrix2` | perfect | zero open findings; 1 tested APIs; 1 deferred_apis |
 | 86 [x] | `IAFahim.Math.Arithmetic` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 87 [x] | `IAFahim.Math.Barycentric` | perfect | zero open findings; 5 tested APIs; 2 deferred_apis |
-| 88 [x] | `IAFahim.Math.Basic` | deferred | gate: open findings (2) |
+| 88 [x] | `IAFahim.Math.Basic` | perfect | FastPow SafeMulMod; tests 42/42 |
 | 89 [x] | `IAFahim.Math.BigInt` | perfect | BigIntPow dynamic digit capacity; tests 7/7 |
 | 90 [x] | `IAFahim.Math.Combinatorics` | perfect | SegmentedSieve 0/1 + stackalloc fix 18/18 |
 | 91 [x] | `IAFahim.Math.Gauss` | perfect | zero open findings; 1 tested APIs; 3 deferred_apis |

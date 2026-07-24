@@ -500,7 +500,7 @@
       }
     ],
     "algorithms_summary": "BLGlobalLogger, JobsUtility, UnsafeParallelHashSet, UnsafeUtility, UnsafeList, JobHandle, NativeParallelMultiHashMapIterator, NativeParallelMultiHashMap, UnsafeBucketData, NativeList, Enumerator, Hint (+14)",
-    "notes": "infra stubs"
+    "notes": "permanent deferred: infra stubs (Allocator/UnsafeUtility); Unity replaces"
   },
   {
     "package": "IAFahim.Collision.Gjk",
@@ -2075,7 +2075,7 @@
       }
     ],
     "algorithms_summary": "NativePerfectHashMap, UnsafePerfectHashMap",
-    "notes": "Unity container"
+    "notes": "permanent deferred: Unity container; key-equality finding needs Unity integration"
   },
   {
     "package": "IAFahim.DS.PersistentDsu",
@@ -3530,7 +3530,7 @@
       }
     ],
     "algorithms_summary": "LocalSpatialMap, ResizeKeys, QuantizeJob, UpdateMap, PartialSpatialMap, SpatialKeyedMap, ResizeNativeKeyedMapJob, QuantizeJob, SpatialKeyedMap, SpatialMap, ResizeNativeParallelHashMapJob, QuantizeJob (+11)",
-    "notes": "Unity container"
+    "notes": "permanent deferred: Unity container Spatial*Map jobs"
   },
   {
     "package": "IAFahim.DS.Splay",
@@ -8116,8 +8116,8 @@
     "package": "IAFahim.Math.Basic",
     "family": "Math",
     "has_tests": true,
-    "status": "deferred",
-    "verify": "PASS(test)",
+    "status": "perfect",
+    "verify": "PASS(test) 42/42",
     "reference": "KACTL NT + ACL",
     "defining_mechanics": "mod/FFT/NTT",
     "algorithms": [
@@ -8341,7 +8341,8 @@
       }
     ],
     "algorithms_summary": "AbsInt64, MinInt, CeilDiv, FastPow, IntegerSqrt, NthRoot, IntegerCbrt, IsPerfectSquare, IsPowerOfTwo, NextPowerOfTwo, PrevPowerOfTwo, FloorLog2 (+15)",
-    "notes": "gate: open findings (2)"
+    "notes": "FastPow SafeMulMod fixed; Bit ops via uint; tests 42/42",
+    "deferred_apis": []
   },
   {
     "package": "IAFahim.Math.BigInt",

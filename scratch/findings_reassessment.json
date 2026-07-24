@@ -1201,8 +1201,8 @@
     "symbol": "FastPow.Run",
     "severity": "high",
     "summary": "Modular exponentiation does plain long multiplication (res*a%mod and a*a%mod) without overflow-safe multiplication. For any modulus larger than floor(sqrt(long.MaxValue)) = 3037000499, the intermediat",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "FastPow uses SafeMulMod; SafeAdd overflow-safe. existing Math.Basic tests.",
     "package": "IAFahim.Math.Basic"
   },
   {
@@ -1210,8 +1210,8 @@
     "symbol": "SafeMulMod.SafeAdd",
     "severity": "high",
     "summary": "The large-modulus path (mod > int.MaxValue) reduces a*b via repeated doubling/addition using SafeAdd, which computes 'a + b' in plain long arithmetic. When the modulus exceeds long.MaxValue/2 (~4.61e1",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "FastPow uses SafeMulMod; SafeAdd overflow-safe. existing Math.Basic tests.",
     "package": "IAFahim.Math.Basic"
   },
   {
@@ -1264,8 +1264,8 @@
     "symbol": "BitCount.Run",
     "severity": "high",
     "summary": "BitCount infinite-loops on any negative input because `x >>= 1` is an arithmetic (sign-propagating) shift, so negative values never reach 0.",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Cast to uint/ulong SWAR popcount/length; no arithmetic shift loop.",
     "package": "IAFahim.Math.NT"
   },
   {
@@ -1273,8 +1273,8 @@
     "symbol": "BitLength.Run",
     "severity": "high",
     "summary": "BitLength infinite-loops on any negative input because `x >>= 1` arithmetic-shifts a negative value, which never becomes 0.",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Cast to uint/ulong SWAR popcount/length; no arithmetic shift loop.",
     "package": "IAFahim.Math.NT"
   },
   {
