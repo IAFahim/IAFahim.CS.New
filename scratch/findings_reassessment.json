@@ -49,8 +49,8 @@
     "symbol": "Gcd.Run",
     "severity": "high",
     "summary": "Stack buffer overflow when the second polynomial has higher degree than the first (lenB > lenA). The working buffer `u` is sized only `stackalloc long[lenA]`, but the Euclidean loop performs `u <- v` ",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "u,v sized max(lenA,lenB). tests 8/8.",
     "package": "IAFahim.Algebra.Polynomial"
   },
   {
@@ -58,8 +58,8 @@
     "symbol": "PowMod.Run",
     "severity": "high",
     "summary": "Stack buffer overflow when the base polynomial's degree is >= the modulus polynomial's degree (lenPoly close to or larger than lenModPoly). The base/temp/q/r buffers are sized `lenModPoly*2+1`, but th",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "scratchLen max(lenPoly, 2*lenMod+1). tests 8/8.",
     "package": "IAFahim.Algebra.Polynomial"
   },
   {
@@ -1588,8 +1588,8 @@
     "symbol": "DequeOpt.IntersectX",
     "severity": "critical",
     "summary": "IntersectX computes a nonsensical intersection abscissa that ignores the C coefficients and divides by p.A+q.A, giving wrong CHT pop decisions and dividing by zero when p.A+q.A==0.",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "IntersectX for equal-A quads (q.C-p.C)/(p.B-q.B); documented contract.",
     "package": "IAFahim.Optimization.DivideConquer"
   },
   {
@@ -1597,8 +1597,8 @@
     "symbol": "DequeOpt.Run",
     "severity": "high",
     "summary": "Eval(quads[...], i) computes q.A*i*i+q.B*i+q.C in long but A*i*i overflows long for large quadratic coefficients within contract, and the deque/Eval comparisons then make wrong pop decisions; also rea",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "IntersectX for equal-A quads (q.C-p.C)/(p.B-q.B); documented contract.",
     "package": "IAFahim.Optimization.DivideConquer"
   },
   {
@@ -1606,8 +1606,8 @@
     "symbol": "LagrangianRelaxation.Search",
     "severity": "high",
     "summary": "Midpoint mid=(lo+hi)>>1 overflows long when lo+hi exceeds long.MaxValue, producing a negative/garbage mid that breaks the binary-search invariant and can loop or return a wrong lambda.",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Eval uses (A*x+B)*x+C; IntersectX equal-A; Lagrangian mid safe; tests 2/2.",
     "package": "IAFahim.Optimization.DivideConquer"
   },
   {
@@ -1705,8 +1705,8 @@
     "symbol": "MultipleChoiceKnapsack.Run",
     "severity": "high",
     "summary": "Multiple-choice knapsack DP treats infeasible states (no item from the group fits) as value 0 instead of -infinity, and uses dp[0]=0 as a 'free' base, so it returns positive values for selections that",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "NegInf infeasible; BestItemForCapacity. tests 5/5.",
     "package": "IAFahim.Optimization.Knapsack"
   },
   {
@@ -1714,8 +1714,8 @@
     "symbol": "KSum.Count",
     "severity": "high",
     "summary": "Two-pointer pair sum computes s = a[l] + a[r] as int + int into an int; with large in-range int values the sum overflows, corrupting the < / > comparisons and skipping valid pairs (or matching wrong o",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "long cast for pair/four sums. tests 5/5.",
     "package": "IAFahim.Optimization.Knapsack"
   },
   {
@@ -1723,8 +1723,8 @@
     "symbol": "KSum.FourSum",
     "severity": "high",
     "summary": "FourSum computes s = a[i]+a[j]+a[l]+a[r] as a 4-way int addition; in-range int values overflow the int accumulator, breaking the two-pointer comparison and giving wrong counts.",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "long cast for pair/four sums. tests 5/5.",
     "package": "IAFahim.Optimization.Knapsack"
   },
   {

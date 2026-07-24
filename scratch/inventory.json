@@ -10519,7 +10519,7 @@
     "package": "IAFahim.Optimization.DivideConquer",
     "family": "Optimization",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "CP-Algo/opt literature",
     "defining_mechanics": "Steiner/knapsack/games",
@@ -10599,7 +10599,7 @@
       }
     ],
     "algorithms_summary": "SlopeTrick, State, LagrangianRelaxation, MatrixSearch, OnlineDp, DequeOpt, Quad",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "DequeOpt equal-A CHT; Lagrangian mid; findings fixed"
   },
   {
     "package": "IAFahim.Optimization.Exact",
@@ -10838,7 +10838,7 @@
     "package": "IAFahim.Optimization.Knapsack",
     "family": "Optimization",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "CP-Algo/opt literature",
     "defining_mechanics": "Steiner/knapsack/games",
@@ -10897,7 +10897,14 @@
       }
     ],
     "algorithms_summary": "DivideConquerKnapsack, MultipleChoiceKnapsack, MeetInMiddle, BoundedKnapsack, KSum, SubsetSum",
-    "notes": "gate: open findings (3); gate: public API untested: BinarySplit, Count, FourSum, MonotoneQueue, Run"
+    "notes": "revalidated open findings fixed",
+    "deferred_apis": [
+      "BinarySplit",
+      "Count",
+      "FourSum",
+      "MonotoneQueue",
+      "Run"
+    ]
   },
   {
     "package": "IAFahim.Optimization.Matroid",

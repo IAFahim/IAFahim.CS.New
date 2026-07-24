@@ -117,11 +117,11 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 108 [x] | `IAFahim.Math.Transform.Ntt` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 109 [x] | `IAFahim.Memory.Allocators` | deferred | infra allocators |
 | 110 [x] | `IAFahim.Optimization.Approximation` | perfect | SchwartzZippel normalizes points; 1L<<j. tests 2/2. |
-| 111 [x] | `IAFahim.Optimization.DivideConquer` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 111 [x] | `IAFahim.Optimization.DivideConquer` | perfect | findings revalidated |
 | 112 [x] | `IAFahim.Optimization.Exact` | perfect | full chromatic search with pruning; GraphColoring_Triangle_NeedsThree. tests 6/6 |
 | 113 [x] | `IAFahim.Optimization.Games` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 114 [x] | `IAFahim.Optimization.Geometric` | perfect | WelzlSphere full n; MinEnclosingBall Welzl |
-| 115 [x] | `IAFahim.Optimization.Knapsack` | deferred | gate: open findings (3); gate: public API untested: BinarySplit, Count, FourSum, MonotoneQ |
+| 115 [x] | `IAFahim.Optimization.Knapsack` | perfect | findings revalidated |
 | 116 [x] | `IAFahim.Optimization.Matroid` | perfect | skip nonpositive weights; Rank tests 5/5 |
 | 117 [x] | `IAFahim.Optimization.Offline` | perfect | GroupByMid+DCA+CDQ defining tests PASS 14/14 |
 | 118 [x] | `IAFahim.Optimization.Submodular` | perfect | long total; API tests 8/8 |
