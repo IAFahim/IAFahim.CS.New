@@ -216,7 +216,7 @@
     "package": "IAFahim.Algebra.Sequence",
     "family": "Algebra",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "AtCoder Library / CP-Algorithms",
     "defining_mechanics": "poly BM/gcd/NTT",
@@ -292,7 +292,12 @@
       }
     ],
     "algorithms_summary": "Prufer, Transform, Combinatorial, GeneratingFunction, Stirling, SubsetBell",
-    "notes": "gate: open findings (2); gate: public API untested: Factorial, ModPow, Run"
+    "notes": "InverseBinomial sign (-1)^(n-k); LagrangeInversion. tests 35/35.",
+    "deferred_apis": [
+      "Factorial",
+      "ModPow",
+      "Run"
+    ]
   },
   {
     "package": "IAFahim.Collections.NoDeps",
@@ -9462,7 +9467,7 @@
     "package": "IAFahim.Math.PoissonDisk",
     "family": "Math",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "KACTL NT + ACL",
     "defining_mechanics": "mod/FFT/NTT",
@@ -9487,7 +9492,8 @@
       }
     ],
     "algorithms_summary": "PoissonDisk3D, PoissonDisk2D",
-    "notes": "gate: open findings (3)"
+    "notes": "NextFloat /4294967296 [0,1); gridSize long. tests 7/7.",
+    "deferred_apis": []
   },
   {
     "package": "IAFahim.Math.Polynomial",
@@ -10098,7 +10104,7 @@
     "package": "IAFahim.Math.Transform",
     "family": "Math",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "KACTL NT + ACL",
     "defining_mechanics": "mod/FFT/NTT",
@@ -10286,7 +10292,14 @@
       }
     ],
     "algorithms_summary": "SubsetConvolutionRanked, WalshHadamardXor, WalshHadamardOr, WalshHadamardAnd, FwhtConvolution, PosetTransforms, OrAndXorConvolution, PartitionConvolution, XorBasisInsert, XorBasisMax, XorBasisMin, XorBasisRank (+7)",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "FWHT mod 1e9+7; XorBasisKth reduced. tests 17/17.",
+    "deferred_apis": [
+      "Inverse",
+      "MaxPlusConcaveArbitrary",
+      "MaxPlusConcaveConcave",
+      "MaxPlusGeneral",
+      "RunInt32"
+    ]
   },
   {
     "package": "IAFahim.Math.Transform.AnyMod",

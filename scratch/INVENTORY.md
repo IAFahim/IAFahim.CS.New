@@ -9,7 +9,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 |---:|---|---|---|
 | 1 [x] | `IAFahim.Algebra.GraphPoly` | perfect | long size=1L<<edges; Tutte_Triangle tests. DeletionContraction deferred. |
 | 2 [x] | `IAFahim.Algebra.Polynomial` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
-| 3 [x] | `IAFahim.Algebra.Sequence` | deferred | gate: open findings (2); gate: public API untested: Factorial, ModPow, Run |
+| 3 [x] | `IAFahim.Algebra.Sequence` | perfect | InverseBinomial sign (-1)^(n-k); LagrangeInversion. tests 35/35. |
 | 4 [x] | `IAFahim.Collections.NoDeps` | deferred | infra stubs |
 | 5 [x] | `IAFahim.Collision.Gjk` | perfect | zero open findings; 5 tested APIs; 2 deferred_apis |
 | 6 [x] | `IAFahim.Combinatorics.Generation` | perfect | emit only when curJ==_n (Lyndon not necklace); LyndonWords_GeneratesCorrectly. ranks defer |
@@ -102,7 +102,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 93 [x] | `IAFahim.Math.Modular` | perfect | ModInv negative gcd; tests 32/32 |
 | 94 [x] | `IAFahim.Math.NT` | deferred | gate: open findings (11); gate: public API untested: ConvolutionPrefixSum, Forward, Hyperb |
 | 95 [x] | `IAFahim.Math.Noise` | perfect | defining tests + all historical criticals revalidated fixed/absent |
-| 96 [x] | `IAFahim.Math.PoissonDisk` | deferred | gate: open findings (3) |
+| 96 [x] | `IAFahim.Math.PoissonDisk` | perfect | NextFloat /4294967296 [0,1); gridSize long. tests 7/7. |
 | 97 [x] | `IAFahim.Math.Polynomial` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
 | 98 [x] | `IAFahim.Math.Polynomial.Eval` | perfect | Bluestein correlation via reverse g + H[j]=d^C(j,2); tests 6/6. |
 | 99 [x] | `IAFahim.Math.Polynomial.Fps` | perfect | r0==0 returns zero series or -1 if nonzero tail; Sqrt_ZeroSeries. helpers deferr |
@@ -111,7 +111,7 @@ Total: 162 | **perfect: 33** | **deferred: 129**
 | 102 [x] | `IAFahim.Math.Sdf` | perfect | zero open findings; 15 tested APIs; 14 deferred_apis |
 | 103 [x] | `IAFahim.Math.SphericalHarmonics` | perfect | zero open findings; 4 tested APIs; 9 deferred_apis |
 | 104 [x] | `IAFahim.Math.Spline` | perfect | defining tests + all historical criticals revalidated fixed/absent |
-| 105 [x] | `IAFahim.Math.Transform` | deferred | 1 unrevalidated critical finding(s); demoted until each fixed/proven |
+| 105 [x] | `IAFahim.Math.Transform` | perfect | FWHT mod 1e9+7; XorBasisKth reduced. tests 17/17. |
 | 106 [x] | `IAFahim.Math.Transform.AnyMod` | perfect | CRT CombineCrt MulMod; tests 1/1 |
 | 107 [x] | `IAFahim.Math.Transform.Fft` | perfect | defining tests + all historical criticals revalidated fixed/absent |
 | 108 [x] | `IAFahim.Math.Transform.Ntt` | perfect | defining tests + all historical criticals revalidated fixed/absent |

@@ -94,8 +94,8 @@
     "symbol": "GeneratingFunction.LagrangeInversion",
     "severity": "high",
     "summary": "LagrangeInversion does not implement Lagrange inversion at all; it returns the k-th derivative coefficient of f divided by k, i.e. effectively f[k], rather than the k-th coefficient of the composition",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "InverseBinomial sign (-1)^(n-k); LagrangeInversion. tests 35/35.",
     "package": "IAFahim.Algebra.Sequence"
   },
   {
@@ -103,8 +103,8 @@
     "symbol": "Transform.ComputeInverseBinomialTerm",
     "severity": "high",
     "summary": "InverseBinomial uses the wrong sign parity (-1)^k instead of (-1)^(n-k), so it is NOT the inverse of Binomial. For every odd index n2 the result is the negation of the correct value, making the round-",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "InverseBinomial sign (-1)^(n-k); LagrangeInversion. tests 35/35.",
     "package": "IAFahim.Algebra.Sequence"
   },
   {
@@ -1453,8 +1453,8 @@
     "symbol": "PoissonDisk2D.NextFloat / PoissonDisk2D.Run",
     "severity": "high",
     "summary": "NextFloat returns a value in the CLOSED interval [0,1] (divides by 4294967295.0f, which itself rounds up to 2^32 in float, so top results yield exactly 1.0f). Then activeIdx = (int)(NextFloat(ref rng)",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "NextFloat /4294967296 [0,1); gridSize long. tests 7/7.",
     "package": "IAFahim.Math.PoissonDisk"
   },
   {
@@ -1462,8 +1462,8 @@
     "symbol": "PoissonDisk3D.NextFloat / PoissonDisk3D.Run",
     "severity": "high",
     "summary": "Identical defect to the 2D version: NextFloat divides by 4294967295.0f and can return exactly 1.0f, so activeIdx = (int)(NextFloat(ref rng) * activeCount) can equal activeCount and read active[activeC",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "NextFloat /4294967296 [0,1); gridSize long. tests 7/7.",
     "package": "IAFahim.Math.PoissonDisk"
   },
   {
@@ -1471,8 +1471,8 @@
     "symbol": "PoissonDisk3D.Run",
     "severity": "high",
     "summary": "gridSize = gridW * gridH * gridD is computed as a 32-bit int product of three per-axis cell counts derived from (max-min)/cellSize. For representable, contract-valid bounds and minDistance this triple",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "NextFloat /4294967296 [0,1); gridSize long. tests 7/7.",
     "package": "IAFahim.Math.PoissonDisk"
   },
   {
@@ -1543,8 +1543,8 @@
     "symbol": "WalshHadamardXor.Forward / FwhtConvolution.Run",
     "severity": "high",
     "summary": "WalshHadamardXor.Forward computes u+v and u-v with NO modular reduction (unlike its Or/And siblings which reduce mod 1e9+7). FwhtConvolution.Run then does c[i]=a[i]*b[i]%mod on these un-reduced transf",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "FWHT mod 1e9+7; XorBasisKth reduced. tests 17/17.",
     "package": "IAFahim.Math.Transform"
   },
   {
@@ -1552,8 +1552,8 @@
     "symbol": "XorBasisKth.Run",
     "severity": "critical",
     "summary": "K-th smallest XOR value maps k's bits to the wrong vectors (reversed), producing wrong results. The vectors in vec[] are collected in increasing order of highest set bit (vec[0] smallest, vec[cnt-1] l",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "FWHT mod 1e9+7; XorBasisKth reduced. tests 17/17.",
     "package": "IAFahim.Math.Transform"
   },
   {
@@ -1561,8 +1561,8 @@
     "symbol": "XorBasisKth.Run",
     "severity": "high",
     "summary": "The Gaussian-elimination/canonicalization step uses bit position (63 - i) as the pivot for vec[i], but vec[i]'s actual pivot (highest set) bit is NOT 63-i unless the basis has exactly 64 vectors filli",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "FWHT mod 1e9+7; XorBasisKth reduced. tests 17/17.",
     "package": "IAFahim.Math.Transform"
   },
   {
