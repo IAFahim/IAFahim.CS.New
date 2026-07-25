@@ -24,7 +24,9 @@ namespace IAFahim.DS.Sparse
             int offset = j * n;
             int prevOffset = (j - 1) * n;
             int half = 1 << (j - 1);
-            for (int i = 0; i + (1 << j) <= n; i++)
+            // Precompute loop bound
+            int maxI = n - (1 << j);
+            for (int i = 0; i <= maxI; i++)
             {
                 int left = table[i + prevOffset];
                 int right = table[i + half + prevOffset];
@@ -51,7 +53,9 @@ namespace IAFahim.DS.Sparse
             int offset = j * n;
             int prevOffset = (j - 1) * n;
             int half = 1 << (j - 1);
-            for (int i = 0; i + (1 << j) <= n; i++)
+            // Precompute loop bound
+            int maxI = n - (1 << j);
+            for (int i = 0; i <= maxI; i++)
             {
                 long left = table[i + prevOffset];
                 long right = table[i + half + prevOffset];
