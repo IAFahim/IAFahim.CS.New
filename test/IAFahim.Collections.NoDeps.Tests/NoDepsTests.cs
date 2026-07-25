@@ -437,4 +437,87 @@ namespace IAFahim.Collections.NoDeps.Tests
             Marshal.FreeHGlobal((nint)dst);
         }
     }
+
+    public sealed unsafe class UnmanagedAlignmentTests
+    {
+        [Test]
+        public void Allocate_RequestedAlignment_IsHonored()
+        {
+            const int Align = 64;
+            void* p = BovineLabs.Core.Memory.Unmanaged.Allocate(128, Align, Allocator.Persistent);
+            try
+            {
+                Assert.IsTrue(p != null);
+                Assert.AreEqual(0L, (long)((nuint)p % (nuint)Align));
+            }
+            finally
+            {
+                BovineLabs.Core.Memory.Unmanaged.Free(p, Allocator.Persistent);
+            }
+        }
+    }
+
+    public sealed unsafe class NativeHashSetShrinkTests
+    {
+        [Test]
+        public void Capacity_ShrinkBelowLength_ClampsLength()
+        {
+            var set = new NativeHashSet<int>(16, Allocator.Persistent);
+            try
+            {
+                for (int i = 0; i < 10; i++) set.Add(i);
+                Assert.AreEqual(10, set.Length);
+                set.Capacity = 4;
+                Assert.IsTrue(set.Capacity >= 4);
+                Assert.IsTrue(set.Length <= set.Capacity);
+                int present = 0;
+                for (int i = 0; i < 10; i++) if (set.Contains(i)) present++;
+                Assert.AreEqual(set.Length, present);
+            }
+            finally
+            {
+                set.Dispose();
+            }
+        }
+    }
+
+    public sealed unsafe class UnsafeListRemoveRangeTests
+    {
+        [Test]
+        public void RemoveRange_Middle_Compacts()
+        {
+            var list = new UnsafeList<int>(8, Allocator.Persistent);
+            try
+            {
+                for (int i = 0; i < 6; i++) list.Add(i);
+                list.RemoveRange(2, 2);
+                Assert.AreEqual(4, list.Length);
+                Assert.AreEqual(0, list[0]);
+                Assert.AreEqual(1, list[1]);
+                Assert.AreEqual(4, list[2]);
+                Assert.AreEqual(5, list[3]);
+            }
+            finally
+            {
+                list.Dispose();
+            }
+        }
+
+        [Test]
+        public void RemoveRange_CountPastEnd_Clamped()
+        {
+            var list = new UnsafeList<int>(4, Allocator.Persistent);
+            try
+            {
+                list.Add(1); list.Add(2); list.Add(3);
+                list.RemoveRange(1, 99);
+                Assert.AreEqual(1, list.Length);
+                Assert.AreEqual(1, list[0]);
+            }
+            finally
+            {
+                list.Dispose();
+            }
+        }
+    }
 }

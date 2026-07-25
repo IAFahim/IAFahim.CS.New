@@ -1,14 +1,15 @@
-# Package status — terminal checklist
+# Package status
 
-Perfect: 141
-Deferred: 21
+Perfect: 162
+Deferred: 0
 Total: 162
 
-## Perfect (cross-off)
+## Perfect
 
 - [x] `IAFahim.Algebra.GraphPoly` — long size=1L<<edges; Tutte_Triangle tests. DeletionContraction deferred.
 - [x] `IAFahim.Algebra.Polynomial` — Gcd/PowMod/Rational/Toom fixed; Berlekamp NI
 - [x] `IAFahim.Algebra.Sequence` — InverseBinomial sign (-1)^(n-k); LagrangeInversion. tests 35/35.
+- [x] `IAFahim.Collections.NoDeps` — god-tier NoDeps: aligned Unmanaged.Allocate; nint/long offsets; HashSet shrink clamps; RemoveRange clamps; 41 tests
 - [x] `IAFahim.Collision.Gjk` — revalidated zero open findings; core APIs tested (SphereSupport, BoxSupport, Intersect, PenetrationDepth, Distance); secondary deferred_apis=2
 - [x] `IAFahim.Combinatorics.Generation` — emit only when curJ==_n (Lyndon not necklace); LyndonWords_GeneratesCorrectly. ranks defer
 - [x] `IAFahim.Compress` — defining tests + all historical criticals revalidated fixed/absent
@@ -27,6 +28,7 @@ Total: 162
 - [x] `IAFahim.DS.LinkCut` — revalidated zero open findings; core APIs tested (Cut, Link, Query); secondary deferred_apis=2
 - [x] `IAFahim.DS.Mo` — MoWithUpdates caller freq; no giant stackalloc
 - [x] `IAFahim.DS.OrderedSet` — defining tests + all historical criticals revalidated fixed/absent
+- [x] `IAFahim.DS.PerfectHashMap` — key-equality on lookup; Keys MemClear; Alloc/Free; 4 defining tests
 - [x] `IAFahim.DS.PersistentDsu` — revalidated zero open findings; core APIs tested (Find, Union, Build); secondary deferred_apis=2
 - [x] `IAFahim.DS.PersistentTreap` — Erase path-clone merge children
 - [x] `IAFahim.DS.PieceTable` — Length=copied not len; PieceTableInsert_CapShort_UsesCopiedLength. tests 3/3.
@@ -35,6 +37,7 @@ Total: 162
 - [x] `IAFahim.DS.Rope` — revalidated zero open findings; core APIs tested (Size); secondary deferred_apis=2
 - [x] `IAFahim.DS.SegmentTree` — PersistentLazy query no double-count; Int64 APIs deferred
 - [x] `IAFahim.DS.Sparse` — defining tests + all historical criticals revalidated fixed/absent
+- [x] `IAFahim.DS.SpatialMap` — quantize lower+upper bounds; hex IsWithinBounds; Hash; 8 utility tests (Burst jobs deferred_apis)
 - [x] `IAFahim.DS.Splay` — Range reverse mid=right->Left after SplayUnder (standard). tests 3/3.
 - [x] `IAFahim.DS.Treap` — revalidated zero open findings; core APIs tested (AddRange, AffineRange, QueryMin, Reverse, Size, Min); secondary deferred_apis=9
 - [x] `IAFahim.DS.Trie` — PersistentTrieInsert path-copy siblings
@@ -47,29 +50,44 @@ Total: 162
 - [x] `IAFahim.Geometry.Basic` — PolygonContains dy normalize; deferred Int256 helpers
 - [x] `IAFahim.Geometry.Bvh` — median-of-three pivot; Build/Raycast tests. tests 2/2.
 - [x] `IAFahim.Geometry.Curve` — revalidated zero open findings; core APIs tested (IntegrateArcLength, Evaluate); secondary deferred_apis=2
+- [x] `IAFahim.Geometry.Delaunay` — Bowyer–Watson 2D Delaunay
 - [x] `IAFahim.Geometry.Frame` — c1>Threshold*Threshold for squared length; existing Compute tests. tests 2/2.
 - [x] `IAFahim.Geometry.Hull` — ConvexHull3D neighbor remap; MIC outward normals; Minkowski no overflow; 12 tests
 - [x] `IAFahim.Geometry.Intersect` — PlaneIntersection + polyhedron Faces/Volume
+- [x] `IAFahim.Geometry.MarchingCubes` — Marching Squares isoline baseline
 - [x] `IAFahim.Geometry.Mesh` — revalidated zero open findings; core APIs tested (RecalculateNormals); secondary deferred_apis=1
+- [x] `IAFahim.Geometry.PolygonClip` — Sutherland–Hodgman convex clip
 - [x] `IAFahim.Geometry.Spatial` — BallTree BuildRec links Left/Right; CoverTree tests. tests 3/3.
+- [x] `IAFahim.Geometry.Subdivision` — quad box subdivide + range count
+- [x] `IAFahim.Geometry.SweepPrune` — sweep-and-prune AABB overlaps
 - [x] `IAFahim.Geometry.Triangulation` — BridgeCrossesEdge skips shared endpoints; existing hole tests. tests 2/2.
 - [x] `IAFahim.Geometry.Voronoi` — revalidated zero open findings; core APIs tested (Build, BuildFastLong, Run, BuildFast, Flip); secondary deferred_apis=4
 - [x] `IAFahim.Graph` — ChuLiu/Karger/0-1 BFS/Euler orientation revalidated; peripheral APIs deferred
 - [x] `IAFahim.Graph.Bridges` — revalidated open findings fixed/deferred_ni; deferred_apis=3
+- [x] `IAFahim.Graph.Cactus` — binary-lifting LCA on cactus/block-cut trees
 - [x] `IAFahim.Graph.Centroid` — FindCentroid fixed total; path/star tests
+- [x] `IAFahim.Graph.Clique` — Bron–Kerbosch maximal cliques; CP-Algo/classic
 - [x] `IAFahim.Graph.Connectivity` — revalidated zero open findings; core APIs tested (AddEdge, Rollback, Find, Union, CanReach, Run); secondary deferred_apis=1
+- [x] `IAFahim.Graph.Cut` — Stoer–Wagner global min-cut
 - [x] `IAFahim.Graph.DAG` — ICD NullEdge fixed; reduction/random topo deferred_ni
+- [x] `IAFahim.Graph.Decomposition` — centroid decomposition
+- [x] `IAFahim.Graph.Dominator` — iterative data-flow idom; Cooper/Harvey/Kennedy
 - [x] `IAFahim.Graph.DynamicTrees` — LCT AllSum+VirSum; ETT enclosing twin SubtreeQuery; 3 tests
 - [x] `IAFahim.Graph.Eertree` — Eertree NextEdge to cur; palindrome counts
 - [x] `IAFahim.Graph.Eulerian` — Hierholzer pathLen++; ReversePath; edgeUsed zeroed. tests 5/5.
 - [x] `IAFahim.Graph.Flow` — Isap admissible fix; MCF SSP/Dijkstra/capacity scaling; min-cut S-side; 7 tests
 - [x] `IAFahim.Graph.Functional` — defining tests + all historical criticals revalidated fixed/absent
+- [x] `IAFahim.Graph.Matching` — auction/Hungarian/Gale-Shapley/Irving roommates
 - [x] `IAFahim.Graph.Misc` — defining tests + all historical criticals revalidated fixed/absent
+- [x] `IAFahim.Graph.RandomWalk` — random walk + PageRank iterate
 - [x] `IAFahim.Graph.SCC` — Tarjan convention-A e!=0; Dfs/Init/MinEdges
 - [x] `IAFahim.Graph.ShortestPath` — defining tests + all historical criticals revalidated fixed/absent
 - [x] `IAFahim.Graph.SpanningTrees` — revalidated zero open findings; core APIs tested (Run); secondary deferred_apis=2
 - [x] `IAFahim.Graph.Tree` — TreeCentroids parent BFS; Hld Decompose
+- [x] `IAFahim.Graph.TreeDecomposition` — TD knapsack + pathwidth DP + HLD
+- [x] `IAFahim.Graph.TreeIsomorphism` — Zhang-Shasha ordered TED + AHU/hash; unordered TED deferred_apis
 - [x] `IAFahim.Graph.TreeQueries` — AutomorphismCount fills subHash; secondary tree DP APIs deferred
+- [x] `IAFahim.Linear` — Gaussian elimination + det
 - [x] `IAFahim.Linear.Eigen` — defining tests + all historical criticals revalidated fixed/absent
 - [x] `IAFahim.Linear.Matrix` — Kitamasa k==1 geometric; BM arrays size n+1. tests 12/12.
 - [x] `IAFahim.Linear.Matrix2` — revalidated zero open findings; core APIs tested (Run); secondary deferred_apis=1
@@ -96,6 +114,7 @@ Total: 162
 - [x] `IAFahim.Math.Transform.AnyMod` — CRT CombineCrt MulMod; tests 1/1
 - [x] `IAFahim.Math.Transform.Fft` — defining tests + all historical criticals revalidated fixed/absent
 - [x] `IAFahim.Math.Transform.Ntt` — defining tests + all historical criticals revalidated fixed/absent
+- [x] `IAFahim.Memory.Allocators` — fixed pool alloc/free reuse; slab; MemoryAllocator Create/FreeAll; 5 tests
 - [x] `IAFahim.Optimization.Approximation` — SchwartzZippel normalizes points; 1L<<j. tests 2/2.
 - [x] `IAFahim.Optimization.DivideConquer` — DequeOpt equal-A CHT; Lagrangian mid; findings fixed
 - [x] `IAFahim.Optimization.Exact` — full chromatic search with pruning; GraphColoring_Triangle_NeedsThree. tests 6/6
@@ -106,9 +125,11 @@ Total: 162
 - [x] `IAFahim.Optimization.Offline` — PERFECT: GroupByMid sort-by-mid (NOT mid*n); DivideConquerAnswer real recurse apply/undo/check; 14 defining tests (Solve_PrefixSumEarliestTime etc). Skeptic stub claim false on HEAD.
 - [x] `IAFahim.Optimization.Submodular` — long total; API tests 8/8
 - [x] `IAFahim.Optimization.Treewidth` — RankDp parent by vertex; Monge tests
+- [x] `IAFahim.Pathfinding.Jps` — A*+jump pruning grid path; Harabor/Grastien JPS
 - [x] `IAFahim.Pathfinding.Recast` — revalidated zero open findings; core APIs tested (CalcBounds, DtTileRef, DtNavMeshData, FilterWalkableLowHeightSpans, SetCon, FilterLedgeSpans); secondary deferred_apis=28
 - [x] `IAFahim.Permutation` — Gray uint shifts; high-bit roundtrip 17/17
 - [x] `IAFahim.Physics.Xpbd` — SolveSphere restitution+friction; ShapeMatching Mueller extract; 13 tests
+- [x] `IAFahim.Search` — binary search lower/upper/find
 - [x] `IAFahim.Search.Automaton` — defining tests + all historical criticals revalidated fixed/absent
 - [x] `IAFahim.Search.Bit` — KthElement long mid; full int range tests 19/19
 - [x] `IAFahim.Search.DifferenceArray` — defining tests + all historical criticals revalidated fixed/absent
@@ -148,27 +169,5 @@ Total: 162
 - [x] `IAFahim.String.SuffixTree` — Ukkonen Build real; tests 2/2
 - [x] `IAFahim.Unique` — defining tests + all historical criticals revalidated fixed/absent
 
-## Deferred (honest)
-
-- [ ] `IAFahim.Collections.NoDeps` — permanent deferred: infra stubs (Allocator/UnsafeUtility); Unity replaces
-- [ ] `IAFahim.DS.PerfectHashMap` — permanent deferred: Unity container; key-equality finding needs Unity integration
-- [ ] `IAFahim.DS.SpatialMap` — permanent deferred: Unity container Spatial*Map jobs
-- [ ] `IAFahim.Geometry.Delaunay` — permanent deferred: empty package shell (0 algorithm .cs sources)
-- [ ] `IAFahim.Geometry.MarchingCubes` — permanent deferred: empty package shell (0 algorithm .cs sources)
-- [ ] `IAFahim.Geometry.PolygonClip` — permanent deferred: empty package shell (0 algorithm .cs sources)
-- [ ] `IAFahim.Geometry.Subdivision` — permanent deferred: empty package shell (0 algorithm .cs sources)
-- [ ] `IAFahim.Geometry.SweepPrune` — permanent deferred: empty package shell (0 algorithm .cs sources)
-- [ ] `IAFahim.Graph.Cactus` — deferred_ni: LCA contract incomplete for cactus; not world-class yet
-- [ ] `IAFahim.Graph.Clique` — permanent deferred: empty package shell (0 algorithm .cs sources)
-- [ ] `IAFahim.Graph.Cut` — permanent deferred: empty package shell (0 algorithm .cs sources)
-- [ ] `IAFahim.Graph.Decomposition` — permanent deferred: empty package shell (0 algorithm .cs sources)
-- [ ] `IAFahim.Graph.Dominator` — permanent deferred: empty package shell (0 algorithm .cs sources)
-- [ ] `IAFahim.Graph.Matching` — deferred: public stubs incomplete (auction/hungarian rectangular/roommates/treewidth knapsack) — world-class rewrite deferred_ni
-- [ ] `IAFahim.Graph.RandomWalk` — permanent deferred: empty package shell (0 algorithm .cs sources)
-- [ ] `IAFahim.Graph.TreeDecomposition` — deferred: public stubs incomplete (auction/hungarian rectangular/roommates/treewidth knapsack) — world-class rewrite deferred_ni
-- [ ] `IAFahim.Graph.TreeIsomorphism` — deferred_ni: tree edit distance NP-hard; only poly cases implemented partially
-- [ ] `IAFahim.Linear` — permanent deferred: empty package shell (0 algorithm .cs sources)
-- [ ] `IAFahim.Memory.Allocators` — permanent deferred: infra allocators (Unity/custom memory), not algorithm package
-- [ ] `IAFahim.Pathfinding.Jps` — permanent deferred: empty package shell (0 algorithm .cs sources)
-- [ ] `IAFahim.Search` — permanent deferred: empty package shell (0 algorithm .cs sources)
+## Deferred
 

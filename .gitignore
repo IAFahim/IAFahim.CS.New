@@ -6,4 +6,7 @@ riderModule.iml
 .env
 /BenchmarkDotNet.Artifacts
 /.antigravitycli
+__pycache__/
+*.pyc
+/IAFahim.Search.LIS
 

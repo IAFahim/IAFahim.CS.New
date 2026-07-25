@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\IAFahim.Geometry.SweepPrune\IAFahim.Geometry.SweepPrune.csproj" />
+  </ItemGroup>
+</Project>

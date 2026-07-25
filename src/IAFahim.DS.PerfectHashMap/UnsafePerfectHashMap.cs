@@ -49,6 +49,8 @@ namespace IAFahim.DS.PerfectHashMap
             this.Keys = (TKey*)ptr;
             this.Values = (TValue*)((byte*)ptr + valueOffset);
 
+            // Zero-clear keys so empty slots never spuriously Equals a live key before insert.
+            UnsafeUtility.MemClear(this.Keys, (long)size * sizeof(TKey));
             UnsafeUtility.MemCpyReplicate(this.Values, &nullValue, sizeof(TValue), size);
 
             int mask = size - 1;

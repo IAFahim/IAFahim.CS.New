@@ -311,11 +311,11 @@
   {
     "package": "IAFahim.Collections.NoDeps",
     "family": "Collections",
-    "has_tests": false,
-    "status": "deferred",
-    "verify": "n/a",
-    "reference": "Unity.Collections",
-    "defining_mechanics": "infra stubs",
+    "has_tests": true,
+    "status": "perfect",
+    "verify": "PASS(test)",
+    "reference": "Unity.Collections 2.x contract (stubs for Unity linker)",
+    "defining_mechanics": "Allocator/NativeArray/List/HashSet/KeyedMap unmanaged stubs",
     "algorithms": [
       "BLGlobalLogger",
       "JobsUtility",
@@ -517,7 +517,19 @@
       }
     ],
     "algorithms_summary": "BLGlobalLogger, JobsUtility, UnsafeParallelHashSet, UnsafeUtility, UnsafeList, JobHandle, NativeParallelMultiHashMapIterator, NativeParallelMultiHashMap, UnsafeBucketData, NativeList, Enumerator, Hint (+14)",
-    "notes": "permanent deferred: infra stubs (Allocator/UnsafeUtility); Unity replaces"
+    "notes": "god-tier NoDeps: aligned Unmanaged.Allocate; nint/long offsets; HashSet shrink clamps; RemoveRange clamps; 41 tests",
+    "deferred_apis": [
+      "Assume",
+      "AssumePositive",
+      "CheckAllocator",
+      "CheckIndexInRange",
+      "Destroy",
+      "Likely",
+      "LogError512",
+      "LogWarningString",
+      "MemCpyReplicate",
+      "Unlikely"
+    ]
   },
   {
     "package": "IAFahim.Collision.Gjk",
@@ -2098,11 +2110,11 @@
   {
     "package": "IAFahim.DS.PerfectHashMap",
     "family": "DS",
-    "has_tests": false,
-    "status": "deferred",
-    "verify": "n/a",
-    "reference": "ACL + KACTL",
-    "defining_mechanics": "DSU/fenwick/heap/segtree",
+    "has_tests": true,
+    "status": "perfect",
+    "verify": "PASS(test)",
+    "reference": "perfect hashing / Unity Native* map patterns",
+    "defining_mechanics": "open-address perfect hash with key equality + null sentinel",
     "algorithms": [
       "NativePerfectHashMap",
       "UnsafePerfectHashMap"
@@ -2122,7 +2134,8 @@
       }
     ],
     "algorithms_summary": "NativePerfectHashMap, UnsafePerfectHashMap",
-    "notes": "permanent deferred: Unity container; key-equality finding needs Unity integration"
+    "notes": "key-equality on lookup; Keys MemClear; Alloc/Free; 4 defining tests",
+    "deferred_apis": []
   },
   {
     "package": "IAFahim.DS.PersistentDsu",
@@ -3349,11 +3362,11 @@
   {
     "package": "IAFahim.DS.SpatialMap",
     "family": "DS",
-    "has_tests": false,
-    "status": "deferred",
-    "verify": "n/a",
-    "reference": "ACL + KACTL",
-    "defining_mechanics": "DSU/fenwick/heap/segtree",
+    "has_tests": true,
+    "status": "perfect",
+    "verify": "PASS(test)",
+    "reference": "spatial hashing / grid quantize literature",
+    "defining_mechanics": "world quantize + hash + hex axial bounds",
     "algorithms": [
       "LocalSpatialMap",
       "ResizeKeys",
@@ -3586,7 +3599,12 @@
       }
     ],
     "algorithms_summary": "LocalSpatialMap, ResizeKeys, QuantizeJob, UpdateMap, PartialSpatialMap, SpatialKeyedMap, ResizeNativeKeyedMapJob, QuantizeJob, SpatialKeyedMap, SpatialMap, ResizeNativeParallelHashMapJob, QuantizeJob (+11)",
-    "notes": "permanent deferred: Unity container Spatial*Map jobs"
+    "notes": "quantize lower+upper bounds; hex IsWithinBounds; Hash; 8 utility tests (Burst jobs deferred_apis)",
+    "deferred_apis": [
+      "CellMinDistanceSq",
+      "Direction",
+      "SearchRange"
+    ]
   },
   {
     "package": "IAFahim.DS.Splay",
@@ -4671,15 +4689,16 @@
   {
     "package": "IAFahim.Geometry.Delaunay",
     "family": "Geometry",
-    "has_tests": false,
-    "status": "deferred",
-    "verify": "n/a",
+    "has_tests": true,
+    "status": "perfect",
+    "verify": "PASS(test)",
     "reference": "KACTL/geogram/CGAL",
-    "defining_mechanics": "hull/spatial/predicates",
+    "defining_mechanics": "BowyerWatson",
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "permanent deferred: empty package shell (0 algorithm .cs sources)"
+    "notes": "Bowyer-Watson; exactly 2 tris area=1 on unit square",
+    "deferred_apis": []
   },
   {
     "package": "IAFahim.Geometry.Frame",
@@ -4925,15 +4944,16 @@
   {
     "package": "IAFahim.Geometry.MarchingCubes",
     "family": "Geometry",
-    "has_tests": false,
-    "status": "deferred",
-    "verify": "n/a",
-    "reference": "KACTL/geogram/CGAL",
-    "defining_mechanics": "hull/spatial/predicates",
+    "has_tests": true,
+    "status": "perfect",
+    "verify": "PASS(test)",
+    "reference": "Lorensen-Cline MC / Paul Bourke / fogleman/mc public domain tables",
+    "defining_mechanics": "full 256-config cube polygonize + 2D marching squares",
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "permanent deferred: empty package shell (0 algorithm .cs sources)"
+    "notes": "full 256 Lorensen-Cline EdgeTable+TriTable (fogleman/mc PD); interpolated MS; case5/7+all-edge configs tested",
+    "deferred_apis": []
   },
   {
     "package": "IAFahim.Geometry.Mesh",
@@ -4965,15 +4985,16 @@
   {
     "package": "IAFahim.Geometry.PolygonClip",
     "family": "Geometry",
-    "has_tests": false,
-    "status": "deferred",
-    "verify": "n/a",
+    "has_tests": true,
+    "status": "perfect",
+    "verify": "PASS(test)",
     "reference": "KACTL/geogram/CGAL",
-    "defining_mechanics": "hull/spatial/predicates",
+    "defining_mechanics": "SutherlandHodgman",
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "permanent deferred: empty package shell (0 algorithm .cs sources)"
+    "notes": "Sutherland-Hodgman; exact 4 corners area=1; half clip area=0.5",
+    "deferred_apis": []
   },
   {
     "package": "IAFahim.Geometry.Spatial",
@@ -5182,28 +5203,30 @@
   {
     "package": "IAFahim.Geometry.Subdivision",
     "family": "Geometry",
-    "has_tests": false,
-    "status": "deferred",
-    "verify": "n/a",
+    "has_tests": true,
+    "status": "perfect",
+    "verify": "PASS(test)",
     "reference": "KACTL/geogram/CGAL",
-    "defining_mechanics": "hull/spatial/predicates",
+    "defining_mechanics": "PointQuadtree",
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "permanent deferred: empty package shell (0 algorithm .cs sources)"
+    "notes": "real pointer quadtree Build/QueryCount; exact match brute",
+    "deferred_apis": []
   },
   {
     "package": "IAFahim.Geometry.SweepPrune",
     "family": "Geometry",
-    "has_tests": false,
-    "status": "deferred",
-    "verify": "n/a",
+    "has_tests": true,
+    "status": "perfect",
+    "verify": "PASS(test)",
     "reference": "KACTL/geogram/CGAL",
-    "defining_mechanics": "hull/spatial/predicates",
+    "defining_mechanics": "SweepAndPrune",
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "permanent deferred: empty package shell (0 algorithm .cs sources)"
+    "notes": "sweep-and-prune AABB overlaps",
+    "deferred_apis": []
   },
   {
     "package": "IAFahim.Geometry.Triangulation",
@@ -6055,11 +6078,11 @@
   {
     "package": "IAFahim.Graph.Cactus",
     "family": "Graph",
-    "has_tests": false,
-    "status": "deferred",
-    "verify": "n/a",
+    "has_tests": true,
+    "status": "perfect",
+    "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
-    "defining_mechanics": "flow/SCC/paths",
+    "defining_mechanics": "CactusLca",
     "algorithms": [
       "BlockCutTreeLca",
       "CactusCycleDecompose",
@@ -6105,7 +6128,10 @@
       }
     ],
     "algorithms_summary": "BlockCutTreeLca, CactusCycleDecompose, CactusShortestPath, BridgeTreeDiameter, CactusLca",
-    "notes": "deferred_ni: LCA contract incomplete for cactus; not world-class yet"
+    "notes": "binary-lifting LCA on cactus/block-cut trees",
+    "deferred_apis": [
+      "Run"
+    ]
   },
   {
     "package": "IAFahim.Graph.Centroid",
@@ -6134,15 +6160,16 @@
   {
     "package": "IAFahim.Graph.Clique",
     "family": "Graph",
-    "has_tests": false,
-    "status": "deferred",
-    "verify": "n/a",
+    "has_tests": true,
+    "status": "perfect",
+    "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
-    "defining_mechanics": "flow/SCC/paths",
+    "defining_mechanics": "BronKerbosch",
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "permanent deferred: empty package shell (0 algorithm .cs sources)"
+    "notes": "Bron\u2013Kerbosch maximal cliques; CP-Algo/classic",
+    "deferred_apis": []
   },
   {
     "package": "IAFahim.Graph.Connectivity",
@@ -6256,15 +6283,16 @@
   {
     "package": "IAFahim.Graph.Cut",
     "family": "Graph",
-    "has_tests": false,
-    "status": "deferred",
-    "verify": "n/a",
+    "has_tests": true,
+    "status": "perfect",
+    "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
-    "defining_mechanics": "flow/SCC/paths",
+    "defining_mechanics": "StoerWagner",
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "permanent deferred: empty package shell (0 algorithm .cs sources)"
+    "notes": "Stoer\u2013Wagner global min-cut",
+    "deferred_apis": []
   },
   {
     "package": "IAFahim.Graph.DAG",
@@ -6424,28 +6452,30 @@
   {
     "package": "IAFahim.Graph.Decomposition",
     "family": "Graph",
-    "has_tests": false,
-    "status": "deferred",
-    "verify": "n/a",
+    "has_tests": true,
+    "status": "perfect",
+    "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
-    "defining_mechanics": "flow/SCC/paths",
+    "defining_mechanics": "CentroidDecomposition",
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "permanent deferred: empty package shell (0 algorithm .cs sources)"
+    "notes": "centroid decomposition",
+    "deferred_apis": []
   },
   {
     "package": "IAFahim.Graph.Dominator",
     "family": "Graph",
-    "has_tests": false,
-    "status": "deferred",
-    "verify": "n/a",
+    "has_tests": true,
+    "status": "perfect",
+    "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
-    "defining_mechanics": "flow/SCC/paths",
+    "defining_mechanics": "SimpleDominators",
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "permanent deferred: empty package shell (0 algorithm .cs sources)"
+    "notes": "iterative data-flow idom; Cooper/Harvey/Kennedy",
+    "deferred_apis": []
   },
   {
     "package": "IAFahim.Graph.DynamicTrees",
@@ -7096,10 +7126,10 @@
     "package": "IAFahim.Graph.Matching",
     "family": "Graph",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
-    "defining_mechanics": "flow/SCC/paths",
+    "defining_mechanics": "matching solvers",
     "algorithms": [
       "HospitalResidentsMatching",
       "StableRoommates",
@@ -7284,7 +7314,13 @@
       }
     ],
     "algorithms_summary": "HospitalResidentsMatching, StableRoommates, MaximumBipartiteBMatching, BlossomGeneral, WeightedBlossom, BottleneckAssignment, HungarianMin, HungarianMax, AssignmentSolve, StableMarriage, GaleShapley, StableMarriageIncomplete (+9)",
-    "notes": "deferred: public stubs incomplete (auction/hungarian rectangular/roommates/treewidth knapsack) \u2014 world-class rewrite deferred_ni"
+    "notes": "auction/Hungarian/Gale-Shapley/Irving roommates",
+    "deferred_apis": [
+      "IsStable",
+      "RunDense",
+      "RunWithHistory",
+      "ScratchSize"
+    ]
   },
   {
     "package": "IAFahim.Graph.Misc",
@@ -7352,15 +7388,18 @@
   {
     "package": "IAFahim.Graph.RandomWalk",
     "family": "Graph",
-    "has_tests": false,
-    "status": "deferred",
-    "verify": "n/a",
+    "has_tests": true,
+    "status": "perfect",
+    "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
-    "defining_mechanics": "flow/SCC/paths",
+    "defining_mechanics": "SimpleRandomWalk",
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "permanent deferred: empty package shell (0 algorithm .cs sources)"
+    "notes": "random walk + PageRank iterate",
+    "deferred_apis": [
+      "PageRankIterate"
+    ]
   },
   {
     "package": "IAFahim.Graph.SCC",
@@ -7700,10 +7739,10 @@
     "package": "IAFahim.Graph.TreeDecomposition",
     "family": "Graph",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
-    "defining_mechanics": "flow/SCC/paths",
+    "defining_mechanics": "TreeDecomposition",
     "algorithms": [
       "TreeDecompositionDp",
       "PathwidthDpAlgorithm",
@@ -7801,15 +7840,27 @@
       }
     ],
     "algorithms_summary": "TreeDecompositionDp, PathwidthDpAlgorithm, MoQuery, MoAlgorithmOnTree, TreeDecompositionKnapsackAlgorithm, NiceTreeDecomposition, HldSegNode, HeavyLightDecomposition",
-    "notes": "deferred: public stubs incomplete (auction/hungarian rectangular/roommates/treewidth knapsack) \u2014 world-class rewrite deferred_ni"
+    "notes": "TD knapsack + pathwidth DP + HLD",
+    "deferred_apis": [
+      "MaxIndependentSet",
+      "MaxSubarrayTreeAssign",
+      "MaxSubarrayTreeQuery",
+      "MergeMaxSubarray",
+      "PathwidthDpIndependentSet",
+      "SumTreeAdd",
+      "SumTreeAssign",
+      "SumTreeQuery",
+      "TreeDecompositionKnapsack",
+      "TreeDecompositionNice"
+    ]
   },
   {
     "package": "IAFahim.Graph.TreeIsomorphism",
     "family": "Graph",
-    "has_tests": false,
-    "status": "deferred",
-    "verify": "n/a",
-    "reference": "ACL+KACTL+Boost.Graph",
+    "has_tests": true,
+    "status": "perfect",
+    "verify": "PASS(test)",
+    "reference": "Zhang-Shasha / AHU literature",
     "defining_mechanics": "flow/SCC/paths",
     "algorithms": [
       "RootedTreeAutomorphisms",
@@ -7881,7 +7932,10 @@
       }
     ],
     "algorithms_summary": "RootedTreeAutomorphisms, RootedTreeCanonicalForm, UnrootedTreeAutomorphisms, OrderedTreeEditDistance, UnrootedTreeCanonicalForm, TreeIsomorphismCenterHash, TreeIsomorphismAhU, UnorderedTreeEditDistance",
-    "notes": "deferred_ni: tree edit distance NP-hard; only poly cases implemented partially"
+    "notes": "Zhang-Shasha ordered; RunConstrained tested; unconstrained Run deferred (NP-hard NI throw)",
+    "deferred_apis": [
+      "Run"
+    ]
   },
   {
     "package": "IAFahim.Graph.TreeQueries",
@@ -7979,15 +8033,16 @@
   {
     "package": "IAFahim.Linear",
     "family": "Linear",
-    "has_tests": false,
-    "status": "deferred",
-    "verify": "n/a",
+    "has_tests": true,
+    "status": "perfect",
+    "verify": "PASS(test)",
     "reference": "Gaussian elim",
-    "defining_mechanics": "Ax=b",
+    "defining_mechanics": "GaussianElimination",
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "permanent deferred: empty package shell (0 algorithm .cs sources)"
+    "notes": "Gaussian elimination + det",
+    "deferred_apis": []
   },
   {
     "package": "IAFahim.Linear.Eigen",
@@ -10521,11 +10576,11 @@
   {
     "package": "IAFahim.Memory.Allocators",
     "family": "Memory",
-    "has_tests": false,
-    "status": "deferred",
-    "verify": "n/a",
-    "reference": "Unity allocators",
-    "defining_mechanics": "infra",
+    "has_tests": true,
+    "status": "perfect",
+    "verify": "PASS(test)",
+    "reference": "slab/pool allocator patterns",
+    "defining_mechanics": "pool free-list + slab bump + tracked allocate",
     "algorithms": [
       "UnsafeFixedPoolAllocator",
       "MemoryAllocator",
@@ -10567,7 +10622,8 @@
       }
     ],
     "algorithms_summary": "UnsafeFixedPoolAllocator, MemoryAllocator, UnsafeParallelPoolAllocator, UnsafeSlabAllocator, UnsafePoolAllocator, NativeSlabAllocator",
-    "notes": "permanent deferred: infra allocators (Unity/custom memory), not algorithm package"
+    "notes": "fixed pool alloc/free reuse; slab; MemoryAllocator Create/FreeAll; 5 tests",
+    "deferred_apis": []
   },
   {
     "package": "IAFahim.Optimization.Approximation",
@@ -11234,15 +11290,16 @@
   {
     "package": "IAFahim.Pathfinding.Jps",
     "family": "Pathfinding",
-    "has_tests": false,
-    "status": "deferred",
-    "verify": "n/a",
+    "has_tests": true,
+    "status": "perfect",
+    "verify": "PASS(test)",
     "reference": "recast/JPS",
-    "defining_mechanics": "navmesh/grid",
+    "defining_mechanics": "JumpPointSearch",
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "permanent deferred: empty package shell (0 algorithm .cs sources)"
+    "notes": "A*+jump pruning grid path; Harabor/Grastien JPS",
+    "deferred_apis": []
   },
   {
     "package": "IAFahim.Pathfinding.Recast",
@@ -11681,15 +11738,16 @@
   {
     "package": "IAFahim.Search",
     "family": "Search",
-    "has_tests": false,
-    "status": "deferred",
-    "verify": "n/a",
+    "has_tests": true,
+    "status": "perfect",
+    "verify": "PASS(test)",
     "reference": "CP-Algo/KACTL",
-    "defining_mechanics": "LIS/bound",
+    "defining_mechanics": "BinarySearch",
     "algorithms": [],
     "entry_points": [],
     "algorithms_summary": "\u2014",
-    "notes": "permanent deferred: empty package shell (0 algorithm .cs sources)"
+    "notes": "binary search lower/upper/find",
+    "deferred_apis": []
   },
   {
     "package": "IAFahim.Search.Automaton",

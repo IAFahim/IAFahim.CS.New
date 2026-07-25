@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <ProjectReference Include="../../src/IAFahim.DS.PerfectHashMap/IAFahim.DS.PerfectHashMap.csproj" />
+    <ProjectReference Include="..\..\src\IAFahim.DS.PerfectHashMap\IAFahim.DS.PerfectHashMap.csproj" />
+    <ProjectReference Include="..\..\src\IAFahim.Collections.NoDeps\IAFahim.Collections.NoDeps.csproj" />
   </ItemGroup>
 </Project>

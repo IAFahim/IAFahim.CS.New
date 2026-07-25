@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\IAFahim.Geometry.Delaunay\IAFahim.Geometry.Delaunay.csproj" />
+  </ItemGroup>
+</Project>

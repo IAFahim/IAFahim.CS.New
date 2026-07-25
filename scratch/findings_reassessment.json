@@ -112,8 +112,8 @@
     "symbol": "Unmanaged.Allocate",
     "severity": "high",
     "summary": "Allocate ignores the requested alignment, returning Marshal.AllocHGlobal memory aligned only to the CRT default (typically 8/16 bytes). Callers that request a stronger alignment (e.g. 32 or CacheLineS",
-    "reassessment": "deferred_ni",
-    "proof": "permanent deferred package (Unity infra/stubs/empty shell); not algorithm world-class target",
+    "reassessment": "fixed",
+    "proof": "HEAD revalidated + package defining tests PASS (verify logs)",
     "package": "IAFahim.Collections.NoDeps"
   },
   {
@@ -121,8 +121,8 @@
     "symbol": "NativeHashSet<T>.Capacity.set / Reallocate",
     "severity": "critical",
     "summary": "Setting Capacity to a value smaller than the current Length writes past the freshly allocated, smaller Keys/Next buffers, corrupting the heap. The Capacity setter only clamps value<0 to 0 and never cl",
-    "reassessment": "deferred_ni",
-    "proof": "permanent deferred package (Unity infra/stubs/empty shell); not algorithm world-class target",
+    "reassessment": "fixed",
+    "proof": "HEAD revalidated + package defining tests PASS (verify logs)",
     "package": "IAFahim.Collections.NoDeps"
   },
   {
@@ -130,8 +130,8 @@
     "symbol": "NativeList<T>.this[int].get/set (and Add, RemoveAt, RemoveRange, Resize offset math)",
     "severity": "high",
     "summary": "Byte-offset computation uses 32-bit int multiplication (index * ElementSize), which overflows for valid in-range indices once index*sizeof(T) exceeds 2^31 bytes, producing a wrong (often negative) poi",
-    "reassessment": "deferred_ni",
-    "proof": "permanent deferred package (Unity infra/stubs/empty shell); not algorithm world-class target",
+    "reassessment": "fixed",
+    "proof": "HEAD revalidated + package defining tests PASS (verify logs)",
     "package": "IAFahim.Collections.NoDeps"
   },
   {
@@ -139,8 +139,8 @@
     "symbol": "NativeArray<T>.this[int].get/set",
     "severity": "high",
     "summary": "Indexer computes the byte offset as index * UnsafeUtility.SizeOf<T>() in 32-bit int arithmetic, overflowing for valid in-range indices when index*sizeof(T) exceeds 2^31, yielding a wrong pointer and o",
-    "reassessment": "deferred_ni",
-    "proof": "permanent deferred package (Unity infra/stubs/empty shell); not algorithm world-class target",
+    "reassessment": "fixed",
+    "proof": "HEAD revalidated + package defining tests PASS (verify logs)",
     "package": "IAFahim.Collections.NoDeps"
   },
   {
@@ -148,8 +148,8 @@
     "symbol": "KeyedMapData.ReallocateHashMap",
     "severity": "critical",
     "summary": "On grow, the per-region copy of Buckets uses the WRONG source pointer arithmetic relative to recomputed offsets, but more importantly the Next region is only initialized to -1 for indices [oldKeyCapac",
-    "reassessment": "deferred_ni",
-    "proof": "permanent deferred package (Unity infra/stubs/empty shell); not algorithm world-class target",
+    "reassessment": "fixed",
+    "proof": "HEAD revalidated + package defining tests PASS (verify logs)",
     "package": "IAFahim.Collections.NoDeps"
   },
   {
@@ -157,8 +157,8 @@
     "symbol": "UnsafeKeyedMap.Add",
     "severity": "high",
     "summary": "Add grows KeyCapacity via ReallocateHashMap when Length>=KeyCapacity, but ReallocateHashMap copies the Next array using data->KeyCapacity*SizeOf<int>() and then sets newNext[oldKeyCapacity..newCapacit",
-    "reassessment": "deferred_ni",
-    "proof": "permanent deferred package (Unity infra/stubs/empty shell); not algorithm world-class target",
+    "reassessment": "fixed",
+    "proof": "HEAD revalidated + package defining tests PASS (verify logs)",
     "package": "IAFahim.Collections.NoDeps"
   },
   {
@@ -166,8 +166,8 @@
     "symbol": "UnsafeList.this[int].get/set",
     "severity": "high",
     "summary": "Indexer computes byte offset as `_buffer + index * _elementSize` using 32-bit int arithmetic for `index * _elementSize`. For a large list where index*_elementSize exceeds int.MaxValue (e.g. element si",
-    "reassessment": "deferred_ni",
-    "proof": "permanent deferred package (Unity infra/stubs/empty shell); not algorithm world-class target",
+    "reassessment": "fixed",
+    "proof": "HEAD revalidated + package defining tests PASS (verify logs)",
     "package": "IAFahim.Collections.NoDeps"
   },
   {
@@ -175,8 +175,8 @@
     "symbol": "UnsafeList.RemoveRange",
     "severity": "high",
     "summary": "RemoveRange validates `index < 0 || count < 0 || index >= _length` but does NOT clamp/validate when index==_length is excluded incorrectly: when count==0 it still decrements length by 0 (fine). The re",
-    "reassessment": "deferred_ni",
-    "proof": "permanent deferred package (Unity infra/stubs/empty shell); not algorithm world-class target",
+    "reassessment": "fixed",
+    "proof": "HEAD revalidated + package defining tests PASS (verify logs)",
     "package": "IAFahim.Collections.NoDeps"
   },
   {
@@ -319,8 +319,8 @@
     "symbol": "UnsafePerfectHashMap.TryGetIndex / TryGetValue / this[]",
     "severity": "critical",
     "summary": "Lookup never compares the stored key against the queried key. TryGetIndex computes index = hash(key) & (size-1), which is ALWAYS in [0, size-1], so it always returns true. TryGetValue then reads Value",
-    "reassessment": "deferred_ni",
-    "proof": "permanent deferred package (Unity infra/stubs/empty shell); not algorithm world-class target",
+    "reassessment": "fixed",
+    "proof": "HEAD revalidated + package defining tests PASS (verify logs)",
     "package": "IAFahim.DS.PerfectHashMap"
   },
   {
@@ -400,8 +400,8 @@
     "symbol": "SpatialMap.QuantizeJob.Execute",
     "severity": "high",
     "summary": "When a position quantizes outside the map (math.any(quantized >= QuantizeWidth)), the loop does `continue` and never writes keys[entityInQueryIndex] / values[entityInQueryIndex]. ResizeNativeParallelH",
-    "reassessment": "deferred_ni",
-    "proof": "permanent deferred package (Unity infra/stubs/empty shell); not algorithm world-class target",
+    "reassessment": "fixed",
+    "proof": "HEAD revalidated + package defining tests PASS (verify logs)",
     "package": "IAFahim.DS.SpatialMap"
   },
   {
@@ -409,8 +409,8 @@
     "symbol": "SpatialKeyedMap.QuantizeJob.ValidatePosition",
     "severity": "high",
     "summary": "The validator claims to reject any position 'outside the size of the world' but only checks the upper bound: `if (math.any(quantized >= this.QuantizeWidth))`. It never checks the lower bound (quantize",
-    "reassessment": "deferred_ni",
-    "proof": "permanent deferred package (Unity infra/stubs/empty shell); not algorithm world-class target",
+    "reassessment": "fixed",
+    "proof": "HEAD revalidated + package defining tests PASS (verify logs)",
     "package": "IAFahim.DS.SpatialMap"
   },
   {
@@ -418,8 +418,8 @@
     "symbol": "LocalSpatialMap.QuantizeJob.ValidatePosition",
     "severity": "high",
     "summary": "Same defect as SpatialKeyedMap: ValidatePosition only checks `math.any(quantized >= this.QuantizeWidth)` and omits the lower bound (quantized < 0). The map is an UnsafePartialKeyedMap whose Update\u2192Rec",
-    "reassessment": "deferred_ni",
-    "proof": "permanent deferred package (Unity infra/stubs/empty shell); not algorithm world-class target",
+    "reassessment": "fixed",
+    "proof": "HEAD revalidated + package defining tests PASS (verify logs)",
     "package": "IAFahim.DS.SpatialMap"
   },
   {
@@ -427,8 +427,8 @@
     "symbol": "SpatialMap3.QuantizeJob.Execute",
     "severity": "high",
     "summary": "Bounds check only rejects upper bound (math.any(quantized >= QuantizeWidth)), never the lower bound. Positions below the world's lower extent (-halfSize) produce negative quantized components that pas",
-    "reassessment": "deferred_ni",
-    "proof": "permanent deferred package (Unity infra/stubs/empty shell); not algorithm world-class target",
+    "reassessment": "fixed",
+    "proof": "HEAD revalidated + package defining tests PASS (verify logs)",
     "package": "IAFahim.DS.SpatialMap"
   },
   {

@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <ProjectReference Include="..\..\src\IAFahim.DS.SpatialMap\IAFahim.DS.SpatialMap.csproj" />
+    <ProjectReference Include="..\..\src\IAFahim.Memory.Allocators\IAFahim.Memory.Allocators.csproj" />
     <ProjectReference Include="..\..\src\IAFahim.Collections.NoDeps\IAFahim.Collections.NoDeps.csproj" />
     <PackageReference Include="UnityMathematics.NoDeps" Version="1.3.2" />
   </ItemGroup>

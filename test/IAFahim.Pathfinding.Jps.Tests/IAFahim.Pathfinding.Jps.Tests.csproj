@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\IAFahim.Pathfinding.Jps\IAFahim.Pathfinding.Jps.csproj" />
+  </ItemGroup>
+</Project>
