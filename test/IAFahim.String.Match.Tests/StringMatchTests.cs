@@ -258,5 +258,78 @@ namespace IAFahim.String.Match.Tests
             Assert.AreEqual(2, matches[0]);
             Assert.AreEqual(1, matches[1]);
         }
+
+        [Test]
+        public void EditDistance_Ukkonen_WithinAndBeyondK()
+        {
+            byte[] a = new byte[] { (byte)'k', (byte)'i', (byte)'t', (byte)'t', (byte)'e', (byte)'n' };
+            byte[] b = new byte[] { (byte)'s', (byte)'i', (byte)'t', (byte)'t', (byte)'i', (byte)'n', (byte)'g' };
+            int* v = stackalloc int[16];
+            fixed (byte* pa = a, pb = b)
+            {
+                Assert.IsTrue(EditDistance.Ukkonen(pa, 6, pb, 7, 3, v, null));
+                Assert.IsFalse(EditDistance.Ukkonen(pa, 6, pb, 7, 2, v, null));
+                Assert.IsTrue(EditDistance.Ukkonen(pa, 6, pa, 6, 0, v, null));
+            }
+        }
+
+        [Test]
+        public void MainLorentz_Find_AaaHasPeriodOneRun()
+        {
+            byte[] s = new byte[] { (byte)'a', (byte)'a', (byte)'a', (byte)'a' };
+            MainLorentz.Run* runs = stackalloc MainLorentz.Run[16];
+            fixed (byte* ps = s)
+            {
+                int c = MainLorentz.Find(ps, 4, runs);
+                Assert.IsTrue(c >= 1);
+                bool hasP1 = false;
+                for (int i = 0; i < c; i++)
+                    if (runs[i].Period == 1 && runs[i].Length >= 2) hasP1 = true;
+                Assert.IsTrue(hasP1);
+            }
+        }
+
+        [Test]
+        public void Runs_Count_PlateauCountsOnce()
+        {
+            // Synthetic LCP: indices 1..3 share LCP>=2 plateau — must count once at left edge.
+            int* lcp = stackalloc int[5] { 0, 2, 2, 2, 0 };
+            int* sa = stackalloc int[5] { 0, 1, 2, 3, 4 };
+            Assert.AreEqual(1, Runs.Count(lcp, sa, 5));
+        }
+
+        [Test]
+        public void Runs_FindLyndonRuns_Repeating()
+        {
+            byte[] s = new byte[] { (byte)'a', (byte)'a', (byte)'a', (byte)'a' };
+            int* starts = stackalloc int[8];
+            int* lengths = stackalloc int[8];
+            fixed (byte* ps = s)
+            {
+                int c = Runs.FindLyndonRuns(ps, 4, starts, lengths);
+                Assert.IsTrue(c >= 1);
+                Assert.IsTrue(lengths[0] >= 2);
+            }
+        }
+
+        [Test]
+        public void AhoOffline_Query_MatchesOnGoFail()
+        {
+            // Manual 2-state automaton: state 0 -'a'-> 1 (out=0), fail[1]=0
+            int* go = stackalloc int[2 * 256];
+            for (int i = 0; i < 2 * 256; i++) go[i] = -1;
+            go[0 * 256 + (int)'a'] = 1;
+            int* fail = stackalloc int[2] { 0, 0 };
+            int* out_ = stackalloc int[2] { -1, 0 };
+            int* matches = stackalloc int[8];
+            byte[] text = new byte[] { (byte)'x', (byte)'a', (byte)'y', (byte)'a' };
+            fixed (byte* pt = text)
+            {
+                int c = AhoOffline.Query(pt, 4, go, fail, out_, 1, matches);
+                Assert.AreEqual(2, c);
+                Assert.AreEqual(1, matches[0]);
+                Assert.AreEqual(3, matches[1]);
+            }
+        }
     }
 }

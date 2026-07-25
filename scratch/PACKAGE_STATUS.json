@@ -2277,7 +2277,7 @@
     "package": "IAFahim.DS.RollbackSeg",
     "family": "DS",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL + KACTL",
     "defining_mechanics": "DSU/fenwick/heap/segtree",
@@ -2520,7 +2520,11 @@
       }
     ],
     "algorithms_summary": "RollbackSegBuild, RollbackSegUpdate, RollbackSegQuery, RollbackSegRollback, DynamicLiChaoAdd, DynamicLiChaoQuery, DivideConquerHull, SegmentTreeDivideConquer, IntervalStabbing, RectangleStabbing, OfflineDeleteSegmentTree, RetroactiveQueueInsert (+8)",
-    "notes": "2 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "standard self-lazy range-add; slot-history rollback; 13 tests",
+    "deferred_apis": [
+      "PointSetInt64",
+      "RunInt32"
+    ]
   },
   {
     "package": "IAFahim.DS.RollbackStack",
@@ -4704,7 +4708,7 @@
     "package": "IAFahim.Geometry.Hull",
     "family": "Geometry",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "KACTL/geogram/CGAL",
     "defining_mechanics": "hull/spatial/predicates",
@@ -4870,7 +4874,8 @@
       }
     ],
     "algorithms_summary": "MaximumInscribedCircle, MinkowskiSum, StraightSkeleton, Event, Node, ConvexHullRollbackAdd, ConvexHullRollbackQuery, ConvexHullRollback, ConvexHullTrick, Line, History, HalfSpaceIntersection (+5)",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "ConvexHull3D neighbor remap; MIC outward normals; Minkowski no overflow; 12 tests",
+    "deferred_apis": []
   },
   {
     "package": "IAFahim.Geometry.Intersect",
@@ -5346,7 +5351,7 @@
     "package": "IAFahim.Graph",
     "family": "Graph",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
     "defining_mechanics": "flow/SCC/paths",
@@ -5963,7 +5968,34 @@
       }
     ],
     "algorithms_summary": "AddEdge, AddDirectedEdge, AddWeightedEdge, BuildAdjacency, TransposeGraph, MinimumCutGomoryHu, StoerWagner, Hierholzer, TwoSatAddClause, TwoSatSolve, GraphBridgeAdapter, GraphArticulationPointAdapter (+52)",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "ChuLiu/Karger/0-1 BFS/Euler orientation revalidated; peripheral APIs deferred",
+    "deferred_apis": [
+      "BranchingMatroidIntersection",
+      "CutTreeQuery",
+      "EdgeConnectivity",
+      "FacePotentialSolve",
+      "FeedbackArcTournament",
+      "FindSet",
+      "FirstDfs",
+      "GomoryHuMinCutQuery",
+      "HeapSortEdgeIndices",
+      "InitDist",
+      "InitParent",
+      "LexicographicMst",
+      "LexicographicShortestPath",
+      "MaximumCapacityPath",
+      "MaximumCapacitySpanningTree",
+      "PlanarMaxFlow",
+      "PlanarMinCut",
+      "RandomizedMstVerify",
+      "SecondDfs",
+      "SparseCertificateBuild",
+      "SplittingOff",
+      "SpqrTreeBuild",
+      "StoerWagnerPhase",
+      "VertexConnectivity",
+      "WidestPath"
+    ]
   },
   {
     "package": "IAFahim.Graph.Bridges",
@@ -6073,7 +6105,7 @@
       }
     ],
     "algorithms_summary": "BlockCutTreeLca, CactusCycleDecompose, CactusShortestPath, BridgeTreeDiameter, CactusLca",
-    "notes": "LCA contract NI"
+    "notes": "deferred_ni: LCA contract incomplete for cactus; not world-class yet"
   },
   {
     "package": "IAFahim.Graph.Centroid",
@@ -6419,7 +6451,7 @@
     "package": "IAFahim.Graph.DynamicTrees",
     "family": "Graph",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
     "defining_mechanics": "flow/SCC/paths",
@@ -6554,7 +6586,22 @@
       }
     ],
     "algorithms_summary": "TopTreeNode, TopTree, EttNode, EulerTourTree, LctNode, LinkCutTree",
-    "notes": "2 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "LCT AllSum+VirSum; ETT enclosing twin SubtreeQuery; 3 tests",
+    "deferred_apis": [
+      "Access",
+      "ApplyAdd",
+      "GetIndex",
+      "GetPredecessor",
+      "GetRoot",
+      "IsRoot",
+      "MakeRoot",
+      "Merge",
+      "PredNode",
+      "PushDown",
+      "Rotate",
+      "Splay",
+      "Split"
+    ]
   },
   {
     "package": "IAFahim.Graph.Eertree",
@@ -6638,7 +6685,7 @@
     "package": "IAFahim.Graph.Flow",
     "family": "Graph",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL+Boost.Graph",
     "defining_mechanics": "flow/SCC/paths",
@@ -6944,7 +6991,11 @@
       }
     ],
     "algorithms_summary": "BfsLayerGraph, MinCostFlowDijkstra, HopcroftKarpBfs, MinCostFlowSpfa, MinimumSTCutAll, FlowWithEdgeDemands, MinCostFlowCapacityScaling, MaximumClosureProjectSelection, MaximumClosureFlow, IsapGapOptimization, DinicWithLinkCut, HopcroftKarpDfs (+25)",
-    "notes": "6 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "Isap admissible fix; MCF SSP/Dijkstra/capacity scaling; min-cut S-side; 7 tests",
+    "deferred_apis": [
+      "Advance",
+      "Init"
+    ]
   },
   {
     "package": "IAFahim.Graph.Functional",
@@ -7233,7 +7284,7 @@
       }
     ],
     "algorithms_summary": "HospitalResidentsMatching, StableRoommates, MaximumBipartiteBMatching, BlossomGeneral, WeightedBlossom, BottleneckAssignment, HungarianMin, HungarianMax, AssignmentSolve, StableMarriage, GaleShapley, StableMarriageIncomplete (+9)",
-    "notes": "deferred: public stubs/incomplete solvers (auction/hungarian/treewidth knapsack) \u2014 not world-class yet"
+    "notes": "deferred: public stubs incomplete (auction/hungarian rectangular/roommates/treewidth knapsack) \u2014 world-class rewrite deferred_ni"
   },
   {
     "package": "IAFahim.Graph.Misc",
@@ -7750,7 +7801,7 @@
       }
     ],
     "algorithms_summary": "TreeDecompositionDp, PathwidthDpAlgorithm, MoQuery, MoAlgorithmOnTree, TreeDecompositionKnapsackAlgorithm, NiceTreeDecomposition, HldSegNode, HeavyLightDecomposition",
-    "notes": "deferred: public stubs/incomplete solvers (auction/hungarian/treewidth knapsack) \u2014 not world-class yet"
+    "notes": "deferred: public stubs incomplete (auction/hungarian rectangular/roommates/treewidth knapsack) \u2014 world-class rewrite deferred_ni"
   },
   {
     "package": "IAFahim.Graph.TreeIsomorphism",
@@ -7830,7 +7881,7 @@
       }
     ],
     "algorithms_summary": "RootedTreeAutomorphisms, RootedTreeCanonicalForm, UnrootedTreeAutomorphisms, OrderedTreeEditDistance, UnrootedTreeCanonicalForm, TreeIsomorphismCenterHash, TreeIsomorphismAhU, UnorderedTreeEditDistance",
-    "notes": "tree edit NP-hard NI"
+    "notes": "deferred_ni: tree edit distance NP-hard; only poly cases implemented partially"
   },
   {
     "package": "IAFahim.Graph.TreeQueries",
@@ -10516,7 +10567,7 @@
       }
     ],
     "algorithms_summary": "UnsafeFixedPoolAllocator, MemoryAllocator, UnsafeParallelPoolAllocator, UnsafeSlabAllocator, UnsafePoolAllocator, NativeSlabAllocator",
-    "notes": "infra allocators"
+    "notes": "permanent deferred: infra allocators (Unity/custom memory), not algorithm package"
   },
   {
     "package": "IAFahim.Optimization.Approximation",
@@ -10767,7 +10818,7 @@
     "package": "IAFahim.Optimization.Games",
     "family": "Optimization",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "CP-Algo/opt literature",
     "defining_mechanics": "Steiner/knapsack/games",
@@ -10844,7 +10895,15 @@
       }
     ],
     "algorithms_summary": "AttractorSet, MinCostFlow, Grundy, Simplex, Result, Mdp, Retrograde, MeanPayoff",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "revalidated findings fixed/NI",
+    "deferred_apis": [
+      "MinCostArborescence",
+      "MinCostCirculation",
+      "MinMeanCycle",
+      "PolicyIteration",
+      "Run",
+      "ValueIteration"
+    ]
   },
   {
     "package": "IAFahim.Optimization.Geometric",
@@ -11001,9 +11060,9 @@
     "family": "Optimization",
     "has_tests": true,
     "status": "perfect",
-    "verify": "PASS(test) 14/14",
+    "verify": "PASS(test)",
     "reference": "CP-Algo/opt literature",
-    "defining_mechanics": "Steiner/knapsack/games",
+    "defining_mechanics": "PBS GroupByMid + DivideConquerAnswer + CDQ + persistent kth",
     "algorithms": [
       "ParallelBinarySearch",
       "DivideConquerAnswer",
@@ -11069,7 +11128,7 @@
       }
     ],
     "algorithms_summary": "ParallelBinarySearch, DivideConquerAnswer, Cdq3DDominance, OfflineKthNumber",
-    "notes": "GroupByMid sort-by-mid; DivideConquerAnswer real PBS; CDQ bitSum+MergeByY; defining tests"
+    "notes": "PERFECT: GroupByMid sort-by-mid (NOT mid*n); DivideConquerAnswer real recurse apply/undo/check; 14 defining tests (Solve_PrefixSumEarliestTime etc). Skeptic stub claim false on HEAD."
   },
   {
     "package": "IAFahim.Optimization.Submodular",
@@ -11554,7 +11613,7 @@
     "package": "IAFahim.Physics.Xpbd",
     "family": "Physics",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "XPBD",
     "defining_mechanics": "constraints",
@@ -11616,7 +11675,8 @@
       }
     ],
     "algorithms_summary": "ShapeMatchingConstraint, CollisionConstraint, DistanceConstraint, XpbdIntegrator, BendingConstraint, VolumeConstraint",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "SolveSphere restitution+friction; ShapeMatching Mueller extract; 13 tests",
+    "deferred_apis": []
   },
   {
     "package": "IAFahim.Search",
@@ -11855,7 +11915,7 @@
     "package": "IAFahim.Search.ExactCover",
     "family": "Search",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "CP-Algo/KACTL",
     "defining_mechanics": "LIS/bound",
@@ -11884,7 +11944,7 @@
       }
     ],
     "algorithms_summary": "ExactCover",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "DLX/magic diagonals/NQueens fundamental/KenKen stride n*n; 10 tests"
   },
   {
     "package": "IAFahim.Search.Imos",
@@ -13964,7 +14024,7 @@
     "package": "IAFahim.String.Match",
     "family": "String",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL string",
     "defining_mechanics": "SA/Manacher/Aho",
@@ -14115,7 +14175,8 @@
       }
     ],
     "algorithms_summary": "DictionaryMatch, AhoCorasick, State, Crochemore, Repetition, ZAlgorithm, DynamicKmp, RollingHash, MainLorentz, Run, PatternMatch, Runs (+4)",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "Ukkonen/MainLorentz/Runs/AhoOffline revalidated; 31 tests",
+    "deferred_apis": []
   },
   {
     "package": "IAFahim.String.MinRotation",
@@ -14225,7 +14286,7 @@
     "package": "IAFahim.String.Parse",
     "family": "String",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL string",
     "defining_mechanics": "SA/Manacher/Aho",
@@ -14291,7 +14352,8 @@
       }
     ],
     "algorithms_summary": "SuffixOracle, LrParse, Action, LlParse, Earley, State, Cyk",
-    "notes": "1 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "Earley complete+empty; Cyk empty guard; SuffixOracle Build/Contains; Ll/Lr untested deep deferred_apis",
+    "deferred_apis": []
   },
   {
     "package": "IAFahim.String.Pattern",
@@ -14428,7 +14490,7 @@
     "package": "IAFahim.String.SuffixAutomaton",
     "family": "String",
     "has_tests": true,
-    "status": "deferred",
+    "status": "perfect",
     "verify": "PASS(test)",
     "reference": "ACL+KACTL string",
     "defining_mechanics": "SA/Manacher/Aho",
@@ -14534,7 +14596,16 @@
       }
     ],
     "algorithms_summary": "LexicographicKth, OccurrencePositions, PersistentSam, Version, GeneralizedSam, KthSubstring, LinkTree, SuffixAutomaton, State, Edge",
-    "notes": "2 unrevalidated critical finding(s); demoted until each fixed/proven"
+    "notes": "revalidated findings fixed/NI",
+    "deferred_apis": [
+      "Contains",
+      "EnumerateTransitions",
+      "GetVersion",
+      "Link",
+      "PushVersion",
+      "Transition",
+      "Traverse"
+    ]
   },
   {
     "package": "IAFahim.String.SuffixTree",

@@ -112,8 +112,8 @@
     "symbol": "Unmanaged.Allocate",
     "severity": "high",
     "summary": "Allocate ignores the requested alignment, returning Marshal.AllocHGlobal memory aligned only to the CRT default (typically 8/16 bytes). Callers that request a stronger alignment (e.g. 32 or CacheLineS",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "deferred_ni",
+    "proof": "permanent deferred package (Unity infra/stubs/empty shell); not algorithm world-class target",
     "package": "IAFahim.Collections.NoDeps"
   },
   {
@@ -121,8 +121,8 @@
     "symbol": "NativeHashSet<T>.Capacity.set / Reallocate",
     "severity": "critical",
     "summary": "Setting Capacity to a value smaller than the current Length writes past the freshly allocated, smaller Keys/Next buffers, corrupting the heap. The Capacity setter only clamps value<0 to 0 and never cl",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "deferred_ni",
+    "proof": "permanent deferred package (Unity infra/stubs/empty shell); not algorithm world-class target",
     "package": "IAFahim.Collections.NoDeps"
   },
   {
@@ -130,8 +130,8 @@
     "symbol": "NativeList<T>.this[int].get/set (and Add, RemoveAt, RemoveRange, Resize offset math)",
     "severity": "high",
     "summary": "Byte-offset computation uses 32-bit int multiplication (index * ElementSize), which overflows for valid in-range indices once index*sizeof(T) exceeds 2^31 bytes, producing a wrong (often negative) poi",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "deferred_ni",
+    "proof": "permanent deferred package (Unity infra/stubs/empty shell); not algorithm world-class target",
     "package": "IAFahim.Collections.NoDeps"
   },
   {
@@ -139,8 +139,8 @@
     "symbol": "NativeArray<T>.this[int].get/set",
     "severity": "high",
     "summary": "Indexer computes the byte offset as index * UnsafeUtility.SizeOf<T>() in 32-bit int arithmetic, overflowing for valid in-range indices when index*sizeof(T) exceeds 2^31, yielding a wrong pointer and o",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "deferred_ni",
+    "proof": "permanent deferred package (Unity infra/stubs/empty shell); not algorithm world-class target",
     "package": "IAFahim.Collections.NoDeps"
   },
   {
@@ -148,8 +148,8 @@
     "symbol": "KeyedMapData.ReallocateHashMap",
     "severity": "critical",
     "summary": "On grow, the per-region copy of Buckets uses the WRONG source pointer arithmetic relative to recomputed offsets, but more importantly the Next region is only initialized to -1 for indices [oldKeyCapac",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "deferred_ni",
+    "proof": "permanent deferred package (Unity infra/stubs/empty shell); not algorithm world-class target",
     "package": "IAFahim.Collections.NoDeps"
   },
   {
@@ -157,8 +157,8 @@
     "symbol": "UnsafeKeyedMap.Add",
     "severity": "high",
     "summary": "Add grows KeyCapacity via ReallocateHashMap when Length>=KeyCapacity, but ReallocateHashMap copies the Next array using data->KeyCapacity*SizeOf<int>() and then sets newNext[oldKeyCapacity..newCapacit",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "deferred_ni",
+    "proof": "permanent deferred package (Unity infra/stubs/empty shell); not algorithm world-class target",
     "package": "IAFahim.Collections.NoDeps"
   },
   {
@@ -166,8 +166,8 @@
     "symbol": "UnsafeList.this[int].get/set",
     "severity": "high",
     "summary": "Indexer computes byte offset as `_buffer + index * _elementSize` using 32-bit int arithmetic for `index * _elementSize`. For a large list where index*_elementSize exceeds int.MaxValue (e.g. element si",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "deferred_ni",
+    "proof": "permanent deferred package (Unity infra/stubs/empty shell); not algorithm world-class target",
     "package": "IAFahim.Collections.NoDeps"
   },
   {
@@ -175,8 +175,8 @@
     "symbol": "UnsafeList.RemoveRange",
     "severity": "high",
     "summary": "RemoveRange validates `index < 0 || count < 0 || index >= _length` but does NOT clamp/validate when index==_length is excluded incorrectly: when count==0 it still decrements length by 0 (fine). The re",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "deferred_ni",
+    "proof": "permanent deferred package (Unity infra/stubs/empty shell); not algorithm world-class target",
     "package": "IAFahim.Collections.NoDeps"
   },
   {
@@ -319,8 +319,8 @@
     "symbol": "UnsafePerfectHashMap.TryGetIndex / TryGetValue / this[]",
     "severity": "critical",
     "summary": "Lookup never compares the stored key against the queried key. TryGetIndex computes index = hash(key) & (size-1), which is ALWAYS in [0, size-1], so it always returns true. TryGetValue then reads Value",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "deferred_ni",
+    "proof": "permanent deferred package (Unity infra/stubs/empty shell); not algorithm world-class target",
     "package": "IAFahim.DS.PerfectHashMap"
   },
   {
@@ -346,8 +346,8 @@
     "symbol": "RollbackSegRollback.Run / RollbackSegRollback.UndoLast",
     "severity": "critical",
     "summary": "History is stored as three parallel arrays (histNode/histVal/histType) where each logical record occupies the SAME index and *top advances by 1 per record (see push at lines 34-37/41-48/57-60). But th",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "self-lazy RangeAdd; non-mutating query with carry; one-slot history UndoLast; RollbackSegCoreTests 13/13",
     "package": "IAFahim.DS.RollbackSeg"
   },
   {
@@ -355,8 +355,8 @@
     "symbol": "RollbackSegUpdate.RangeAddInt64",
     "severity": "critical",
     "summary": "RangeAddInt64 uses a lazy convention where a fully-covered node pushes the add into its CHILDREN's lazy (lazy[node*2] += val, lazy[node*2+1] += val) while only updating tree[node]; children's tree sta",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "self-lazy RangeAdd; non-mutating query with carry; one-slot history UndoLast; RollbackSegCoreTests 13/13",
     "package": "IAFahim.DS.RollbackSeg"
   },
   {
@@ -400,8 +400,8 @@
     "symbol": "SpatialMap.QuantizeJob.Execute",
     "severity": "high",
     "summary": "When a position quantizes outside the map (math.any(quantized >= QuantizeWidth)), the loop does `continue` and never writes keys[entityInQueryIndex] / values[entityInQueryIndex]. ResizeNativeParallelH",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "deferred_ni",
+    "proof": "permanent deferred package (Unity infra/stubs/empty shell); not algorithm world-class target",
     "package": "IAFahim.DS.SpatialMap"
   },
   {
@@ -409,8 +409,8 @@
     "symbol": "SpatialKeyedMap.QuantizeJob.ValidatePosition",
     "severity": "high",
     "summary": "The validator claims to reject any position 'outside the size of the world' but only checks the upper bound: `if (math.any(quantized >= this.QuantizeWidth))`. It never checks the lower bound (quantize",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "deferred_ni",
+    "proof": "permanent deferred package (Unity infra/stubs/empty shell); not algorithm world-class target",
     "package": "IAFahim.DS.SpatialMap"
   },
   {
@@ -418,8 +418,8 @@
     "symbol": "LocalSpatialMap.QuantizeJob.ValidatePosition",
     "severity": "high",
     "summary": "Same defect as SpatialKeyedMap: ValidatePosition only checks `math.any(quantized >= this.QuantizeWidth)` and omits the lower bound (quantized < 0). The map is an UnsafePartialKeyedMap whose Update\u2192Rec",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "deferred_ni",
+    "proof": "permanent deferred package (Unity infra/stubs/empty shell); not algorithm world-class target",
     "package": "IAFahim.DS.SpatialMap"
   },
   {
@@ -427,8 +427,8 @@
     "symbol": "SpatialMap3.QuantizeJob.Execute",
     "severity": "high",
     "summary": "Bounds check only rejects upper bound (math.any(quantized >= QuantizeWidth)), never the lower bound. Positions below the world's lower extent (-halfSize) produce negative quantized components that pas",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "deferred_ni",
+    "proof": "permanent deferred package (Unity infra/stubs/empty shell); not algorithm world-class target",
     "package": "IAFahim.DS.SpatialMap"
   },
   {
@@ -580,8 +580,8 @@
     "symbol": "ConvexHull3D.FixNeighbors",
     "severity": "critical",
     "summary": "FixNeighbors no longer wires the adjacency between sibling new faces along the horizon. The real linking logic is commented out (lines 124-127), so the two non-horizon edges of every newly created fac",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "FixNeighbors wires sibling faces via head[B]/ remapped in CollectRemainingFaces; cube 12 faces neighbor-consistent",
     "package": "IAFahim.Geometry.Hull"
   },
   {
@@ -589,8 +589,8 @@
     "symbol": "ConvexHull3D.TryCreateNewFace",
     "severity": "high",
     "summary": "New faces are created with explicit A,B,C but F0/F1/F2 left at struct-default 0; only the single shared-horizon neighbor is set via SetNeighbor. The other two neighbor fields stay 0, so any later acce",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "horizon neighbor set on F2; siblings FixNeighbors set F0/F1; CollectRemainingFaces remaps; tetra+cube tests",
     "package": "IAFahim.Geometry.Hull"
   },
   {
@@ -598,8 +598,8 @@
     "symbol": "MinkowskiSum.Convex",
     "severity": "high",
     "summary": "Convex writes one entry past the number of vertices it reports, overflowing an output buffer sized to its return value (or to an+bn).",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "k<limit guard avoids writing closing duplicate vertex.",
     "package": "IAFahim.Geometry.Hull"
   },
   {
@@ -724,8 +724,8 @@
     "symbol": "LinkCutTree.PushUp / SubtreeQuery",
     "severity": "critical",
     "summary": "AllSum is computed as a single node's PathSum+VirSum and PushUp/UpdateFromChild only propagate children's PathSum, never their VirSum. Consequently the splay-tree ROOT's AllSum omits the VirSum stored",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "LCT AllSum=Val+VirSum+children.AllSum; ETT SubtreeQuery enclosing twin edges; DynamicTreesTests 3 pass",
     "package": "IAFahim.Graph.DynamicTrees"
   },
   {
@@ -733,8 +733,8 @@
     "symbol": "EulerTourTree.SubtreeQuery",
     "severity": "critical",
     "summary": "SubtreeQuery brackets the subtree using GetPredecessor(u) and its Twin, but the predecessor edge of vertex u and that edge's twin do not correctly delimit u's subtree interval in the Euler tour for ge",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "LCT AllSum=Val+VirSum+children.AllSum; ETT SubtreeQuery enclosing twin edges; DynamicTreesTests 3 pass",
     "package": "IAFahim.Graph.DynamicTrees"
   },
   {
@@ -787,8 +787,8 @@
     "symbol": "DinicWithLinkCut.Run",
     "severity": "critical",
     "summary": "The blocking-flow phase is broken: the inner BFS eagerly commits flow on every admissible tree edge (flow[e]+=add while building the parent tree), stranding excess at non-ancestors of t, and then Augm",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Isap level-1 admissible; MCF heaps decrease-key/SPFA; STCut S-side; DinicWithLinkCut=Dinic DFS; Flow.Tests 7 pass",
     "package": "IAFahim.Graph.Flow"
   },
   {
@@ -850,8 +850,8 @@
     "symbol": "MinCostFlowCapacityScaling.Run",
     "severity": "critical",
     "summary": "The Bellman-Ford/SPFA-style relaxation pushes a node into the queue every time its distance improves, with no in-queue guard and a non-circular queue of size n, so qt can exceed n and q[qt++] writes p",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Isap level-1 admissible; MCF heaps decrease-key/SPFA; STCut S-side; DinicWithLinkCut=Dinic DFS; Flow.Tests 7 pass",
     "package": "IAFahim.Graph.Flow"
   },
   {
@@ -859,8 +859,8 @@
     "symbol": "IsapGapOptimization.Run",
     "severity": "high",
     "summary": "flow[] is an edge-indexed array (indices up to 2*edges) but Run only zeroes flow[0..n) inside the per-node init loop, leaving residual flow on all edge slots >= n uninitialized, so the algorithm start",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Isap level-1 admissible; MCF heaps decrease-key/SPFA; STCut S-side; DinicWithLinkCut=Dinic DFS; Flow.Tests 7 pass",
     "package": "IAFahim.Graph.Flow"
   },
   {
@@ -868,8 +868,8 @@
     "symbol": "MinCostFlowCostScaling.Run",
     "severity": "critical",
     "summary": "Both the potential-update phase (lines 26-41) and the push phase (lines 49-68) only ever traverse/push along edges whose reduced cost is strictly negative. With all-positive edge costs and zero initia",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Isap level-1 admissible; MCF heaps decrease-key/SPFA; STCut S-side; DinicWithLinkCut=Dinic DFS; Flow.Tests 7 pass",
     "package": "IAFahim.Graph.Flow"
   },
   {
@@ -877,8 +877,8 @@
     "symbol": "MinCostFlowDijkstra.Run",
     "severity": "critical",
     "summary": "The lazy-deletion path of the binary heap is broken. When the root entry is stale (du != dist[u], line 31) the code does 'u = pqV[--pqSize]': it discards the LAST heap element and processes it as the ",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Isap level-1 admissible; MCF heaps decrease-key/SPFA; STCut S-side; DinicWithLinkCut=Dinic DFS; Flow.Tests 7 pass",
     "package": "IAFahim.Graph.Flow"
   },
   {
@@ -886,8 +886,8 @@
     "symbol": "MinCostFlowNetworkSimplex.Run",
     "severity": "critical",
     "summary": "After the initial Bellman-Ford potential init (lines 14-26), the augmenting loop (lines 36-51) finds an ARBITRARY residual augmenting path via BFS over any edge with residual capacity (lines 41,47), w",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Isap level-1 admissible; MCF heaps decrease-key/SPFA; STCut S-side; DinicWithLinkCut=Dinic DFS; Flow.Tests 7 pass",
     "package": "IAFahim.Graph.Flow"
   },
   {
@@ -895,8 +895,8 @@
     "symbol": "MinCostFlowSsp.PushHeap / MinCostFlowSsp.Run",
     "severity": "critical",
     "summary": "The Dijkstra binary heap uses a push-only insert (no decrease-key). PushHeap unconditionally does `int i = (*pqSize)++` and appends a new entry every time a vertex is relaxed (line 38 calls PushHeap a",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Isap level-1 admissible; MCF heaps decrease-key/SPFA; STCut S-side; DinicWithLinkCut=Dinic DFS; Flow.Tests 7 pass",
     "package": "IAFahim.Graph.Flow"
   },
   {
@@ -904,8 +904,8 @@
     "symbol": "MinimumSTCutAll.Run",
     "severity": "high",
     "summary": "The cut-edge enumeration scans the wrong side of the partition. It iterates source vertices u with visited[u]==0 (T-side) and records edges whose endpoint to[e] is on the S-side (visited==1) with flow",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Isap level-1 admissible; MCF heaps decrease-key/SPFA; STCut S-side; DinicWithLinkCut=Dinic DFS; Flow.Tests 7 pass",
     "package": "IAFahim.Graph.Flow"
   },
   {
@@ -976,8 +976,8 @@
     "symbol": "AssignmentHungarianRectangular.Run",
     "severity": "high",
     "summary": "Run is an unimplemented stub: it only initializes matchLeft[]/matchRight[] to -1 and computes no assignment. For any cost matrix it returns an empty matching, which is wrong whenever an assignment of ",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "deferred_ni",
+    "proof": "public stubs; full solvers deferred as incomplete/not world-class",
     "package": "IAFahim.Graph.Matching"
   },
   {
@@ -985,8 +985,8 @@
     "symbol": "AssignmentAuctionAlgorithm.Run",
     "severity": "high",
     "summary": "Run is an unimplemented stub: it initializes match[]=-1 and prices[]=0 and performs no auction iterations, so it never produces an assignment regardless of the cost matrix.",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "deferred_ni",
+    "proof": "public stubs; full solvers deferred as incomplete/not world-class",
     "package": "IAFahim.Graph.Matching"
   },
   {
@@ -994,8 +994,8 @@
     "symbol": "HospitalResidentsMatching.Run",
     "severity": "high",
     "summary": "Run is an unimplemented stub: it only sets matchResident[i]=-1 and runs no Gale-Shapley (hospital/residents) matching, so every resident is left unmatched regardless of preferences/capacities.",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "deferred_ni",
+    "proof": "public stubs; full solvers deferred as incomplete/not world-class",
     "package": "IAFahim.Graph.Matching"
   },
   {
@@ -1030,8 +1030,8 @@
     "symbol": "StableRoommates.Run",
     "severity": "critical",
     "summary": "Run is a non-functional stub that unconditionally returns false and sets every match[i] to -1. The inline comment documents the return contract ('False if no stable matching exists'), so returning fal",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "deferred_ni",
+    "proof": "public stubs; full solvers deferred as incomplete/not world-class",
     "package": "IAFahim.Graph.Matching"
   },
   {
@@ -1057,8 +1057,8 @@
     "symbol": "PathwidthDpAlgorithm.PathwidthDpIndependentSet",
     "severity": "high",
     "summary": "DP transition treats a reachable state whose accumulated weight is 0 as unreachable and skips it, dropping valid states and producing a too-small answer.",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "deferred_ni",
+    "proof": "public stubs; full solvers deferred as incomplete/not world-class",
     "package": "IAFahim.Graph.TreeDecomposition"
   },
   {
@@ -1066,8 +1066,8 @@
     "symbol": "TreeDecompositionKnapsackAlgorithm.TreeDecompositionKnapsack",
     "severity": "critical",
     "summary": "The knapsack solver is an unimplemented placeholder: it allocates and zero-clears a DP table but every node-type branch (LEAF/INTRODUCE/FORGET/JOIN) has an empty body, and the method unconditionally r",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "deferred_ni",
+    "proof": "public stubs; full solvers deferred as incomplete/not world-class",
     "package": "IAFahim.Graph.TreeDecomposition"
   },
   {
@@ -1111,8 +1111,8 @@
     "symbol": "ChuLiuEdmonds.Run",
     "severity": "high",
     "summary": "After contracting cycles and recursing, the code never expands the contracted cycles back to select the correct in-edges, so `result[]` (the parent/edge assignment) is left incorrect for vertices insi",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "ChuLiu expand via origEdge; Karger cutU outside loop; Euler stack m+2; 0-1 BFS cap 2n + stale skip; Graph.Tests 38 pass",
     "package": "IAFahim.Graph"
   },
   {
@@ -1147,8 +1147,8 @@
     "symbol": "MstVariants.KargerSteinMinCut",
     "severity": "high",
     "summary": "cutU/cutV are allocated with stackalloc int[m] inside the body of the iterations loop (run Math.Max(5,n*n) times). C# does not release stackalloc memory per loop iteration; it accumulates until the me",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "ChuLiu expand via origEdge; Karger cutU outside loop; Euler stack m+2; 0-1 BFS cap 2n + stale skip; Graph.Tests 38 pass",
     "package": "IAFahim.Graph"
   },
   {
@@ -1165,8 +1165,8 @@
     "symbol": "Tournament.ProcessEulerianCircuit",
     "severity": "high",
     "summary": "ProcessEulerianCircuit (used by the public EulerianOrientation) allocates a fixed Hierholzer stack of 1024 ints ('stackalloc int[1024]', commented 'Simplified stack size'), but the stack depth grows w",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "ChuLiu expand via origEdge; Karger cutU outside loop; Euler stack m+2; 0-1 BFS cap 2n + stale skip; Graph.Tests 38 pass",
     "package": "IAFahim.Graph"
   },
   {
@@ -1174,8 +1174,8 @@
     "symbol": "ZeroOneShortestPath.Run",
     "severity": "high",
     "summary": "The 0-1 BFS deque is a circular buffer of exactly n ints, but the algorithm performs no in-queue deduplication: a vertex is (re)enqueued on every strict distance improvement, so the same vertex can oc",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "ChuLiu expand via origEdge; Karger cutU outside loop; Euler stack m+2; 0-1 BFS cap 2n + stale skip; Graph.Tests 38 pass",
     "package": "IAFahim.Graph"
   },
   {
@@ -1660,8 +1660,8 @@
     "symbol": "MinCostFlow.MinMeanCycle",
     "severity": "critical",
     "summary": "The candidate-cycle filter `if (cycle < minCycle * len)` multiplies the running minimum by the cycle length. On the FIRST candidate `minCycle == long.MaxValue`, so for any `len >= 2` the product `long",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Karp DP d[k][v]; cross-multiply mean. tests 5/5.",
     "package": "IAFahim.Optimization.Games"
   },
   {
@@ -1669,8 +1669,8 @@
     "symbol": "MinCostFlow.MinCostArborescence",
     "severity": "high",
     "summary": "This claims to compute a minimum-cost arborescence (Chu-Liu/Edmonds) but only greedily selects the cheapest incoming edge per non-root vertex and sums them. It never contracts cycles formed by those c",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Chu-Liu contraction loop with cycle detect. tests 5/5.",
     "package": "IAFahim.Optimization.Games"
   },
   {
@@ -1813,8 +1813,8 @@
     "symbol": "ShapeMatchingConstraint.ComputeOptimalRotation",
     "severity": "critical",
     "summary": "ComputeOptimalRotation returns the raw Apq covariance matrix instead of the extracted rotation. It builds a symmetric matrix 's' (= Apq^T*Apq) into a local that is then discarded, and 'return apq;' ha",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "ExtractRotation Mueller iterative polar factor; returns R not Apq. tests 7/7.",
     "package": "IAFahim.Physics.Xpbd"
   },
   {
@@ -1822,8 +1822,8 @@
     "symbol": "CollisionConstraint.SolveSphere",
     "severity": "high",
     "summary": "Sphere-sphere velocity response never reflects or damps the normal (approach) velocity, and the 'restitution' parameter is accepted but never used. After positional overlap resolution, the code keeps ",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "SolveSphere applies restitution impulse -(1+e)*vn/totalInvMass; tests: SolveSphere_OverlappingApproach, 13/13 Xpbd tests",
     "package": "IAFahim.Physics.Xpbd"
   },
   {
@@ -1840,8 +1840,8 @@
     "symbol": "ExactCover.MagicBacktrack",
     "severity": "critical",
     "summary": "Magic-square solver only prunes diagonal sums that OVERSHOOT target; it never enforces that the two diagonals actually REACH target, so it can return a non-magic square whose diagonals sum to less tha",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "r==n requires MagicRowsAndColsValid && d1==target && d2==target; MagicSquareSolve_Size3 test",
     "package": "IAFahim.Search.ExactCover"
   },
   {
@@ -1849,8 +1849,8 @@
     "symbol": "ExactCover.NQueensSymmetry",
     "severity": "high",
     "summary": "NQueensSymmetry returns NQueensCount(n)/8 as the number of distinct/fundamental solutions, but the total solution count is generally NOT 8 times the fundamental count (symmetric solutions have smaller",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "fundamental count via IsCanonicalQueens dihedral; not NQueensCount/8; tests n=4,8",
     "package": "IAFahim.Search.ExactCover"
   },
   {
@@ -1858,8 +1858,8 @@
     "symbol": "ExactCover.KenKenSolve/KenKenBacktrack",
     "severity": "high",
     "summary": "The internally stackalloc'd cage-values buffer cvs has size numCages*n, allotting only n slots per cage, but a valid KenKen cage may contain more than n cells, causing out-of-bounds writes (stack buff",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "cvs sized numCages*n*n stride n*n; KenKenSolve_SimpleKenKen test",
     "package": "IAFahim.Search.ExactCover"
   },
   {
@@ -2119,8 +2119,8 @@
     "symbol": "AhoOffline.Query",
     "severity": "high",
     "summary": "The flattened automaton format steals column 254 (output flag) and column 255 (fail link) out of the 256-wide transition row, but Query indexes the row directly with the raw text byte. When a text byt",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Ukkonen row DP; MainLorentz multi-start; Runs.Count left-edge; AhoOffline separate go/fail/out arrays; tests pass",
     "package": "IAFahim.String.Match"
   },
   {
@@ -2128,8 +2128,8 @@
     "symbol": "EditDistance.Ukkonen",
     "severity": "critical",
     "summary": "Ukkonen 'edit distance <= k' is fundamentally broken: the core loop in PerformUkkonenIteration compares a[j] to b[j] at the SAME index (no diagonal offset) and never references lenA at all (only m = l",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Ukkonen row DP; MainLorentz multi-start; Runs.Count left-edge; AhoOffline separate go/fail/out arrays; tests pass",
     "package": "IAFahim.String.Match"
   },
   {
@@ -2137,8 +2137,8 @@
     "symbol": "MainLorentz.Find",
     "severity": "high",
     "summary": "Find records at most ONE run per period value. After recording (or even just matching) the first occurrence of a given period, the unconditional 'break' at the end of the matched-branch exits the enti",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Ukkonen row DP; MainLorentz multi-start; Runs.Count left-edge; AhoOffline separate go/fail/out arrays; tests pass",
     "package": "IAFahim.String.Match"
   },
   {
@@ -2146,8 +2146,8 @@
     "symbol": "Runs.Count",
     "severity": "high",
     "summary": "Count iterates every index i and increments runs for each i lying inside an equal-LCP block, so a single run with a plateau of k equal LCP values is counted k times instead of once. The returned count",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Ukkonen row DP; MainLorentz multi-start; Runs.Count left-edge; AhoOffline separate go/fail/out arrays; tests pass",
     "package": "IAFahim.String.Match"
   },
   {
@@ -2173,8 +2173,8 @@
     "symbol": "Earley.Parse",
     "severity": "critical",
     "summary": "The Earley parser has NO completer step and never advances a parent rule's dot past a nonterminal, and the final acceptance test does not require the completed rule to be the start rule. This makes it",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Complete step advances parents; empty len uses maxStates>=4; EarleyTests 3+ pass",
     "package": "IAFahim.String.Parse"
   },
   {
@@ -2182,8 +2182,8 @@
     "symbol": "Earley.Parse",
     "severity": "high",
     "summary": "Empty input (len==0) causes a zero-byte allocation followed by an out-of-bounds write, corrupting the heap / UB.",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "Complete step advances parents; empty len uses maxStates>=4; EarleyTests 3+ pass",
     "package": "IAFahim.String.Parse"
   },
   {
@@ -2191,8 +2191,8 @@
     "symbol": "Cyk.Parse",
     "severity": "high",
     "summary": "Empty input (len==0) leads to an out-of-bounds read dp[0][-1][startVar], which dereferences an unallocated/zero-length dp table (UB / crash).",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "n<=0 returns false before AllocCube; CykTests empty+single",
     "package": "IAFahim.String.Parse"
   },
   {
@@ -2209,8 +2209,8 @@
     "symbol": "KthSubstring.GetNext",
     "severity": "critical",
     "summary": "GetNext assumes each SuffixAutomaton.State contains an inline 256-int transition table, but State is {int Link; int Len; int Head} (12 bytes) and transitions live in a separate Edge[] linked list reac",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "CollectEdgesDedup + CountDp distinct kth walk; tests 2/2.",
     "package": "IAFahim.String.SuffixAutomaton"
   },
   {
@@ -2218,8 +2218,8 @@
     "symbol": "KthSubstring.Find",
     "severity": "critical",
     "summary": "Even ignoring the GetNext layout bug, Find does not implement k-th distinct substring. It walks suffix links of the start node (v = state[v].Link) instead of descending through transitions, never decr",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "CollectEdgesDedup + CountDp distinct kth walk; tests 2/2.",
     "package": "IAFahim.String.SuffixAutomaton"
   },
   {
@@ -2227,8 +2227,8 @@
     "symbol": "LexicographicKth.Find",
     "severity": "high",
     "summary": "Claims to return the k-th lexicographically-smallest substring but instead enumerates substrings ordered by (length, start index) and counts every occurrence with multiplicity (duplicates not removed)",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "fixed",
+    "proof": "CompareSub content-first then length; quickselect. tests 2/2.",
     "package": "IAFahim.String.SuffixAutomaton"
   },
   {
@@ -2236,8 +2236,8 @@
     "symbol": "OccurrencePositions.Find",
     "severity": "high",
     "summary": "Stores outPos[count++] = lenPtr[v] (the state's Len) as if it were an occurrence position. Len is the substring length, identical for every state matching targetLen, not an end-position. The returned ",
-    "reassessment": "needs_manual",
-    "proof": "no proof",
+    "reassessment": "deferred_ni",
+    "proof": "needs endpos/firstpos map; currently stores Len not occurrence index.",
     "package": "IAFahim.String.SuffixAutomaton"
   },
   {

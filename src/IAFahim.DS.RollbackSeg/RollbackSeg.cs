@@ -30,55 +30,86 @@ namespace IAFahim.DS.RollbackSeg
 
     public static unsafe class RollbackSegUpdate
     {
+        // histType 0 = tree[node], 1 = lazy[node]. One logical push = one slot; *top advances by 1.
+        // Lazy lives on the node itself (standard): full cover updates tree[node] and lazy[node].
+        // Query is non-mutating and threads ancestor lazy as a carry so rollback history stays pure.
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void HistPush(int* histNode, long* histVal, byte* histType, int* top, int node, long old, byte type)
+        {
+            int t = *top;
+            histNode[t] = node;
+            histVal[t] = old;
+            histType[t] = type;
+            *top = t + 1;
+        }
+
         public static void RangeAddInt64(long* tree, long* lazy, int* histNode, long* histVal, byte* histType, int* top, int node, int l, int r, int ql, int qr, long val)
         {
             if (qr < l || ql > r) return;
-            int c = node * 2;
-            int c1 = c + 1;
             if (ql <= l && r <= qr)
             {
-                int t = *top;
-                histNode[t] = node;
-                histVal[t] = tree[node];
-                histType[t] = 0;
-                t++;
+                HistPush(histNode, histVal, histType, top, node, tree[node], 0);
                 tree[node] += val * (r - l + 1);
                 if (l != r)
                 {
-                    histNode[t] = c;
-                    histVal[t] = lazy[c];
-                    histType[t] = 1;
-                    t++;
-                    histNode[t] = c1;
-                    histVal[t] = lazy[c1];
-                    histType[t] = 1;
-                    t++;
-                    lazy[c] += val;
-                    lazy[c1] += val;
+                    HistPush(histNode, histVal, histType, top, node, lazy[node], 1);
+                    lazy[node] += val;
                 }
-                *top = t;
                 return;
             }
             int mid = (l + r) >> 1;
+            int c = node * 2;
+            int c1 = c + 1;
             RangeAddInt64(tree, lazy, histNode, histVal, histType, top, c, l, mid, ql, qr, val);
             RangeAddInt64(tree, lazy, histNode, histVal, histType, top, c1, mid + 1, r, ql, qr, val);
-            int tt = *top;
-            histNode[tt] = node;
-            histVal[tt] = tree[node];
-            histType[tt] = 0;
-            *top = tt + 1;
-            tree[node] = tree[c] + lazy[c] * (mid - l + 1) + tree[c1] + lazy[c1] * (r - mid);
+            HistPush(histNode, histVal, histType, top, node, tree[node], 0);
+            // children tree[] already include their own lazy; add this node's pending lazy once.
+            tree[node] = tree[c] + tree[c1] + lazy[node] * (r - l + 1);
         }
 
+        public static void PointSetInt64(long* tree, long* lazy, int* histNode, long* histVal, byte* histType, int* top, int node, int l, int r, int idx, long val)
+        {
+            if (l == r)
+            {
+                HistPush(histNode, histVal, histType, top, node, tree[node], 0);
+                tree[node] = val;
+                return;
+            }
+            // Point set under a pending range-add: force the add into children first so the
+            // leaf write does not discard a still-pending parent lazy.
+            if (lazy[node] != 0)
+            {
+                long add = lazy[node];
+                int c = node * 2;
+                int c1 = c + 1;
+                int mid = (l + r) >> 1;
+                HistPush(histNode, histVal, histType, top, c, tree[c], 0);
+                HistPush(histNode, histVal, histType, top, c, lazy[c], 1);
+                tree[c] += add * (mid - l + 1);
+                lazy[c] += add;
+                HistPush(histNode, histVal, histType, top, c1, tree[c1], 0);
+                HistPush(histNode, histVal, histType, top, c1, lazy[c1], 1);
+                tree[c1] += add * (r - mid);
+                lazy[c1] += add;
+                HistPush(histNode, histVal, histType, top, node, lazy[node], 1);
+                lazy[node] = 0;
+            }
+            int mid2 = (l + r) >> 1;
+            int ch = node * 2;
+            int ch1 = ch + 1;
+            if (idx <= mid2) PointSetInt64(tree, lazy, histNode, histVal, histType, top, ch, l, mid2, idx, val);
+            else PointSetInt64(tree, lazy, histNode, histVal, histType, top, ch1, mid2 + 1, r, idx, val);
+            HistPush(histNode, histVal, histType, top, node, tree[node], 0);
+            tree[node] = tree[ch] + tree[ch1] + lazy[node] * (r - l + 1);
+        }
+
+        // Back-compat: point set without lazy (safe only when RangeAdd was never used).
         public static void PointSetInt64(long* tree, int* histNode, long* histVal, byte* histType, int* top, int node, int l, int r, int idx, long val)
         {
             if (l == r)
             {
-                int tl = *top;
-                histNode[tl] = node;
-                histVal[tl] = tree[node];
-                histType[tl] = 0;
-                *top = tl + 1;
+                HistPush(histNode, histVal, histType, top, node, tree[node], 0);
                 tree[node] = val;
                 return;
             }
@@ -87,50 +118,38 @@ namespace IAFahim.DS.RollbackSeg
             int c1 = c + 1;
             if (idx <= mid) PointSetInt64(tree, histNode, histVal, histType, top, c, l, mid, idx, val);
             else PointSetInt64(tree, histNode, histVal, histType, top, c1, mid + 1, r, idx, val);
-            int t = *top;
-            histNode[t] = node;
-            histVal[t] = tree[node];
-            histType[t] = 0;
-            *top = t + 1;
+            HistPush(histNode, histVal, histType, top, node, tree[node], 0);
             tree[node] = tree[c] + tree[c1];
         }
     }
 
     public static unsafe class RollbackSegQuery
     {
+        // Non-mutating: tree[node] already includes lazy[node]; ancestor pending is `add`.
         public static long RangeSumInt64(long* tree, long* lazy, int node, int l, int r, int ql, int qr)
         {
+            return RangeSumRec(tree, lazy, node, l, r, ql, qr, 0);
+        }
+
+        private static long RangeSumRec(long* tree, long* lazy, int node, int l, int r, int ql, int qr, long add)
+        {
             if (qr < l || ql > r) return 0;
-            if (ql <= l && r <= qr) return tree[node];
+            if (ql <= l && r <= qr) return tree[node] + add * (r - l + 1);
             int mid = (l + r) >> 1;
-            int c = node * 2;
-            int c1 = c + 1;
-            if (l != r)
-            {
-                long val = lazy[node];
-                tree[c] += val * (mid - l + 1);
-                tree[c1] += val * (r - mid);
-                lazy[c] += val;
-                lazy[c1] += val;
-                lazy[node] = 0;
-            }
-            return RangeSumInt64(tree, lazy, c, l, mid, ql, qr) +
-                   RangeSumInt64(tree, lazy, c1, mid + 1, r, ql, qr);
+            long childAdd = add + lazy[node];
+            return RangeSumRec(tree, lazy, node * 2, l, mid, ql, qr, childAdd) +
+                   RangeSumRec(tree, lazy, node * 2 + 1, mid + 1, r, ql, qr, childAdd);
         }
     }
 
     public static unsafe class RollbackSegRollback
     {
+        // Each history slot is independent (tree OR lazy for one node). Undo one slot at a time.
         public static void Run(long* tree, long* lazy, int* histNode, long* histVal, byte* histType, int* top, int checkpoint)
         {
             while (*top > checkpoint)
             {
-                int t = --(*top);
-                long val = histVal[t];
-                int node = histNode[t];
-                byte type = histType[t];
-                if (type == 0) tree[node] = val;
-                else lazy[node] = val;
+                UndoLast(tree, lazy, histNode, histVal, histType, top);
             }
         }
 

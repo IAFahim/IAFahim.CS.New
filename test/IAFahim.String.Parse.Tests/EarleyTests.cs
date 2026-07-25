@@ -76,4 +76,41 @@ namespace IAFahim.String.Parse.Tests
             finally { Marshal.FreeHGlobal((nint)inp); }
         }
     }
+
+    public sealed unsafe class CykTests
+    {
+        [Test]
+        public void Parse_EmptyInput_ReturnsFalse()
+        {
+            int* terminals = stackalloc int[1] { 97 };
+            int* productions = stackalloc int[3] { 0, 0, 0 };
+            Assert.IsFalse(Cyk.Parse(terminals, productions, 0, 0, null, 0));
+        }
+
+        [Test]
+        public void Parse_SingleTerminal_AcceptsMatchingByte()
+        {
+            // terminals[p] = byte for production p assigning symbol productions[p]
+            int* terminals = stackalloc int[1] { 97 };
+            int* productions = stackalloc int[1] { 0 };
+            byte* input = stackalloc byte[1] { 97 };
+            Assert.IsTrue(Cyk.Parse(terminals, productions, 1, 0, input, 1));
+            byte* bad = stackalloc byte[1] { 98 };
+            Assert.IsFalse(Cyk.Parse(terminals, productions, 1, 0, bad, 1));
+        }
+    }
+
+    public sealed unsafe class SuffixOracleTests
+    {
+        [Test]
+        public void Build_Contains_FindsSubstrings()
+        {
+            byte* text = stackalloc byte[4] { (byte)'a', (byte)'b', (byte)'c', (byte)'a' };
+            SuffixOracle.Build(text, 4, 256);
+            byte* pat = stackalloc byte[2] { (byte)'b', (byte)'c' };
+            Assert.IsTrue(SuffixOracle.Contains(pat, 2));
+            byte* miss = stackalloc byte[2] { (byte)'c', (byte)'b' };
+            Assert.IsFalse(SuffixOracle.Contains(miss, 2));
+        }
+    }
 }

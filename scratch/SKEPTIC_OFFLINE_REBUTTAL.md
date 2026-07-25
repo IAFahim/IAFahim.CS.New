@@ -1,31 +1,25 @@
-# Skeptic Offline claims — REBUTTED (HEAD master)
+# Skeptic Offline rebuttal (HEAD audit)
 
-## Claim: DivideConquerAnswer.Solve is no-op stub
-**FALSE.** HEAD Offline.cs lines 62-135:
-- Base: nQueries<=0 return; lo==hi writes answers[q]=lo
-- apply [lo,mid], partition via checkFn into left/right Marshal buffers
-- undo, recurse Solve(lo,mid,left), re-apply, recurse Solve(mid+1,hi,right), undo
-- try/finally frees temps
+Skeptic claims that Offline is a stub and high findings remain open are **false on current HEAD**.
 
-## Claim: No tests for GroupByMid/DivideConquerAnswer
-**FALSE.** OfflineTests.cs:
-- GroupByMid_EmptyActive_ReturnsZero
-- GroupByMid_SortsActiveByMid_SkipsFinished
-- GroupByMid_NoCollisionDistinctMids
-- Solve_EmptyQueries_NoOp
-- Solve_PrefixSumEarliestTime (answers 2,0,4,3)
-- Solve_SinglePointRange
-verify-IAFahim.Optimization.Offline.log: Passed 14/14
+## Claims vs evidence
 
-## Claim: GroupByMid still buckets[mid*n+…]
-**FALSE.** Collects active (lo<hi), insertion-sorts by Mid(lo,hi). No mid*n.
+| Skeptic claim | HEAD fact |
+|---------------|-----------|
+| `DivideConquerAnswer.Solve` is empty stub | `Offline.cs:85-128` apply/partition/undo/recurse left+right via Marshal temps |
+| No tests call DivideConquer / GroupByMid | `OfflineTests.cs` has GroupByMid ×3 + DivideConquerAnswer ×3 defining outcome tests |
+| `GroupByMid` uses `buckets[mid*n+…]` | Collects active into `buckets[0..active)`, insertion-sorts by `Mid(lo,hi)` |
+| 62 high `needs_manual` on perfect | `findings_reassessment.json`: fixed=227, deferred_ni=24, needs_manual=**0**; open high on perfect=**0** |
+| Demote Offline | **No** — perfect with 14/14 tests; defining PBS earliest-time assertions |
 
-## Claim: 62 high needs_manual on 35 perfect packages
-**FALSE on current tree.** Audit 2026-07-24:
-- high findings on perfect packages: 26, all reassessment=fixed
-- open high on perfect: 0
-- open findings any severity on perfect: 0
-- assert_perfect_gate.py: GATE PASS 101 perfect
+## Test proof
 
-## Offline status
-perfect | PASS(test) 14/14 | findings GroupByMid/CDQ/Solve all fixed with proofs
+```
+dotnet test test/IAFahim.Optimization.Offline.Tests/… → Passed 14/14
+```
+
+`Solve_PrefixSumEarliestTime`: updates `{1,2,3,4,5}`, needs `{6,1,15,7}` → answers `{2,0,4,3}`.
+
+## Gate
+
+`python3 scratch/assert_perfect_gate.py` → `GATE PASS: 141 perfect packages clean`

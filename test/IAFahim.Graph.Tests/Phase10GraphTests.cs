@@ -333,5 +333,48 @@ namespace IAFahim.Graph.Tests
             Planar.MaximumPlanarMatching(n, m, u, v, matchU, matchV, &matchCount);
             Assert.AreEqual(2, matchCount);
         }
+
+        [Test]
+        public void ZeroOneShortestPath_MixedWeights_CorrectDist()
+        {
+            // 0 --0--> 1 --1--> 2 --0--> 3 ; also 0 --1--> 3
+            const int n = 4;
+            int* head = stackalloc int[n];
+            int* to = stackalloc int[16];
+            int* next = stackalloc int[16];
+            int* weight = stackalloc int[16];
+            long* dist = stackalloc long[n];
+            for (int i = 0; i < n; i++) head[i] = 0;
+            int e = 1;
+            void Add(int a, int b, int w)
+            {
+                to[e] = b; weight[e] = w; next[e] = head[a]; head[a] = e; e++;
+            }
+            Add(0, 1, 0);
+            Add(1, 2, 1);
+            Add(2, 3, 0);
+            Add(0, 3, 1);
+            ZeroOneShortestPath.Run(n, 0, head, to, next, weight, dist);
+            Assert.AreEqual(0, dist[0]);
+            Assert.AreEqual(0, dist[1]);
+            Assert.AreEqual(1, dist[2]);
+            Assert.AreEqual(1, dist[3]);
+        }
+
+        [Test]
+        public void ChuLiuEdmonds_SimpleArborescence_ParentsCorrect()
+        {
+            // root 0 -> 1 (cost 1), 0 -> 2 (cost 5), 1 -> 2 (cost 1) => choose 0-1 and 1-2
+            const int n = 3, m = 3;
+            int* u = stackalloc int[m] { 0, 0, 1 };
+            int* v = stackalloc int[m] { 1, 2, 2 };
+            long* w = stackalloc long[m] { 1, 5, 1 };
+            long* result = stackalloc long[n];
+            for (int i = 0; i < n; i++) result[i] = -1;
+            long cost = ChuLiuEdmonds.Run(n, 0, u, v, w, m, result);
+            Assert.AreEqual(2, cost);
+            Assert.AreEqual(0, result[1]);
+            Assert.AreEqual(1, result[2]);
+        }
     }
 }

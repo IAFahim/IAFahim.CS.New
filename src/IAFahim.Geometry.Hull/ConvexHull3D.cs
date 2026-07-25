@@ -158,8 +158,29 @@ namespace IAFahim.Geometry.Hull
 
         private static int CollectRemainingFaces(Face* faces, int faceCount, Face* outFaces)
         {
+            // Compact live faces and rewrite F0/F1/F2 from scratch indices to dense out indices.
+            // Without remapping, callers that walk adjacency after Build read stale slots that may
+            // point at deleted faces (the cube case: 12 faces but neighbors still name old ids).
+            int* remap = stackalloc int[faceCount];
+            for (int i = 0; i < faceCount; i++) remap[i] = -1;
+
             int outCount = 0;
-            for (int i = 0; i < faceCount; i++) if (!faces[i].Deleted) outFaces[outCount++] = faces[i];
+            for (int i = 0; i < faceCount; i++)
+            {
+                if (faces[i].Deleted) continue;
+                remap[i] = outCount;
+                outFaces[outCount++] = faces[i];
+            }
+
+            for (int i = 0; i < outCount; i++)
+            {
+                int f0 = outFaces[i].F0;
+                int f1 = outFaces[i].F1;
+                int f2 = outFaces[i].F2;
+                outFaces[i].F0 = (uint)f0 < (uint)faceCount ? remap[f0] : -1;
+                outFaces[i].F1 = (uint)f1 < (uint)faceCount ? remap[f1] : -1;
+                outFaces[i].F2 = (uint)f2 < (uint)faceCount ? remap[f2] : -1;
+            }
             return outCount;
         }
     }

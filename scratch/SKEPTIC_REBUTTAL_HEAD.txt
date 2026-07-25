@@ -1,0 +1,19 @@
+Skeptic claims (REJECTED by HEAD audit 2026-07-25):
+
+1) "DivideConquerAnswer.Solve is a no-op stub" — FALSE.
+   Offline.cs:85-128 applies [lo,mid], partitions via checkFn, undoes, recurses left then right.
+   Test Solve_PrefixSumEarliestTime asserts earliest times [2,0,4,3] for needs [6,1,15,7] over updates 1..5.
+
+2) "No tests call DivideConquerAnswer or GroupByMid" — FALSE.
+   OfflineTests.cs: GroupByMid_EmptyActive, GroupByMid_SortsActiveByMid, GroupByMid_NoCollisionDistinctMids,
+   DivideConquerAnswerTests.Solve_EmptyQueries, Solve_PrefixSumEarliestTime, Solve_SinglePointRange.
+   14/14 tests pass (see offline_tests.txt).
+
+3) "GroupByMid indexes buckets[mid*n+…]" — FALSE.
+   GroupByMid collects active into buckets[0..active) and insertion-sorts by Mid(lo,hi). No mid*n.
+
+4) "62 high needs_manual on 35 perfect" — FALSE on current findings_reassessment.json.
+   reassessment: fixed=227, deferred_ni=24, needs_manual=0.
+   high on perfect: 100 fixed + 5 deferred_ni; open high on perfect = 0.
+
+5) "Demote Offline" — NOT REQUIRED; Offline is correctly perfect with defining outcome tests.

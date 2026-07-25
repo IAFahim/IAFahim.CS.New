@@ -54,7 +54,9 @@ namespace IAFahim.Graph.Flow
             {
                 it[u] = e;
                 int v = to[e];
-                if (cap[e] - flow[e] > 0 && level[v] == level[u] + 1)
+                // Levels are measured from t (level[t]=0). An admissible residual edge
+                // descends one level toward the sink: level[v] == level[u] - 1.
+                if (cap[e] - flow[e] > 0 && level[v] == level[u] - 1)
                 {
                     int ret = SendFlow2(n, v, t, Math.Min(f, cap[e] - flow[e]), head, to, next, cap, flow, level, it, cnt, src);
                     if (ret > 0) { flow[e] += ret; flow[e ^ 1] -= ret; return ret; }

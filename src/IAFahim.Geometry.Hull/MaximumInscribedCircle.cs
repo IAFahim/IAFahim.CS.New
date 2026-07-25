@@ -14,14 +14,16 @@ namespace IAFahim.Geometry.Hull
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ComputeNormals(double* xs, double* ys, int n, double* nx, double* ny, double* c)
         {
+            // Outward normals for a CCW polygon: half-planes are n·x <= c.
+            // Inset by mid becomes n·x <= c - mid.
             for (int i = 0; i < n; i++)
             {
                 int nxt = (i + 1) % n;
                 double dx = xs[nxt] - xs[i];
                 double dy = ys[nxt] - ys[i];
                 double len = Math.Sqrt(dx * dx + dy * dy);
-                nx[i] = -dy / len;
-                ny[i] = dx / len;
+                nx[i] = dy / len;
+                ny[i] = -dx / len;
                 c[i] = xs[i] * nx[i] + ys[i] * ny[i];
             }
         }
@@ -38,8 +40,8 @@ namespace IAFahim.Geometry.Hull
                     int prev = q[tail - 2];
                     int curr = q[tail - 1];
                     double px_curr, py_curr;
-                    Intersect(nx[prev], ny[prev], c[prev] + mid, nx[curr], ny[curr], c[curr] + mid, out px_curr, out py_curr);
-                    if (nx[i] * px_curr + ny[i] * py_curr > c[i] + mid - 1e-9) tail--;
+                    Intersect(nx[prev], ny[prev], c[prev] - mid, nx[curr], ny[curr], c[curr] - mid, out px_curr, out py_curr);
+                    if (nx[i] * px_curr + ny[i] * py_curr > c[i] - mid + 1e-9) tail--;
                     else break;
                 }
                 while (head + 1 < tail)
@@ -47,8 +49,8 @@ namespace IAFahim.Geometry.Hull
                     int prev = q[head];
                     int curr = q[head + 1];
                     double px_curr, py_curr;
-                    Intersect(nx[prev], ny[prev], c[prev] + mid, nx[curr], ny[curr], c[curr] + mid, out px_curr, out py_curr);
-                    if (nx[i] * px_curr + ny[i] * py_curr > c[i] + mid - 1e-9) head++;
+                    Intersect(nx[prev], ny[prev], c[prev] - mid, nx[curr], ny[curr], c[curr] - mid, out px_curr, out py_curr);
+                    if (nx[i] * px_curr + ny[i] * py_curr > c[i] - mid + 1e-9) head++;
                     else break;
                 }
                 q[tail++] = i;
@@ -59,8 +61,8 @@ namespace IAFahim.Geometry.Hull
                 int curr = q[tail - 1];
                 int first = q[head];
                 double px_curr, py_curr;
-                Intersect(nx[prev], ny[prev], c[prev] + mid, nx[curr], ny[curr], c[curr] + mid, out px_curr, out py_curr);
-                if (nx[first] * px_curr + ny[first] * py_curr > c[first] + mid - 1e-9) tail--;
+                Intersect(nx[prev], ny[prev], c[prev] - mid, nx[curr], ny[curr], c[curr] - mid, out px_curr, out py_curr);
+                if (nx[first] * px_curr + ny[first] * py_curr > c[first] - mid + 1e-9) tail--;
                 else break;
             }
             return tail - head >= 3;
