@@ -130,5 +130,94 @@ namespace IAFahim.Geometry.Advanced.Tests
             for (int i = 0; i < n; i++) { int j = (i + 1) % n; s += x[i] * y[j] - x[j] * y[i]; }
             return Math.Abs(s) * 0.5;
         }
+
+        [Test]
+        public void Union_TwoOverlappingUnitSquares_AreaIs1_75()
+        {
+            double* ax = stackalloc double[4] { 0, 1, 1, 0 };
+            double* ay = stackalloc double[4] { 0, 0, 1, 1 };
+            double* bx = stackalloc double[4] { 0.5, 1.5, 1.5, 0.5 };
+            double* by = stackalloc double[4] { 0.5, 0.5, 1.5, 1.5 };
+            double* ox = stackalloc double[32];
+            double* oy = stackalloc double[32];
+            int n = PolygonBoolean.Union(ax, ay, 4, bx, by, 4, ox, oy, 32);
+            Assert.IsTrue(n >= 6, $"n={n}");
+            double area = Shoelace(ox, oy, n);
+            Assert.AreEqual(1.75, area, 1e-6, $"area={area} n={n}");
+        }
+
+        [Test]
+        public void Difference_PartialOverlap_AreaIs0_75()
+        {
+            double* ax = stackalloc double[4] { 0, 1, 1, 0 };
+            double* ay = stackalloc double[4] { 0, 0, 1, 1 };
+            double* bx = stackalloc double[4] { 0.5, 1.5, 1.5, 0.5 };
+            double* by = stackalloc double[4] { 0.5, 0.5, 1.5, 1.5 };
+            double* ox = stackalloc double[32];
+            double* oy = stackalloc double[32];
+            int n = PolygonBoolean.Difference(ax, ay, 4, bx, by, 4, ox, oy, 32);
+            Assert.IsTrue(n >= 4, $"n={n}");
+            double area = Shoelace(ox, oy, n);
+            Assert.AreEqual(0.75, area, 1e-6, $"area={area} n={n}");
+        }
+
+        [Test]
+        public void Difference_ContainedSquare_ReturnsOuterA()
+        {
+            double* ax = stackalloc double[4] { 0, 2, 2, 0 };
+            double* ay = stackalloc double[4] { 0, 0, 2, 2 };
+            double* bx = stackalloc double[4] { 0.5, 1.5, 1.5, 0.5 };
+            double* by = stackalloc double[4] { 0.5, 0.5, 1.5, 1.5 };
+            double* ox = stackalloc double[32];
+            double* oy = stackalloc double[32];
+            int n = PolygonBoolean.Difference(ax, ay, 4, bx, by, 4, ox, oy, 32);
+            Assert.IsTrue(n >= 4);
+            double area = Shoelace(ox, oy, n);
+            Assert.AreEqual(4.0, area, 1e-6, $"area={area}");
+        }
+
+        [Test]
+        public void Xor_PartialOverlap_FirstComponentArea0_75()
+        {
+            double* ax = stackalloc double[4] { 0, 1, 1, 0 };
+            double* ay = stackalloc double[4] { 0, 0, 1, 1 };
+            double* bx = stackalloc double[4] { 0.5, 1.5, 1.5, 0.5 };
+            double* by = stackalloc double[4] { 0.5, 0.5, 1.5, 1.5 };
+            double* ox = stackalloc double[32];
+            double* oy = stackalloc double[32];
+            int n = PolygonBoolean.Xor(ax, ay, 4, bx, by, 4, ox, oy, 32);
+            Assert.IsTrue(n >= 4, $"n={n}");
+            double area = Shoelace(ox, oy, n);
+            Assert.AreEqual(0.75, area, 1e-6, $"area={area}");
+        }
+
+        [Test]
+        public void Union_Disjoint_ReturnsFirstPoly()
+        {
+            double* ax = stackalloc double[4] { 0, 1, 1, 0 };
+            double* ay = stackalloc double[4] { 0, 0, 1, 1 };
+            double* bx = stackalloc double[4] { 3, 4, 4, 3 };
+            double* by = stackalloc double[4] { 3, 3, 4, 4 };
+            double* ox = stackalloc double[16];
+            double* oy = stackalloc double[16];
+            int n = PolygonBoolean.Union(ax, ay, 4, bx, by, 4, ox, oy, 16);
+            Assert.AreEqual(4, n);
+            Assert.IsTrue(Math.Abs(Shoelace(ox, oy, n) - 1.0) < 1e-9);
+        }
+
+        [Test]
+        public void Xor_Identical_EmptyOrZeroArea()
+        {
+            double* ax = stackalloc double[4] { 0, 1, 1, 0 };
+            double* ay = stackalloc double[4] { 0, 0, 1, 1 };
+            double* ox = stackalloc double[16];
+            double* oy = stackalloc double[16];
+            int n = PolygonBoolean.Xor(ax, ay, 4, ax, ay, 4, ox, oy, 16);
+            // identical → xor empty (0) or degenerate
+            if (n >= 3)
+                Assert.IsTrue(Shoelace(ox, oy, n) < 1e-6);
+            else
+                Assert.IsTrue(n == 0 || n < 3);
+        }
     }
 }

@@ -44,7 +44,7 @@ Total: 162
 - [x] `IAFahim.DS.UnsafeArray` — defining tests + all historical criticals revalidated fixed/absent
 - [x] `IAFahim.DS.WaveletMatrix` — revalidated open findings fixed/deferred_ni; deferred_apis=1
 - [x] `IAFahim.GameTheory` — GameDp mex bound g<64; tests 9/9
-- [x] `IAFahim.Geometry.Advanced` — ClosestPair strip merge; polygon boolean NI ops deferred
+- [x] `IAFahim.Geometry.Advanced` — ClosestPair strip merge; convex PolygonBoolean Intersection/Union/Difference/Xor
 - [x] `IAFahim.Geometry.Arrangement` — KD Query axis depth&1; SqDist double; Partition median after axis sort. tests 2/2.
 - [x] `IAFahim.Geometry.Azimuth` — defining tests + all historical criticals revalidated fixed/absent
 - [x] `IAFahim.Geometry.Basic` — PolygonContains dy normalize; deferred Int256 helpers

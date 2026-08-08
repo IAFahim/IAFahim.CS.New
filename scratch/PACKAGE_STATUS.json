@@ -4245,12 +4245,8 @@
       }
     ],
     "algorithms_summary": "Circumcenter, MinimumEnclosingCircle, IntegerPointCount, PickTheorem, ConvexDiameter, RotatingCalipers, MinkowskiSum, ClosestPair, PolygonBoolean",
-    "notes": "ClosestPair strip merge; polygon boolean NI ops deferred",
-    "deferred_apis": [
-      "Union",
-      "Difference",
-      "Xor"
-    ]
+    "notes": "ClosestPair strip merge; convex PolygonBoolean Intersection/Union/Difference/Xor",
+    "deferred_apis": []
   },
   {
     "package": "IAFahim.Geometry.Arrangement",
